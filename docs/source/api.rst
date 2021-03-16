@@ -1,0 +1,4 @@
+stcall API
+==========
+
+.. automodapi:: stcal
