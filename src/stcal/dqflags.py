@@ -10,8 +10,11 @@ The data structure that stores bit flags is just the standard Python `int`,
 which provides 32 bits. Bits of an integer are most easily referred to using
 the formula `2**bit_number` where `bit_number` is the 0-index bit of interest.
 """
+from astropy.nddata.bitmask import interpret_bit_flags as ap_interpret_bit_flags
+from stcal.basic_utils import multiple_replace
 
-def interpret_bit_flags(bit_flags, flip_bits=None):
+
+def interpret_bit_flags(bit_flags, flip_bits=None, mnemonic_map=None):
     """Converts input bit flags to a single integer value (bit mask) or `None`.
 
     Wraps `astropy.nddate.bitmask.interpret_bit_flags`, allowing the
@@ -47,13 +50,13 @@ def interpret_bit_flags(bit_flags, flip_bits=None):
     ...          'SATURATED':  pixel['SATURATED'],
     ...          }
 
-    >>> dqflags_to_mnemonics(1, pixel)
+    >>> dqflags_to_mnemonics(1, mnemonic_map=pixel)
     {'DO_NOT_USE'}
 
-    >>> dqflags_to_mnemonics(7, pixel)             #doctest: +SKIP
+    >>> dqflags_to_mnemonics(7, mnemonic_map=pixel)     #doctest: +SKIP
     {'JUMP_DET', 'DO_NOT_USE', 'SATURATED'}
 
-    >>> dqflags_to_mnemonics(7, pixel) == {'JUMP_DET', 'DO_NOT_USE', 'SATURATED'}
+    >>> dqflags_to_mnemonics(7, mnemonic_map=pixel) == {'JUMP_DET', 'DO_NOT_USE', 'SATURATED'}
     True
 
     >>> dqflags_to_mnemonics(1, mnemonic_map=pixel)
@@ -62,12 +65,13 @@ def interpret_bit_flags(bit_flags, flip_bits=None):
     >>> dqflags_to_mnemonics(1, mnemonic_map=group)
     {'DO_NOT_USE'}
     """
-
+    if mnemonic_map is None:
+        raise TypeError("`mnemonic_map` is a required argument")
     bit_flags_dm = bit_flags
     if isinstance(bit_flags, str):
         dm_flags = {
             key: str(val)
-            for key, val in pixel.items()
+            for key, val in mnemonic_map.items()
         }
         bit_flags_dm = multiple_replace(bit_flags, dm_flags)
 
