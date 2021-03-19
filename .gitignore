@@ -139,7 +139,7 @@ dmypy.json
 cython_debug/
 
 # setuptools-scm generated module
-src/stdatamodels/_version.py
+src/stcal/_version.py
 
 # auto-generated API docs
 docs/source/api
