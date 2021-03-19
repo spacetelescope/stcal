@@ -29,6 +29,10 @@ def interpret_bit_flags(bit_flags, flip_bits=None, mnemonic_map=None):
     flip_bits : bool, None
         See `astropy.nddata.bitmask.interpret_bit_flags`.
 
+    mnemonic_map : {str: int[,...]}
+        Dictionary associating the mnemonic string to an integer value
+        representing the set bit for that mnemonic.
+
     Returns
     -------
     bitmask : int or None
@@ -37,33 +41,6 @@ def interpret_bit_flags(bit_flags, flip_bits=None, mnemonic_map=None):
         If input string value was prepended with '~' (or ``flip_bits`` was set
         to `True`), then returned value will have its bits flipped
         (inverse mask).
-
-    Examples
-    --------
-    >>> pixel = {'GOOD':             0,      # No bits set, all is good
-    ...          'DO_NOT_USE':       2**0,   # Bad pixel. Do not use.
-    ...          'SATURATED':        2**1,   # Pixel saturated during exposure
-    ...          'JUMP_DET':         2**2,   # Jump detected during exposure
-    ...          }
-    >>> group = {'GOOD':       pixel['GOOD'],
-    ...          'DO_NOT_USE': pixel['DO_NOT_USE'],
-    ...          'SATURATED':  pixel['SATURATED'],
-    ...          }
-
-    >>> dqflags_to_mnemonics(1, mnemonic_map=pixel)
-    {'DO_NOT_USE'}
-
-    >>> dqflags_to_mnemonics(7, mnemonic_map=pixel)     #doctest: +SKIP
-    {'JUMP_DET', 'DO_NOT_USE', 'SATURATED'}
-
-    >>> dqflags_to_mnemonics(7, mnemonic_map=pixel) == {'JUMP_DET', 'DO_NOT_USE', 'SATURATED'}
-    True
-
-    >>> dqflags_to_mnemonics(1, mnemonic_map=pixel)
-    {'DO_NOT_USE'}
-
-    >>> dqflags_to_mnemonics(1, mnemonic_map=group)
-    {'DO_NOT_USE'}
     """
     if mnemonic_map is None:
         raise TypeError("`mnemonic_map` is a required argument")
