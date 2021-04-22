@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
 
-from jwst.ramp_fitting.ramp_fit import ramp_fit
-from jwst.ramp_fitting.ols_fit import calc_num_seg
-from jwst.datamodels import dqflags
-from jwst.datamodels import RampModel
-from jwst.datamodels import GainModel, ReadnoiseModel
+from stcal.ramp_fitting.ramp_fit import ramp_fit
+from stcal.ramp_fitting.ols_fit import calc_num_seg
+from stcal.datamodels import dqflags
+from stcal.datamodels import RampModel
+from stcal.datamodels import GainModel, ReadnoiseModel
 
 DO_NOT_USE = dqflags.group['DO_NOT_USE']
 JUMP_DET = dqflags.group['JUMP_DET']
