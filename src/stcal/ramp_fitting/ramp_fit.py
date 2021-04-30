@@ -48,11 +48,11 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     save_opt : boolean
        calculate optional fitting results
 
-    readnoise_model : instance of data Model
-        readnoise for all pixels
+    readnoise_2d: ndarray
+        2-D array readnoise for all pixels
 
-    gain_model : instance of gain model
-        gain for all pixels
+    gain_2d: ndarray
+        2-D array gain for all pixels
 
     algorithm : string
         'OLS' specifies that ordinary least squares should be used;
