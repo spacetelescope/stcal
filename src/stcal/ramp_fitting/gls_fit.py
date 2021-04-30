@@ -16,18 +16,18 @@ import numpy as np
 import numpy.linalg as la
 import time
 
-from .. import datamodels
-from ..datamodels import dqflags
+from jwst import datamodels
+from . import contants
 
 from . import utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-DO_NOT_USE = dqflags.group['DO_NOT_USE']
-JUMP_DET = dqflags.group['JUMP_DET']
-SATURATED = dqflags.group['SATURATED']
-UNRELIABLE_SLOPE = dqflags.pixel['UNRELIABLE_SLOPE']
+DO_NOT_USE = constants.DO_NOT_USE 
+JUMP_DET = constants.JUMP_DET 
+SATURATED = constants.SATURATED 
+UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE 
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
@@ -597,10 +597,10 @@ def determine_slope(data_sect, input_var_sect,
         may have differing maximum numbers of cosmic rays.
 
     saturated_flag: int
-        dqflags.group['SATURATED']
+        constants.SATURATED
 
     jump_flag: int
-        dqflags.group['JUMP_DET']
+        constants.JUMP_DET
 
     Returns
     -------
@@ -698,7 +698,7 @@ def evaluate_fit(intercept_sect, slope_sect, cr_sect,
         data_sect.
 
     jump_flag: int
-        dqflags.group['JUMP_DET']
+        contants.JUMP_DET
 
     Returns
     -------
@@ -828,10 +828,10 @@ def compute_slope(data_sect, input_var_sect,
         The maximum number of cosmic rays that should be handled.
 
     saturated_flag: int
-        dqflags.group['SATURATED']
+        constants.SATURATED
 
     jump_flag: int
-        dqflags.group['JUMP_DET']
+        constants.JUMP_DET
 
     use_extra_terms: bool
         True if we should include Massimo Robberto's terms in the

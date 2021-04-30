@@ -7,20 +7,22 @@ import numpy as np
 import time
 
 import warnings
-from .. import datamodels
-from ..datamodels import dqflags
-from ..datamodels import RampModel
-from ..lib import pipe_utils
 
+# TODO removed these dependencies
+from jwst import datamodels
+from jwst.datamodels import RampModel
+from jwst.lib import pipe_utils
+
+from . import constants
 from . import utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-DO_NOT_USE = dqflags.group['DO_NOT_USE']
-JUMP_DET = dqflags.group['JUMP_DET']
-SATURATED = dqflags.group['SATURATED']
-UNRELIABLE_SLOPE = dqflags.pixel['UNRELIABLE_SLOPE']
+DO_NOT_USE = constants.DO_NOT_USE
+JUMP_DET = constants.JUMP_DET
+SATURATED = constants.SATURATED
+UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 

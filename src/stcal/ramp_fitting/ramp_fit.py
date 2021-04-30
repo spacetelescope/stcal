@@ -14,9 +14,10 @@
 #    1-based, unless noted otherwise.
 
 import logging
+import numpy as np
 
 
-from . import gls_fit           # used only if algorithm is "GLS"
+# from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
 from . import utils
 
@@ -26,7 +27,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
-def ramp_fit(model, buffsize, save_opt, readnoise_model, gain_model,
+def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
              algorithm, weighting, max_cores):
     """
     Calculate the count rate for each pixel in all data cube sections and all
@@ -85,16 +86,24 @@ def ramp_fit(model, buffsize, save_opt, readnoise_model, gain_model,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    # convert read noise to correct units & scale down for single groups,
+    #   and account for the number of frames per group
+    nframes = model.meta.exposure.nframes
+    readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
+
     if algorithm.upper() == "GLS":
-        new_model, int_model, gls_opt_model = gls_fit.gls_ramp_fit(
-            model, buffsize, save_opt, readnoise_model, gain_model, max_cores)
+        # new_model, int_model, gls_opt_model = gls_fit.gls_ramp_fit(
+        #     model, buffsize, save_opt, readnoise_model, gain_model, max_cores)
+        new_model, int_model, gls_opt_model = None, None, None
         opt_model = None
     else:
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
+        '''
         frames_per_group = model.meta.exposure.nframes
         readnoise_2d, gain_2d = \
             utils.get_ref_subs(model, readnoise_model, gain_model, frames_per_group)
+        '''
 
         # Compute ramp fitting using ordinary least squares.
         new_model, int_model, opt_model = ols_fit.ols_ramp_fit_multi(

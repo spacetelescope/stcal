@@ -6,9 +6,11 @@ import multiprocessing
 import numpy as np
 import warnings
 
-from .. import datamodels
-from ..datamodels import dqflags
-from ..lib import reffile_utils
+from . import constants
+
+from jwst import datamodels
+#from jwst.datamodels import dqflags
+from jwst.lib import reffile_utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -16,11 +18,11 @@ log.setLevel(logging.DEBUG)
 # Replace zero or negative variances with this:
 LARGE_VARIANCE = 1.e8
 
-DO_NOT_USE = dqflags.group['DO_NOT_USE']
-JUMP_DET = dqflags.group['JUMP_DET']
-SATURATED = dqflags.group['SATURATED']
-UNRELIABLE_SLOPE = dqflags.pixel['UNRELIABLE_SLOPE']
-
+DO_NOT_USE = constants.DO_NOT_USE 
+SATURATED = constants.SATURATED 
+JUMP_DET = constants.JUMP_DET 
+NO_GAIN_VALUE = constants.NO_GAIN_VALUE 
+UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE 
 
 class OptRes:
     """
@@ -225,7 +227,7 @@ class OptRes:
         max_cr = 0
         for ii_int in range(0, n_int):
             dq_int = dq_cube[ii_int, :, :, :]
-            dq_cr = np.bitwise_and(dqflags.group['JUMP_DET'], dq_int)
+            dq_cr = np.bitwise_and(JUMP_DET, dq_int)
             max_cr_int = (dq_cr > 0.).sum(axis=0).max()
             max_cr = max(max_cr, max_cr_int)
 
@@ -520,7 +522,7 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
     gdq_2d_nan = gdq_2d.copy()  # group dq with SATS will be replaced by nans
     gdq_2d_nan = gdq_2d_nan.astype(np.float32)
 
-    wh_sat = np.where(np.bitwise_and(gdq_2d, dqflags.group['SATURATED']))
+    wh_sat = np.where(np.bitwise_and(gdq_2d, SATURATED))
     if len(wh_sat[0]) > 0:
         gdq_2d_nan[wh_sat] = np.nan  # set all SAT groups to nan
 
@@ -545,7 +547,7 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
         del wh_good
 
         # Locate any CRs that appear before the first SAT group...
-        wh_cr = np.where(gdq_2d_nan[i_read, :].astype(np.int32) & dqflags.group['JUMP_DET'] > 0)
+        wh_cr = np.where(gdq_2d_nan[i_read, :].astype(np.int32) & JUMP_DET > 0)
 
         # ... but not on final read:
         if (len(wh_cr[0]) > 0 and (i_read < nreads - 1)):
@@ -661,8 +663,7 @@ def calc_pedestal(num_int, slope_int, firstf_int, dq_first, nframes, groupgap,
     ped = ff_all - slope_int[num_int, ::] * \
         (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
 
-    ped[np.bitwise_and(dq_first, dqflags.group['SATURATED']
-                       ) == dqflags.group['SATURATED']] = 0
+    ped[np.bitwise_and(dq_first, SATURATED) == SATURATED] = 0
     ped[np.isnan(ped)] = 0.
 
     return ped
@@ -1046,8 +1047,8 @@ def get_more_info(model):  # pragma: no cover
 
     group_time = model.meta.exposure.group_time
     nframes_used = model.meta.exposure.nframes
-    saturated_flag = dqflags.group['SATURATED']
-    jump_flag = dqflags.group['JUMP_DET']
+    saturated_flag = SATURATED
+    jump_flag = JUMP_DET
 
     return (group_time, nframes_used, saturated_flag, jump_flag)
 
@@ -1101,13 +1102,13 @@ def reset_bad_gain(pdq, gain):
         warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
         wh_g = np.where(gain <= 0.)
     if len(wh_g[0]) > 0:
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags.pixel['NO_GAIN_VALUE'])
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags.pixel['DO_NOT_USE'])
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], NO_GAIN_VALUE)
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], DO_NOT_USE)
 
     wh_g = np.where(np.isnan(gain))
     if len(wh_g[0]) > 0:
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags.pixel['NO_GAIN_VALUE'])
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags.pixel['DO_NOT_USE'])
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], NO_GAIN_VALUE)
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], DO_NOT_USE)
 
     return pdq
 
@@ -1276,8 +1277,7 @@ def fix_sat_ramps(sat_0th_group_int, var_p3, var_both3, slope_int, dq_int):
     var_p3[sat_0th_group_int > 0] = LARGE_VARIANCE
     var_both3[sat_0th_group_int > 0] = LARGE_VARIANCE
     slope_int[sat_0th_group_int > 0] = 0.
-    dq_int[sat_0th_group_int > 0] = np.bitwise_or(
-        dq_int[sat_0th_group_int > 0], dqflags.pixel['DO_NOT_USE'])
+    dq_int[sat_0th_group_int > 0] = np.bitwise_or(dq_int[sat_0th_group_int > 0], DO_NOT_USE)
 
     return var_p3, var_both3, slope_int, dq_int
 
@@ -1317,8 +1317,8 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
     """
     # Create model for the primary output. Flag all pixels in the pixiel DQ
     #   extension as SATURATED and DO_NOT_USE.
-    pixeldq = np.bitwise_or(pixeldq, dqflags.group['SATURATED'])
-    pixeldq = np.bitwise_or(pixeldq, dqflags.group['DO_NOT_USE'])
+    pixeldq = np.bitwise_or(pixeldq, SATURATED)
+    pixeldq = np.bitwise_or(pixeldq, DO_NOT_USE)
 
     new_model = datamodels.ImageModel(data=np.zeros(imshape, dtype=np.float32),
                                       dq=pixeldq,
@@ -1338,7 +1338,7 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
             groupdq_3d[ii, :, :] = np.bitwise_or.reduce(groupdq[ii, :, :, :],
                                                         axis=0)
 
-        groupdq_3d = np.bitwise_or(groupdq_3d, dqflags.group['DO_NOT_USE'])
+        groupdq_3d = np.bitwise_or(groupdq_3d, DO_NOT_USE)
         int_model = datamodels.CubeModel(
             data=np.zeros((n_int,) + imshape, dtype=np.float32),
             dq=groupdq_3d,
