@@ -117,11 +117,16 @@ def ols_ramp_fit_multi(
         log.debug(f"Max segments={max_segments}")
 
         # Single threaded computation
-        new_mdl, int_mdl, opt_res = ols_ramp_fit_single(
+        image_info, int_info, opt_info = ols_ramp_fit_single(
             input_model, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
-        if new_mdl is None:
+        if image_info is None:
             return None, None, None
 
+        # TODO: Outputs should not be data models.  They should be simple
+            # arrays or tuples/dictionaries of arrays.
+        return image_info, int_info, opt_info
+
+        '''
         # Create output models to be populated after ramp fitting.
         int_model, opt_model, out_model = create_output_models(
             input_model, number_of_integrations, save_opt,
@@ -130,9 +135,12 @@ def ols_ramp_fit_multi(
         set_output_models(out_model, int_model, opt_model, new_mdl, int_mdl, opt_res, save_opt)
 
         return out_model, int_model, opt_model
+        '''
 
     # Call ramp fitting for multi-processor (multiple data slices) case
     else:
+        # raise not implemented exception
+        return None, None, None
         '''
         log.debug(f'number of processes being used is {number_slices}')
         rows_per_slice = round(total_rows / number_slices)
@@ -342,6 +350,7 @@ def create_output_models(input_model, number_of_integrations, save_opt,
         The standard rate output model
     """
     imshape = (total_rows, total_cols)
+    # TODO: Eliminate the usage of datamodels here.
     out_model = datamodels.ImageModel(data=np.zeros(imshape, dtype=np.float32),
                                       dq=np.zeros(imshape, dtype=np.uint32),
                                       var_poisson=np.zeros(imshape, dtype=np.float32),
@@ -351,6 +360,7 @@ def create_output_models(input_model, number_of_integrations, save_opt,
     out_model.update(input_model)
 
     # create per integrations model
+    # TODO: Eliminate the usage of datamodels here.
     int_model = datamodels.CubeModel(
         data=np.zeros((number_of_integrations,) + imshape, dtype=np.float32),
         dq=np.zeros((number_of_integrations,) + imshape, dtype=np.uint32),
@@ -362,6 +372,7 @@ def create_output_models(input_model, number_of_integrations, save_opt,
 
     # Create model for the optional output
     if save_opt:
+        # TODO: Eliminate the usage of datamodels here.
         opt_model = datamodels.RampFitOutputModel(
             slope=np.zeros((number_of_integrations,) + (actual_segments,) + imshape, dtype=np.float32),
             yint=np.zeros((number_of_integrations,) + (actual_segments,) + imshape, dtype=np.float32),
@@ -1377,6 +1388,7 @@ def ramp_fit_overall(
         del dq_slice
 
     # Collect optional results for output
+    print(f" ---> save_opt = {save_opt}")
     if save_opt:
         gdq_cube = groupdq
         opt_res.shrink_crmag(n_int, gdq_cube, imshape, ngroups)
@@ -1396,9 +1408,10 @@ def ramp_fit_overall(
         opt_res.var_p_seg = var_p4[:, :f_max_seg, :, :]
         opt_res.var_r_seg = var_r4[:, :f_max_seg, :, :]
 
-        opt_model = opt_res.output_optional(effintim)
+        opt_info = opt_res.output_optional(effintim)
     else:
-        opt_model = None
+        opt_info = None
+    print(f" ---> opt_info is not None = {opt_info}")
 
     if inv_var_both4 is not None:
         del inv_var_both4
@@ -1416,7 +1429,7 @@ def ramp_fit_overall(
         del pixeldq
 
     # Output integration-specific results to separate file
-    int_model = utils.output_integ(slope_int, dq_int, effintim,
+    int_info = utils.output_integ(slope_int, dq_int, effintim,
                                    var_p3, var_r3, var_both3, int_times)
     if opt_res is not None:
         del opt_res
@@ -1479,13 +1492,17 @@ def ramp_fit_overall(
     del s_inv_var_r3
 
     # Create new model for the primary output.
-    new_model = datamodels.ImageModel(data=c_rates.astype(np.float32),
-                                      dq=final_pixeldq.astype(np.uint32),
-                                      var_poisson=var_p2.astype(np.float32),
-                                      var_rnoise=var_r2.astype(np.float32),
-                                      err=err_tot.astype(np.float32))
+    # TODO: Eliminate the usage of datamodels here.
+    data = c_rates.astype(np.float32)
+    dq = final_pixeldq.astype(np.uint32)
+    var_poisson = var_p2.astype(np.float32)
+    var_rnoise = var_r2.astype(np.float32)
+    err=err_tot.astype(np.float32)
 
-    return new_model, int_model, opt_model
+    image_info = (data, dq, var_poisson, var_rnoise, err)
+
+    return image_info, int_info, opt_info
+    # return new_model, int_model, opt_model
 
 
 def calc_power(snr):

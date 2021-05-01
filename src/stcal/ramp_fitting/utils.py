@@ -280,7 +280,8 @@ class OptRes:
 
         Returns
         -------
-        rfo_model : Data Model object
+        opt_info: tuple 
+            (slope,sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
         """
         self.var_p_seg[self.var_p_seg > 0.4 * LARGE_VARIANCE] = 0.
         self.var_r_seg[self.var_r_seg > 0.4 * LARGE_VARIANCE] = 0.
@@ -292,6 +293,7 @@ class OptRes:
         self.weights[1. / self.weights > 0.4 * LARGE_VARIANCE] = 0.
         warnings.resetwarnings()
 
+        '''
         rfo_model = \
             datamodels.RampFitOutputModel(
                 slope=self.slope_seg.astype(np.float32) / effintim,
@@ -304,7 +306,21 @@ class OptRes:
                 weights=self.weights.astype(np.float32),
                 crmag=self.cr_mag_seg)
 
-        return rfo_model
+        '''
+        slope = self.slope_seg.astype(np.float32) / effintim
+        sigslope = self.sigslope_seg.astype(np.float32)
+        var_poisson = self.var_p_seg.astype(np.float32)
+        var_rnoise = self.var_r_seg.astype(np.float32)
+        yint = self.yint_seg.astype(np.float32)
+        sigyint = self.sigyint_seg.astype(np.float32)
+        pedestal = self.ped_int.astype(np.float32)
+        weights = self.weights.astype(np.float32)
+        crmag = self.cr_mag_seg
+
+        opt_info = (slope,sigslope, var_poisson, var_rnoise, yint, sigyint,
+                pedestal, weights, crmag)
+
+        return opt_info
 
     def print_full(self):  # pragma: no cover
         """
@@ -667,8 +683,8 @@ def calc_pedestal(num_int, slope_int, firstf_int, dq_first, nframes, groupgap,
     return ped
 
 
-def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
-                 int_times):
+def output_integ(
+        slope_int, dq_int, effintim, var_p3, var_r3, var_both3, int_times):
     """
     For the OLS algorithm, construct the output integration-specific results.
     Any variance values that are a large fraction of the default value
@@ -717,18 +733,17 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
     var_r3[var_r3 > 0.4 * LARGE_VARIANCE] = 0.
     var_both3[var_both3 > 0.4 * LARGE_VARIANCE] = 0.
 
-    cubemod = datamodels.CubeModel()
-    cubemod.data = slope_int / effintim
-    cubemod.err = np.sqrt(var_both3)
-    cubemod.dq = dq_int
-    cubemod.var_poisson = var_p3
-    cubemod.var_rnoise = var_r3
-    cubemod.int_times = int_times
+    data = slope_int / effintim
+    err = np.sqrt(var_both3)
+    dq = dq_int
+    var_poisson = var_p3
+    var_rnoise = var_r3
+    int_times = int_times
 
     # Reset the warnings filter to its original state
     warnings.resetwarnings()
 
-    return cubemod
+    return (data, err, dq, var_poisson, var_rnoise, int_times)
 
 
 def gls_output_integ(model, slope_int, slope_err_int, dq_int):
