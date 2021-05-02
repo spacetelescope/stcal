@@ -75,19 +75,16 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         A tuple of computed fitting arrays
         (data, dq, var_poisson, var_rnoise, err)
 
-    int_model : Data Model object or None
-        DM object containing rate images for each integration in the exposure
-
     int_info: tuple
         A tuple of computed fitting arrays for each integration in the exposure
-        (data, err, dq, var_poisson, var_noise, int_times)
+        (data, dq, var_poisson, var_rnoise, int_times, err)
 
     opt_info: tuple 
         A tuple containing optional OLS-specific ramp fitting data for the
         exposure
-        (slope,sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
+        (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
 
-    gls_opt_model : GLS_RampFitModel object or None
+    gls_opt_model : GLS_RampFitModel object or None (not used; GLS not implemented)
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
@@ -97,27 +94,20 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
 
     if algorithm.upper() == "GLS":
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # TODO: When GLS is implemented return tuples!!!!!!!!!!!!
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        # Raise not implemented exception?
+
         # new_model, int_model, gls_opt_model = gls_fit.gls_ramp_fit(
         #     model, buffsize, save_opt, readnoise_model, gain_model, max_cores)
-        image_info, int_info, gls_opt_model = None, None, None
+        image_info, int_info, gls_opt_model = None, None, None  # HERE
         opt_model = None
     else:
         # Compute ramp fitting using ordinary least squares.
-        image_info, int_info, opt_model = ols_fit.ols_ramp_fit_multi(
+        image_info, int_info, opt_model = ols_fit.ols_ramp_fit_multi(  # HERE
             model, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
         gls_opt_model = None
 
-    # Update data units in output models
-
-    # TODO: Needs to be moved to stepc code
-    '''
-    if new_model is not None:
-        new_model.meta.bunit_data = 'DN/s'
-        new_model.meta.bunit_err = 'DN/s'
-
-    if int_model is not None:
-        int_model.meta.bunit_data = 'DN/s'
-        int_model.meta.bunit_err = 'DN/s'
-    '''
-
-    return image_info, int_info, opt_model, gls_opt_model
+    return image_info, int_info, opt_model, gls_opt_model  # HERE

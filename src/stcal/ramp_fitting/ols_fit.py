@@ -45,11 +45,11 @@ def ols_ramp_fit_multi(
     save_opt : boolean
        calculate optional fitting results
 
-    readnoise_2d : instance of data Model
-        readnoise for all pixels
+    readnoise_2d : ndarray
+        2-D readnoise for all pixels
 
-    gain_2d : instance of gain model
-        gain for all pixels
+    gain_2d : ndarray
+        2-D gain for all pixels
 
     algorithm : string
         'OLS' specifies that ordinary least squares should be used;
@@ -67,18 +67,20 @@ def ols_ramp_fit_multi(
 
     Returns
     -------
-    new_model : Data Model object
-        DM object containing a rate image averaged over all integrations in
-        the exposure
+    image_info: tuple
+        A tuple of computed fitting arrays
+        (data, dq, var_poisson, var_rnoise, err)
 
-    int_model : Data Model object or None
-        DM object containing rate images for each integration in the exposure
+    int_info: tuple
+        A tuple of computed fitting arrays for each integration in the exposure
+        (data, dq, var_poisson, var_rnoise, int_times, err)
 
-    opt_model : RampFitOutputModel object or None
-        DM object containing optional OLS-specific ramp fitting data for the
+    opt_info: tuple 
+        A tuple containing optional OLS-specific ramp fitting data for the
         exposure
+        (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
 
-    gls_opt_model : GLS_RampFitModel object or None
+    gls_opt_model : GLS_RampFitModel object or None (not used; GLS not implemented)
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
@@ -113,20 +115,23 @@ def ols_ramp_fit_multi(
         log.debug(f"Max segments={max_segments}")
 
         # Single threaded computation
-        image_info, int_info, opt_info = ols_ramp_fit_single(
+        image_info, int_info, opt_info = ols_ramp_fit_single(  # HERE
             input_model, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
         if image_info is None:
             return None, None, None
 
         # TODO: Outputs should not be data models.  They should be simple
             # arrays or tuples/dictionaries of arrays.
-        return image_info, int_info, opt_info
+        return image_info, int_info, opt_info  # HERE
 
     # Call ramp fitting for multi-processor (multiple data slices) case
     else:
         # raise not implemented exception
         return None, None, None
-        '''
+
+
+'''
+# Multiprocessing BEGIN
         log.debug(f'number of processes being used is {number_slices}')
         rows_per_slice = round(total_rows / number_slices)
         pool = Pool(processes=number_slices)
@@ -242,73 +247,13 @@ def ols_ramp_fit_multi(
             k = k + 1
 
         return out_model, int_model, opt_model
-        '''
 
 
-def set_output_models(out_model, int_model, opt_model, new_mdl, int_mdl, opt_res, save_opt):
-    """
-    out_model : Data Model Object
-        Allocated model to be populated
-
-    int_model : Data Model Object
-        Allocated model to be populated
-
-    opt_model : RampFitOutputModel object or None
-        Allocated model to be populated
-
-    new_mdl : Data Model object
-        Output from ols_ramp_fit_single to use to populate out_model
-
-    int_mdl : Data Model object
-        Output from ols_ramp_fit_single to use to populate int_model,
-        if int_model is not None
-
-    opt_res : RampFitOutputModel object
-        Output from ols_ramp_fit_single to use to populate opt_model,
-        if opt_model is not None
-
-    save_opt : boolean
-       Save optional fitting results.
-    """
-    out_model.data = new_mdl.data
-    out_model.dq = new_mdl.dq
-    out_model.var_poisson = new_mdl.var_poisson
-    out_model.var_rnoise = new_mdl.var_rnoise
-    out_model.err = new_mdl.err
-
-    if int_mdl is not None:
-        int_model.data = int_mdl.data
-        int_model.dq = int_mdl.dq
-        int_model.var_poisson = int_mdl.var_poisson
-        int_model.var_rnoise = int_mdl.var_rnoise
-        int_model.err = int_mdl.err
-        int_model.int_times = int_mdl.int_times
-    else:
-        int_model.data = None
-        int_model.dq = None
-        int_model.var_poisson = None
-        int_model.var_rnoise = None
-        int_model.err = None
-        int_model.int_times = None
-
-    if save_opt:
-        opt_model.slope = opt_res.slope
-        opt_model.sigslope = opt_res.sigslope
-        opt_model.var_poisson = opt_res.var_poisson
-        opt_model.var_rnoise = opt_res.var_rnoise
-        opt_model.yint = opt_res.yint
-        opt_model.sigyint = opt_res.sigyint
-        opt_model.pedestal = opt_res.pedestal
-        opt_model.weights = opt_res.weights
-        opt_model.crmag = opt_res.crmag
-
-
-'''
 def create_output_models(input_model, number_of_integrations, save_opt,
                          total_cols, total_rows, actual_segments, actual_CRs):
     """
     Create_output_models is used to make blank output models to hold the results from the OLS
-    ramp fitting.
+    ramp fitting.  For multiprocessing.
 
     Parameters
        ----------
@@ -585,6 +530,7 @@ def ols_ramp_fit_sliced(
         int_data, int_dq, int_var_poisson, int_var_rnoise, int_err, int_int_times, \
         opt_slope, opt_sigslope, opt_var_poisson, opt_var_rnoise, opt_yint, opt_sigyint, \
         opt_pedestal, opt_weights, opt_crmag, actual_segments, actual_CRs
+# Multiprocessing END
 '''
 
 
@@ -620,13 +566,18 @@ def ols_ramp_fit_single(
 
     Return
     ------
-    new_model : ImageModel
-        Contains the computed rates and variances for the ramp fitting.
+    image_info: tuple
+        A tuple of computed fitting arrays
+        (data, dq, var_poisson, var_rnoise, err)
 
-    int_model : Data model object
-        Integration-specific results to separate output file
+    int_info: tuple
+        A tuple of computed fitting arrays for each integration in the exposure
+        (data, dq, var_poisson, var_rnoise, int_times, err)
 
-    opt_model : OptRes
+    opt_info: tuple 
+        A tuple containing optional OLS-specific ramp fitting data for the
+        exposure
+        (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
     """
     tstart = time.time()
 
@@ -669,11 +620,11 @@ def ols_ramp_fit_single(
     #     all integrations:
     #     slope = sum_over_integs_and_segs(slope_seg/var_seg)/
     #                    sum_over_integs_and_segs(1/var_seg)
-    new_model, int_model, opt_model = ramp_fit_overall(
+    image_info, int_info, opt_info = ramp_fit_overall(
         input_model, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
         variances_ans, save_opt, int_times, tstart)
 
-    return new_model, int_model, opt_model
+    return image_info, int_info, opt_info
 
 
 def discard_miri_groups(input_model):
@@ -852,10 +803,10 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
     #   a ramp is saturated, it is assumed that all groups are saturated.
     first_gdq = groupdq[:, 0, :, :]
     if np.all(np.bitwise_and(first_gdq, SATURATED)):
-        new_model, int_model, opt_model = \
-            utils.do_all_sat(inpixeldq, groupdq, imshape, n_int, save_opt)
+        image_info, int_info, opt_info =  utils.do_all_sat(
+            inpixeldq, groupdq, imshape, n_int, save_opt)
 
-        return "saturated", new_model, int_model, opt_model
+        return "saturated", image_info, int_info, opt_info
 
     # Calculate effective integration time (once EFFINTIM has been populated
     #   and accessible, will use that instead), and other keywords that will
@@ -1284,14 +1235,18 @@ def ramp_fit_overall(
 
     Return
     ------
-    new_model : ImageModel
-        Contains the computed rates and variances for the ramp fitting.
+    image_info: tuple
+        A tuple of computed fitting arrays
+        (data, dq, var_poisson, var_rnoise, err)
 
-    int_model : Data model object
-        Integration-specific results to separate output file
+    int_info: tuple
+        A tuple of computed fitting arrays for each integration in the exposure
+        (data, dq, var_poisson, var_rnoise, int_times, err)
 
-    opt_model : OptRes
-        The optional product, when requested.
+    opt_info: tuple 
+        A tuple containing optional OLS-specific ramp fitting data for the
+        exposure
+        (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
     """
     # Get image data information
     data = input_model.data
@@ -1373,7 +1328,6 @@ def ramp_fit_overall(
         del dq_slice
 
     # Collect optional results for output
-    print(f" ---> save_opt = {save_opt}")
     if save_opt:
         gdq_cube = groupdq
         opt_res.shrink_crmag(n_int, gdq_cube, imshape, ngroups)
@@ -1396,7 +1350,6 @@ def ramp_fit_overall(
         opt_info = opt_res.output_optional(effintim)
     else:
         opt_info = None
-    print(f" ---> opt_info is not None = {opt_info}")
 
     if inv_var_both4 is not None:
         del inv_var_both4
@@ -1414,7 +1367,7 @@ def ramp_fit_overall(
         del pixeldq
 
     # Output integration-specific results to separate file
-    int_info = utils.output_integ(slope_int, dq_int, effintim,
+    int_info = utils.output_integ(slope_int, dq_int, effintim,  # HERE
                                    var_p3, var_r3, var_both3, int_times)
     if opt_res is not None:
         del opt_res
@@ -1486,8 +1439,7 @@ def ramp_fit_overall(
 
     image_info = (data, dq, var_poisson, var_rnoise, err)
 
-    return image_info, int_info, opt_info
-    # return new_model, int_model, opt_model
+    return image_info, int_info, opt_info  # HERE
 
 
 def calc_power(snr):

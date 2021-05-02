@@ -1260,16 +1260,18 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
 
     Returns
     -------
-    new_model : Data Model object
-        DM object containing a rate image averaged over all integrations in
-        the exposure
+    image_info: tuple
+        A tuple of computed fitting arrays
+        (data, dq, var_poisson, var_rnoise, err)
 
-    int_model : Data Model object or None
-        DM object containing rate images for each integration in the exposure
+    int_info: tuple
+        A tuple of computed fitting arrays for each integration in the exposure
+        (data, dq, var_poisson, var_rnoise, int_times, err)
 
-    opt_model : RampFitOutputModel object or None
-        DM object containing optional OLS-specific ramp fitting data for the
+    opt_info: tuple 
+        A tuple containing optional OLS-specific ramp fitting data for the
         exposure
+        (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
     """
     # Create model for the primary output. Flag all pixels in the pixiel DQ
     #   extension as SATURATED and DO_NOT_USE.
