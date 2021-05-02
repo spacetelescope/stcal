@@ -82,9 +82,6 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         A tuple of computed fitting arrays for each integration in the exposure
         (data, err, dq, var_poisson, var_noise, int_times)
 
-    opt_model : RampFitOutputModel object or None
-        DM object containing optional OLS-specific ramp fitting data for the
-        exposure
     opt_info: tuple 
         A tuple containing optional OLS-specific ramp fitting data for the
         exposure

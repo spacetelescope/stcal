@@ -8,8 +8,6 @@ import warnings
 
 from . import constants
 
-from jwst import datamodels
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -293,20 +291,6 @@ class OptRes:
         self.weights[1. / self.weights > 0.4 * LARGE_VARIANCE] = 0.
         warnings.resetwarnings()
 
-        '''
-        rfo_model = \
-            datamodels.RampFitOutputModel(
-                slope=self.slope_seg.astype(np.float32) / effintim,
-                sigslope=self.sigslope_seg.astype(np.float32),
-                var_poisson=self.var_p_seg.astype(np.float32),
-                var_rnoise=self.var_r_seg.astype(np.float32),
-                yint=self.yint_seg.astype(np.float32),
-                sigyint=self.sigyint_seg.astype(np.float32),
-                pedestal=self.ped_int.astype(np.float32),
-                weights=self.weights.astype(np.float32),
-                crmag=self.cr_mag_seg)
-
-        '''
         slope = self.slope_seg.astype(np.float32) / effintim
         sigslope = self.sigslope_seg.astype(np.float32)
         var_poisson = self.var_p_seg.astype(np.float32)
@@ -743,9 +727,12 @@ def output_integ(
     # Reset the warnings filter to its original state
     warnings.resetwarnings()
 
-    return (data, err, dq, var_poisson, var_rnoise, int_times)
+    int_info = (data, dq, var_poisson, var_rnoise, int_times, err)
+    return int_info
 
 
+# TODO GLS not used right now:
+'''
 def gls_output_integ(model, slope_int, slope_err_int, dq_int):
     """
     For the GLS algorithm, construct the output integration-specific results.
@@ -767,6 +754,7 @@ def gls_output_integ(model, slope_int, slope_err_int, dq_int):
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
+    # TODO: reference to datamodels must be removed.  Used tuples instead.
     cubemod = datamodels.CubeModel()
     cubemod.data = slope_int
     cubemod.err = slope_err_int
@@ -783,7 +771,8 @@ def gls_output_integ(model, slope_int, slope_err_int, dq_int):
 def gls_output_optional(model, intercept_int, intercept_err_int,
                         pedestal_int,
                         ampl_int, ampl_err_int):  # pragma: no cover
-    """Construct the optional results for the GLS algorithm.
+    """
+    Construct the optional results for the GLS algorithm.
 
     Extended Summary
     ----------------
@@ -822,6 +811,7 @@ def gls_output_optional(model, intercept_int, intercept_err_int,
         GLS-specific ramp fit data for the exposure.
     """
 
+    # TODO: reference to datamodels must be removed.  Used tuples instead.
     gls_ramp_model = datamodels.GLS_RampFitModel()
 
     gls_ramp_model.yint = intercept_int
@@ -883,6 +873,7 @@ def gls_pedestal(first_group, slope_int, s_mask,
         pedestal[s_mask] = 0.
 
     return pedestal
+'''
 
 
 def shift_z(a, off):
@@ -1285,11 +1276,12 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
     pixeldq = np.bitwise_or(pixeldq, SATURATED)
     pixeldq = np.bitwise_or(pixeldq, DO_NOT_USE)
 
-    new_model = datamodels.ImageModel(data=np.zeros(imshape, dtype=np.float32),
-                                      dq=pixeldq,
-                                      var_poisson=np.zeros(imshape, dtype=np.float32),
-                                      var_rnoise=np.zeros(imshape, dtype=np.float32),
-                                      err=np.zeros(imshape, dtype=np.float32))
+    sdata = np.zeros(imshape, dtype=np.float32)
+    sdq = pixeldq
+    svar_poisson = np.zeros(imshape, dtype=np.float32)
+    svar_rnoise = np.zeros(imshape, dtype=np.float32)
+    serr = np.zeros(imshape, dtype=np.float32)
+    image_info = (sdata, sdq, svar_poisson, svar_rnoise, serr)
 
     # Create model for the integration-specific output. The 3D group DQ created
     #   is based on the 4D group DQ of the model, and all pixels in all
@@ -1304,38 +1296,41 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
                                                         axis=0)
 
         groupdq_3d = np.bitwise_or(groupdq_3d, DO_NOT_USE)
-        int_model = datamodels.CubeModel(
-            data=np.zeros((n_int,) + imshape, dtype=np.float32),
-            dq=groupdq_3d,
-            var_poisson=np.zeros((n_int,) + imshape, dtype=np.float32),
-            var_rnoise=np.zeros((n_int,) + imshape, dtype=np.float32),
-            int_times=None,
-            err=np.zeros((n_int,) + imshape, dtype=np.float32))
+
+        idata = np.zeros((n_int,) + imshape, dtype=np.float32)
+        idq = groupdq_3d
+        ivar_poisson = np.zeros((n_int,) + imshape, dtype=np.float32)
+        ivar_rnoise = np.zeros((n_int,) + imshape, dtype=np.float32)
+        iint_times = None
+        ierr = np.zeros((n_int,) + imshape, dtype=np.float32)
+        int_info = (idata, idq, ivar_poisson, ivar_rnoise, iint_times, ierr)
 
     else:
-        int_model = None
+        int_info = None
 
     # Create model for the optional output
     if save_opt:
         new_arr = np.zeros((n_int,) + (1,) + imshape, dtype=np.float32)
 
-        opt_model = datamodels.RampFitOutputModel(
-            slope=new_arr,
-            sigslope=new_arr,
-            var_poisson=new_arr,
-            var_rnoise=new_arr,
-            yint=new_arr,
-            sigyint=new_arr,
-            pedestal=np.zeros((n_int,) + imshape, dtype=np.float32),
-            weights=new_arr,
-            crmag=new_arr)
+        oslope = new_arr
+        osigslope = new_arr
+        ovar_poisson = new_arr
+        ovar_rnoise = new_arr
+        oyint = new_arr
+        osigyint = new_arr
+        opedestal = np.zeros((n_int,) + imshape, dtype=np.float32)
+        oweights = new_arr
+        ocrmag = new_arr
+
+        opt_info = (oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, 
+                    osigyint, opedestal, oweights, ocrmag)
 
     else:
-        opt_model = None
+        opt_info= None
 
     log.info('All groups of all integrations are saturated.')
 
-    return new_model, int_model, opt_model
+    return image_info, int_info, opt_info
 
 
 def log_stats(c_rates):

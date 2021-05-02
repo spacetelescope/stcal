@@ -8,10 +8,6 @@ import time
 
 import warnings
 
-# TODO removed these dependencies
-from jwst import datamodels
-from jwst.datamodels import RampModel
-
 from . import constants
 from . import utils
 
@@ -125,17 +121,6 @@ def ols_ramp_fit_multi(
         # TODO: Outputs should not be data models.  They should be simple
             # arrays or tuples/dictionaries of arrays.
         return image_info, int_info, opt_info
-
-        '''
-        # Create output models to be populated after ramp fitting.
-        int_model, opt_model, out_model = create_output_models(
-            input_model, number_of_integrations, save_opt,
-            total_cols, total_rows, max_segments, max_CRs)
-
-        set_output_models(out_model, int_model, opt_model, new_mdl, int_mdl, opt_res, save_opt)
-
-        return out_model, int_model, opt_model
-        '''
 
     # Call ramp fitting for multi-processor (multiple data slices) case
     else:
@@ -318,6 +303,7 @@ def set_output_models(out_model, int_model, opt_model, new_mdl, int_mdl, opt_res
         opt_model.crmag = opt_res.crmag
 
 
+'''
 def create_output_models(input_model, number_of_integrations, save_opt,
                          total_cols, total_rows, actual_segments, actual_CRs):
     """
@@ -394,7 +380,6 @@ def create_output_models(input_model, number_of_integrations, save_opt,
     return int_model, opt_model, out_model
 
 
-'''
 def ols_ramp_fit_sliced(
         data, err, groupdq, inpixeldq, buffsize, save_opt, readnoise_2d, gain_2d,
         weighting, instrume, frame_time, ngroups, group_time, groupgap, nframes,
