@@ -88,11 +88,6 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
-    # convert read noise to correct units & scale down for single groups,
-    #   and account for the number of frames per group
-    nframes = model.meta.exposure.nframes
-    readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
-
     if algorithm.upper() == "GLS":
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # TODO: When GLS is implemented return tuples!!!!!!!!!!!!
@@ -105,6 +100,11 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         image_info, int_info, gls_opt_model = None, None, None  # HERE
         opt_model = None
     else:
+        # convert read noise to correct units & scale down for single groups,
+        #   and account for the number of frames per group
+        nframes = model.meta.exposure.nframes
+        readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
+
         # Compute ramp fitting using ordinary least squares.
         image_info, int_info, opt_model = ols_fit.ols_ramp_fit_multi(  # HERE
             model, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
