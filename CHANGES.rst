@@ -3,3 +3,7 @@
 
 - Added code to manipulate bitmasks.
 
+ramp_fitting
+------------
+
+- Added ramp fitting code [#]
