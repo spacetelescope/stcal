@@ -16,8 +16,8 @@ LARGE_VARIANCE = 1.e8
 
 # TODO Should figure out a better way to do this
 DO_NOT_USE = constants.DO_NOT_USE
-JUMP_DET = constants.JUMP_DET
 SATURATED = constants.SATURATED
+JUMP_DET = constants.JUMP_DET
 NO_GAIN_VALUE = constants.NO_GAIN_VALUE
 UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE
 

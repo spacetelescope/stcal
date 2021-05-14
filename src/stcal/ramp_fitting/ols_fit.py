@@ -16,9 +16,9 @@ log.setLevel(logging.DEBUG)
 
 # TODO Should figure out a better way to do this
 DO_NOT_USE = constants.DO_NOT_USE
-JUMP_DET = constants.JUMP_DET 
-SATURATED = constants.SATURATED 
-UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE 
+SATURATED = constants.SATURATED
+JUMP_DET = constants.JUMP_DET
+UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
