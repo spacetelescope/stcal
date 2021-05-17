@@ -43,7 +43,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     buffsize : int
         size of data section (buffer) in bytes
 
-    save_opt : boolean
+    save_opt : bool
        calculate optional fitting results
 
     readnoise_2d: ndarray
@@ -52,15 +52,15 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     gain_2d: ndarray
         2-D array gain for all pixels
 
-    algorithm : string
+    algorithm : str
         'OLS' specifies that ordinary least squares should be used;
         'GLS' specifies that generalized least squares should be used.
 
-    weighting : string
+    weighting : str
         'optimal' specifies that optimal weighting should be used;
          currently the only weighting supported.
 
-    max_cores : string
+    max_cores : str
         Number of cores to use for multiprocessing. If set to 'none' (the
         default), then no multiprocessing will be done. The other allowable
         values are 'quarter', 'half', and 'all'. This is the fraction of cores

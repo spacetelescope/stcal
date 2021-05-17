@@ -43,7 +43,7 @@ class OptRes:
         n_int : int
             number of integrations in data set
 
-        imshape : (int, int) tuple
+        imshape : tuple
             shape of 2D image
 
         max_seg : int
@@ -52,7 +52,7 @@ class OptRes:
         nreads : int
             number of reads in an integration
 
-        save_opt : boolean
+        save_opt : bool
            save optional fitting results
         """
         self.slope_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
@@ -81,7 +81,7 @@ class OptRes:
             maximum number of segments that will be fit within an
             integration, calculated over all pixels and all integrations
 
-        save_opt : boolean
+        save_opt : bool
             save optional fitting results
 
         Returns
@@ -114,13 +114,13 @@ class OptRes:
         rhi : int
             last column of section
 
-        sect_sect : (int,int) tuple
+        sect_sect : tuple
             shape of section image
 
-        ff_sect : 2D array
-            first frame data
+        ff_sect : ndarray
+            first frame data, 2-D float
 
-        save_opt : boolean
+        save_opt : bool
             save optional fitting results
 
         Returns
@@ -150,31 +150,31 @@ class OptRes:
 
         Parameters
         ----------
-        num_seg : int, 1D array
-            counter for segment number within the section
+        num_seg : ndarray
+            counter for segment number within the section, 1-D int
 
-        g_pix : int, 1D array
-            pixels having fitting results in current section
+        g_pix : ndarray
+            pixels having fitting results in current section, 1-D int
 
-        intercept : float, 1D array
-            intercepts for pixels in current segment and section
+        intercept : ndarray
+            intercepts for pixels in current segment and section, 1-D float
 
-        slope : float, 1D array
-            slopes for pixels in current segment and section
+        slope : ndarray
+            slopes for pixels in current segment and section, 1-D float
 
-        sig_intercept : float, 1D array
+        sig_intercept : ndarray
             uncertainties of intercepts for pixels in current segment
-            and section
+            and section, 1-D float
 
-        sig_slope : float, 1D array
+        sig_slope : ndarray
             uncertainties of slopes for pixels in current segment and
-            section
+            section, 1-D float
 
-        inv_var : float, 1D array
+        inv_var : ndarray
             reciprocals of variances for fits of pixels in current
-            segment and section
+            segment and section, 1-D float
 
-        save_opt : boolean
+        save_opt : bool
             save optional fitting results
 
         Returns
@@ -206,10 +206,10 @@ class OptRes:
         n_int : int
             number of integrations in dataset
 
-        dq_cube : 4D float array
-            input data quality array
+        dq_cube : ndarray
+            input data quality array, 4-D flag
 
-        imshape : (int, int) tuple
+        imshape : tuple
             shape of a single input image
 
         nreads : int
@@ -348,23 +348,23 @@ def alloc_arrays_1(n_int, imshape):
     n_int : int
         number of integrations
 
-    imshape : (int, int) tuple
+    imshape : tuple
         shape of a single image
 
     Returns
     -------
-    dq_int : int, 3D array
-        Cube of integration-specific group data quality values
+    dq_int : ndarray
+        Cube of integration-specific group data quality values, 3-D flag
 
-    median_diffs_2d : float, 2D array
-        Estimated median slopes
+    median_diffs_2d : ndarray
+        Estimated median slopes, 2-D float
 
-    num_seg_per_int : integer, 3D array
-        Cube of numbers of segments for all integrations and pixels
+    num_seg_per_int : ndarray
+        Cube of numbers of segments for all integrations and pixels, 3-D int
 
-    sat_0th_group_int : uint8, 3D array
+    sat_0th_group_int : ndarray
         Integration-specific slice whose value for a pixel is 1 if the initial
-        group of the ramp is saturated
+        group of the ramp is saturated, 3-D uint8
     """
     dq_int = np.zeros((n_int,) + imshape, dtype=np.uint32)
     num_seg_per_int = np.zeros((n_int,) + imshape, dtype=np.uint8)
@@ -386,7 +386,7 @@ def alloc_arrays_2(n_int, imshape, max_seg):
     n_int : int
         number of integrations
 
-    imshape : (int, int) tuple
+    imshape : tuple
         shape of a single image
 
     max_seg : int
@@ -394,49 +394,50 @@ def alloc_arrays_2(n_int, imshape, max_seg):
 
     Returns
     -------
-    var_p3 : float, 3D array
+    var_p3 : ndarray
         Cube of integration-specific values for the slope variance due to
-        Poisson noise only
+        Poisson noise only, 3-D float
 
-    var_r3 : float, 3D array
+    var_r3 : ndarray
         Cube of integration-specific values for the slope variance due to
-        readnoise only
+        readnoise only, 3-D float
 
-    var_p4 : float, 4D array
+    var_p4 : ndarray
         Hypercube of segment- and integration-specific values for the slope
-        variance due to Poisson noise only
+        variance due to Poisson noise only, 4-D float
 
-    var_r4 : float, 4D array
+    var_r4 : ndarray
         Hypercube of segment- and integration-specific values for the slope
-        variance due to read noise only
+        variance due to read noise only, 4-D float
 
-    var_both4 : float, 4D array
+    var_both4 : ndarray
         Hypercube of segment- and integration-specific values for the slope
-        variance due to combined Poisson noise and read noise
+        variance due to combined Poisson noise and read noise, 4-D float
 
-    var_both3 : float, 3D array
+    var_both3 : ndarray
         Cube of segment- and integration-specific values for the slope
-        variance due to combined Poisson noise and read noise
+        variance due to combined Poisson noise and read noise, 3-D float
 
-    inv_var_both4 : float, 4D array
+    inv_var_both4 : ndarray
         Hypercube of reciprocals of segment- and integration-specific values for
-        the slope variance due to combined Poisson noise and read noise
+        the slope variance due to combined Poisson noise and read noise, 4-D float
 
-    s_inv_var_p3 : float, 3D array
+    s_inv_var_p3 : ndarray
         Cube of reciprocals of segment- and integration-specific values for
-        the slope variance due to Poisson noise only, summed over segments
+        the slope variance due to Poisson noise only, summed over segments, 3-D float
 
-    s_inv_var_r3 : float, 3D array
+    s_inv_var_r3 : ndarray
         Cube of reciprocals of segment- and integration-specific values for
-        the slope variance due to read noise only, summed over segments
+        the slope variance due to read noise only, summed over segments, 3-D float
 
-    s_inv_var_both3 : float, 3D array
+    s_inv_var_both3 : ndarray
         Cube of reciprocals of segment- and integration-specific values for
         the slope variance due to combined Poisson noise and read noise, summed
-        over segments
+        over segments, 3-D float
 
-    segs_4 : integer, 4D array
-        Hypercube of lengths of segments for all integrations and pixels
+    segs_4 : ndarray
+        Hypercube of lengths of segments for all integrations and pixels, 4-D
+        int
     """
     # Initialize variances so that non-existing ramps and segments will have
     #   negligible contributions
@@ -469,14 +470,14 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
 
     Parameters
     ----------
-    rn_sect : float, 2D array
-        read noise values for all pixels in data section
+    rn_sect : ndarray
+        read noise values for all pixels in data section, 2-D float
 
-    gain_sect : float, 2D array
-        gain values for all pixels in data section
+    gain_sect : ndarray
+        gain values for all pixels in data section, 2-D float
 
-    gdq_sect : int, 3D array
-        data quality flags for pixels in section
+    gdq_sect : ndarray
+        data quality flags for pixels in section, 3-D int
 
     group_time : float
         Time increment between groups, in seconds.
@@ -486,21 +487,21 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
 
     Returns
     -------
-    den_r3 : float, 3D array
+    den_r3 : ndarray
         for a given integration, the reciprocal of the denominator of the
-        segment-specific variance of the segment's slope due to read noise
+        segment-specific variance of the segment's slope due to read noise, 3-D float
 
-    den_p3 : float, 3D array
+    den_p3 : ndarray
         for a given integration, the reciprocal of the denominator of the
-        segment-specific variance of the segment's slope due to Poisson noise
+        segment-specific variance of the segment's slope due to Poisson noise, 3-D float
 
-    num_r3 : float, 3D array
+    num_r3 : ndarray
         numerator of the segment-specific variance of the segment's slope
-        due to read noise
+        due to read noise, 3-D float
 
-    segs_beg_3 : integer, 3D array
+    segs_beg_3 : ndarray
         lengths of segments for all pixels in the given data section and
-        integration
+        integration, 3-D int
     """
     (nreads, asize2, asize1) = gdq_sect.shape
     npix = asize1 * asize2
@@ -625,14 +626,15 @@ def calc_pedestal(num_int, slope_int, firstf_int, dq_first, nframes, groupgap,
     num_int : int
         integration number
 
-    slope_int : float, 3D array
-        cube of integration-specific slopes
+    slope_int : ndarray
+        cube of integration-specific slopes, 3-D float
 
-    firstf_int : float, 3D array
-        integration-specific first frame array
+    firstf_int : ndarray
+        integration-specific first frame array, 3-D float
 
-    dq_first : int, 2D array
-        DQ of the initial group for all ramps in the given integration
+    dq_first : ndarray
+        DQ of the initial group for all ramps in the given integration, 2-D
+        flag
 
     nframes : int
         number of frames averaged per group; from the NFRAMES keyword. Does
@@ -647,8 +649,8 @@ def calc_pedestal(num_int, slope_int, firstf_int, dq_first, nframes, groupgap,
 
     Returns
     -------
-    ped : float, 2D array
-        pedestal image
+    ped : ndarray
+        pedestal image, 2-D float
     """
     ff_all = firstf_int[num_int, :, :].astype(np.float32)
     ped = ff_all - slope_int[num_int, ::] * \
@@ -673,26 +675,26 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
     model : instance of Data Model
        DM object for input
 
-    slope_int : float, 3D array
-       Data cube of weighted slopes for each integration
+    slope_int : ndarray
+       Data cube of weighted slopes for each integration, 3-D float
 
-    dq_int : int, 3D array
-       Data cube of DQ arrays for each integration
+    dq_int : ndarray
+       Data cube of DQ arrays for each integration, 3-D int
 
     effintim : float
        Effective integration time per integration
 
-    var_p3 : float, 3D array
+    var_p3 : ndarray
         Cube of integration-specific values for the slope variance due to
-        Poisson noise only
+        Poisson noise only, 3-D float
 
-    var_r3 : float, 3D array
+    var_r3 : ndarray
         Cube of integration-specific values for the slope variance due to
-        read noise only
+        read noise only, 3-D float
 
-    var_both3 : float, 3D array
+    var_both3 : ndarray
         Cube of integration-specific values for the slope variance due to
-        read noise and Poisson noise
+        read noise and Poisson noise, 3-D float
 
     int_times : bintable, or None
         The INT_TIMES table, if it exists in the input, else None
@@ -734,12 +736,16 @@ def gls_output_integ(model, slope_int, slope_err_int, dq_int):
     ----------
     model : instance of Data Model
         DM object for input
-    slope_int : float, 3D array
-        Data cube of weighted slopes for each integration
-    slope_err_int : float, 3D array
-        Data cube of slope errors for each integration
-    dq_int : int, 3D array
-        Data cube of DQ arrays for each integration
+
+    slope_int : ndarray
+        Data cube of weighted slopes for each integration, 3-D float
+
+    slope_err_int : ndarray
+        Data cube of slope errors for each integration, 3-D float
+
+    dq_int : ndarray
+        Data cube of DQ arrays for each integration, 3-D flag
+
     Returns
     -------
     cubemod : Data Model object
@@ -834,15 +840,15 @@ def gls_pedestal(first_group, slope_int, s_mask,
 
     Parameters
     ----------
-    first_group : float32, 2-D array
-        A slice of the first group in the ramp.
+    first_group : ndarray
+        A slice of the first group in the ramp, 2-D float
 
-    slope_int : float32, 2-D array
+    slope_int : ndarray
         The slope obtained by GLS ramp fitting.  This is a slice for the
-        current integration and a subset of the image lines.
+        current integration and a subset of the image lines, 2-D float
 
-    s_mask : bool, 2-D array
-        True for ramps that were saturated in the first group.
+    s_mask : ndarray
+        True for ramps that were saturated in the first group, 2-D bool
 
     frame_time : float
         The time to read one frame, in seconds.
@@ -853,9 +859,9 @@ def gls_pedestal(first_group, slope_int, s_mask,
 
     Returns
     -------
-    pedestal : float32, 2-D array
+    pedestal : ndarray
         This is a slice of the full pedestal array, and it's for the
-        current integration.
+        current integration, 2-D float
     """
 
     M = float(nframes_used)
@@ -875,16 +881,16 @@ def shift_z(a, off):
 
     Parameters
     ----------
-    a : float, 3D array
-        input array
+    a : ndarray
+        input array, 3-D float
 
     off : int
         offset in z-direction
 
     Returns
     -------
-    b : float, 3D array
-        shifted array
+    b : ndarray
+        shifted array, 3-D float
 
     """
     # set initial and final indices along z-direction for original and
@@ -969,16 +975,16 @@ def get_dataset_info(model):
     npix : int
        number of pixels in 2D array
 
-    imshape : (int, int) tuple
+    imshape : tuple
        shape of 2D image
 
-    cubeshape : (int, int, int) tuple
+    cubeshape : tuple
        shape of input dataset
 
     n_int : int
        number of integrations
 
-    instrume : string
+    instrume : str
        instrument
 
     frame_time : float
@@ -1055,8 +1061,8 @@ def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
 
     Parameters
     ----------
-    gdq_cube : 3-D ndarray
-        The group data quality array.
+    gdq_cube : ndarray
+        The group data quality array, 3-D flag
 
     jump_flag : int
         The data quality flag indicating a cosmic-ray hit.
@@ -1082,21 +1088,25 @@ def reset_bad_gain(pdq, gain):
 
     Parameters
     ----------
-    pdq : int, 2D array
-        pixel dq array of input model
+    pdq : ndarray
+        pixel dq array of input model, 2-D int
 
-    gain : float32, 2D array
-        gain array from reference file
+    gain : ndarray
+        gain array from reference file, 2-D float
 
     Returns
     -------
-    pdq : int, 2D array
+    pdq : ndarray
         pixleldq array of input model, reset to NO_GAIN_VALUE and DO_NOT_USE
-        for pixels in the gain array that are either non-positive or NaN.
+        for pixels in the gain array that are either non-positive or NaN., 2-D
+        flag
     """
+    '''
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
         wh_g = np.where(gain <= 0.)
+    '''
+    wh_g = np.where(gain <= 0.)
     if len(wh_g[0]) > 0:
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], NO_GAIN_VALUE)
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], DO_NOT_USE)
@@ -1119,17 +1129,17 @@ def remove_bad_singles(segs_beg_3):
 
     Parameters
     ----------
-    segs_beg_3 : integer, 3D array
+    segs_beg_3 : ndarray
         lengths of all segments for all ramps in the given data section and
         integration; some of these ramps may contain segments having a single
-        group, and another segment.
+        group, and another segment, 3-D int
 
     Returns
     -------
-    segs_beg_3 : integer, 3D array
+    segs_beg_3 : ndarray
         lengths of all segments for all ramps in the given data section and
         integration; segments having a single group, and another segment
-        will be removed.
+        will be removed, 3-D int
     """
     max_seg = segs_beg_3.shape[0]
 
@@ -1179,48 +1189,49 @@ def fix_sat_ramps(sat_0th_group_int, var_p3, var_both3, slope_int, dq_int):
 
     Parameters
     ----------
-    sat_0th_group_int : uint8, 3D array
+    sat_0th_group_int : ndarray
         Integration-specific slice whose value for a pixel is 1 if the initial
-        group of the ramp is saturated
+        group of the ramp is saturated, 3-D uint8
 
-    var_p3 : float, 3D array
+    var_p3 : ndarray
         Cube of integration-specific values for the slope variance due to
-        Poisson noise only; some ramps may be saturated in the initial group
+        Poisson noise only; some ramps may be saturated in the initial group,
+        3-D float
 
-    var_both3 : float, 3D array
+    var_both3 : ndarray
         Cube of segment- and integration-specific values for the slope
         variance due to combined Poisson noise and read noise; some ramps may
-        be saturated in the initial group
+        be saturated in the initial group, 3-D float
 
-    slope_int : float, 3D array
+    slope_int : ndarray
         Cube of integration-specific slopes. Some ramps may be saturated in the
-        initial group.
+        initial group, 3-D float
 
-    dq_int : uint32, 3D array
-        Cube of integration-specific DQ flags.
+    dq_int : ndarray
+        Cube of integration-specific DQ flags, 3-D flag
 
     Returns
     -------
-    var_p3 : float, 3D array
+    var_p3 : ndarray
         Cube of integration-specific values for the slope variance due to
         Poisson noise only; for ramps that are saturated in the initial group,
         this variance has been reset to a huge value to minimize the ramps
-        contribution.
+        contribution, 3-D float
 
-    var_both3 : float, 3D array
+    var_both3 : ndarray
         Cube of segment- and integration-specific values for the slope
         variance due to combined Poisson noise and read noise; for ramps that
         are saturated in the initial group, this variance has been reset to a
-        huge value to minimize the ramps contribution.
+        huge value to minimize the ramps contribution, 3-D float
 
-    slope_int : float, 3D array
+    slope_int : ndarray
         Cube of integration-specific slopes; for ramps that are saturated in
         the initial group, this variance has been reset to a huge value to
-        minimize the ramps contribution.
+        minimize the ramps contribution, 3-D float
 
-    dq_int : uint32, 3D array
+    dq_int : ndarray
         Cube of integration-specific DQ flags. For ramps that are saturated in
-        the initial group, the flag 'DO_NOT_USE' is added.
+        the initial group, the flag 'DO_NOT_USE' is added, 3-D flag
     """
     var_p3[sat_0th_group_int > 0] = LARGE_VARIANCE
     var_both3[sat_0th_group_int > 0] = LARGE_VARIANCE
@@ -1248,7 +1259,7 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
     n_int : int
        number of integrations
 
-    save_opt : boolean
+    save_opt : bool
        save optional fitting results
 
     Returns
@@ -1330,8 +1341,8 @@ def log_stats(c_rates):
 
     Parameters
     ----------
-    c_rates : float, 2D array
-       weighted count rate
+    c_rates : ndarray
+       weighted count rate, 2-D float
 
     Returns
     -------
@@ -1351,7 +1362,7 @@ def compute_slices(max_cores):
 
     Parameters
     ----------
-    max_cores : string
+    max_cores : str
         Number of cores to use for multiprocessing. If set to 'none' (the default),
         then no multiprocessing will be done. The other allowable values are 'quarter',
         'half', and 'all'. This is the fraction of cores to use for multi-proc. The
@@ -1386,16 +1397,17 @@ def dq_compress_final(dq_int, n_int):
 
     Parameters
     ----------
-    dq_int : uint16, 3D array
-        cube of combined dq arrays for all data sections in a single integration
+    dq_int : ndarray
+        cube of combined dq arrays for all data sections in a single
+        integration, 3-D flag
 
     n_int : int
         total number of integrations in data set
 
     Returns
     -------
-    f_dq : uint16, 2D array
-        combination of all integration's pixeldq arrays
+    f_dq : ndarray
+        combination of all integration's pixeldq arrays, 2-D flag
     """
     f_dq = dq_int[0, :, :]
 
@@ -1419,16 +1431,17 @@ def dq_compress_sect(gdq_sect, pixeldq_sect):
 
     Parameters
     ----------
-    gdq_sect : int (uint8), 3D array
-        cube of GROUPDQ array for a data section
+    gdq_sect : ndarray
+        cube of GROUPDQ array for a data section, 3-D flag
 
-    pixeldq_sect : int, 2D array
-        dq array of data section of input model
+    pixeldq_sect : ndarray
+        dq array of data section of input model, 2-D flag
 
     Returns
     -------
-    pixeldq_sect : int, 2D array
-        dq array of data section updated with saturated and jump-detected flags
+    pixeldq_sect : ndarray
+        dq array of data section updated with saturated and jump-detected
+        flags, 2-D flag
 
     """
     sat_loc_r = np.bitwise_and(gdq_sect, SATURATED)
