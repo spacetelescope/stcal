@@ -1101,12 +1101,9 @@ def reset_bad_gain(pdq, gain):
         for pixels in the gain array that are either non-positive or NaN., 2-D
         flag
     """
-    '''
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
         wh_g = np.where(gain <= 0.)
-    '''
-    wh_g = np.where(gain <= 0.)
     if len(wh_g[0]) > 0:
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], NO_GAIN_VALUE)
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], DO_NOT_USE)
