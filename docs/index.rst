@@ -20,3 +20,12 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+=====================
+Package Documentation
+=====================
+
+.. toctree::
+   :maxdepth: 1
+
+   stcal/package_index.rst
