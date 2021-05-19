@@ -11,5 +11,9 @@
 
 - Added code to manipulate bitmasks.
 
+ramp_fitting
+------------
+
+- Fixed bug for median ramp rate computation in report JP-1950. [#12]
 
 
