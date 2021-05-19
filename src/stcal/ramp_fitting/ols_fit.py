@@ -861,7 +861,8 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
                 rhi = cubeshape[1]
 
             # Skip data section if it is all NaNs
-            data_sect = np.float32(data[num_int, :, :, :])
+            # data_sect = np.float32(data[num_int, :, :, :])
+            data_sect = data[num_int, :, :, :]
             if np.all(np.isnan(data_sect)):
                 log.error('Current data section is all nans, so not processing the section.')
                 continue
@@ -1597,8 +1598,10 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
     err_2d_array = data_sect[0, :, :] * frame_time
 
     # Suppress, then re-enable, harmless arithmetic warnings
+    '''
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+    '''
     err_2d_array[err_2d_array < 0] = 0
     warnings.resetwarnings()
 
