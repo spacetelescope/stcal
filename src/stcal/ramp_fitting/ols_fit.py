@@ -903,7 +903,6 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
                 #   to shift all the indices down by 1, so they line up with the
                 #   indices in first_diffs.
                 i_group, i_yy, i_xx, = np.where(np.bitwise_and(gdq_sect[1:, :, :], JUMP_DET))
-                # first_diffs_sect[i_group - 1, i_yy, i_xx] = np.NaN
                 first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
 
                 del i_group, i_yy, i_xx
