@@ -6,6 +6,7 @@ dqflags = {
     "UNRELIABLE_SLOPE": None,
 }
 
+
 def update_dqflags(input_flags):
     dqflags["DO_NOT_USE"] = input_flags["DO_NOT_USE"]
     dqflags["SATURATED"] = input_flags["SATURATED"]
