@@ -14,12 +14,6 @@ from . import utils
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-# TODO Should figure out a better way to do this
-DO_NOT_USE = constants.DO_NOT_USE
-SATURATED = constants.SATURATED
-JUMP_DET = constants.JUMP_DET
-UNRELIABLE_SLOPE = constants.UNRELIABLE_SLOPE
-
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
@@ -653,12 +647,13 @@ def discard_miri_groups(input_model):
     data = input_model.data
     err = input_model.err
     groupdq = input_model.groupdq
+    jump_flag = constants.dqflags["JUMP_DET"]
 
     n_int, ngroups, nrows, ncols = data.shape
 
     num_bad_slices = 0  # number of initial groups that are all DO_NOT_USE
 
-    while np.all(np.bitwise_and(groupdq[:, 0, :, :], DO_NOT_USE)):
+    while np.all(np.bitwise_and(groupdq[:, 0, :, :], constants.dqflags["DO_NOT_USE"])):
         num_bad_slices += 1
         ngroups -= 1
 
@@ -673,11 +668,11 @@ def discard_miri_groups(input_model):
         # Where the initial group of the just-truncated data is a cosmic ray,
         #   remove the JUMP_DET flag from the group dq for those pixels so
         #   that those groups will be included in the fit.
-        wh_cr = np.where(np.bitwise_and(groupdq[:, 0, :, :], JUMP_DET))
+        wh_cr = np.where(np.bitwise_and(groupdq[:, 0, :, :], jump_flag))
         num_cr_1st = len(wh_cr[0])
 
         for ii in range(num_cr_1st):
-            groupdq[wh_cr[0][ii], 0, wh_cr[1][ii], wh_cr[2][ii]] -= JUMP_DET
+            groupdq[wh_cr[0][ii], 0, wh_cr[1][ii], wh_cr[2][ii]] -= jump_flag
 
     if num_bad_slices > 0:
         data = data[:, num_bad_slices:, :, :]
@@ -689,7 +684,7 @@ def discard_miri_groups(input_model):
     #   in the while loop above, ngroups would have been set to 0, and Nones
     #   would have been returned.  If execution has gotten here, there must
     #   be at least 1 remaining group that is not all flagged.
-    if np.all(np.bitwise_and(groupdq[:, -1, :, :], DO_NOT_USE)):
+    if np.all(np.bitwise_and(groupdq[:, -1, :, :], constants.dqflags["DO_NOT_USE"])):
         ngroups -= 1
 
         # Check if there are remaining groups before accessing data
@@ -782,6 +777,9 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
         Rate array
     """
 
+    sat_flag = constants.dqflags["SATURATED"]
+    jump_flag = constants.dqflags["JUMP_DET"]
+
     # Get image data information
     data = input_model.data
     err = input_model.err
@@ -805,7 +803,7 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
     #   the output products are returned to ramp_fit(). If the initial group of
     #   a ramp is saturated, it is assumed that all groups are saturated.
     first_gdq = groupdq[:, 0, :, :]
-    if np.all(np.bitwise_and(first_gdq, SATURATED)):
+    if np.all(np.bitwise_and(first_gdq, sat_flag)):
         image_info, integ_info, opt_info = utils.do_all_sat(
             inpixeldq, groupdq, imshape, n_int, save_opt)
 
@@ -876,7 +874,7 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Reset all saturated groups in the input data array to NaN
-            where_sat = np.where(np.bitwise_and(gdq_sect, SATURATED))
+            where_sat = np.where(np.bitwise_and(gdq_sect, sat_flag))
 
             data_sect[where_sat] = np.NaN
             del where_sat
@@ -902,7 +900,7 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
                 #   starting at group 1.  The purpose of starting at index 1 is
                 #   to shift all the indices down by 1, so they line up with the
                 #   indices in first_diffs.
-                i_group, i_yy, i_xx, = np.where(np.bitwise_and(gdq_sect[1:, :, :], JUMP_DET))
+                i_group, i_yy, i_xx, = np.where(np.bitwise_and(gdq_sect[1:, :, :], jump_flag))
                 first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
 
                 del i_group, i_yy, i_xx
@@ -944,7 +942,7 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
             num_seg_per_int[num_int, rlo:rhi, :] = num_seg.reshape(sect_shape)
 
             # Populate integ-spec slice which is set if 0th group has SAT
-            wh_sat0 = np.where(np.bitwise_and(gdq_sect[0, :, :], SATURATED))
+            wh_sat0 = np.where(np.bitwise_and(gdq_sect[0, :, :], sat_flag))
             if len(wh_sat0[0]) > 0:
                 sat_0th_group_int[num_int, rlo:rhi, :][wh_sat0] = 1
 
@@ -964,7 +962,7 @@ def ramp_fit_slopes(input_model, gain_2d, readnoise_2d, save_opt, weighting):
                 #   as approximation to cosmic ray amplitude for those pixels
                 #   having their DQ set for cosmic rays
                 data_diff = data_sect - utils.shift_z(data_sect, -1)
-                dq_cr = np.bitwise_and(JUMP_DET, gdq_sect)
+                dq_cr = np.bitwise_and(jump_flag, gdq_sect)
 
                 opt_res.cr_mag_seg[num_int, :, rlo:rhi, :] = data_diff * (dq_cr != 0)
 
@@ -3274,7 +3272,8 @@ def calc_num_seg(gdq, n_int):
     # ramps, to use as a surrogate for the number of segments along the ramps
     # Note that we only care about flags that are NOT in the first or last groups,
     # because exclusion of a first or last group won't result in an additional segment.
-    max_cr = np.count_nonzero(np.bitwise_and(gdq[:, 1:-1], JUMP_DET | DO_NOT_USE), axis=1).max()
+    check_flag = constants.dqflags["JUMP_DET"] | constants.dqflags["DO_NOT_USE"]
+    max_cr = np.count_nonzero(np.bitwise_and(gdq[:, 1:-1], check_flag), axis=1).max()
 
     # Do not want to return a value > the number of groups, which can occur if
     #  this is a MIRI dataset in which the first or last group was flagged as

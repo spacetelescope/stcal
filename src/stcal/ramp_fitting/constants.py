@@ -1,5 +1,15 @@
-DO_NOT_USE = 2**0           # Bad pixel. Do not use.
-SATURATED = 2**1            # Pixel saturated during exposure.
-JUMP_DET = 2**2             # Jump detected during exposure
-NO_GAIN_VALUE = 2**19       # Gain cannot be measured
-UNRELIABLE_SLOPE = 2**24    # Slope variance large (i.e., noisy pixel)
+dqflags = {
+    "DO_NOT_USE": None,
+    "SATURATED": None,
+    "JUMP_DET": None,
+    "NO_GAIN_VALUE": None,
+    "UNRELIABLE_SLOPE": None,
+}
+
+
+def update_dqflags(input_flags):
+    dqflags["DO_NOT_USE"] = input_flags["DO_NOT_USE"]
+    dqflags["SATURATED"] = input_flags["SATURATED"]
+    dqflags["JUMP_DET"] = input_flags["JUMP_DET"]
+    dqflags["NO_GAIN_VALUE"] = input_flags["NO_GAIN_VALUE"]
+    dqflags["UNRELIABLE_SLOPE"] = input_flags["UNRELIABLE_SLOPE"]

@@ -1,3 +1,12 @@
+0.2.2 (Unreleased)
+==================
+
+ramp_fitting
+------------
+
+- Added DQ flag parameter to `ramp_fit` [#25]
+
+
 0.2.1 (2021-05-20)
 ==================
 
