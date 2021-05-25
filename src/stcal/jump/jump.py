@@ -188,8 +188,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                 # bottom row of this slice saved from the top of the previous
                 # slice
                 gdq[:, :, k * yinc - 1, :] = \
-                       np.bitwise_or(gdq[:, :, k * yinc - 1, :],
-                                     row_below_gdq[:, :, :])
+                    np.bitwise_or(gdq[:, :, k * yinc - 1, :],
+                                  row_below_gdq[:, :, :])
                 gdq[:, :, k * yinc, :] = \
                     np.bitwise_or(gdq[:, :, k * yinc, :],
                                   previous_row_above_gdq[:, :, :])
