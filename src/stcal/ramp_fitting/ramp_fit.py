@@ -87,11 +87,10 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
-    constants.dqflags["DO_NOT_USE"] = dqflags["DO_NOT_USE"]
-    constants.dqflags["SATURATED"] = dqflags["SATURATED"]
-    constants.dqflags["JUMP_DET"] = dqflags["JUMP_DET"]
-    constants.dqflags["NO_GAIN_VALUE"] = dqflags["NO_GAIN_VALUE"]
-    constants.dqflags["UNRELIABLE_SLOPE"] = dqflags["UNRELIABLE_SLOPE"]
+
+    constants.update_dqflags(dqflags)
+    if None in constants.dqflags.values():
+        raise ValueError
 
     if algorithm.upper() == "GLS":
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
