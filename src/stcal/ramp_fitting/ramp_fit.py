@@ -90,7 +90,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
 
     constants.update_dqflags(dqflags)
     if None in constants.dqflags.values():
-        raise ValueError
+        raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
 
     if algorithm.upper() == "GLS":
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
