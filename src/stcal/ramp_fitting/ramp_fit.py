@@ -68,6 +68,10 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         to use for multi-proc. The total number of cores includes the SMT cores
         (Hyper Threading for Intel).
 
+    dqflags: dict
+        A dictionary with at least the following keywords: 
+        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
+
     Returns
     -------
     image_info: tuple
