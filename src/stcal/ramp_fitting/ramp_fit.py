@@ -69,7 +69,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         (Hyper Threading for Intel).
 
     dqflags: dict
-        A dictionary with at least the following keywords: 
+        A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
     Returns
