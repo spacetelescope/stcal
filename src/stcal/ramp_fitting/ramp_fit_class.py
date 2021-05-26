@@ -27,7 +27,6 @@ class RampFitInternal:
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
 
-
     def set_arrays(self, data, err, groupdq, pixeldq, int_times):
         """
         Set the arrays needed for ramp fitting.
@@ -61,7 +60,7 @@ class RampFitInternal:
         self.int_times = int_times
 
     def set_meta(self, name, frame_time, exp_ngroups, group_time, groupgap,
-            nframes, drop_frames1=None):
+                 nframes, drop_frames1=None):
         """
         Set the metainformation needed for ramp fitting.
 
@@ -101,7 +100,6 @@ class RampFitInternal:
 
         # May not be available for all pipelines, so is defaulted to NoneType.
         self.drop_frames1 = drop_frames1
-
 
     def set_dqflags(self, dqflags):
         """
