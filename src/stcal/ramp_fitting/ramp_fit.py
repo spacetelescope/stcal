@@ -19,11 +19,45 @@ import logging
 from . import constants
 # from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
+from . import ramp_fit_class
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
+
+
+def create_ramp_fit_class(model, dqflags=None):
+    """
+    Create an internal ramp fit class from a data model.
+
+    Parameters
+    ----------
+    model : data model
+        input data model, assumed to be of type RampModel
+
+    Return
+    ------
+    ramp_class : RampFitInternal
+        The internal ramp class.
+    """
+    ramp_class = ramp_fit_class.RampFitInternal()
+
+    ramp_class.set_arrays(
+        model.data, model.err, model.groupdq, model.pixeldq, model.int_times)
+
+    ramp_class.set_meta(
+        name=model.meta.instrument.name,
+        frame_time=model.meta.exposure.frame_time,
+        exp_ngroups=model.meta.exposure.ngroups,
+        group_time=model.meta.exposure.group_time,
+        groupgap=model.meta.exposure.groupgap,
+        nframes=model.meta.exposure.nframes,
+        drop_frames1=model.meta.exposure.drop_frames1)
+
+    ramp_class.set_dqflags(dqflags)
+
+    return ramp_class
 
 
 def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
@@ -87,6 +121,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    ramp_class = create_ramp_fit_class(model, dqflags)
 
     constants.update_dqflags(dqflags)
     if None in constants.dqflags.values():
@@ -108,7 +143,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            model, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
+            ramp_class, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
         gls_opt_model = None
 
     return image_info, integ_info, opt_info, gls_opt_model
