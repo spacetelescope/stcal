@@ -1207,6 +1207,10 @@ def ramp_fit_overall(
         ramp_class, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
         variances_ans, save_opt, int_times, tstart):
     """
+    Computes the final/overall slope and variance values using the 
+    intermediate computations previously computed.
+
+
     Parameters
     ----------
     ramp_class: RampFitInternal

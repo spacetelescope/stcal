@@ -121,6 +121,9 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    # Create an instance of the internal ramp class, using only values needed
+    # for ramp fitting from the to remove further ramp fitting dependence on
+    # data models.
     ramp_class = create_ramp_fit_class(model, dqflags)
 
     return ramp_fit_internal(
