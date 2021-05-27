@@ -902,6 +902,8 @@ def shift_z(a, off):
     return b
 
 
+'''
+# GLS function
 def get_efftim_ped(model):
     """
     Calculate the effective integration time for a single group, and return the
@@ -951,6 +953,7 @@ def get_efftim_ped(model):
     return effintim, nframes, groupgap, dropframes1
 
 
+# GLS function
 def get_dataset_info(model):
     """
     Extract values for the number of groups, the number of pixels, dataset
@@ -1018,6 +1021,7 @@ def get_dataset_info(model):
         ngroups, group_time
 
 
+# GLS function
 def get_more_info(model):  # pragma: no cover
     """Get information used by GLS algorithm.
 
@@ -1050,6 +1054,7 @@ def get_more_info(model):  # pragma: no cover
     return (group_time, nframes_used, saturated_flag, jump_flag)
 
 
+# GLS function
 def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
     """
     Find the maximum number of cosmic-ray hits in any one pixel.
@@ -1073,6 +1078,7 @@ def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
     del cr_flagged
 
     return max_num_cr
+'''
 
 
 def reset_bad_gain(pdq, gain):

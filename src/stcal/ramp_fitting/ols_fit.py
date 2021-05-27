@@ -22,7 +22,7 @@ log.setLevel(logging.DEBUG)
 
 
 def ols_ramp_fit_multi(
-        ramp_class, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
     Setup the inputs to ols_ramp_fit with and without multiprocessing. The
     inputs will be sliced into the number of cores that are being used for
@@ -31,7 +31,7 @@ def ols_ramp_fit_multi(
 
     Parameters
     ----------
-    ramp_class: RampFitInternal
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     buffsize : int
@@ -80,9 +80,9 @@ def ols_ramp_fit_multi(
     number_slices = utils.compute_slices(max_cores)
 
     # Copy the int_times table for TSO data
-    int_times = ramp_class.int_times
+    int_times = ramp_data.int_times
 
-    number_of_integrations = ramp_class.data.shape[0]
+    number_of_integrations = ramp_data.data.shape[0]
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
@@ -90,8 +90,8 @@ def ols_ramp_fit_multi(
     #   flagged as DO_NOT_USE, those groups will be ignored by ramp fitting, and
     #   the input model arrays will be resized appropriately. If all pixels in
     #   all groups are flagged, return None for the models.
-    if ramp_class.instrume == 'MIRI' and ramp_class.data.shape[1] > 1:
-        miri_ans = discard_miri_groups(ramp_class)
+    if ramp_data.instrument_name == 'MIRI' and ramp_data.data.shape[1] > 1:
+        miri_ans = discard_miri_groups(ramp_data)
         # The function returns False if the removed groups leaves no data to be
         # processed.  If this is the case, return None for all expected variables
         # returned by ramp_fit
@@ -100,12 +100,12 @@ def ols_ramp_fit_multi(
 
     # Call ramp fitting for the single processor (1 data slice) case
     if number_slices == 1:
-        max_segments, max_CRs = calc_num_seg(ramp_class.groupdq, number_of_integrations)
+        max_segments, max_CRs = calc_num_seg(ramp_data.groupdq, number_of_integrations)
         log.debug(f"Max segments={max_segments}")
 
         # Single threaded computation
         image_info, integ_info, opt_info = ols_ramp_fit_single(
-            ramp_class, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
+            ramp_data, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
         if image_info is None:
             return None, None, None
 
@@ -534,7 +534,7 @@ def ols_ramp_fit_sliced(
 
 
 def ols_ramp_fit_single(
-        ramp_class, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
+        ramp_data, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -543,7 +543,7 @@ def ols_ramp_fit_single(
 
     Parameters
     ----------
-    ramp_class: RampFitInternal
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     int_times : None
@@ -578,7 +578,7 @@ def ols_ramp_fit_single(
     tstart = time.time()
 
     # Save original shapes for writing to log file, as these may change for MIRI
-    n_int, ngroups, nrows, ncols = ramp_class.data.shape
+    n_int, ngroups, nrows, ncols = ramp_data.data.shape
     orig_ngroups = ngroups
     orig_cubeshape = (ngroups, nrows, ncols)
 
@@ -594,7 +594,7 @@ def ols_ramp_fit_single(
     #   saturated groups have already been flagged. The actual, fit, slopes for
     #   each segment are also calculated here.
     fit_slopes_ans = ramp_fit_slopes(
-        ramp_class, gain_2d, readnoise_2d, save_opt, weighting)
+        ramp_data, gain_2d, readnoise_2d, save_opt, weighting)
     if fit_slopes_ans[0] == "saturated":
         return fit_slopes_ans[1:]
 
@@ -605,7 +605,7 @@ def ols_ramp_fit_single(
     #   read noise. The integration-specific variances are 3D arrays, and the
     #   segment-specific variances are 4D arrays.
     variances_ans = ramp_fit_compute_variances(
-        ramp_class, gain_2d, readnoise_2d, fit_slopes_ans)
+        ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
     # Now that the segment-specific and integration-specific variances have
     #   been calculated, the segment-specific, integration-specific, and
@@ -617,13 +617,13 @@ def ols_ramp_fit_single(
     #     slope = sum_over_integs_and_segs(slope_seg/var_seg)/
     #                    sum_over_integs_and_segs(1/var_seg)
     image_info, integ_info, opt_info = ramp_fit_overall(
-        ramp_class, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
+        ramp_data, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
         variances_ans, save_opt, int_times, tstart)
 
     return image_info, integ_info, opt_info
 
 
-def discard_miri_groups(ramp_class):
+def discard_miri_groups(ramp_data):
     """
     For MIRI datasets having >1 group, if all pixels in the final group are
     flagged as DO_NOT_USE, resize the input model arrays to exclude the
@@ -634,7 +634,7 @@ def discard_miri_groups(ramp_class):
 
     Parameters
     ----------
-    ramp_class: RampFitInternal
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     Returns
@@ -643,9 +643,9 @@ def discard_miri_groups(ramp_class):
         False if no data to process after discarding unusable data.
         True if useable data available for further processing.
     """
-    data = ramp_class.data
-    err = ramp_class.err
-    groupdq = ramp_class.groupdq
+    data = ramp_data.data
+    err = ramp_data.err
+    groupdq = ramp_data.groupdq
     jump_flag = constants.dqflags["JUMP_DET"]
 
     n_int, ngroups, nrows, ncols = data.shape
@@ -705,14 +705,14 @@ def discard_miri_groups(ramp_class):
         log.warning('(NGROUPS), so will not process this dataset.')
         return False
 
-    ramp_class.data = data
-    ramp_class.err = err
-    ramp_class.groupdq = groupdq
+    ramp_data.data = data
+    ramp_data.err = err
+    ramp_data.groupdq = groupdq
 
     return True
 
 
-def ramp_fit_slopes(ramp_class, gain_2d, readnoise_2d, save_opt, weighting):
+def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     """
     Calculate effective integration time (once EFFINTIM has been populated accessible, will
     use that instead), and other keywords that will needed if the pedestal calculation is
@@ -721,7 +721,7 @@ def ramp_fit_slopes(ramp_class, gain_2d, readnoise_2d, save_opt, weighting):
 
     Parameters
     ----------
-    ramp_class: RampFitInternal
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     gain_2d : ndarrays
@@ -781,16 +781,16 @@ def ramp_fit_slopes(ramp_class, gain_2d, readnoise_2d, save_opt, weighting):
     jump_flag = constants.dqflags["JUMP_DET"]
 
     # Get image data information
-    data = ramp_class.data
-    err = ramp_class.err
-    groupdq = ramp_class.groupdq
-    inpixeldq = ramp_class.pixeldq
+    data = ramp_data.data
+    err = ramp_data.err
+    groupdq = ramp_data.groupdq
+    inpixeldq = ramp_data.pixeldq
 
     # Get instrument and exposure data
-    frame_time = ramp_class.frame_time
-    group_time = ramp_class.group_time
-    groupgap = ramp_class.groupgap
-    nframes = ramp_class.nframes
+    frame_time = ramp_data.frame_time
+    group_time = ramp_data.group_time
+    groupgap = ramp_data.groupgap
+    nframes = ramp_data.nframes
 
     # Get needed sizes and shapes
     n_int, ngroups, nrows, ncols = data.shape
@@ -982,16 +982,16 @@ def ramp_fit_slopes(ramp_class, gain_2d, readnoise_2d, save_opt, weighting):
     del median_diffs_2d
     del first_diffs_sect
 
-    ramp_class.data = data
-    ramp_class.err = err
-    ramp_class.groupdq = groupdq
-    ramp_class.pixeldq = inpixeldq
+    ramp_data.data = data
+    ramp_data.err = err
+    ramp_data.groupdq = groupdq
+    ramp_data.pixeldq = inpixeldq
 
     return max_seg, gdq_cube_shape, effintim, f_max_seg, dq_int, num_seg_per_int,\
         sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates
 
 
-def ramp_fit_compute_variances(ramp_class, gain_2d, readnoise_2d, fit_slopes_ans):
+def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans):
     """
     In this 'Second Pass' over the data, loop over integrations and data
     sections to calculate the variances of the slope using the estimated
@@ -1011,7 +1011,7 @@ def ramp_fit_compute_variances(ramp_class, gain_2d, readnoise_2d, fit_slopes_ans
 
     Parameters
     ----------
-    ramp_class: RampFitInternal
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     gain_2d : ndarray
@@ -1057,13 +1057,13 @@ def ramp_fit_compute_variances(ramp_class, gain_2d, readnoise_2d, fit_slopes_ans
     """
 
     # Get image data information
-    data = ramp_class.data
-    err = ramp_class.err
-    groupdq = ramp_class.groupdq
-    inpixeldq = ramp_class.pixeldq
+    data = ramp_data.data
+    err = ramp_data.err
+    groupdq = ramp_data.groupdq
+    inpixeldq = ramp_data.pixeldq
 
     # Get instrument and exposure data
-    group_time = ramp_class.group_time
+    group_time = ramp_data.group_time
 
     # Get needed sizes and shapes
     n_int, ngroups, nrows, ncols = data.shape
@@ -1194,17 +1194,17 @@ def ramp_fit_compute_variances(ramp_class, gain_2d, readnoise_2d, fit_slopes_ans
     if segs_4 is not None:
         del segs_4
 
-    ramp_class.data = data
-    ramp_class.err = err
-    ramp_class.groupdq = groupdq
-    ramp_class.pixeldq = inpixeldq
+    ramp_data.data = data
+    ramp_data.err = err
+    ramp_data.groupdq = groupdq
+    ramp_data.pixeldq = inpixeldq
 
     return var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, inv_var_both4, \
         s_inv_var_p3, s_inv_var_r3, s_inv_var_both3
 
 
 def ramp_fit_overall(
-        ramp_class, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
+        ramp_data, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
         variances_ans, save_opt, int_times, tstart):
     """
     Computes the final/overall slope and variance values using the 
@@ -1213,7 +1213,7 @@ def ramp_fit_overall(
 
     Parameters
     ----------
-    ramp_class: RampFitInternal
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     orig_cubeshape : tuple
@@ -1252,14 +1252,14 @@ def ramp_fit_overall(
         The tuple of computed optional results arrays for fitting.
     """
     # Get image data information
-    data = ramp_class.data
-    groupdq = ramp_class.groupdq
+    data = ramp_data.data
+    groupdq = ramp_data.groupdq
 
     # Get instrument and exposure data
-    instrume = ramp_class.instrume
-    groupgap = ramp_class.groupgap
-    nframes = ramp_class.nframes
-    dropframes1 = ramp_class.drop_frames1
+    instrume = ramp_data.instrument_name
+    groupgap = ramp_data.groupgap
+    nframes = ramp_data.nframes
+    dropframes1 = ramp_data.drop_frames1
 
     if dropframes1 is None:    # set to default if missing
         dropframes1 = 0

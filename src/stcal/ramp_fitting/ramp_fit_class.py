@@ -1,4 +1,4 @@
-class RampFitInternal:
+class RampData:
     def __init__(self):
         """
         Creates an internal ramp fit class.
@@ -11,10 +11,9 @@ class RampFitInternal:
         self.int_times = None
 
         # Meta information
-        self.instrume = None
+        self.instrument_name = None
 
         self.frame_time = None
-        self.exp_ngroups = None
         self.group_time = None
         self.groupgap = None
         self.nframes = None
@@ -59,7 +58,7 @@ class RampFitInternal:
         self.pixeldq = pixeldq
         self.int_times = int_times
 
-    def set_meta(self, name, frame_time, exp_ngroups, group_time, groupgap,
+    def set_meta(self, name, frame_time, group_time, groupgap,
                  nframes, drop_frames1=None):
         """
         Set the metainformation needed for ramp fitting.
@@ -71,9 +70,6 @@ class RampFitInternal:
 
         frame_time : float32
             The time to read one frame.
-
-        exp_ngroups: int
-            The number of groups taken from the meta exposure key word.
 
         group_time : float32
             The time to read one group.
@@ -90,10 +86,9 @@ class RampFitInternal:
         """
 
         # Get meta information
-        self.instrume = name
+        self.instrument_name = name
 
         self.frame_time = frame_time
-        self.exp_ngroups = exp_ngroups
         self.group_time = group_time
         self.groupgap = groupgap
         self.nframes = nframes

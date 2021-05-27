@@ -38,26 +38,25 @@ def create_ramp_fit_class(model, dqflags=None):
 
     Return
     ------
-    ramp_class : RampFitInternal
+    ramp_data : RampData
         The internal ramp class.
     """
-    ramp_class = ramp_fit_class.RampFitInternal()
+    ramp_data = ramp_fit_class.RampData()
 
-    ramp_class.set_arrays(
+    ramp_data.set_arrays(
         model.data, model.err, model.groupdq, model.pixeldq, model.int_times)
 
-    ramp_class.set_meta(
+    ramp_data.set_meta(
         name=model.meta.instrument.name,
         frame_time=model.meta.exposure.frame_time,
-        exp_ngroups=model.meta.exposure.ngroups,
         group_time=model.meta.exposure.group_time,
         groupgap=model.meta.exposure.groupgap,
         nframes=model.meta.exposure.nframes,
         drop_frames1=model.meta.exposure.drop_frames1)
 
-    ramp_class.set_dqflags(dqflags)
+    ramp_data.set_dqflags(dqflags)
 
-    return ramp_class
+    return ramp_data
 
 
 def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
@@ -124,17 +123,23 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
-    ramp_class = create_ramp_fit_class(model, dqflags)
+    ramp_data = create_ramp_fit_class(model, dqflags)
 
     return ramp_fit_internal(
-        ramp_class, buffsize, save_opt, readnoise_2d, gain_2d,
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         algorithm, weighting, max_cores, dqflags)
 
 
-def ramp_fit_internal(ramp_class, buffsize, save_opt, readnoise_2d, gain_2d,
+def ramp_fit_internal(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
                       algorithm, weighting, max_cores, dqflags):
     """
-    ramp_class: RampFitInternal
+    This function begins the ramp fit computation after the creation of the
+    RampData class.  It determines the proper path for computation to take
+    depending on the choice of ramp fitting algorithms (which is only ordinary
+    least squares right now) and the choice of single or muliprocessing.
+
+
+    ramp_data: RampData
         Input data necessary for computing ramp fitting.
 
     buffsize : int
@@ -198,12 +203,12 @@ def ramp_fit_internal(ramp_class, buffsize, save_opt, readnoise_2d, gain_2d,
     else:
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
-        nframes = ramp_class.nframes
+        nframes = ramp_data.nframes
         readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_class, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
         gls_opt_model = None
 
     return image_info, integ_info, opt_info, gls_opt_model
