@@ -125,12 +125,12 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     # data models.
     ramp_data = create_ramp_fit_class(model, dqflags)
 
-    return ramp_fit_internal(
+    return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         algorithm, weighting, max_cores, dqflags)
 
 
-def ramp_fit_internal(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
+def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
                       algorithm, weighting, max_cores, dqflags):
     """
     This function begins the ramp fit computation after the creation of the
