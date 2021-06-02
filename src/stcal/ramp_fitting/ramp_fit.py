@@ -131,7 +131,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
 
 
 def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
-                      algorithm, weighting, max_cores, dqflags):
+                  algorithm, weighting, max_cores, dqflags):
     """
     This function begins the ramp fit computation after the creation of the
     RampData class.  It determines the proper path for computation to take
