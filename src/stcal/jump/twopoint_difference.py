@@ -12,8 +12,6 @@ This is MUCH faster than doing all the work on a pixel-by-pixel basis.
 import logging
 import numpy as np
 
-from . import constants
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
