@@ -36,9 +36,12 @@ def create_ramp_fit_class(model, dqflags=None):
     model : data model
         input data model, assumed to be of type RampModel
 
+    dqflags : dict
+        The data quality flags needed for ramp fitting.
+
     Return
     ------
-    ramp_data : RampData
+    ramp_data : ramp_fit_class.RampData
         The internal ramp class.
     """
     ramp_data = ramp_fit_class.RampData()
@@ -80,10 +83,10 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     save_opt : bool
        calculate optional fitting results
 
-    readnoise_2d: ndarray
+    readnoise_2d : ndarray
         2-D array readnoise for all pixels
 
-    gain_2d: ndarray
+    gain_2d : ndarray
         2-D array gain for all pixels
 
     algorithm : str
@@ -101,19 +104,19 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         to use for multi-proc. The total number of cores includes the SMT cores
         (Hyper Threading for Intel).
 
-    dqflags: dict
+    dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
     Returns
     -------
-    image_info: tuple
+    image_info : tuple
         The tuple of computed ramp fitting arrays.
 
-    integ_info: tuple
+    integ_info : tuple
         The tuple of computed integration fitting arrays.
 
-    opt_info: tuple
+    opt_info : tuple
         The tuple of computed optional results arrays for fitting.
 
     gls_opt_model : GLS_RampFitModel object or None (Unused for now)
@@ -139,7 +142,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
     least squares right now) and the choice of single or muliprocessing.
 
 
-    ramp_data: RampData
+    ramp_data : RampData
         Input data necessary for computing ramp fitting.
 
     buffsize : int
@@ -148,10 +151,10 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
     save_opt : bool
        calculate optional fitting results
 
-    readnoise_2d: ndarray
+    readnoise_2d : ndarray
         2-D array readnoise for all pixels
 
-    gain_2d: ndarray
+    gain_2d : ndarray
         2-D array gain for all pixels
 
     algorithm : str
@@ -169,19 +172,19 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         to use for multi-proc. The total number of cores includes the SMT cores
         (Hyper Threading for Intel).
 
-    dqflags: dict
+    dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
     Returns
     -------
-    image_info: tuple
+    image_info : tuple
         The tuple of computed ramp fitting arrays.
 
-    integ_info: tuple
+    integ_info : tuple
         The tuple of computed integration fitting arrays.
 
-    opt_info: tuple
+    opt_info : tuple
         The tuple of computed optional results arrays for fitting.
 
     gls_opt_model : GLS_RampFitModel object or None (Unused for now)

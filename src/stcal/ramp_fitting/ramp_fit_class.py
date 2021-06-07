@@ -32,23 +32,23 @@ class RampData:
 
         Parameter
         ---------
-        data: ndarray
+        data : ndarray
             4-D array containing the pixel information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        err: ndarray
+        err : ndarray
             4-D array containing the error information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        groupdq: ndarray (uint16)
+        groupdq : ndarray (uint16)
             4-D array containing the data quality flags.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        pixeldq: ndarray (uint32)
+        pixeldq : ndarray (uint32)
             4-D array containing the pixel data quality information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        int_times: list
+        int_times : list
             Time information for each integration.
         """
         # Get arrays from the data model
@@ -65,7 +65,7 @@ class RampData:
 
         Parameter
         ---------
-        name: str
+        name : str
             The instrument name.
 
         frame_time : float32
@@ -102,7 +102,7 @@ class RampData:
 
         Parameter
         ---------
-        dqflags: dict
+        dqflags : dict
             A dictionary with specific key words needed for processing.
         """
         # Get data quality flags

@@ -270,7 +270,7 @@ class OptRes:
 
         Returns
         -------
-        opt_info: tuple
+        opt_info : tuple
             The tuple of computed optional results arrays for fitting.
         """
         self.var_p_seg[self.var_p_seg > 0.4 * LARGE_VARIANCE] = 0.
@@ -696,8 +696,8 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
 
     Returns
     -------
-    integ_info: tuple
-        The tuple of computed integration:t fitting arrays.
+    integ_info : tuple
+        The tuple of computed integration ramp fitting arrays.
 
     """
     # Suppress harmless arithmetic warnings for now
@@ -1265,13 +1265,13 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
 
     Returns
     -------
-    image_info: tuple
+    image_info : tuple
         The tuple of computed ramp fitting arrays.
 
-    integ_info: tuple
+    integ_info : tuple
         The tuple of computed integration fitting arrays.
 
-    opt_info: tuple
+    opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
     # Create model for the primary output. Flag all pixels in the pixiel DQ
