@@ -334,7 +334,7 @@ def gls_fit_all_integrations(
         The largest number of cosmic rays found in any integration
     data_sect : 4-D float32
         The input ramp cube with the sample values for each group of each integration for each pixel
-    input_var_sect: 4-D float32
+    input_var_sect : 4-D float32
         The input variance for each group of each integration for each pixel
     nframes_used : int
         The number of frames used to form each group average
@@ -557,68 +557,68 @@ def determine_slope(data_sect, input_var_sect,
 
     Parameters
     ----------
-    data_sect: 3-D ndarray, shape (ngroups, ny, nx)
+    data_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The ramp data for one integration.  This may be a subarray in
         detector coordinates, but covering all groups.  ngroups is the
         number of groups; ny is the number of pixels in the Y direction;
         nx is the number of pixels in the X (more rapidly varying)
         direction.  The units should be electrons.
 
-    input_var_sect: 3-D ndarray, shape (ngroups, ny, nx)
+    input_var_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The square of the input ERR array, matching data_sect.
 
-    gdq_sect: 3-D ndarray, shape (ngroups, ny, nx)
+    gdq_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The group data quality array.  This may be a subarray, matching
         data_sect.
 
-    readnoise_sect: 2-D ndarray, shape (ny, nx)
+    readnoise_sect : 2-D ndarray, shape (ny, nx)
         The read noise in electrons at each detector pixel (i.e. not a
         ramp).  This may be a subarray, similar to data_sect.
 
-    gain_sect: 2-D ndarray, or None, shape (ny, nx)
+    gain_sect : 2-D ndarray, or None, shape (ny, nx)
         The gain in electrons per DN at each detector pixel (i.e. not a
         ramp).  This may be a subarray, matching readnoise_sect.  If
         gain_sect is None, a value of 1 will be assumed.
 
-    frame_time: float
+    frame_time : float
         The time to read one frame, in seconds (e.g. 10.6 s).
 
-    group_time: float
+    group_time : float
         Time increment between groups, in seconds.
 
-    nframes_used: int
+    nframes_used : int
         Number of frames that were averaged together to make a group.
         Note that this value does not include the number (if any) of
         skipped frames.
 
-    max_num_cr: non-negative int
+    max_num_cr : non-negative int
         The maximum number of cosmic rays that should be handled.  This
         must be specified by the caller, because determine_slope may be
         called for different sections of the input data, and those sections
         may have differing maximum numbers of cosmic rays.
 
-    saturated_flag: int
+    saturated_flag : int
         dqflags.group['SATURATED']
 
-    jump_flag: int
+    jump_flag : int
         dqflags.group['JUMP_DET']
 
     Returns
     -------
-    tuple:  (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
+    tuple :  (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
              cr_sect, cr_var_sect)
-        intercept_sect: 2-D ndarray, shape (ny, nx)
+        intercept_sect : 2-D ndarray, shape (ny, nx)
             The intercept of the ramp at each pixel.
-        int_var_sect: 2-D ndarray, shape (ny, nx)
+        int_var_sect : 2-D ndarray, shape (ny, nx)
             The variance of the intercept at each pixel.
-        slope_sect: 2-D ndarray, shape (ny, nx)
+        slope_sect : 2-D ndarray, shape (ny, nx)
             The ramp slope at each pixel of data_sect.
-        slope_var_sect: 2-D ndarray, shape (ny, nx)
+        slope_var_sect : 2-D ndarray, shape (ny, nx)
             The variance of the slope at each pixel.
-        cr_sect: 3-D ndarray, shape (ny, nx, cr_dimen)
+        cr_sect : 3-D ndarray, shape (ny, nx, cr_dimen)
             The amplitude of each cosmic ray at each pixel.  cr_dimen is
             max_num_cr or 1, whichever is larger.
-        cr_var_sect: 3-D ndarray, shape (ny, nx, cr_dimen)
+        cr_var_sect : 3-D ndarray, shape (ny, nx, cr_dimen)
             The variance of each cosmic-ray amplitude.
     """
 
@@ -678,32 +678,32 @@ def evaluate_fit(intercept_sect, slope_sect, cr_sect,
 
     Parameters
     ----------
-    intercept_sect: 2-D ndarray
+    intercept_sect : 2-D ndarray
         The intercept of the ramp at each pixel of data_sect (one of the
         arguments to determine_slope).
 
-    slope_sect: 2-D ndarray
+    slope_sect : 2-D ndarray
         The ramp slope at each pixel of data_sect.
 
-    cr_sect: 3-D ndarray
+    cr_sect : 3-D ndarray
         The amplitude of each cosmic ray at each pixel of data_sect.
 
-    frame_time: float
+    frame_time : float
         The time to read one frame, in seconds (e.g. 10.6 s).
 
-    group_time: float
+    group_time : float
         Time increment between groups, in seconds.
 
-    gdq_sect: 3-D ndarray; indices:  group, y, x
+    gdq_sect : 3-D ndarray; indices:  group, y, x
         The group data quality array.  This may be a subarray, matching
         data_sect.
 
-    jump_flag: int
+    jump_flag : int
         dqflags.group['JUMP_DET']
 
     Returns
     -------
-    fit_model: 3-D ndarray, shape (ngroups, ny, nx)
+    fit_model : 3-D ndarray, shape (ngroups, ny, nx)
         This is the same shape as data_sect, and if the fit is good,
         fit_model and data_sect should not differ by much.
     """
@@ -758,12 +758,12 @@ def positive_fit(current_fit):
 
     Parameters
     ----------
-    current_fit: 3-D ndarray, shape (ngroups, ny, nx)
+    current_fit : 3-D ndarray, shape (ngroups, ny, nx)
         The fit returned by evaluate_fit.
 
     Returns
     -------
-    current_fit: 3-D ndarray, shape (ngroups, ny, nx)
+    current_fit : 3-D ndarray, shape (ngroups, ny, nx)
         This is the same as the input current_fit, except that zero and
         negative values will have been replaced by a positive value.
     """
@@ -785,63 +785,63 @@ def compute_slope(data_sect, input_var_sect,
 
     Parameters
     ----------
-    data_sect: 3-D ndarray; shape (ngroups, ny, nx)
+    data_sect : 3-D ndarray; shape (ngroups, ny, nx)
         The ramp data for one of the integrations in an exposure.  This
         may be a subarray in detector coordinates, but covering all groups.
 
-    input_var_sect: 3-D ndarray, shape (ngroups, ny, nx)
+    input_var_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The square of the input ERR array, matching data_sect.
 
-    gdq_sect: 3-D ndarray; shape (ngroups, ny, nx)
+    gdq_sect : 3-D ndarray; shape (ngroups, ny, nx)
         The group data quality array.  This may be a subarray, matching
         data_sect.
 
-    readnoise_sect: 2-D ndarray; shape (ny, nx)
+    readnoise_sect : 2-D ndarray; shape (ny, nx)
         The read noise in electrons at each detector pixel (i.e. not a
         ramp).  This may be a subarray, similar to data_sect.
 
-    gain_sect: 2-D ndarray, or None; shape (ny, nx)
+    gain_sect : 2-D ndarray, or None; shape (ny, nx)
         The gain in electrons per DN at each detector pixel (i.e. not a
         ramp).  This may be a subarray, matching readnoise_sect.  If
         gain_sect is None, a value of 1 will be assumed.
 
-    prev_fit: 3-D ndarray; shape (ngroups, ny, nx)
+    prev_fit : 3-D ndarray; shape (ngroups, ny, nx)
         The previous fit (intercept, slope, cosmic-ray amplitudes)
         evaluated for each pixel in the subarray.  data_sect itself may be
         used for the first iteration.
 
-    prev_slope_sect: 2-D ndarray; shape (ny, nx)
+    prev_slope_sect : 2-D ndarray; shape (ny, nx)
         An estimate (e.g. from a previous iteration) of the slope at each
         pixel, in electrons per second.  This may be a subarray, similar to
         data_sect.
 
-    frame_time: float
+    frame_time : float
         The time to read one frame, in seconds (e.g. 10.6 s).
 
-    group_time: float
+    group_time : float
         Time increment between groups, in seconds.
 
-    nframes_used: int
+    nframes_used : int
         Number of frames that were averaged together to make a group.
         This value does not include the number (if any) of skipped frames.
 
-    max_num_cr: non-negative int
+    max_num_cr : non-negative int
         The maximum number of cosmic rays that should be handled.
 
-    saturated_flag: int
+    saturated_flag : int
         dqflags.group['SATURATED']
 
-    jump_flag: int
+    jump_flag : int
         dqflags.group['JUMP_DET']
 
-    use_extra_terms: bool
+    use_extra_terms : bool
         True if we should include Massimo Robberto's terms in the
         covariance matrix.
         See JWST-STScI-003193.pdf
 
     Returns
     -------
-    tuple:  (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
+    tuple :  (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
              cr_sect, cr_var_sect)
         intercept_sect is a 2-D ndarray, the intercept of the ramp at each
         pixel of data_sect.
@@ -1001,50 +1001,50 @@ def gls_fit(ramp_data,
 
     Parameters
     ----------
-    ramp_data: 2-D ndarray; indices:  group, pixel number
+    ramp_data : 2-D ndarray; indices:  group, pixel number
         The ramp data for one of the integrations in an exposure.  This
         may be a subset in detector coordinates, but covering all groups.
         The shape is (ngroups, nz), where ngroups is the length of the
         ramp, and nz is the number of pixels in the current subset.
 
-    prev_fit_data: 2-D ndarray, shape (ngroups, nz)
+    prev_fit_data : 2-D ndarray, shape (ngroups, nz)
         The fit to ramp_data, based on applying the values of intercept,
         slope, and cosmic-ray amplitudes that were determined in a previous
         call to gls_fit.  This array is only used for setting up the
         covariance matrix.
 
-    prev_slope_data: 1-D ndarray, length nz.
+    prev_slope_data : 1-D ndarray, length nz.
         An estimate (e.g. from a previous iteration) of the slope at each
         pixel, in electrons per second.
 
-    readnoise: 1-D ndarray, length nz.
+    readnoise : 1-D ndarray, length nz.
         The read noise in electrons at each detector pixel.
 
-    gain: 1-D ndarray, shape (nz,)
+    gain : 1-D ndarray, shape (nz,)
         The analog-to-digital gain (electrons per dn) at each detector
         pixel.
 
-    frame_time: float
+    frame_time : float
         The time to read one frame, in seconds (e.g. 10.6 s).
 
-    group_time: float
+    group_time : float
         Time increment between groups, in seconds.
 
-    nframes_used: int
+    nframes_used : int
         Number of frames that were averaged together to make a group.
         Note that this value does not include the number (if any) of
         skipped frames.
 
-    num_cr: int
+    num_cr : int
         The number of cosmic rays that will be handled.  All pixels in the
         current set (ramp_data) are assumed to have this many cosmic ray
         hits somewhere within the ramp.
 
-    cr_flagged_2d: 2-D ndarray, shape (ngroups, nz)
+    cr_flagged_2d : 2-D ndarray, shape (ngroups, nz)
         The values should be 0 or 1; 1 indicates that a cosmic ray was
         detected (by another step) at that point.
 
-    saturated_data: 2-D ndarray, shape (ngroups, nz)
+    saturated_data : 2-D ndarray, shape (ngroups, nz)
         Normal values are zero; the value will be a huge number for
         saturated pixels.  This will be added to the main diagonal of the
         inverse of the weight matrix to greatly reduce the weight for
@@ -1052,7 +1052,7 @@ def gls_fit(ramp_data,
 
     Returns
     -------
-    tuple:  (result2d, variances)
+    tuple :  (result2d, variances)
         result2d is a 2-D ndarray; shape (nz, 2 + num_cr)
         The computed values of intercept, slope, and cosmic-ray amplitudes
         (there will be num_cr cosmic-ray amplitudes) for each of the nz

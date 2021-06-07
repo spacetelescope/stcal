@@ -270,7 +270,7 @@ class OptRes:
 
         Returns
         -------
-        opt_info: tuple
+        opt_info : tuple
             The tuple of computed optional results arrays for fitting.
         """
         self.var_p_seg[self.var_p_seg > 0.4 * LARGE_VARIANCE] = 0.
@@ -696,8 +696,8 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
 
     Returns
     -------
-    integ_info: tuple
-        The tuple of computed integration:t fitting arrays.
+    integ_info : tuple
+        The tuple of computed integration ramp fitting arrays.
 
     """
     # Suppress harmless arithmetic warnings for now
@@ -902,6 +902,8 @@ def shift_z(a, off):
     return b
 
 
+'''
+# GLS function
 def get_efftim_ped(model):
     """
     Calculate the effective integration time for a single group, and return the
@@ -951,6 +953,7 @@ def get_efftim_ped(model):
     return effintim, nframes, groupgap, dropframes1
 
 
+# GLS function
 def get_dataset_info(model):
     """
     Extract values for the number of groups, the number of pixels, dataset
@@ -1018,6 +1021,7 @@ def get_dataset_info(model):
         ngroups, group_time
 
 
+# GLS function
 def get_more_info(model):  # pragma: no cover
     """Get information used by GLS algorithm.
 
@@ -1050,6 +1054,7 @@ def get_more_info(model):  # pragma: no cover
     return (group_time, nframes_used, saturated_flag, jump_flag)
 
 
+# GLS function
 def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
     """
     Find the maximum number of cosmic-ray hits in any one pixel.
@@ -1073,6 +1078,7 @@ def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
     del cr_flagged
 
     return max_num_cr
+'''
 
 
 def reset_bad_gain(pdq, gain):
@@ -1259,13 +1265,13 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
 
     Returns
     -------
-    image_info: tuple
+    image_info : tuple
         The tuple of computed ramp fitting arrays.
 
-    integ_info: tuple
+    integ_info : tuple
         The tuple of computed integration fitting arrays.
 
-    opt_info: tuple
+    opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
     # Create model for the primary output. Flag all pixels in the pixiel DQ
