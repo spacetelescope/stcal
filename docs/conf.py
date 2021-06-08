@@ -5,6 +5,7 @@ from configparser import ConfigParser
 from datetime import datetime
 import importlib
 
+import sphinx
 import stsci_rtd_theme
 
 
@@ -15,7 +16,7 @@ def setup(app):
         app.add_stylesheet("stsci.css")
 
 
-REPO_ROOT = Path(__file__).parent.parent.parent
+REPO_ROOT = Path(__file__).parent.parent
 
 # Modules that automodapi will document need to be available
 # in the path:
