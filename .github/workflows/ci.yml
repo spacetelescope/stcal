@@ -40,7 +40,7 @@ jobs:
           - name: macOS
             runs-on: macos-latest
             python-version: 3.9
-            toxenv: py38
+            toxenv: py39
 
           - name: Code style checks
             runs-on: ubuntu-latest
@@ -55,12 +55,12 @@ jobs:
           - name: jwst tests
             runs-on: ubuntu-latest
             python-version: 3.8
-            toxenv: jwst
+            toxenv: jwst-cov
 
           - name: romancal tests
             runs-on: ubuntu-latest
             python-version: 3.8
-            toxenv: romancal
+            toxenv: romancal-cov
     steps:
       - uses: actions/checkout@v2
         with:
@@ -83,5 +83,4 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
-          flags: unit
           fail_ci_if_error: true
