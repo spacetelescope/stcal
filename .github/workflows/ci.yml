@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Python 3.9
+          - name: Python 3.9 with coverage
             runs-on: ubuntu-latest
             python-version: 3.9
             toxenv: py39-cov
@@ -52,14 +52,14 @@ jobs:
             python-version: 3.9
             toxenv: bandit
 
-          - name: jwst tests
+          - name: jwst tests with coverage
             runs-on: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             toxenv: jwst-cov
 
-          - name: romancal tests
+          - name: romancal tests with coverage
             runs-on: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             toxenv: romancal-cov
     steps:
       - uses: actions/checkout@v2
