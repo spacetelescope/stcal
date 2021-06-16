@@ -55,7 +55,7 @@ jobs:
           - name: jwst tests with coverage
             runs-on: ubuntu-latest
             python-version: 3.9
-            toxenv: jwst-cov
+            toxenv: jwst
 
           - name: romancal tests with coverage
             runs-on: ubuntu-latest
@@ -83,4 +83,11 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
+          fail_ci_if_error: true
+
+      - name: Upload coverage to codecov
+        if: ${{ contains(matrix.toxenv,'jwst') }}
+        uses: codecov/codecov-action@v1
+        with:
+          file: $HOME/coverage.xml
           fail_ci_if_error: true
