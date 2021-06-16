@@ -27,50 +27,60 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Python 3.9
+          - name: Python 3.9 with coverage
             runs-on: ubuntu-latest
+            python-version: 3.9
+            toxenv: py39-cov
+
+          - name: Python 3.7
+            runs-on: ubuntu-latest
+            python-version: 3.7
+            toxenv: py37
+
+          - name: macOS
+            runs-on: macos-latest
             python-version: 3.9
             toxenv: py39
 
-          - name: Coverage
-            runs-on: ubuntu-latest
-            python-version: 3.8
-            toxenv: coverage
-
           - name: Code style checks
             runs-on: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             toxenv: style
 
           - name: Bandit security audit
             runs-on: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             toxenv: bandit
 
-          - name: macOS
-            runs-on: macos-latest
-            python-version: 3.8
-            toxenv: py38
-
-          - name: jwst tests
+          - name: jwst tests with coverage
             runs-on: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             toxenv: jwst
 
-          - name: romancal tests
+          - name: romancal tests with coverage
             runs-on: ubuntu-latest
-            python-version: 3.8
-            toxenv: romancal
+            python-version: 3.9
+            toxenv: romancal-cov
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install tox
         run: |
           pip install tox
+
       - name: Run tox
         run: tox -e ${{ matrix.toxenv }}
+
+      - name: Upload coverage to codecov
+        if: ${{ contains(matrix.toxenv,'-cov') }}
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
