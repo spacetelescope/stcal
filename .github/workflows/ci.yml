@@ -84,10 +84,3 @@ jobs:
         with:
           file: ./coverage.xml
           fail_ci_if_error: true
-
-      - name: Upload coverage to codecov
-        if: ${{ contains(matrix.toxenv,'jwst') }}
-        uses: codecov/codecov-action@v1
-        with:
-          file: $HOME/coverage.xml
-          fail_ci_if_error: true
