@@ -47,7 +47,7 @@ jobs:
             python-version: 3.9
             toxenv: style
 
-          - name: Bandit security audit
+          - name: Security audit
             runs-on: ubuntu-latest
             python-version: 3.9
             toxenv: bandit
@@ -55,7 +55,7 @@ jobs:
           - name: jwst tests with coverage
             runs-on: ubuntu-latest
             python-version: 3.9
-            toxenv: jwst
+            toxenv: jwst-cov
 
           - name: romancal tests with coverage
             runs-on: ubuntu-latest
