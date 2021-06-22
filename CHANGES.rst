@@ -1,3 +1,11 @@
+0.3.0 (unreleased)
+==================
+
+saturation
+----------
+
+- Adds common code for saturation [#39]
+
 0.2.5 (2021-08-27)
 ==================
 
