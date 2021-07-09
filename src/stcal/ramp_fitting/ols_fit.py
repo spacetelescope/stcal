@@ -356,7 +356,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
 
     # Create the primary product
     data = np.zeros(imshape, dtype=np.float32)
-    dq = np.zeros(imshape, dtype=np.float32)
+    dq = np.zeros(imshape, dtype=np.uint32)
     var_poisson = np.zeros(imshape, dtype=np.float32)
     var_rnoise = np.zeros(imshape, dtype=np.float32)
     err = np.zeros(imshape, dtype=np.float32)
