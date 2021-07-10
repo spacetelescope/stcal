@@ -1,6 +1,11 @@
 0.2.2 (Unreleased)
 ==================
 
+dq_init
+-------
+
+- Added DQ support. [#34]
+
 ramp_fitting
 ------------
 
