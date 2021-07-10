@@ -25,23 +25,31 @@ def dynamic_mask(input_model, mnemonic_map):
     """
 
     dq_table = input_model.dq_def
+
     # Get the DQ array and the flag definitions
     if (dq_table is not None and
         not np.isscalar(dq_table) and
         len(dq_table.shape) and
             len(dq_table)):
-        #
+
         # Make an empty mask
         dqmask = np.zeros(input_model.dq.shape, dtype=input_model.dq.dtype)
         for record in dq_table:
             bitplane = record['VALUE']
-            dqname = record['NAME'].strip()
+
+            # Test for string type to ascertain if decoding is required
+            if isinstance(record['NAME'], str):
+                dqname = record['NAME'].strip()
+            else:
+                dqname = record['NAME'].decode("utf-8").strip()
+
             try:
                 standard_bitvalue = mnemonic_map[dqname]
             except KeyError:
                 log.warning('Keyword %s does not correspond to an existing '
                             'DQ mnemonic, so will be ignored' % (dqname))
                 continue
+
             just_this_bit = np.bitwise_and(input_model.dq, bitplane)
             pixels = np.where(just_this_bit != 0)
             dqmask[pixels] = np.bitwise_or(dqmask[pixels], standard_bitvalue)
