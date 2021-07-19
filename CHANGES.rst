@@ -1,3 +1,10 @@
+0.2.3 (unreleased)
+==================
+
+
+
+
+
 0.2.2 (2021-07-19)
 ==================
 
@@ -5,6 +12,8 @@ ramp_fitting
 ------------
 
 - Added DQ flag parameter to `ramp_fit` [#25]
+
+- Move common ``jump`` code to stcal [#27]
 
 
 0.2.1 (2021-05-20)
