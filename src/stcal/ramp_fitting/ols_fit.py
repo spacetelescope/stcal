@@ -365,7 +365,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
 
     # Create the integration products
     idata = np.zeros(integ_shape, dtype=np.float32)
-    idq = np.zeros(integ_shape, dtype=np.float32)
+    idq = np.zeros(integ_shape, dtype=np.uint32)
     ivar_poisson = np.zeros(integ_shape, dtype=np.float32)
     ivar_rnoise = np.zeros(integ_shape, dtype=np.float32)
     ierr = np.zeros(integ_shape, dtype=np.float32)
