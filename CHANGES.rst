@@ -11,6 +11,7 @@
 ramp_fitting
 ------------
 
+- Implemented multiprocessing for OLS. [#30]
 - Added DQ flag parameter to `ramp_fit` [#25]
 
 - Move common ``jump`` code to stcal [#27]
