@@ -17,7 +17,7 @@ import numpy as np
 import logging
 
 from . import constants
-# from . import gls_fit           # used only if algorithm is "GLS"
+from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
 from . import ramp_fit_class
 
@@ -201,6 +201,8 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # new_model, int_model, gls_opt_model = gls_fit.gls_ramp_fit(
         #     model, buffsize, save_opt, readnoise_model, gain_model, max_cores)
+        image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
         image_info, integ_info, gls_opt_model = None, None, None
         opt_info = None
     else:
