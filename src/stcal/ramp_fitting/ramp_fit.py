@@ -16,7 +16,8 @@
 import numpy as np
 import logging
 
-# from . import gls_fit           # used only if algorithm is "GLS"
+from . import constants
+from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
 from . import ramp_fit_class
 
@@ -67,6 +68,8 @@ def create_ramp_fit_class(model, dqflags=None):
         drop_frames1=drop_frames1)
 
     ramp_data.set_dqflags(dqflags)
+    ramp_data.start_row = 0
+    ramp_data.num_rows = ramp_data.data.shape[2]
 
     return ramp_data
 
@@ -201,12 +204,8 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         exposure
     """
     if algorithm.upper() == "GLS":
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # !!!!! Reference to ReadModel and GainModel changed to simple ndarrays !!!!!
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # new_model, int_model, gls_opt_model = gls_fit.gls_ramp_fit(
-        #     model, buffsize, save_opt, readnoise_model, gain_model, max_cores)
-        image_info, integ_info, gls_opt_model = None, None, None
+        image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
         opt_info = None
     else:
         # Get readnoise array for calculation of variance of noiseless ramps, and
@@ -217,6 +216,6 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
-        gls_opt_model = None
+        gls_opt_info = None
 
-    return image_info, integ_info, opt_info, gls_opt_model
+    return image_info, integ_info, opt_info, gls_opt_info

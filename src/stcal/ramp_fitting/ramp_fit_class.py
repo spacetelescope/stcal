@@ -26,6 +26,10 @@ class RampData:
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
 
+        # Slice info
+        self.start_row = None
+        self.num_rows = None
+
     def set_arrays(self, data, err, groupdq, pixeldq, int_times):
         """
         Set the arrays needed for ramp fitting.
