@@ -16,11 +16,14 @@ import numpy as np
 import numpy.linalg as la
 import time
 
+from . import constants
+from . import ramp_fit_class
 from . import utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+DELIM = "-" * 80
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
@@ -132,107 +135,18 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
 
     if number_slices == 1:
         rows_per_slice = total_rows
-        (slopes, slope_int, slope_err_int, pixeldq_sect, dq_int, sum_weight, 
-         intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int) =\
-            gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt)
+        gls_ans = gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt)
 
     else:
-        log.error("Multiprocessing not implemented yet")
+        gls_ans = gls_fit_multi(
+            ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices)
         return None, None, None
-        '''
-        rows_per_slice = round(total_rows / number_slices)
-        pool = Pool(processes=number_slices)
-        slices = []
-        slopes = np.zeros(imshape, dtype=np.float32)
-        sum_weight = np.zeros(imshape, dtype=np.float32)
 
-        # For multiple-integration datasets, will output integration-specific
-        # results to separate file named <basename> + '_rateints.fits'.
-        # Even if there's only one integration, the output results will be
-        # saved in these arrays.
-        slope_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-        slope_err_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-        dq_int = np.zeros((n_int,) + imshape, dtype=np.uint32)
-        out_pixeldq = np.zeros(imshape, dtype=np.uint32)
-        if save_opt:
-            # Create arrays for the fitted values of zero-point intercept and
-            # cosmic-ray amplitudes, and their errors.
-            intercept_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-            intercept_err_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-            # The pedestal is the extrapolation of the first group back to zero
-            # time, for each integration.
-            pedestal_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-            # If there are no cosmic rays, set the last axis length to 1.
-            shape_ampl = (n_int, imshape[0], imshape[1], max(1, max_num_cr))
-            ampl_int = np.zeros(shape_ampl, dtype=np.float32)
-            ampl_err_int = np.zeros(shape_ampl, dtype=np.float32)
 
-        # Loop over number of processes
-        for i in range(number_slices - 1):
-            start_row = i * rows_per_slice
-            stop_row = (i + 1) * rows_per_slice
-            readnoise_slice = readnoise_2d[start_row: stop_row, :]
-            gain_slice = gain_2d[start_row: stop_row, :]
-            data_slice = input_model.data[:, :, start_row:stop_row, :].copy()
-            err_slice = input_model.err[:, :, start_row: stop_row, :].copy()
-            groupdq_slice = input_model.groupdq[:, :, start_row: stop_row, :].copy()
-            pixeldq_slice = pixeldq[start_row: stop_row, :].copy()
-            slices.insert(i,
-                          (frame_time, gain_slice, groupdq_slice, group_time,
-                           jump_flag, max_num_cr, data_slice, err_slice, frames_per_group, pixeldq_slice,
-                           readnoise_slice, saturated_flag, save_opt))
-        # The last slice takes the remainder of the rows
-        start_row = (number_slices - 1) * rows_per_slice
-        readnoise_slice = readnoise_2d[start_row: total_rows, :]
-        gain_slice = gain_2d[start_row: total_rows, :]
-        data_slice = input_model.data[:, :, start_row: total_rows, :].copy()
-        err_slice = input_model.err[:, :, start_row: total_rows, :].copy()
-        groupdq_slice = input_model.groupdq[:, :, start_row: total_rows, :].copy()
-        pixeldq_slice = input_model.pixeldq[start_row: total_rows, :].copy()
-        slices.insert(number_slices - 1,
-                      (frame_time, gain_slice, groupdq_slice, group_time,
-                       jump_flag, max_num_cr, data_slice, err_slice, frames_per_group, pixeldq_slice,
-                       readnoise_slice, saturated_flag, save_opt))
+    (slopes, slope_int, slope_err_int, pixeldq_sect, dq_int, sum_weight, intercept_int,
+        intercept_err_int, pedestal_int, ampl_int, ampl_err_int) = gls_ans
 
-        log.debug("Creating %d processes for ramp fitting " % number_slices)
-        real_results = pool.starmap(gls_fit_all_integrations, slices)
-        pool.close()
-        pool.join()
-        k = 0
-        log.debug("All processes complete")
-        for resultslice in real_results:
-            start_row = k * rows_per_slice
-            if len(real_results) == k + 1:  # last result
-                slopes[start_row:total_rows, :] = resultslice[0]
-                slope_int[:, start_row:total_rows, :] = resultslice[1]
-                slope_err_int[:, start_row:total_rows, :] = resultslice[2]
-                out_pixeldq[start_row:total_rows, :] = resultslice[3]
-                if resultslice[4] is not None:
-                    dq_int[:, start_row:total_rows, :] = resultslice[4]  # nint > 1
-                    sum_weight[start_row:total_rows, :] = resultslice[5]  # nint > 1
-                if resultslice[6] is not None:
-                    intercept_int[:, start_row: total_rows, :] = resultslice[6]  # optional
-                    intercept_err_int[:, start_row:total_rows, :] = resultslice[7]  # optional
-                    pedestal_int[:, start_row: total_rows, :] = resultslice[8]  # optional
-                    ampl_int[:, start_row:total_rows, :] = resultslice[9]  # optional
-                    ampl_err_int[:, start_row: total_rows, :] = resultslice[10]  # optional
-            else:
-                stop_row = (k + 1) * rows_per_slice
-                slopes[start_row:stop_row, :] = resultslice[0]
-                slope_int[:, start_row:stop_row, :] = resultslice[1]
-                slope_err_int[:, start_row:stop_row, :] = resultslice[2]
-                out_pixeldq[start_row:stop_row, :] = resultslice[3]
-                if resultslice[4] is not None:
-                    dq_int[:, start_row:stop_row, :] = resultslice[4]  # nint > 1
-                    sum_weight[start_row:stop_row, :] = resultslice[5]  # nint > 1
-                if resultslice[6] is not None:
-                    intercept_int[:, start_row: stop_row, :] = resultslice[6]  # optional
-                    intercept_err_int[:, start_row:stop_row, :] = resultslice[7]  # optional
-                    pedestal_int[:, start_row: stop_row, :] = resultslice[8]  # optional
-                    ampl_int[:, start_row:stop_row, :] = resultslice[9]  # optional
-                    ampl_err_int[:, start_row: stop_row, :] = resultslice[10]  # optional
-            k = k + 1
-        '''
+    # TODO Move down to, but excluding, the 'return' to 'gls_fit_single'
     # Average the slopes over all integrations.
     if n_int > 1:
         sum_weight = np.where(sum_weight <= 0., 1., sum_weight)
@@ -242,6 +156,7 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
 
     # Convert back from electrons to DN.
     slope_int /= gain_2d
+
     slope_err_int /= gain_2d
     if n_int > 1:
         slopes /= gain_2d
@@ -291,9 +206,192 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
     if n_int > 1:
         image_info = (slopes.astype(np.float32), final_pixeldq, gls_err.astype(np.float32))
     else:
+
         image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
 
+    log.debug(f"slope_int[0] = {slope_int[0]}")
+    log.debug(f"image_info[0] = {image_info[0]}")
+
     return image_info, integ_info, gls_opt_info
+
+
+def gls_fit_multi(
+        ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices):
+    """
+    ramp_data: RampClass
+        The data needed to do ramp fitting.
+
+    gain_2d: ndarray
+        The 2-D gain for each pixel.
+
+    readnoise_2d: ndarray
+        The 2-D readnoise for each pixel.
+
+    max_num_cr: int
+        The maximum number of cosmic rays.
+
+    save_opt: bool
+        Option to create the optional results product.
+
+    number_slices: int
+        The number of slices/cores to use for multiprocessing.
+    """
+    log.info(f"Number of processors used for multiprocessing: {number_slices}")
+    slices, rows_per_slice = compute_slices_for_starmap(
+        ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices)
+
+
+    pool = Pool(processes=number_slices)
+    pool_results = pool.starmap(gls_fit_single, slices)
+    pool.close()
+    pool.join()
+
+    # Reassemble results
+    reassembled_answers = assemble_pool_results(
+        ramp_data, save_opt, pool_results, rows_per_slice)
+
+    (slopes, slope_int, slope_var_sect, pixeldq_sect, dq_int, sum_weight, intercept_int,
+     intercept_err_int, pedestal_int, ampl_int, ampl_err_int) = reassembled_answers
+
+    return (slopes, slope_int, slope_var_sect, pixeldq_sect, dq_int, sum_weight,
+            intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
+
+
+def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
+    return [None] * 11
+    
+
+def compute_slices_for_starmap(
+        ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices):
+    """
+    Creates the slices needed for each process for multiprocessing.  The slices
+    for the arguments needed for ols_ramp_fit_single.
+
+    ramp_data: RampData
+        The ramp data to be sliced.
+
+    save_opt : bool
+        Whether to return the optional output model
+
+    readnoise_2d : ndarray
+        The read noise of each pixel
+
+    gain_2d : ndarray
+        The gain of each pixel
+
+    max_num_cr: int
+        The maximum number of cosmic rays in a ramp.
+
+    number_slices: int
+        The number of slices to partition the data into for multiprocessing.
+
+    Return
+    ------
+    slices: list
+        The list of arguments for each processor for multiprocessing.
+    """
+    nrows = ramp_data.data.shape[2]
+    rslices = rows_per_slice(number_slices, nrows)
+    slices = []
+    start_row = 0
+    for k in range(len(rslices)):
+        ramp_slice = slice_ramp_data(ramp_data, start_row, rslices[k])
+        rnoise_slice = readnoise_2d[start_row:start_row + rslices[k], :].copy()
+        gain_slice = gain_2d[start_row:start_row + rslices[k], :].copy()
+        slices.insert( 
+            k, 
+            (ramp_slice, rnoise_slice, gain_slice, max_num_cr, save_opt))
+        start_row = start_row + rslices[k]
+
+    return slices, rslices
+
+
+def rows_per_slice(nslices, nrows):
+    """
+    Compute the number of rows per slice.
+
+    Parameters
+    ----------
+    nslices: int
+        The number of slices to partition the rows.
+
+    nrows: int
+        The number of rows to partition.
+
+    Return
+    ______
+    rslices: list
+        The number of rows for each slice.
+    """
+    quotient = nrows // nslices
+    remainder = nrows % nslices
+
+    no_inc = nslices - remainder
+    if remainder > 0:
+        # Ensure the number of rows per slice is no more than a
+        # difference of one.
+        first = [quotient + 1] * remainder
+        second = [quotient] * no_inc
+        rslices = first + second
+    else:
+        rslices = [quotient] * nslices
+
+    return rslices
+
+
+def slice_ramp_data(ramp_data, start_row, nrows):
+    """
+    Slices the ramp data by rows, where the arrays contain all rows in
+    [start_row, start_row+nrows).
+
+    Parameters
+    ----------
+    ramp_data: RampData
+        The ramp data to slice.
+
+    start_rows: int
+        The start row of the slice.
+
+    nrows: int
+        The number of rows in the slice.
+
+    Return
+    ------
+    ramp_data_slice: RampData
+        The slice of the ramp_data.
+    """
+    ramp_data_slice = ramp_fit_class.RampData()
+
+    # Slice data by row
+    data = ramp_data.data[:, :, start_row:start_row + nrows, :].copy()
+    err = ramp_data.err[:, :, start_row:start_row + nrows, :].copy()
+    groupdq = ramp_data.groupdq[:, :, start_row:start_row + nrows, :].copy()
+    pixeldq = ramp_data.pixeldq[start_row:start_row + nrows, :].copy()
+
+    ramp_data_slice.set_arrays(
+        data, err, groupdq, pixeldq, ramp_data.int_times)
+
+    # Carry over meta data.
+    ramp_data_slice.set_meta(
+        name=ramp_data.instrument_name,
+        frame_time=ramp_data.frame_time,
+        group_time=ramp_data.group_time,
+        groupgap=ramp_data.groupgap,
+        nframes=ramp_data.nframes,
+        drop_frames1=ramp_data.drop_frames1)
+
+    # Carry over DQ flags.
+    ramp_data_slice.flags_do_not_use = ramp_data.flags_do_not_use
+    ramp_data_slice.flags_jump_det = ramp_data.flags_jump_det
+    ramp_data_slice.flags_saturated = ramp_data.flags_saturated
+    ramp_data_slice.flags_no_gain_val = ramp_data.flags_no_gain_val
+    ramp_data_slice.flags_unreliable_slope = ramp_data.flags_unreliable_slope
+
+    # Slice info
+    ramp_data_slice.start_row = start_row
+    ramp_data_slice.num_rows = nrows
+
+    return ramp_data_slice
 
 
 def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
@@ -354,6 +452,12 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     ampl_err_int :
         The variance of the amplitude of each cosmic ray for each pixel
     """
+    # For multiprocessing, a new process requires the DQ flags to be updated,
+    # since they are global variables.
+    constants.update_dqflags_from_ramp_data(ramp_data)
+    if None in constants.dqflags.values():
+        raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
+
     frame_time = ramp_data.frame_time
     group_time = ramp_data.group_time
     nframes_used = ramp_data.nframes

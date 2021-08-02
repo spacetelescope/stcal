@@ -58,6 +58,8 @@ def create_ramp_fit_class(model, dqflags=None):
         drop_frames1=model.meta.exposure.drop_frames1)
 
     ramp_data.set_dqflags(dqflags)
+    ramp_data.start_row = 0
+    ramp_data.num_rows = ramp_data.data.shape[2]
 
     return ramp_data
 
@@ -196,14 +198,8 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
 
     if algorithm.upper() == "GLS":
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # !!!!! Reference to ReadModel and GainModel changed to simple ndarrays !!!!!
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # new_model, int_model, gls_opt_model = gls_fit.gls_ramp_fit(
-        #     model, buffsize, save_opt, readnoise_model, gain_model, max_cores)
         image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
-        image_info, integ_info, gls_opt_model = None, None, None
         opt_info = None
     else:
         # Get readnoise array for calculation of variance of noiseless ramps, and
@@ -214,6 +210,6 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
-        gls_opt_model = None
+        gls_opt_info = None
 
-    return image_info, integ_info, opt_info, gls_opt_model
+    return image_info, integ_info, opt_info, gls_opt_info
