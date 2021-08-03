@@ -135,82 +135,30 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
 
     if number_slices == 1:
         rows_per_slice = total_rows
-        gls_ans = gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt)
+        image_info, integ_info, gls_opt_info = gls_fit_single(
+            ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt)
 
     else:
-        gls_ans = gls_fit_multi(
+        image_info, integ_info, gls_opt_info = gls_fit_multi(
             ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices)
-        return None, None, None
 
-
-    (slopes, slope_int, slope_err_int, pixeldq_sect, dq_int, sum_weight, intercept_int,
-        intercept_err_int, pedestal_int, ampl_int, ampl_err_int) = gls_ans
-
-    # TODO Move down to, but excluding, the 'return' to 'gls_fit_single'
-    # Average the slopes over all integrations.
-    if n_int > 1:
-        sum_weight = np.where(sum_weight <= 0., 1., sum_weight)
-        recip_sum_weight = 1. / sum_weight
-        slopes *= recip_sum_weight
-        gls_err = np.sqrt(recip_sum_weight)
-
-    # Convert back from electrons to DN.
-    slope_int /= gain_2d
-
-    slope_err_int /= gain_2d
-    if n_int > 1:
-        slopes /= gain_2d
-        gls_err /= gain_2d
-    if save_opt:
-        intercept_int /= gain_2d
-        intercept_err_int /= gain_2d
-        pedestal_int /= gain_2d
-        gain_shape = gain_2d.shape
-        gain_4d = gain_2d.reshape((1, gain_shape[0], gain_shape[1], 1))
-        ampl_int /= gain_4d
-        ampl_err_int /= gain_4d
-        del gain_4d
-
-    # Compress all integration's dq arrays to create 2D PIXELDDQ array for
-    #   primary output
-    final_pixeldq = utils.dq_compress_final(dq_int, n_int)
-
-    integ_info = (slope_int, dq_int, slope_err_int)
-
-    if save_opt:  # collect optional results for output
-        # Get the zero-point intercepts and the cosmic-ray amplitudes for
-        # each integration (even if there's only one integration).
-        gls_opt_info = (intercept_int, intercept_err_int, 
-                        pedestal_int, ampl_int, ampl_err_int)
-    else:
-        gls_opt_info = None
+        '''
+        log.debug(f"image_info - {type(image_info)}")
+        log.debug(f"integ_info - {type(integ_info)}")
+        log.debug(f"opt_res - {type(gls_opt_info)}")
+        '''
 
     tstop = time.time()
 
-    if n_int > 1:
-        utils.log_stats(slopes)
-    else:
-        utils.log_stats(slope_int[0])
-
-    log.debug('Instrument: %s' % instrume)
-    log.debug('Number of pixels in 2D array: %d' % npix)
-    log.debug('Shape of 2D image: (%d, %d)' % imshape)
-    log.debug('Shape of data cube: (%d, %d, %d)' % cubeshape)
-    log.debug('Buffer size (bytes): %d' % buffsize)
-    log.debug('Number of rows per slice: %d' % rows_per_slice)
     log.info('Number of groups per integration: %d' % nreads)
     log.info('Number of integrations: %d' % n_int)
-    log.debug('The execution time in seconds: %f' % (tstop - tstart,))
 
-    # Create new model...
-    if n_int > 1:
-        image_info = (slopes.astype(np.float32), final_pixeldq, gls_err.astype(np.float32))
-    else:
-
-        image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
-
-    log.debug(f"slope_int[0] = {slope_int[0]}")
-    log.debug(f"image_info[0] = {image_info[0]}")
+    '''
+    log.debug(f"type(image_info) = {type(image_info)}")
+    log.debug(f"type(integ_info) = {type(integ_info)}")
+    log.debug(f"type(gls_opt_info) = {type(gls_opt_info)}")
+    '''
+    log.debug(f"The execution time in seconds: {tstop - tstart:,}")
 
     return image_info, integ_info, gls_opt_info
 
@@ -240,25 +188,174 @@ def gls_fit_multi(
     slices, rows_per_slice = compute_slices_for_starmap(
         ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices)
 
-
     pool = Pool(processes=number_slices)
     pool_results = pool.starmap(gls_fit_single, slices)
     pool.close()
     pool.join()
 
     # Reassemble results
-    reassembled_answers = assemble_pool_results(
+    image_info, integ_info, opt_res = assemble_pool_results(
         ramp_data, save_opt, pool_results, rows_per_slice)
 
-    (slopes, slope_int, slope_var_sect, pixeldq_sect, dq_int, sum_weight, intercept_int,
-     intercept_err_int, pedestal_int, ampl_int, ampl_err_int) = reassembled_answers
-
-    return (slopes, slope_int, slope_var_sect, pixeldq_sect, dq_int, sum_weight,
-            intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
+    return image_info, integ_info, opt_res
 
 
 def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
-    return [None] * 11
+    """
+    ramp_data: RampClass
+        The original data used to do ramp fitting.
+
+    save_opt: bool
+        The option to save the optional results.
+
+    pool_results: tuple
+        The tuple of results to be reassembled.
+
+    rows_per_slice: tuple
+        The rows in each slice.
+    """
+    image_info, integ_info, opt_res = create_outputs(ramp_data)
+    current_row = 0
+    for k, results in enumerate(pool_results):
+        nrows = rows_per_slice[k]
+
+        image_slice, integ_slice, opt_slice = results
+
+        reassemble_image(ramp_data, image_info, image_slice, current_row, nrows)
+        reassemble_integ(ramp_data, integ_info, integ_slice, current_row, nrows)
+        if save_opt:
+            reassemble_opt(ramp_data, opt_res, opt_slice, current_row, nrows)
+
+        current_row = current_row + nrows
+
+    return image_info, integ_info, opt_res
+
+
+def create_outputs(ramp_data):
+    image_info = create_output_image(ramp_data)
+    integ_info = create_output_integ(ramp_data)
+    opt_res = None
+
+    return image_info, integ_info, opt_res
+
+
+def create_output_image(ramp_data):
+    """
+    ramp_data: RampClass
+        The original data used to do ramp fitting.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.data.shape
+
+    image_shape = (nrows, ncols)
+    slope = np.zeros(image_shape, dtype=np.float32)
+    pdq = np.zeros(image_shape, dtype=np.uint32)
+    err = np.zeros(image_shape, dtype=np.float32)
+
+    return (slope, pdq, err)
+
+
+def create_output_integ(ramp_data):
+    """
+    ramp_data: RampClass
+        The original data used to do ramp fitting.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.data.shape
+
+    image_shape = (nints, nrows, ncols)
+    slope = np.zeros(image_shape, dtype=np.float32)
+    pdq = np.zeros(image_shape, dtype=np.uint32)
+    err = np.zeros(image_shape, dtype=np.float32)
+
+    return (slope, pdq, err)
+
+
+def reassemble_image(ramp_data, image_info, image_slice, crow, nrows):
+    """
+    ramp_data: RampClass
+        The original data used to do ramp fitting.
+
+    image_info: tuple
+        Tuple of final output arrays to be reassembled.
+
+    image_slice: tuple
+        Tuple of sliced output arrays to be used during reassembly.
+
+    crow: int
+        The current start row.
+
+    nrows: int
+        The number of rows in the current slice.
+    """
+    # image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
+    slope, pdq, err = image_slice
+    '''
+    log.debug(f"sslope = {sslope.shape}")
+    log.debug(f"spixeldq = {spixeldq.shape}")
+    log.debug(f"serr = {serr.shape}")
+    '''
+    srow, erow = crow, crow + nrows
+    image_info[0][srow:erow, :] = slope
+    image_info[1][srow:erow, :] = pdq
+    image_info[2][srow:erow, :] = err
+
+
+def reassemble_integ(ramp_data, integ_info, integ_slice, crow, nrows):
+    """
+    ramp_data: RampClass
+        The original data used to do ramp fitting.
+
+    integ_info: tuple
+        Tuple of final output arrays to be reassembled.
+
+    integ_slice: tuple
+        Tuple of sliced output arrays to be used during reassembly.
+
+    crow: int
+        The current start row.
+
+    nrows: int
+        The number of rows in the current slice.
+    """
+    # integ_info = (slope_int, dq_int, slope_err_int)
+    slope, dq, err = integ_slice
+    '''
+    log.debug(f"slope_int = {slope.shape}")
+    log.debug(f"dq_int = {dq.shape}")
+    log.debug(f"err_int = {err.shape}")
+    '''
+    srow, erow = crow, crow + nrows
+    integ_info[0][:, srow:erow, :] = slope
+    integ_info[1][:, srow:erow, :] = dq
+    integ_info[2][:, srow:erow, :] = err
+
+
+def reassemble_opt(ramp_data, opt_res, opt_slice, crow, nrows):
+    """
+    ramp_data: RampClass
+        The original data used to do ramp fitting.
+
+    opt_res: tuple
+        Tuple of final output arrays to be reassembled.
+
+    opt_slice: tuple
+        Tuple of sliced output arrays to be used during reassembly.
+
+    crow: int
+        The current start row.
+
+    nrows: int
+        The number of rows in the current slice.
+    """
+    # TODO finish function
+    # gls_opt_info = (intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
+    inter, err, pedestal, ampl, ampl_err = opt_slice
+    '''
+    log.debug(f"inter = {inter.shape}")
+    log.debug(f"err = {err.shape}")
+    log.debug(f"pedestal = {pedestal.shape}")
+    log.debug(f"ampl = {ampl.shape}")
+    log.debug(f"ampl_err = {ampl_err.shape}")
+    '''
     
 
 def compute_slices_for_starmap(
@@ -452,6 +549,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     ampl_err_int :
         The variance of the amplitude of each cosmic ray for each pixel
     """
+    # START
     # For multiprocessing, a new process requires the DQ flags to be updated,
     # since they are global variables.
     constants.update_dqflags_from_ramp_data(ramp_data)
@@ -575,8 +673,71 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         dq_int[num_int, :, :] |= temp_dq
         temp_dq[:, :] = 0  # initialize for next integration
 
-    return (slopes, slope_int, slope_var_sect, pixeldq_sect, dq_int, sum_weight,
-            intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
+    # Average the slopes over all integrations.
+    # number_ints = data_sect.shape[0]
+    if number_ints > 1:
+        sum_weight = np.where(sum_weight <= 0., 1., sum_weight)
+        recip_sum_weight = 1. / sum_weight
+        slopes *= recip_sum_weight
+        gls_err = np.sqrt(recip_sum_weight)
+
+    # Convert back from electrons to DN.
+    slope_int /= gain_2d
+
+    slope_err_int /= gain_2d
+    if number_ints > 1:
+        slopes /= gain_2d
+        gls_err /= gain_2d
+    if save_opt:
+        intercept_int /= gain_2d
+        intercept_err_int /= gain_2d
+        pedestal_int /= gain_2d
+        gain_shape = gain_2d.shape
+        gain_4d = gain_2d.reshape((1, gain_shape[0], gain_shape[1], 1))
+        ampl_int /= gain_4d
+        ampl_err_int /= gain_4d
+        del gain_4d
+
+    # Compress all integration's dq arrays to create 2D PIXELDDQ array for
+    #   primary output
+    final_pixeldq = utils.dq_compress_final(dq_int, number_ints)
+
+    integ_info = (slope_int, dq_int, slope_err_int)
+
+    if save_opt:  # collect optional results for output
+        # Get the zero-point intercepts and the cosmic-ray amplitudes for
+        # each integration (even if there's only one integration).
+        gls_opt_info = (intercept_int, intercept_err_int, 
+                        pedestal_int, ampl_int, ampl_err_int)
+    else:
+        gls_opt_info = None
+
+    '''
+    if number_ints > 1:
+        utils.log_stats(slopes)
+    else:
+        utils.log_stats(slope_int[0])
+    '''
+
+    '''
+    log.debug('Instrument: %s' % instrume)
+    log.debug('Number of pixels in 2D array: %d' % npix)
+    log.debug('Shape of 2D image: (%d, %d)' % imshape)
+    log.debug('Shape of data cube: (%d, %d, %d)' % cubeshape)
+    log.debug('Buffer size (bytes): %d' % buffsize)
+    log.debug('Number of rows per slice: %d' % rows_per_slice)
+    log.info('Number of groups per integration: %d' % nreads)
+    log.info('Number of integrations: %d' % n_int)
+    log.debug('The execution time in seconds: %f' % (tstop - tstart,))
+    '''
+
+    # Create new model...
+    if number_ints > 1:
+        image_info = (slopes.astype(np.float32), final_pixeldq, gls_err.astype(np.float32))
+    else:
+        image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
+
+    return image_info, integ_info, gls_opt_info
 
 
 def determine_slope(data_sect, input_var_sect,
