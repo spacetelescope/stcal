@@ -634,7 +634,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
             slope_var_sect[v_mask] = utils.LARGE_VARIANCE
 
             # Also set a flag in the pixel dq array.
-            temp_dq[:, :][v_mask] = UNRELIABLE_SLOPE
+            temp_dq[:, :][v_mask] = constants.dqflags["UNRELIABLE_SLOPE"]
             del v_mask
 
         # If a pixel was flagged (by an earlier step) as saturated in
@@ -642,7 +642,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # Note:  save s_mask until after the call to utils.gls_pedestal.
         s_mask = (gdq_cube[0] == saturated_flag)
         if s_mask.any():
-            temp_dq[:, :][s_mask] = UNRELIABLE_SLOPE
+            # TODO The dimensions of s_mask are larger than temp_dq
+            temp_dq[:, :][s_mask] = constants.dqflags["UNRELIABLE_SLOPE"]
         slope_err_int[num_int, :, :] = np.sqrt(slope_var_sect)
 
         # We need to take a weighted average if (and only if) number_ints > 1.
@@ -894,6 +895,7 @@ def determine_slope(data_sect, input_var_sect,
     slope_diff_cutoff = 1.e-5
 
     # These will be updated in the loop.
+    # TODO The next line assumes more than one group
     prev_slope_sect = (data_sect[1, :, :] - data_sect[0, :, :]) / group_time
     prev_fit = data_sect.copy()
 
