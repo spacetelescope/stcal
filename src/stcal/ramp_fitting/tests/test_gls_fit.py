@@ -111,7 +111,7 @@ def test_one_group_small_buffer_fit_gls():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     data = slopes[0]
@@ -124,7 +124,8 @@ def test_one_group_small_buffer_fit_gls():
 )
 def test_gls_vs_ols_two_ints_ols():
     """
-    A test to see if GLS is correctly combining integrations. The combination should only use the read noise variance.
+    A test to see if GLS is correctly combining integrations. The combination
+    should only use the read noise variance.
     The current version of GLS does not work correctly.
     """
     # nints, ngroups, nrows, ncols = 1, 11, 103, 102
@@ -147,12 +148,12 @@ def test_gls_vs_ols_two_ints_ols():
 
     save_opt, algo, ncores = False, "OLS", "none"
     oslopes, ocube, ools_opt, ogls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     save_opt, algo, ncores = False, "GLS", "none"
     gslopes, gcube, gols_opt, ggls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data2, 512, save_opt, rnoise2d_2, gain2d_2, algo,
         "optimal", ncores, test_dq_flags)
 
     # print(f"oslopes[0][50, 50] = {oslopes[0][50, 50]}")
@@ -180,7 +181,7 @@ def test_one_group_two_ints_fit_gls():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     data = slopes[0]
@@ -202,7 +203,7 @@ def test_nocrs_noflux():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     assert 0 == np.max(slopes[0])
@@ -227,7 +228,7 @@ def test_nocrs_noflux_firstrows_are_nan():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     assert 0 == np.max(slopes[0])
@@ -253,7 +254,7 @@ def test_error_when_frame_time_not_set():
     save_opt, algo, ncores = False, "GLS", "none"
     with pytest.raises(UnboundLocalError):
         slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-            ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+            ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
             "optimal", ncores, test_dq_flags)
 
 
@@ -282,13 +283,13 @@ def test_five_groups_two_ints_Poisson_noise_only():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    out_slope=slopes[0][50, 50]
+    out_slope = slopes[0][50, 50]
     deltaDN1 = 50
     deltaDN2 = 150
-    check = (deltaDN1 + deltaDN2)/2.0
+    check = (deltaDN1 + deltaDN2) / 2.0
     print(f"\nout_slope = {out_slope}, check = {check}")
 
     # These arguments don't make sense to me.
@@ -315,7 +316,7 @@ def test_bad_gain_values():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     data, dq, err = slopes
@@ -348,12 +349,11 @@ def test_simple_ramp():
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-
     ans = slopes[0][50, 50]
-    check = 20./3
+    check = 20. / 3
     tol = 1.e-5
     np.testing.assert_allclose(ans, check, tol)
 
@@ -376,10 +376,10 @@ def test_read_noise_only_fit():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    xvalues = np.arange(5)*1.0
+    xvalues = np.arange(5) * 1.0
     yvalues = np.array(ramp_arr)
     coeff = np.polyfit(xvalues, yvalues, 1)
     ans = slopes[0][50, 50]
@@ -393,7 +393,7 @@ def test_read_noise_only_fit():
 @pytest.mark.skip(reason="GLS not sure what expected value is.")
 def test_photon_noise_only_fit():
     """
-    
+
     """
     nints, ngroups, nrows, ncols = 1, 5, 103, 102
     dims = (nints, ngroups, nrows, ncols)
@@ -407,24 +407,24 @@ def test_photon_noise_only_fit():
     ramp_arr = [10., 15., 25., 33., 60.]
     ramp_data.data[0, :, 50, 50] = np.array(ramp_arr)
 
-    check = (ramp_data.data[0,4,50,50] - ramp_data.data[0,0,50,50])/ 4.0
+    check = (ramp_data.data[0,4,50,50] - ramp_data.data[0,0,50,50]) / 4.0
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
     tol = 1.e-2
     # print(f"ans = {ans}")         #  8.6579208
     # print(f"check = {check}")     # 12.5
-    # np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(ans, check, tol)
 
 
 @pytest.mark.skip(reason="GLS not sure what expected value is.")
 def test_photon_noise_only_bad_last_group():
     """
-    
+
     """
     nints, ngroups, nrows, ncols = 1, 5, 103, 102
     dims = (nints, ngroups, nrows, ncols)
@@ -440,13 +440,13 @@ def test_photon_noise_only_bad_last_group():
     ramp_data.data[0, 3, 50, 50] = 33.0
     ramp_data.data[0, 4, 50, 50] = 60.0
 
-    check = (ramp_data.data[0,3,50,50] - ramp_data.data[0,0,50,50])/ 3.0
+    check = (ramp_data.data[0,3,50,50] - ramp_data.data[0,0,50,50]) / 3.0
 
     ramp_data.groupdq[0,4,:,:] = DO_NOT_USE
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -478,10 +478,10 @@ def test_photon_noise_with_unweighted_fit():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "unweighted", ncores, test_dq_flags)
 
-    xvalues = np.arange(5)*1.0
+    xvalues = np.arange(5) * 1.0
     yvalues = np.array([10,15,25,33,60])
     coeff = np.polyfit(xvalues, yvalues, 1)
     check = coeff[0]
@@ -519,27 +519,27 @@ def test_two_groups_fit():
     check = (ramp_data.data[0,1,50,50] - ramp_data.data[0,0,50,50])
 
     ramp_data.drop_frames1 = 0
-    #2nd group is saturated
+    # 2nd group is saturated
     ramp_data.groupdq[0,1,50,51] = SATURATED
 
-    #1st group is saturated
+    # 1st group is saturated
     ramp_data.groupdq[0,0,50,52] = SATURATED
     ramp_data.groupdq[0,1,50,52] = SATURATED  # should not be set this way
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans_data = slopes[0][50, 50]
     ans_dq = slopes[1]
     tol = 1.e-5
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(ans_data, check, tol)
 
-    #expect SATURATED
+    # expect SATURATED
     assert ans_dq[50, 51] == SATURATED
 
-    #expect SATURATED and DO_NOT_USE, because 1st group is Saturated
+    # expect SATURATED and DO_NOT_USE, because 1st group is Saturated
     assert ans_dq[50, 52] == SATURATED + DO_NOT_USE
 
 
@@ -559,14 +559,14 @@ def test_four_groups_oneCR_orphangroupatend_fit():
     ramp_data.data[0, 1, 50, 50] = 15.0
     ramp_data.data[0, 2, 50, 50] = 20.0
     ramp_data.data[0, 3, 50, 50] = 145.0
-    
+
     ramp_data.groupdq[0,3,50,50] = JUMP_DET
 
     check = (ramp_data.data[0,1,50,50] - ramp_data.data[0,0,50,50])
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -599,7 +599,7 @@ def test_four_groups_two_CRs_at_end():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -632,7 +632,7 @@ def test_four_groups_four_CRs():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -662,13 +662,13 @@ def test_four_groups_three_CRs_at_end():
     ramp_data.data[0, 2, 50, 50] = 25.0
     ramp_data.data[0, 3, 50, 50] = 145.0
 
-    ramp_data.groupdq[0,1,50,50]=JUMP_DET
-    ramp_data.groupdq[0,2,50,50]=JUMP_DET
-    ramp_data.groupdq[0,3,50,50]=JUMP_DET
+    ramp_data.groupdq[0,1,50,50] = JUMP_DET
+    ramp_data.groupdq[0,2,50,50] = JUMP_DET
+    ramp_data.groupdq[0,3,50,50] = JUMP_DET
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -701,7 +701,7 @@ def test_four_groups_CR_causes_orphan_1st_group():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -727,7 +727,7 @@ def test_one_group_fit():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -756,7 +756,7 @@ def test_two_groups_unc():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[2][50, 50]
@@ -797,11 +797,11 @@ def test_five_groups_unc():
     ramp_data.data[0, 3, 50, 50] = 33.0
     ramp_data.data[0, 4, 50, 50] = 60.0
 
-    check = np.median(np.diff(ramp_data.data[0,:,50,50])) / grouptime
+    # check = np.median(np.diff(ramp_data.data[0,:,50,50])) / grouptime
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     '''
@@ -836,7 +836,7 @@ def test_oneCR_10_groups_combination():
         dims, gain, rnoise, group_time, frame_time
     )
 
-        # two segments perfect fit, second segment has twice the slope
+    # two segments perfect fit, second segment has twice the slope
     ramp_data.data[0, 0, 50, 50] = 15.0
     ramp_data.data[0, 1, 50, 50] = 20.0
     ramp_data.data[0, 2, 50, 50] = 25.0
@@ -848,11 +848,11 @@ def test_oneCR_10_groups_combination():
     ramp_data.data[0, 8, 50, 50] = 170.0
     ramp_data.data[0, 9, 50, 50] = 180.0
 
-    ramp_data.groupdq[0,5,50,50]=JUMP_DET
+    ramp_data.groupdq[0,5,50,50] = JUMP_DET
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][50, 50]
@@ -860,15 +860,17 @@ def test_oneCR_10_groups_combination():
 
     # TODO Need to add the optional results product to GLS
 
-
     '''
     segment_groups  = 5
     single_sample_readnoise = np.float64(inreadnoise / np.sqrt(2))
 
     #check that the segment variance is as expected
     np.testing.assert_allclose(opt_model.var_rnoise[0,0,50,50],
-        (12.0 * single_sample_readnoise**2/(segment_groups * (segment_groups**2 - 1) * grouptime**2)), rtol=1e-6)
-        # check the combined slope is the average of the two segments since they have the same number of groups
+        (12.0 * single_sample_readnoise**2 \
+         / (segment_groups * (segment_groups**2 - 1) * grouptime**2)),
+        rtol=1e-6)
+    # check the combined slope is the average of the two segments since
+    # they have the same number of groups
     np.testing.assert_allclose(slopes.data[50, 50], 2.5,rtol=1e-5)
 
     #check that the slopes of the two segments are correct
@@ -882,14 +884,9 @@ def test_oneCR_10_groups_combination_noisy2ndSegment():
     """
 
     """
-    grouptime=3.0
-    # deltaDN = 5
-    ingain = 200 # use large gain to show that Poisson noise doesn't affect the recombination
-    inreadnoise =7
-    ngroups=10
-
     nints, ngroups, nrows, ncols = 1, 10, 103, 102
     dims = (nints, ngroups, nrows, ncols)
+    # use large gain to show that Poisson noise doesn't affect the recombination
     rnoise, gain = 7, 200
     group_time, frame_time = 3.0, 3
 
@@ -913,12 +910,12 @@ def test_oneCR_10_groups_combination_noisy2ndSegment():
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, 
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-
     '''
-        avg_slope = (opt_model.slope[0,0,50,50] + opt_model.slope[0,1,50,50])/2.0
-            #even with noiser second segment, final slope should be just the average since they have the same number of groups
-        np.testing.assert_allclose(slopes.data[50, 50], avg_slope,rtol=1e-5)
+    avg_slope = (opt_model.slope[0,0,50,50] + opt_model.slope[0,1,50,50])/2.0
+    # even with noiser second segment, final slope should be just the average
+    # since they have the same number of groups
+    np.testing.assert_allclose(slopes.data[50, 50], avg_slope,rtol=1e-5)
     '''

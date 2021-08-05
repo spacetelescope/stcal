@@ -912,7 +912,7 @@ def get_dataset_info(ramp_data):
     imshape = (asize2, asize1)
     cubeshape = (nreads,) + imshape
 
-    return (nreads, npix, imshape, cubeshape, n_int, instrume, 
+    return (nreads, npix, imshape, cubeshape, n_int, instrume,
             frame_time, ngroups, group_time)
 
 
