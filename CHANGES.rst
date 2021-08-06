@@ -1,8 +1,10 @@
-0.2.3 (unreleased)
+0.2.3 (2021-08-06)
 ==================
 
+ramp_fitting
+------------
 
-
+- Fix ramp fitting multiprocessing. (#30)
 
 
 0.2.2 (2021-07-19)
