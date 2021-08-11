@@ -1,7 +1,9 @@
 0.2.4 (unreleased)
 ==================
 
-
+saturation
+----------
+- Move common saturation code to stcal [#39]
 
 0.2.3 (2021-08-06)
 ==================
@@ -21,6 +23,8 @@ ramp_fitting
 - Implemented multiprocessing for OLS. [#30]
 - Added DQ flag parameter to `ramp_fit` [#25]
 
+jump_detection
+--------------
 - Move common ``jump`` code to stcal [#27]
 
 
