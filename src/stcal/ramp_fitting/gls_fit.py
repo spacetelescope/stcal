@@ -231,8 +231,8 @@ def create_output_image(ramp_data):
         The original data used to do ramp fitting.
     """
     nints, ngroups, nrows, ncols = ramp_data.data.shape
-
     image_shape = (nrows, ncols)
+
     slope = np.zeros(image_shape, dtype=np.float32)
     pdq = np.zeros(image_shape, dtype=np.uint32)
     err = np.zeros(image_shape, dtype=np.float32)
@@ -246,8 +246,8 @@ def create_output_integ(ramp_data):
         The original data used to do ramp fitting.
     """
     nints, ngroups, nrows, ncols = ramp_data.data.shape
-
     image_shape = (nints, nrows, ncols)
+
     slope = np.zeros(image_shape, dtype=np.float32)
     pdq = np.zeros(image_shape, dtype=np.uint32)
     err = np.zeros(image_shape, dtype=np.float32)
@@ -260,6 +260,7 @@ def create_output_opt_res(ramp_data):
     ramp_data: RampClass
         The original data used to do ramp fitting.
     """
+    # TODO Need to create the optional results output arrays.
     return None
 
 
@@ -280,14 +281,9 @@ def reassemble_image(ramp_data, image_info, image_slice, crow, nrows):
     nrows: int
         The number of rows in the current slice.
     """
-    # image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
     slope, pdq, err = image_slice
-    '''
-    log.debug(f"sslope = {sslope.shape}")
-    log.debug(f"spixeldq = {spixeldq.shape}")
-    log.debug(f"serr = {serr.shape}")
-    '''
     srow, erow = crow, crow + nrows
+
     image_info[0][srow:erow, :] = slope
     image_info[1][srow:erow, :] = pdq
     image_info[2][srow:erow, :] = err
@@ -312,12 +308,8 @@ def reassemble_integ(ramp_data, integ_info, integ_slice, crow, nrows):
     """
     # integ_info = (slope_int, dq_int, slope_err_int)
     slope, dq, err = integ_slice
-    '''
-    log.debug(f"slope_int = {slope.shape}")
-    log.debug(f"dq_int = {dq.shape}")
-    log.debug(f"err_int = {err.shape}")
-    '''
     srow, erow = crow, crow + nrows
+
     integ_info[0][:, srow:erow, :] = slope
     integ_info[1][:, srow:erow, :] = dq
     integ_info[2][:, srow:erow, :] = err
@@ -343,6 +335,7 @@ def reassemble_opt(ramp_data, opt_res, opt_slice, crow, nrows):
     # TODO finish function
     # gls_opt_info = (intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
     inter, err, pedestal, ampl, ampl_err = opt_slice
+    srow, erow = crow, crow + nrows
 
     log.debug(f"    ---> ({crow}, {crow + nrows})")
     log.debug(f"inter    = {inter.shape}")
@@ -350,6 +343,15 @@ def reassemble_opt(ramp_data, opt_res, opt_slice, crow, nrows):
     log.debug(f"pedestal = {pedestal.shape}")
     log.debug(f"ampl     = {ampl.shape}")
     log.debug(f"ampl_err = {ampl_err.shape}")
+
+    # TODO Dimension check
+    '''
+    opt_res[0][:, srow:erow, :] = slope
+    opt_res[1][:, srow:erow, :] = err
+    opt_res[2][:, srow:erow, :] = pedestal
+    opt_res[3][:, srow:erow, :] = ampl
+    opt_res[4][:, srow:erow, :] = ampl_err
+    '''
 
 
 def compute_slices_for_starmap(
@@ -544,12 +546,9 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
 
     imshape = (data_sect.shape[2], data_sect.shape[3])
 
-    slope_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
-    slope_err_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
-    dq_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.uint32)
-    temp_dq = np.zeros((number_rows, number_cols), dtype=np.uint32)
-    slopes = np.zeros((number_rows, number_cols), dtype=np.float32)
-    sum_weight = np.zeros((number_rows, number_cols), dtype=np.float32)
+    # REFAC
+    slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight = \
+        create_integration_arrays(data_sect.shape)
 
     if save_opt:
         # Create arrays for the fitted values of zero-point intercept and
@@ -585,9 +584,11 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
 
         # We'll propagate error estimates from previous steps to the
         # current step by using the variance.
+        # TODO Should this really be done every loop?
         input_var_sect = input_var_sect ** 2
 
         # Convert the data section from DN to electrons.
+        # TODO Should this really be done every loop?
         data_sect *= gain_2d
         if save_opt:
             first_group[:, :] = data_sect[num_int, 0, :, :].copy()
@@ -710,6 +711,28 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
 
     return image_info, integ_info, gls_opt_info
+
+
+def create_integration_arrays(dims):
+    """
+    Parameter
+    ---------
+    dims: tuple
+        Dimensions of the 4-D array.
+    """
+    number_ints, ngroups, number_rows, number_cols = dims
+
+
+    slope_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
+    slope_err_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
+
+    dq_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.uint32)
+    temp_dq = np.zeros((number_rows, number_cols), dtype=np.uint32)
+
+    slopes = np.zeros((number_rows, number_cols), dtype=np.float32)
+    sum_weight = np.zeros((number_rows, number_cols), dtype=np.float32)
+
+    return slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight
 
 
 def determine_slope(data_sect, input_var_sect,
