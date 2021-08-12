@@ -546,36 +546,12 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
 
     imshape = (data_sect.shape[2], data_sect.shape[3])
 
-    # REFAC
     slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight = \
         create_integration_arrays(data_sect.shape)
 
-    if save_opt:
-        # Create arrays for the fitted values of zero-point intercept and
-        # cosmic-ray amplitudes, and their errors.
-        intercept_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
-        intercept_err_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
-
-        # The pedestal is the extrapolation of the first group back to zero
-        # time, for each integration.
-        pedestal_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
-
-        # The first group, for calculating the pedestal.  (This only needs
-        # to be nrows high, but we don't have nrows yet.  xxx)
-        first_group = np.zeros(imshape, dtype=np.float32)
-
-        # If there are no cosmic rays, set the last axis length to 1.
-        shape_ampl = (number_ints, imshape[0], imshape[1], max(1, max_num_cr))
-        ampl_int = np.zeros(shape_ampl, dtype=np.float32)
-        ampl_err_int = np.zeros(shape_ampl, dtype=np.float32)
-    else:
-        intercept_int = None
-        intercept_err_int = None
-        pedestal_int = None
-        first_group = None
-        shape_ampl = None
-        ampl_int = None
-        ampl_err_int = None
+    # REFAC
+    (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl, 
+        ampl_int, ampl_err_int) = create_opt_res(save_opt, data_sect.shape, max_num_cr)
 
     # loop over data integrations
     for num_int in range(number_ints):
@@ -733,6 +709,49 @@ def create_integration_arrays(dims):
     sum_weight = np.zeros((number_rows, number_cols), dtype=np.float32)
 
     return slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight
+
+
+# REFAC
+def create_opt_res(save_opt, dims, max_num_cr):
+    """
+    Parameter
+    ---------
+    dims: tuple
+        Dimensions of the 4-D array.
+    """
+    number_ints, number_groups, number_rows, number_cols = dims
+    imshape = (number_rows, number_cols)
+
+    if save_opt:
+        # Create arrays for the fitted values of zero-point intercept and
+        # cosmic-ray amplitudes, and their errors.
+        intercept_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+        intercept_err_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+
+        # The pedestal is the extrapolation of the first group back to zero
+        # time, for each integration.
+        pedestal_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+
+        # The first group, for calculating the pedestal.  (This only needs
+        # to be nrows high, but we don't have nrows yet.  xxx)
+        first_group = np.zeros(imshape, dtype=np.float32)
+
+        # If there are no cosmic rays, set the last axis length to 1.
+        shape_ampl = (number_ints, imshape[0], imshape[1], max(1, max_num_cr))
+        ampl_int = np.zeros(shape_ampl, dtype=np.float32)
+        ampl_err_int = np.zeros(shape_ampl, dtype=np.float32)
+    else:
+        intercept_int = None
+        intercept_err_int = None
+        pedestal_int = None
+        first_group = None
+        shape_ampl = None
+        ampl_int = None
+        ampl_err_int = None
+
+    return (intercept_int, intercept_err_int, pedestal_int, first_group, 
+            shape_ampl, ampl_int, ampl_err_int)
+
 
 
 def determine_slope(data_sect, input_var_sect,
