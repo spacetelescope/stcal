@@ -77,18 +77,18 @@ class RampData:
         ----------
         model : Data model
             JWST or ROman Ramp Model
-        """       
+        """
         # Get meta information
         self.instrument_name = model.meta.instrument.name
 
-        self.frame_time = meta.exposure.frame_time
-        self.group_time = meta.exposure.group_time
+        self.frame_time = model.meta.exposure.frame_time
+        self.group_time = model.meta.exposure.group_time
         self.groupgap = model.meta.exposure.groupgap
         self.nframes = model.meta.exposure.nframes
 
         # May not be available for all pipelines, so is defaulted to NoneType.
         if hasattr(model, 'drop_frames1'):
-            self.drop_frames1 = drop_frames1
+            self.drop_frames1 = model.exposure.drop_frames1
 
     def set_dqflags(self, dqflags):
         """
