@@ -46,16 +46,8 @@ def create_ramp_fit_class(model, dqflags=None):
     """
     ramp_data = ramp_fit_class.RampData()
 
-    ramp_data.set_arrays(
-        model.data, model.err, model.groupdq, model.pixeldq, model.int_times)
-
-    ramp_data.set_meta(
-        name=model.meta.instrument.name,
-        frame_time=model.meta.exposure.frame_time,
-        group_time=model.meta.exposure.group_time,
-        groupgap=model.meta.exposure.groupgap,
-        nframes=model.meta.exposure.nframes,
-        drop_frames1=model.meta.exposure.drop_frames1)
+    ramp_data.set_arrays(model)
+    ramp_data.set_meta(model)
 
     ramp_data.set_dqflags(dqflags)
 
