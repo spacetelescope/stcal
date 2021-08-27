@@ -12,6 +12,7 @@ Workaround for setuptools_scm issues with recent versions of pip. [#45]
 ramp_fitting
 ------------
 
+- Adds support for Roman ramp data. (#49)
 - Fix ramp fitting multiprocessing. (#30)
 
 
