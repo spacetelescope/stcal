@@ -26,69 +26,75 @@ class RampData:
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
 
-    def set_arrays(self, model):
+    def set_arrays(self, data, err, groupdq, pixeldq, int_times):
         """
         Set the arrays needed for ramp fitting.
 
-        Sets the following arrays:
-        data : 4-D array containing the pixel information.  It has dimensions
+        Parameter
+        ---------
+        data : ndarray
+            4-D array containing the pixel information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        err : 4-D array containing the error information.  It has dimensions
+        err : ndarray
+            4-D array containing the error information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        groupdq :4-D array containing the data quality flags.  It has dimensions
+        groupdq : ndarray (uint16)
+            4-D array containing the data quality flags.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
-        pixeldq : 4-D array containing the pixel data quality information.  It has dimensions
+        pixeldq : ndarray (uint32)
+            4-D array containing the pixel data quality information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
         int_times : list
-            Time information for each integration (only JWST).
-
-
-        Parameters
-        ----------
-        model : Data model
-            JWST or Roman Ramp Model
-
+            Time information for each integration.
         """
         # Get arrays from the data model
-        self.data = model.data
-        self.err = model.err
-        self.groupdq = model.groupdq
-        self.pixeldq = model.pixeldq
-        if hasattr(model, 'int_times'):
-            self.int_times = model.int_times
+        self.data = data
+        self.err = err
+        self.groupdq = groupdq
+        self.pixeldq = pixeldq
+        self.int_times = int_times
 
-    def set_meta(self, model):
+    def set_meta(self, name, frame_time, group_time, groupgap,
+                 nframes, drop_frames1=None):
         """
-        Set the meta information needed for ramp fitting.
+        Set the metainformation needed for ramp fitting.
 
-        name: The instrument name.
-        frame_time: The time to read one frame.
-        group_time: The time to read one group.
-        groupgap: The number of frames that are not included in the group average
-        nframes: The number of frames that are included in the group average
-        drop_frames1: The number of frames dropped at the beginning of every integration.
-                      May not be used in some pipelines, so is defaulted to NoneType.
+        Parameter
+        ---------
+        name : str
+            The instrument name.
 
-        Parameters
-        ----------
-        model : Data model
-            JWST or ROman Ramp Model
+        frame_time : float32
+            The time to read one frame.
+
+        group_time : float32
+            The time to read one group.
+
+        groupgap : int
+            The number of frames that are not included in the group average
+
+        nframes : int
+            The number of frames that are included in the group average
+
+        drop_frames1 :
+            The number of frames dropped at the beginning of every integration.
+            May not be used in some pipelines, so is defaulted to NoneType.
         """
+
         # Get meta information
-        self.instrument_name = model.meta.instrument.name
+        self.instrument_name = name
 
-        self.frame_time = model.meta.exposure.frame_time
-        self.group_time = model.meta.exposure.group_time
-        self.groupgap = model.meta.exposure.groupgap
-        self.nframes = model.meta.exposure.nframes
+        self.frame_time = frame_time
+        self.group_time = group_time
+        self.groupgap = groupgap
+        self.nframes = nframes
 
         # May not be available for all pipelines, so is defaulted to NoneType.
-        if hasattr(model, 'drop_frames1'):
-            self.drop_frames1 = model.exposure.drop_frames1
+        self.drop_frames1 = drop_frames1
 
     def set_dqflags(self, dqflags):
         """
