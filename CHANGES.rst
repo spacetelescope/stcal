@@ -1,15 +1,17 @@
-0.2.5 (unreleased)
+0.2.5 (2021-08-27)
 ==================
 
 ramp_fitting
 ------------
 
-- Adds support for Roman ramp data. (#49)
+- Adds support for Roman ramp data. [#49]
+
 
 0.2.4 (2021-08-26)
 ==================
 
 Workaround for setuptools_scm issues with recent versions of pip. [#45]
+
 
 0.2.3 (2021-08-06)
 ==================
