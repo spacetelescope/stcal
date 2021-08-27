@@ -1,6 +1,11 @@
 0.2.5 (unreleased)
 ==================
 
+ramp_fitting
+------------
+
+- Adds support for Roman ramp data. (#49)
+
 0.2.4 (2021-08-26)
 ==================
 
