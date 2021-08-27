@@ -46,16 +46,26 @@ def create_ramp_fit_class(model, dqflags=None):
     """
     ramp_data = ramp_fit_class.RampData()
 
+    # Attribute may not be supported by all pipelines.  Default is NoneType.
+    if hasattr(model, 'int_times'):
+        int_times = model.int_times
+    else:
+        int_times = None
     ramp_data.set_arrays(
-        model.data, model.err, model.groupdq, model.pixeldq, model.int_times)
+        model.data, model.err, model.groupdq, model.pixeldq, int_times)
 
+    # Attribute may not be supported by all pipelines.  Default is NoneType.
+    if hasattr(model, 'drop_frames1'):
+        drop_frames1 = model.exposure.drop_frames1
+    else:
+        drop_frames1 = None
     ramp_data.set_meta(
         name=model.meta.instrument.name,
         frame_time=model.meta.exposure.frame_time,
         group_time=model.meta.exposure.group_time,
         groupgap=model.meta.exposure.groupgap,
         nframes=model.meta.exposure.nframes,
-        drop_frames1=model.meta.exposure.drop_frames1)
+        drop_frames1=drop_frames1)
 
     ramp_data.set_dqflags(dqflags)
 
