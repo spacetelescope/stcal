@@ -13,6 +13,7 @@ test_dq_flags = {
     "NO_GAIN_VALUE": 8,
     "UNRELIABLE_SLOPE": 16,
 }
+
 GOOD = test_dq_flags["GOOD"]
 DO_NOT_USE = test_dq_flags["DO_NOT_USE"]
 JUMP_DET = test_dq_flags["JUMP_DET"]

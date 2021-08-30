@@ -335,7 +335,7 @@ def reassemble_opt(ramp_data, opt_res, opt_slice, crow, nrows):
     # TODO finish function
     # gls_opt_info = (intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
     inter, err, pedestal, ampl, ampl_err = opt_slice
-    srow, erow = crow, crow + nrows
+    # srow, erow = crow, crow + nrows
 
     log.debug(f"    ---> ({crow}, {crow + nrows})")
     log.debug(f"inter    = {inter.shape}")
@@ -541,16 +541,16 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     saturated_flag = ramp_data.flags_saturated
 
     number_ints = data_sect.shape[0]
-    number_rows = data_sect.shape[2]
-    number_cols = data_sect.shape[3]
+    # number_rows = data_sect.shape[2]
+    # number_cols = data_sect.shape[3]
 
-    imshape = (data_sect.shape[2], data_sect.shape[3])
+    # imshape = (data_sect.shape[2], data_sect.shape[3])
 
     slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight = \
         create_integration_arrays(data_sect.shape)
 
     # REFAC
-    (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl, 
+    (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
         ampl_int, ampl_err_int) = create_opt_res(save_opt, data_sect.shape, max_num_cr)
 
     # loop over data integrations
@@ -698,7 +698,6 @@ def create_integration_arrays(dims):
     """
     number_ints, ngroups, number_rows, number_cols = dims
 
-
     slope_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
     slope_err_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
 
@@ -749,9 +748,8 @@ def create_opt_res(save_opt, dims, max_num_cr):
         ampl_int = None
         ampl_err_int = None
 
-    return (intercept_int, intercept_err_int, pedestal_int, first_group, 
+    return (intercept_int, intercept_err_int, pedestal_int, first_group,
             shape_ampl, ampl_int, ampl_err_int)
-
 
 
 def determine_slope(data_sect, input_var_sect,
