@@ -8,7 +8,6 @@ import time
 
 import warnings
 
-from . import constants
 from . import ramp_fit_class
 from . import utils
 
@@ -609,13 +608,6 @@ def ols_ramp_fit_single(
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    # For multiprocessing, a new process requires the DQ flags to be updated,
-    # since they are global variables.
-    # DQ FLAG
-    constants.update_dqflags_from_ramp_data(ramp_data)
-    if None in constants.dqflags.values():
-        raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
-
     tstart = time.time()
 
     # Save original shapes for writing to log file, as these may change for MIRI
