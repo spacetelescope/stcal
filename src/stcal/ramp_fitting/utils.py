@@ -182,7 +182,7 @@ class OptRes:
             self.sigslope_2d[num_seg[g_pix], g_pix] = sig_slope[g_pix]
             self.inv_var_2d[num_seg[g_pix], g_pix] = inv_var[g_pix]
 
-    def shrink_crmag(self, n_int, dq_cube, imshape, nreads):
+    def shrink_crmag(self, n_int, dq_cube, imshape, nreads, jump_det):
         """
         Compress the 4D cosmic ray magnitude array for the current
         integration, removing all groups whose cr magnitude is 0 for
@@ -218,7 +218,7 @@ class OptRes:
         max_cr = 0
         for ii_int in range(0, n_int):
             dq_int = dq_cube[ii_int, :, :, :]
-            dq_cr = np.bitwise_and(constants.dqflags["JUMP_DET"], dq_int)
+            dq_cr = np.bitwise_and(jump_det, dq_int)
             max_cr_int = (dq_cr > 0.).sum(axis=0).max()
             max_cr = max(max_cr, max_cr_int)
 
@@ -456,13 +456,16 @@ def alloc_arrays_2(n_int, imshape, max_seg):
             s_inv_var_both3, segs_4)
 
 
-def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
+def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg):
     """
     Calculate the segment-specific variance arrays for the given
     integration.
 
     Parameters
     ----------
+    ramp_data : ramp_fit_class.RampData
+        Contains the DQ flags needed for this function
+
     rn_sect : ndarray
         read noise values for all pixels in data section, 2-D float
 
@@ -507,7 +510,7 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
     gdq_2d_nan = gdq_2d.copy()  # group dq with SATS will be replaced by nans
     gdq_2d_nan = gdq_2d_nan.astype(np.float32)
 
-    wh_sat = np.where(np.bitwise_and(gdq_2d, constants.dqflags["SATURATED"]))
+    wh_sat = np.where(np.bitwise_and(gdq_2d, ramp_data.flags_saturated))
     if len(wh_sat[0]) > 0:
         gdq_2d_nan[wh_sat] = np.nan  # set all SAT groups to nan
 
@@ -533,7 +536,7 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
 
         # Locate any CRs that appear before the first SAT group...
         wh_cr = np.where(
-            gdq_2d_nan[i_read, :].astype(np.int32) & constants.dqflags["JUMP_DET"] > 0)
+            gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
 
         # ... but not on final read:
         if (len(wh_cr[0]) > 0 and (i_read < nreads - 1)):
@@ -607,8 +610,8 @@ def calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg):
     return (den_r3, den_p3, num_r3, segs_beg_3)
 
 
-def calc_pedestal(num_int, slope_int, firstf_int, dq_first, nframes, groupgap,
-                  dropframes1):
+def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
+                  groupgap, dropframes1):
     """
     The pedestal is calculated by extrapolating the final slope for each pixel
     from its value at the first sample in the integration to an exposure time
@@ -650,7 +653,7 @@ def calc_pedestal(num_int, slope_int, firstf_int, dq_first, nframes, groupgap,
     ped = ff_all - slope_int[num_int, ::] * \
         (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
 
-    sat_flag = constants.dqflags["SATURATED"]
+    sat_flag = ramp_data.flags_saturated
     ped[np.bitwise_and(dq_first, sat_flag) == sat_flag] = 0
     ped[np.isnan(ped)] = 0.
 
@@ -1022,7 +1025,7 @@ def get_dataset_info(model):
 
 
 # GLS function
-def get_more_info(model):  # pragma: no cover
+def get_more_info(model, saturated_flag, jump_flag):  # pragma: no cover
     """Get information used by GLS algorithm.
 
     Parameters
@@ -1048,8 +1051,6 @@ def get_more_info(model):  # pragma: no cover
 
     group_time = model.meta.exposure.group_time
     nframes_used = model.meta.exposure.nframes
-    saturated_flag = constants.dqflags["SATURATED"]
-    jump_flag = constants.dqflags["JUMP_DET"]
 
     return (group_time, nframes_used, saturated_flag, jump_flag)
 
@@ -1081,7 +1082,7 @@ def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
 '''
 
 
-def reset_bad_gain(pdq, gain):
+def reset_bad_gain(ramp_data, pdq, gain):
     """
     For pixels in the gain array that are either non-positive or NaN, reset the
     the corresponding pixels in the pixel DQ array to NO_GAIN_VALUE and
@@ -1109,13 +1110,13 @@ def reset_bad_gain(pdq, gain):
     '''
     wh_g = np.where(gain <= 0.)
     if len(wh_g[0]) > 0:
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], constants.dqflags["NO_GAIN_VALUE"])
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], constants.dqflags["DO_NOT_USE"])
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], ramp_data.flags_no_gain_val)
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], ramp_data.flags_do_not_use)
 
     wh_g = np.where(np.isnan(gain))
     if len(wh_g[0]) > 0:
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], constants.dqflags["NO_GAIN_VALUE"])
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], constants.dqflags["DO_NOT_USE"])
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], ramp_data.flags_no_gain_val)
+        pdq[wh_g] = np.bitwise_or(pdq[wh_g], ramp_data.flags_do_not_use)
 
     return pdq
 
@@ -1182,7 +1183,7 @@ def remove_bad_singles(segs_beg_3):
     return segs_beg_3
 
 
-def fix_sat_ramps(sat_0th_group_int, var_p3, var_both3, slope_int, dq_int):
+def fix_sat_ramps(ramp_data, sat_0th_group_int, var_p3, var_both3, slope_int, dq_int):
     """
     For ramps within an integration that are saturated on the initial group,
     reset the integration-specific variances and slope so they will have no
@@ -1238,12 +1239,12 @@ def fix_sat_ramps(sat_0th_group_int, var_p3, var_both3, slope_int, dq_int):
     var_both3[sat_0th_group_int > 0] = LARGE_VARIANCE
     slope_int[sat_0th_group_int > 0] = 0.
     dq_int[sat_0th_group_int > 0] = np.bitwise_or(
-        dq_int[sat_0th_group_int > 0], constants.dqflags["DO_NOT_USE"])
+        dq_int[sat_0th_group_int > 0], ramp_data.flags_do_not_use)
 
     return var_p3, var_both3, slope_int, dq_int
 
 
-def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
+def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
     """
     For an input exposure where all groups in all integrations are saturated,
     the DQ in the primary and integration-specific output products are updated,
@@ -1276,8 +1277,8 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
     """
     # Create model for the primary output. Flag all pixels in the pixiel DQ
     #   extension as SATURATED and DO_NOT_USE.
-    pixeldq = np.bitwise_or(pixeldq, constants.dqflags["SATURATED"])
-    pixeldq = np.bitwise_or(pixeldq, constants.dqflags["DO_NOT_USE"])
+    pixeldq = np.bitwise_or(pixeldq, ramp_data.flags_saturated)
+    pixeldq = np.bitwise_or(pixeldq, ramp_data.flags_do_not_use)
 
     data = np.zeros(imshape, dtype=np.float32)
     dq = pixeldq
@@ -1298,7 +1299,7 @@ def do_all_sat(pixeldq, groupdq, imshape, n_int, save_opt):
             groupdq_3d[ii, :, :] = np.bitwise_or.reduce(groupdq[ii, :, :, :],
                                                         axis=0)
 
-        groupdq_3d = np.bitwise_or(groupdq_3d, constants.dqflags["DO_NOT_USE"])
+        groupdq_3d = np.bitwise_or(groupdq_3d, ramp_data.flags_do_not_use)
 
         data = np.zeros((n_int,) + imshape, dtype=np.float32)
         dq = groupdq_3d
@@ -1418,7 +1419,7 @@ def dq_compress_final(dq_int, n_int):
     return f_dq
 
 
-def dq_compress_sect(gdq_sect, pixeldq_sect):
+def dq_compress_sect(ramp_data, gdq_sect, pixeldq_sect):
     """
     Get ramp locations where the data has been flagged as saturated in the 4D
     GROUPDQ array for the current data section, find the corresponding image
@@ -1445,8 +1446,8 @@ def dq_compress_sect(gdq_sect, pixeldq_sect):
         flags, 2-D flag
 
     """
-    sat_flag = constants.dqflags["SATURATED"]
-    jump_flag = constants.dqflags["JUMP_DET"]
+    sat_flag = ramp_data.flags_saturated
+    jump_flag = ramp_data.flags_jump_det
 
     sat_loc_r = np.bitwise_and(gdq_sect, sat_flag)
     sat_loc_im = np.where(sat_loc_r.sum(axis=0) > 0)

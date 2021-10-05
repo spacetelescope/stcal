@@ -201,6 +201,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    # DQ FLAG
     constants.update_dqflags(dqflags)
     if None in constants.dqflags.values():
         raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
