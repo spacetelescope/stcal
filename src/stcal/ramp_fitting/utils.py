@@ -6,7 +6,6 @@ import multiprocessing
 import numpy as np
 import warnings
 
-from . import constants
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
