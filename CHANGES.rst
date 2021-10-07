@@ -1,3 +1,11 @@
+0.4.0(unreleased)
+==================
+
+linearity
+---------
+
+- Adds common code for linearity correction [#55]
+
 0.3.0 (2021-09-28)
 ==================
 
