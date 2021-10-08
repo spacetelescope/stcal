@@ -16,7 +16,6 @@
 import numpy as np
 import logging
 
-# from . import constants
 # from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
 from . import ramp_fit_class
