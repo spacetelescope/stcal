@@ -8,7 +8,6 @@ import time
 
 import warnings
 
-from . import constants
 from . import ramp_fit_class
 from . import utils
 
@@ -609,12 +608,6 @@ def ols_ramp_fit_single(
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    # For multiprocessing, a new process requires the DQ flags to be updated,
-    # since they are global variables.
-    constants.update_dqflags_from_ramp_data(ramp_data)
-    if None in constants.dqflags.values():
-        raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
-
     tstart = time.time()
 
     # Save original shapes for writing to log file, as these may change for MIRI
@@ -686,13 +679,12 @@ def discard_miri_groups(ramp_data):
     data = ramp_data.data
     err = ramp_data.err
     groupdq = ramp_data.groupdq
-    jump_flag = constants.dqflags["JUMP_DET"]
 
     n_int, ngroups, nrows, ncols = data.shape
 
     num_bad_slices = 0  # number of initial groups that are all DO_NOT_USE
 
-    while np.all(np.bitwise_and(groupdq[:, 0, :, :], constants.dqflags["DO_NOT_USE"])):
+    while np.all(np.bitwise_and(groupdq[:, 0, :, :], ramp_data.flags_do_not_use)):
         num_bad_slices += 1
         ngroups -= 1
 
@@ -707,11 +699,11 @@ def discard_miri_groups(ramp_data):
         # Where the initial group of the just-truncated data is a cosmic ray,
         #   remove the JUMP_DET flag from the group dq for those pixels so
         #   that those groups will be included in the fit.
-        wh_cr = np.where(np.bitwise_and(groupdq[:, 0, :, :], jump_flag))
+        wh_cr = np.where(np.bitwise_and(groupdq[:, 0, :, :], ramp_data.flags_jump_det))
         num_cr_1st = len(wh_cr[0])
 
         for ii in range(num_cr_1st):
-            groupdq[wh_cr[0][ii], 0, wh_cr[1][ii], wh_cr[2][ii]] -= jump_flag
+            groupdq[wh_cr[0][ii], 0, wh_cr[1][ii], wh_cr[2][ii]] -= ramp_data.flags_jump_det
 
     if num_bad_slices > 0:
         data = data[:, num_bad_slices:, :, :]
@@ -723,7 +715,7 @@ def discard_miri_groups(ramp_data):
     #   in the while loop above, ngroups would have been set to 0, and Nones
     #   would have been returned.  If execution has gotten here, there must
     #   be at least 1 remaining group that is not all flagged.
-    if np.all(np.bitwise_and(groupdq[:, -1, :, :], constants.dqflags["DO_NOT_USE"])):
+    if np.all(np.bitwise_and(groupdq[:, -1, :, :], ramp_data.flags_do_not_use)):
         ngroups -= 1
 
         # Check if there are remaining groups before accessing data
@@ -816,10 +808,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     med_rates : ndarray
         Rate array
     """
-
-    sat_flag = constants.dqflags["SATURATED"]
-    jump_flag = constants.dqflags["JUMP_DET"]
-
     # Get image data information
     data = ramp_data.data
     err = ramp_data.err
@@ -843,9 +831,9 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     #   the output products are returned to ramp_fit(). If the initial group of
     #   a ramp is saturated, it is assumed that all groups are saturated.
     first_gdq = groupdq[:, 0, :, :]
-    if np.all(np.bitwise_and(first_gdq, sat_flag)):
+    if np.all(np.bitwise_and(first_gdq, ramp_data.flags_saturated)):
         image_info, integ_info, opt_info = utils.do_all_sat(
-            inpixeldq, groupdq, imshape, n_int, save_opt)
+            ramp_data, inpixeldq, groupdq, imshape, n_int, save_opt)
 
         return "saturated", image_info, integ_info, opt_info
 
@@ -862,7 +850,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     gdq_cube_shape = gdq_cube.shape
 
     # Get max number of segments fit in all integrations
-    max_seg, num_CRs = calc_num_seg(gdq_cube, n_int)
+    max_seg, num_CRs = calc_num_seg(
+        gdq_cube, n_int, ramp_data.flags_jump_det, ramp_data.flags_do_not_use)
     del gdq_cube
 
     f_max_seg = 0  # final number to use, usually overwritten by actual value
@@ -879,7 +868,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     #   require this local variable to be uint16, and it will be used as the
     #   (uint16) PIXELDQ in the outgoing ImageModel.
     pixeldq = inpixeldq.copy()
-    pixeldq = utils.reset_bad_gain(pixeldq, gain_2d)  # Flag bad pixels in gain
+    pixeldq = utils.reset_bad_gain(ramp_data, pixeldq, gain_2d)  # Flag bad pixels in gain
 
     # In this 'First Pass' over the data, loop over integrations and data
     #   sections to calculate the estimated median slopes, which will be used
@@ -913,7 +902,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Reset all saturated groups in the input data array to NaN
-            where_sat = np.where(np.bitwise_and(gdq_sect, sat_flag))
+            where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
 
             data_sect[where_sat] = np.NaN
             del where_sat
@@ -939,7 +928,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
                 #   starting at group 1.  The purpose of starting at index 1 is
                 #   to shift all the indices down by 1, so they line up with the
                 #   indices in first_diffs.
-                i_group, i_yy, i_xx, = np.where(np.bitwise_and(gdq_sect[1:, :, :], jump_flag))
+                i_group, i_yy, i_xx, = np.where(np.bitwise_and(
+                    gdq_sect[1:, :, :], ramp_data.flags_jump_det))
                 first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
 
                 del i_group, i_yy, i_xx
@@ -981,14 +971,15 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             num_seg_per_int[num_int, rlo:rhi, :] = num_seg.reshape(sect_shape)
 
             # Populate integ-spec slice which is set if 0th group has SAT
-            wh_sat0 = np.where(np.bitwise_and(gdq_sect[0, :, :], sat_flag))
+            wh_sat0 = np.where(np.bitwise_and(gdq_sect[0, :, :], ramp_data.flags_saturated))
             if len(wh_sat0[0]) > 0:
                 sat_0th_group_int[num_int, rlo:rhi, :][wh_sat0] = 1
 
             del wh_sat0
 
             pixeldq_sect = pixeldq[rlo:rhi, :].copy()
-            dq_int[num_int, rlo:rhi, :] = utils.dq_compress_sect(t_dq_cube, pixeldq_sect).copy()
+            dq_int[num_int, rlo:rhi, :] = utils.dq_compress_sect(
+                ramp_data, t_dq_cube, pixeldq_sect).copy()
 
             del t_dq_cube
 
@@ -1001,7 +992,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
                 #   as approximation to cosmic ray amplitude for those pixels
                 #   having their DQ set for cosmic rays
                 data_diff = data_sect - utils.shift_z(data_sect, -1)
-                dq_cr = np.bitwise_and(jump_flag, gdq_sect)
+                dq_cr = np.bitwise_and(ramp_data.flags_jump_det, gdq_sect)
 
                 opt_res.cr_mag_seg[num_int, :, rlo:rhi, :] = data_diff * (dq_cr != 0)
 
@@ -1133,7 +1124,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
             # Calculate results needed to compute the variance arrays
             den_r3, den_p3, num_r3, segs_beg_3 = \
-                utils.calc_slope_vars(rn_sect, gain_sect, gdq_sect, group_time, max_seg)
+                utils.calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg)
 
             segs_4[num_int, :, rlo:rhi, :] = segs_beg_3
 
@@ -1352,7 +1343,7 @@ def ramp_fit_overall(
     # Clean up ramps that are SAT on their initial groups; set ramp parameters
     #   for variances and slope so they will not contribute
     var_p3, var_both3, slope_int, dq_int = utils.fix_sat_ramps(
-        sat_0th_group_int, var_p3, var_both3, slope_int, dq_int)
+        ramp_data, sat_0th_group_int, var_p3, var_both3, slope_int, dq_int)
 
     if sat_0th_group_int is not None:
         del sat_0th_group_int
@@ -1364,7 +1355,7 @@ def ramp_fit_overall(
         for num_int in range(0, n_int):
             dq_slice = groupdq[num_int, 0, :, :]
             opt_res.ped_int[num_int, :, :] = \
-                utils.calc_pedestal(num_int, slope_int, opt_res.firstf_int,
+                utils.calc_pedestal(ramp_data, num_int, slope_int, opt_res.firstf_int,
                                     dq_slice, nframes, groupgap, dropframes1)
 
         del dq_slice
@@ -1372,7 +1363,7 @@ def ramp_fit_overall(
     # Collect optional results for output
     if save_opt:
         gdq_cube = groupdq
-        opt_res.shrink_crmag(n_int, gdq_cube, imshape, ngroups)
+        opt_res.shrink_crmag(n_int, gdq_cube, imshape, ngroups, ramp_data.flags_jump_det)
         del gdq_cube
 
         # Some contributions to these vars may be NaN as they are from ramps
@@ -3287,7 +3278,7 @@ def fit_2_group(slope_s, intercept_s, variance_s, sig_intercept_s,
     return slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s
 
 
-def calc_num_seg(gdq, n_int):
+def calc_num_seg(gdq, n_int, jump_det, do_not_use):
     """
     Calculate the maximum number of segments that will be fit within an
     integration, calculated over all pixels and all integrations.  This value
@@ -3302,7 +3293,13 @@ def calc_num_seg(gdq, n_int):
     n_int : int (unused)
         total number of integrations in data set
 
-    Return:
+    jump_det: uint32
+        Jump detection flag
+
+    do_not_use: uint32
+        Do not use flag
+
+    Return
     -------
     max_num_seg : int
         The maximum number of segements within an integration
@@ -3315,7 +3312,7 @@ def calc_num_seg(gdq, n_int):
     # ramps, to use as a surrogate for the number of segments along the ramps
     # Note that we only care about flags that are NOT in the first or last groups,
     # because exclusion of a first or last group won't result in an additional segment.
-    check_flag = constants.dqflags["JUMP_DET"] | constants.dqflags["DO_NOT_USE"]
+    check_flag = jump_det | do_not_use
     max_cr = np.count_nonzero(np.bitwise_and(gdq[:, 1:-1], check_flag), axis=1).max()
 
     # Do not want to return a value > the number of groups, which can occur if

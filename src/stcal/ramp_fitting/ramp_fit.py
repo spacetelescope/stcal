@@ -16,7 +16,6 @@
 import numpy as np
 import logging
 
-from . import constants
 # from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
 from . import ramp_fit_class
@@ -201,10 +200,6 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
-    constants.update_dqflags(dqflags)
-    if None in constants.dqflags.values():
-        raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
-
     if algorithm.upper() == "GLS":
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # !!!!! Reference to ReadModel and GainModel changed to simple ndarrays !!!!!
