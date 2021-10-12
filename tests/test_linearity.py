@@ -5,7 +5,6 @@ Unit tests for linearity correction
 """
 
 import numpy as np
-import pytest
 
 from stcal.linearity.linearity import linearity_correction
 
