@@ -1,5 +1,10 @@
-0.4.0(unreleased)
+0.4.0(2021-10-13)
 ==================
+
+jump_detection
+--------------
+
+- Fix issue with flagging for MIRI three and four group integrations. (#44)
 
 linearity
 ---------
@@ -27,11 +32,6 @@ ramp_fitting
 ==================
 
 Workaround for setuptools_scm issues with recent versions of pip. [#45]
-
-
-jump_detection
---------------
-- Fix issue with flagging for MIRI three and four group integrations. (#44)
 
 
 0.2.3 (2021-08-06)
