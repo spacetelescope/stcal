@@ -1,15 +1,25 @@
-0.4.0(2021-10-13)
+0.4.1 (2021-10-14)
 ==================
 
 jump_detection
 --------------
 
-- Fix issue with flagging for MIRI three and four group integrations. (#44)
+- Reverts "Fix issue with flagging for MIRI three and four group integrations. [#44]
+
+
+0.4.0 (2021-10-13)
+==================
+
+jump_detection
+--------------
+
+- Fix issue with flagging for MIRI three and four group integrations. [#44]
 
 linearity
 ---------
 
 - Adds common code for linearity correction [#55]
+
 
 0.3.0 (2021-09-28)
 ==================
@@ -18,6 +28,7 @@ saturation
 ----------
 
 - Adds common code for saturation [#39]
+
 
 0.2.5 (2021-08-27)
 ==================
