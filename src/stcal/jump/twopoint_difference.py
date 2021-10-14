@@ -122,7 +122,6 @@ def find_crs(data, group_dq, read_noise, normal_rej_thresh,
 
         # Make all the first diffs for saturated groups be equal to
         # 100,000 to put them above the good values in the sorted index
-        max_value_index = np.nanargmax(positive_first_diffs, axis=2)
         first_diffs[np.isnan(first_diffs)] = 100000.
 
         # Here we sort the 3D array along the last axis, which is the group
@@ -157,10 +156,25 @@ def find_crs(data, group_dq, read_noise, normal_rej_thresh,
             sigma[:, :, np.newaxis]
         ratio3d = np.reshape(ratio, (nrows, ncols, ndiffs))
 
-        # Get the row and column indices of pixels whose largest non-saturated ratio
-        # is above the threshold
+        # Get the group index for each pixel of the largest non-saturated
+        # group, assuming the indices are sorted. 2 is subtracted from ngroups
+        # because we are using differences and there is one less difference
+        # than the number of groups. This is a 2-D array.
+        max_value_index = ngroups - 2 - number_sat_groups
+
+        # Extract from the sorted group indices the index of the largest
+        # non-saturated group.
         row, col = np.where(number_sat_groups >= 0)
-        max_ratio2d = np.reshape(ratio3d[row, col, max_value_index[row, col]], (nrows, ncols))
+        max_index1d = sort_index[row, col, max_value_index[row, col]]
+
+        # reshape to a 2-D array :
+        max_index1 = np.reshape(max_index1d, (nrows, ncols))
+        max_ratio2d = np.reshape(ratio3d[row, col, max_index1[row, col]],
+                                 (nrows, ncols))
+        max_index1d = sort_index[row, col, 1]
+        max_index2d = np.reshape(max_index1d, (nrows, ncols))
+        last_ratio = np.reshape(ratio3d[row, col, max_index2d[row, col]],
+                                (nrows, ncols))
 
         # Get the row and column indices of pixels whose largest non-saturated
         # ratio is above the threshold, First search all the pixels that have
@@ -176,8 +190,7 @@ def find_crs(data, group_dq, read_noise, normal_rej_thresh,
 
         # Finally, for pixels with only two good groups, compare the SNR of the
         # last good group to the two diff threshold
-        row2cr, col2cr = np.where(np.logical_and(ndiffs - number_sat_groups == 2,
-                                                 max_ratio2d > two_diff_rej_thresh))
+        row2cr, col2cr = np.where(last_ratio > two_diff_rej_thresh)
         log.info(f'From highest outlier Two-point found {len(row4cr)} pixels \
                  with at least one CR and at least four groups')
         log.info(f'From highest outlier Two-point found {len(row3cr)} pixels \

@@ -97,13 +97,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     if len(wh_g[0] > 0):
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags["NO_GAIN_VALUE"])
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags["DO_NOT_USE"])
-        gain_2d[wh_g] = 0
 
     wh_g = np.where(np.isnan(gain_2d))
     if len(wh_g[0] > 0):
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags["NO_GAIN_VALUE"])
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags["DO_NOT_USE"])
-        gain_2d[wh_g] = 0.0
 
     # Apply gain to the SCI, ERR, and readnoise arrays so they're in units
     # of electrons
