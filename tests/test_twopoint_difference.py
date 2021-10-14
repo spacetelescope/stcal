@@ -10,7 +10,7 @@ DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 @pytest.fixture(scope='function')
 def setup_cube():
 
-    def _cube(ngroups, readnoise=10, nrows=204, ncols=204):
+    def _cube(ngroups, readnoise=10):
         nints = 1
         nrows = 204
         ncols = 204
@@ -92,23 +92,15 @@ def test_5grps_cr2_negjumpflux(setup_cube):
 
 def test_3grps_cr2_noflux(setup_cube):
     ngroups = 3
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nrows=2, ncols=2)
-    data[0, 0, 0, 0] = 10.0
-    data[0, 1:3, 0, 0] = 1000
-    data[0, 0, 0, 1] = 100
-    data[0, 1, 0, 1] = 95
-    data[0, 2, 0, 1] = 94
-    data[0, 0, 1, 1] = 80
-    data[0, 1, 1, 1] = 100
-    data[0, 2, 1, 1] = 111
-    data[0, 0, 1, 0] = 90
-    data[0, 1, 1, 0] = 100
-    data[0, 2, 1, 0] = 81
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data[0, 0, 100, 100] = 10.0
+    data[0, 1:4, 100, 100] = 1000
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     assert(4 == np.max(out_gdq))  # a CR was found
-    assert np.array_equal([0, 4, 0], out_gdq[0, :, 0, 0])
+    #    assert(1,np.argmax(out_gdq[0, :, 100, 100]))  # find the CR in the expected group
+    assert(np.array_equal([0, 4, 0], out_gdq[0, :, 100, 100]))
 
 
 def test_4grps_cr2_noflux(setup_cube):
@@ -167,7 +159,7 @@ def test_5grps_twocrs_2nd_5th(setup_cube):
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     assert(4 == np.max(out_gdq))  # a CR was found
-    assert np.array_equal([0, 4, 0, 0, 4], out_gdq[0, :, 100, 100])
+    assert(np.array_equal([0, 4, 0, 0, 4], out_gdq[0, :, 100, 100]))
 
 
 def test_5grps_twocrs_2nd_5thbig(setup_cube):
@@ -320,7 +312,7 @@ def test_5grps_cr2_negslope(setup_cube):
 
 def test_6grps_1cr(setup_cube):
     ngroups = 6
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -336,7 +328,7 @@ def test_6grps_1cr(setup_cube):
 
 def test_7grps_1cr(setup_cube):
     ngroups = 7
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -353,7 +345,7 @@ def test_7grps_1cr(setup_cube):
 
 def test_8grps_1cr(setup_cube):
     ngroups = 8
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -371,7 +363,7 @@ def test_8grps_1cr(setup_cube):
 
 def test_9grps_1cr_1sat(setup_cube):
     ngroups = 9
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -391,7 +383,7 @@ def test_9grps_1cr_1sat(setup_cube):
 
 def test_10grps_1cr_2sat(setup_cube):
     ngroups = 10
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -413,7 +405,7 @@ def test_10grps_1cr_2sat(setup_cube):
 
 def test_11grps_1cr_3sat(setup_cube):
     ngroups = 11
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 20
@@ -437,7 +429,7 @@ def test_11grps_1cr_3sat(setup_cube):
 
 def test_11grps_0cr_3donotuse(setup_cube):
     ngroups = 11
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 18
@@ -461,7 +453,7 @@ def test_11grps_0cr_3donotuse(setup_cube):
 
 def test_5grps_nocr(setup_cube):
     ngroups = 6
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -475,7 +467,7 @@ def test_5grps_nocr(setup_cube):
 
 def test_6grps_nocr(setup_cube):
     ngroups = 6
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -737,6 +729,7 @@ def test_median_with_saturation_odd_number_final_difference(setup_cube):
 
 def test_first_last_group(setup_cube):
     ngroups = 7
+    nframes = 1
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=25.0)
 
     #  set up the data so that if the first and last group are used in jump
@@ -763,80 +756,3 @@ def test_first_last_group(setup_cube):
     assert outgdq[0, 0, 100, 100] == DQFLAGS['DO_NOT_USE']
     assert outgdq[0, 6, 100, 100] == DQFLAGS['DO_NOT_USE']
     assert outgdq[0, 3, 100, 100] == DQFLAGS['JUMP_DET']
-
-
-def test_2group(setup_cube):
-    # test should not find a CR, can't do it with only one difference.
-    ngroups = 2
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=25.0, nrows=2, ncols=2)
-
-    data[0, 0, 0, 0] = 10000.0
-    #  set groups 1,2 - to be around 30,000
-    data[0, 1, 0, 0] = 30000.0
-
-    outgdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
-                                                    rej_threshold, rej_threshold, nframes,
-                                                    False, 200, 10, DQFLAGS)
-    assert outgdq[0, 1, 0, 0] == 0
-    assert outgdq[0, 0, 0, 0] == 0
-
-
-def test_4group(setup_cube):
-    ngroups = 4
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=25.0, nrows=2, ncols=2)
-
-    data[0, 0, 0, 0] = 10000.0
-    #  set groups 1,2 - to be around 30,000
-    data[0, 1, 0, 0] = 30000.0
-    data[0, 2, 0, 0] = 30020.0
-    data[0, 3, 0, 0] = 30000.0
-
-    outgdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
-                                                    rej_threshold, rej_threshold, nframes,
-                                                    False, 200, 10, DQFLAGS)
-    assert outgdq[0, 1, 0, 0] == 4
-
-
-def test_first_last_4group(setup_cube):
-    ngroups = 4
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=25.0, nrows=2, ncols=2)
-
-    #  set up the data so that if the first and last group are used in jump
-    #  detection it would cause a jump to be detected between group 0-1.
-    data[0, 0, 0, 0] = 10000.0
-    #  set groups 1,2 - to be around 30,000
-    data[0, 1, 0, 0] = 30000.0
-    data[0, 2, 0, 0] = 30020.0
-    data[0, 3, 0, 0] = 30000.0
-    # treat as MIRI data with first and last flagged
-    gdq[0, 0, :, :] = DQFLAGS['DO_NOT_USE']
-    gdq[0, 3, :, :] = DQFLAGS['DO_NOT_USE']
-    outgdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
-                                                    rej_threshold, rej_threshold, nframes,
-                                                    False, 200, 10, DQFLAGS)
-
-    assert outgdq[0, 0, 0, 0] == DQFLAGS['DO_NOT_USE']
-    assert outgdq[0, 3, 0, 0] == DQFLAGS['DO_NOT_USE']
-    assert outgdq[0, 1, 0, 0] == 0
-
-
-def test_first_last_3group(setup_cube):
-    ngroups = 3
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=25.0, nrows=2, ncols=2)
-
-    #  set up the data so that if the first and last group are used in jump
-    #  detection it would cause a jump to be detected between group 1-2
-    #  and group 6-7. Add a jump between 3 and 4 just to make sure jump detection is working
-    #  set group 1 to be 10,000
-    data[0, 0, 0, 0] = 10000.0
-    data[0, 1, 0, 0] = 10100.0
-    data[0, 2, 0, 0] = 30020.0
-
-    gdq[0, 2, 0, 0] = DQFLAGS['DO_NOT_USE']  # only flag the last group
-    outgdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
-                                                    rej_threshold, rej_threshold, nframes,
-                                                    False, 200, 10, DQFLAGS)
-
-    assert outgdq[0, 0, 0, 0] == 0
-    assert outgdq[0, 2, 0, 0] == DQFLAGS['DO_NOT_USE']
-    assert outgdq[0, 1, 0, 0] == 0
