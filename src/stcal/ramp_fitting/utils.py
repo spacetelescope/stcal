@@ -1390,7 +1390,7 @@ def compute_slices(max_cores):
     return number_slices
 
 
-def dq_compress_final(dq_int, n_int):
+def dq_compress_final(dq_int, n_int, dnu_flag):
     """
     Combine the integration-specific dq arrays (which have already been
     compressed and combined with the PIXELDQ array) to create the dq array
@@ -1411,9 +1411,23 @@ def dq_compress_final(dq_int, n_int):
         combination of all integration's pixeldq arrays, 2-D flag
     """
     f_dq = dq_int[0, :, :]
+    nints = dq_int.shape[0]
 
     for jj in range(1, n_int):
         f_dq = np.bitwise_or(f_dq, dq_int[jj, :, :])
+
+    # Sum each pixel over all integrations where DO_NOT_USE is set.  If
+    # the number of integrations with DO_NOT_USE set is less than the
+    # total number of integrations, that means at least one integration
+    # has good data, so the final DQ flag for that pixel should NOT
+    # include the DO_NOT_USE flag.
+    dnu = np.zeros(dq_int.shape, dtype=np.uint32)
+    dnu[np.where(np.bitwise_and(dq_int, dnu_flag))] = 1
+    dnu_sum = dnu.sum(axis=0)
+    not_dnu = np.where(dnu_sum < nints)
+
+    not_dnu_flag = ~dnu_flag & 0xffffffff  # Forces it to be 32-bits
+    f_dq[not_dnu] = np.bitwise_and(f_dq[not_dnu], not_dnu_flag)
 
     return f_dq
 
