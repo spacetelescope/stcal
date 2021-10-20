@@ -200,6 +200,11 @@ def base_neg_med_rates_single_integration_multi_segment():
 
 
 def test_neg_med_rates_single_integration_multi_segment_optional():
+    """
+    Test a ramp with multiple segments to make sure the right number of
+    segments are created and to make sure all Poisson segements are set to
+    zero.
+    """
     slopes, cube, optional, gls_dummy, dims = \
         base_neg_med_rates_single_integration_multi_segment()
 
