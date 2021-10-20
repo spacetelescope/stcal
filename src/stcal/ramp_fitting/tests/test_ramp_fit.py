@@ -1,9 +1,8 @@
-import pytest
 import numpy as np
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
-from stcal.ramp_fitting.ramp_fit_class import RampData
-from .helper_functions import *
+from .helper_functions import setup_inputs
+from .helper_functions import dqflags
 
 
 # -----------------------------------------------------------------------------
@@ -14,7 +13,7 @@ def base_neg_med_rates_single_integration():
     """
     Ensures negative Poisson
     """
-    nints, ngroups, nrows, ncols = 1, 10, 1,1 
+    nints, ngroups, nrows, ncols = 1, 10, 1,1
     rnoise_val, gain_val = 10., 1.
     nframes, gtime, dtime = 1, 1., 1
     dims = (nints, ngroups, nrows, ncols)
@@ -23,7 +22,7 @@ def base_neg_med_rates_single_integration():
     ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
 
     # Set up negative ramp
-    neg_ramp = np.array([k+1 for k in range(ngroups)])
+    neg_ramp = np.array([k + 1 for k in range(ngroups)])
     nslope = -0.5
     neg_ramp = neg_ramp * nslope
     ramp_data.data[0, :, 0, 0] = neg_ramp
@@ -82,7 +81,6 @@ def test_neg_med_rates_single_integration_optional():
     oslope, osigslope, ovp, ovr, \
         oyint, osigyint, opedestal, oweights, ocrmag = optional
 
-
     tol = 1e-6
     assert(oslope.shape[1] == 1)  # Max segments is 1 because clean ramp
     np.testing.assert_allclose(oslope[0, 0, :, :], sdata, tol)
@@ -103,7 +101,7 @@ def base_neg_med_rates_multi_integrations():
     ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
 
     # Set up negative ramp
-    neg_ramp = np.array([k+1 for k in range(ngroups)])
+    neg_ramp = np.array([k + 1 for k in range(ngroups)])
     nslope = -0.5
     neg_ramp = neg_ramp * nslope
     ramp_data.data[0, :, 0, 0] = neg_ramp
@@ -162,7 +160,6 @@ def test_neg_med_rates_multi_integration_optional():
     oslope, osigslope, ovp, ovr, \
         oyint, osigyint, opedestal, oweights, ocrmag = optional
 
-
     tol = 1e-6
     assert(oslope.shape[1] == 1)  # Max segments is 1 because clean ramp
     np.testing.assert_allclose(ovp[:, 0, 0, 0], np.zeros(3), tol)
@@ -172,7 +169,7 @@ def base_neg_med_rates_single_integration_multi_segment():
     """
     Ensures negative Poisson
     """
-    nints, ngroups, nrows, ncols = 1, 15, 2, 1 
+    nints, ngroups, nrows, ncols = 1, 15, 2, 1
     rnoise_val, gain_val = 10., 1.
     nframes, gtime, dtime = 1, 1., 1
     dims = (nints, ngroups, nrows, ncols)
@@ -181,7 +178,7 @@ def base_neg_med_rates_single_integration_multi_segment():
     ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
 
     # Set up negative ramp
-    neg_ramp = np.array([k+1 for k in range(ngroups)])
+    neg_ramp = np.array([k + 1 for k in range(ngroups)])
     nslope = -0.5
     neg_ramp = neg_ramp * nslope
     ramp_data.data[0, :, 0, 0] = neg_ramp
