@@ -50,7 +50,7 @@ def test_utils_dq_compress_final():
 
     dq = slopes[1]
     idq = cube[1]
-    
+
     # Make sure DO_NOT_USE is set in the expected integrations.
     assert(idq[0, 0, 0] & dqflags["DO_NOT_USE"])
     assert(idq[1, 0, 0] & dqflags["DO_NOT_USE"])
