@@ -25,7 +25,7 @@ dqflags = {
 
 def base_neg_med_rates_single_integration():
     """
-    Ensures negative Poisson
+    Creates single integration data for testing ensuring negative median rates.
     """
     nints, ngroups, nrows, ncols = 1, 10, 1,1
     rnoise_val, gain_val = 10., 1.
@@ -104,7 +104,7 @@ def test_neg_med_rates_single_integration_optional():
 
 def base_neg_med_rates_multi_integrations():
     """
-    Ensures negative Poisson
+    Creates multi-integration data for testing ensuring negative median rates.
     """
     nints, ngroups, nrows, ncols = 3, 10, 1, 1
     rnoise_val, gain_val = 10., 1.
@@ -166,6 +166,9 @@ def test_neg_med_rates_multi_integration_integ():
 
 def test_neg_med_rates_multi_integration_optional():
     """
+    Make sure that for the multi-integration data with a negative slope with
+    one segment has only one segment in the optional results product as well
+    as zero Poisson variance.
     """
     slopes, cube, optional, gls_dummy, dims = \
         base_neg_med_rates_multi_integrations()
@@ -181,7 +184,8 @@ def test_neg_med_rates_multi_integration_optional():
 
 def base_neg_med_rates_single_integration_multi_segment():
     """
-    Ensures negative Poisson
+    Creates single integration, multi-segment data for testing ensuring
+    negative median rates.
     """
     nints, ngroups, nrows, ncols = 1, 15, 2, 1
     rnoise_val, gain_val = 10., 1.

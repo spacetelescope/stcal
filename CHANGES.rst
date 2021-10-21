@@ -1,3 +1,11 @@
+(unreleased)
+==================
+
+ramp_fitting
+------------
+
+- For slopes with negative median rates, the Poisson variance is zero.
+
 0.4.1 (2021-10-14)
 ==================
 
