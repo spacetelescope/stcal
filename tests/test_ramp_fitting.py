@@ -25,10 +25,24 @@ dqflags = {
 
 def test_utils_dq_compress_final():
     """
+    If there is any integration that has usable data, the DO_NOT_USE flag
+    should not be set in the final DQ flag, even if it is set for one or more
+    integrations.
+
     Set up a multi-integration 3 pixel data array each ramp as the following:
     1. Both integrations having all groups saturated.
+        - Since all groups are saturated in all integrations the final DQ value
+          for this pixel should have the DO_NOT_USE flag set.  Ramp fitting
+          will flag a pixel as DO_NOT_USE in an integration if all groups in
+          that integration are saturated.
     2. Only one integration with all groups saturated.
+        - Since all groups are saturated in only one integration the final DQ 
+          value for this pixel should not have the DO_NOT_USE flag set, even
+          though it is set in one of the integrations.
     3. No group saturated in any integration.
+        - This is a "normal" pixel where there is usable information in both
+          integrations.  Neither integration should have the DO_NOT_SET flag
+          set, nor should it be set in the final DQ.
     """
     nints, ngroups, nrows, ncols = 2, 5, 1, 3
     rnoise_val, gain_val = 10., 1.
@@ -70,8 +84,11 @@ def test_utils_dq_compress_final():
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
-# Need test for multi-ints near zero with positive and negative slopes
 def setup_inputs(dims, var, tm):
+    """
+    Given dimensions, variances, and timing data, this creates test data to
+    be used for unit tests.
+    """
     nints, ngroups, nrows, ncols = dims
     rnoise, gain = var
     nframes, gtime, dtime = tm
