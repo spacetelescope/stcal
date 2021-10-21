@@ -1,3 +1,12 @@
+(unreleased)
+==================
+
+ramp_fitting
+------------
+
+- Changed the way the final DQ array gets computed when handling the DO_NOT_USE
+flag for multi-integration data.
+
 0.4.1 (2021-10-14)
 ==================
 
