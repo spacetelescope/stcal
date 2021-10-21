@@ -1426,7 +1426,7 @@ def dq_compress_final(dq_int, n_int, dnu_flag):
     dnu_sum = dnu.sum(axis=0)
     not_dnu = np.where(dnu_sum < nints)
 
-    not_dnu_flag = ~dnu_flag & 0xffffffff  # Forces it to be 32-bits
+    not_dnu_flag = np.uint32(~dnu_flag)
     f_dq[not_dnu] = np.bitwise_and(f_dq[not_dnu], not_dnu_flag)
 
     return f_dq
