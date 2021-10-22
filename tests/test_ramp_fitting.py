@@ -22,7 +22,6 @@ dqflags = {
 # -----------------------------------------------------------------------------
 #                           Test Suite
 
-
 def base_neg_med_rates_single_integration():
     """
     Creates single integration data for testing ensuring negative median rates.
@@ -233,11 +232,72 @@ def test_neg_med_rates_single_integration_multi_segment_optional():
     np.testing.assert_allclose(neg_ramp_poisson, np.zeros(3), tol)
 
 
+def test_utils_dq_compress_final():
+    """
+    If there is any integration that has usable data, the DO_NOT_USE flag
+    should not be set in the final DQ flag, even if it is set for one or more
+    integrations.
+
+    Set up a multi-integration 3 pixel data array each ramp as the following:
+    1. Both integrations having all groups saturated.
+        - Since all groups are saturated in all integrations the final DQ value
+          for this pixel should have the DO_NOT_USE flag set.  Ramp fitting
+          will flag a pixel as DO_NOT_USE in an integration if all groups in
+          that integration are saturated.
+    2. Only one integration with all groups saturated.
+        - Since all groups are saturated in only one integration the final DQ
+          value for this pixel should not have the DO_NOT_USE flag set, even
+          though it is set in one of the integrations.
+    3. No group saturated in any integration.
+        - This is a "normal" pixel where there is usable information in both
+          integrations.  Neither integration should have the DO_NOT_SET flag
+          set, nor should it be set in the final DQ.
+    """
+    nints, ngroups, nrows, ncols = 2, 5, 1, 3
+    rnoise_val, gain_val = 10., 1.
+    nframes, gtime, dtime = 1, 1., 1
+    dims = (nints, ngroups, nrows, ncols)
+    var = (rnoise_val, gain_val)
+    tm = (nframes, gtime, dtime)
+    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+
+    ramp_data.groupdq[0, :, 0, 0] = np.array([dqflags["SATURATED"]] * ngroups)
+    ramp_data.groupdq[1, :, 0, 0] = np.array([dqflags["SATURATED"]] * ngroups)
+
+    ramp_data.groupdq[0, :, 0, 1] = np.array([dqflags["SATURATED"]] * ngroups)
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+
+    dq = slopes[1]
+    idq = cube[1]
+
+    # Make sure DO_NOT_USE is set in the expected integrations.
+    assert(idq[0, 0, 0] & dqflags["DO_NOT_USE"])
+    assert(idq[1, 0, 0] & dqflags["DO_NOT_USE"])
+
+    assert(idq[0, 0, 1] & dqflags["DO_NOT_USE"])
+    assert(not (idq[1, 0, 1] & dqflags["DO_NOT_USE"]))
+
+    assert(not (idq[0, 0, 2] & dqflags["DO_NOT_USE"]))
+    assert(not (idq[1, 0, 2] & dqflags["DO_NOT_USE"]))
+
+    # Make sure DO_NOT_USE is set in the expected final DQ.
+    assert(dq[0, 0] & dqflags["DO_NOT_USE"])
+    assert(not(dq[0, 1] & dqflags["DO_NOT_USE"]))
+    assert(not(dq[0, 2] & dqflags["DO_NOT_USE"]))
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
-# Need test for multi-ints near zero with positive and negative slopes
 def setup_inputs(dims, var, tm):
+    """
+    Given dimensions, variances, and timing data, this creates test data to
+    be used for unit tests.
+    """
     nints, ngroups, nrows, ncols = dims
     rnoise, gain = var
     nframes, gtime, dtime = tm

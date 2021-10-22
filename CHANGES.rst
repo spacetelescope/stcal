@@ -4,7 +4,9 @@
 ramp_fitting
 ------------
 
-- For slopes with negative median rates, the Poisson variance is zero. [#33]
+- For slopes with negative median rates, the Poisson variance is zero. [#59]
+- Changed the way the final DQ array gets computed when handling the DO_NOT_USE
+  flag for multi-integration data. [#60]
 
 0.4.1 (2021-10-14)
 ==================
