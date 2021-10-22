@@ -1168,8 +1168,10 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
         var_p3[var_p3 > 0.1 * utils.LARGE_VARIANCE] = 0.
+        var_p3[:, med_rates <= 0.] = 0.  # XXX JP-2293
         warnings.resetwarnings()
 
+        var_p4[num_int, :, med_rates <= 0.] = 0.  # XXX JP-2293
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
         inv_var_both4[num_int, :, :, :] = 1. / var_both4[num_int, :, :, :]
 
@@ -1453,6 +1455,7 @@ def ramp_fit_overall(
     # Some contributions to these vars may be NaN as they are from ramps
     # having PIXELDQ=DO_NOT_USE
     var_p2[np.isnan(var_p2)] = 0.
+    var_p2[med_rates <= 0.0] = 0.  # XXX JP-2293
     var_r2[np.isnan(var_r2)] = 0.
 
     # Suppress, then re-enable, harmless arithmetic warning
