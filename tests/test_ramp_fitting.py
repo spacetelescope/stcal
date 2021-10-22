@@ -36,7 +36,7 @@ def test_utils_dq_compress_final():
           will flag a pixel as DO_NOT_USE in an integration if all groups in
           that integration are saturated.
     2. Only one integration with all groups saturated.
-        - Since all groups are saturated in only one integration the final DQ 
+        - Since all groups are saturated in only one integration the final DQ
           value for this pixel should not have the DO_NOT_USE flag set, even
           though it is set in one of the integrations.
     3. No group saturated in any integration.
