@@ -108,8 +108,8 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
     (nreads, npix, imshape, cubeshape, n_int, instrume, frame_time,
         ngroups, group_time) = utils.get_dataset_info(ramp_data)
 
-    (group_time, frames_per_group, saturated_flag, jump_flag) = \
-        utils.get_more_info(ramp_data)
+    (group_time, frames_per_group, saturated_flag, jump_flag) = utils.get_more_info(
+            ramp_data, ramp_data.flags_saturated, ramp_data.flags_jump_det)
 
     tstart = time.time()
 
@@ -521,11 +521,6 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         Tuple of the ndarrays computed for the optional results product.
     """
     # START
-    # For multiprocessing, a new process requires the DQ flags to be updated,
-    # since they are global variables.
-    constants.update_dqflags_from_ramp_data(ramp_data)
-    if None in constants.dqflags.values():
-        raise ValueError("Some of the DQ flags required for ramp_fitting are None.")
 
     frame_time = ramp_data.frame_time
     group_time = ramp_data.group_time
@@ -581,7 +576,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
             slope_var_sect[v_mask] = utils.LARGE_VARIANCE
 
             # Also set a flag in the pixel dq array.
-            temp_dq[:, :][v_mask] = constants.dqflags["UNRELIABLE_SLOPE"]
+            temp_dq[:, :][v_mask] = ramp_data.flags_unreliable_slope
             del v_mask
 
         # If a pixel was flagged (by an earlier step) as saturated in
@@ -590,7 +585,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         s_mask = (gdq_cube[0] == saturated_flag)
         if s_mask.any():
             # TODO The dimensions of s_mask are larger than temp_dq
-            temp_dq[:, :][s_mask] = constants.dqflags["UNRELIABLE_SLOPE"]
+            temp_dq[:, :][s_mask] = ramp_data.flags_unreliable_slope 
         slope_err_int[num_int, :, :] = np.sqrt(slope_var_sect)
 
         # We need to take a weighted average if (and only if) number_ints > 1.
@@ -615,8 +610,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # Compress 4D->2D dq arrays for saturated and jump-detected
         # pixels
         pixeldq_sect = pixeldq[:, :].copy()
-        dq_int[num_int, :, :] = \
-            utils.dq_compress_sect(gdq_cube[num_int, :, :, :], pixeldq_sect).copy()
+        dq_int[num_int, :, :] = utils.dq_compress_sect(
+            ramp_data, gdq_cube[num_int, :, :, :], pixeldq_sect).copy()
 
         dq_int[num_int, :, :] |= temp_dq
         temp_dq[:, :] = 0  # initialize for next integration
@@ -648,7 +643,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
 
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output
-    final_pixeldq = utils.dq_compress_final(dq_int, number_ints)
+    final_pixeldq = utils.dq_compress_final(
+        dq_int, number_ints, ramp_data.flags_do_not_use)
 
     integ_info = (slope_int, dq_int, slope_err_int)
 
