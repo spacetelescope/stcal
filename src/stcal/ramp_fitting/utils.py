@@ -918,7 +918,6 @@ def get_dataset_info(ramp_data):
             frame_time, ngroups, group_time)
 
 
-# GLS function
 def get_more_info(ramp_data, saturated_flag, jump_flag):  # pragma: no cover
     """
     Get information used by GLS algorithm.
