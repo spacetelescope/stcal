@@ -109,7 +109,7 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
         ngroups, group_time) = utils.get_dataset_info(ramp_data)
 
     (group_time, frames_per_group, saturated_flag, jump_flag) = utils.get_more_info(
-            ramp_data, ramp_data.flags_saturated, ramp_data.flags_jump_det)
+        ramp_data, ramp_data.flags_saturated, ramp_data.flags_jump_det)
 
     tstart = time.time()
 
@@ -585,7 +585,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         s_mask = (gdq_cube[0] == saturated_flag)
         if s_mask.any():
             # TODO The dimensions of s_mask are larger than temp_dq
-            temp_dq[:, :][s_mask] = ramp_data.flags_unreliable_slope 
+            temp_dq[:, :][s_mask] = ramp_data.flags_unreliable_slope
         slope_err_int[num_int, :, :] = np.sqrt(slope_var_sect)
 
         # We need to take a weighted average if (and only if) number_ints > 1.
