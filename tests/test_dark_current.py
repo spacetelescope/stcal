@@ -184,6 +184,7 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
     assert avg_dark.exp_ngroups == ngroups
     assert avg_dark.exp_groupgap == groupgap
 
+
 def test_more_sci_frames(make_rampmodel, make_darkmodel):
     """
     Check that data is unchanged if there are more frames in the science
@@ -258,7 +259,6 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
     # remove the single dimension at start of file (1, 30, 1032, 1024)
     # so comparison in assert works
     outdata = np.squeeze(outfile.data)
-
 
     # check that the dark file is subtracted frame by frame
     # from the science data
@@ -431,5 +431,3 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     # check that the error array is not modified.
     tol = 1.e-6
     np.testing.assert_allclose(outfile.err[:, :], 0, tol)
-
-
