@@ -563,6 +563,10 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.flags_no_gain_val = ramp_data.flags_no_gain_val
     ramp_data_slice.flags_unreliable_slope = ramp_data.flags_unreliable_slope
 
+    # Slice info
+    ramp_data_slice.start_row = start_row
+    ramp_data_slice.num_rows = nrows
+
     return ramp_data_slice
 
 
