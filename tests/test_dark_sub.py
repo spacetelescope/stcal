@@ -253,6 +253,8 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
     # apply correction
     outfile, avg_dark = darkcorr(dm_ramp, dark)
 
+    assert(outfile.cal_step == "COMPLETE")
+
     # remove the single dimension at start of file (1, 30, 1032, 1024)
     # so comparison in assert works
     outdata = np.squeeze(outfile.data)

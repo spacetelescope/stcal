@@ -1,3 +1,11 @@
+0.4.3 (unreleased)
+==================
+
+dark_current
+------------
+
+- Moved dark current code from JWST to STCAL.
+
 0.4.2 (2021-10-28)
 ==================
 
