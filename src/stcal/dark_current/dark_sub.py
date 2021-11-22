@@ -20,21 +20,21 @@ def do_correction(input_model, dark_model, dark_output=None):
 
     Parameters
     ----------
-    input_model: data model
+    input_model : data model
         Input model assumed to be like a JWST RampModel.
 
-    dark_model: data model
+    dark_model : data model
         Input model assumed to be like a JWST DarkModel.
 
-    dark_output: str
+    dark_output : str
         A path to denote where to save the dark model, if desired.
 
     Returns
     -------
-    output_data: ScienceData
+    output_data : ScienceData
         dark-subtracted science data
 
-    averaged_dark: DarkData
+    averaged_dark : DarkData
         New dark object with averaged frames
     """
     science_data = dark_class.ScienceData(input_model)
@@ -51,21 +51,21 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
     Parameters
     ----------
-    science_data: ScienceData
+    science_data : ScienceData
         science data to be corrected
 
-    dark_data: dark model object
+    dark_data : dark model object
         dark data
 
-    dark_output: string
+    dark_output : string
         file name in which to optionally save averaged dark data
 
     Returns
     -------
-    output_data: ScienceData
+    output_data : ScienceData
         dark-subtracted science data
 
-    averaged_dark: DarkData
+    averaged_dark : DarkData
         New dark object with averaged frames
     """
 
@@ -179,21 +179,21 @@ def average_dark_frames(dark_data, ngroups, nframes, groupgap):
 
     Parameters
     ----------
-    dark_data: DarkData
+    dark_data : DarkData
         the input dark data
 
-    ngroups: int
+    ngroups : int
         number of groups in the science data set
 
-    nframes: int
+    nframes : int
         number of frames per group in the science data set
 
-    groupgap: int
+    groupgap : int
         number of frames skipped between groups in the science data set
 
     Returns
     -------
-    avg_dark: DarkData
+    avg_dark : DarkData
         New dark object with averaged frames
     """
 
@@ -242,29 +242,29 @@ def average_MIRIdark_frames(dark_data, nints, ngroups, nframes, groupgap):
     """
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
-    MIRI needs a seperate routine because the darks are integration dependent.
+    MIRI needs a separate routine because the darks are integration dependent.
     We need an average dark for each dark integration.
 
     Parameters
     ----------
-    dark_data: DarkData
+    dark_data : DarkData
         the input dark data
 
-    nints: int
+    nints : int
         number of integrations in the science data
 
-    ngroups: int
+    ngroups : int
         number of groups in the science data set
 
-    nframes: int
+    nframes : int
         number of frames per group in the science data set
 
-    groupgap: int
+    groupgap : int
         number of frames skipped between groups in the science data set
 
     Returns
     -------
-    avg_dark: dark data model
+    avg_dark : dark data model
         New dark object with averaged frames
     """
 
@@ -279,10 +279,10 @@ def average_MIRIdark_frames(dark_data, nints, ngroups, nframes, groupgap):
     avg_dark.groupdq = dark_data.groupdq
 
     # check if the number of integrations in dark reference file
-    # is less than science data, if so then we only need to find the
-    # average for num_ints integrations (if science data only has
-    # 1 integration then there is no need to average the second integration
-    # of the dark refefence file)
+    # is less than science data.  If so then we only need to find the
+    # average for dint integrations, otherwise we find the average for 
+    # nints.  (if science data only has 1 integration then there is no
+    # need to average the second integration of the dark refefence file)
     num_ints = dint
     if(dint > nints):
         num_ints = nints
@@ -329,15 +329,15 @@ def subtract_dark(science_data, dark_data):
 
     Parameters
     ----------
-    science_data: ScienceData
+    science_data : ScienceData
         the input science data
 
-    dark_data: DarkData
+    dark_data : DarkData
         the dark current data
 
     Returns
     -------
-    output: data model object
+    output : data model object
         dark-subtracted science data
     """
 

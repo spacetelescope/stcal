@@ -3,22 +3,36 @@ import numpy as np
 
 class DarkData:
     """
-    Class removing data model dependencies.
+    This class contains all data needed to perform the dark current subtraction
+    step.
     """
     def __init__(self, dims=None, dark_model=None):
         """
         Creates a class to remove data model dependencies in the internals of
         the dark current code.  The data contained in this class comes from the
-        dark reference data file.
+        dark reference data file.  If a dark data model is passed as an
+        argument the DarkData uses it to create class arrays and set metadata.
+        If a dark data model is None, then the DarkData arrays can still be
+        created by using the 'dims' argument.  In that situation, no metadata
+        will be contained in the class.  If both arguments are None, all arrays
+        and metadata are set to None, requiring the instantiator of the class
+        to set wanted values.
 
-        Paramters
+        Parameters
         ---------
-        dims: tuple
+        dims : tuple, optional
             A tuple of integers to describe the dimensions of the arrays used
-            during the dark current step.
+            during the dark current step.  This argument is only used if the
+            'dark_model' argument is None.  If a dark model is not available
+            from which to create a DarkData class, but the dimensions of the
+            data array are known, then 'dims' is used (the arrays data, groupdq,
+            and err are assumed to have the same dimension).
 
-        dark_model: data model
-            Input data model, assumed to be a JWST DarkModel like model.
+
+        dark_model : data model, optional
+            Input data model, assumed to be a JWST DarkModel like model.  If
+            this argument is not None, the DarkData class will have arrasy and
+            meta data set based on the arrays in the dark_model.
         """
         if dark_model is not None:
             self.data = dark_model.data
@@ -54,14 +68,15 @@ class DarkData:
 class ScienceData:
     def __init__(self, science_model=None):
         """
-        Creates a class to remove data model dependencies in the internals of
-        the dark current code.  The data in this class are for the science
-        exposure data on which to do the dark current step.
+        A class containing all science data needed to subtract the dark current
+        from the data.
 
-        Paramters
+        Parameters
         ---------
-        science_model: data model
-            Input data model, assumed to be a JWST RampModel like model.
+        science_model : data model, optional
+            Input data model, assumed to be a JWST RampModel like model.  If
+            this is None, then the class instantiator is responsible for
+            populating the data.
         """
         if science_model is not None:
             self.data = science_model.data
