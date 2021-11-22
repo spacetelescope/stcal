@@ -86,7 +86,6 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags):
             data[ints, plane, :, :] = \
                 np.where(np.bitwise_and(gdq[ints, plane, :, :], dqflags['SATURATED']),
                          data[ints, plane, :, :], scorr)
-    
     return data, new_pdq
 
 
@@ -159,13 +158,11 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
 
     # The critcal coefficient that should not be zero is the linear term other terms are fine to be zero
     linear_term = lin_coeffs[1,:,:]
-    
     wh_zero = np.where(linear_term == 0)
     yzero, xzero = wh_zero[0], wh_zero[1]
     num_zero = 0
-
     lin_dq_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]),
-                         dtype=np.uint32)
+                            dtype=np.uint32)
 
     # If there are linearity linear term equal to  zero all th as the correction coefficients, update those
     # coefficients so that those SCI values will be unchanged.
