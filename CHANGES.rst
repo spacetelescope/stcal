@@ -4,7 +4,7 @@
 dark_current
 ------------
 
-- Moved dark current code from JWST to STCAL.
+- Moved dark current code from JWST to STCAL. [#63]
 
 0.4.2 (2021-10-28)
 ==================

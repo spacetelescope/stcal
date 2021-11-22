@@ -347,46 +347,6 @@ def test_dq_combine(make_rampmodel, make_darkmodel):
             == np.bitwise_or(dqflags["SATURATED"], dqflags["DO_NOT_USE"]))
 
 
-def test_2_int(make_rampmodel, make_darkmodel):
-    """
-    Verify the dark correction is done by integration for MIRI observations
-    """
-
-    # size of integration
-    nints, ngroups, nrows, ncols = 2, 10, 200, 200
-
-    # create raw input data for step
-    dm_ramp = make_rampmodel(nints, ngroups, nrows, ncols)
-    dm_ramp.exp_nframes = 1
-    dm_ramp.exp_groupgap = 0
-
-    # populate data array of science cube
-    for i in range(0, ngroups - 1):
-        dm_ramp.data[:, i] = i
-
-    # create dark reference file model with more frames than science data
-    refgroups = 15
-    dark = make_darkmodel(refgroups, nrows, ncols)
-
-    # populate data array of reference file
-    for i in range(0, refgroups - 1):
-        dark.data[0, i] = i * 0.1
-        dark.data[1, i] = i * 0.2
-
-    # run correction
-    outfile, avg_dark = darkcorr(dm_ramp, dark)
-
-    # check that the dark file is subtracted frame by frame from the science data
-    diff = dm_ramp.data[0] - dark.data[0, :ngroups]
-    diff_int2 = dm_ramp.data[1] - dark.data[1, :ngroups]
-
-    # test that the output data file is equal to the difference found when
-    # subtracting ref file from sci file
-    tol = 1.e-6
-    np.testing.assert_allclose(outfile.data[0], diff, tol)
-    np.testing.assert_allclose(outfile.data[1], diff_int2, tol)
-
-
 def test_frame_avg(make_rampmodel, make_darkmodel):
     """
     Check that if NFRAMES>1 or GROUPGAP>0, the frame-averaged dark data are
