@@ -66,6 +66,9 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags):
     # Check for NaNs in the COEFFS extension of the ref file
     lin_coeffs, new_pdq = correct_for_NaN(lin_coeffs, new_pdq, dqflags)
 
+    # Check when all the Linearity COEFFS = 0. Set DQ flag to NO_LIN_COEFF
+    lin_coeffs, new_pdq = correct_for_zero(lin_coeffs, new_pdq, dqflags)
+
     # Apply the linearity correction one integration at a time.
     for ints in range(nints):
 
@@ -77,14 +80,13 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags):
             for j in range(ncoeffs - 2, 0, -1):
                 scorr = (scorr + lin_coeffs[j]) * data[ints, plane]
             scorr = lin_coeffs[0] + scorr
-
             # Only use the corrected signal where the original signal value
             # has not been flagged by the saturation step.
             # Otherwise use the original signal.
             data[ints, plane, :, :] = \
                 np.where(np.bitwise_and(gdq[ints, plane, :, :], dqflags['SATURATED']),
                          data[ints, plane, :, :], scorr)
-
+    
     return data, new_pdq
 
 
@@ -131,6 +133,52 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
 
         # Include these pixels in the output pixeldq
         pixeldq = np.bitwise_or(pixeldq, nan_array)
+
+    return lin_coeffs, pixeldq
+
+
+def correct_for_zero(lin_coeffs, pixeldq, dqflags):
+    """
+    Check when the linear term in the linearity coefficients is zero.  For such pixels, update the
+    coefficients so that there is effectively no correction, and flag their
+    pixeldq values in place as NO_LIN_CORR in the step output.
+
+    Parameters
+    ----------
+    lin_coeffs: 3D array
+        array of correction coefficients in reference file
+
+    input: data model object
+        science data model to be corrected in place
+
+    Returns
+    -------
+    lin_coeffs: 3D array
+        updated array of correction coefficients in reference file
+    """
+
+    # The critcal coefficient that should not be zero is the linear term other terms are fine to be zero
+    linear_term = lin_coeffs[1,:,:]
+    
+    wh_zero = np.where(linear_term == 0)
+    yzero, xzero = wh_zero[0], wh_zero[1]
+    num_zero = 0
+
+    lin_dq_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]),
+                         dtype=np.uint32)
+
+    # If there are linearity linear term equal to  zero all th as the correction coefficients, update those
+    # coefficients so that those SCI values will be unchanged.
+    if len(yzero) > 0:
+        ben_cor = ben_coeffs(lin_coeffs)  # get benign coefficients
+        num_zero = len(yzero)
+
+        for ii in range(num_zero):
+            lin_coeffs[:, yzero[ii], xzero[ii]] = ben_cor
+            lin_dq_array[yzero[ii], xzero[ii]] = dqflags['NO_LIN_CORR']
+
+        # Include these pixels in the output pixeldq
+        pixeldq = np.bitwise_or(pixeldq, lin_dq_array)
 
     return lin_coeffs, pixeldq
 
