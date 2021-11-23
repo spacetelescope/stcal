@@ -6,7 +6,6 @@ linearity
 ---------
 - Let software set the pixel dq flag to NO_LIN_CORR if linear term of linearity coefficient is zero. [#65]
 
-
 ramp_fitting
 ------------
 
