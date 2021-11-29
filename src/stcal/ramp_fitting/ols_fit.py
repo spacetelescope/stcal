@@ -1583,6 +1583,9 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
         actual maximum number of segments within a ramp, based on the fitting
         of all ramps; later used when truncating arrays before output.
 
+    remp_data : RampClass
+        The ramp data and metadata, specifically the relavent DQ flags.
+
     Returns
     -------
     gdq_sect : ndarray
@@ -1698,16 +1701,24 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
         mask_2d[gdq_sect_r != 0] = False  # RE-exclude bad group dq values
 
+        # XXX JP-2326
+        # Ensure that the first group to be fit is the cosmic-ray-affected
+        #   group, the group previous to each group masked as good is
+        #   also masked as good.
+
         # Find CRs in the ramp.
         jump_det = ramp_data.flags_jump_det
         mask_2d_jump = mask_2d.copy()
         wh_jump = np.where(gdq_sect_r == jump_det)
         mask_2d_jump[wh_jump] = True
+        del wh_jump
 
         # Add back possible CRs at the beginning of a ramp that were excluded
         # above.
         wh_mask_2d = np.where(mask_2d)
         mask_2d[np.maximum(wh_mask_2d[0] - 1, 0), wh_mask_2d[1]] = True
+        del wh_mask_2d
+
         mask_2d = mask_2d & mask_2d_jump
 
         # for all pixels, update arrays, summing slope and variance
@@ -2745,11 +2756,6 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting):
        1-D sigma of slopes from fit for data section (for a single segment)
 
     """
-    # To ensure that the first channel to be fit is the cosmic-ray-affected
-    #   group, the channel previous to each channel masked as good is
-    #   also masked as good. This is only for the local purpose of setting
-    #   the first channel, and will not propagate beyond this current function
-    #   call.
     c_mask_2d = mask_2d.copy()
 
     # num of reads/pixel unmasked
