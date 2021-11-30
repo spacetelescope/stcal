@@ -164,7 +164,7 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     lin_dq_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]),
                             dtype=np.uint32)
 
-    # If there are linearity linear term equal to  zero all th as the correction coefficients, update those
+    # If there are linearity linear term equal to zero all th as the correction coefficients, update those
     # coefficients so that those SCI values will be unchanged.
     if len(yzero) > 0:
         ben_cor = ben_coeffs(lin_coeffs)  # get benign coefficients
