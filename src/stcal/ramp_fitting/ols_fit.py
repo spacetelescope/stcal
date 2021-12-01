@@ -1701,7 +1701,6 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
         mask_2d[gdq_sect_r != 0] = False  # RE-exclude bad group dq values
 
-        # XXX JP-2326
         # Ensure that the first group to be fit is the cosmic-ray-affected
         #   group, the group previous to each group masked as good is
         #   also masked as good.
