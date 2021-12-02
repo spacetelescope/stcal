@@ -290,6 +290,81 @@ def test_utils_dq_compress_final():
     assert(not(dq[0, 2] & dqflags["DO_NOT_USE"]))
 
 
+def jp_2326_test_setup():
+    # Set up ramp data
+    ramp = np.array([120.133545, 117.85222, 87.38832, 66.90588,  51.392555,
+                     41.65941,   32.15081,  24.25277, 15.955284, 9.500946])
+    dnu = dqflags["DO_NOT_USE"]
+    dq = np.array([dnu, 0, 0, 0, 0, 0, 0, 0, 0, dnu])
+
+    nints, ngroups, nrows, ncols = 1, len(ramp), 1, 1
+    data = np.zeros((nints, ngroups, nrows, ncols))
+    gdq = np.zeros((nints, ngroups, nrows, ncols), dtype=np.uint8)
+    err = np.zeros((nints, ngroups, nrows, ncols))
+    pdq = np.zeros((nrows, ncols), dtype=np.uint32)
+    int_times = np.zeros((nints,))
+
+    data[0, :, 0, 0] = ramp.copy()
+    gdq[0, :, 0, 0] = dq.copy()
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(
+        data=data, err=err, groupdq=gdq, pixeldq=pdq, int_times=int_times)
+    ramp_data.set_meta(
+        name="MIRI", frame_time=2.77504, group_time=2.77504, groupgap=0,
+        nframes=1, drop_frames1=None)
+    ramp_data.set_dqflags(dqflags)
+
+    # Set up gain and read noise
+    gain = np.ones(shape=(nrows, ncols), dtype=np.float32) * 5.5
+    rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 1000.
+
+    return ramp_data, gain, rnoise
+
+
+def test_miri_ramp_dnu_at_ramp_beginning():
+    """
+    Tests a MIRI ramp with DO_NOT_USE in the first two groups and last group.
+    This test ensures these groups are properly excluded.
+    """
+    row, col = 0, 0
+    ramp_data, gain, rnoise = jp_2326_test_setup()
+    ramp_data.groupdq[0, 1, 0, 0] = dqflags["DO_NOT_USE"]
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes1, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+
+    s1 = slopes1[0]
+    tol = 1e-6
+    ans = -4.1035075
+
+    assert abs(s1[0, 0] - ans) < tol
+
+
+def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
+    """
+    Tests a MIRI ramp with DO_NOT_USE in the first and last group, with a
+    JUMP_DET in the second group. This test ensures the DO_NOT_USE groups are
+    properly excluded, while the JUMP_DET group is included.
+    """
+    row, col = 0, 0
+    ramp_data, gain, rnoise = jp_2326_test_setup()
+    ramp_data.groupdq[0, 1, 0, 0] = dqflags["JUMP_DET"]
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes2, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+
+    s2 = slopes2[0]
+    tol = 1e-6
+    ans = -4.9032097
+
+    assert abs(s2[0, 0] - ans) < tol
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 

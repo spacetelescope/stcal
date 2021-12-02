@@ -1330,9 +1330,6 @@ def ramp_fit_overall(
     slope_dataset2[np.isnan(slope_dataset2)] = 0.
 
     # Compute the integration-specific slope
-    print("-" * 80)
-    print(f"opt_res.slope_seg = \n{opt_res.slope_seg[:, :, 0, 0]}")
-    print("-" * 80)
     the_num = (opt_res.slope_seg * inv_var_both4).sum(axis=1)
 
     the_den = (inv_var_both4).sum(axis=1)
