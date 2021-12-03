@@ -327,7 +327,6 @@ def test_miri_ramp_dnu_at_ramp_beginning():
     Tests a MIRI ramp with DO_NOT_USE in the first two groups and last group.
     This test ensures these groups are properly excluded.
     """
-    row, col = 0, 0
     ramp_data, gain, rnoise = jp_2326_test_setup()
     ramp_data.groupdq[0, 1, 0, 0] = dqflags["DO_NOT_USE"]
 
@@ -349,7 +348,6 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
     JUMP_DET in the second group. This test ensures the DO_NOT_USE groups are
     properly excluded, while the JUMP_DET group is included.
     """
-    row, col = 0, 0
     ramp_data, gain, rnoise = jp_2326_test_setup()
     ramp_data.groupdq[0, 1, 0, 0] = dqflags["JUMP_DET"]
 
