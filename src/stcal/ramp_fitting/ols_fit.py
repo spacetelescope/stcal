@@ -1698,9 +1698,13 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
         mask_2d[gdq_sect_r != 0] = False  # RE-exclude bad group dq values
 
-        # Ensure that the first group to be fit is the cosmic-ray-affected
-        #   group, the group previous to each group masked as good is
-        #   also masked as good.
+        # A segment could be created if a cosmic ray cause a JUMP_DET flag to be
+        #   set.  In the above line that group would be excluded from the
+        #   current segment.  If a segment is created only due to a group
+        #   flagged as JUMP_DET it will be the group just prior to the 0th
+        #   group in the current segement.  We want to include it as part of
+        #   the current segment, but exclude all other groups with any other
+        #   flag.
 
         # Find CRs in the ramp.
         jump_det = ramp_data.flags_jump_det
