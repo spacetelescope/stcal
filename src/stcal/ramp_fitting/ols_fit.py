@@ -1581,7 +1581,7 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
         of all ramps; later used when truncating arrays before output.
 
     remp_data : RampClass
-        The ramp data and metadata, specifically the relavent DQ flags.
+        The ramp data and metadata, specifically the relevant DQ flags.
 
     Returns
     -------
