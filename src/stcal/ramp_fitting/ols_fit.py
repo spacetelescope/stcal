@@ -961,7 +961,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             # final slopes, sigmas, etc. for the main (non-optional) products
             t_dq_cube, inv_var, opt_res, f_max_seg, num_seg = \
                 calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
-                           gain_sect, max_seg, ngroups, weighting, f_max_seg)
+                           gain_sect, max_seg, ngroups, weighting, f_max_seg, ramp_data)
 
             del gain_sect
 
@@ -1168,10 +1168,10 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
         var_p3[var_p3 > 0.1 * utils.LARGE_VARIANCE] = 0.
-        var_p3[:, med_rates <= 0.] = 0.  # XXX JP-2293
+        var_p3[:, med_rates <= 0.] = 0.
         warnings.resetwarnings()
 
-        var_p4[num_int, :, med_rates <= 0.] = 0.  # XXX JP-2293
+        var_p4[num_int, :, med_rates <= 0.] = 0.
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
         inv_var_both4[num_int, :, :, :] = 1. / var_both4[num_int, :, :, :]
 
@@ -1455,7 +1455,7 @@ def ramp_fit_overall(
     # Some contributions to these vars may be NaN as they are from ramps
     # having PIXELDQ=DO_NOT_USE
     var_p2[np.isnan(var_p2)] = 0.
-    var_p2[med_rates <= 0.0] = 0.  # XXX JP-2293
+    var_p2[med_rates <= 0.0] = 0.
     var_r2[np.isnan(var_r2)] = 0.
 
     # Suppress, then re-enable, harmless arithmetic warning
@@ -1530,7 +1530,7 @@ def interpolate_power(snr):
 
 
 def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
-               gain_sect, i_max_seg, ngroups, weighting, f_max_seg):
+               gain_sect, i_max_seg, ngroups, weighting, f_max_seg, ramp_data):
     """
     Compute the slope of each segment for each pixel in the data cube section
     for the current integration. Each segment has its slope fit in fit_lines();
@@ -1579,6 +1579,9 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
     f_max_seg : int
         actual maximum number of segments within a ramp, based on the fitting
         of all ramps; later used when truncating arrays before output.
+
+    remp_data : RampClass
+        The ramp data and metadata, specifically the relevant DQ flags.
 
     Returns
     -------
@@ -1694,6 +1697,29 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
              & (arange_ngroups_col < (end_st[end_heads[all_pix] - 1, all_pix] + 1)))
 
         mask_2d[gdq_sect_r != 0] = False  # RE-exclude bad group dq values
+
+        # A segment could be created if a cosmic ray cause a JUMP_DET flag to be
+        #   set.  In the above line that group would be excluded from the
+        #   current segment.  If a segment is created only due to a group
+        #   flagged as JUMP_DET it will be the group just prior to the 0th
+        #   group in the current segement.  We want to include it as part of
+        #   the current segment, but exclude all other groups with any other
+        #   flag.
+
+        # Find CRs in the ramp.
+        jump_det = ramp_data.flags_jump_det
+        mask_2d_jump = mask_2d.copy()
+        wh_jump = np.where(gdq_sect_r == jump_det)
+        mask_2d_jump[wh_jump] = True
+        del wh_jump
+
+        # Add back possible CRs at the beginning of a ramp that were excluded
+        # above.
+        wh_mask_2d = np.where(mask_2d)
+        mask_2d[np.maximum(wh_mask_2d[0] - 1, 0), wh_mask_2d[1]] = True
+        del wh_mask_2d
+
+        mask_2d = mask_2d & mask_2d_jump
 
         # for all pixels, update arrays, summing slope and variance
         f_max_seg, num_seg = \
@@ -2730,16 +2756,7 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting):
        1-D sigma of slopes from fit for data section (for a single segment)
 
     """
-    # To ensure that the first channel to be fit is the cosmic-ray-affected
-    #   group, the channel previous to each channel masked as good is
-    #   also masked as good. This is only for the local purpose of setting
-    #   the first channel, and will not propagate beyond this current function
-    #   call.
     c_mask_2d = mask_2d.copy()
-    wh_mask_2d = np.where(c_mask_2d)
-    c_mask_2d[np.maximum(wh_mask_2d[0] - 1, 0), wh_mask_2d[1]] = True
-
-    del wh_mask_2d
 
     # num of reads/pixel unmasked
     nreads_1d = c_mask_2d.astype(np.int16).sum(axis=0)
