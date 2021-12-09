@@ -1804,6 +1804,12 @@ def fit_next_segment(start, end_st, end_heads, pixel_done, data_sect, mask_2d,
         fitting ramps in the current data section; later used when truncating
         arrays before output.
 
+    gdq_sect_r : ndarray
+        The section data presented as a 2-D array with dimnsions (ngroups, npix)
+
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     Returns
     -------
     f_max_seg : int
@@ -2736,6 +2742,12 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
         'optimal' specifies that optimal weighting should be used; currently
         the only weighting supported.
 
+    gdq_sect_r : ndarray
+        The section data presented as a 2-D array with dimnsions (ngroups, npix)
+
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     Returns
     -------
     Note - all of these pertain to a single segment (hence '_s')
@@ -3339,6 +3351,12 @@ def fit_2_group(slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s,
 
     rn_sect_1d : ndarray
         read noise values for all pixels in data section, 1-D float
+
+    gdq_sect_r : ndarray
+        The section data presented as a 2-D array with dimnsions (ngroups, npix)
+
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
 
     Returns
     -------
