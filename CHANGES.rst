@@ -4,10 +4,10 @@
 ramp_fitting
 ------------
 
+- Fix special handling for 2 group ramp. [#70]
+
 - Fix issue with inappropriately including a flagged group at the beginning
-  of a ramp segment.
-
-
+  of a ramp segment. [#68]
 
 0.4.2 (2021-10-28)
 ==================
