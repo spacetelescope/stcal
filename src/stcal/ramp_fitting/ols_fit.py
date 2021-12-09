@@ -1581,7 +1581,7 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
         of all ramps; later used when truncating arrays before output.
 
     remp_data : RampClass
-        The ramp data and metadata, specifically the relavent DQ flags.
+        The ramp data and metadata, specifically the relevant DQ flags.
 
     Returns
     -------
@@ -3212,17 +3212,17 @@ def check_both_groups_good(gdq):
 
     # Mark the pixels with good groups in the zeroth group.
     group_0_good = np.zeros(g0.shape, dtype=bool)
-    group_0_good[g0 == 0] = True 
+    group_0_good[g0 == 0] = True
 
     # Mark the pixels with good groups in the first group.
     group_1_good = np.zeros(g1.shape, dtype=bool)
-    group_1_good[g1 == 0] = True 
+    group_1_good[g1 == 0] = True
 
     # Mark the pixels with good groups in the both groups.
     both = group_0_good & group_1_good
 
     return both
-    
+
 
 def check_good_0_bad_1(gdq):
     """
@@ -3246,11 +3246,11 @@ def check_good_0_bad_1(gdq):
 
     # Mark the pixels with good groups in the zeroth group.
     group_0_good = np.zeros(g0.shape, dtype=bool)
-    group_0_good[g0 == 0] = True 
+    group_0_good[g0 == 0] = True
 
     # Mark the pixels with bad groups in the first group.
     group_1_good = np.zeros(g1.shape, dtype=bool)
-    group_1_good[g1 != 0] = True 
+    group_1_good[g1 != 0] = True
 
     # Mark the pixels with good group 0 and bad group 1.
     both = group_0_good & group_1_good
@@ -3283,7 +3283,7 @@ def check_bad_0_good_1(gdq, sat):
 
     # Mark the pixels with bad groups in the zeroeth group.
     group_0_bad = np.zeros(g0.shape, dtype=bool)
-    group_0_bad[g0 != 0] = True 
+    group_0_bad[g0 != 0] = True
 
     # Mark pixels flagged as saturated in zeroeth group, which means group 1
     # cannot be a good group.
@@ -3296,7 +3296,7 @@ def check_bad_0_good_1(gdq, sat):
 
     # Mark pixels with good first group.
     group_1_good = np.zeros(g1.shape, dtype=bool)
-    group_1_good[g1 == 0] = True 
+    group_1_good[g1 == 0] = True
 
     # Mark the pixels with non-saturated bad zeroeth group and good first group.
     both = group_0_bad_nsat & group_1_good
@@ -3362,7 +3362,7 @@ def fit_2_group(slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s,
 
     # Special case 1.  Both groups in ramp are good.
     both_groups_good = check_both_groups_good(gdq_sect_r)
-    wh_sat_no = np.where(both_groups_good) 
+    wh_sat_no = np.where(both_groups_good)
     if len(wh_sat_no[0]) > 0:
         data0 = data_r[0, :]
         data1 = data_r[1, :]

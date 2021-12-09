@@ -438,7 +438,7 @@ def test_2_group_cases():
 
     # Check the outputs
     data, dq, var_poisson, var_rnoise, err = slopes
-    chk_dt = np.array([[ 551.0735, 0., 0., 0., -293.9943, -845.0678, -845.0677]])
+    chk_dt = np.array([[551.0735, 0., 0., 0., -293.9943, -845.0678, -845.0677]])
     chk_dq = np.array([[0, dnu | sat, dnu | sat, sat, 0, 0, sat]])
     chk_vp = np.array([[38.945766, 0., 0., 0., 38.945766, 38.945766, 0.]])
     chk_vr = np.array([[0.420046, 0.420046, 0.420046, 0., 0.420046, 0.420046, 0.420046]])
