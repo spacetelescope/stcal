@@ -21,13 +21,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-# ******************************************************************************
-# XXX - Debugging functions
-import sys; sys.path.insert(0, "/Users/kmacdonald/bin")
-from debug_funcs import *
-# ******************************************************************************
-
-
 def ols_ramp_fit_multi(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
@@ -3202,9 +3195,16 @@ def check_both_groups_good(gdq):
     Special case checker for 2 group ramps.  This checks to see if both groups
     in a two group ramp are good.
 
+    Parameter
+    ---------
     gdq : ndarray
         The group DQ, 2-D uint8 with dimensions (2, npix), where npix is the
         number of groups, i.e., npx = nrows * ncols.
+
+    Return
+    ------
+    both : ndarray
+        Boolean array for pixels with 2 good groups.
     """
     # Get each group for every pixel.
     g0 = gdq[0, :]
@@ -3229,9 +3229,16 @@ def check_good_0_bad_1(gdq):
     Special case checker for 2 group ramps.  This checks to see if group 0 is
     good, but group 1 is bad, making it effectively a one group ramp.
 
+    Parameter
+    ---------
     gdq : ndarray
         The group DQ, 2-D uint8 with dimensions (2, npix), where npix is the
         number of groups, i.e., npx = nrows * ncols.
+
+    Return
+    ------
+    both : ndarray
+        Boolean array for pixels with good 0 group and bad 1 group
     """
     # Get each group for every pixel.
     g0 = gdq[0, :]
@@ -3256,12 +3263,19 @@ def check_bad_0_good_1(gdq, sat):
     Special case checker for 2 group ramps.  This checks to see if group 0 is
     bad, but group 1 is good, making it effectively a one group ramp.
 
+    Parameter
+    ---------
     gdq : ndarray
         The group DQ, 2-D uint8 with dimensions (2, npix), where npix is the
         number of groups, i.e., npx = nrows * ncols.
 
     sat : uint8
         The group DQ saturation flag.
+
+    Return
+    ------
+    both : ndarray
+        Boolean array for pixels with bad 0 group and good 1 group
     """
     # Get each group for every pixel.
     g0 = gdq[0, :]
@@ -3343,56 +3357,41 @@ def fit_2_group(slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s,
     sig_slope_s : ndarray
         sigma of slopes from fit for data section, 1-D float
     """
-    # XXX JP-2346
-    # There are four cases:
-    # 1. Pixels with two good groups.
-    # 2. Pixels with zero good groups (nothing needs to be done).
-    # 3. Pixels with good 0 group and bad 1 group.
-    # 4. Pixels with bad 0 group and good 1 group.
-
     # Shape data as (ngroups, npix)
     data_r = data.reshape((2, npix))
 
     # Special case 1.  Both groups in ramp are good.
     both_groups_good = check_both_groups_good(gdq_sect_r)
     wh_sat_no = np.where(both_groups_good) 
-
     if len(wh_sat_no[0]) > 0:
-        data0_slice = data[0, :, :].reshape(npix)
-        data1_slice = data[1, :, :].reshape(npix)
-        slope_s[wh_sat_no] = data1_slice[wh_sat_no] - data0_slice[wh_sat_no]
+        data0 = data_r[0, :]
+        data1 = data_r[1, :]
+        slope_s[wh_sat_no] = data1[wh_sat_no] - data0[wh_sat_no]
         sig_slope_s[wh_sat_no] = np.sqrt(2) * rn_sect_1d[wh_sat_no]
-        intercept_s[wh_sat_no] = data0_slice[wh_sat_no] -\
-            data1_slice[wh_sat_no]  # by geometry
+        intercept_s[wh_sat_no] = data0[wh_sat_no] - data1[wh_sat_no]
         sig_intercept_s[wh_sat_no] = np.sqrt(2) * rn_sect_1d[wh_sat_no]
         variance_s[wh_sat_no] = np.sqrt(2) * rn_sect_1d[wh_sat_no]
-
     del wh_sat_no
+
+    # For one group segments only the slope is computed from the data.  The
+    # variance is set to something non-zero, so the data is not thrown out
+    # later.  The other values remain zero.
 
     # Special case 3.  Good 0th group, bad 1st group.
     good_0_bad_1 = check_good_0_bad_1(gdq_sect_r)
-
     one_group_locs = np.where(good_0_bad_1)
     if len(one_group_locs[0]) > 0:
         data0 = data_r[0, :]
         slope_s[one_group_locs] = data0[one_group_locs]
-
-        # set variance non-zero because calling function uses variance=0 to
-        # throw out bad results; this is not bad
         variance_s[one_group_locs] = 1.
     del one_group_locs
 
     # Special case 4.  Bad 0th group, good 1st group.
     bad_0_good_1 = check_bad_0_good_1(gdq_sect_r, ramp_data.flags_saturated)
-
-    # one_group_locs = np.where(good_0_bad_1)
     one_group_locs = np.where(bad_0_good_1)
     if len(one_group_locs[0]) > 0:
         data1 = data_r[1, :]
         slope_s[one_group_locs] = data1[one_group_locs]
-
-        # set variance non-zero because calling function uses variance=0 to
-        # throw out bad results; this is not bad
         variance_s[one_group_locs] = 1.
     del one_group_locs
 
