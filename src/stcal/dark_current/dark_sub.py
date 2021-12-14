@@ -280,7 +280,7 @@ def average_MIRIdark_frames(dark_data, nints, ngroups, nframes, groupgap):
 
     # check if the number of integrations in dark reference file
     # is less than science data.  If so then we only need to find the
-    # average for dint integrations, otherwise we find the average for 
+    # average for dint integrations, otherwise we find the average for
     # nints.  (if science data only has 1 integration then there is no
     # need to average the second integration of the dark refefence file)
     num_ints = dint
