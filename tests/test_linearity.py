@@ -46,7 +46,7 @@ def test_coeff_dq():
     lin_coeffs[:, 30, 50] = coeffs
     lin_coeffs[:, 35, 36] = coeffs
     lin_coeffs[:, 35, 35] = coeffs
-    
+
     lin_dq = np.zeros((ysize, xsize), dtype=np.uint32)
 
     # check behavior with NaN coefficients: should not alter pixel values
