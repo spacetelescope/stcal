@@ -76,7 +76,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     sci_nframes = science_data.exp_nframes
     sci_groupgap = science_data.exp_groupgap
 
-    if instrument == 'MIRI':
+    if len(dark_data.data.shape) == 4:
         drk_nints = dark_data.data.shape[0]
         drk_ngroups = dark_data.data.shape[1]
     else:
@@ -148,12 +148,12 @@ def do_correction_data(science_data, dark_data, dark_output=None):
         # If the data are from MIRI, the darks are integration-dependent and
         # we average them with a seperate routine.
 
-        if instrument == 'MIRI':
-            averaged_dark = average_MIRIdark_frames(
+        if len(dark_data.data.shape) == 4:
+            averaged_dark = average_dark_frames_4d(
                 dark_data, sci_nints, sci_ngroups, sci_nframes, sci_groupgap
             )
         else:
-            averaged_dark = average_dark_frames(
+            averaged_dark = average_dark_frames_3d(
                 dark_data, sci_ngroups, sci_nframes, sci_groupgap
             )
 
@@ -171,7 +171,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     return output_data, averaged_dark
 
 
-def average_dark_frames(dark_data, ngroups, nframes, groupgap):
+def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
     """
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
@@ -238,7 +238,7 @@ def average_dark_frames(dark_data, ngroups, nframes, groupgap):
     return avg_dark
 
 
-def average_MIRIdark_frames(dark_data, nints, ngroups, nframes, groupgap):
+def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     """
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
@@ -342,7 +342,7 @@ def subtract_dark(science_data, dark_data):
     """
 
     instrument = science_data.instrument_name
-    if instrument == 'MIRI':
+    if len(dark_data.data.shape) == 4:
         dark_nints = dark_data.data.shape[0]
     else:
         dark_nints = 1
@@ -354,7 +354,7 @@ def subtract_dark(science_data, dark_data):
     # Create output as a copy of the input science data model
     output = copy.deepcopy(science_data)
 
-    if instrument == 'MIRI':
+    if len(dark_data.data.shape) == 4:
         # MIRI dark reference file has a DQ plane for each integration,
         # so we collapse the dark DQ planes into a single 2-D array
         darkdq = dark_data.groupdq[0, 0, :, :].copy()
@@ -370,7 +370,7 @@ def subtract_dark(science_data, dark_data):
     # loop over all integrations and groups in input science data
     for i in range(science_data.data.shape[0]):
 
-        if instrument == 'MIRI':
+        if len(dark_data.data.shape) == 4:
             if i < dark_nints:
                 dark_int = dark_data.data[i]
             else:
