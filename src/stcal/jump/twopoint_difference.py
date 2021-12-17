@@ -110,8 +110,7 @@ def new_find_crs(data, group_dq, read_noise, normal_rej_thresh,
         # note: roll the ngroups axis of data array to the end, to make
         # memory access to the values for a given pixel faster.
         # New form of the array has dimensions [nrows, ncols, ngroups].
-        first_diffs = np.diff(np.rollaxis(data[integ], axis=0, start=3),
-                              axis=2)
+        first_diffs = np.diff(np.rollaxis(data[integ], axis=0, start=3), axis=2)
         positive_first_diffs = np.abs(first_diffs)
 
         # sat_groups is a 3D array that is true when the group is saturated
@@ -186,8 +185,7 @@ def new_find_crs(data, group_dq, read_noise, normal_rej_thresh,
                                   max_ratio2d > normal_rej_thresh))
 
         # For pixels with only three good groups, use the three diff threshold
-        row3cr, col3cr = np.where(np.logical_and(ndiffs - number_sat_groups
-                                  == 3,
+        row3cr, col3cr = np.where(np.logical_and(ndiffs - number_sat_groups == 3,
                                   max_ratio2d > three_diff_rej_thresh))
 
         # Finally, for pixels with only two good groups, compare the SNR of the
@@ -208,64 +206,55 @@ def new_find_crs(data, group_dq, read_noise, normal_rej_thresh,
         plt.title(f'first pass, at least one CR found = {is_cr}')
         plt.scatter(range(len(ratio3d.flatten())), ratio3d.flatten())
         plt.ylabel('ratio')
-        plt.scatter(max_index1, max_ratio2d, facecolor='None', edgecolor='r', s=200, label=f'max ratio, group {max_index1}')
+        plt.scatter(max_index1, max_ratio2d, facecolor='None', edgecolor='r', s=200, label=f'max ratio, group {max_index1.flatten()}')
         plt.legend()
         plt.axhline(normal_rej_thresh)
         plt.show()
 
-        # Loop over all pixels that we found the first CR in
-        number_pixels_with_cr = len(all_crs_row)
-        for j in range(number_pixels_with_cr):
-            # Extract the first diffs for this pixel with at least one CR,
-            # yielding a 1D array
-            pix_masked_diffs = first_diffs[all_crs_row[j], all_crs_col[j]]
+        # Loop over all pixels that we found the first CR in to look for more
+        for j in range(len(all_crs_row)):
 
-            # Get the scalar readnoise^2 and number of saturated groups for
-            # this pixel.
+            # Get the 1d array of positive first diffs for this pixel
+            pix_pos_first_diffs = positive_first_diffs[all_crs_row[j], all_crs_col[j]]
+
+            # Get the scalar readnoise^2 and number of saturated groups for this pixel.
             pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
-            pix_sat_groups = number_sat_groups[all_crs_row[j],
-                                               all_crs_col[j]]
+            pix_sat_groups = number_sat_groups[all_crs_row[j], all_crs_col[j]]
 
-            # Create a CR mask and set 1st CR to be found
-            # cr_mask=0 designates a CR
-            pix_cr_mask = np.ones(pix_masked_diffs.shape, dtype=bool)
+            # Create a CR mask and set 1st CR to be found, cr_mask=0 designates a CR
+            pix_cr_mask = np.ones(pix_pos_first_diffs.shape, dtype=bool)
             number_CRs_found = 1
-            pix_sorted_index_first_diffs = sort_index[all_crs_row[j], all_crs_col[j], :]
-            pix_sorted_index_ratio = sort_index_ratio[all_crs_row[j], all_crs_col[j], :]
 
-            # setting largest diff to be a CR
-            pix_cr_mask[pix_sorted_index_ratio[ndiffs - pix_sat_groups - 1]] = 0
+            # Get the array of indicies that sorts the initial 'ratio' array, for this pixel
+            pix_sort_index_ratio = sort_index_ratio[all_crs_row[j], all_crs_col[j], :]
+
+            # Set the diff with the largest 'ratio' to be the first CR in the mask
+            idx_of_first_cr = pix_sort_index_ratio[ndiffs - pix_sat_groups - 1]
+            pix_cr_mask[pix_sort_index_ratio[ndiffs - pix_sat_groups - 1]] = 0
             new_CR_found = True
 
             plt.title('first CR clipped')
             plt.scatter(range(len(ratio3d.flatten())), ratio3d.flatten())
-            next_idx = pix_sorted_index_ratio[ndiffs - pix_sat_groups - 1]
+            next_idx = pix_sort_index_ratio[ndiffs - pix_sat_groups - 1]
             next_ratio = ratio3d[all_crs_row[j], all_crs_col[j]][next_idx]
             plt.scatter(next_idx, next_ratio, facecolor='None', edgecolor='r', s=200, label=f'max ratio, group {next_idx}')
             plt.legend()
             plt.axhline(normal_rej_thresh)
             plt.show()
 
-
-            # Loop and see if there is more than one CR, setting the mask as
-            # you go, stop when only 1 diffs is left.
-            last_cr_groups = []
-            last_cr_groups.append(next_idx)
-
-            #indicies in original list of first diffs of pixels flagged as CRs, starting with first one clipped
-            indicies_of_CRs = [pix_sorted_index_ratio[ndiffs - pix_sat_groups - 1]] 
+            # indicies in original list of first diffs of pixels flagged as CRs, starting with first one clipped
+            indicies_of_CRs = [idx_of_first_cr] 
 
             while new_CR_found and ((ndiffs - number_CRs_found - pix_sat_groups) > 1):
                 new_CR_found = False
                 num_usable_diffs = ndiffs - number_CRs_found - pix_sat_groups
 
-                # create new array of diffs by masking pixels flagged as crs
-                # also this is a bad way to do this so think of a better way
-                new_diffs = pix_masked_diffs[pix_cr_mask]
-                print(len(new_diffs))
+                # create new array of diffs by masking pixels previously flagged as crs to omit them
+                new_diffs = np.ma.array(pix_pos_first_diffs, pix_cr_mask)
                 
                 # For this pixel get a new median difference excluding the number of CRs found and the number of saturated groups
-                pix_med_diff = np.nanmedian(new_diffs)
+                pix_med_diff = single_pixel_clipped_median(new_diffs)
+
                 # Recalculate the noise and ratio for this pixel now that we have rejected a CR
                 pix_poisson_noise = np.sqrt(np.abs(pix_med_diff))
                 pix_sigma = np.sqrt(pix_poisson_noise * pix_poisson_noise + pix_rn2 / nframes)
@@ -284,19 +273,12 @@ def new_find_crs(data, group_dq, read_noise, normal_rej_thresh,
                     number_CRs_found += 1
                     
 
-                plt.title(f'next CR, ratio recomputed. CR found = {new_CR_found}')
+                plt.title(f'next CR, ratio recomputed. CR found = {new_CR_found} n points = {len(new_pix_ratio)}, ')
                 plt.scatter(range(len(new_pix_ratio)), new_pix_ratio)
-                
                 plt.scatter(new_pix_ratio_sort_index[num_usable_diffs - 1], new_max_ratio, facecolor='None', edgecolor='r', s=200, label=f'new max ratio, group {new_pix_ratio_sort_index[num_usable_diffs - 1]}')
-
-                for g in last_cr_groups:
-                    plt.scatter(g, new_pix_ratio[g], c='orange', s=200, marker='x')
-
                 plt.axhline(rej_thresh)
                 plt.legend()
                 plt.show()
-
-                last_cr_groups.append(pix_sorted_index_ratio[num_usable_diffs - 1])
 
             # Found all CRs for this pixel. Set CR flags in input DQ array for
             # this pixel
@@ -479,27 +461,24 @@ def get_clipped_median_array(num_diffs, diffs_to_ignore, input_array,
     return pix_med_diff
 
 
-def get_clipped_median_vector(num_diffs, diffs_to_ignore, input_vector,
-                              sorted_index):
+def single_pixel_clipped_median(first_diffs_pixel):
     """
     This routine will return the clipped median for the first differences of
-    the input pixel (input_vector). It will ignore the input number of largest
-    differences (diffs_to_ignore). As cosmic rays are found, the
-    diffs_to_ignore will increase.
+    the input pixel (input_vector). 
+
+    If there are four or more groups, the largest diff will be clipped before
+    the median is computed. If there are three usable groups, then no clipping
+    will take place and the median of those three elements will be returned. If
+    there are only two usable groups, then the group with the lowest diff will
+    be returned instead of the median. Saturated / donotuse groups are also
+    excluded because they have already been set to nan in `first_diffs_pixel`
 
     Parameters
     ----------
-    num_diffs : int
-        number of first difference, equal to the number of groups-1
 
-    diffs_to_ignore : int, 2D array
-        number of saturated groups per pixerl
-
-    input_array : int, 1D array
-        first differences of adjacent groups for a pixel
-
-    sorted_index : int, 3D array
-        first differences, sorted along the groups axis
+    first_diffs_pixel : int, 1D masked array
+        first differences of adjacent groups for a pixel. mask contains pixels
+        flagged as CRs or saturated. 
 
     Returns
     -------
@@ -507,30 +486,27 @@ def get_clipped_median_vector(num_diffs, diffs_to_ignore, input_vector,
         clipped median for the vector of first differences
 
     """
-    if num_diffs - diffs_to_ignore == 2:
+    n_diffs = len(first_diffs_pixel)
+    if  n_diffs == 2:
         # For the two diff case we just return the smallest value instead of
         # the median.
-        return np.min(input_vector[sorted_index[0:1]])
-    elif num_diffs - diffs_to_ignore == 3:
+        return np.min(first_diffs_pixel)
+    elif  n_diffs == 3:
         # For the three diff case we do not reject the largest diff when the
         # median is calculated.
-        skip_max_diff = 0
+        return np.median(first_diffs_pixel)
     else:
-        # For the four or more diff case we will skip the largest diff.
-        skip_max_diff = 1
+        # For the four or more diff case, clip the largest diff
+        # in the case that the maximum occurs twice, omit the first occurance
+        idx_largest_diff = np.argmax(first_diffs_pixel==max(first_diffs_pixel))
 
-    # Find the median difference
-    pix_med_index = \
-        sorted_index[int(((num_diffs - skip_max_diff - diffs_to_ignore) / 2))]
+        # set this largest value to nan to exclude from median
+        first_diffs_pixel[idx_largest_diff] = np.nan
 
-    pix_med_diff = input_vector[pix_med_index]
+        return np.nanmedian(first_diffs_pixel)
 
-    # If there is an even number of differences, then average the two values
-    # in the middle.
-    if (num_diffs - diffs_to_ignore - skip_max_diff) % 2 == 0:  # even number
-        pix_med_index2 = \
-            sorted_index[int((num_diffs - skip_max_diff - diffs_to_ignore) / 2)
-                         - 1]
-        pix_med_diff = (pix_med_diff + input_vector[pix_med_index2]) / 2.0
 
-    return pix_med_diff
+
+
+
+   
