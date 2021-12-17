@@ -41,13 +41,23 @@ def test_coeff_dq():
     L4 = 7.23E-16
 
     coeffs = np.asfarray([L0, L1, L2, L3, L4])
+
+    # pixels we are testing using above coefficients
     lin_coeffs[:, 30, 50] = coeffs
+    lin_coeffs[:, 35, 36] = coeffs
+    lin_coeffs[:, 35, 35] = coeffs
+
     lin_dq = np.zeros((ysize, xsize), dtype=np.uint32)
 
     # check behavior with NaN coefficients: should not alter pixel values
     coeffs2 = np.asfarray([L0, np.nan, L2, L3, L4])
+
     lin_coeffs[:, 20, 50] = coeffs2
     data[0, 50, 20, 50] = 500.0
+
+    # test case where all coefficients are zero
+    lin_coeffs[:, 25, 25] = 0.0
+    data[0, 50, 25, 25] = 600.0
 
     tgroup = 2.775
 
@@ -79,9 +89,12 @@ def test_coeff_dq():
     assert(np.isclose(output_data[0, 45, 30, 50], outval, rtol=0.00001))
 
     # check that dq value was handled correctly
+
     assert output_pdq[35, 35] == DQFLAGS['DO_NOT_USE']
     assert output_pdq[35, 36] == DQFLAGS['NO_LIN_CORR']
     # NO_LIN_CORR, sci value should not change
     assert output_data[0, 30, 35, 36] == 35
     # NaN coefficient should not change data value
     assert output_data[0, 50, 20, 50] == 500.0
+    # dq for pixel with all zero lin coeffs should be NO_LIN_CORR
+    assert output_pdq[25, 25] == DQFLAGS['NO_LIN_CORR']

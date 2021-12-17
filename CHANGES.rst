@@ -1,5 +1,10 @@
+
 0.4.3 (unreleased)
 ==================
+
+linearity
+---------
+- Let software set the pixel dq flag to NO_LIN_CORR if linear term of linearity coefficient is zero. [#65]
 
 ramp_fitting
 ------------
@@ -8,6 +13,7 @@ ramp_fitting
 
 - Fix issue with inappropriately including a flagged group at the beginning
   of a ramp segment. [#68]
+
 
 0.4.2 (2021-10-28)
 ==================
