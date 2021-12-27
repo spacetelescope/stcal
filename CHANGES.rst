@@ -1,10 +1,25 @@
-0.4.3 (unreleased)
+0.4.4 (Unreleased)
 ==================
 
 dark_current
 ------------
 
 - Moved dark current code from JWST to STCAL. [#63]
+
+0.4.3 (2021-12-27)
+==================
+
+linearity
+---------
+- Let software set the pixel dq flag to NO_LIN_CORR if linear term of linearity coefficient is zero. [#65]
+
+ramp_fitting
+------------
+
+- Fix special handling for 2 group ramp. [#70]
+
+- Fix issue with inappropriately including a flagged group at the beginning
+  of a ramp segment. [#68]
 
 0.4.2 (2021-10-28)
 ==================

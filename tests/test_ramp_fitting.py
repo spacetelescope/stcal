@@ -290,6 +290,168 @@ def test_utils_dq_compress_final():
     assert(not(dq[0, 2] & dqflags["DO_NOT_USE"]))
 
 
+def jp_2326_test_setup():
+    # Set up ramp data
+    ramp = np.array([120.133545, 117.85222, 87.38832, 66.90588,  51.392555,
+                     41.65941,   32.15081,  24.25277, 15.955284, 9.500946])
+    dnu = dqflags["DO_NOT_USE"]
+    dq = np.array([dnu, 0, 0, 0, 0, 0, 0, 0, 0, dnu])
+
+    nints, ngroups, nrows, ncols = 1, len(ramp), 1, 1
+    data = np.zeros((nints, ngroups, nrows, ncols))
+    gdq = np.zeros((nints, ngroups, nrows, ncols), dtype=np.uint8)
+    err = np.zeros((nints, ngroups, nrows, ncols))
+    pdq = np.zeros((nrows, ncols), dtype=np.uint32)
+    int_times = np.zeros((nints,))
+
+    data[0, :, 0, 0] = ramp.copy()
+    gdq[0, :, 0, 0] = dq.copy()
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(
+        data=data, err=err, groupdq=gdq, pixeldq=pdq, int_times=int_times)
+    ramp_data.set_meta(
+        name="MIRI", frame_time=2.77504, group_time=2.77504, groupgap=0,
+        nframes=1, drop_frames1=None)
+    ramp_data.set_dqflags(dqflags)
+
+    # Set up gain and read noise
+    gain = np.ones(shape=(nrows, ncols), dtype=np.float32) * 5.5
+    rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 1000.
+
+    return ramp_data, gain, rnoise
+
+
+def test_miri_ramp_dnu_at_ramp_beginning():
+    """
+    Tests a MIRI ramp with DO_NOT_USE in the first two groups and last group.
+    This test ensures these groups are properly excluded.
+    """
+    ramp_data, gain, rnoise = jp_2326_test_setup()
+    ramp_data.groupdq[0, 1, 0, 0] = dqflags["DO_NOT_USE"]
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes1, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+
+    s1 = slopes1[0]
+    tol = 1e-6
+    ans = -4.1035075
+
+    assert abs(s1[0, 0] - ans) < tol
+
+
+def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
+    """
+    Tests a MIRI ramp with DO_NOT_USE in the first and last group, with a
+    JUMP_DET in the second group. This test ensures the DO_NOT_USE groups are
+    properly excluded, while the JUMP_DET group is included.
+    """
+    ramp_data, gain, rnoise = jp_2326_test_setup()
+    ramp_data.groupdq[0, 1, 0, 0] = dqflags["JUMP_DET"]
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes2, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+
+    s2 = slopes2[0]
+    tol = 1e-6
+    ans = -4.9032097
+
+    assert abs(s2[0, 0] - ans) < tol
+
+
+def test_2_group_cases():
+    """
+    Tests the special cases of 2 group ramps.
+
+    JP-2346
+    """
+    base_group = [-12328.601, -4289.051]
+    base_err = [0., 0.]
+    gain_val = 0.9699
+    rnoise_val = 9.4552
+    sat, dnu = dqflags["SATURATED"], dqflags["DO_NOT_USE"]
+
+    possibilities = [
+        # Both groups are good
+        [0, 0],
+
+        # Both groups are bad.  Note saturated 0th group kills group 1.
+        [sat, 0],
+        [dnu | sat, 0],
+        [dnu, sat],
+
+        # One group is bad, while the other group is good.
+        [dnu, 0],
+        [0, dnu],
+        [0, dnu | sat],
+    ]
+    nints, ngroups, nrows, ncols = 1, 2, 1, len(possibilities)
+    dims = nints, ngroups, nrows, ncols
+    npix = nrows * ncols
+
+    # Create the ramp data with a pixel for each of the possibilities above.
+    # Set the data to the base data of 2 groups and set up the group DQ flags
+    # are taken from the 'possibilities' list above.
+
+    # Resize gain and read noise arrays.
+    rnoise = np.ones((1, npix)) * rnoise_val
+    gain = np.ones((1, npix)) * gain_val
+    pixeldq = np.zeros((1, npix), dtype=np.uint32)
+    int_times = [(1, 59005.2477, 59005.2479, 59005.2482, 59005.2491, 59005.2494, 59005.2496)]
+
+    data = np.zeros(dims, dtype=np.float32)  # Science data
+    for k in range(npix):
+        data[0, :, 0, k] = np.array(base_group)
+
+    err = np.zeros(dims, dtype=np.float32)  # Error data
+    for k in range(npix):
+        err[0, :, 0, k] = np.array(base_err)
+
+    groupdq = np.zeros(dims, dtype=np.uint8)  # Group DQ
+    for k in range(npix):
+        groupdq[0, :, 0, k] = np.array(possibilities[k])
+
+    # Setup the RampData class to run ramp fitting on.
+    ramp_data = RampData()
+
+    ramp_data.set_arrays(
+        data, err, groupdq, pixeldq, int_times)
+
+    ramp_data.set_meta(
+        name="NIRSPEC",
+        frame_time=14.58889,
+        group_time=14.58889,
+        groupgap=0,
+        nframes=1,
+        drop_frames1=None)
+
+    ramp_data.set_dqflags(dqflags)
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+
+    # Check the outputs
+    data, dq, var_poisson, var_rnoise, err = slopes
+    chk_dt = np.array([[551.0735, 0., 0., 0., -293.9943, -845.0678, -845.0677]])
+    chk_dq = np.array([[0, dnu | sat, dnu | sat, sat, 0, 0, sat]])
+    chk_vp = np.array([[38.945766, 0., 0., 0., 38.945766, 38.945766, 0.]])
+    chk_vr = np.array([[0.420046, 0.420046, 0.420046, 0., 0.420046, 0.420046, 0.420046]])
+    chk_er = np.array([[6.274218, 0.64811, 0.64811, 0., 6.274218, 6.274218, 0.64811]])
+
+    tol = 1.e-6
+    np.testing.assert_allclose(data, chk_dt, tol)
+    np.testing.assert_allclose(dq, chk_dq, tol)
+    np.testing.assert_allclose(var_poisson, chk_vp, tol)
+    np.testing.assert_allclose(var_rnoise, chk_vr, tol)
+    np.testing.assert_allclose(err, chk_er, tol)
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
