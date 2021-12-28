@@ -70,7 +70,6 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     """
 
     # Save some data params for easy use later
-    instrument = science_data.instrument_name
     sci_nints = science_data.data.shape[0]
     sci_ngroups = science_data.data.shape[1]
     sci_nframes = science_data.exp_nframes
@@ -341,7 +340,6 @@ def subtract_dark(science_data, dark_data):
         dark-subtracted science data
     """
 
-    instrument = science_data.instrument_name
     if len(dark_data.data.shape) == 4:
         dark_nints = dark_data.data.shape[0]
     else:
@@ -367,25 +365,24 @@ def subtract_dark(science_data, dark_data):
     # Combine the dark and science DQ data
     output.pixeldq = np.bitwise_or(science_data.pixeldq, darkdq)
 
-    # loop over all integrations and groups in input science data
+    # Loop over all integrations in input science data
     for i in range(science_data.data.shape[0]):
 
         if len(dark_data.data.shape) == 4:
+            # use integration-specific dark data
             if i < dark_nints:
-                dark_int = dark_data.data[i]
+                dark_sci = dark_data.data[i]
             else:
-                dark_int = dark_data.data[dark_nints - 1]
+                # for science integrations beyond the number of
+                # dark integrations, use the last dark integration
+                dark_sci = dark_data.data[-1]
+        else:
+            # use single-integration dark data
+            dark_sci = dark_data.data
 
+        # Loop over all groups in this integration
         for j in range(science_data.data.shape[1]):
-            # subtract the SCI arrays
-            if instrument == 'MIRI':
-                output.data[i, j] -= dark_int[j]
-            else:
-                output.data[i, j] -= dark_data.data[j]
-
-            # combine the ERR arrays in quadrature
-            # NOTE: currently stubbed out until ERR handling is decided
-            # output.err[i,j] = np.sqrt(
-            #           output.err[i,j]**2 + dark.err[j]**2)
+            # subtract the dark from the science data
+            output.data[i, j] -= dark_sci[j]
 
     return output

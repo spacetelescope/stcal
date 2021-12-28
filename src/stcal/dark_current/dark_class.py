@@ -84,7 +84,6 @@ class ScienceData:
             self.pixeldq = science_model.pixeldq
             self.err = science_model.err
 
-            self.instrument_name = science_model.meta.instrument.name
             self.exp_nframes = science_model.meta.exposure.nframes
             self.exp_groupgap = science_model.meta.exposure.groupgap
 
@@ -95,7 +94,6 @@ class ScienceData:
             self.pixeldq = None
             self.err = None
 
-            self.instrument_name = None
             self.exp_nframes = None
             self.exp_groupgap = None
 
