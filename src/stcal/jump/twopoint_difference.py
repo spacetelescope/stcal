@@ -1,27 +1,11 @@
-"""
-Two-Point Difference method for finding outliers in a 4-D ramp data array.
-The scheme used in this variation of the method uses numpy array methods
-to compute first-differences and find the max outlier in each pixel while
-still working in the full 4-D data array. This makes detection of the first
-outlier very fast. We then iterate pixel-by-pixel over only those pixels
-that are already known to contain an outlier, to look for any additional
-outliers and set the appropriate DQ mask for all outliers in the pixel.
-This is MUCH faster than doing all the work on a pixel-by-pixel basis.
-"""
-
-import logging
 import numpy as np
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
-HUGE_NUM = np.finfo(np.float32).max
-
-
-def find_crs(data, group_dq, read_noise, normal_rej_thresh,
+def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
              min_jump_to_flag_neighbors, dqflags):
+
     """
     Find CRs/Jumps in each integration within the input data array. The input
     data array is assumed to be in units of electrons, i.e. already multiplied
@@ -31,10 +15,10 @@ def find_crs(data, group_dq, read_noise, normal_rej_thresh,
 
     Parameters
     ----------
-    data: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
+    dataa: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
         input ramp data
 
-    groupdq : int, 4D array
+    group_dq : int, 4D array
         group DQ flags
 
     read_noise : float, 2D array
@@ -78,199 +62,132 @@ def find_crs(data, group_dq, read_noise, normal_rej_thresh,
         pixels above current row also to be flagged as a CR
 
     """
+
+    # copy data and group DQ array
+    dataa = dataa.copy()
     gdq = group_dq.copy()
 
     # Get data characteristics
-    nints, ngroups, nrows, ncols = data.shape
+    nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
 
-    # Create arrays for output
+    # get readnoise, squared
+    read_noise_2 = read_noise**2
+
+    # create arrays for output
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
 
-    # Square the read noise values, for use later
-    read_noise_2 = read_noise ** 2
-
-    # Set saturated values in the input data array to NaN, so they don't get
-    # used in any of the subsequent calculations
-    data[np.where(np.bitwise_and(gdq, dqflags["SATURATED"]))] = np.nan
-
-    # Set pixels flagged as DO_NOT_USE in the input to NaN, so they don't get
-    # used in any of the subsequent calculations. MIRI exposures can sometimes
-    # have all pixels in the first and last groups flagged with DO_NOT_USE.
-    data[np.where(np.bitwise_and(gdq, dqflags["DO_NOT_USE"]))] = np.nan
-
-    # Loop over multiple integrations
     for integ in range(nints):
 
-        log.info(f'Working on integration {integ + 1}:')
+        # get data, gdq for this integration
+        dat = dataa[integ]
+        gdq_integ = gdq[integ]
 
-        # Compute first differences of adjacent groups up the ramp
-        # note: roll the ngroups axis of data array to the end, to make
-        # memory access to the values for a given pixel faster.
-        # New form of the array has dimensions [nrows, ncols, ngroups].
-        first_diffs = np.diff(np.rollaxis(data[integ], axis=0, start=3),
-                              axis=2)
-        positive_first_diffs = np.abs(first_diffs)
+        # set 'saturated' or 'do not use' pixels to nan in data
+        dat[np.where(np.bitwise_and(gdq_integ, dqflags["SATURATED"]))] = np.nan
+        dat[np.where(np.bitwise_and(gdq_integ, dqflags["DO_NOT_USE"]))] = np.nan
 
-        # sat_groups is a 3D array that is true when the group is saturated
-        sat_groups = np.isnan(positive_first_diffs)
+        # calculate the differences between adjacent groups (first diffs)
+        # use mask on data, so the results will have sat/donotuse groups masked
+        first_diffs = np.diff(dat, axis=0)
 
-        # number_sat_groups is a 2D array with the count of saturated groups
-        # for each pixel
-        number_sat_groups = sat_groups.sum(axis=2)
+        # calc. the median of first_diffs for each pixel along the group axis
+        median_diffs = calc_med_first_diffs(first_diffs)
 
-        # Make all the first diffs for saturated groups be equal to
-        # 100,000 to put them above the good values in the sorted index
-        first_diffs[np.isnan(first_diffs)] = 100000.
-
-        # Here we sort the 3D array along the last axis, which is the group
-        # axis. np.argsort returns a 3D array with the last axis containing
-        # the indices that would yield the groups in order.
-        sort_index = np.argsort(positive_first_diffs)
-
-        # median_diffs is a 2D array with the clipped median of each pixel
-        median_diffs = get_clipped_median_array(ndiffs, number_sat_groups,
-                                                first_diffs, sort_index)
-
-        # Compute uncertainties as the quadrature sum of the poisson noise
-        # in the first difference signal and read noise. Because the first
-        # differences can be biased by CRs/jumps, we use the median signal
-        # for computing the poisson noise. Here we lower the read noise
-        # by the square root of number of frames in the group.
-        # Sigma is a 2D array.
+        # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
 
-        # Reset sigma to exclude pixels with both readnoise and signal=0
-        sigma_0_pixels = np.where(sigma == 0.)
-        if len(sigma_0_pixels[0] > 0):
-            log.debug(f'Found {len(sigma_0_pixels[0])} pixels with sigma=0')
-            log.debug('which will be reset so that no jump will be detected')
-            sigma[sigma_0_pixels] = HUGE_NUM
+        # reset sigma so pxels with 0 readnoise are not flagged as jumps
+        sigma[np.where(sigma == 0.)] = np.nan
 
-        # Compute distance of each sample from the median in units of sigma;
-        # note that the use of "abs" means we'll detect positive and negative
-        # outliers. ratio is a 2D array with the units of sigma deviation of
-        # the difference from the median.
-        ratio = np.abs(first_diffs - median_diffs[:, :, np.newaxis]) /\
-            sigma[:, :, np.newaxis]
-        ratio3d = np.reshape(ratio, (nrows, ncols, ndiffs))
+        # compute 'ratio' for each group. this is the value that will be
+        # compared to 'threshold' to classify jumps. subtract the median of
+        # first_diffs from first_diffs, take the abs. value and divide by sigma.
+        ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
 
-        # Get the group index for each pixel of the largest non-saturated
-        # group, assuming the indices are sorted. 2 is subtracted from ngroups
-        # because we are using differences and there is one less difference
-        # than the number of groups. This is a 2-D array.
-        max_value_index = ngroups - 2 - number_sat_groups
+        # create a 2d array containing the value of the largest 'ratio' for each group
+        max_ratio = np.nanmax(ratio, axis=0)
 
-        # Extract from the sorted group indices the index of the largest
-        # non-saturated group.
-        row, col = np.where(number_sat_groups >= 0)
-        max_index1d = sort_index[row, col, max_value_index[row, col]]
+        # now see if the largest ratio of all groups for each pixel exceeds the threshold.
+        # there are different threshold for 4+, 3, and 2 usable groups
+        num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
+        row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
+                                  max_ratio > normal_rej_thresh))
+        row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
+                                  max_ratio > three_diff_rej_thresh))
+        row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
+                                  max_ratio > two_diff_rej_thresh))
 
-        # reshape to a 2-D array :
-        max_index1 = np.reshape(max_index1d, (nrows, ncols))
-        max_ratio2d = np.reshape(ratio3d[row, col, max_index1[row, col]],
-                                 (nrows, ncols))
-        max_index1d = sort_index[row, col, 1]
-        max_index2d = np.reshape(max_index1d, (nrows, ncols))
-        last_ratio = np.reshape(ratio3d[row, col, max_index2d[row, col]],
-                                (nrows, ncols))
-
-        # Get the row and column indices of pixels whose largest non-saturated
-        # ratio is above the threshold, First search all the pixels that have
-        # at least four good groups, these will use the normal threshold
-        row4cr, col4cr = np.where(np.logical_and(ndiffs -
-                                  number_sat_groups >= 4,
-                                  max_ratio2d > normal_rej_thresh))
-
-        # For pixels with only three good groups, use the three diff threshold
-        row3cr, col3cr = np.where(np.logical_and(ndiffs - number_sat_groups
-                                  == 3,
-                                  max_ratio2d > three_diff_rej_thresh))
-
-        # Finally, for pixels with only two good groups, compare the SNR of the
-        # last good group to the two diff threshold
-        row2cr, col2cr = np.where(last_ratio > two_diff_rej_thresh)
-        log.info(f'From highest outlier Two-point found {len(row4cr)} pixels \
-                 with at least one CR and at least four groups')
-        log.info(f'From highest outlier Two-point found {len(row3cr)} pixels \
-                 with at least one CR and three groups')
-        log.info(f'From highest outlier Two-point found {len(row2cr)} pixels \
-                 with at least one CR and two groups')
-
-        # get the rows,col pairs for all pixels with at least one CR
+        # get the rows, col pairs for all pixels with at least one CR
         all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
         all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
 
-        # Loop over all pixels that we found the first CR in
-        number_pixels_with_cr = len(all_crs_row)
-        for j in range(number_pixels_with_cr):
-            # Extract the first diffs for this pixel with at least one CR,
-            # yielding a 1D array
-            pix_masked_diffs = first_diffs[all_crs_row[j], all_crs_col[j]]
+        # iterate over all groups of the pix w/ an inital CR to look for subsequent CRs
+        # flag and clip the first CR found. recompute median/sigma/ratio
+        # and repeat the above steps of comparing the max 'ratio' for each pixel
+        # to the threshold to determine if another CR can be flagged and clipped.
+        # repeat this process until no more CRs are found.
+        for j in range(len(all_crs_row)):
 
-            # Get the scalar readnoise^2 and number of saturated groups for
-            # this pixel.
+            # get arrays of abs(diffs), ratio, readnoise for this pixel
+            pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
+            pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
             pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
-            pix_sat_groups = number_sat_groups[all_crs_row[j],
-                                               all_crs_col[j]]
 
-            # Create a CR mask and set 1st CR to be found
-            # cr_mask=0 designates a CR
-            pix_cr_mask = np.ones(pix_masked_diffs.shape, dtype=bool)
-            number_CRs_found = 1
-            pix_sorted_index = sort_index[all_crs_row[j], all_crs_col[j], :]
+            # Create a mask to flag CRs. pix_cr_mask = 0 denotes a CR
+            pix_cr_mask = np.ones(pix_first_diffs.shape, dtype=bool)
 
-            # setting largest diff to be a CR
-            pix_cr_mask[pix_sorted_index[ndiffs - pix_sat_groups - 1]] = 0
+            # set the largest ratio as a CR
+            pix_cr_mask[np.nanargmax(pix_ratio)] = 0
             new_CR_found = True
 
-            # Loop and see if there is more than one CR, setting the mask as
-            # you go, stop when only 1 diffs is left.
-            while new_CR_found and ((ndiffs - number_CRs_found -
-                                    pix_sat_groups) > 1):
+            # loop and check for more CRs, setting the mask as you go and
+            # clipping the group with the CR. stop when no more CRs are found
+            # or there is only one two diffs left (which means there is
+            # actually one left, since the next CR will be masked after
+            # checking that condition)
+
+            while new_CR_found and ((ndiffs - np.sum(np.isnan(pix_first_diffs))) > 2):
+
                 new_CR_found = False
-                largest_diff = ndiffs - number_CRs_found - pix_sat_groups
 
-                # For this pixel get a new median difference excluding the
-                # number of CRs found and the number of saturated groups
-                pix_med_diff = get_clipped_median_vector(
-                    ndiffs, number_CRs_found + pix_sat_groups,
-                    pix_masked_diffs, pix_sorted_index)
+                # set CRs to nans in first diffs to clip them
+                pix_first_diffs[~pix_cr_mask] = np.nan
 
-                # Recalculate the noise and ratio for this pixel now that we
-                # have rejected a CR
-                pix_poisson_noise = np.sqrt(np.abs(pix_med_diff))
-                pix_sigma = np.sqrt(pix_poisson_noise * pix_poisson_noise +
-                                    pix_rn2 / nframes)
-                pix_ratio = np.abs(pix_masked_diffs - pix_med_diff) / pix_sigma
+                # recalculate median, sigma, and ratio
+                new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
 
-                rej_thresh = get_rej_thresh(
-                    largest_diff, two_diff_rej_thresh, three_diff_rej_thresh,
-                    normal_rej_thresh)
+                new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / nframes)
+                new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
 
-                # Check if largest remaining difference is above threshold
-                if pix_ratio[pix_sorted_index[largest_diff - 1]] > rej_thresh:
+                # check if largest ratio exceeds threhold appropriate for num remaining groups
+
+                # select appropriate thresh. based on number of remaining groups
+                rej_thresh = normal_rej_thresh
+                if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
+                    rej_thresh = three_diff_rej_thresh
+                if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
+                    rej_thresh = two_diff_rej_thresh
+                new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
+                if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
                     new_CR_found = True
-                    pix_cr_mask[pix_sorted_index[largest_diff - 1]] = 0
-                    number_CRs_found += 1
+                    pix_cr_mask[new_pix_max_ratio_idx] = 0
 
-            # Found all CRs for this pixel. Set CR flags in input DQ array for
-            # this pixel
+            # Found all CRs for this pix - set flags in input DQ array
             gdq[integ, 1:, all_crs_row[j], all_crs_col[j]] = \
                 np.bitwise_or(gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
                               dqflags["JUMP_DET"] * np.invert(pix_cr_mask))
 
-        # Flag neighbors of pixels with detected jumps, if requested
         if flag_4_neighbors:
-            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ],
-                                                dqflags["JUMP_DET"]))
+            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], dqflags["JUMP_DET"]))
+
             for j in range(len(cr_group)):
 
                 # Jumps must be in a certain range to have neighbors flagged
-                if ratio[cr_row[j], cr_col[j], cr_group[j] - 1] < \
+                if ratio[cr_group[j] - 1, cr_row[j], cr_col[j]] < \
                         max_jump_to_flag_neighbors and \
-                        ratio[cr_row[j], cr_col[j], cr_group[j] - 1] > \
+                        ratio[cr_group[j] - 1, cr_row[j], cr_col[j]] > \
                         min_jump_to_flag_neighbors:
 
                     # This section saves flagged neighbors that are above or
@@ -307,187 +224,78 @@ def find_crs(data, group_dq, read_noise, normal_rej_thresh,
                         gdq[integ, cr_group[j], cr_row[j], cr_col[j] + 1] =\
                             np.bitwise_or(gdq[integ, cr_group[j], cr_row[j],
                                           cr_col[j] + 1], dqflags["JUMP_DET"])
-
-    # All done
     return gdq, row_below_gdq, row_above_gdq
 
 
-def get_rej_thresh(num_usable_diffs, two_group_thresh, three_group_thresh,
-                   normal_thresh):
-    """
-    Return the rejection threshold depending on how many useable diffs there
-    are left in the pixel.
+def calc_med_first_diffs(first_diffs):
 
-    Parameters
-    ----------
-    num_usable_diffs : int
-        number of differences in pixel
+    """ Calculate the median of `first diffs` along the group axis.
 
-    two_group_thresh : float
-        cosmic ray sigma rejection threshold for ramps having 3 groups
+        If there 4+ usable groups (e.g not flagged as saturated, donotuse,
+        or a previously clipped CR), then the group with largest absoulte
+        first difference will be clipped and the median of the remianing groups
+        will be returned. If there are exactly 3 usable groups, the median of
+        those three groups will be returned without any clipping. Finally, if
+        there are two usable groups, the group with the smallest absolute
+        difference will be returned.
 
-    three_group_thresh : float
-        cosmic ray sigma rejection threshold for ramps having 4 groups
+        Parameters
+        -----------
+        first_diffs : array, float
+            array containing the first differences of adjacent groups
+            for a single integration. Can be 3d or 1d (for a single pix)
 
-    normal_thresh : float
-        cosmic ray sigma rejection threshold
+        Returns
+        -------
+        median_diffs : float or array, float
+            If the input is a single pixel, a float containing the median for
+            the groups in that pixel will be returned. If the input is a 3d
+            array of several pixels, a 2d array with the median for each pixel
+            will be returned.
+        """
 
-    Returns
-    -------
-    thresh: float
-        rejection threshold
-    """
-    if num_usable_diffs == 2:
-        return two_group_thresh
-    elif num_usable_diffs == 3:
-        return three_group_thresh
-    else:
-        return normal_thresh
+    if first_diffs.ndim == 1:  # in the case where input is a single pixel
 
+        num_usable_groups = len(first_diffs) - np.sum(np.isnan(first_diffs), axis=0)
+        if num_usable_groups >= 4:  # if 4+, clip largest and return median
+            mask = np.ones_like(first_diffs).astype(bool)
+            mask[np.nanargmax(np.abs(first_diffs))] = False  # clip the diff with the largest abs value
+            return np.nanmedian(first_diffs[mask])
+        elif num_usable_groups == 3:  # if 3, no clipping just return median
+            return(np.nanmedian(first_diffs))
+        elif num_usable_groups == 2:  # if 2, return minimum
+            return(np.nanmin(np.abs(first_diffs)))
+        else:
+            return(np.nan)
 
-def get_clipped_median_array(num_diffs, diffs_to_ignore, input_array,
-                             sorted_index):
-    """
-    This routine will return the clipped median for input_array which is a
-    three dimensional array of first differences. It will ignore the largest
-    differences (diffs_to_ignore) for each pixel and compute the median of the
-    remaining differences. This is only called once for the entire array.
+    # if input is multi-dimensional
 
-    Parameters
-    ----------
-    num_diffs : int
-        number of first difference, equal to the number of groups-1
+    ngroups, nrows, ncols = first_diffs.shape
+    num_usable_groups = ngroups - np.sum(np.isnan(first_diffs), axis=0)
+    median_diffs = np.zeros((nrows, ncols))  # empty array to store median for each pix
 
-    diffs_to_ignore : int, 2D array
-        number of saturated groups per pixerl
+    # process groups with >=4 usable groups
+    row4, col4 = np.where(num_usable_groups >= 4)  # locations of >= 4 usable group pixels
 
-    input_array : int, 3D array
-        first differences of adjacent groups
+    four_slice = first_diffs[:, row4, col4]
+    four_slice[np.nanargmax(np.abs(four_slice), axis=0),
+               np.arange(four_slice.shape[1])] = np.nan  # mask largest group in slice
+    median_diffs[row4, col4] = np.nanmedian(four_slice, axis=0)  # add median to return arr for these pix
 
-    sorted_index : int, 3D array
-        first differences, sorted along the groups axis
+    # process groups with 3 usable groups
+    row3, col3 = np.where(num_usable_groups == 3)  # locations of >= 4 usable group pixels
+    three_slice = first_diffs[:, row3, col3]
+    median_diffs[row3, col3] = np.nanmedian(three_slice, axis=0)  # add median to return arr for these pix
 
-    Returns
-    -------
-    pix_med_diff : int, 2D array
-        clipped median for the array of first differences
-    """
-    pix_med_diff = np.zeros_like(diffs_to_ignore)
-    pix_med_index = np.zeros_like(diffs_to_ignore)
-
-    # Process pixels with four or more good differences
-    row4, col4 = np.where(num_diffs - diffs_to_ignore >= 4)
-
-    # ignore largest value and number of CRs found when finding new median
-    # Check to see if this is a 2-D array or 1-D
-    # Get the index of the median value always excluding the highest value
-    # In addition, decrease the index by 1 for every two diffs_to_ignore,
-    # these will be saturated values in this case
-    #    row, col = np.indices(diffs_to_ignore.shape)
-    pix_med_index[row4, col4] = \
-        sorted_index[row4, col4, (num_diffs - (diffs_to_ignore[row4,
-                                  col4] + 1)) // 2]
-
-    pix_med_diff[row4, col4] = input_array[row4, col4,
-                                           pix_med_index[row4, col4]]
-
-    # For pixels with an even number of differences the median is the mean of
-    # the two central values.  So we need to get the value the other central
-    # difference one lower in the sorted index that the one found above.
-    even_group_rows, even_group_cols = \
-        np.where(np.logical_and(num_diffs - diffs_to_ignore - 1 % 2 == 0,
-                 num_diffs - diffs_to_ignore >= 4))
-
-    pix_med_index2 = np.zeros_like(pix_med_index)
-    pix_med_index2[even_group_rows, even_group_cols] = \
-        sorted_index[even_group_rows, even_group_cols,
-                     (num_diffs - (diffs_to_ignore[even_group_rows,
-                                                   even_group_cols] + 3)) // 2]
-
-    # Average together the two central values
-    pix_med_diff[even_group_rows, even_group_cols] = \
-        (pix_med_diff[even_group_rows, even_group_cols] +
-         input_array[even_group_rows, even_group_cols,
-         pix_med_index2[even_group_rows, even_group_cols]]) / 2.0
-
-    # Process pixels with three good differences
-    row3, col3 = np.where(num_diffs - diffs_to_ignore == 3)
-    # ignore largest value and number of CRs found when finding new median
-    # Check to see if this is a 2-D array or 1-D
-    # Get the index of the median value always excluding the highest value
-    # In addition, decrease the index by 1 for every two diffs_to_ignore,
-    # these will be saturated values in this case
-    #    row, col = np.indices(diffs_to_ignore.shape)
-    if len(row3) > 0:
-        pix_med_index[row3, col3] = \
-            sorted_index[row3, col3, (num_diffs -
-                         (diffs_to_ignore[row3, col3])) // 2]
-
-        pix_med_diff[row3, col3] = \
-            input_array[row3, col3, pix_med_index[row3, col3]]
-
-    # Process pixels with two good differences
-    row2, col2 = np.where(num_diffs - diffs_to_ignore == 2)
+    # process groups with 2 usable groups
+    row2, col2 = np.where(num_usable_groups == 2)  # locations of >= 4 usable group pixels
     if len(row2) > 0:
-        pix_med_index[row2, col2] = sorted_index[row2, col2, 0]
-        pix_med_diff[row2, col2] = input_array[row2, col2,
-                                               pix_med_index[row2, col2]]
+        two_slice = first_diffs[:, row2, col2]
+        median_diffs[row2, col2] = np.nanmin(two_slice)  # add median to return arr for these pix
 
-    return pix_med_diff
+    # set the medians all groups with less than 2 usable groups to nan to skip further
+    # calculations for these pixels
+    row_none, col_none = np.where(num_usable_groups < 2)
+    median_diffs[row_none, col_none] = np.nan
 
-
-def get_clipped_median_vector(num_diffs, diffs_to_ignore, input_vector,
-                              sorted_index):
-    """
-    This routine will return the clipped median for the first differences of
-    the input pixel (input_vector). It will ignore the input number of largest
-    differences (diffs_to_ignore). As cosmic rays are found, the
-    diffs_to_ignore will increase.
-
-    Parameters
-    ----------
-    num_diffs : int
-        number of first difference, equal to the number of groups-1
-
-    diffs_to_ignore : int, 2D array
-        number of saturated groups per pixerl
-
-    input_array : int, 1D array
-        first differences of adjacent groups for a pixel
-
-    sorted_index : int, 3D array
-        first differences, sorted along the groups axis
-
-    Returns
-    -------
-    pix_med_diff : int, vector
-        clipped median for the vector of first differences
-
-    """
-    if num_diffs - diffs_to_ignore == 2:
-        # For the two diff case we just return the smallest value instead of
-        # the median.
-        return np.min(input_vector[sorted_index[0:1]])
-    elif num_diffs - diffs_to_ignore == 3:
-        # For the three diff case we do not reject the largest diff when the
-        # median is calculated.
-        skip_max_diff = 0
-    else:
-        # For the four or more diff case we will skip the largest diff.
-        skip_max_diff = 1
-
-    # Find the median difference
-    pix_med_index = \
-        sorted_index[int(((num_diffs - skip_max_diff - diffs_to_ignore) / 2))]
-
-    pix_med_diff = input_vector[pix_med_index]
-
-    # If there is an even number of differences, then average the two values
-    # in the middle.
-    if (num_diffs - diffs_to_ignore - skip_max_diff) % 2 == 0:  # even number
-        pix_med_index2 = \
-            sorted_index[int((num_diffs - skip_max_diff - diffs_to_ignore) / 2)
-                         - 1]
-        pix_med_diff = (pix_med_diff + input_vector[pix_med_index2]) / 2.0
-
-    return pix_med_diff
+    return(median_diffs)
