@@ -1,5 +1,12 @@
-0.5.1 (Unreleased)
+0.5.1 (2022-01-07)
 ==================
+
+jump
+----
+
+- fixes to several existing errors in the jump detection step. added additional
+  tests to ensure step is no longer flagging jumps for pixels with only two
+  usable groups / one usable diff. [#72]
 
 0.5.0 (2021-12-28)
 ==================
