@@ -1,3 +1,11 @@
+0.6.0 (unreleased)
+==================
+
+ramp_fitting
+------------
+
+- Adding GLS code back to ramp fitting. [#64]
+
 0.5.1 (2022-01-07)
 ==================
 

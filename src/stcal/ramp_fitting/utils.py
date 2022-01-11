@@ -724,102 +724,10 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
     return integ_info
 
 
-'''
-# BEGIN remove GLS
-def gls_output_integ(model, slope_int, slope_err_int, dq_int):
-    """
-    For the GLS algorithm, construct the output integration-specific results.
-    Parameters
-    ----------
-    model : instance of Data Model
-        DM object for input
-
-    slope_int : ndarray
-        Data cube of weighted slopes for each integration, 3-D float
-
-    slope_err_int : ndarray
-        Data cube of slope errors for each integration, 3-D float
-
-    dq_int : ndarray
-        Data cube of DQ arrays for each integration, 3-D flag
-
-    Returns
-    -------
-    cubemod : Data Model object
-    """
-    # Suppress harmless arithmetic warnings for now
-    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-
-    cubemod = datamodels.CubeModel()
-    cubemod.data = slope_int
-    cubemod.err = slope_err_int
-    cubemod.dq = dq_int
-
-    # Reset the warnings filter to its original state
-    warnings.resetwarnings()
-
-    cubemod.update(model)  # keys from input needed for photom step
-
-    return cubemod
-
-
-def gls_output_optional(model, intercept_int, intercept_err_int,
-                        pedestal_int,
-                        ampl_int, ampl_err_int):  # pragma: no cover
-    """Construct the optional results for the GLS algorithm.
-
-    Extended Summary
-    ----------------
-    Construct the GLS-specific optional output data.
-    These results are the Y-intercepts, uncertainties in the intercepts,
-    pedestal (first group extrapolated back to zero time),
-    cosmic ray magnitudes, and uncertainties in the CR magnitudes.
-
-    Parameters
-    ----------
-    model : instance of Data Model
-        Data model object for input; this is used only for the file name.
-
-    intercept_int : 3-D ndarray, float32, shape (n_int, ny, nx)
-        Y-intercept for each integration, at each pixel.
-
-    intercept_err_int : 3-D ndarray, float32, shape (n_int, ny, nx)
-        Uncertainties for Y-intercept for each integration, at each pixel.
-
-    pedestal_int : 3-D ndarray, float32, shape (n_int, ny, nx)
-        The pedestal, for each integration and each pixel.
-
-    ampl_int : 4-D ndarray, float32, shape (n_int, ny, nx, max_num_cr)
-        Cosmic-ray amplitudes for each integration, at each pixel, and for
-        each CR hit in the ramp.  max_num_cr will be the maximum number of
-        CRs within the ramp for any pixel, or it will be one if there were
-        no CRs at all.
-
-    ampl_err_int : 4-D ndarray, float32, shape (n_int, ny, nx, max_num_cr)
-        Uncertainties for cosmic-ray amplitudes for each integration, at
-        each pixel, and for each CR in the ramp.
-
-    Returns
-    -------
-    gls_ramp_model : GLS_RampFitModel object
-        GLS-specific ramp fit data for the exposure.
-    """
-
-    gls_ramp_model = datamodels.GLS_RampFitModel()
-
-    gls_ramp_model.yint = intercept_int
-    gls_ramp_model.sigyint = intercept_err_int
-    gls_ramp_model.pedestal = pedestal_int
-    gls_ramp_model.crmag = ampl_int
-    gls_ramp_model.sigcrmag = ampl_err_int
-
-    return gls_ramp_model
-
-
 def gls_pedestal(first_group, slope_int, s_mask,
                  frame_time, nframes_used):  # pragma: no cover
-    """Calculate the pedestal for the GLS case.
+    """
+    Calculate the pedestal for the GLS case.
 
     The pedestal is the first group, but extrapolated back to zero time
     using the slope obtained by the fit to the whole ramp.  The time of
@@ -867,8 +775,6 @@ def gls_pedestal(first_group, slope_int, s_mask,
         pedestal[s_mask] = 0.
 
     return pedestal
-# END remove GLS
-'''
 
 
 def shift_z(a, off):
@@ -904,17 +810,15 @@ def shift_z(a, off):
     return b
 
 
-'''
-# GLS function
-def get_efftim_ped(model):
+def get_efftim_ped(ramp_data):
     """
     Calculate the effective integration time for a single group, and return the
     number of frames per group, and the number of frames dropped between groups.
 
     Parameters
     ----------
-    model : instance of Data Model
-        DM object for input
+    ramp_data: RampClass
+        Object for input data.
 
     Returns
     -------
@@ -931,10 +835,11 @@ def get_efftim_ped(model):
         number of frames dropped at the beginning of every integration; from
         the DRPFRMS1 keyword, or 0 if the keyword is missing
     """
-    groupgap = model.meta.exposure.groupgap
-    nframes = model.meta.exposure.nframes
-    frame_time = model.meta.exposure.frame_time
-    dropframes1 = model.meta.exposure.drop_frames1
+
+    groupgap = ramp_data.groupgap
+    nframes = ramp_data.nframes
+    frame_time = ramp_data.frame_time
+    dropframes1 = ramp_data.drop_frames1
 
     if (dropframes1 is None):    # set to default if missing
         dropframes1 = 0
@@ -955,8 +860,7 @@ def get_efftim_ped(model):
     return effintim, nframes, groupgap, dropframes1
 
 
-# GLS function
-def get_dataset_info(model):
+def get_dataset_info(ramp_data):
     """
     Extract values for the number of groups, the number of pixels, dataset
     shapes, the number of integrations, the instrument name, the frame time,
@@ -964,8 +868,8 @@ def get_dataset_info(model):
 
     Parameters
     ----------
-    model : instance of Data Model
-       DM object for input
+    ramp_data: RampClass
+       Object for input data.
 
     Returns
     -------
@@ -996,41 +900,32 @@ def get_dataset_info(model):
     group_time : float
         Time increment between groups, in seconds.
     """
-    instrume = model.meta.instrument.name
-    frame_time = model.meta.exposure.frame_time
-    ngroups = model.meta.exposure.ngroups
-    group_time = model.meta.exposure.group_time
+    instrume = ramp_data.instrument_name
+    frame_time = ramp_data.frame_time
+    ngroups = ramp_data.data.shape[1]
+    group_time = ramp_data.group_time
 
-    n_int = model.data.shape[0]
-    nreads = model.data.shape[1]
-    asize2 = model.data.shape[2]
-    asize1 = model.data.shape[3]
-
-    # If nreads and ngroups are not the same, override the value of ngroups
-    #   with nreads, which is more likely to be correct, since it's based on
-    #   the image shape.
-    if nreads != ngroups:
-        log.warning('The value from the key NGROUPS does not (but should) match')
-        log.warning('  the value of nreads from the data; will use value of')
-        log.warning('  nreads: %s' % (nreads))
-        ngroups = nreads
+    n_int = ramp_data.data.shape[0]
+    nreads = ramp_data.data.shape[1]
+    asize2 = ramp_data.data.shape[2]
+    asize1 = ramp_data.data.shape[3]
 
     npix = asize2 * asize1  # number of pixels in 2D array
     imshape = (asize2, asize1)
     cubeshape = (nreads,) + imshape
 
-    return nreads, npix, imshape, cubeshape, n_int, instrume, frame_time, \
-        ngroups, group_time
+    return (nreads, npix, imshape, cubeshape, n_int, instrume,
+            frame_time, ngroups, group_time)
 
 
-# GLS function
-def get_more_info(model, saturated_flag, jump_flag):  # pragma: no cover
-    """Get information used by GLS algorithm.
+def get_more_info(ramp_data, saturated_flag, jump_flag):  # pragma: no cover
+    """
+    Get information used by GLS algorithm.
 
     Parameters
     ----------
-    model : instance of Data Model
-        DM object for input
+    ramp_data: RampClass
+        Object for input data.
 
     Returns
     -------
@@ -1048,13 +943,14 @@ def get_more_info(model, saturated_flag, jump_flag):  # pragma: no cover
         Group data quality flag that indicates a cosmic ray hit.
     """
 
-    group_time = model.meta.exposure.group_time
-    nframes_used = model.meta.exposure.nframes
+    group_time = ramp_data.group_time
+    nframes_used = ramp_data.nframes
+    saturated_flag = ramp_data.flags_saturated
+    jump_flag = ramp_data.flags_jump_det
 
     return (group_time, nframes_used, saturated_flag, jump_flag)
 
 
-# GLS function
 def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
     """
     Find the maximum number of cosmic-ray hits in any one pixel.
@@ -1078,7 +974,6 @@ def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
     del cr_flagged
 
     return max_num_cr
-'''
 
 
 def reset_bad_gain(ramp_data, pdq, gain):
