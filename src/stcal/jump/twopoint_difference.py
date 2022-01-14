@@ -125,12 +125,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                   max_ratio > two_diff_rej_thresh))
 
-        log.info(f'From highest outlier Two-point found {len(row4cr)} pixels \
-                 with at least one CR and at least five groups')
-        log.info(f'From highest outlier Two-point found {len(row3cr)} pixels \
-                 with at least one CR and four groups')
-        log.info(f'From highest outlier Two-point found {len(row2cr)} pixels \
-                 with at least one CR and three groups')
+        log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
+        log.info(log_str.format(len(row4cr), 'five'))
+        log.info(log_str.format(len(row3cr), 'four'))
+        log.info(log_str.format(len(row2cr), 'three'))
 
         # get the rows, col pairs for all pixels with at least one CR
         all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
