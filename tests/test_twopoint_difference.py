@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from stcal.jump.twopoint_difference import find_crs
+from stcal.jump.twopoint_difference import find_crs, calc_med_first_diffs
 
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
@@ -833,3 +833,75 @@ def test_first_last_3group(setup_cube):
     assert outgdq[0, 0, 0, 0] == 0
     assert outgdq[0, 2, 0, 0] == DQFLAGS['DO_NOT_USE']
     assert outgdq[0, 1, 0, 0] == 0
+
+
+def test_median_func():
+
+    """
+      Test the function `calc_med_first_diffs` that computes median of pixels.
+      Ensure that the correct treatment based on number of non-nan diffs
+      is being done, and that it works for individual pixels as well as
+      pixels embedded in 3d arrays, and that it works for arrays with or
+      without nans (which represent masked pixels)."""
+
+    # single pix with 5 good diffs, should clip 1 pix and return median
+    # 1d, no nans
+    arr = np.array([1., 2., 3., 4., 5])
+    assert calc_med_first_diffs(arr) == 2.5
+    # 3d array, no nans
+    arr = np.zeros(5 * 2 * 2).reshape(5, 2, 2)
+    arr[:, 0, 0] = np.array([1., 2., 3., 4., 5])
+    assert calc_med_first_diffs(arr)[0, 0] == 2.5
+    # 1d, with nans
+    arr = np.array([1., 2., 3., np.nan, 4., 5, np.nan])
+    assert calc_med_first_diffs(arr) == 2.5
+    # 3d, with nans
+    arr = np.zeros(7 * 2 * 2).reshape(7, 2, 2)
+    arr[:, 0, 0] = np.array([1., 2., 3., np.nan, 4., 5, np.nan])
+    assert calc_med_first_diffs(arr)[0, 0] == 2.5
+
+    # single pix with exactly 4 good diffs, should also clip 1 pix and return median
+    # 1d, no nans
+    arr = np.array([1., 2., 3., 4.])
+    assert calc_med_first_diffs(arr) == 2
+    # 3d array, no nans
+    arr = np.zeros(4 * 2 * 2).reshape(4, 2, 2)
+    arr[:, 0, 0] = np.array([1., 2., 3., 4.])
+    assert calc_med_first_diffs(arr)[0, 0] == 2
+    # 1d, with nans
+    arr = np.array([1., 2., 3., np.nan, 4., np.nan])
+    assert calc_med_first_diffs(arr) == 2
+    # 3d, with nans
+    arr = np.zeros(6 * 2 * 2).reshape(6, 2, 2)
+    arr[:, 0, 0] = np.array([1., 2., 3., np.nan, 4., np.nan])
+    assert calc_med_first_diffs(arr)[0, 0] == 2
+
+    # single pix with exactly 3 good diffs, should compute median without clipping
+    arr = np.array([1., 2., 3.])
+    assert calc_med_first_diffs(arr) == 2
+    # 3d array, no nans
+    arr = np.zeros(3 * 2 * 2).reshape(3, 2, 2)
+    arr[:, 0, 0] = np.array([1., 2., 3.])
+    assert calc_med_first_diffs(arr)[0, 0] == 2
+    # 1d, with nans
+    arr = np.array([1., 2., 3., np.nan, np.nan])
+    assert calc_med_first_diffs(arr) == 2
+    # 3d, with nans
+    arr = np.zeros(5 * 2 * 2).reshape(5, 2, 2)
+    arr[:, 0, 0] = np.array([1., 2., 3., np.nan, np.nan])
+    assert calc_med_first_diffs(arr)[0, 0] == 2
+
+    # # single pix with exactly 2 good diffs, should return the element with the minimum abs val
+    arr = np.array([-1., -2.])
+    assert calc_med_first_diffs(arr) == -1
+    # 3d array, no nans
+    arr = np.zeros(2 * 2 * 2).reshape(2, 2, 2)
+    arr[:, 0, 0] = np.array([-1., -2.])
+    assert calc_med_first_diffs(arr)[0, 0] == -1
+    # 1d, with nans
+    arr = np.array([-1., -2., np.nan, np.nan])
+    assert calc_med_first_diffs(arr) == -1
+    # 3d, with nans
+    arr = np.zeros(4 * 2 * 2).reshape(4, 2, 2)
+    arr[:, 0, 0] = np.array([-1., -2., np.nan, np.nan])
+    assert calc_med_first_diffs(arr)[0, 0] == -1

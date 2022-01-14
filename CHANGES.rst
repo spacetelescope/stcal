@@ -1,10 +1,17 @@
-0.6.0 (unreleased)
-==================
+0.6.0 (22-01-14)
+================
 
 ramp_fitting
 ------------
 
 - Adding GLS code back to ramp fitting. [#64]
+
+jump
+----
+
+- Fix issue in jump detection that occured when there were only 2 usable
+  differences with no other groups flagged. This PR also added tests and
+  fixed some of the logging statements in twopoint difference. [#74]
 
 0.5.1 (2022-01-07)
 ==================

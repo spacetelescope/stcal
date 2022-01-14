@@ -1,4 +1,8 @@
+import logging
 import numpy as np
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
 def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
@@ -80,6 +84,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
     for integ in range(nints):
 
+        log.info(f'Working on integration {integ + 1}:')
+
         # get data, gdq for this integration
         dat = dataa[integ]
         gdq_integ = gdq[integ]
@@ -118,6 +124,11 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                   max_ratio > three_diff_rej_thresh))
         row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                   max_ratio > two_diff_rej_thresh))
+
+        log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
+        log.info(log_str.format(len(row4cr), 'five'))
+        log.info(log_str.format(len(row3cr), 'four'))
+        log.info(log_str.format(len(row2cr), 'three'))
 
         # get the rows, col pairs for all pixels with at least one CR
         all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
@@ -263,8 +274,8 @@ def calc_med_first_diffs(first_diffs):
             return np.nanmedian(first_diffs[mask])
         elif num_usable_groups == 3:  # if 3, no clipping just return median
             return(np.nanmedian(first_diffs))
-        elif num_usable_groups == 2:  # if 2, return minimum
-            return(np.nanmin(np.abs(first_diffs)))
+        elif num_usable_groups == 2:  # if 2, return diff with minimum abs
+            return(first_diffs[np.nanargmin(np.abs(first_diffs))])
         else:
             return(np.nan)
 
@@ -276,22 +287,25 @@ def calc_med_first_diffs(first_diffs):
 
     # process groups with >=4 usable groups
     row4, col4 = np.where(num_usable_groups >= 4)  # locations of >= 4 usable group pixels
-
-    four_slice = first_diffs[:, row4, col4]
-    four_slice[np.nanargmax(np.abs(four_slice), axis=0),
-               np.arange(four_slice.shape[1])] = np.nan  # mask largest group in slice
-    median_diffs[row4, col4] = np.nanmedian(four_slice, axis=0)  # add median to return arr for these pix
+    if len(row4) > 0:
+        four_slice = first_diffs[:, row4, col4]
+        four_slice[np.nanargmax(np.abs(four_slice), axis=0),
+                   np.arange(four_slice.shape[1])] = np.nan  # mask largest group in slice
+        median_diffs[row4, col4] = np.nanmedian(four_slice, axis=0)  # add median to return arr for these pix
 
     # process groups with 3 usable groups
     row3, col3 = np.where(num_usable_groups == 3)  # locations of >= 4 usable group pixels
-    three_slice = first_diffs[:, row3, col3]
-    median_diffs[row3, col3] = np.nanmedian(three_slice, axis=0)  # add median to return arr for these pix
+    if len(row3) > 0:
+        three_slice = first_diffs[:, row3, col3]
+        median_diffs[row3, col3] = np.nanmedian(three_slice, axis=0)  # add median to return arr for these pix
 
     # process groups with 2 usable groups
     row2, col2 = np.where(num_usable_groups == 2)  # locations of >= 4 usable group pixels
     if len(row2) > 0:
         two_slice = first_diffs[:, row2, col2]
-        median_diffs[row2, col2] = np.nanmin(two_slice)  # add median to return arr for these pix
+        two_slice[np.nanargmax(np.abs(two_slice), axis=0),
+                  np.arange(two_slice.shape[1])] = np.nan  # mask larger abs. val
+        median_diffs[row2, col2] = np.nanmin(two_slice, axis=0)  # add med. to return arr
 
     # set the medians all groups with less than 2 usable groups to nan to skip further
     # calculations for these pixels
