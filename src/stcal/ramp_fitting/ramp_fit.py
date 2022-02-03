@@ -26,6 +26,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
+# XXX Possibly change this to add suppressing one group ramps.
 def create_ramp_fit_class(model, dqflags=None):
     """
     Create an internal ramp fit class from a data model.
@@ -69,6 +70,8 @@ def create_ramp_fit_class(model, dqflags=None):
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
+
+    # XXX self.suppress_one_group_ramps = False
 
     return ramp_data
 
@@ -138,6 +141,13 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
     ramp_data = create_ramp_fit_class(model, dqflags)
+
+    # XXX 
+    '''
+    ngroups = ramp_data.data.shape[1]
+    if self.suppress_one_group_ramps and ngroups == 1:
+        return all zeros
+    '''
 
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,

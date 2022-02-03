@@ -30,6 +30,9 @@ class RampData:
         self.start_row = None
         self.num_rows = None
 
+        # XXX Optional info
+        self.suppress_one_group_ramps = False
+
     def set_arrays(self, data, err, groupdq, pixeldq, int_times):
         """
         Set the arrays needed for ramp fitting.

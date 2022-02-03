@@ -21,6 +21,17 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+# ******************************************************************************
+def print_with_lineo(string):
+    import inspect
+    cf = inspect.currentframe()
+    line_number = cf.f_back.f_lineno
+    print("-" * 80)
+    print(f"[{line_number}] {string}")
+    print("-" * 80)
+# ******************************************************************************
+
+
 def ols_ramp_fit_multi(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
@@ -1533,6 +1544,40 @@ def interpolate_power(snr):
     return pow_wt.ravel()
 
 
+def calc_one_good_group(mask_2d, dnu):
+    """
+    Computes a DQ mask to turn ramps with one good group into ramps with zero
+    groups.  This will be done by identifying which pixels have only one good
+    group and where that one group is, then creating a DQ array with DO_NOT_USE
+    for those groups.  This will be XOR'd into the group DQ for processing,
+    effectively making these ramps have zero good groups.
+
+    Parameters
+    ----------
+    mask_2d : ndarray
+        This is a 2-D (ngroups, npix) boolean array identifying all good
+        groups.
+
+    Return
+    ------
+    dnu_mask : ndarray
+        This is a 2-D (ngroups, npix) array with DO_NOT_USE at dnu_mask[g, p]
+        where p is a pixel with a ramp having only one good group and g the
+        location of that group.
+    """
+    ngroups, npix = mask_2d.shape
+    one_group = mask_2d.sum(axis=0)
+    dnu_mask = np.zeros((mask_2d.shape), dtype=np.uint32)
+    for pix in range(npix):
+        if one_group[pix] == 1:
+            for group in range(ngroups):
+                if mask_2d[group, pix] == True:
+                    dnu_mask[group, pix] = dnu
+                    break
+
+    return dnu_mask
+
+
 def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
                gain_sect, i_max_seg, ngroups, weighting, f_max_seg, ramp_data):
     """
@@ -1657,6 +1702,16 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
     # Section of GROUPDQ dq section, excluding bad dq values in mask
     gdq_sect_r = np.reshape(gdq_sect, (ngroups, npix))
     mask_2d[gdq_sect_r != 0] = False  # saturated or CR-affected
+    
+    # XXX JP-2071 - Create a gdq array that has only DO_NOT_USE in group
+    #               locations where a ramp has only one good group.
+    if ramp_data.suppress_one_group_ramps:
+        dnu_mask = calc_one_good_group(mask_2d, ramp_data.flags_do_not_use)
+        gdq_sect_r = gdq_sect_r ^ dnu_mask
+        mask_2d[dnu_mask != 0] = False
+
+    # import sys; sys.exit(1)
+
     mask_2d_init = mask_2d.copy()  # initial flags for entire ramp
 
     wh_f = np.where(np.logical_not(mask_2d))
@@ -1736,6 +1791,8 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
     arange_ngroups_col = 0
     all_pix = 0
+
+    # XXX for suppressed one group ramps return GDQ to original.
 
     return gdq_sect, inv_var, opt_res, f_max_seg, num_seg
 
