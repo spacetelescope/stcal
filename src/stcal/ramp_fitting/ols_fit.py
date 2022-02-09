@@ -21,17 +21,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-# ******************************************************************************
-def print_with_lineo(string):
-    import inspect
-    cf = inspect.currentframe()
-    line_number = cf.f_back.f_lineno
-    print("-" * 80)
-    print(f"[{line_number}] {string}")
-    print("-" * 80)
-# ******************************************************************************
-
-
 def ols_ramp_fit_multi(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
@@ -1703,15 +1692,6 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
     gdq_sect_r = np.reshape(gdq_sect, (ngroups, npix))
     mask_2d[gdq_sect_r != 0] = False  # saturated or CR-affected
     
-    # XXX JP-2071 - Create a gdq array that has only DO_NOT_USE in group
-    #               locations where a ramp has only one good group.
-    if ramp_data.suppress_one_group_ramps:
-        dnu_mask = calc_one_good_group(mask_2d, ramp_data.flags_do_not_use)
-        gdq_sect_r = gdq_sect_r ^ dnu_mask
-        mask_2d[dnu_mask != 0] = False
-
-    # import sys; sys.exit(1)
-
     mask_2d_init = mask_2d.copy()  # initial flags for entire ramp
 
     wh_f = np.where(np.logical_not(mask_2d))
@@ -1791,8 +1771,6 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
     arange_ngroups_col = 0
     all_pix = 0
-
-    # XXX for suppressed one group ramps return GDQ to original.
 
     return gdq_sect, inv_var, opt_res, f_max_seg, num_seg
 

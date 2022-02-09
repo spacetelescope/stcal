@@ -222,9 +222,49 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         nframes = ramp_data.nframes
         readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
 
+        # Suppress one group ramps, if desired.
+        if ramp_data.suppress_one_group_ramps:
+            suppress_one_group_ramps(ramp_data)
+
+        print("*" * 80)
+        print(f"ramp_data.groupdq = \n{ramp_data.groupdq[:, :, 0, :]}")
+        print("*" * 80)
+        import sys; sys.exit(1)
+
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
         gls_opt_info = None
 
     return image_info, integ_info, opt_info, gls_opt_info
+
+
+def suppress_one_group_ramps(ramp_data):
+    """
+    Finds one group ramps in each integration and suppresses them, i.e. turns
+    the in to zero group ramps.
+
+    Parameter
+    ---------
+    model : data model
+        input data model, assumed to be of type RampModel
+    """
+    dq = ramp_data.groupdq
+    nints, ngroups, nrows, ncols = dq.shape
+    npix = nrows * ncols
+    for k in range(nints):
+        intdq = dq[k, :, :, :]
+        good_groups = np.zeros(intdq.shape, dtype=int)
+
+        # Compute the number of good groups in each ramp
+        good_groups[intdq == 0] = 1
+        ngood_groups = good_groups.sum(axis=0)
+
+        # For ramps with only one good group, find it
+        # and mark that group as DO_NOT_USE
+        for r in range(nrows):
+            for c in range(ncols):
+                if ngood_groups[r, c] == 1:
+                    for g in range(ngroups):
+                        if intdq[g, r, c] == 0:
+                            intdq[g, r, c] = ramp_data.flags_do_not_use
