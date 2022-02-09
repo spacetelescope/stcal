@@ -1533,40 +1533,6 @@ def interpolate_power(snr):
     return pow_wt.ravel()
 
 
-def calc_one_good_group(mask_2d, dnu):
-    """
-    Computes a DQ mask to turn ramps with one good group into ramps with zero
-    groups.  This will be done by identifying which pixels have only one good
-    group and where that one group is, then creating a DQ array with DO_NOT_USE
-    for those groups.  This will be XOR'd into the group DQ for processing,
-    effectively making these ramps have zero good groups.
-
-    Parameters
-    ----------
-    mask_2d : ndarray
-        This is a 2-D (ngroups, npix) boolean array identifying all good
-        groups.
-
-    Return
-    ------
-    dnu_mask : ndarray
-        This is a 2-D (ngroups, npix) array with DO_NOT_USE at dnu_mask[g, p]
-        where p is a pixel with a ramp having only one good group and g the
-        location of that group.
-    """
-    ngroups, npix = mask_2d.shape
-    one_group = mask_2d.sum(axis=0)
-    dnu_mask = np.zeros((mask_2d.shape), dtype=np.uint32)
-    for pix in range(npix):
-        if one_group[pix] == 1:
-            for group in range(ngroups):
-                if mask_2d[group, pix] == True:
-                    dnu_mask[group, pix] = dnu
-                    break
-
-    return dnu_mask
-
-
 def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
                gain_sect, i_max_seg, ngroups, weighting, f_max_seg, ramp_data):
     """
