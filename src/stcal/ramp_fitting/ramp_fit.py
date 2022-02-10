@@ -26,7 +26,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
-def create_ramp_fit_class(model, dqflags=None):
+def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     Create an internal ramp fit class from a data model.
 
@@ -37,6 +37,10 @@ def create_ramp_fit_class(model, dqflags=None):
 
     dqflags : dict
         The data quality flags needed for ramp fitting.
+
+    suppress_one_group : bool
+        Find ramps with only one good group and treat it like it has zero good
+        groups.
 
     Return
     ------
@@ -70,13 +74,13 @@ def create_ramp_fit_class(model, dqflags=None):
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
 
-    # XXX self.suppress_one_group_ramps = False
+    ramp_data.suppress_one_group_ramps = suppress_one_group
 
     return ramp_data
 
 
-def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
-             algorithm, weighting, max_cores, dqflags):
+def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
+             weighting, max_cores, dqflags, suppress_one_group=False):
     """
     Calculate the count rate for each pixel in all data cube sections and all
     integrations, equal to the slope for all sections (intervals between
@@ -120,6 +124,10 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
     dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
+
+    suppress_one_group : bool
+        Find ramps with only one good group and treat it like it has zero good
+        groups.
 
     Returns
     -------
@@ -239,6 +247,8 @@ def suppress_one_group_ramps(ramp_data):
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
     npix = nrows * ncols
+    print("*" * 80)
+    print(f"DQ = \n{dq}")
     for k in range(nints):
         intdq = dq[k, :, :, :]
         good_groups = np.zeros(intdq.shape, dtype=int)
@@ -247,11 +257,12 @@ def suppress_one_group_ramps(ramp_data):
         good_groups[intdq == 0] = 1
         ngood_groups = good_groups.sum(axis=0)
 
-        # For ramps with only one good group, find it
-        # and mark that group as DO_NOT_USE
-        for r in range(nrows):
-            for c in range(ncols):
-                if ngood_groups[r, c] == 1:
-                    for g in range(ngroups):
-                        if intdq[g, r, c] == 0:
-                            intdq[g, r, c] = ramp_data.flags_do_not_use
+        wh_one = np.where(ngood_groups == 1)
+        wh1_rows = wh_one[0]
+        wh1_cols = wh_one[1]
+        for k in range(len(wh1_rows)):
+            r = wh1_rows[k]
+            c = wh1_cols[k]
+            for g in range(ngroups):
+                if intdq[g, r, c] == 0:
+                    intdq[g, r, c] = ramp_data.flags_do_not_use
