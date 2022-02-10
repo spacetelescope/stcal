@@ -1,3 +1,12 @@
+0.6.1 (unreleased)
+================
+
+ramp_fitting
+------------
+
+- Adding a switch to ramp fitting to suppress ramps with only one
+  good group. [#]
+
 0.6.0 (22-01-14)
 ================
 

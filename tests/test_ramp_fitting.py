@@ -452,6 +452,141 @@ def test_2_group_cases():
     np.testing.assert_allclose(err, chk_er, tol)
 
 
+def run_one_group_ramp_suppression(suppress):
+    """
+    Forms the base of the one group suppression tests.  Create three ramps
+    using three pixels with two integrations.  In the first integration:
+        The first ramp has no good groups.
+        The second ramp has one good groups.
+        The third ramp has all good groups.
+
+    In the second integration all pixels have all good groups.
+    """
+    # Define the data.
+    nints, ngroups, nrows, ncols = 2, 5, 1, 3
+    dims = (nints, ngroups, nrows, ncols)
+    rnoise, gain = 10, 1
+    nframes, group_time, frame_time = 1, 5.0, 1
+    var = rnoise, gain
+    tm = nframes, group_time, frame_time
+
+    # Using the above create the classes and arrays.
+    ramp_data, rnoise2d, gain2d = setup_inputs(dims, var, tm)
+
+    # Setup the ramp data.
+    arr = [k for k in range(ngroups)]
+    dnu = ramp_data.flags_do_not_use
+    dq = [dnu, dnu, 0, dnu, dnu]
+
+    ramp_data.data[0, :, 0, 0] = np.array(arr, dtype=float) * 2
+    ramp_data.data[0, :, 0, 1] = np.array(arr, dtype=float) * 3
+    ramp_data.data[0, :, 0, 2] = np.array(arr, dtype=float)
+
+    ramp_data.data[1, :, 0, 0] = np.array(arr, dtype=float)
+    ramp_data.data[1, :, 0, 1] = np.array(arr, dtype=float)
+    ramp_data.data[1, :, 0, 2] = np.array(arr, dtype=float)
+
+    # Make the zero good group ramp and the one good group ramp.
+    ramp_data.groupdq[0, :, 0, 0] = np.array([dnu] * ngroups, dtype=np.uint32)
+    ramp_data.groupdq[0, :, 0, 1] = np.array(dq, dtype=np.uint32)
+
+    # Use suppression switch dependent on test.
+    ramp_data.suppress_one_group_ramps = suppress
+
+    # Run ramp fitting and return results and data dimensions to the test.
+    algo = "OLS"
+    save_opt, ncores, bufsize = False, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
+        "optimal", ncores, dqflags)
+
+    return slopes, cube, ols_opt, gls_opt, dims
+
+
+def test_one_group_ramp_suppressed():
+    """
+    Tests three pixel ramps.
+    The first ramp has no good groups.
+    The second ramp has one good groups.
+    The third ramp has all good groups.
+
+    Verify that when the suppress switch is turned on the second ramp is
+    treated as a zero group ramp.
+    """
+    slopes, cube, ols_opt, gls_opt, dims = run_one_group_ramp_suppression(True)
+    nints, ngroups, nrows, ncols = dims
+    tol = 1e-5
+
+    sdata, sdq, svp, svr, serr = slopes
+
+    # Check slopes information
+    sdata_check = np.zeros((nrows, ncols), dtype=np.float32)
+    sdata_check[0, :] = np.array([1.0000001, 1.0000001, 1.0000001])
+    np.testing.assert_allclose(sdata, sdata_check, tol)
+
+    svp_check = np.zeros((nrows, ncols), dtype=np.float32)
+    svp_check[0, :] = np.array([0.015, 0.02, 0.005])
+    np.testing.assert_allclose(svp, svp_check, tol)
+
+    svr_check = np.zeros((nrows, ncols), dtype=np.float32)
+    svr_check[0, :] = np.array([0.19999999, 0.19999999, 0.09999999])
+    np.testing.assert_allclose(svr, svr_check, tol)
+
+    serr_check = np.zeros((nrows, ncols), dtype=np.float32)
+    serr_check[0, :] = np.array([0.46368092, 0.46904156, 0.32403702])
+    np.testing.assert_allclose(serr, serr_check, tol)
+
+    # Check slopes per integration
+    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+
+    cdata_check = np.zeros((nints, nrows, ncols), dtype=np.float32)
+    cdata_check[0, 0, :] = np.array([np.nan, np.nan, 1.0000001])
+    cdata_check[1, 0, :] = np.array([1.0000001, 1.0000001, 1.0000001])
+    np.testing.assert_allclose(cdata, cdata_check, tol)
+
+
+def test_one_group_ramp_not_suppressed():
+    """
+    Tests three pixel ramps.
+    The first ramp has no good groups.
+    The second ramp has one good groups.
+    The third ramp has all good groups.
+
+    Verify that when the suppress switch is turned off the second ramp is
+    treated as a one group ramp.
+    """
+    slopes, cube, ols_opt, gls_opt, dims = run_one_group_ramp_suppression(False)
+    nints, ngroups, nrows, ncols = dims
+    tol = 1e-5
+
+    sdata, sdq, svp, svr, serr = slopes
+
+    # Check slopes information
+    sdata_check = np.zeros((nrows, ncols), dtype=np.float32)
+    sdata_check[0, :] = np.array([1.0000001, 0.9488373, 1.0000002])
+    np.testing.assert_allclose(sdata, sdata_check, tol)
+
+    svp_check = np.zeros((nrows, ncols), dtype=np.float32)
+    svp_check[0, :] = np.array([0.015, 0.016, 0.005])
+    np.testing.assert_allclose(svp, svp_check, tol)
+
+    svr_check = np.zeros((nrows, ncols), dtype=np.float32)
+    svr_check[0, :] = np.array([0.19999999, 0.19047618, 0.09999999])
+    np.testing.assert_allclose(svr, svr_check, tol)
+
+    serr_check = np.zeros((nrows, ncols), dtype=np.float32)
+    serr_check[0, :] = np.array([0.46368092, 0.45439652, 0.32403702])
+    np.testing.assert_allclose(serr, serr_check, tol)
+
+    # Check slopes per integration
+    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+
+    cdata_check = np.zeros((nints, nrows, ncols), dtype=np.float32)
+    cdata_check[0, 0, :] = np.array([np.nan, 0., 1.0000001])
+    cdata_check[1, 0, :] = np.array([1.0000001, 1.0000001, 1.0000001])
+    np.testing.assert_allclose(cdata, cdata_check, tol)
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
@@ -503,6 +638,12 @@ def print_slope_data(slopes):
     print(sdata)
 
 
+def print_slope_dq(slopes):
+    sdata, sdq, svp, svr, serr = slopes
+    print("Group DQ:")
+    print(sdq)
+
+
 def print_slope_poisson(slopes):
     sdata, sdq, svp, svr, serr = slopes
     print("Poisson:")
@@ -543,6 +684,12 @@ def print_integ_data(integ_info):
     idata, idq, ivp, ivr, int_times, ierr = integ_info
     print("Integration data:")
     print(idata)
+
+
+def print_integ_ddq(integ_info):
+    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    print("Integration DQ:")
+    print(idq)
 
 
 def print_integ_poisson(integ_info):
