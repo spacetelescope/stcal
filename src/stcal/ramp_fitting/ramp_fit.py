@@ -144,6 +144,13 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    if suppress_one_group:
+        log.info("Ramps with one good group suppressed as no good group.")
+        if model.data.shape[2] == 1:
+            # Suppressing one ramp groups and having data with only one group
+            # means there is no work to do.
+            return None, None, None, None
+
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
@@ -247,8 +254,6 @@ def suppress_one_group_ramps(ramp_data):
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
     npix = nrows * ncols
-    print("*" * 80)
-    print(f"DQ = \n{dq}")
     for k in range(nints):
         intdq = dq[k, :, :, :]
         good_groups = np.zeros(intdq.shape, dtype=int)
@@ -257,6 +262,8 @@ def suppress_one_group_ramps(ramp_data):
         good_groups[intdq == 0] = 1
         ngood_groups = good_groups.sum(axis=0)
 
+        # For each pixel that has only one good group, mark that groups as
+        # DO_NOT_USE, making the ramp effectively zero good groups.
         wh_one = np.where(ngood_groups == 1)
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
