@@ -146,7 +146,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
     """
     if suppress_one_group:
         log.info("Ramps with one good group suppressed as no good group.")
-        if model.data.shape[2] == 1:
+        if model.data.shape[1] == 1:
             # Suppressing one ramp groups and having data with only one group
             # means there is no work to do.
             return None, None, None, None
@@ -154,7 +154,7 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
-    ramp_data = create_ramp_fit_class(model, dqflags)
+    ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
 
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
