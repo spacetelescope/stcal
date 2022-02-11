@@ -5,7 +5,7 @@ ramp_fitting
 ------------
 
 - Adding a switch to ramp fitting to suppress ramps with only one
-  good group. [#]
+  good group. [#75]
 
 0.6.0 (22-01-14)
 ================
