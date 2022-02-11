@@ -478,8 +478,8 @@ def run_one_group_ramp_suppression(suppress):
     dnu = ramp_data.flags_do_not_use
     dq = [dnu, dnu, 0, dnu, dnu]
 
-    ramp_data.data[0, :, 0, 0] = np.array(arr, dtype=float) * 2
-    ramp_data.data[0, :, 0, 1] = np.array(arr, dtype=float) * 3
+    ramp_data.data[0, :, 0, 0] = np.array(arr, dtype=float)
+    ramp_data.data[0, :, 0, 1] = np.array(arr, dtype=float)
     ramp_data.data[0, :, 0, 2] = np.array(arr, dtype=float)
 
     ramp_data.data[1, :, 0, 0] = np.array(arr, dtype=float)
@@ -525,7 +525,7 @@ def test_one_group_ramp_suppressed():
     np.testing.assert_allclose(sdata, sdata_check, tol)
 
     svp_check = np.zeros((nrows, ncols), dtype=np.float32)
-    svp_check[0, :] = np.array([0.015, 0.02, 0.005])
+    svp_check[0, :] = np.array([0.01, 0.01, 0.005])
     np.testing.assert_allclose(svp, svp_check, tol)
 
     svr_check = np.zeros((nrows, ncols), dtype=np.float32)
@@ -533,7 +533,7 @@ def test_one_group_ramp_suppressed():
     np.testing.assert_allclose(svr, svr_check, tol)
 
     serr_check = np.zeros((nrows, ncols), dtype=np.float32)
-    serr_check[0, :] = np.array([0.46368092, 0.46904156, 0.32403702])
+    serr_check[0, :] = np.array([0.45825756, 0.45825756, 0.32403702])
     np.testing.assert_allclose(serr, serr_check, tol)
 
     # Check slopes per integration
@@ -563,11 +563,11 @@ def test_one_group_ramp_not_suppressed():
 
     # Check slopes information
     sdata_check = np.zeros((nrows, ncols), dtype=np.float32)
-    sdata_check[0, :] = np.array([1.0000001, 0.9488373, 1.0000002])
+    sdata_check[0, :] = np.array([1.0000001, 0.9505884, 1.0000002])
     np.testing.assert_allclose(sdata, sdata_check, tol)
 
     svp_check = np.zeros((nrows, ncols), dtype=np.float32)
-    svp_check[0, :] = np.array([0.015, 0.016, 0.005])
+    svp_check[0, :] = np.array([0.01, 0.008, 0.005])
     np.testing.assert_allclose(svp, svp_check, tol)
 
     svr_check = np.zeros((nrows, ncols), dtype=np.float32)
@@ -575,7 +575,7 @@ def test_one_group_ramp_not_suppressed():
     np.testing.assert_allclose(svr, svr_check, tol)
 
     serr_check = np.zeros((nrows, ncols), dtype=np.float32)
-    serr_check[0, :] = np.array([0.46368092, 0.45439652, 0.32403702])
+    serr_check[0, :] = np.array([0.45825756, 0.44550666, 0.32403702])
     np.testing.assert_allclose(serr, serr_check, tol)
 
     # Check slopes per integration
