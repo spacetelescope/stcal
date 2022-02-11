@@ -244,7 +244,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 def suppress_one_group_ramps(ramp_data):
     """
     Finds one group ramps in each integration and suppresses them, i.e. turns
-    the in to zero group ramps.
+    them into zero group ramps.
 
     Parameter
     ---------
@@ -253,6 +253,7 @@ def suppress_one_group_ramps(ramp_data):
     """
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
+
     for k in range(nints):
         intdq = dq[k, :, :, :]
         good_groups = np.zeros(intdq.shape, dtype=int)
@@ -261,14 +262,14 @@ def suppress_one_group_ramps(ramp_data):
         good_groups[intdq == 0] = 1
         ngood_groups = good_groups.sum(axis=0)
 
-        # For each pixel that has only one good group, mark that groups as
+        # For each pixel that has only one good group, mark those groups as
         # DO_NOT_USE, making the ramp effectively zero good groups.
         wh_one = np.where(ngood_groups == 1)
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
-        for k in range(len(wh1_rows)):
-            r = wh1_rows[k]
-            c = wh1_cols[k]
+        for n in range(len(wh1_rows)):
+            r = wh1_rows[n]
+            c = wh1_cols[n]
             for g in range(ngroups):
                 if intdq[g, r, c] == 0:
                     intdq[g, r, c] = ramp_data.flags_do_not_use
