@@ -272,4 +272,4 @@ def suppress_one_group_ramps(ramp_data):
             c = wh1_cols[n]
             for g in range(ngroups):
                 if intdq[g, r, c] == 0:
-                    intdq[g, r, c] = ramp_data.flags_do_not_use
+                    ramp_data.groupdq[k, g, r, c] = ramp_data.flags_do_not_use
