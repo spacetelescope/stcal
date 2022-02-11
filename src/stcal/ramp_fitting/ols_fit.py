@@ -1657,7 +1657,7 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
     # Section of GROUPDQ dq section, excluding bad dq values in mask
     gdq_sect_r = np.reshape(gdq_sect, (ngroups, npix))
     mask_2d[gdq_sect_r != 0] = False  # saturated or CR-affected
-    
+
     mask_2d_init = mask_2d.copy()  # initial flags for entire ramp
 
     wh_f = np.where(np.logical_not(mask_2d))

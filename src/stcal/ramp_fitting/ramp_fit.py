@@ -253,7 +253,6 @@ def suppress_one_group_ramps(ramp_data):
     """
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
-    npix = nrows * ncols
     for k in range(nints):
         intdq = dq[k, :, :, :]
         good_groups = np.zeros(intdq.shape, dtype=int)
