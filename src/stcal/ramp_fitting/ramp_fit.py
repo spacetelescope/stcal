@@ -144,12 +144,10 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
-    if suppress_one_group:
-        log.info("Ramps with one good group suppressed as no good group.")
-        if model.data.shape[1] == 1:
-            # Suppressing one ramp groups and having data with only one group
-            # means there is no work to do.
-            return None, None, None, None
+    if suppress_one_group and model.data.shape[1] == 1:
+        # One group ramp suppression should only be done on data with
+        # ramps having more than one group.
+        suppress_one_group = False
 
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on

@@ -630,6 +630,9 @@ def setup_inputs(dims, var, tm):
 
 # -----------------------------------------------------------------------------
 
+###############################################################################
+# The functions below are only used for DEBUGGING tests and developing tests. #
+###############################################################################
 
 # Main product
 def print_slope_data(slopes):
