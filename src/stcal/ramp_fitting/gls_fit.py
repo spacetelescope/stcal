@@ -611,7 +611,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # pixels
         pixeldq_sect = pixeldq[:, :].copy()
         dq_int[num_int, :, :] = utils.dq_compress_sect(
-            ramp_data, gdq_cube[num_int, :, :, :], pixeldq_sect).copy()
+            ramp_data, num_int, gdq_cube[num_int, :, :, :], pixeldq_sect).copy()
 
         dq_int[num_int, :, :] |= temp_dq
         temp_dq[:, :] = 0  # initialize for next integration
@@ -644,7 +644,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output
     final_pixeldq = utils.dq_compress_final(
-        dq_int, number_ints, ramp_data.flags_do_not_use)
+        dq_int, ramp_data.flags_do_not_use)
 
     integ_info = (slope_int, dq_int, slope_err_int)
 
