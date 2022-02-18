@@ -26,7 +26,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
-def create_ramp_fit_class(model, dqflags=None):
+def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     Create an internal ramp fit class from a data model.
 
@@ -37,6 +37,10 @@ def create_ramp_fit_class(model, dqflags=None):
 
     dqflags : dict
         The data quality flags needed for ramp fitting.
+
+    suppress_one_group : bool
+        Find ramps with only one good group and treat it like it has zero good
+        groups.
 
     Return
     ------
@@ -70,11 +74,13 @@ def create_ramp_fit_class(model, dqflags=None):
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
 
+    ramp_data.suppress_one_group_ramps = suppress_one_group
+
     return ramp_data
 
 
-def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
-             algorithm, weighting, max_cores, dqflags):
+def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
+             weighting, max_cores, dqflags, suppress_one_group=False):
     """
     Calculate the count rate for each pixel in all data cube sections and all
     integrations, equal to the slope for all sections (intervals between
@@ -119,6 +125,10 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
+    suppress_one_group : bool
+        Find ramps with only one good group and treat it like it has zero good
+        groups.
+
     Returns
     -------
     image_info : tuple
@@ -134,10 +144,15 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    if suppress_one_group and model.data.shape[1] == 1:
+        # One group ramp suppression should only be done on data with
+        # ramps having more than one group.
+        suppress_one_group = False
+
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
-    ramp_data = create_ramp_fit_class(model, dqflags)
+    ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
 
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
@@ -212,9 +227,54 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         nframes = ramp_data.nframes
         readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
 
+        # Suppress one group ramps, if desired.
+        if ramp_data.suppress_one_group_ramps:
+            suppress_one_group_saturated_ramps(ramp_data)
+
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
         gls_opt_info = None
 
     return image_info, integ_info, opt_info, gls_opt_info
+
+
+def suppress_one_group_saturated_ramps(ramp_data):
+    """
+    Finds one group ramps in each integration and suppresses them, i.e. turns
+    them into zero group ramps.
+
+    Parameter
+    ---------
+    model : data model
+        input data model, assumed to be of type RampModel
+    """
+    dq = ramp_data.groupdq
+    nints, ngroups, nrows, ncols = dq.shape
+    sat_flag = ramp_data.flags_saturated
+
+    ramp_data.one_groups = [None] * nints
+
+    for integ in range(nints):
+        ramp_data.one_groups[integ] = []
+        intdq = dq[integ, :, :, :]
+
+        # Find ramps with a good zeroeth group, but saturated in
+        # the remainder of the ramp.
+        sat_groups = np.zeros(intdq.shape, dtype=int)
+        sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
+        nsat_groups = sat_groups.sum(axis=0)
+        wh_one = np.where(nsat_groups == (ngroups-1))
+
+        wh1_rows = wh_one[0]
+        wh1_cols = wh_one[1]
+        for n in range(len(wh1_rows)):
+            row = wh1_rows[n]
+            col = wh1_cols[n]
+            # For ramps that have good 0th group, but the rest of the
+            # ramp saturated, mark the 0th groups as saturated (to
+
+            if ramp_data.groupdq[integ, 0, row, col] == 0:
+                ramp_data.groupdq[integ, 0, row, col] = sat_flag
+                sat_pix = (row, col)
+                ramp_data.one_groups[integ].append(sat_pix)
