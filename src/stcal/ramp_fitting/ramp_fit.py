@@ -264,7 +264,7 @@ def suppress_one_group_saturated_ramps(ramp_data):
         sat_groups = np.zeros(intdq.shape, dtype=int)
         sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
         nsat_groups = sat_groups.sum(axis=0)
-        wh_one = np.where(nsat_groups == (ngroups-1))
+        wh_one = np.where(nsat_groups == (ngroups - 1))
 
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
