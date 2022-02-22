@@ -272,7 +272,7 @@ def suppress_one_group_saturated_ramps(ramp_data):
             row = wh1_rows[n]
             col = wh1_cols[n]
             # For ramps that have good 0th group, but the rest of the
-            # ramp saturated, mark the 0th groups as saturated (to
+            # ramp saturated, mark the 0th groups as saturated, too.
 
             if ramp_data.groupdq[integ, 0, row, col] == 0:
                 ramp_data.groupdq[integ, 0, row, col] = sat_flag
