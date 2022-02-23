@@ -520,7 +520,7 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[0., 0., 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[3, 2, 0]])
+    check = np.array([[3, 3, 0]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0., 0., 0.01]])
@@ -538,7 +538,7 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[[0., 0., 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 2, 0]]])
+    check = np.array([[[3, 3, 0]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0., 0., 0.01]]])
@@ -623,7 +623,7 @@ def test_one_group_ramp_suppressed_two_integrations():
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 2, 0]],
+    check = np.array([[[3, 3, 0]],
                       [[0, 0, 0]]])
     np.testing.assert_allclose(cdq, check, tol)
 

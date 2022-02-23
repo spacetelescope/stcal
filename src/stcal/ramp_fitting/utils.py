@@ -1135,14 +1135,6 @@ def fix_sat_ramps(ramp_data, sat_0th_group_int, var_p3, var_both3, slope_int, dq
     dq_int[sat_0th_group_int > 0] = np.bitwise_or(
         dq_int[sat_0th_group_int > 0], ramp_data.flags_do_not_use)
 
-    # Adjust integration DQ for suppressed one groups
-    if ramp_data.suppress_one_group_ramps:
-        nints = dq_int.shape[0]
-        for integ in range(nints):
-            for pix in ramp_data.one_groups[integ]:
-                row, col = pix
-                dq_int[integ, row, col] ^= ramp_data.flags_do_not_use
-
     return var_p3, var_both3, slope_int, dq_int
 
 
