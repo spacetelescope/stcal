@@ -1285,7 +1285,7 @@ def compute_slices(max_cores):
     return number_slices
 
 
-def dq_compress_final(dq_int, n_int, dnu_flag):
+def dq_compress_final(dq_int, dnu_flag):
     """
     Combine the integration-specific dq arrays (which have already been
     compressed and combined with the PIXELDQ array) to create the dq array
@@ -1297,8 +1297,8 @@ def dq_compress_final(dq_int, n_int, dnu_flag):
         cube of combined dq arrays for all data sections in a single
         integration, 3-D flag
 
-    n_int : int
-        total number of integrations in data set
+    dnu_flag : int
+        The DO_NOT_USE flag
 
     Returns
     -------
@@ -1308,7 +1308,7 @@ def dq_compress_final(dq_int, n_int, dnu_flag):
     f_dq = dq_int[0, :, :]
     nints = dq_int.shape[0]
 
-    for jj in range(1, n_int):
+    for jj in range(1, nints):
         f_dq = np.bitwise_or(f_dq, dq_int[jj, :, :])
 
     # Sum each pixel over all integrations where DO_NOT_USE is set.  If
@@ -1327,20 +1327,26 @@ def dq_compress_final(dq_int, n_int, dnu_flag):
     return f_dq
 
 
-def dq_compress_sect(ramp_data, gdq_sect, pixeldq_sect):
+def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     """
     Get ramp locations where the data has been flagged as saturated in the 4D
     GROUPDQ array for the current data section, find the corresponding image
     locations, and set the SATURATED flag in those locations in the PIXELDQ
     array. Similarly, get the ramp locations where the data has been flagged as
     a jump detection in the 4D GROUPDQ array, find the corresponding image
-    locations, and set the COSMIC_BEFORE flag in those locations in the PIXELDQ
+    locations, and set the JUMP_DET flag in those locations in the PIXELDQ
     array. These modifications to the section of the PIXELDQ array are not used
     to flag groups for any computations; they are used only in the integration-
     specific output.
 
     Parameters
     ----------
+    ramp_data : ramp_fit_class.RampData
+        Contains the DQ flags needed for this function
+
+    num_int : int
+        The current integration being processed
+
     gdq_sect : ndarray
         cube of GROUPDQ array for a data section, 3-D flag
 

@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 
-
 import logging
 from multiprocessing.pool import Pool as Pool
 import numpy as np
@@ -10,6 +9,7 @@ import warnings
 
 from . import ramp_fit_class
 from . import utils
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -983,7 +983,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
             pixeldq_sect = pixeldq[rlo:rhi, :].copy()
             dq_int[num_int, rlo:rhi, :] = utils.dq_compress_sect(
-                ramp_data, t_dq_cube, pixeldq_sect).copy()
+                ramp_data, num_int, t_dq_cube, pixeldq_sect).copy()
 
             del t_dq_cube
 
@@ -1426,7 +1426,8 @@ def ramp_fit_overall(
 
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output
-    final_pixeldq = utils.dq_compress_final(dq_int, n_int, ramp_data.flags_do_not_use)
+    final_pixeldq = utils.dq_compress_final(
+        dq_int, ramp_data.flags_do_not_use)
 
     if dq_int is not None:
         del dq_int

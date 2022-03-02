@@ -1,3 +1,12 @@
+0.6.1 (unreleasd)
+================
+
+ramp_fitting
+------------
+
+- Adding feature to suppress calculations for saturated ramps having only
+  the 0th group be a good group.  [#76]
+
 0.6.0 (22-01-14)
 ================
 

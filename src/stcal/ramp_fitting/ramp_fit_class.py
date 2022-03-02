@@ -30,6 +30,10 @@ class RampData:
         self.start_row = None
         self.num_rows = None
 
+        # One group ramp suppression for saturated ramps after 0th group.
+        self.suppress_one_group_ramps = False
+        self.one_groups = None
+
     def set_arrays(self, data, err, groupdq, pixeldq, int_times):
         """
         Set the arrays needed for ramp fitting.
