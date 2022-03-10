@@ -5,8 +5,8 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
-                          dqflags):
+def flag_saturated_pixels(
+        data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, zframe=None):
     """
     Short Summary
     -------------
@@ -35,9 +35,12 @@ def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
     atod_limit : int
         hard DN limit of 16-bit A-to-D converter
 
-    dqflags: dict
+    dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, AD_FLOOR, NO_SAT_CHECK
+
+    zframe : float, 3D array
+        The ZEROFRAME.
 
 
     Returns
@@ -49,8 +52,7 @@ def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
         updated pixel dq array
     """
 
-    nints = data.shape[0]
-    ngroups = data.shape[1]
+    nints, ngroups, nrows, ncols = data.shape
 
     donotuse = dqflags['DO_NOT_USE']
     saturated = dqflags['SATURATED']
@@ -68,6 +70,10 @@ def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
 
     flagarray = np.zeros(data.shape[-2:], dtype=gdq.dtype)
     flaglowarray = np.zeros(data.shape[-2:], dtype=gdq.dtype)
+    if zframe is not None:
+        zflagarray = np.zeros(data.shape[-2:], dtype=gdq.dtype)
+        zflaglowarray = np.zeros(data.shape[-2:], dtype=gdq.dtype)
+
     for ints in range(nints):
         for group in range(ngroups):
             # Update the 4D gdq array with the saturation flag.
@@ -84,6 +90,27 @@ def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
             # for A/D floor, the flag is only set of the current plane
             np.bitwise_or(gdq[ints, group, :, :], flaglowarray,
                           gdq[ints, group, :, :])
+
+        # Check ZEROFRAME.
+        if zframe is not None:
+            # Set flags for ZEROFRAME
+            zdq = np.zeros((nrows, ncols), dtype=np.uint8)
+            zflagarray[:, :] = np.where(
+                zframe[ints, :, :] >= sat_thresh, saturated, 0)
+            zflaglowarray[:, :] = np.where(
+                zframe[ints, :, :] <= 0, ad_floor | donotuse, 0)
+            np.bitwise_or(
+                zdq[:, :], zflagarray, zdq[:, :])
+            np.bitwise_or(
+                zdq[:, :], zflaglowarray, zdq[:, :])
+
+            # Zero out any flagged data in ZEROFRAME
+            mul_val = np.ones((nrows, ncols), dtype=float)
+            mul_val[zdq != 0] = 0.
+            zframe[ints, :, :] *= mul_val  # zero out flagged data
+        
+            del zdq
+            del mul_val
 
     n_sat = np.any(np.any(np.bitwise_and(gdq, saturated), axis=0), axis=0).sum()
     log.info(f'Detected {n_sat} saturated pixels')
