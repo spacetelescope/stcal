@@ -49,8 +49,8 @@ def test_zero_frame():
     Pixel 1 has fully saturated ramp with good frame 0.
     Pixel 2 has a good ramp with good frame 0.
 
-    The second integration has the ZERORAME swapped for pixels 
-    0 and 1, so the resulting zeroed out ZEROFRAME pixel are 
+    The second integration has the ZERORAME swapped for pixels
+    0 and 1, so the resulting zeroed out ZEROFRAME pixel are
     swapped.
     """
     darr1 = [11800., 11793., 11823., 11789., 11857.]

@@ -108,7 +108,7 @@ def flag_saturated_pixels(
             mul_val = np.ones((nrows, ncols), dtype=float)
             mul_val[zdq != 0] = 0.
             zframe[ints, :, :] *= mul_val  # zero out flagged data
-        
+
             del zdq
             del mul_val
 
