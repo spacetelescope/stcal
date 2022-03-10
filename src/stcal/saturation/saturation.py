@@ -119,4 +119,4 @@ def flag_saturated_pixels(
 
     pdq = np.bitwise_or(pdq, sat_dq)
 
-    return gdq, pdq
+    return gdq, pdq, zframe

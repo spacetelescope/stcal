@@ -35,7 +35,7 @@ def test_basic_saturation_flagging():
 
     atod_limit = 65535.  # Hard DN limit of 16-bit A-to-D converter
 
-    gdq, pdq = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq,
+    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq,
                                      atod_limit, dqflags)
 
     # Make sure that groups with signal > saturation limit get flagged
@@ -88,7 +88,7 @@ def test_zero_frame():
 
     atod_limit = 65535.  # Hard DN limit of 16-bit A-to-D converter
 
-    gdq, pdq = flag_saturated_pixels(
+    gdq, pdq, zframe = flag_saturated_pixels(
         data, gdq, pdq, ref, rdq, atod_limit, dqflags, zfrm)
 
     # Check DQ flags
@@ -105,5 +105,5 @@ def test_zero_frame():
     np.testing.assert_array_equal(check, gdq)
 
     # Check ZEROFRAME flagged elements are zeroed out.
-    assert(zfrm[0, 0, 0] == 0.)
-    assert(zfrm[1, 0, 1] == 0.)
+    assert(zframe[0, 0, 0] == 0.)
+    assert(zframe[1, 0, 1] == 0.)
