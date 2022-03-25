@@ -1,6 +1,10 @@
 0.6.2 (unreleased)
 ==================
 
+jump
+----
+- Neighboring pixels with 'SATURATION' or 'DONOTUSE' flags are no longer flagged as jumps. [#79]
+
 0.6.1 (22-03-04)
 ================
 

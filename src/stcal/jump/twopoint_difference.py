@@ -82,6 +82,11 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
 
+    # get dq flags for saturated, donotuse, jump
+    sat_flag = dqflags["SATURATED"]
+    dnu_flag = dqflags["DO_NOT_USE"]
+    jump_flag = dqflags["JUMP_DET"]
+
     for integ in range(nints):
 
         log.info(f'Working on integration {integ + 1}:')
@@ -91,8 +96,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         gdq_integ = gdq[integ]
 
         # set 'saturated' or 'do not use' pixels to nan in data
-        dat[np.where(np.bitwise_and(gdq_integ, dqflags["SATURATED"]))] = np.nan
-        dat[np.where(np.bitwise_and(gdq_integ, dqflags["DO_NOT_USE"]))] = np.nan
+        dat[np.where(np.bitwise_and(gdq_integ, sat_flag))] = np.nan
+        dat[np.where(np.bitwise_and(gdq_integ, dnu_flag))] = np.nan
 
         # calculate the differences between adjacent groups (first diffs)
         # use mask on data, so the results will have sat/donotuse groups masked
@@ -190,16 +195,19 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 np.bitwise_or(gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
                               dqflags["JUMP_DET"] * np.invert(pix_cr_mask))
 
-        if flag_4_neighbors:
-            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], dqflags["JUMP_DET"]))
+        if flag_4_neighbors:  # iterate over each 'jump' pixel
+            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
 
             for j in range(len(cr_group)):
 
+                ratio_this_pix = ratio[cr_group[j] - 1, cr_row[j], cr_col[j]]
+
                 # Jumps must be in a certain range to have neighbors flagged
-                if ratio[cr_group[j] - 1, cr_row[j], cr_col[j]] < \
-                        max_jump_to_flag_neighbors and \
-                        ratio[cr_group[j] - 1, cr_row[j], cr_col[j]] > \
-                        min_jump_to_flag_neighbors:
+                if ratio_this_pix < max_jump_to_flag_neighbors and \
+                        ratio_this_pix > min_jump_to_flag_neighbors:
+                    group = cr_group[j]
+                    row = cr_row[j]
+                    col = cr_col[j]
 
                     # This section saves flagged neighbors that are above or
                     # below the current range of row. If this method
@@ -208,33 +216,38 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     # the rows above and below need to be returned to
                     # find_jumps to use when it reconstructs the full group dq
                     # array from the slices.
-                    if cr_row[j] != 0:
-                        gdq[integ, cr_group[j], cr_row[j] - 1, cr_col[j]] =\
-                            np.bitwise_or(gdq[integ, cr_group[j], cr_row[j] -
-                                          1, cr_col[j]], dqflags["JUMP_DET"])
-                    else:
-                        row_below_gdq[integ, cr_group[j], cr_col[j]] = \
-                            dqflags["JUMP_DET"]
 
-                    if cr_row[j] != nrows - 1:
-                        gdq[integ, cr_group[j], cr_row[j] + 1, cr_col[j]] = \
-                            np.bitwise_or(gdq[integ, cr_group[j], cr_row[j] +
-                                          1, cr_col[j]], dqflags["JUMP_DET"])
+                    # Only flag adjacent pixels if they do not already have the
+                    # 'SATURATION' or 'DONOTUSE' flag set
+                    if row != 0:
+                        if (gdq[integ, group, row - 1, col] & sat_flag) == 0:
+                            if (gdq[integ, group, row - 1, col] & dnu_flag) == 0:
+                                gdq[integ, group, row - 1, col] =\
+                                    np.bitwise_or(gdq[integ, group, row - 1, col], jump_flag)
                     else:
-                        row_above_gdq[integ, cr_group[j], cr_col[j]] = \
-                            dqflags["JUMP_DET"]
+                        row_below_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
+
+                    if row != nrows - 1:
+                        if (gdq[integ, group, row + 1, col] & sat_flag) == 0:
+                            if (gdq[integ, group, row + 1, col] & dnu_flag) == 0:
+                                gdq[integ, group, row + 1, col] = \
+                                    np.bitwise_or(gdq[integ, group, row + 1, col], jump_flag)
+                    else:
+                        row_above_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
 
                     # Here we are just checking that we don't flag neighbors of
                     # jumps that are off the detector.
                     if cr_col[j] != 0:
-                        gdq[integ, cr_group[j], cr_row[j], cr_col[j] - 1] =\
-                            np.bitwise_or(gdq[integ, cr_group[j], cr_row[j],
-                                          cr_col[j] - 1], dqflags["JUMP_DET"])
+                        if (gdq[integ, group, row, col - 1] & sat_flag) == 0:
+                            if (gdq[integ, group, row, col - 1] & dnu_flag) == 0:
+                                gdq[integ, group, row, col - 1] =\
+                                    np.bitwise_or(gdq[integ, group, row, col - 1], jump_flag)
 
                     if cr_col[j] != ncols - 1:
-                        gdq[integ, cr_group[j], cr_row[j], cr_col[j] + 1] =\
-                            np.bitwise_or(gdq[integ, cr_group[j], cr_row[j],
-                                          cr_col[j] + 1], dqflags["JUMP_DET"])
+                        if (gdq[integ, group, row, col - 1] & sat_flag) == 0:
+                            if (gdq[integ, group, row, col - 1] & dnu_flag) == 0:
+                                gdq[integ, group, row, col + 1] =\
+                                    np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
     return gdq, row_below_gdq, row_above_gdq
 
 
