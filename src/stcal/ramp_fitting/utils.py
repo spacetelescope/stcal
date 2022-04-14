@@ -1379,3 +1379,96 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     pixeldq_sect[cr_loc_im] = np.bitwise_or(pixeldq_sect[cr_loc_im], jump_flag)
 
     return pixeldq_sect
+
+
+def compute_median_rates(ramp_data):
+    """
+    Compute the median rates for each pixel.
+
+    Parameter
+    ---------
+    ramp_data : RampData
+        Contains the data needed to compute the median rates.
+
+    median_rates : ndarray
+        The computed median rates for each pixel.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.data.shape
+    imshape = (nrows, ncols)
+
+    group_time = ramp_data.group_time
+    frame_time = ramp_data.frame_time
+    adjustment = group_time / frame_time
+    median_diffs_2d = np.zeros(imshape, dtype=np.float32)
+
+    for integ in range(nints):
+        data_sect = ramp_data.data[integ, :, :, :].copy()
+        gdq_sect = ramp_data.groupdq[integ, :, :, :]
+
+        # Reset all saturated groups in the input data array to NaN
+        where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
+
+        data_sect[where_sat] = np.NaN
+        del where_sat
+
+        data_sect = data_sect / group_time
+        if ramp_data.zframe_locs is not None:
+            for pixel in ramp_data.zframe_locs[integ]:
+                row, col = pixel
+                # This makes the division by frame_time, instead of group_time
+                data_sect[0, row, col] = data_sect[0, row, col] * adjustment
+
+        # Compute the first differences of all groups
+        first_diffs_sect = np.diff(data_sect, axis=0)
+
+        # If the dataset has only 1 group/integ, assume the 'previous group'
+        #   is all zeros, so just use data as the difference
+        if first_diffs_sect.shape[0] == 0:
+            first_diffs_sect = data_sect.copy()
+        else:
+            # Similarly, for datasets having >1 group/integ and having
+            #   single-group segments, just use the data as the difference
+            wh_nan = np.where(np.isnan(first_diffs_sect[0, :, :]))
+
+            if len(wh_nan[0]) > 0:
+                first_diffs_sect[0, :, :][wh_nan] = data_sect[0, :, :][wh_nan]
+
+            del wh_nan
+
+            # Mask all the first differences that are affected by a CR,
+            #   starting at group 1.  The purpose of starting at index 1 is
+            #   to shift all the indices down by 1, so they line up with the
+            #   indices in first_diffs.
+            i_group, i_yy, i_xx, = np.where(np.bitwise_and(
+                gdq_sect[1:, :, :], ramp_data.flags_jump_det))
+            first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
+
+            del i_group, i_yy, i_xx
+
+            # Check for pixels in which there is good data in 0th group, but
+            #   all first_diffs for this ramp are NaN because there are too
+            #   few good groups past the 0th. Due to the shortage of good
+            #   data, the first_diffs will be set here equal to the data in
+            #   the 0th group.
+            wh_min = np.where(np.logical_and(
+                np.isnan(first_diffs_sect).all(axis=0), np.isfinite(data_sect[0, :, :])))
+            if len(wh_min[0] > 0):
+                first_diffs_sect[0, :, :][wh_min] = data_sect[0, :, :][wh_min]
+
+            del wh_min
+
+        # All first differences affected by saturation and CRs have been set
+        #  to NaN, so compute the median of all non-NaN first differences.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "All-NaN.*", RuntimeWarning)
+            nan_med = np.nanmedian(first_diffs_sect, axis=0)
+
+        nan_med[np.isnan(nan_med)] = 0.  # if all first_diffs_sect are nans
+        median_diffs_2d[:, :] += nan_med
+
+    # Compute the final 2D array of differences; create rate array
+    median_rates = median_diffs_2d / nints
+    del median_diffs_2d
+    del data_sect
+
+    return median_rates
