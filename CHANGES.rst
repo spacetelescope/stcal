@@ -1,6 +1,11 @@
 0.6.4 (unreleased)
 ==================
 
+saturation
+---------- 
+
+- Added in functionality to deal with charge spilling from saturated pixels onto neighboring pixels [#83]
+
 0.6.3 (2022-04-27)
 ==================
 

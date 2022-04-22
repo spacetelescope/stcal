@@ -1,12 +1,15 @@
 import numpy as np
 import logging
 
+import copy
+from scipy import ndimage
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
-                          dqflags):
+                          dqflags, n_pix_grow_sat=1):
     """
     Short Summary
     -------------
@@ -38,6 +41,10 @@ def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
     dqflags: dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, AD_FLOOR, NO_SAT_CHECK
+
+    n_pix_grow_sat : int
+        Number of pixels that each flagged saturated pixel should be 'grown',
+        to account for charge spilling. Default is 1.
 
 
     Returns
@@ -84,6 +91,15 @@ def flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, atod_limit,
             # for A/D floor, the flag is only set of the current plane
             np.bitwise_or(gdq[ints, group, :, :], flaglowarray,
                           gdq[ints, group, :, :])
+
+            # now, flag any pixels that border saturated pixels (not A/D floor pix)
+            if n_pix_grow_sat > 0:
+                gdq_slice = copy.copy(gdq[ints, group, :, :]).astype(int)
+                only_sat = np.bitwise_and(gdq_slice, saturated).astype(np.uint8)
+                box_dim = (n_pix_grow_sat * 2) + 1
+                struct = np.ones((box_dim, box_dim)).astype(bool)
+                dialated = ndimage.binary_dilation(only_sat, structure=struct).astype(only_sat.dtype)
+                gdq[ints, group, :, :] = np.bitwise_or(gdq[ints, group, :, :], (dialated * saturated))
 
     n_sat = np.any(np.any(np.bitwise_and(gdq, saturated), axis=0), axis=0).sum()
     log.info(f'Detected {n_sat} saturated pixels')
