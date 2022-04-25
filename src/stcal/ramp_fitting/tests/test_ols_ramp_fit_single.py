@@ -11,21 +11,25 @@ JUMP_DET = test_dq_flags["JUMP_DET"]
 SATURATED = test_dq_flags["SATURATED"]
 
 def test_single_group_after_do_not_use():
-    model1, gdq, readnoise_2d, pixdq, err, gain_2d = setup_inputs(ngroups=10, gain=1, nrows=1, ncols=2,
+    model1, gdq, readnoise_2d, pixdq, err, gain_2d = setup_inputs(ngroups=10, gain=1, nrows=1, ncols=3,
                                                          nints=2, readnoise=1)
     model1.data[0, :, 0, 0] = list(range(10))
     model1.data[1, :, 0, 0] = list(range(10))
     model1.data[0, :, 0, 1] = list(range(0, 20, 2))
     model1.data[1, :, 0, 1] = list(range(0, 20, 2))
+    model1.data[0, :, 0, 2] = list(range(0, 20, 2))
+    model1.data[1, :, 0, 2] = list(range(0, 20, 2))
     gdq[:, 0, :, :] = DO_NOT_USE
     gdq[:,-1, :, :] = DO_NOT_USE
     gdq[1, 0:4, :, :] = DO_NOT_USE
     gdq[1, 5, 0, 0] = JUMP_DET
-    pixel_dq = gdq[:,:, 0, 0]
-    int_times = 0
+    gdq[:, :, 0, 2] = SATURATED
     image_info, integ_info, opt_info = ols_ramp_fit_multi(
         model1, 1024 * 30000, True, readnoise_2d, gain_2d, 'optimal', 1)
-    print(image_info)
+    slopes = image_info[0]
+    assert(slopes[0, 0] == 1)  # pixel with jump in 2nd group after initial skipped groups
+    assert(slopes[0, 1] == 2)  # pixel with no jump in 2nd group after initial skipped groups
+    assert(slopes[0, 2] == 0)
 # Need test for multi-ints near zero with positive and negative slopes
 def setup_inputs(ngroups=10, readnoise=10, nints=1,
                  nrows=103, ncols=102, nframes=1, grouptime=1.0, gain=1, deltatime=1):
