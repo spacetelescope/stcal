@@ -1613,6 +1613,7 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
     all_pix = np.arange(npix)
     arange_ngroups_col = np.arange(ngroups)[:, np.newaxis]
+    start = np.zeros(npix, dtype=np.int32)  # lowest channel in fit
 
     # Highest channel in fit initialized to last read
     end = np.zeros(npix, dtype=np.int32) + (ngroups - 1)
