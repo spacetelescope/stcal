@@ -1659,6 +1659,11 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
     gdq_sect_r = np.reshape(gdq_sect, (ngroups, npix))
     mask_2d[gdq_sect_r != 0] = False  # saturated or CR-affected
     mask_2d_init = mask_2d.copy()  # initial flags for entire ramp
+    start = np.argmax(mask_2d, 0)  # start with the first True value
+    # Reset the initial False groups to be True so that the first False is now either a jump or sat
+    # Because start was set to be the first True, the initial False values will not be included
+    for pixel in range(npix):
+        mask_2d[:start[pixel], pixel] = True
 
     wh_f = np.where(np.logical_not(mask_2d))
 
