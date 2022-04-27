@@ -1,7 +1,10 @@
-0.6.3 (unreleased)
+0.6.3 (2022-04-27)
 ==================
 
 - Pin astropy min version to 5.0.4. [#82]
+
+- Fix for jumps in first good group after dropping groups [#84]
+  
 
 0.6.2 (22-03-29)
 ================
