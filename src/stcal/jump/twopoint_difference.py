@@ -131,7 +131,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                   max_ratio > two_diff_rej_thresh))
 
         log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
-        log.info(log_str.format(len(row4cr), 'five'))
+        log.info(log_str.format(len(row4cr), 'five or more'))
         log.info(log_str.format(len(row3cr), 'four'))
         log.info(log_str.format(len(row2cr), 'three'))
 

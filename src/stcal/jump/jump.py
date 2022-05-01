@@ -5,7 +5,7 @@ import numpy as np
 from . import twopoint_difference as twopt
 from . import constants
 
-import multiprocessing  # 05/18/21: TODO- commented out now; reinstate later
+import multiprocessing
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -13,7 +13,7 @@ log.setLevel(logging.DEBUG)
 
 def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  gain_2d, readnoise_2d, rejection_thresh,
-                 three_grp_thresh, four_grp_thresh, max_jump_to_flag_neighbors,
+                 three_grp_thresh, four_grp_thresh, max_cores, max_jump_to_flag_neighbors,
                  min_jump_to_flag_neighbors, flag_4_neighbors, dqflags):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -129,33 +129,45 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     # Multiprocessing has been disabled for now, so the nunber of slices
     # is here set to 1. I'm leaving the related code in to ease the eventual
     # re-enablement of this code.
-    n_slices = 1
-
-    yinc = int(n_rows / n_slices)
+    print('new stcal jump')
+    if max_cores == 'none':
+        number_slices = 1
+    else:
+        num_cores = multiprocessing.cpu_count()
+        log.debug(f'Found {num_cores} possible cores to use for ramp fitting')
+        if max_cores == 'quarter':
+            number_slices = num_cores // 4 or 1
+        elif max_cores == 'half':
+            number_slices = num_cores // 2 or 1
+        elif max_cores == 'all':
+            number_slices = num_cores
+        else:
+            number_slices = 1
+    yinc = int(n_rows / number_slices)
     slices = []
     # Slice up data, gdq, readnoise_2d into slices
     # Each element of slices is a tuple of
     # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
     #  four_grp_thresh, nframes)
-    for i in range(n_slices - 1):
+    for i in range(number_slices - 1):
         slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
                           gdq[:, :, i * yinc:(i + 1) * yinc, :],
                           readnoise_2d[i * yinc:(i + 1) * yinc, :],
                           rejection_thresh, three_grp_thresh, four_grp_thresh,
                           frames_per_group, flag_4_neighbors,
                           max_jump_to_flag_neighbors,
-                          min_jump_to_flag_neighbors))
+                          min_jump_to_flag_neighbors, dqflags))
 
     # last slice get the rest
-    slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
-                                 gdq[:, :, (n_slices - 1) * yinc:n_rows, :],
-                                 readnoise_2d[(n_slices - 1) * yinc:n_rows, :],
+    slices.insert(number_slices - 1, (data[:, :, (number_slices - 1) * yinc:n_rows, :],
+                                 gdq[:, :, (number_slices - 1) * yinc:n_rows, :],
+                                 readnoise_2d[(number_slices - 1) * yinc:n_rows, :],
                                  rejection_thresh, three_grp_thresh,
                                  four_grp_thresh, frames_per_group,
                                  flag_4_neighbors, max_jump_to_flag_neighbors,
-                                 min_jump_to_flag_neighbors))
+                                 min_jump_to_flag_neighbors, dqflags))
 
-    if n_slices == 1:
+    if number_slices == 1:
         gdq, row_below_dq, row_above_dq = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
@@ -164,8 +176,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
         elapsed = time.time() - start
     else:
-        log.info("Creating %d processes for jump detection " % n_slices)
-        pool = multiprocessing.Pool(processes=n_slices)
+        log.info("Creating %d processes for jump detection " % number_slices)
+        pool = multiprocessing.Pool(processes=number_slices)
         # Starts each slice in its own process. Starmap allows more than one
         # parameter to be passed.
         real_result = pool.starmap(twopt.find_crs, slices)
