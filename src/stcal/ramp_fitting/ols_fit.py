@@ -819,7 +819,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
     # Get instrument and exposure data
     frame_time = ramp_data.frame_time
-    group_time = ramp_data.group_time
     groupgap = ramp_data.groupgap
     nframes = ramp_data.nframes
 
@@ -963,12 +962,10 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     if pixeldq_sect is not None:
         del pixeldq_sect
 
-
     ramp_data.data = data
     ramp_data.err = err
     ramp_data.groupdq = groupdq
     ramp_data.pixeldq = inpixeldq
-
 
     return max_seg, gdq_cube_shape, effintim, f_max_seg, dq_int, num_seg_per_int,\
         sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates
@@ -1065,6 +1062,7 @@ def compute_median_rates(ramp_data):
     del data_sect
 
     return median_rates
+
 
 def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans):
     """
@@ -1169,7 +1167,6 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Calculate results needed to compute the variance arrays
-            # XXX JP-374
             den_r3, den_p3, num_r3, segs_beg_3 = utils.calc_slope_vars(
                 ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg)
 
@@ -1680,7 +1677,6 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
 
     # Create nominal 2D ERR array, which is 1st slice of
     #    avged_data_cube * readtime
-    # XXX JP-374
     err_2d_array = data_sect[0, :, :] * frame_time
 
     # Suppress, then re-enable, harmless arithmetic warnings
@@ -2871,8 +2867,6 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     #   the 0th and 1st group are good, set slope, etc
     wh_pix_2r = np.where(c_mask_2d.sum(axis=0) == 2)  # ramps with 2 good groups
 
-    # XXX should this have a condition like the above?
-    # if len(wh_pix_2r) > 0:
     slope_s, intercept_s, variance_s, sig_slope_s, sig_intercept_s = \
         fit_double_read(c_mask_2d, wh_pix_2r, data_masked, slope_s, intercept_s,
                         variance_s, sig_slope_s, sig_intercept_s, rn_sect)

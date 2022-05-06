@@ -9,8 +9,8 @@ log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(
-    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, n_pix_grow_sat=1,
-    zframe=None):
+        data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags,
+        n_pix_grow_sat=1, zframe=None):
     """
     Short Summary
     -------------

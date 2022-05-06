@@ -573,17 +573,10 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     #   Here the denominator of this quantity will be computed, which will be
     #   later multiplied by the estimated median slope.
 
-    # XXX JP-374 - possibly find the ramps using ZEROFRAME and divide by frame_time
-
-    # VARIANCE COMPUTATIONS - XXX
     # Suppress, then re-enable, harmless arithmetic warnings, as NaN will be
     #   checked for and handled later
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-    # XXX JP-374 For one group ramps, this has the effect of being 
-    #           1 / (group_time * gain).
-    # Could group_time be turned into an array with imshape, then replace
-    # the group_time with frame_time?
     den_p3 = 1. / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
     if ramp_data.zframe_locs:
         for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
@@ -594,14 +587,10 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
 
     # For a segment, the variance due to readnoise noise
     # = 12 * readnoise**2 /(ngroups_seg**3. - ngroups_seg)/( tgroup **2.)
-    # XXX JP-374 For one group ramps, this has the effect of being 
-    # 
-    # Could group_time be turned into an array with imshape, then replace
-    # the group_time with frame_time?
     num_r3 = 12. * (rn_sect / group_time)**2.  # always >0
     if ramp_data.zframe_locs:
         for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
-            row, col = pix 
+            row, col = pix
             num_r3[row, col] = 12. * (rn_sect[row, col] / frame_time)**2.
 
     # Reshape for every group, every pixel in section
@@ -787,7 +776,6 @@ def gls_pedestal(first_group, slope_int, s_mask,
         This is a slice of the full pedestal array, and it's for the
         current integration, 2-D float
     """
-    # XXX JP-374
     M = float(nframes_used)
     pedestal = first_group - slope_int * frame_time * (M + 1.) / 2.
     if s_mask.any():

@@ -55,7 +55,6 @@ def test_adjacent_pixel_flagging():
     sat_dq = np.zeros((5, 5)).astype('uint32')
 
     nints, ngroups, nrows, ncols = data.shape
-    dims = (nints, ngroups, nrows, ncols)
 
     # saturate a few pixels just in the first group
     # (0, 0) and (1, 1) to test adjacent pixels

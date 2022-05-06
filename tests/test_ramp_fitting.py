@@ -703,7 +703,6 @@ def create_zero_frame_data():
     frame_time, nframes, groupgap = 10.736, 4, 1
     group_time = (nframes + groupgap) * frame_time
     nints, ngroups, nrows, ncols = 2, 5, 1, 3
-    dims = (nints, ngroups, nrows, ncols)
     rnval, gval = 10., 5.
 
     # Create arrays for RampData.
@@ -789,17 +788,17 @@ def test_zeroframe():
     check = np.array([[0.06246654, 0.00867591, 0.29745975]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[0.00041314, 0.0004338 , 0.00043293]])
+    check = np.array([[0.00041314, 0.0004338, 0.00043293]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.2507582 , 0.09544477, 0.54579544]])
+    check = np.array([[0.2507582, 0.09544477, 0.54579544]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cint_times, cerr = cube
 
     check = np.array([[[149.0313, 0., 130.40239]],
-                      [[ 18.62891, 18.62891, 18.62891]]])
+                      [[18.62891, 18.62891, 18.62891]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
     check = np.array([[[2, 3, 2]],
