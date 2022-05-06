@@ -54,6 +54,9 @@ def test_adjacent_pixel_flagging():
     sat_thresh = np.ones((5, 5)) * 60000   # sat. thresh is 60000
     sat_dq = np.zeros((5, 5)).astype('uint32')
 
+    nints, ngroups, nrows, ncols = data.shape
+    dims = (nints, ngroups, nrows, ncols)
+
     # saturate a few pixels just in the first group
     # (0, 0) and (1, 1) to test adjacent pixels
     data[0, 0, 0, 0] = 62000
@@ -65,6 +68,15 @@ def test_adjacent_pixel_flagging():
 
     sat_locs = np.where(np.bitwise_and(gdq, DQFLAGS['SATURATED']) ==
                         DQFLAGS['SATURATED'])
+
+    '''
+    print(f"dims = {dims}")
+    print(f"len(sat_locs = {len(sat_locs)})")
+    for k in range(len(sat_locs)):
+        ostr = np.array2string(sat_locs[k], separator=", ")
+        print(f"sat_locs[{k}] = {ostr}")
+    '''
+    # return
 
     assert sat_locs[0].all() == 0
     assert np.all(sat_locs[1] == np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -124,7 +136,7 @@ def test_zero_frame():
     atod_limit = 65535.  # Hard DN limit of 16-bit A-to-D converter
 
     gdq, pdq, zframe = flag_saturated_pixels(
-        data, gdq, pdq, ref, rdq, atod_limit, dqflags, zfrm)
+        data, gdq, pdq, ref, rdq, atod_limit, dqflags, 0, zfrm)
 
     # Check DQ flags
     cdq = np.array([dqflags["SATURATED"]] * ngroups)

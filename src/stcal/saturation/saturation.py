@@ -92,22 +92,22 @@ def flag_saturated_pixels(
             del flagarray
             del flaglowarray
 
+            # now, flag any pixels that border saturated pixels (not A/D floor pix)
+            if n_pix_grow_sat > 0:
+                gdq_slice = copy.copy(gdq[ints, group, :, :]).astype(int)
+
+                gdq[ints, group, :, :] = adjacent_pixels(
+                    gdq_slice, saturated, n_pix_grow_sat)
+
         # Check ZEROFRAME.
         if zframe is not None:
             plane = zframe[ints, :, :]
             flagarray, flaglowarray = plane_saturation(plane, sat_thresh, dqflags)
-            plane[flagarray != 0] = 0.
-            plane[flaglowarray != 0] = 0.
-            zframe[ints] = plane
-
-            # now, flag any pixels that border saturated pixels (not A/D floor pix)
+            zdq = flagarray | flaglowarray
             if n_pix_grow_sat > 0:
-                gdq_slice = copy.copy(gdq[ints, group, :, :]).astype(int)
-                only_sat = np.bitwise_and(gdq_slice, saturated).astype(np.uint8)
-                box_dim = (n_pix_grow_sat * 2) + 1
-                struct = np.ones((box_dim, box_dim)).astype(bool)
-                dialated = ndimage.binary_dilation(only_sat, structure=struct).astype(only_sat.dtype)
-                gdq[ints, group, :, :] = np.bitwise_or(gdq[ints, group, :, :], (dialated * saturated))
+                zdq = adjacent_pixels(zdq, saturated, n_pix_grow_sat)
+            plane[zdq != 0] = 0.
+            zframe[ints] = plane
 
     n_sat = np.any(np.any(np.bitwise_and(gdq, saturated), axis=0), axis=0).sum()
     log.info(f'Detected {n_sat} saturated pixels')
@@ -117,6 +117,33 @@ def flag_saturated_pixels(
     pdq = np.bitwise_or(pdq, sat_dq)
 
     return gdq, pdq, zframe
+
+
+def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat):
+    """
+    plane_gdq : ndarray
+        The data quality flags of the current.
+
+    saturated : uint8
+        The saturation flag.
+
+    n_pix_grow_sat : int
+        Number of pixels that each flagged saturated pixel should be 'grown',
+        to account for charge spilling. Default is 1.
+
+    Return
+    ------
+    sat_pix : ndarray
+        The saturated pixels in the current plane.
+    """
+    cgdq = plane_gdq.copy()
+    only_sat = np.bitwise_and(plane_gdq, saturated).astype(np.uint8)
+    box_dim = (n_pix_grow_sat * 2) + 1
+    struct = np.ones((box_dim, box_dim)).astype(bool)
+    dialated = ndimage.binary_dilation(
+        only_sat, structure=struct).astype(only_sat.dtype)
+    sat_pix = np.bitwise_or(cgdq, (dialated * saturated))
+    return sat_pix
 
 
 def plane_saturation(plane, sat_thresh, dqflags):
