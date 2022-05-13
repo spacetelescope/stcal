@@ -1,5 +1,21 @@
-0.6.5 (unreleased)
+0.7.0 (2022-05-13)
 ==================
+
+linearity
+---------
+- Added functionality to linearly process ZEROFRAME data the same way
+  as the SCI data. [#81]
+
+ramp_fitting
+------------
+- Added functionality to use ZEROFRAME data in place of group 0 data
+  for ramps that are fully saturated, but still have good ZEROFRAME
+  data. [#81]
+
+saturation
+---------- 
+- Added functionality to process ZEROFRAME data for saturation the same
+  way as the SCI data. [#81]
 
 
 0.6.4 (2022-05-02)
