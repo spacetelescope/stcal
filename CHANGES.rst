@@ -25,6 +25,12 @@ jump
 ----
 - Neighboring pixels with 'SATURATION' or 'DONOTUSE' flags are no longer flagged as jumps. [#79]
 
+ramp_fitting
+------------
+
+- Adding feature to use ZEROFRAME for ramps that are fully saturated, but
+  the ZEROFRAME data for that ramp is good. [#81]
+
 0.6.1 (22-03-04)
 ================
 

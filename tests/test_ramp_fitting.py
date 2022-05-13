@@ -11,11 +11,12 @@ DELIM = "-" * 70
 # to me. [KDG - 19 Dec 2018]
 
 dqflags = {
+    'GOOD':             0,      # Good pixel.
     'DO_NOT_USE':       2**0,   # Bad pixel. Do not use.
-    'SATURATED':        2**1,   # Pixel saturated during exposure
-    'JUMP_DET':         2**2,   # Jump detected during exposure
-    'NO_GAIN_VALUE':    2**19,  # Gain cannot be measured
-    'UNRELIABLE_SLOPE': 2**24,  # Slope variance large (i.e., noisy pixel)
+    'SATURATED':        2**1,   # Pixel saturated during exposure.
+    'JUMP_DET':         2**2,   # Jump detected during exposure.
+    'NO_GAIN_VALUE':    2**19,  # Gain cannot be measured.
+    'UNRELIABLE_SLOPE': 2**24,  # Slope variance large (i.e., noisy pixel).
 }
 
 
@@ -687,6 +688,136 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     np.testing.assert_allclose(cerr, check, tol)
 
 
+def create_zero_frame_data():
+    """
+    A two integration three pixel image.
+
+    The first integration:
+    1. Good first group with the remainder of the ramp being saturated.
+    2. Saturated ramp.
+    3. Saturated ramp with ZEROFRAME data used for the first group.
+
+    The second integration has all good groups with half the data values.
+    """
+    # Create meta data.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+    group_time = (nframes + groupgap) * frame_time
+    nints, ngroups, nrows, ncols = 2, 5, 1, 3
+    rnval, gval = 10., 5.
+
+    # Create arrays for RampData.
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+    int_times = np.zeros((nints,))
+
+    # Create base ramps for each pixel in each integration.
+    base_slope = 2000.0
+    base_arr = [8000. + k * base_slope for k in range(ngroups)]
+    base_ramp = np.array(base_arr, dtype=np.float32)
+
+    data[0, :, 0, 0] = base_ramp
+    data[0, :, 0, 1] = base_ramp
+    data[0, :, 0, 2] = base_ramp
+    data[1, :, :, :] = data[0, :, :, :] / 2.
+
+    # Compute dummy ZEROFRAME data.
+    fdn = (data[0, 1, 0, 0] - data[0, 0, 0, 0]) / (nframes + groupgap)
+    data[0, 0, 0, 2] = data[0, 0, 0, 2] - (fdn * 2.5)
+
+    # Set up group DQ array.
+    gdq[0, :, :, :] = dqflags["SATURATED"]
+    gdq[0, 0, 0, 0] = dqflags["GOOD"]
+    gdq[0, 0, 0, 2] = dqflags["GOOD"]
+
+    # Create RampData for testing.
+    ramp_data = RampData()
+    ramp_data.set_arrays(
+        data=data, err=err, groupdq=gdq, pixeldq=pixdq, int_times=int_times)
+    ramp_data.set_meta(
+        name="MIRI", frame_time=frame_time, group_time=group_time,
+        groupgap=groupgap, nframes=nframes, drop_frames1=None)
+    ramp_data.set_dqflags(dqflags)
+
+    # Create ZEROFRAME information
+    # ramp_data.zframe_locs = [[], [(0, 2)]]
+    ramp_data.zframe_locs = [None] * nints
+    ramp_data.zframe_locs[0] = []
+    ramp_data.zframe_locs[0].append((0, 2))
+    ramp_data.zframe_locs[1] = []
+
+    ramp_data.zframe_cnt = 1
+
+    # Create variance arrays
+    gain = np.ones((nrows, ncols), np.float32) * gval
+    rnoise = np.ones((nrows, ncols), np.float32) * rnval
+
+    return ramp_data, gain, rnoise
+
+
+def test_zeroframe():
+    """
+    A two integration three pixel image.
+
+    The first integration:
+    1. Good first group with the remainder of the ramp being saturated.
+    2. Saturated ramp.
+    3. Saturated ramp with ZEROFRAME data used for the first group.
+
+    The second integration has all good groups with half the data values.
+    """
+    ramp_data, gain, rnoise = create_zero_frame_data()
+
+    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, bufsize, save_opt, rnoise, gain, algo,
+        "optimal", ncores, dqflags)
+
+    tol = 1.e-5
+
+    # Check slopes information
+    sdata, sdq, svp, svr, serr = slopes
+
+    check = np.array([[44.256306, 18.62891, 23.787909]])
+    np.testing.assert_allclose(sdata, check, tol, tol)
+
+    check = np.array([[2, 2, 2]])
+    np.testing.assert_allclose(sdq, check, tol, tol)
+
+    check = np.array([[0.06246654, 0.00867591, 0.29745975]])
+    np.testing.assert_allclose(svp, check, tol, tol)
+
+    check = np.array([[0.00041314, 0.0004338, 0.00043293]])
+    np.testing.assert_allclose(svr, check, tol, tol)
+
+    check = np.array([[0.2507582, 0.09544477, 0.54579544]])
+    np.testing.assert_allclose(serr, check, tol, tol)
+
+    # Check slopes information
+    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+
+    check = np.array([[[149.0313, 0., 130.40239]],
+                      [[18.62891, 18.62891, 18.62891]]])
+    np.testing.assert_allclose(cdata, check, tol, tol)
+
+    check = np.array([[[2, 3, 2]],
+                      [[0, 0, 0]]])
+    np.testing.assert_allclose(cdq, check, tol, tol)
+
+    check = np.array([[[0.31233272, 0., 6.246655]],
+                      [[0.07808318, 0.00867591, 0.31233275]]])
+    np.testing.assert_allclose(cvp, check, tol, tol)
+
+    check = np.array([[[0.00867591, 0., 0.21689774]],
+                      [[0.0004338, 0.0004338, 0.0004338]]])
+    np.testing.assert_allclose(cvr, check, tol, tol)
+
+    check = np.array([[[0.56657624, 0., 2.542352]],
+                      [[0.2802088, 0.09544477, 0.55925536]]])
+    np.testing.assert_allclose(cerr, check, tol, tol)
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
@@ -735,34 +866,35 @@ def setup_inputs(dims, var, tm):
 ###############################################################################
 
 
+def base_print(label, arr):
+    arr_str = np.array2string(arr, separator=", ")
+    print(label)
+    print(arr_str)
+
+
 def print_slope_data(slopes):
     sdata, sdq, svp, svr, serr = slopes
-    print("Slope Data:")
-    print(sdata)
+    base_print("Slope Data:", sdata)
 
 
 def print_slope_dq(slopes):
     sdata, sdq, svp, svr, serr = slopes
-    print("Data Quality:")
-    print(sdq)
+    base_print("Data Quality:", sdq)
 
 
 def print_slope_poisson(slopes):
     sdata, sdq, svp, svr, serr = slopes
-    print("Poisson:")
-    print(svp)
+    base_print("Poisson:", svp)
 
 
 def print_slope_readnoise(slopes):
     sdata, sdq, svp, svr, serr = slopes
-    print("Readnoise:")
-    print(svr)
+    base_print("Readnoise:", svr)
 
 
 def print_slope_err(slopes):
     sdata, sdq, svp, svr, serr = slopes
-    print("Err:")
-    print(serr)
+    base_print("Err:", serr)
 
 
 def print_slopes(slopes):
@@ -788,26 +920,27 @@ def print_slopes(slopes):
 
 def print_integ_data(integ_info):
     idata, idq, ivp, ivr, int_times, ierr = integ_info
-    print("Integration data:")
-    print(idata)
+    base_print("Integration data:", idata)
+
+
+def print_integ_gdq(integ_info):
+    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    base_print("Integration DQ:", idq)
 
 
 def print_integ_poisson(integ_info):
     idata, idq, ivp, ivr, int_times, ierr = integ_info
-    print("Integration Poisson:")
-    print(ivp)
+    base_print("Integration Poisson:", ivp)
 
 
 def print_integ_rnoise(integ_info):
     idata, idq, ivp, ivr, int_times, ierr = integ_info
-    print("Integration read noise:")
-    print(ivr)
+    base_print("Integration read noise:", ivr)
 
 
 def print_integ_err(integ_info):
     idata, idq, ivp, ivr, int_times, ierr = integ_info
-    print("Integration err:")
-    print(ierr)
+    base_print("Integration err:", ierr)
 
 
 def print_integ(integ_info):
@@ -815,6 +948,9 @@ def print_integ(integ_info):
     print("**** INTEGRATIONS")
     print(DELIM)
     print_integ_data(integ_info)
+
+    print(DELIM)
+    print_integ_gdq(integ_info)
 
     print(DELIM)
     print_integ_poisson(integ_info)

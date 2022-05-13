@@ -362,10 +362,9 @@ def alloc_arrays_1(n_int, imshape):
     num_seg_per_int = np.zeros((n_int,) + imshape, dtype=np.uint8)
 
     # for estimated median slopes
-    median_diffs_2d = np.zeros(imshape, dtype=np.float32)
     sat_0th_group_int = np.zeros((n_int,) + imshape, dtype=np.uint8)
 
-    return (dq_int, median_diffs_2d, num_seg_per_int, sat_0th_group_int)
+    return (dq_int, num_seg_per_int, sat_0th_group_int)
 
 
 def alloc_arrays_2(n_int, imshape, max_seg):
@@ -579,11 +578,20 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     den_p3 = 1. / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
+    if ramp_data.zframe_locs:
+        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
+            frame_time = ramp_data.frame_time
+            row, col = pix
+            den_p3[0, row, col] = 1. / (frame_time * gain_sect[row, col])
     warnings.resetwarnings()
 
     # For a segment, the variance due to readnoise noise
     # = 12 * readnoise**2 /(ngroups_seg**3. - ngroups_seg)/( tgroup **2.)
     num_r3 = 12. * (rn_sect / group_time)**2.  # always >0
+    if ramp_data.zframe_locs:
+        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
+            row, col = pix
+            num_r3[row, col] = 12. * (rn_sect[row, col] / frame_time)**2.
 
     # Reshape for every group, every pixel in section
     num_r3 = np.dstack([num_r3] * max_seg)
@@ -602,8 +610,8 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     #   checked for and handled later
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-    den_r3[wh_seg_pos] = 1. / (segs_beg_3[wh_seg_pos] ** 3. -
-                               segs_beg_3[wh_seg_pos])  # overwrite where segs>1
+    # overwrite where segs>1
+    den_r3[wh_seg_pos] = 1. / (segs_beg_3[wh_seg_pos] ** 3. - segs_beg_3[wh_seg_pos])
     warnings.resetwarnings()
 
     return (den_r3, den_p3, num_r3, segs_beg_3)
@@ -768,7 +776,6 @@ def gls_pedestal(first_group, slope_int, s_mask,
         This is a slice of the full pedestal array, and it's for the
         current integration, 2-D float
     """
-
     M = float(nframes_used)
     pedestal = first_group - slope_int * frame_time * (M + 1.) / 2.
     if s_mask.any():

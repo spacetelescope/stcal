@@ -16,7 +16,6 @@ log.setLevel(logging.DEBUG)
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -820,7 +819,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
     # Get instrument and exposure data
     frame_time = ramp_data.frame_time
-    group_time = ramp_data.group_time
     groupgap = ramp_data.groupgap
     nframes = ramp_data.nframes
 
@@ -860,7 +858,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
     f_max_seg = 0  # final number to use, usually overwritten by actual value
 
-    dq_int, median_diffs_2d, num_seg_per_int, sat_0th_group_int =\
+    dq_int, num_seg_per_int, sat_0th_group_int =\
         utils.alloc_arrays_1(n_int, imshape)
 
     opt_res = utils.OptRes(n_int, imshape, max_seg, ngroups, save_opt)
@@ -880,6 +878,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     #   as is done in the jump detection step, except here CR-affected and
     #   saturated groups have already been flagged. The actual, fit, slopes for
     #   each segment are also calculated here.
+
+    med_rates = compute_median_rates(ramp_data)
 
     # Loop over data integrations:
     for num_int in range(0, n_int):
@@ -910,53 +910,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
             data_sect[where_sat] = np.NaN
             del where_sat
-
-            # Compute the first differences of all groups
-            first_diffs_sect = np.diff(data_sect, axis=0)
-
-            # If the dataset has only 1 group/integ, assume the 'previous group'
-            #   is all zeros, so just use data as the difference
-            if first_diffs_sect.shape[0] == 0:
-                first_diffs_sect = data_sect.copy()
-            else:
-                # Similarly, for datasets having >1 group/integ and having
-                #   single-group segments, just use the data as the difference
-                wh_nan = np.where(np.isnan(first_diffs_sect[0, :, :]))
-
-                if len(wh_nan[0]) > 0:
-                    first_diffs_sect[0, :, :][wh_nan] = data_sect[0, :, :][wh_nan]
-
-                del wh_nan
-
-                # Mask all the first differences that are affected by a CR,
-                #   starting at group 1.  The purpose of starting at index 1 is
-                #   to shift all the indices down by 1, so they line up with the
-                #   indices in first_diffs.
-                i_group, i_yy, i_xx, = np.where(np.bitwise_and(
-                    gdq_sect[1:, :, :], ramp_data.flags_jump_det))
-                first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
-
-                del i_group, i_yy, i_xx
-
-                # Check for pixels in which there is good data in 0th group, but
-                #   all first_diffs for this ramp are NaN because there are too
-                #   few good groups past the 0th. Due to the shortage of good
-                #   data, the first_diffs will be set here equal to the data in
-                #   the 0th group.
-                wh_min = np.where(np.logical_and(
-                    np.isnan(first_diffs_sect).all(axis=0), np.isfinite(data_sect[0, :, :])))
-                if len(wh_min[0] > 0):
-                    first_diffs_sect[0, :, :][wh_min] = data_sect[0, :, :][wh_min]
-
-                del wh_min
-
-            # All first differences affected by saturation and CRs have been set
-            #  to NaN, so compute the median of all non-NaN first differences.
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "All-NaN.*", RuntimeWarning)
-                nan_med = np.nanmedian(first_diffs_sect, axis=0)
-            nan_med[np.isnan(nan_med)] = 0.  # if all first_diffs_sect are nans
-            median_diffs_2d[rlo:rhi, :] += nan_med
 
             # Calculate the slope of each segment
             # note that the name "opt_res", which stands for "optional results",
@@ -1009,13 +962,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     if pixeldq_sect is not None:
         del pixeldq_sect
 
-    # Compute the final 2D array of differences; create rate array
-    median_diffs_2d /= n_int
-    med_rates = median_diffs_2d / group_time
-
-    del median_diffs_2d
-    del first_diffs_sect
-
     ramp_data.data = data
     ramp_data.err = err
     ramp_data.groupdq = groupdq
@@ -1023,6 +969,99 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
     return max_seg, gdq_cube_shape, effintim, f_max_seg, dq_int, num_seg_per_int,\
         sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates
+
+
+def compute_median_rates(ramp_data):
+    """
+    Compute the median rates for each pixel.
+
+    Parameter
+    ---------
+    ramp_data : RampData
+        Contains the data needed to compute the median rates.
+
+    median_rates : ndarray
+        The computed median rates for each pixel.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.data.shape
+    imshape = (nrows, ncols)
+
+    group_time = ramp_data.group_time
+    frame_time = ramp_data.frame_time
+    adjustment = group_time / frame_time
+    median_diffs_2d = np.zeros(imshape, dtype=np.float32)
+
+    for integ in range(nints):
+        data_sect = ramp_data.data[integ, :, :, :].copy()
+        gdq_sect = ramp_data.groupdq[integ, :, :, :]
+
+        # Reset all saturated groups in the input data array to NaN
+        where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
+
+        data_sect[where_sat] = np.NaN
+        del where_sat
+
+        data_sect = data_sect / group_time
+        if ramp_data.zframe_locs is not None:
+            for pixel in ramp_data.zframe_locs[integ]:
+                row, col = pixel
+                # This makes the division by frame_time, instead of group_time
+                data_sect[0, row, col] = data_sect[0, row, col] * adjustment
+
+        # Compute the first differences of all groups
+        first_diffs_sect = np.diff(data_sect, axis=0)
+
+        # If the dataset has only 1 group/integ, assume the 'previous group'
+        #   is all zeros, so just use data as the difference
+        if first_diffs_sect.shape[0] == 0:
+            first_diffs_sect = data_sect.copy()
+        else:
+            # Similarly, for datasets having >1 group/integ and having
+            #   single-group segments, just use the data as the difference
+            wh_nan = np.where(np.isnan(first_diffs_sect[0, :, :]))
+
+            if len(wh_nan[0]) > 0:
+                first_diffs_sect[0, :, :][wh_nan] = data_sect[0, :, :][wh_nan]
+
+            del wh_nan
+
+            # Mask all the first differences that are affected by a CR,
+            #   starting at group 1.  The purpose of starting at index 1 is
+            #   to shift all the indices down by 1, so they line up with the
+            #   indices in first_diffs.
+            i_group, i_yy, i_xx, = np.where(np.bitwise_and(
+                gdq_sect[1:, :, :], ramp_data.flags_jump_det))
+            first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
+
+            del i_group, i_yy, i_xx
+
+            # Check for pixels in which there is good data in 0th group, but
+            #   all first_diffs for this ramp are NaN because there are too
+            #   few good groups past the 0th. Due to the shortage of good
+            #   data, the first_diffs will be set here equal to the data in
+            #   the 0th group.
+            wh_min = np.where(np.logical_and(
+                np.isnan(first_diffs_sect).all(axis=0), np.isfinite(data_sect[0, :, :])))
+            if len(wh_min[0] > 0):
+                first_diffs_sect[0, :, :][wh_min] = data_sect[0, :, :][wh_min]
+
+            del wh_min
+
+        # All first differences affected by saturation and CRs have been set
+        #  to NaN, so compute the median of all non-NaN first differences.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "All-NaN.*", RuntimeWarning)
+            nan_med = np.nanmedian(first_diffs_sect, axis=0)
+
+        nan_med[np.isnan(nan_med)] = 0.  # if all first_diffs_sect are nans
+        median_diffs_2d[:, :] += nan_med
+
+    # Compute the final 2D array of differences; create rate array
+    median_rates = median_diffs_2d / nints
+    del median_diffs_2d
+    del data_sect
+
+    return median_rates
 
 
 def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans):
@@ -1114,6 +1153,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
     # Loop over data integrations
     for num_int in range(n_int):
+        ramp_data.current_integ = num_int
 
         # Loop over data sections
         for rlo in range(0, cubeshape[1], nrows):
@@ -1127,8 +1167,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Calculate results needed to compute the variance arrays
-            den_r3, den_p3, num_r3, segs_beg_3 = \
-                utils.calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg)
+            den_r3, den_p3, num_r3, segs_beg_3 = utils.calc_slope_vars(
+                ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg)
 
             segs_4[num_int, :, rlo:rhi, :] = segs_beg_3
 
@@ -2817,16 +2857,16 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     wh_pix_1r = np.where(c_mask_2d[0, :] & (np.logical_not(c_mask_2d[1, :])))
 
     if len(wh_pix_1r[0]) > 0:
-        slope_s, intercept_s, variance_s, sig_intercept_s, \
-            sig_slope_s = fit_single_read(slope_s, intercept_s, variance_s,
-                                          sig_intercept_s, sig_slope_s, npix,
-                                          data, wh_pix_1r)
+        slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s = \
+            fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
+                            sig_slope_s, npix, data, wh_pix_1r)
 
     del wh_pix_1r
 
     # For datasets having >2 groups/integrations, for any semiramp in which only
     #   the 0th and 1st group are good, set slope, etc
     wh_pix_2r = np.where(c_mask_2d.sum(axis=0) == 2)  # ramps with 2 good groups
+
     slope_s, intercept_s, variance_s, sig_slope_s, sig_intercept_s = \
         fit_double_read(c_mask_2d, wh_pix_2r, data_masked, slope_s, intercept_s,
                         variance_s, sig_slope_s, sig_intercept_s, rn_sect)
@@ -2849,8 +2889,8 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
 
     if weighting.lower() == 'optimal':  # fit using optimal weighting
         # get sums from optimal weighting
-        sumx, sumxx, sumxy, sumy, nreads_wtd, xvalues = \
-            calc_opt_sums(rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
+        sumx, sumxx, sumxy, sumy, nreads_wtd, xvalues = calc_opt_sums(
+            rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
 
         slope, intercept, sig_slope, sig_intercept = \
             calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy)

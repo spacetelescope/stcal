@@ -1,7 +1,8 @@
 import numpy as np
 
 
-def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags):
+def linearity_correction(
+        data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=None):
     """
     Apply linearity correction to individual groups in `data` to pixels that
     haven't already been flagged as saturated.
@@ -24,35 +25,107 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags):
 
     Parameters
     ----------
-    data: `np.array`
-        Array of correction coefficients in reference file.
+    data : ndarray
+        The 4D array for the SCI data.
 
-    gdq: `np.array`
-        Group dq array.
+    gdq : ndarray
+        The 4D group dq array.
 
-    pdq: `np.array`
-        Pixel dq array.
+    pdq : ndarray
+        The 2D pixel dq array.
 
-    lin_coeffs: `np.array`
-        Array containing pixel-by-pixel linearity coefficient values
-        or each term in the polynomial fit.
+    lin_coeffs : ndarray.
+        The 3D array containing pixel-by-pixel linearity coefficient
+        values for each term in the polynomial fit.
 
-    dq_flags: dict
+    dq_flags : dict
         A dictionary with at least the following keywords:
         SATURATED, NO_LIN_CORR.
 
+    zframe : ndarray or None
+        The ZEROFRAME array with dimensions (nints, nrows, ncols) or None
+
     Returns
     -------
-    data: 3D array
+    data : ndarray
+        The 4D linearly corrected SCI data.
+
+    new_pdq : ndarray
+        The updated 2D pixel data quality flags.
+
+    zframe : ndarray or None
+        If not None, the 3D linearly corrected ZEROFRAME.
+    """
+    if zframe is not None:
+        # Save off data that gets transformed during linearity processing.
+        zlin_coeffs = lin_coeffs.copy()
+        zlin_dq = lin_dq.copy()
+
+    # Do linear correction on SCI data
+    data, new_pdq = linearity_correction_branch(
+        data, gdq, pdq, lin_coeffs, lin_dq, dqflags, False)
+
+    zdata = None  # zframe needs to be returned, so initialize it to None.
+    if zframe is not None:
+        # Do linear correction on ZEROFRAME
+        # As ZEROFRAME gets processed through the pipeline, since it has no
+        # corresponding DQ array, when data is found to be bad, the data is
+        # set to ZERO.  Since zero ZEROFRAME values indicates bad data,
+        # remember where this happens.  Make a dummy ZEROFRAME DQ array and
+        # mark zeroed data as saturated.
+        wh_zero = np.where(zframe[:, :, :] == 0.)
+        zdq = np.zeros(zframe.shape, dtype=gdq.dtype)
+        zdq[zframe == 0.] = dqflags["SATURATED"]
+        zpdq = np.zeros(zframe.shape[-2:], dtype=pdq.dtype)
+
+        # Linearly correct ZEROFRAME
+        zdata, _ = linearity_correction_branch(
+            zframe, zdq, zpdq, zlin_coeffs, zlin_dq, dqflags, True)
+
+        # Ensure bad data remains bad.
+        zdata[wh_zero] = 0.
+
+    return data, new_pdq, zdata
+
+
+def linearity_correction_branch(
+        data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe):
+    """
+    Parameters
+    ----------
+    data : `np.array`
+        The data to be linearly corrected.
+
+    gdq : `np.array`
+        Group dq array.
+
+    pdq : `np.array`
+        Pixel dq array.
+
+    lin_coeffs : `np.array`
+        Array containing pixel-by-pixel linearity coefficient values
+        for each term in the polynomial fit.
+
+    dq_flags : dict
+        A dictionary with at least the following keywords:
+        SATURATED, NO_LIN_CORR.
+
+    zframe : ndarray or None
+        The ZEROFRAME array with dimensions (nints, nrows, ncols) or None
+
+    Returns
+    -------
+    data : 3D array
         Updated array of correction coefficients in reference file.
 
-    new_pdq: `np.array`
+    new_pdq : `np.array`
         Updated pixel data quality flags.
-
     """
-
     # Retrieve the ramp data cube characteristics
-    nints, ngroups, nrows, ncols = data.shape
+    if zframe:
+        nints, nrows, ncols = data.shape
+    else:
+        nints, ngroups, nrows, ncols = data.shape
 
     # Number of coeffs is equal to the number of planes in coeff cube
     ncoeffs = lin_coeffs.shape[0]
@@ -71,22 +144,52 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags):
 
     # Apply the linearity correction one integration at a time.
     for ints in range(nints):
+        if not zframe:
+            # Apply the linearity correction one group at a time
+            for plane in range(ngroups):
+                dataplane = data[ints, plane]
+                gdqplane = gdq[ints, plane]
+                linear_correct_plane(
+                    dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags)
 
-        # Apply the linearity correction one group at a time
-        for plane in range(ngroups):
+        else:
+            # ZEROFRAME processing
+            dataplane = data[ints]
+            gdqplane = gdq[ints]
+            linear_correct_plane(
+                dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags)
 
-            # Accumulate the polynomial terms into the corrected counts
-            scorr = lin_coeffs[ncoeffs - 1] * data[ints, plane]
-            for j in range(ncoeffs - 2, 0, -1):
-                scorr = (scorr + lin_coeffs[j]) * data[ints, plane]
-            scorr = lin_coeffs[0] + scorr
-            # Only use the corrected signal where the original signal value
-            # has not been flagged by the saturation step.
-            # Otherwise use the original signal.
-            data[ints, plane, :, :] = \
-                np.where(np.bitwise_and(gdq[ints, plane, :, :], dqflags['SATURATED']),
-                         data[ints, plane, :, :], scorr)
     return data, new_pdq
+
+
+def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
+    """
+    dataplane : ndarray
+        The 2D array of the frame/group plane of pixels to linearly correct.
+
+    gdqplane : ndarray
+        The DQ flags for the plane.
+
+    lin_coeffs : ndarray
+        The linearity coefficients to apply to the pixels.
+
+    ncoeffs : int
+        The number of linearity coefficients.
+
+    dqflags : dict
+        The dictionary of DQ flags.
+    """
+    # Accumulate the polynomial terms into the corrected counts
+    scorr = lin_coeffs[ncoeffs - 1] * dataplane
+    for j in range(ncoeffs - 2, 0, -1):
+        scorr = (scorr + lin_coeffs[j]) * dataplane
+    scorr = lin_coeffs[0] + scorr
+    # Only use the corrected signal where the original signal value
+    # has not been flagged by the saturation step.
+    # Otherwise use the original signal.
+    dataplane[:, :] = np.where(np.bitwise_and(gdqplane[:, :], dqflags['SATURATED']),
+                               dataplane[:, :],
+                               scorr)
 
 
 def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
