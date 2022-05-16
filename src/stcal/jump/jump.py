@@ -64,11 +64,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     four_grp_thresh : float
         cosmic ray sigma rejection threshold for ramps having 4 groups
 
-    max_cores: int or str
+    max_cores: str
         Maximum number of cores to use for multiprocessing. Available choices
-        are 1, 'quarter', 'half', 'all', or an integer. If the integer exceeds
-        the number of available cores, then it will be capped at the max number
-        available.
+        are 'none' (which will create one process), 'quarter', 'half', 'all'
+        (of availble cpu cores).
 
     max_jump_to_flag_neighbors : float
         value in units of sigma that sets the upper limit for flagging of
@@ -135,11 +134,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     # figure out how many slices to make based on 'max_cores'
 
     max_available = multiprocessing.cpu_count()
-    if type(max_cores) == int:
-        if max_cores > max_available:
-            n_slices = max_available
-        else:
-            n_slices = max_cores
+    if max_cores.lower() == 'none':
+        n_slices = 1
     elif max_cores == 'quarter':
         n_slices = max_available // 4 or 1
     elif max_cores == 'half':
@@ -171,7 +167,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         copy_arrs = False   # we dont need to copy arrays again in find_crs
 
         for i in range(n_slices - 1):
-            print('setting up slices')
             slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
                               gdq[:, :, i * yinc:(i + 1) * yinc, :],
                               readnoise_2d[i * yinc:(i + 1) * yinc, :],
