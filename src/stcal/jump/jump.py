@@ -13,7 +13,7 @@ log.setLevel(logging.DEBUG)
 
 def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  gain_2d, readnoise_2d, rejection_thresh,
-                 three_grp_thresh, four_grp_thresh, max_jump_to_flag_neighbors,
+                 three_grp_thresh, four_grp_thresh, max_cores, max_jump_to_flag_neighbors,
                  min_jump_to_flag_neighbors, flag_4_neighbors, dqflags):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -64,6 +64,12 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     four_grp_thresh : float
         cosmic ray sigma rejection threshold for ramps having 4 groups
 
+    max_cores: int or str
+        Maximum number of cores to use for multiprocessing. Available choices
+        are 1, 'quarter', 'half', 'all', or an integer. If the integer exceeds
+        the number of available cores, then it will be capped at the max number
+        available.
+
     max_jump_to_flag_neighbors : float
         value in units of sigma that sets the upper limit for flagging of
         neighbors. Any jump above this cutoff will not have its neighbors
@@ -81,6 +87,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     dqflags: dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
+
+
 
     Returns
     -------
@@ -124,36 +132,20 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                       dtype=np.uint8)
     row_below_gdq = np.zeros((n_ints, n_groups, n_cols), dtype=np.uint8)
 
-    # 05/18/21 - When multiprocessing is enabled, the input data cube is split
-    # into a number of row slices, based on the number or avalable cores.
-    # Multiprocessing has been disabled for now, so the nunber of slices
-    # is here set to 1. I'm leaving the related code in to ease the eventual
-    # re-enablement of this code.
-    n_slices = 1
+    # figure out how many slices to make based on 'max_cores'
 
-    yinc = int(n_rows / n_slices)
-    slices = []
-    # Slice up data, gdq, readnoise_2d into slices
-    # Each element of slices is a tuple of
-    # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
-    #  four_grp_thresh, nframes)
-    for i in range(n_slices - 1):
-        slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
-                          gdq[:, :, i * yinc:(i + 1) * yinc, :],
-                          readnoise_2d[i * yinc:(i + 1) * yinc, :],
-                          rejection_thresh, three_grp_thresh, four_grp_thresh,
-                          frames_per_group, flag_4_neighbors,
-                          max_jump_to_flag_neighbors,
-                          min_jump_to_flag_neighbors))
-
-    # last slice get the rest
-    slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
-                                 gdq[:, :, (n_slices - 1) * yinc:n_rows, :],
-                                 readnoise_2d[(n_slices - 1) * yinc:n_rows, :],
-                                 rejection_thresh, three_grp_thresh,
-                                 four_grp_thresh, frames_per_group,
-                                 flag_4_neighbors, max_jump_to_flag_neighbors,
-                                 min_jump_to_flag_neighbors))
+    max_available = multiprocessing.cpu_count()
+    if type(max_cores) == int:
+        if max_cores > max_available:
+            n_slices = max_available
+        else:
+            n_slices = max_cores
+    elif max_cores == 'quarter':
+        n_slices = max_available // 4 or 1
+    elif max_cores == 'half':
+        n_slices = max_available // 2 or 1
+    elif max_cores == 'all':
+        n_slices = max_available
 
     if n_slices == 1:
         gdq, row_below_dq, row_above_dq = \
@@ -164,6 +156,38 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
         elapsed = time.time() - start
     else:
+        yinc = int(n_rows / n_slices)
+        slices = []
+        # Slice up data, gdq, readnoise_2d into slices
+        # Each element of slices is a tuple of
+        # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
+        #  four_grp_thresh, nframes)
+
+        # must copy arrays here, find_crs will make copies but if slices
+        # are being passed in for multiprocessing then the original gdq will be
+        # modified unless copied beforehand
+        gdq = gdq.copy()
+        data = data.copy()
+        copy_arrs = False   # we dont need to copy arrays again in find_crs
+
+        for i in range(n_slices - 1):
+            print('setting up slices')
+            slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
+                              gdq[:, :, i * yinc:(i + 1) * yinc, :],
+                              readnoise_2d[i * yinc:(i + 1) * yinc, :],
+                              rejection_thresh, three_grp_thresh, four_grp_thresh,
+                              frames_per_group, flag_4_neighbors,
+                              max_jump_to_flag_neighbors,
+                              min_jump_to_flag_neighbors, dqflags, copy_arrs))
+
+        # last slice get the rest
+        slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
+                                     gdq[:, :, (n_slices - 1) * yinc:n_rows, :],
+                                     readnoise_2d[(n_slices - 1) * yinc:n_rows, :],
+                                     rejection_thresh, three_grp_thresh,
+                                     four_grp_thresh, frames_per_group,
+                                     flag_4_neighbors, max_jump_to_flag_neighbors,
+                                     min_jump_to_flag_neighbors, dqflags, copy_arrs))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one

@@ -8,7 +8,7 @@ log.setLevel(logging.DEBUG)
 def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
-             min_jump_to_flag_neighbors, dqflags):
+             min_jump_to_flag_neighbors, dqflags, copy_arrs=True):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -54,6 +54,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         neighbors (marginal detections). Any primary jump below this value will
         not have its neighbors flagged.
 
+    copy_arrs : bool
+        Flag for making internal copies of the arrays so the input isn't modified,
+        defaults to True.
+
     Returns
     -------
     gdq : int, 4D array
@@ -68,8 +72,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     """
 
     # copy data and group DQ array
-    dataa = dataa.copy()
-    gdq = group_dq.copy()
+    if copy_arrs:
+        dataa = dataa.copy()
+        gdq = group_dq.copy()
 
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
