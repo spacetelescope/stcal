@@ -76,7 +76,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         dataa = dataa.copy()
         gdq = group_dq.copy()
     else:
-        group_dq = gdq
+        gdq = group_dq
 
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
