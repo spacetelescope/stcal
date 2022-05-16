@@ -1,3 +1,13 @@
+0.7.2 (unreleased)
+==================
+
+0.7.1 (2022-05-16)
+==================
+
+jump
+---- 
+- Enable multiprocessing for jump detection, which is controlled by the 'max_cores' parameter. [#87]
+
 0.7.0 (2022-05-13)
 ==================
 
