@@ -49,11 +49,12 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     ramp_data = ramp_fit_class.RampData()
 
-    if not suppress_one_group and model.meta.exposure.zero_frame:
-        # ZEROFRAME processing here
-        zframe_locs, cnt = use_zeroframe_for_saturated_ramps(model, dqflags)
-        ramp_data.zframe_locs = zframe_locs
-        ramp_data.zframe_cnt = cnt
+    if not suppress_one_group and hasattr(model.meta.exposure, 'zero_frame'):
+        if model.meta.exposure.zero_frame:
+            # ZEROFRAME processing here
+            zframe_locs, cnt = use_zeroframe_for_saturated_ramps(model, dqflags)
+            ramp_data.zframe_locs = zframe_locs
+            ramp_data.zframe_cnt = cnt
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     if hasattr(model, 'int_times'):
