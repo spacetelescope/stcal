@@ -251,8 +251,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                     np.bitwise_or(gdq[integ, group, row, col - 1], jump_flag)
 
                     if cr_col[j] != ncols - 1:
-                        if (gdq[integ, group, row, col - 1] & sat_flag) == 0:
-                            if (gdq[integ, group, row, col - 1] & dnu_flag) == 0:
+                        if (gdq[integ, group, row, col + 1] & sat_flag) == 0:
+                            if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
     return gdq, row_below_gdq, row_above_gdq
