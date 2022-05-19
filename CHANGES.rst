@@ -1,5 +1,12 @@
-0.7.2 (unreleased)
+0.7.2 (2022-05-19)
 ==================
+
+ramp_fitting
+------------
+
+- Fix for accessing zero-frame in model to account for Roman data not using
+  zero-frame. [#89]
+
 
 0.7.1 (2022-05-16)
 ==================
