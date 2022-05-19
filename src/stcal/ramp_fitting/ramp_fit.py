@@ -236,6 +236,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Suppress one group ramps, if desired.
         if ramp_data.suppress_one_group_ramps:
+            log.info("Suppressing the first group when saturated in second group")
             suppress_one_group_saturated_ramps(ramp_data)
 
         # Compute ramp fitting using ordinary least squares.
@@ -259,6 +260,7 @@ def suppress_one_group_saturated_ramps(ramp_data):
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
     sat_flag = ramp_data.flags_saturated
+    jump_flag = ramp_data.flags_jump_det
 
     ramp_data.one_groups = [None] * nints
 
@@ -270,6 +272,17 @@ def suppress_one_group_saturated_ramps(ramp_data):
         # the remainder of the ramp.
         wh_one = groups_saturated_in_integration(intdq, sat_flag, ngroups - 1)
 
+        sat_groups = np.zeros(intdq.shape, dtype=int)
+        sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
+        jump_groups = np.zeros(intdq.shape, dtype=int)
+        jump_groups[np.where(np.bitwise_and(intdq, jump_flag))] = 1
+        sat_groups[np.where(intdq == 1)] = 1
+        jump_groups[np.where(intdq == 4)] = 1
+        nsat_groups = sat_groups.sum(axis=0)
+        njump_groups = jump_groups.sum(axis=0)
+        nbad_groups = nsat_groups + njump_groups
+        wh_one = np.where(nbad_groups == (ngroups - 1))
+
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
         for n in range(len(wh1_rows)):
@@ -277,9 +290,9 @@ def suppress_one_group_saturated_ramps(ramp_data):
             col = wh1_cols[n]
             # For ramps that have good 0th group, but the rest of the
             # ramp saturated, mark the 0th groups as saturated, too.
-
-            if ramp_data.groupdq[integ, 0, row, col] == 0:
-                ramp_data.groupdq[integ, 0, row, col] = sat_flag
+            good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
+            if ramp_data.groupdq[integ, good_index, row, col] == 0:
+                ramp_data.groupdq[integ, good_index, row, col] = sat_flag
                 sat_pix = (row, col)
                 ramp_data.one_groups[integ].append(sat_pix)
 
