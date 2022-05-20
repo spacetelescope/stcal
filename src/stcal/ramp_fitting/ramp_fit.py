@@ -236,7 +236,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Suppress one group ramps, if desired.
         if ramp_data.suppress_one_group_ramps:
-            suppress_one_group_saturated_ramps(ramp_data)
+            suppress_one_group_saturated_or_jump_ramps(ramp_data)
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
@@ -246,7 +246,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
     return image_info, integ_info, opt_info, gls_opt_info
 
 
-def suppress_one_group_saturated_ramps(ramp_data):
+def suppress_one_group_saturated_or_jump_ramps(ramp_data):
     """
     Finds one group ramps in each integration and suppresses them, i.e. turns
     them into zero group ramps.
