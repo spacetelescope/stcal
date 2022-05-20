@@ -261,12 +261,12 @@ def test_utils_dq_compress_final():
     var = (rnoise_val, gain_val)
     tm = (nframes, gtime, dtime)
     ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+
     ramp_data.groupdq[0, :, 0, 0] = np.array([dqflags["SATURATED"]] * ngroups)
     ramp_data.groupdq[1, :, 0, 0] = np.array([dqflags["SATURATED"]] * ngroups)
 
-    ramp_data.groupdq[0, 1:, 0, 1] = np.array([dqflags["SATURATED"]] * (ngroups - 1))
-    ramp_data.groupdq[1, 1:, 0, 1] = np.array([6] * (ngroups - 1))
-    ramp_data.suppress_one_group_ramps = True
+    ramp_data.groupdq[0, :, 0, 1] = np.array([dqflags["SATURATED"]] * ngroups)
+
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
