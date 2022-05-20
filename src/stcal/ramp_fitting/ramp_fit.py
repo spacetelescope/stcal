@@ -267,20 +267,12 @@ def suppress_one_group_saturated_ramps(ramp_data):
     for integ in range(nints):
         ramp_data.one_groups[integ] = []
         intdq = dq[integ, :, :, :]
-
-        # Find ramps with a good zeroeth group, but saturated in
-        # the remainder of the ramp.
-        wh_one = groups_saturated_in_integration(intdq, sat_flag, ngroups - 1)
-
-        sat_groups = np.zeros(intdq.shape, dtype=int)
-        sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
-        jump_groups = np.zeros(intdq.shape, dtype=int)
-        jump_groups[np.where(np.bitwise_and(intdq, jump_flag))] = 1
-        sat_groups[np.where(intdq == 1)] = 1
-        jump_groups[np.where(intdq == 4)] = 1
-        nsat_groups = sat_groups.sum(axis=0)
-        njump_groups = jump_groups.sum(axis=0)
-        nbad_groups = nsat_groups + njump_groups
+        # Find ramps with only one group that is not saturated and
+        # not jump (ie only one good group)
+        bad_flags = np.bitwise_or(sat_flag, jump_flag)
+        bad_groups = np.zeros(intdq.shape, dtype=int)
+        bad_groups[np.where(np.bitwise_and(intdq, bad_flags))] = 1
+        nbad_groups = bad_groups.sum(axis=0)
         wh_one = np.where(nbad_groups == (ngroups - 1))
 
         wh1_rows = wh_one[0]
@@ -288,8 +280,7 @@ def suppress_one_group_saturated_ramps(ramp_data):
         for n in range(len(wh1_rows)):
             row = wh1_rows[n]
             col = wh1_cols[n]
-            # For ramps that have good 0th group, but the rest of the
-            # ramp saturated, mark the 0th groups as saturated, too.
+            # For ramps that have only one good group, mark that group as saturated
             good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
             if ramp_data.groupdq[integ, good_index, row, col] == 0:
                 ramp_data.groupdq[integ, good_index, row, col] = sat_flag
