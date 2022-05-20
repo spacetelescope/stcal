@@ -1,3 +1,11 @@
+0.7.3 (unreleased)
+==================
+
+ramp_fitting
+------------
+
+- Updating the one good group ramp suppression handler works. [#92]
+
 0.7.2 (2022-05-19)
 ==================
 
