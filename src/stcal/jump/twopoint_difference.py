@@ -8,7 +8,8 @@ log.setLevel(logging.DEBUG)
 def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
-             min_jump_to_flag_neighbors, dqflags, copy_arrs=True):
+             min_jump_to_flag_neighbors, flag_n_after_jump, dqflags,
+             copy_arrs=True):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -53,6 +54,10 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         value in units of sigma that sets the lower limit for flagging of
         neighbors (marginal detections). Any primary jump below this value will
         not have its neighbors flagged.
+
+    flag_n_after_jump : int
+        flag n groups after a jump to remove the transient seen from the
+        slope calculation
 
     copy_arrs : bool
         Flag for making internal copies of the arrays so the input isn't modified,
@@ -138,7 +143,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                   max_ratio > two_diff_rej_thresh))
 
         log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
-        log.info(log_str.format(len(row4cr), 'five'))
+        log.info(log_str.format(len(row4cr), 'five or more'))
         log.info(log_str.format(len(row3cr), 'four'))
         log.info(log_str.format(len(row2cr), 'three'))
 
@@ -255,6 +260,26 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                             if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
+
+        # flag n groups after all jumps to account for the transient seen
+        if flag_n_after_jump > 0:
+            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
+
+            for j in range(len(cr_group)):
+                group = cr_group[j]
+                row = cr_row[j]
+                col = cr_col[j]
+                # print(j)
+                # print(gdq[integ, :, row, col])
+                for kk in range(group, min(group + flag_n_after_jump, ngroups)):
+                    if (gdq[integ, kk, row, col] & sat_flag) == 0:
+                        if (gdq[integ, kk, row, col] & dnu_flag) == 0:
+                            gdq[integ, kk, row, col] =\
+                                np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+                # print(gdq[integ, :, row, col])
+                # if j > 10:
+                #     exit()
+
     return gdq, row_below_gdq, row_above_gdq
 
 

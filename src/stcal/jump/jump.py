@@ -144,12 +144,13 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     elif max_cores == 'all':
         n_slices = max_available
 
+    flag_n_after_jump = 5
     if n_slices == 1:
         gdq, row_below_dq, row_above_dq = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
-                           min_jump_to_flag_neighbors, dqflags)
+                           min_jump_to_flag_neighbors, flag_n_after_jump, dqflags)
 
         elapsed = time.time() - start
     else:
@@ -174,7 +175,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               rejection_thresh, three_grp_thresh, four_grp_thresh,
                               frames_per_group, flag_4_neighbors,
                               max_jump_to_flag_neighbors,
-                              min_jump_to_flag_neighbors, dqflags, copy_arrs))
+                              min_jump_to_flag_neighbors, flag_n_after_jump, dqflags,
+                              copy_arrs))
 
         # last slice get the rest
         slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
@@ -183,7 +185,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                      rejection_thresh, three_grp_thresh,
                                      four_grp_thresh, frames_per_group,
                                      flag_4_neighbors, max_jump_to_flag_neighbors,
-                                     min_jump_to_flag_neighbors, dqflags, copy_arrs))
+                                     min_jump_to_flag_neighbors, flag_n_after_jump,
+                                     dqflags, copy_arrs))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one
