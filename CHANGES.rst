@@ -1,6 +1,11 @@
 1.2.2 (unreleased)
 ==================
 
+General
+-------
+
+- Moved build configuration from ``setup.cfg`` to ``pyproject.toml`` to support PEP621 [#95]
+
 
 
 1.2.1 (2022-10-14)

@@ -1,6 +1,66 @@
+[project]
+name = 'stcal'
+description = 'STScI tools and algorithms used in calibration pipelines'
+readme = 'README.md'
+requires-python = '>=3.8'
+license = { file = 'LICENSE' }
+authors = [{ name = 'STScI' }]
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'Topic :: Scientific/Engineering :: Astronomy',
+    'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python :: 3',
+]
+dependencies = [
+    'astropy >=5.0.4',
+    'scipy >=1.6.0',
+    'numpy >=1.17',
+]
+dynamic = ['version']
+
+[project.optional-dependencies]
+docs = [
+    'numpydoc',
+    'packaging >=17',
+    'sphinx',
+    'sphinx-astropy',
+    'sphinx-rtd-theme',
+    'stsci-rtd-theme',
+    'toml',
+]
+test = [
+    'psutil',
+    'pytest >=4.6.0',
+    'pytest-cov',
+    'pytest-doctestplus',
+    'pytest-openfiles >=0.5.0',
+]
+
+[project.urls]
+'repository' = 'https://github.com/spacetelescope/stcal'
+'tracker' = 'https://github.com/spacetelescope/stcal/issues'
+
 [build-system]
-requires = ["setuptools>=42", "setuptools_scm[toml]>=3.4", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = [
+    'setuptools >=42',
+    'setuptools_scm[toml] >=3.4',
+    'wheel',
+]
+build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
-write_to = "src/stcal/_version.py"
+write_to = 'src/stcal/_version.py'
+
+[tool.setuptools]
+zip-safe = true
+
+[tool.setuptools.packages.find]
+where = ['src']
+
+[tool.pytest]
+minversion = 4.6
+doctest_plus = true
+doctest_rst = true
+text_file_format = 'rst'
+addopts = '--open-files'
+
