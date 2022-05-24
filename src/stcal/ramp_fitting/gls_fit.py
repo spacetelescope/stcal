@@ -51,20 +51,6 @@ HUGE_FOR_LOW_WEIGHT = 1.e20
 FIT_MUST_BE_POSITIVE = 1.e10
 
 
-################################################################################
-# DEBUGGING
-def print_with_info(string):
-    import inspect
-    cf = inspect.currentframe()
-    lineno = cf.f_back.f_lineno     # Line number from caller
-    finfo = inspect.getframeinfo(cf.f_back)
-    fname = finfo.filename          # File name from caller
-    print("-" * 80)
-    print(f"[{fname}:{lineno}] {string}")
-    print("-" * 80)
-################################################################################
-
-
 def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores):
     """
     Fit a ramp using generalized least squares.
