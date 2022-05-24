@@ -1,6 +1,10 @@
 0.7.4 (unreleased)
 ==================
 
+general
+-------
+- Update CI workflows to cache test environments and depend upon style and security checks [#96]
+
 0.7.3 (2022-05-20)
 ==================
 

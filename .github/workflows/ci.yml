@@ -14,73 +14,136 @@ on:
     - cron: '0 9 * * 1'
 
 env:
-  CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-  CRDS_PATH: ~/crds_cache
+  CRDS_PATH: $HOME/crds_cache
   CRDS_CLIENT_RETRY_COUNT: 3
   CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
 
 jobs:
-  tox:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runs-on }}
+  style:
+    name: Code style checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.pythonLocation }}
+          key: style-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install pyproject-flake8
+      - run: pflake8 --count src
+  audit:
+    name: Bandit security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.pythonLocation }}
+          key: audit-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install bandit
+      - run: bandit -r -ll src
+  test:
+    name: test
+    needs: [ style, audit ]
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Python 3.10
-            runs-on: ubuntu-latest
-            python-version: '3.10'
-            toxenv: py310
-
-          - name: Python 3.9 with coverage
-            runs-on: ubuntu-latest
-            python-version: 3.9
-            toxenv: py39-cov
-
-          - name: macOS
-            runs-on: macos-latest
-            python-version: 3.9
-            toxenv: py39
-
-          - name: Code style checks
-            runs-on: ubuntu-latest
-            python-version: 3.9
-            toxenv: style
-
-          - name: Security audit
-            runs-on: ubuntu-latest
-            python-version: 3.9
-            toxenv: bandit
-
-          - name: jwst tests with coverage
-            runs-on: ubuntu-latest
-            python-version: 3.9
-            toxenv: jwst-cov
-
-          - name: romancal tests with coverage
-            runs-on: ubuntu-latest
-            python-version: 3.9
-            toxenv: romancal-cov
+        python: [ 3.8, 3.9, '3.10' ]
+        os: [ ubuntu-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
         with:
-          fetch-depth: 0
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+          python-version: ${{ matrix.python }}
+      - uses: actions/cache@v3
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install tox
-        run: |
-          pip install tox
-
-      - name: Run tox
-        run: tox -e ${{ matrix.toxenv }}
-
-      - name: Upload coverage to codecov
-        if: ${{ contains(matrix.toxenv,'-cov') }}
-        uses: codecov/codecov-action@v2
+          path: ${{ env.pythonLocation }}
+          key: test-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install ".[test]" pytest-xdist
+      - run: pip freeze
+      - run: pytest -n auto
+  test_with_coverage:
+    name: test base library with coverage
+    needs: [ style, audit ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.pythonLocation }}
+          key: test-coverage-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install ".[test]" pytest-xdist pytest-cov
+      - run: pip freeze
+      - run: pytest -n auto --cov-report=xml --cov=src/stcal
+      - run: coverage report -m
+      - uses: codecov/codecov-action@v2
         with:
           file: ./coverage.xml
-          fail_ci_if_error: true
+  test_jwst_with_coverage:
+    name: test JWST pipeline with coverage
+    needs: [ style, audit ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.pythonLocation }}
+          key: test-coverage-jwst-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install ".[test]" pytest-xdist pytest-cov
+      - run: pip install "jwst[test] @ git+https://github.com/spacetelescope/jwst.git"
+      - run: pip freeze
+      - run: pytest -n auto --cov-report=xml --cov=src/stcal --ignore-glob=timeconversion --ignore-glob=associations --pyargs jwst
+        env:
+          CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+      - run: coverage report -m
+      - uses: codecov/codecov-action@v2
+        with:
+          file: ./coverage.xml
+  test_roman_with_coverage:
+    name: test Roman pipeline with coverage
+    needs: [ style, audit ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.pythonLocation }}
+          key: test-coverage-roman-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install ".[test]" pytest-xdist pytest-cov
+      - run: pip install "romancal[test] @ git+https://github.com/spacetelescope/romancal.git"
+      - run: pip freeze
+      - run: pytest -n auto --cov-report=xml --cov=src/stcal --pyargs romancal
+        env:
+          CRDS_SERVER_URL: https://roman-crds-test.stsci.edu
+      - run: coverage report -m
+      - uses: codecov/codecov-action@v2
+        with:
+          file: ./coverage.xml
+  build-docs:
+    name: Build documentation and check warnings
+    needs: [ test ]
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install graphviz texlive-latex-extra dvipng
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.pythonLocation }}
+          key: build-docs-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
+      - run: pip install ".[docs]"
+      - run: sphinx-build -W docs docs/_build
+
