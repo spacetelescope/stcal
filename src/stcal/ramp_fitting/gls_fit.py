@@ -563,6 +563,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
         ampl_int, ampl_err_int) = create_opt_res(save_opt, data_sect.shape, max_num_cr)
 
+    med_rates = None
     if ngroups == 1:
         med_rates = utils.compute_median_rates(ramp_data)
 
@@ -1076,6 +1077,7 @@ def determine_slope_one_group(
     if ramp_data.zframe_locs:
         for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
             row, col = pix
+            slope_sect = data_sect[0, row, col] / frame_time
             var_r[row, col] = 12. * (rn_sect[row, col] / frame_time)**2.
             var_p[row, col] = med_rates[row, col] / (frame_time * gain_sect[row, col])
     slope_var_sect = var_r + var_p
