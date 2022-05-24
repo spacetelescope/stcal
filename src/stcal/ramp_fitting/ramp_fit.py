@@ -49,6 +49,13 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     ramp_data = ramp_fit_class.RampData()
 
+    if not suppress_one_group and hasattr(model.meta.exposure, 'zero_frame'):
+        if model.meta.exposure.zero_frame:
+            # ZEROFRAME processing here
+            zframe_locs, cnt = use_zeroframe_for_saturated_ramps(model, dqflags)
+            ramp_data.zframe_locs = zframe_locs
+            ramp_data.zframe_cnt = cnt
+
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     if hasattr(model, 'int_times'):
         int_times = model.int_times
@@ -229,7 +236,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Suppress one group ramps, if desired.
         if ramp_data.suppress_one_group_ramps:
-            suppress_one_group_saturated_ramps(ramp_data)
+            suppress_one_group_saturated_or_jump_ramps(ramp_data)
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
@@ -239,19 +246,20 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
     return image_info, integ_info, opt_info, gls_opt_info
 
 
-def suppress_one_group_saturated_ramps(ramp_data):
+def suppress_one_group_saturated_or_jump_ramps(ramp_data):
     """
     Finds one group ramps in each integration and suppresses them, i.e. turns
     them into zero group ramps.
 
     Parameter
     ---------
-    model : data model
+    ramp_data : RampData
         input data model, assumed to be of type RampModel
     """
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
     sat_flag = ramp_data.flags_saturated
+    jump_flag = ramp_data.flags_jump_det
 
     ramp_data.one_groups = [None] * nints
 
@@ -259,12 +267,13 @@ def suppress_one_group_saturated_ramps(ramp_data):
         ramp_data.one_groups[integ] = []
         intdq = dq[integ, :, :, :]
 
-        # Find ramps with a good zeroeth group, but saturated in
-        # the remainder of the ramp.
-        sat_groups = np.zeros(intdq.shape, dtype=int)
-        sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
-        nsat_groups = sat_groups.sum(axis=0)
-        wh_one = np.where(nsat_groups == (ngroups - 1))
+        # Find ramps with only one group that is not saturated and
+        # not jump (i.e., only one good group).
+        bad_flags = np.bitwise_or(sat_flag, jump_flag)
+        bad_groups = np.zeros(intdq.shape, dtype=int)
+        bad_groups[np.where(np.bitwise_and(intdq, bad_flags))] = 1
+        nbad_groups = bad_groups.sum(axis=0)
+        wh_one = np.where(nbad_groups == (ngroups - 1))
 
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
@@ -278,3 +287,80 @@ def suppress_one_group_saturated_ramps(ramp_data):
                 ramp_data.groupdq[integ, 0, row, col] = sat_flag
                 sat_pix = (row, col)
                 ramp_data.one_groups[integ].append(sat_pix)
+
+
+def use_zeroframe_for_saturated_ramps(model, dqflags):
+    """
+    For saturated ramps, if there is good data in the ZEROFRAME, replace
+    group zero with the data in ZEROFRAME to use the ramp as a one group
+    ramp.
+
+    Parameters
+    ----------
+    model : data model
+        input data model, assumed to be of type RampModel
+
+    dqflags : dict
+        The data quality flags needed for ramp fitting.
+
+    Return
+    ------
+    zframe_locs : list
+        A 2D list for the location of the ramps using ZEROFRAME data.
+        zframe_locs[k] is the list of pixels in the kth integration.
+    """
+    nints, ngroups, nrows, ncols = model.data.shape
+    sat_flag = dqflags["SATURATED"]
+    good_flag = dqflags["GOOD"]
+    dq = model.groupdq
+
+    zframe_locs = [None] * nints
+
+    cnt = 0
+    for integ in range(nints):
+        zframe_locs[integ] = []
+        intdq = dq[integ, :, :, :]
+
+        # Find ramps with a good zeroeth group, but saturated in
+        # the remainder of the ramp.
+        wh_sat = groups_saturated_in_integration(intdq, sat_flag, ngroups)
+
+        whs_rows = wh_sat[0]
+        whs_cols = wh_sat[1]
+        for n in range(len(whs_rows)):
+            row = whs_rows[n]
+            col = whs_cols[n]
+
+            # For ramps completely saturated look for data in the ZEROFRAME
+            # that is non-zero.  If it is non-zero, replace group zero in the
+            # ramp with the data in ZEROFRAME.
+            if model.zeroframe[integ, row, col] != 0:
+                zframe_locs[integ].append((row, col))
+                model.data[integ, 0, row, col] = model.zeroframe[integ, row, col]
+                model.groupdq[integ, 0, row, col] = good_flag
+                cnt = cnt + 1
+
+    return zframe_locs, cnt
+
+
+def groups_saturated_in_integration(intdq, sat_flag, num_sat_groups):
+    """
+    Find the ramps in an integration that have num_sat_groups saturated.
+
+    Parameters
+    ----------
+    intdq : ndarray
+        DQ flags for an integration
+
+    sat_flag : uint
+        The data quality flag for SATURATED
+
+    num_sat_groups : int
+        The number of saturated groups in an integration of interest.
+    """
+    sat_groups = np.zeros(intdq.shape, dtype=int)
+    sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
+    nsat_groups = sat_groups.sum(axis=0)
+    wh_nsat_groups = np.where(nsat_groups == num_sat_groups)
+
+    return wh_nsat_groups

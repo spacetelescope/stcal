@@ -26,6 +26,10 @@ class RampData:
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
 
+        # ZEROFRAME
+        self.zframe_locs = None
+        self.zframe_cnt = 0
+
         # Slice info
         self.start_row = None
         self.num_rows = None
@@ -33,6 +37,8 @@ class RampData:
         # One group ramp suppression for saturated ramps after 0th group.
         self.suppress_one_group_ramps = False
         self.one_groups = None
+
+        self.current_integ = -1
 
     def set_arrays(self, data, err, groupdq, pixeldq, int_times):
         """

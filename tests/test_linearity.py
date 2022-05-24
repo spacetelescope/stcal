@@ -8,12 +8,23 @@ import numpy as np
 
 from stcal.linearity.linearity import linearity_correction
 
-DQFLAGS = {'GOOD': 0, 'DO_NOT_USE': 1, 'SATURATED': 2, 'DEAD': 1024, 'HOT': 2048, 'NO_LIN_CORR': 1048576}
+DQFLAGS = {
+    'GOOD': 0,
+    'DO_NOT_USE': 1,
+    'SATURATED': 2,
+    'DEAD': 1024,
+    'HOT': 2048,
+    'NO_LIN_CORR': 1048576}
+
+DELIM = "-" * 80
 
 
 def test_coeff_dq():
-    """Test linearity algorithm with random data ramp (does algorithm match expected algorithm)
-    also test a variety of dq flags and expected output """
+    """
+    Test linearity algorithm with random data ramp (does
+    algorithm match expected algorithm) also test a variety
+    of dq flags and expected output
+    """
 
     # size of integration
     nints = 1
@@ -82,7 +93,8 @@ def test_coeff_dq():
     np.bitwise_or(pdq, lin_dq)
 
     # run linearity correction
-    output_data, output_pdq = linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, DQFLAGS)
+    output_data, output_pdq, _ = linearity_correction(
+        data, gdq, pdq, lin_coeffs, lin_dq, DQFLAGS)
 
     # check that multiplication of polynomial was done correctly for specified pixel
     outval = L0 + (L1 * scival) + (L2 * scival**2) + (L3 * scival**3) + (L4 * scival**4)
@@ -98,3 +110,56 @@ def test_coeff_dq():
     assert output_data[0, 50, 20, 50] == 500.0
     # dq for pixel with all zero lin coeffs should be NO_LIN_CORR
     assert output_pdq[25, 25] == DQFLAGS['NO_LIN_CORR']
+
+
+def create_science_data(dims, ncoeffs):
+    """
+    Create science data arrays with specific dimensions.
+
+    dims : tuple
+        The dimensions of the science data (nints, ngroups, nrows, ncols).
+
+    ncoeffs : int
+        The number of coefficients for the linear correction.
+    """
+    nints, ngroups, nrows, ncols = dims
+    image_shape = (nrows, ncols)
+    coeffs_shape = (ncoeffs, nrows, ncols)
+
+    data = np.zeros(dims, dtype=float)
+    gdq = np.zeros(dims, dtype=np.uint8)
+    pdq = np.zeros(image_shape, dtype=np.uint8)
+    zframe = np.zeros((nints, nrows, ncols), dtype=float)
+
+    lin_coeffs = np.zeros(coeffs_shape, dtype=float)
+    lin_dq = np.zeros(image_shape, dtype=np.uint32)
+
+    return data, gdq, pdq, lin_coeffs, lin_dq, zframe
+
+
+def test_zero_frame():
+    """
+    Check to make sure the ZEROFRAME properly gets corrected.
+    """
+
+    nints, ngroups, nrows, ncols = 1, 5, 1, 2
+    ncoeffs = 5
+    dims = nints, ngroups, nrows, ncols
+    ncoeffs = 5
+
+    data, gdq, pdq, lin_coeffs, lin_dq, zframe = create_science_data(dims, ncoeffs)
+
+    base = 31.459
+    data[0, :, 0, 0] = np.array([(k + 1) * base for k in range(ngroups)], dtype=float)
+    zframe[0, 0, :] = np.array([data[0, 0, 0, 0] * 0.666666, 0.])
+
+    lin_base = 2.718 / (base * 10.)
+    coeffs = np.array([lin_base**(k) for k in range(ncoeffs)], dtype=float)
+    lin_coeffs[:, 0, 0] = coeffs
+
+    output_data, output_pdq, new_zframe = linearity_correction(
+        data, gdq, pdq, lin_coeffs, lin_dq, DQFLAGS, zframe)
+
+    zcheck = np.zeros((nints, nrows, ncols), dtype=float)
+    zcheck[0, 0, :] = np.array([1.22106063, 0.])
+    np.testing.assert_almost_equal(new_zframe, zcheck, decimal=5)

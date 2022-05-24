@@ -1,7 +1,66 @@
-0.6.3 (unreleased)
+0.7.4 (unreleased)
+==================
+
+0.7.3 (2022-05-20)
+==================
+
+ramp_fitting
+------------
+
+- Updating the one good group ramp suppression handler works. [#92]
+
+0.7.2 (2022-05-19)
+==================
+
+ramp_fitting
+------------
+
+- Fix for accessing zero-frame in model to account for Roman data not using
+  zero-frame. [#89]
+
+
+0.7.1 (2022-05-16)
+==================
+
+jump
+---- 
+- Enable multiprocessing for jump detection, which is controlled by the 'max_cores' parameter. [#87]
+
+0.7.0 (2022-05-13)
+==================
+
+linearity
+---------
+- Added functionality to linearly process ZEROFRAME data the same way
+  as the SCI data. [#81]
+
+ramp_fitting
+------------
+- Added functionality to use ZEROFRAME data in place of group 0 data
+  for ramps that are fully saturated, but still have good ZEROFRAME
+  data. [#81]
+
+saturation
+---------- 
+- Added functionality to process ZEROFRAME data for saturation the same
+  way as the SCI data. [#81]
+
+
+0.6.4 (2022-05-02)
+==================
+
+saturation
+---------- 
+
+- Added in functionality to deal with charge spilling from saturated pixels onto neighboring pixels [#83]
+
+0.6.3 (2022-04-27)
 ==================
 
 - Pin astropy min version to 5.0.4. [#82]
+
+- Fix for jumps in first good group after dropping groups [#84]
+  
 
 0.6.2 (22-03-29)
 ================
@@ -9,6 +68,12 @@
 jump
 ----
 - Neighboring pixels with 'SATURATION' or 'DONOTUSE' flags are no longer flagged as jumps. [#79]
+
+ramp_fitting
+------------
+
+- Adding feature to use ZEROFRAME for ramps that are fully saturated, but
+  the ZEROFRAME data for that ramp is good. [#81]
 
 0.6.1 (22-03-04)
 ================
