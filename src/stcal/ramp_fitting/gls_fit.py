@@ -903,7 +903,7 @@ def determine_slope(
         The jump detection flag.
 
     med_rates : ndarray
-        A 2D array for the median rate for each pixel.        
+        A 2D array for the median rate for each pixel.
 
     Returns
     -------
@@ -926,9 +926,9 @@ def determine_slope(
     ngroups, nrows, ncols = data_sect.shape
     if ngroups == 1:
         return determine_slope_one_group(
-                ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
-                frame_time, group_time, nframes_used, max_num_cr, saturated_flag,
-                jump_flag, med_rates)
+            ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect,
+            gain_sect, frame_time, group_time, nframes_used, max_num_cr,
+            saturated_flag, jump_flag, med_rates)
 
     slope_diff_cutoff = 1.e-5
 
@@ -1078,7 +1078,7 @@ def determine_slope_one_group(
         for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
             row, col = pix
             slope_sect = data_sect[0, row, col] / frame_time
-            var_r[row, col] = 12. * (rn_sect[row, col] / frame_time)**2.
+            var_r[row, col] = 12. * (readnoise_sect[row, col] / frame_time)**2.
             var_p[row, col] = med_rates[row, col] / (frame_time * gain_sect[row, col])
     slope_var_sect = var_r + var_p
 
