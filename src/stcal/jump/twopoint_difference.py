@@ -263,6 +263,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
 
         # flag n groups after all jumps to account for the transient seen
         if flag_n_after_jump > 0:
+            log.info(f"Flagging {flag_n_after_jump} extra groups after all detected jumps.")
+
             cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
 
             for j in range(len(cr_group)):
@@ -279,6 +281,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                 # print(gdq[integ, :, row, col])
                 # if j > 10:
                 #     exit()
+        else:
+            log.info("No extra groups flagged after detected jumps.")
 
     return gdq, row_below_gdq, row_above_gdq
 
