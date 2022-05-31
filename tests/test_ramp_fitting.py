@@ -74,7 +74,7 @@ def test_neg_med_rates_single_integration_integ():
         base_neg_med_rates_single_integration()
 
     sdata, sdq, svp, svr, serr = slopes
-    idata, idq, ivp, ivr, int_times, ierr = cube
+    idata, idq, ivp, ivr, ierr = cube
     tol = 1e-6
 
     np.testing.assert_allclose(idata[0, :, :], sdata, tol)
@@ -154,11 +154,11 @@ def test_neg_med_rates_multi_integration_integ():
         base_neg_med_rates_multi_integrations()
 
     sdata, sdq, svp, svr, serr = slopes
-    idata, idq, ivp, ivr, int_times, ierr = cube
+    idata, idq, ivp, ivr, ierr = cube
     tol = 1e-6
 
     sdata, sdq, svp, svr, serr = slopes
-    idata, idq, ivp, ivr, int_times, ierr = cube
+    idata, idq, ivp, ivr, ierr = cube
 
     np.testing.assert_allclose(ivp[:, 0, 0], np.array([0., 0., 0.]), tol)
     np.testing.assert_allclose(ierr, np.sqrt(ivr), tol)
@@ -303,14 +303,13 @@ def jp_2326_test_setup():
     gdq = np.zeros((nints, ngroups, nrows, ncols), dtype=np.uint8)
     err = np.zeros((nints, ngroups, nrows, ncols))
     pdq = np.zeros((nrows, ncols), dtype=np.uint32)
-    int_times = np.zeros((nints,))
 
     data[0, :, 0, 0] = ramp.copy()
     gdq[0, :, 0, 0] = dq.copy()
 
     ramp_data = RampData()
     ramp_data.set_arrays(
-        data=data, err=err, groupdq=gdq, pixeldq=pdq, int_times=int_times)
+        data=data, err=err, groupdq=gdq, pixeldq=pdq)
     ramp_data.set_meta(
         name="MIRI", frame_time=2.77504, group_time=2.77504, groupgap=0,
         nframes=1, drop_frames1=None)
@@ -402,7 +401,6 @@ def test_2_group_cases():
     rnoise = np.ones((1, npix)) * rnoise_val
     gain = np.ones((1, npix)) * gain_val
     pixeldq = np.zeros((1, npix), dtype=np.uint32)
-    int_times = [(1, 59005.2477, 59005.2479, 59005.2482, 59005.2491, 59005.2494, 59005.2496)]
 
     data = np.zeros(dims, dtype=np.float32)  # Science data
     for k in range(npix):
@@ -419,8 +417,7 @@ def test_2_group_cases():
     # Setup the RampData class to run ramp fitting on.
     ramp_data = RampData()
 
-    ramp_data.set_arrays(
-        data, err, groupdq, pixeldq, int_times)
+    ramp_data.set_arrays(data, err, groupdq, pixeldq)
 
     ramp_data.set_meta(
         name="NIRSPEC",
@@ -521,7 +518,7 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[0., 0., 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[3, 3, 0]])
+    check = np.array([[3, 2, 0]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0., 0., 0.01]])
@@ -534,12 +531,12 @@ def test_one_group_ramp_suppressed_one_integration():
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
-    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+    cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[0., 0., 1.0000001]]])
+    check = np.array([[[0., np.nan, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 3, 0]]])
+    check = np.array([[[3, 2, 0]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0., 0., 0.01]]])
@@ -576,7 +573,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
-    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+    cdata, cdq, cvp, cvr, cerr = cube
 
     check = np.array([[[0., 1., 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
@@ -608,28 +605,28 @@ def test_one_group_ramp_suppressed_two_integrations():
     check = np.array([[2, 2, 0]])
     np.testing.assert_allclose(sdq, check, tol)
 
-    check = np.array([[0.005, 0.005, 0.005]])
+    check = np.array([[0.005, 0.01, 0.005]])
     np.testing.assert_allclose(svp, check, tol)
 
     check = np.array([[0.19999999, 0.19999999, 0.09999999]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0.45276925, 0.45276925, 0.32403702]])
+    check = np.array([[0.45276925, 0.45825756, 0.32403702]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
-    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+    cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[0.,        0.,        1.0000001]],
+    check = np.array([[[0.,        np.nan,        1.0000001]],
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 3, 0]],
+    check = np.array([[[3, 2, 0]],
                       [[0, 0, 0]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.,    0.,    0.01]],
-                      [[0.005, 0.005, 0.01]]])
+                      [[0.005, 0.01, 0.01]]])
     np.testing.assert_allclose(cvp, check, tol)
 
     check = np.array([[[0.,         0.,         0.19999999]],
@@ -637,7 +634,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     np.testing.assert_allclose(cvr, check, tol)
 
     check = np.array([[[0.,         0.,         0.4582576]],
-                      [[0.45276922, 0.45276922, 0.4582576]]])
+                      [[0.45276922, 0.4582576, 0.4582576]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -665,7 +662,7 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
-    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+    cdata, cdq, cvp, cvr, cerr = cube
 
     check = np.array([[[0.,        1.,        1.0000001]],
                       [[1.0000001, 1.0000001, 1.0000001]]])
@@ -710,7 +707,7 @@ def create_zero_frame_data():
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
-    int_times = np.zeros((nints,))
+    zframe = np.ones(shape=(nints, nrows, ncols), dtype=np.float32)
 
     # Create base ramps for each pixel in each integration.
     base_slope = 2000.0
@@ -722,32 +719,30 @@ def create_zero_frame_data():
     data[0, :, 0, 2] = base_ramp
     data[1, :, :, :] = data[0, :, :, :] / 2.
 
-    # Compute dummy ZEROFRAME data.
+    # ZEROFRAME data.
     fdn = (data[0, 1, 0, 0] - data[0, 0, 0, 0]) / (nframes + groupgap)
-    data[0, 0, 0, 2] = data[0, 0, 0, 2] - (fdn * 2.5)
+    dummy = data[0, 0, 0, 2] - (fdn * 2.5)
+    zframe[0, 0, :] *= dummy
+    zframe[0, 0, 1] = 0.  # ZEROFRAME is saturated too.
+    fdn = (data[1, 1, 0, 0] - data[1, 0, 0, 0]) / (nframes + groupgap)
+    dummy = data[1, 0, 0, 2] - (fdn * 2.5)
+    zframe[1, 0, :] *= dummy
 
     # Set up group DQ array.
     gdq[0, :, :, :] = dqflags["SATURATED"]
     gdq[0, 0, 0, 0] = dqflags["GOOD"]
-    gdq[0, 0, 0, 2] = dqflags["GOOD"]
 
     # Create RampData for testing.
     ramp_data = RampData()
     ramp_data.set_arrays(
-        data=data, err=err, groupdq=gdq, pixeldq=pixdq, int_times=int_times)
+        data=data, err=err, groupdq=gdq, pixeldq=pixdq)
     ramp_data.set_meta(
-        name="MIRI", frame_time=frame_time, group_time=group_time,
+        name="NIRCam", frame_time=frame_time, group_time=group_time,
         groupgap=groupgap, nframes=nframes, drop_frames1=None)
     ramp_data.set_dqflags(dqflags)
 
-    # Create ZEROFRAME information
-    # ramp_data.zframe_locs = [[], [(0, 2)]]
-    ramp_data.zframe_locs = [None] * nints
-    ramp_data.zframe_locs[0] = []
-    ramp_data.zframe_locs[0].append((0, 2))
-    ramp_data.zframe_locs[1] = []
-
-    ramp_data.zframe_cnt = 1
+    ramp_data.suppress_one_group_ramps = False
+    ramp_data.zeroframe = zframe
 
     # Create variance arrays
     gain = np.ones((nrows, ncols), np.float32) * gval
@@ -774,6 +769,8 @@ def test_zeroframe():
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
         "optimal", ncores, dqflags)
 
+    # return
+
     tol = 1.e-5
 
     # Check slopes information
@@ -795,7 +792,7 @@ def test_zeroframe():
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
-    cdata, cdq, cvp, cvr, cint_times, cerr = cube
+    cdata, cdq, cvp, cvr, cerr = cube
 
     check = np.array([[[149.0313, 0., 130.40239]],
                       [[18.62891, 18.62891, 18.62891]]])
@@ -834,7 +831,6 @@ def setup_inputs(dims, var, tm):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
-    int_times = np.zeros((nints,))
 
     base_array = np.array([k + 1 for k in range(ngroups)])
     base, inc = 1.5, 1.5
@@ -848,7 +844,7 @@ def setup_inputs(dims, var, tm):
 
     ramp_data = RampData()
     ramp_data.set_arrays(
-        data=data, err=err, groupdq=gdq, pixeldq=pixdq, int_times=int_times)
+        data=data, err=err, groupdq=gdq, pixeldq=pixdq)
     ramp_data.set_meta(
         name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0,
         nframes=nframes, drop_frames1=None)
@@ -919,27 +915,27 @@ def print_slopes(slopes):
 
 
 def print_integ_data(integ_info):
-    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    idata, idq, ivp, ivr, ierr = integ_info
     base_print("Integration data:", idata)
 
 
 def print_integ_gdq(integ_info):
-    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    idata, idq, ivp, ivr, ierr = integ_info
     base_print("Integration DQ:", idq)
 
 
 def print_integ_poisson(integ_info):
-    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    idata, idq, ivp, ivr, ierr = integ_info
     base_print("Integration Poisson:", ivp)
 
 
 def print_integ_rnoise(integ_info):
-    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    idata, idq, ivp, ivr, ierr = integ_info
     base_print("Integration read noise:", ivr)
 
 
 def print_integ_err(integ_info):
-    idata, idq, ivp, ivr, int_times, ierr = integ_info
+    idata, idq, ivp, ivr, ierr = integ_info
     base_print("Integration err:", ierr)
 
 
@@ -1006,7 +1002,7 @@ def print_optional(optional):
 def print_all_info(slopes, cube, optional):
     """
     sdata, sdq, svp, svr, serr = slopes
-    idata, idq, ivp, ivr, int_times, ierr = cube
+    idata, idq, ivp, ivr, ierr = cube
     oslope, osigslope, ovp, ovr, \
         oyint, osigyint, opedestal, oweights, ocrmag = optional
     """

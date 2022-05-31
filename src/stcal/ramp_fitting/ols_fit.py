@@ -78,9 +78,6 @@ def ols_ramp_fit_multi(
     # Determine number of slices to use for multi-processor computations
     number_slices = utils.compute_slices(max_cores)
 
-    # Copy the int_times table for TSO data
-    int_times = ramp_data.int_times
-
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
     #   final group.  Similarly, if leading groups 1 though N have all pixels
@@ -99,7 +96,7 @@ def ols_ramp_fit_multi(
     if number_slices == 1:
         # Single threaded computation
         image_info, integ_info, opt_info = ols_ramp_fit_single(
-            ramp_data, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
         if image_info is None:
             return None, None, None
 
@@ -108,14 +105,14 @@ def ols_ramp_fit_multi(
     # Call ramp fitting for multi-processor (multiple data slices) case
     else:
         image_info, integ_info, opt_info = ols_ramp_fit_multiprocessing(
-            ramp_data, int_times, buffsize, save_opt,
+            ramp_data, buffsize, save_opt,
             readnoise_2d, gain_2d, weighting, number_slices)
 
         return image_info, integ_info, opt_info
 
 
 def ols_ramp_fit_multiprocessing(
-        ramp_data, int_times, buffsize, save_opt,
+        ramp_data, buffsize, save_opt,
         readnoise_2d, gain_2d, weighting, number_slices):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
@@ -128,9 +125,6 @@ def ols_ramp_fit_multiprocessing(
     ----------
     ramp_data: RampData
         Input data necessary for computing ramp fitting.
-
-    int_times : None
-        Not used
 
     buffsize : int
         The working buffer size
@@ -163,7 +157,7 @@ def ols_ramp_fit_multiprocessing(
     """
     log.info(f"Number of processors used for multiprocessing: {number_slices}")
     slices, rows_per_slice = compute_slices_for_starmap(
-        ramp_data, int_times, buffsize, save_opt,
+        ramp_data, buffsize, save_opt,
         readnoise_2d, gain_2d, weighting, number_slices)
 
     pool = Pool(processes=number_slices)
@@ -277,8 +271,8 @@ def get_integ_slice(integ_info, integ_slice, row_start, nrows):
     nrows: int
         The number of rows int the current slice.
     """
-    data, dq, var_poisson, var_rnoise, int_times, err = integ_info
-    idata, idq, ivar_poisson, ivar_rnoise, iint_times, ierr = integ_slice
+    data, dq, var_poisson, var_rnoise, err = integ_info
+    idata, idq, ivar_poisson, ivar_rnoise, ierr = integ_slice
 
     srow, erow = row_start, row_start + nrows
 
@@ -367,9 +361,8 @@ def create_output_info(ramp_data, pool_results, save_opt):
     ivar_poisson = np.zeros(integ_shape, dtype=np.float32)
     ivar_rnoise = np.zeros(integ_shape, dtype=np.float32)
     ierr = np.zeros(integ_shape, dtype=np.float32)
-    int_times = ramp_data.int_times
 
-    integ_info = (idata, idq, ivar_poisson, ivar_rnoise, int_times, ierr)
+    integ_info = (idata, idq, ivar_poisson, ivar_rnoise, ierr)
 
     # Create the optional results product
     if save_opt:
@@ -429,7 +422,7 @@ def get_max_segs_crs(pool_results):
 
 
 def compute_slices_for_starmap(
-        ramp_data, int_times, buffsize, save_opt,
+        ramp_data, buffsize, save_opt,
         readnoise_2d, gain_2d, weighting, number_slices):
     """
     Creates the slices needed for each process for multiprocessing.  The slices
@@ -437,9 +430,6 @@ def compute_slices_for_starmap(
 
     ramp_data: RampData
         The ramp data to be sliced.
-
-    int_times : None
-        Not used
 
     buffsize : int
         The working buffer size
@@ -474,7 +464,7 @@ def compute_slices_for_starmap(
         gain_slice = gain_2d[start_row:start_row + rslices[k], :].copy()
         slices.insert(
             k,
-            (ramp_slice, int_times, buffsize, save_opt,
+            (ramp_slice, buffsize, save_opt,
              rnoise_slice, gain_slice, weighting))
         start_row = start_row + rslices[k]
 
@@ -538,13 +528,17 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice = ramp_fit_class.RampData()
 
     # Slice data by row
+    # XXX change the type of copy
     data = ramp_data.data[:, :, start_row:start_row + nrows, :].copy()
     err = ramp_data.err[:, :, start_row:start_row + nrows, :].copy()
     groupdq = ramp_data.groupdq[:, :, start_row:start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row:start_row + nrows, :].copy()
 
     ramp_data_slice.set_arrays(
-        data, err, groupdq, pixeldq, ramp_data.int_times)
+        data, err, groupdq, pixeldq)
+
+    if ramp_data.zeroframe is not None:
+        ramp_data_slice.zeroframe = ramp_data.zeroframe[:, start_row:start_row + nrows, :].copy()
 
     # Carry over meta data.
     ramp_data_slice.set_meta(
@@ -570,7 +564,7 @@ def slice_ramp_data(ramp_data, start_row, nrows):
 
 
 def ols_ramp_fit_single(
-        ramp_data, int_times, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -581,9 +575,6 @@ def ols_ramp_fit_single(
     ----------
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
-
-    int_times : None
-        Not used
 
     buffsize : int
         The working buffer size
@@ -612,6 +603,11 @@ def ols_ramp_fit_single(
         The tuple of computed optional results arrays for fitting.
     """
     tstart = time.time()
+
+    if not ramp_data.suppress_one_group_ramps and ramp_data.zeroframe is not None:
+        zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
+        ramp_data.zframe_locs = zframe_locs
+        ramp_data.cnt = cnt
 
     # Save original shapes for writing to log file, as these may change for MIRI
     n_int, ngroups, nrows, ncols = ramp_data.data.shape
@@ -654,7 +650,7 @@ def ols_ramp_fit_single(
     #                    sum_over_integs_and_segs(1/var_seg)
     image_info, integ_info, opt_info = ramp_fit_overall(
         ramp_data, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
-        variances_ans, save_opt, int_times, tstart)
+        variances_ans, save_opt, tstart)
 
     return image_info, integ_info, opt_info
 
@@ -1188,7 +1184,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
 def ramp_fit_overall(
         ramp_data, orig_cubeshape, orig_ngroups, buffsize, fit_slopes_ans,
-        variances_ans, save_opt, int_times, tstart):
+        variances_ans, save_opt, tstart):
     """
     Computes the final/overall slope and variance values using the
     intermediate computations previously computed.
@@ -1216,9 +1212,6 @@ def ramp_fit_overall(
 
     save_opt : bool
         Calculate optional fitting results.
-
-    int_times : bintable, or None
-        The INT_TIMES table, if it exists in the input, else None
 
     tstart : float
         Start time.
@@ -1354,7 +1347,7 @@ def ramp_fit_overall(
 
     # Output integration-specific results to separate file
     integ_info = utils.output_integ(
-        slope_int, dq_int, effintim, var_p3, var_r3, var_both3, int_times)
+        slope_int, dq_int, effintim, var_p3, var_r3, var_both3)
 
     if opt_res is not None:
         del opt_res
@@ -1364,8 +1357,6 @@ def ramp_fit_overall(
     del var_p3
     del var_r3
     del var_both3
-    if int_times is not None:
-        del int_times
 
     # Divide slopes by total (summed over all integrations) effective
     #   integration time to give count rates.

@@ -461,8 +461,7 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     groupdq = ramp_data.groupdq[:, :, start_row:start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row:start_row + nrows, :].copy()
 
-    ramp_data_slice.set_arrays(
-        data, err, groupdq, pixeldq, ramp_data.int_times)
+    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq)
 
     # Carry over meta data.
     ramp_data_slice.set_meta(
