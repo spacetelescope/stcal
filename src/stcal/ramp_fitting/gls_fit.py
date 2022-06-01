@@ -819,6 +819,11 @@ def determine_slope(
         that have a total of num_cr cosmic ray hits at each pixel.  This
         is passed to gls_fit(), which fits a slope to the ramp.
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    XXX TODO - not sure what 'ramp_data' here refers to.  This is NOT the
+               RampData class passed into this function.  This is an old
+               comment held over from before refactoring.
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ramp_data has shape (ngroups, nz); this will be a ramp with a 1-D
     array of pixels copied out of data_sect.  The pixels will be those
     that have a particular number of cosmic-ray hits, somewhere within
@@ -842,6 +847,9 @@ def determine_slope(
 
     Parameters
     ----------
+    ramp_data : RampData
+        The class containing all metadata needed for slope computations.
+
     data_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The ramp data for one integration.  This may be a subarray in
         detector coordinates, but covering all groups.  ngroups is the
@@ -978,6 +986,9 @@ def determine_slope_one_group(
 
     Parameters
     ----------
+    ramp_data : RampData
+        The ramp data class containing all metadata needed for computations.
+
     data_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The ramp data for one integration.  This may be a subarray in
         detector coordinates, but covering all groups.  ngroups is the
@@ -1023,6 +1034,9 @@ def determine_slope_one_group(
 
     jump_flag : int
         The jump detection flag.
+
+    med_rates : ndarray
+        A 2D array for the median rate for each pixel.
 
     Returns
     -------

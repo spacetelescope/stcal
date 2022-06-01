@@ -1390,6 +1390,8 @@ def compute_median_rates(ramp_data):
     ramp_data : RampData
         Contains the data needed to compute the median rates.
 
+    Return
+    ------
     median_rates : ndarray
         The computed median rates for each pixel.
     """
