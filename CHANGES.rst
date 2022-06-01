@@ -1,6 +1,11 @@
 0.7.4 (unreleased)
 ==================
 
+general
+-------
+
+- Increased required ``Python`` version from ``>=3.7`` to ``>=3.8`` (to align with ``astropy``) [#98]
+
 0.7.3 (2022-05-20)
 ==================
 
