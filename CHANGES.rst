@@ -4,6 +4,7 @@
 general
 -------
 
+- Update CI workflows to cache test environments and depend upon style and security checks [#96]
 - Increased required ``Python`` version from ``>=3.7`` to ``>=3.8`` (to align with ``astropy``) [#98]
 
 0.7.3 (2022-05-20)
