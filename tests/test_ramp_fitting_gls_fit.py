@@ -93,7 +93,6 @@ def setup_inputs(dims, gain, rnoise, group_time, frame_time):
 # -----------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="GLS code does not [yet] handle single group integrations.")
 def test_one_group_small_buffer_fit_gls():
     """
     Checks to make sure if a single group is used, it works.
@@ -180,12 +179,17 @@ def test_one_group_two_ints_fit_gls():
         dims, gain, rnoise, group_time, frame_time
     )
 
+    ramp_data.data[0, 0, 50, 50] = 10.
+    ramp_data.data[1, 0, 50, 50] = 11.
+
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
+    # XXX As written this yields 10.5, but should yield 11.
     data = slopes[0]
+
     np.testing.assert_allclose(data[50, 50], 11.0, 1e-6)
 
 
@@ -711,7 +715,6 @@ def test_four_groups_CR_causes_orphan_1st_group():
     np.testing.assert_allclose(ans, check, tol)
 
 
-@pytest.mark.skip(reason="GLS erroneously assumes more than one group.")
 def test_one_group_fit():
     """
 
