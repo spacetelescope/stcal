@@ -9,6 +9,8 @@ ramp_fitting
 
 - Updating the one good group ramp suppression handler works. [#92]
 
+- Adding special case handler for GLS to handle one group ramps. [#97]
+
 0.7.2 (2022-05-19)
 ==================
 
