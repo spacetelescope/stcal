@@ -16,6 +16,11 @@ ramp_fitting
 0.7.3 (2022-05-20)
 ==================
 
+jump
+----
+
+- Update ``twopoint_difference.py`` [#90]
+
 ramp_fitting
 ------------
 
@@ -132,6 +137,11 @@ dark_current
 0.4.3 (2021-12-27)
 ==================
 
+general
+-------
+
+- Use new ``publish-to-pypi.yml`` to build & publish wheels [#69]
+
 linearity
 ---------
 - Let software set the pixel dq flag to NO_LIN_CORR if linear term of linearity coefficient is zero. [#65]
@@ -143,6 +153,8 @@ ramp_fitting
 
 - Fix issue with inappropriately including a flagged group at the beginning
   of a ramp segment. [#68]
+
+- Changed Ramp Fitting Documentation [#61]
 
 0.4.2 (2021-10-28)
 ==================
@@ -177,6 +189,10 @@ linearity
 
 - Adds common code for linearity correction [#55]
 
+ramp_fitting
+------------
+
+- Global DQ variable removed [#54]
 
 0.3.0 (2021-09-28)
 ==================
@@ -190,11 +206,15 @@ saturation
 0.2.5 (2021-08-27)
 ==================
 
+jump
+----
+
+- added tests for two point difference [#37]
+
 ramp_fitting
 ------------
 
-- Adds support for Roman ramp data. [#49]
-
+- Adds support for Roman ramp data. [#43] [#49]
 
 0.2.4 (2021-08-26)
 ==================
@@ -205,23 +225,35 @@ Workaround for setuptools_scm issues with recent versions of pip. [#45]
 0.2.3 (2021-08-06)
 ==================
 
+jump
+----
+- documentation changes + docs for jump detection [#14]
+
 ramp_fitting
 ------------
 
-- Fix ramp fitting multiprocessing. (#30)
+- Fix ramp fitting multiprocessing. [#30]
 
 
 0.2.2 (2021-07-19)
 ==================
+
+general
+-------
+
+- Add pypi publish workflow and fix jwst CI [#21]
+
+jump
+----
+
+- Move common ``jump`` code to stcal [#27]
 
 ramp_fitting
 ------------
 
 - Implemented multiprocessing for OLS. [#30]
 - Added DQ flag parameter to `ramp_fit` [#25]
-
-- Move common ``jump`` code to stcal [#27]
-
+- Reduced data model dependency [#26]
 
 0.2.1 (2021-05-20)
 ==================
