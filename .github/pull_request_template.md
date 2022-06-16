@@ -9,7 +9,7 @@ Closes #
 This PR addresses ...
 
 **Checklist**
-- [ ] added entry in `CHANGES.rst` (either in `Bug Fixes` or `New API`)
+- [ ] added entry in `CHANGES.rst` (either in `Bug Fixes` or `Changes to API`)
 - [ ] updated relevant tests
 - [ ] updated relevant documentation
 - [ ] updated relevant milestone(s)
