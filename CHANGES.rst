@@ -2,33 +2,37 @@
 ==================
 
 Bug Fixes
-^^^^^^^^^
-
-Changes to API
-^^^^^^^^^^^^^^
-
-general
--------
-
-- Update CI workflows to cache test environments and depend upon style and security checks [#96]
-
-- Increased required ``Python`` version from ``>=3.7`` to ``>=3.8`` (to align with ``astropy``) [#98]
+---------
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Adding special case handler for GLS to handle one group ramps. [#97]
+
+Changes to API
+--------------
+
+-
+
+Other
+-----
+
+general
+~~~~~~~
+
+- Update CI workflows to cache test environments and depend upon style and security checks [#96]
+- Increased required ``Python`` version from ``>=3.7`` to ``>=3.8`` (to align with ``astropy``) [#98]
 
 0.7.3 (2022-05-20)
 ==================
 
 jump
-----
+~~~~
 
 - Update ``twopoint_difference.py`` [#90]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Updating the one good group ramp suppression handler works. [#92]
 
@@ -36,7 +40,7 @@ ramp_fitting
 ==================
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Fix for accessing zero-frame in model to account for Roman data not using
   zero-frame. [#89]
@@ -46,25 +50,25 @@ ramp_fitting
 ==================
 
 jump
----- 
+~~~~
 - Enable multiprocessing for jump detection, which is controlled by the 'max_cores' parameter. [#87]
 
 0.7.0 (2022-05-13)
 ==================
 
 linearity
----------
+~~~~~~~~~
 - Added functionality to linearly process ZEROFRAME data the same way
   as the SCI data. [#81]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 - Added functionality to use ZEROFRAME data in place of group 0 data
   for ramps that are fully saturated, but still have good ZEROFRAME
   data. [#81]
 
 saturation
----------- 
+~~~~~~~~~~
 - Added functionality to process ZEROFRAME data for saturation the same
   way as the SCI data. [#81]
 
@@ -73,7 +77,7 @@ saturation
 ==================
 
 saturation
----------- 
+~~~~~~~~~~
 
 - Added in functionality to deal with charge spilling from saturated pixels onto neighboring pixels [#83]
 
@@ -89,11 +93,11 @@ saturation
 ================
 
 jump
-----
+~~~~
 - Neighboring pixels with 'SATURATION' or 'DONOTUSE' flags are no longer flagged as jumps. [#79]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Adding feature to use ZEROFRAME for ramps that are fully saturated, but
   the ZEROFRAME data for that ramp is good. [#81]
@@ -102,7 +106,7 @@ ramp_fitting
 ================
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Adding feature to suppress calculations for saturated ramps having only
   the 0th group be a good group.  [#76]
@@ -111,12 +115,12 @@ ramp_fitting
 ================
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Adding GLS code back to ramp fitting. [#64]
 
 jump
-----
+~~~~
 
 - Fix issue in jump detection that occured when there were only 2 usable
   differences with no other groups flagged. This PR also added tests and
@@ -126,7 +130,7 @@ jump
 ==================
 
 jump
-----
+~~~~
 
 - fixes to several existing errors in the jump detection step. added additional
   tests to ensure step is no longer flagging jumps for pixels with only two
@@ -136,7 +140,7 @@ jump
 ==================
 
 dark_current
-------------
+~~~~~~~~~~~~
 
 - Moved dark current code from JWST to STCAL. [#63]
 
@@ -144,11 +148,11 @@ dark_current
 ==================
 
 linearity
----------
+~~~~~~~~~
 - Let software set the pixel dq flag to NO_LIN_CORR if linear term of linearity coefficient is zero. [#65]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Fix special handling for 2 group ramp. [#70]
 
@@ -161,7 +165,7 @@ ramp_fitting
 ==================
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - For slopes with negative median rates, the Poisson variance is zero. [#59]
 
@@ -172,7 +176,7 @@ ramp_fitting
 ==================
 
 jump_detection
---------------
+~~~~~~~~~~~~~~
 
 - Reverts "Fix issue with flagging for MIRI three and four group integrations. [#44]
 
@@ -181,17 +185,17 @@ jump_detection
 ==================
 
 jump_detection
---------------
+~~~~~~~~~~~~~~
 
 - Fix issue with flagging for MIRI three and four group integrations. [#44]
 
 linearity
----------
+~~~~~~~~~
 
 - Adds common code for linearity correction [#55]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Global DQ variable removed [#54]
 
@@ -199,7 +203,7 @@ ramp_fitting
 ==================
 
 saturation
-----------
+~~~~~~~~~~
 
 - Adds common code for saturation [#39]
 
@@ -208,12 +212,12 @@ saturation
 ==================
 
 jump
-----
+~~~~
 
 - added tests for two point difference [#37]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Adds support for Roman ramp data. [#43] [#49]
 
@@ -227,11 +231,11 @@ Workaround for setuptools_scm issues with recent versions of pip. [#45]
 ==================
 
 jump
-----
+~~~~
 - documentation changes + docs for jump detection [#14]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Fix ramp fitting multiprocessing. [#30]
 
@@ -240,12 +244,12 @@ ramp_fitting
 ==================
 
 jump
-----
+~~~~
 
 - Move common ``jump`` code to stcal [#27]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Implemented multiprocessing for OLS. [#30]
 - Added DQ flag parameter to `ramp_fit` [#25]
@@ -255,7 +259,7 @@ ramp_fitting
 ==================
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Fixed bug for median ramp rate computation in report JP-1950. [#12]
 
@@ -264,7 +268,7 @@ ramp_fitting
 ==================
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Added ramp fitting code [#6]
 
