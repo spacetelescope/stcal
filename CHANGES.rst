@@ -137,11 +137,6 @@ dark_current
 0.4.3 (2021-12-27)
 ==================
 
-general
--------
-
-- Use new ``publish-to-pypi.yml`` to build & publish wheels [#69]
-
 linearity
 ---------
 - Let software set the pixel dq flag to NO_LIN_CORR if linear term of linearity coefficient is zero. [#65]
@@ -237,11 +232,6 @@ ramp_fitting
 
 0.2.2 (2021-07-19)
 ==================
-
-general
--------
-
-- Add pypi publish workflow and fix jwst CI [#21]
 
 jump
 ----
