@@ -1,6 +1,12 @@
 0.7.4 (unreleased)
 ==================
 
+Bug Fixes
+^^^^^^^^^^
+
+New API
+^^^^^^^^^
+
 general
 -------
 
