@@ -173,10 +173,6 @@ def plane_saturation(plane, sat_thresh, dqflags):
     # check for saturation
     flagarray[:, :] = np.where(plane[:, :] >= sat_thresh, saturated, 0)
 
-    log.debug(' plane[44,962]=%g', plane[44,962])
-    log.debug(' sat_thresh[44,962]=%g', sat_thresh[44,962])
-    log.debug(' flagarray[44,962]=%g', flagarray[44,962])
-
     # check for A/D floor
     flaglowarray[:, :] = np.where(plane[:, :] <= 0, ad_floor | donotuse, 0)
 

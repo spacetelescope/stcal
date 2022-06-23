@@ -9,6 +9,12 @@ ramp_fitting
 
 - Adding special case handler for GLS to handle one group ramps. [#97]
 
+saturation
+~~~~~~~~~~
+
+- Modified the saturation threshold applied to pixels flagged with
+  NO_SAT_CHECK, so that they never get flagged as saturated. [#106]
+
 Changes to API
 --------------
 
