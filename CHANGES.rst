@@ -15,7 +15,10 @@ ramp_fitting
 Changes to API
 --------------
 
--
+saturation
+~~~~~~~~~~~
+
+- Changing parameter name in twopoint_difference from 'normal_rej_thresh' to rejection_thresh' for consistency. [#105]
 
 Other
 -----
