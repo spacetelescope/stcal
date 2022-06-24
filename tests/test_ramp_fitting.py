@@ -846,11 +846,10 @@ def create_blank_ramp_data(dims, var, tm):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
-    int_times = None
 
     ramp_data = RampData()
     ramp_data.set_arrays(
-        data=data, err=err, groupdq=gdq, pixeldq=pixdq, int_times=int_times)
+        data=data, err=err, groupdq=gdq, pixeldq=pixdq)
     ramp_data.set_meta(
         name="NIRSpec", frame_time=frame_time, group_time=group_time,
         groupgap=groupgap, nframes=nframes, drop_frames1=None)
