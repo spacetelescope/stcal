@@ -67,7 +67,7 @@ def test_no_sat_check_at_limit():
 
     # Run the saturation flagging
     gdq, pdq, _ = flag_saturated_pixels(
-        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS)
+        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, 1)
 
     # Make sure that no groups for the flat-lined pixel and all
     # of its neighbors are flagged as saturated.
