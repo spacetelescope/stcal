@@ -23,11 +23,14 @@ saturation
 Changes to API
 --------------
 
-- For ramp fitting, the tuple ``integ_info`` longer returns ``in_times``
-  as a part of it, so the tuple is one element shorter. [#99]
+ramp_fitting
+~~~~~~~~~~~~
 
-- For ramp fitting, for fully saturated expsures, all returned values
-  are ``None``, instead of tuples. [#102]
+- The tuple ``integ_info`` longer returns ``in_times`` as a part of it,
+  so the tuple is one element shorter. [#99]
+
+- For fully saturated expsures, all returned values are ``None``, instead
+  of tuples. [#102]
 
 saturation
 ~~~~~~~~~~~
