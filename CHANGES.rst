@@ -23,6 +23,15 @@ saturation
 Changes to API
 --------------
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- The tuple ``integ_info`` no longer returns ``int_times`` as a part of it,
+  so the tuple is one element shorter. [#99]
+
+- For fully saturated exposures, all returned values are ``None``, instead
+  of tuples. [#102]
+
 saturation
 ~~~~~~~~~~~
 
