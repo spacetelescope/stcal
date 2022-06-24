@@ -69,17 +69,12 @@ def test_no_sat_check_at_limit():
     gdq, pdq, _ = flag_saturated_pixels(
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS)
 
-    # Make sure that no groups for the flat-lined pixel are
-    # flagged as saturated. Also make sure that NO_SAT_CHECK has
-    # been propagated to the pixeldq array.
-    assert ~np.any(gdq[0, :, 5, 5] == DQFLAGS['SATURATED'])
+    # Make sure that no groups for the flat-lined pixel and all
+    # of its neighbors are flagged as saturated.
+    # Also make sure that NO_SAT_CHECK has been propagated to the
+    # pixeldq array.
+    assert np.all(gdq[0, :, 4:6, 4:6] != DQFLAGS['SATURATED'])
     assert pdq[5, 5] == DQFLAGS['NO_SAT_CHECK']
-
-    # Make sure the neighbors did also not get flagged as saturated
-    assert ~np.any(gdq[0, :, 5, 4] == DQFLAGS['SATURATED'])
-    assert ~np.any(gdq[0, :, 5, 6] == DQFLAGS['SATURATED'])
-    assert ~np.any(gdq[0, :, 4, 5] == DQFLAGS['SATURATED'])
-    assert ~np.any(gdq[0, :, 6, 5] == DQFLAGS['SATURATED'])
 
 
 def test_adjacent_pixel_flagging():
