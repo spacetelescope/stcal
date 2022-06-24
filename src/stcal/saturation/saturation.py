@@ -67,13 +67,14 @@ def flag_saturated_pixels(
     no_sat_check = dqflags['NO_SAT_CHECK']
 
     # For pixels flagged in reference file as NO_SAT_CHECK,
-    # set the saturation check threshold to the A-to-D converter limit.
-    sat_thresh[np.bitwise_and(sat_dq, no_sat_check) == no_sat_check] = atod_limit
+    # set the saturation check threshold above the A-to-D converter limit,
+    # so that they don't get flagged as saturated.
+    sat_thresh[np.bitwise_and(sat_dq, no_sat_check) == no_sat_check] = atod_limit + 1
 
-    # Also reset NaN values in the saturation threshold array to the
+    # Also reset NaN values in the saturation threshold array above the
     # A-to-D limit and flag them with NO_SAT_CHECK
     sat_dq[np.isnan(sat_thresh)] |= no_sat_check
-    sat_thresh[np.isnan(sat_thresh)] = atod_limit
+    sat_thresh[np.isnan(sat_thresh)] = atod_limit + 1
 
     for ints in range(nints):
         for group in range(ngroups):

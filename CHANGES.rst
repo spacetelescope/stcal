@@ -14,6 +14,12 @@ ramp_fitting
 
 - Changing how ramp fitting handles fully saturated ramps. [#102]
 
+saturation
+~~~~~~~~~~
+
+- Modified the saturation threshold applied to pixels flagged with
+  NO_SAT_CHECK, so that they never get flagged as saturated. [#106]
+
 Changes to API
 --------------
 
