@@ -65,10 +65,9 @@ def setup_inputs(dims, gain, rnoise, group_time, frame_time):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     groupdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     pixeldq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-    int_times = np.zeros((nints,))
 
     # Set clas arrays
-    ramp_class.set_arrays(data, err, groupdq, pixeldq, int_times)
+    ramp_class.set_arrays(data, err, groupdq, pixeldq)
 
     # Set class meta
     ramp_class.set_meta(

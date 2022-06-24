@@ -9,6 +9,9 @@ ramp_fitting
 
 - Adding special case handler for GLS to handle one group ramps. [#97]
 
+- Updating how one group suppression and ZEROFRAME processing works with
+  multiprocessing, as well as fixing the multiprocessing failure. [#99]
+
 Changes to API
 --------------
 
