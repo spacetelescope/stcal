@@ -56,7 +56,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         readnoise for all pixels
 
     rejection_thresh : float
-        cosmic ray sigma rejection threshold
+        The 'normal' cosmic ray sigma rejection threshold for ramps with more
+        than 4 groups
 
     three_grp_thresh : float
         cosmic ray sigma rejection threshold for ramps having 3 groups
