@@ -69,10 +69,6 @@ def ols_ramp_fit_multi(
 
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
-
-    gls_opt_model : GLS_RampFitModel object or None
-        Object containing optional GLS-specific ramp fitting data for the
-        exposure
     """
 
     # Determine number of slices to use for multi-processor computations
@@ -92,12 +88,17 @@ def ols_ramp_fit_multi(
         if miri_ans is not True:
             return [None] * 3
 
+    # There is nothing to do if all ramps in all integrations are saturated.
+    first_gdq = ramp_data.groupdq[:, 0, :, :]
+    if np.all(np.bitwise_and(first_gdq, ramp_data.flags_saturated)):
+        return None, None, None
+
     # Call ramp fitting for the single processor (1 data slice) case
     if number_slices == 1:
         # Single threaded computation
         image_info, integ_info, opt_info = ols_ramp_fit_single(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
-        if image_info is None:
+        if image_info is None or integ_info is None:
             return None, None, None
 
         return image_info, integ_info, opt_info
@@ -402,8 +403,11 @@ def get_max_segs_crs(pool_results):
 
     Return
     ------
-    seg_max: int
+    seg_max : int
         The maximum segment computed over all slices.
+
+    crs_max : int
+        The maximum CRs computed over all slices.
     """
     seg_max = 1
     crs_max = 0
@@ -451,8 +455,11 @@ def compute_slices_for_starmap(
 
     Return
     ------
-    slices: list
+    slices : list
         The list of arguments for each processor for multiprocessing.
+
+    rslices : list
+        The list of the number of rows in each slice.
     """
     nrows = ramp_data.data.shape[2]
     rslices = rows_per_slice(number_slices, nrows)
@@ -785,9 +792,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     dq_int : ndarray
         The pixel dq for each integration for each pixel
 
-    sum_weight : ndarray
-        The sum of the weights for each pixel
-
     num_seg_per_int : ndarray
         Cube of numbers of segments for all integrations and pixels, 3-D int
 
@@ -822,18 +826,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     n_int, ngroups, nrows, ncols = data.shape
     imshape = (nrows, ncols)
     cubeshape = (ngroups,) + imshape
-
-    # If all the pixels have their initial groups flagged as saturated, the DQ
-    #   in the primary and integration-specific output products are updated,
-    #   the other arrays in all output products are populated with zeros, and
-    #   the output products are returned to ramp_fit(). If the initial group of
-    #   a ramp is saturated, it is assumed that all groups are saturated.
-    first_gdq = groupdq[:, 0, :, :]
-    if np.all(np.bitwise_and(first_gdq, ramp_data.flags_saturated)):
-        image_info, integ_info, opt_info = utils.do_all_sat(
-            ramp_data, inpixeldq, groupdq, imshape, n_int, save_opt)
-
-        return "saturated", image_info, integ_info, opt_info
 
     # Calculate effective integration time (once EFFINTIM has been populated
     #   and accessible, will use that instead), and other keywords that will

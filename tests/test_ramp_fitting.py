@@ -815,6 +815,52 @@ def test_zeroframe():
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
+def test_all_sat():
+    nints, ngroups, nrows, ncols = 2, 5, 1, 3
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    ramp.groupdq[:, 0, :, :] = ramp.flags_saturated
+
+    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo,
+        "optimal", ncores, dqflags)
+
+    assert slopes is None
+    assert cube is None
+
+
+def create_blank_ramp_data(dims, var, tm):
+    nints, ngroups, nrows, ncols = dims
+    rnval, gval = var
+    frame_time, nframes, groupgap = tm
+    group_time = (nframes + groupgap) * frame_time
+
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(
+        data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_meta(
+        name="NIRSpec", frame_time=frame_time, group_time=group_time,
+        groupgap=groupgap, nframes=nframes, drop_frames1=None)
+    ramp_data.set_dqflags(dqflags)
+
+    gain = np.ones(shape=(nrows, ncols), dtype=np.float64) * gval
+    rnoise = np.ones(shape=(nrows, ncols), dtype=np.float64) * rnval
+
+    return ramp_data, gain, rnoise
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
