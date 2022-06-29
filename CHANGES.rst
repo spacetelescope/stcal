@@ -4,7 +4,10 @@
 Bug Fixes
 ---------
 
+ramp_fitting
+~~~~~~~~~~~~
 
+- Updating multi-integration processing. [#108]
 
 Changes to API
 --------------
