@@ -130,6 +130,12 @@ class RampData:
         print(f"groupdq : {type(self.groupdq)}")
         print(f"pixeldq : {type(self.pixeldq)}")
 
+        self.dbg_print_meta()
+        self.dbg_print_mp()
+        self.dbg_print_zframe()
+        self.dbg_print_1grp()
+
+    def dbg_print_meta(self):
         # Meta information
         print("-" * 80)
         print("    Meta:")
@@ -141,18 +147,32 @@ class RampData:
         print(f"Nframes : {self.nframes}")
         print(f"Drop Frames : {self.drop_frames1}")
 
+    def dbg_print_mp(self):
         # Multiprocessing
         print("-" * 80)
         print(f"Start row : {self.start_row}")
         print(f"Number of rows : {self.num_rows}")
 
+    def dbg_print_zframe(self):
         # ZEROFRAME
         print("-" * 80)
         print("    ZEROFRAME:")
         print(f"zframe_locs : {type(self.zframe_locs)}")
         print(f"zeroframe : {type(self.zeroframe)}")
 
+    def dbg_print_1grp(self):
         # One group ramp suppression for saturated ramps after 0th group.
         print("-" * 80)
         print("    One Group Suppression:")
         print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")
+
+    def dbg_print_basic_info(self):
+        # Arrays from the data model
+        print("-" * 80)
+        print("    Array Types:")
+        print(f"data : {self.data}")
+        print(f"err : {self.err}")
+        print(f"groupdq : {self.groupdq}")
+        print(f"pixeldq : {self.pixeldq}")
+
+        self.dbg_print_meta()
