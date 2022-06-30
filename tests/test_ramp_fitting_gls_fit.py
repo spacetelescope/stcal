@@ -118,11 +118,6 @@ def test_one_group_small_buffer():
     np.testing.assert_allclose(data[50, 50], 10.0, tol)
 
 
-'''
-@pytest.mark.skip(
-    reason="GLS does not correctly combine the slopes for integrations into the exposure slope."
-)
-'''
 def test_two_integrations():
     """
     A test to see if GLS is correctly combining integrations.
@@ -142,14 +137,12 @@ def test_two_integrations():
     ramp_data.data[0, :, row, col] = ramp
     ramp_data.data[1, :, row, col] = ramp * 2
 
-    save_opt, algo, ncores = False, "OLS", "none"
+    save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
     ans = slopes[0][row, col]
-    print(f"slope = {ans}")
-    return
     np.testing.assert_allclose(slopes[0][row, col], 133.3377685, 1e-6)
 
 
