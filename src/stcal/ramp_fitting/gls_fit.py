@@ -552,20 +552,16 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     if ngroups == 1:
         med_rates = utils.compute_median_rates(ramp_data)
 
+    # We'll propagate error estimates from previous steps to the
+    # current step by using the variance.
+    input_var_sect = input_var_sect ** 2
+
+    # Convert the data section from DN to electrons.
+    data_sect *= gain_2d
+
     # loop over data integrations
     for num_int in range(number_ints):
         ramp_data.current_integ = num_int
-        if save_opt:
-            first_group[:, :] = 0.  # re-use this for each integration
-
-        # We'll propagate error estimates from previous steps to the
-        # current step by using the variance.
-        # TODO Should this really be done every loop?
-        input_var_sect = input_var_sect ** 2
-
-        # Convert the data section from DN to electrons.
-        # TODO Should this really be done every loop?
-        data_sect *= gain_2d
         if save_opt:
             first_group[:, :] = data_sect[num_int, 0, :, :].copy()
 

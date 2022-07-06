@@ -4,7 +4,11 @@
 Bug Fixes
 ---------
 
+ramp_fitting
+~~~~~~~~~~~~
 
+- Updating multi-integration processing to correctly combine multiple
+  integration computations for the final image information. [#108]
 
 Changes to API
 --------------

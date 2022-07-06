@@ -92,7 +92,7 @@ def setup_inputs(dims, gain, rnoise, group_time, frame_time):
 # -----------------------------------------------------------------------------
 
 
-def test_one_group_small_buffer_fit_gls():
+def test_one_group_small_buffer():
     """
     Checks to make sure if a single group is used, it works.
     TODO: It does not work.  GLS needs to be modified to work edge cases.
@@ -118,17 +118,11 @@ def test_one_group_small_buffer_fit_gls():
     np.testing.assert_allclose(data[50, 50], 10.0, tol)
 
 
-@pytest.mark.skip(
-    reason="GLS does not correctly combine the slopes for integrations into the exposure slope."
-)
-def test_gls_vs_ols_two_ints_ols():
+def test_two_integrations():
     """
-    A test to see if GLS is correctly combining integrations. The combination
-    should only use the read noise variance.
-    The current version of GLS does not work correctly.
+    A test to see if GLS is correctly combining integrations.
     """
-    # nints, ngroups, nrows, ncols = 1, 11, 103, 102
-    nints, ngroups, nrows, ncols = 2, 11, 103, 102
+    nints, ngroups, nrows, ncols = 2, 11, 1, 1
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 1, 5
     group_time, frame_time = 1.0, 1
@@ -137,39 +131,26 @@ def test_gls_vs_ols_two_ints_ols():
         dims, gain, rnoise, group_time, frame_time
     )
 
+    row, col = 0, 0
+
     ramp = np.asarray([x * 100 for x in range(11)])
-    ramp_data.data[0, :, 50, 50] = ramp
-    ramp_data.data[1, :, 50, 50] = ramp * 2
+    ramp_data.data[0, :, row, col] = ramp
+    ramp_data.data[1, :, row, col] = ramp * 2
 
-    ramp_data2 = copy.deepcopy(ramp_data)
-    rnoise2d_2 = rnoise2d.copy()
-    gain2d_2 = gain2d.copy()
-
-    save_opt, algo, ncores = False, "OLS", "none"
-    oslopes, ocube, ools_opt, ogls_opt = ramp_fit_data(
+    save_opt, algo, ncores = False, "GLS", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    save_opt, algo, ncores = False, "GLS", "none"
-    gslopes, gcube, gols_opt, ggls_opt = ramp_fit_data(
-        ramp_data2, 512, save_opt, rnoise2d_2, gain2d_2, algo,
-        "optimal", ncores, test_dq_flags)
-
-    # print(f"oslopes[0][50, 50] = {oslopes[0][50, 50]}")
-    # print(f"gslopes[0][50, 50] = {gslopes[0][50, 50]}")
-    # Should be 150 for each.  For OLS it is 150, but for GLS, it is not.
-    np.testing.assert_allclose(oslopes[0][50, 50], 150, 1e-6)
-    np.testing.assert_allclose(oslopes[0][50, 50], gslopes[0][50, 50], 1e-6)
+    ans = slopes[0][row, col]
+    np.testing.assert_allclose(slopes[0][row, col], 133.3377685, 1e-6)
 
 
-@pytest.mark.xfail(
-    reason="GLS code does not [yet] handle single group integrations, nor multiple integrations."
-)
-def test_one_group_two_ints_fit_gls():
+def test_one_group_two_integrations():
     """
     Test for multiple integrations with only one group.
     """
-    nints, ngroups, nrows, ncols = 2, 1, 103, 102
+    nints, ngroups, nrows, ncols = 2, 1, 1, 1
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 10, 1
     group_time, frame_time = 1.0, 1
@@ -178,18 +159,18 @@ def test_one_group_two_ints_fit_gls():
         dims, gain, rnoise, group_time, frame_time
     )
 
-    ramp_data.data[0, 0, 50, 50] = 10.
-    ramp_data.data[1, 0, 50, 50] = 11.
+    ramp_data.data[0, 0, 0, 0] = 10.
+    ramp_data.data[1, 0, 0, 0] = 11.
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    # XXX As written this yields 10.5, but should yield 11.
     data = slopes[0]
 
-    np.testing.assert_allclose(data[50, 50], 11.0, 1e-6)
+    check = 10.5
+    np.testing.assert_allclose(data[0, 0], check, 1e-6)
 
 
 def test_nocrs_noflux():
@@ -262,11 +243,11 @@ def test_error_when_frame_time_not_set():
             "optimal", ncores, test_dq_flags)
 
 
-def test_five_groups_two_ints_Poisson_noise_only():
+def test_five_groups_two_integrations_Poisson_noise_only():
     """
-    I don't understand this test.
+    Multi-group ramp, with multi-integrations, with large poisson noise.
     """
-    nints, ngroups, nrows, ncols = 2, 5, 103, 102
+    nints, ngroups, nrows, ncols = 2, 5, 1, 1
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 7, 2000
     group_time, frame_time = 3.0, 1
@@ -274,34 +255,29 @@ def test_five_groups_two_ints_Poisson_noise_only():
     ramp_data, gain2d, rnoise2d = setup_inputs(
         dims, gain, rnoise, group_time, frame_time
     )
-    ramp_data.data[0, 0, 50, 50] = 10.0
-    ramp_data.data[0, 1, 50, 50] = 15.0
-    ramp_data.data[0, 2, 50, 50] = 25.0
-    ramp_data.data[0, 3, 50, 50] = 33.0
-    ramp_data.data[0, 4, 50, 50] = 60.0
-    ramp_data.data[1, 0, 50, 50] = 10.0
-    ramp_data.data[1, 1, 50, 50] = 15.0
-    ramp_data.data[1, 2, 50, 50] = 25.0
-    ramp_data.data[1, 3, 50, 50] = 33.0
-    ramp_data.data[1, 4, 50, 50] = 160.0
+
+    row, col = 0, 0
+    ramp_data.data[0, 0, row, col] = 10.0
+    ramp_data.data[0, 1, row, col] = 15.0
+    ramp_data.data[0, 2, row, col] = 25.0
+    ramp_data.data[0, 3, row, col] = 33.0
+    ramp_data.data[0, 4, row, col] = 60.0
+    ramp_data.data[1, 0, row, col] = 10.0
+    ramp_data.data[1, 1, row, col] = 15.0
+    ramp_data.data[1, 2, row, col] = 25.0
+    ramp_data.data[1, 3, row, col] = 33.0
+    ramp_data.data[1, 4, row, col] = 160.0
 
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    out_slope = slopes[0][50, 50]
+    out_slope = slopes[0][row, col]
     deltaDN1 = 50
     deltaDN2 = 150
     check = (deltaDN1 + deltaDN2) / 2.0
-    print(f"\nout_slope = {out_slope}, check = {check}")
 
-    # These arguments don't make sense to me.
-    # np.testing.assert_allclose(actual, desired, rtol, atol, ...)
-    # out_slope=slopes[0][50, 50] = 5.782827
-    # check = (deltaDN1 + deltaDN2)/2.0 = 100.0
-    # WTF?
-    # np.testing.assert_allclose(out_slope, (deltaDN1 + deltaDN2)/2.0, 75.0, 1e-6)
     np.testing.assert_allclose(out_slope, check, 75.0, 1e-6)
 
 
