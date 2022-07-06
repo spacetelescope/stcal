@@ -563,7 +563,6 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     for num_int in range(number_ints):
         ramp_data.current_integ = num_int
         if save_opt:
-            first_group[:, :] = 0.  # re-use this for each integration
             first_group[:, :] = data_sect[num_int, 0, :, :].copy()
 
         (intercept_sect, intercept_var_sect, slope_sect,
