@@ -10,6 +10,9 @@ ramp_fitting
 - Updating multi-integration processing to correctly combine multiple
   integration computations for the final image information. [#108]
 
+- Fixed crash due to two group ramps with saturated groups that used
+  an intermediate array with an incorrect shape. [#109]
+
 Changes to API
 --------------
 

@@ -472,18 +472,12 @@ def test_photon_noise_with_unweighted_fit():
     np.testing.assert_allclose(ans, check, tol)
 
 
-@pytest.mark.skip(reason="Dimensions wrong in a DQ flag check.")
 def test_two_groups_fit():
     """
-    The following lines in gls_fit_single are causing problems:
-        if s_mask.any():
-            temp_dq[:, :][s_mask] = constants.dqflags["UNRELIABLE_SLOPE"]
-
-    The following exception gets raised:
-    IndexError: too many indices for array: array is 2-dimensional, but 3 were indexed
+    Ensure pixels with two group ramps and saturated groups get their
+    final DQ flags set properly.
     """
-
-    nints, ngroups, nrows, ncols = 1, 2, 103, 102
+    nints, ngroups, nrows, ncols = 1, 2, 1, 3
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 10, 1
     group_time, frame_time = 1.0, 1
@@ -491,36 +485,34 @@ def test_two_groups_fit():
     ramp_data, gain2d, rnoise2d = setup_inputs(
         dims, gain, rnoise, group_time, frame_time
     )
-    ramp_data.data[0, 0, 50, 50] = 10.0
-    ramp_data.data[0, 1, 50, 50] = 15.0
-    ramp_data.data[0, 0, 50, 51] = 20.0
-    ramp_data.data[0, 0, 50, 52] = 200.0
-    ramp_data.data[0, 1, 50, 52] = 600.0
-    check = (ramp_data.data[0,1,50,50] - ramp_data.data[0,0,50,50])
+    ramp_data.data[0, 0, 0, 0] = 10.0
+    ramp_data.data[0, 1, 0, 0] = 15.0
+    ramp_data.data[0, 0, 0, 1] = 20.0
+    ramp_data.data[0, 0, 0, 2] = 200.0
+    ramp_data.data[0, 1, 0, 2] = 600.0
+    check = (ramp_data.data[0, 1, 0, 0] - ramp_data.data[0, 0, 0, 0])
 
     ramp_data.drop_frames1 = 0
     # 2nd group is saturated
-    ramp_data.groupdq[0,1,50,51] = SATURATED
+    ramp_data.groupdq[0, 1, 0, 1] = SATURATED
 
     # 1st group is saturated
-    ramp_data.groupdq[0,0,50,52] = SATURATED
-    ramp_data.groupdq[0,1,50,52] = SATURATED  # should not be set this way
+    ramp_data.groupdq[0, 0, 0, 2] = SATURATED
+    ramp_data.groupdq[0, 1, 0, 2] = SATURATED
 
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    ans_data = slopes[0][50, 50]
+    ans_data = slopes[0][0, 0]
     ans_dq = slopes[1]
     tol = 1.e-5
     np.testing.assert_allclose(ans_data, check, tol)
 
-    # expect SATURATED
-    assert ans_dq[50, 51] == SATURATED
-
-    # expect SATURATED and DO_NOT_USE, because 1st group is Saturated
-    assert ans_dq[50, 52] == SATURATED + DO_NOT_USE
+    assert ans_dq[0, 0] == GOOD
+    assert ans_dq[0, 1] == SATURATED | UNRELIABLE_SLOPE
+    assert ans_dq[0, 2] == SATURATED | DO_NOT_USE
 
 
 def test_four_groups_oneCR_orphangroupatend_fit():
