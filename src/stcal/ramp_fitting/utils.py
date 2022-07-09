@@ -667,8 +667,7 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
     return ped
 
 
-def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
-                 int_times):
+def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
     """
     For the OLS algorithm, construct the output integration-specific results.
     Any variance values that are a large fraction of the default value
@@ -701,9 +700,6 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
         Cube of integration-specific values for the slope variance due to
         read noise and Poisson noise, 3-D float
 
-    int_times : bintable, or None
-        The INT_TIMES table, if it exists in the input, else None
-
     Returns
     -------
     integ_info : tuple
@@ -723,8 +719,7 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3,
     dq = dq_int
     var_poisson = var_p3
     var_rnoise = var_r3
-    int_times = int_times
-    integ_info = (data, dq, var_poisson, var_rnoise, int_times, err)
+    integ_info = (data, dq, var_poisson, var_rnoise, err)
 
     # Reset the warnings filter to its original state
     warnings.resetwarnings()
@@ -1206,10 +1201,9 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
         dq = groupdq_3d
         var_poisson = np.zeros((n_int,) + imshape, dtype=np.float32)
         var_rnoise = np.zeros((n_int,) + imshape, dtype=np.float32)
-        int_times = None
         err = np.zeros((n_int,) + imshape, dtype=np.float32)
 
-        integ_info = (data, dq, var_poisson, var_rnoise, int_times, err)
+        integ_info = (data, dq, var_poisson, var_rnoise, err)
     else:
         integ_info = None
 
@@ -1379,3 +1373,172 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     pixeldq_sect[cr_loc_im] = np.bitwise_or(pixeldq_sect[cr_loc_im], jump_flag)
 
     return pixeldq_sect
+
+
+def compute_median_rates(ramp_data):
+    """
+    Compute the median rates for each pixel.
+
+    Parameter
+    ---------
+    ramp_data : RampData
+        Contains the data needed to compute the median rates.
+
+    Return
+    ------
+    median_rates : ndarray
+        The computed median rates for each pixel.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.data.shape
+    imshape = (nrows, ncols)
+
+    group_time = ramp_data.group_time
+    frame_time = ramp_data.frame_time
+    adjustment = group_time / frame_time
+    median_diffs_2d = np.zeros(imshape, dtype=np.float32)
+
+    for integ in range(nints):
+        data_sect = ramp_data.data[integ, :, :, :].copy()
+        gdq_sect = ramp_data.groupdq[integ, :, :, :]
+
+        # Reset all saturated groups in the input data array to NaN
+        where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
+
+        data_sect[where_sat] = np.NaN
+        del where_sat
+
+        data_sect = data_sect / group_time
+        if ramp_data.zframe_locs is not None:
+            for pixel in ramp_data.zframe_locs[integ]:
+                row, col = pixel
+                # This makes the division by frame_time, instead of group_time
+                data_sect[0, row, col] = data_sect[0, row, col] * adjustment
+
+        # Compute the first differences of all groups
+        first_diffs_sect = np.diff(data_sect, axis=0)
+
+        # If the dataset has only 1 group/integ, assume the 'previous group'
+        #   is all zeros, so just use data as the difference
+        if first_diffs_sect.shape[0] == 0:
+            first_diffs_sect = data_sect.copy()
+        else:
+            # Similarly, for datasets having >1 group/integ and having
+            #   single-group segments, just use the data as the difference
+            wh_nan = np.where(np.isnan(first_diffs_sect[0, :, :]))
+
+            if len(wh_nan[0]) > 0:
+                first_diffs_sect[0, :, :][wh_nan] = data_sect[0, :, :][wh_nan]
+
+            del wh_nan
+
+            # Mask all the first differences that are affected by a CR,
+            #   starting at group 1.  The purpose of starting at index 1 is
+            #   to shift all the indices down by 1, so they line up with the
+            #   indices in first_diffs.
+            i_group, i_yy, i_xx, = np.where(np.bitwise_and(
+                gdq_sect[1:, :, :], ramp_data.flags_jump_det))
+            first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
+
+            del i_group, i_yy, i_xx
+
+            # Check for pixels in which there is good data in 0th group, but
+            #   all first_diffs for this ramp are NaN because there are too
+            #   few good groups past the 0th. Due to the shortage of good
+            #   data, the first_diffs will be set here equal to the data in
+            #   the 0th group.
+            wh_min = np.where(np.logical_and(
+                np.isnan(first_diffs_sect).all(axis=0), np.isfinite(data_sect[0, :, :])))
+            if len(wh_min[0] > 0):
+                first_diffs_sect[0, :, :][wh_min] = data_sect[0, :, :][wh_min]
+
+            del wh_min
+
+        # All first differences affected by saturation and CRs have been set
+        #  to NaN, so compute the median of all non-NaN first differences.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "All-NaN.*", RuntimeWarning)
+            nan_med = np.nanmedian(first_diffs_sect, axis=0)
+
+        nan_med[np.isnan(nan_med)] = 0.  # if all first_diffs_sect are nans
+        median_diffs_2d[:, :] += nan_med
+
+    # Compute the final 2D array of differences; create rate array
+    median_rates = median_diffs_2d / nints
+    del median_diffs_2d
+    del data_sect
+
+    return median_rates
+
+
+def use_zeroframe_for_saturated_ramps(ramp_data):
+    """
+    For saturated ramps, if there is good data in the ZEROFRAME, replace
+    group zero with the data in ZEROFRAME to use the ramp as a one group
+    ramp.
+
+    Parameters
+    ----------
+    model : data model
+        input data model, assumed to be of type RampModel
+
+    Return
+    ------
+    zframe_locs : list
+        A 2D list for the location of the ramps using ZEROFRAME data.
+        zframe_locs[k] is the list of pixels in the kth integration.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.data.shape
+    sat_flag = ramp_data.flags_saturated
+    good_flag = 0
+    dq = ramp_data.groupdq
+
+    zframe_locs = [None] * nints
+
+    cnt = 0
+    for integ in range(nints):
+        zframe_locs[integ] = []
+        intdq = dq[integ, :, :, :]
+
+        # Find ramps with a good zeroeth group, but saturated in
+        # the remainder of the ramp.
+        wh_sat = groups_saturated_in_integration(intdq, sat_flag, ngroups)
+
+        whs_rows = wh_sat[0]
+        whs_cols = wh_sat[1]
+        for n in range(len(whs_rows)):
+            row = whs_rows[n]
+            col = whs_cols[n]
+
+            # For ramps completely saturated look for data in the ZEROFRAME
+            # that is non-zero.  If it is non-zero, replace group zero in the
+            # ramp with the data in ZEROFRAME.
+            if ramp_data.zeroframe[integ, row, col] != 0:
+                zframe_locs[integ].append((row, col))
+                ramp_data.data[integ, 0, row, col] = ramp_data.zeroframe[integ, row, col]
+                ramp_data.groupdq[integ, 0, row, col] = good_flag
+                cnt = cnt + 1
+
+    return zframe_locs, cnt
+
+
+def groups_saturated_in_integration(intdq, sat_flag, num_sat_groups):
+    """
+    Find the ramps in an integration that have num_sat_groups saturated.
+
+    Parameters
+    ----------
+    intdq : ndarray
+        DQ flags for an integration
+
+    sat_flag : uint
+        The data quality flag for SATURATED
+
+    num_sat_groups : int
+        The number of saturated groups in an integration of interest.
+    """
+    sat_groups = np.zeros(intdq.shape, dtype=int)
+    sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
+    nsat_groups = sat_groups.sum(axis=0)
+    wh_nsat_groups = np.where(nsat_groups == num_sat_groups)
+
+    return wh_nsat_groups

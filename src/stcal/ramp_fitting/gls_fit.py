@@ -116,7 +116,8 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
     # Determine the maximum number of cosmic ray hits for any pixel.
     max_num_cr = -1                     # invalid initial value
     for num_int in range(n_int):
-        i_max_num_cr = utils.get_max_num_cr(ramp_data.groupdq[num_int, :, :, :], jump_flag)
+        i_max_num_cr = utils.get_max_num_cr(
+            ramp_data.groupdq[num_int, :, :, :], jump_flag)
         max_num_cr = max(max_num_cr, i_max_num_cr)
 
     # Calculate effective integration time (once EFFINTIM has been populated
@@ -460,8 +461,7 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     groupdq = ramp_data.groupdq[:, :, start_row:start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row:start_row + nrows, :].copy()
 
-    ramp_data_slice.set_arrays(
-        data, err, groupdq, pixeldq, ramp_data.int_times)
+    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq)
 
     # Carry over meta data.
     ramp_data_slice.set_meta(
@@ -535,6 +535,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     saturated_flag = ramp_data.flags_saturated
 
     number_ints = data_sect.shape[0]
+    ngroups = data_sect.shape[1]
     # number_rows = data_sect.shape[2]
     # number_cols = data_sect.shape[3]
 
@@ -547,27 +548,29 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
         ampl_int, ampl_err_int) = create_opt_res(save_opt, data_sect.shape, max_num_cr)
 
+    med_rates = None
+    if ngroups == 1:
+        med_rates = utils.compute_median_rates(ramp_data)
+
+    # We'll propagate error estimates from previous steps to the
+    # current step by using the variance.
+    input_var_sect = input_var_sect ** 2
+
+    # Convert the data section from DN to electrons.
+    data_sect *= gain_2d
+
     # loop over data integrations
     for num_int in range(number_ints):
-        if save_opt:
-            first_group[:, :] = 0.  # re-use this for each integration
-
-        # We'll propagate error estimates from previous steps to the
-        # current step by using the variance.
-        # TODO Should this really be done every loop?
-        input_var_sect = input_var_sect ** 2
-
-        # Convert the data section from DN to electrons.
-        # TODO Should this really be done every loop?
-        data_sect *= gain_2d
+        ramp_data.current_integ = num_int
         if save_opt:
             first_group[:, :] = data_sect[num_int, 0, :, :].copy()
 
         (intercept_sect, intercept_var_sect, slope_sect,
          slope_var_sect, cr_sect, cr_var_sect) = determine_slope(
+             ramp_data,
              data_sect[num_int, :, :, :], input_var_sect[num_int, :, :, :],
              gdq_cube[num_int, :, :, :], readnoise_2d, gain_2d, frame_time, group_time,
-             nframes_used, max_num_cr, saturated_flag, jump_flag)
+             nframes_used, max_num_cr, saturated_flag, jump_flag, med_rates)
 
         slope_int[num_int, :, :] = slope_sect.copy()
         v_mask = (slope_var_sect <= 0.)
@@ -693,12 +696,13 @@ def create_integration_arrays(dims):
     """
     number_ints, ngroups, number_rows, number_cols = dims
 
+    # Integration cubes
     slope_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
     slope_err_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.float32)
-
     dq_int = np.zeros((number_ints, number_rows, number_cols), dtype=np.uint32)
-    temp_dq = np.zeros((number_rows, number_cols), dtype=np.uint32)
 
+    # Image size
+    temp_dq = np.zeros((number_rows, number_cols), dtype=np.uint32)
     slopes = np.zeros((number_rows, number_cols), dtype=np.float32)
     sum_weight = np.zeros((number_rows, number_cols), dtype=np.float32)
 
@@ -747,10 +751,10 @@ def create_opt_res(save_opt, dims, max_num_cr):
             shape_ampl, ampl_int, ampl_err_int)
 
 
-def determine_slope(data_sect, input_var_sect,
-                    gdq_sect, readnoise_sect, gain_sect,
-                    frame_time, group_time, nframes_used,
-                    max_num_cr, saturated_flag, jump_flag):
+def determine_slope(
+        ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
+        frame_time, group_time, nframes_used, max_num_cr, saturated_flag,
+        jump_flag, med_rates):
     """Iteratively fit a slope, intercept, and cosmic rays to a ramp.
 
     This function fits a ramp, possibly with discontinuities (cosmic-ray
@@ -810,6 +814,11 @@ def determine_slope(data_sect, input_var_sect,
         that have a total of num_cr cosmic ray hits at each pixel.  This
         is passed to gls_fit(), which fits a slope to the ramp.
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    XXX TODO - not sure what 'ramp_data' here refers to.  This is NOT the
+               RampData class passed into this function.  This is an old
+               comment held over from before refactoring.
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ramp_data has shape (ngroups, nz); this will be a ramp with a 1-D
     array of pixels copied out of data_sect.  The pixels will be those
     that have a particular number of cosmic-ray hits, somewhere within
@@ -833,6 +842,9 @@ def determine_slope(data_sect, input_var_sect,
 
     Parameters
     ----------
+    ramp_data : RampData
+        The class containing all metadata needed for slope computations.
+
     data_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The ramp data for one integration.  This may be a subarray in
         detector coordinates, but covering all groups.  ngroups is the
@@ -879,6 +891,9 @@ def determine_slope(data_sect, input_var_sect,
     jump_flag : int
         The jump detection flag.
 
+    med_rates : ndarray
+        A 2D array for the median rate for each pixel.
+
     Returns
     -------
     tuple :  (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
@@ -897,6 +912,12 @@ def determine_slope(data_sect, input_var_sect,
         cr_var_sect : 3-D ndarray, shape (ny, nx, cr_dimen)
             The variance of each cosmic-ray amplitude.
     """
+    ngroups, nrows, ncols = data_sect.shape
+    if ngroups == 1:
+        return determine_slope_one_group(
+            ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect,
+            gain_sect, frame_time, group_time, nframes_used, max_num_cr,
+            saturated_flag, jump_flag, med_rates)
 
     slope_diff_cutoff = 1.e-5
 
@@ -946,6 +967,119 @@ def determine_slope(data_sect, input_var_sect,
             prev_fit = positive_fit(current_fit)      # use for next iteration
             del current_fit
             prev_slope_sect = slope_sect.copy()
+
+    return (intercept_sect, int_var_sect, slope_sect,
+            slope_var_sect, cr_sect, cr_var_sect)
+
+
+def determine_slope_one_group(
+        ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
+        frame_time, group_time, nframes_used, max_num_cr, saturated_flag,
+        jump_flag, med_rates):
+    """
+    The special case where an integration has only one group.
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        The ramp data class containing all metadata needed for computations.
+
+    data_sect : 3-D ndarray, shape (ngroups, ny, nx)
+        The ramp data for one integration.  This may be a subarray in
+        detector coordinates, but covering all groups.  ngroups is the
+        number of groups; ny is the number of pixels in the Y direction;
+        nx is the number of pixels in the X (more rapidly varying)
+        direction.  The units should be electrons.
+
+    input_var_sect : 3-D ndarray, shape (ngroups, ny, nx)
+        The square of the input ERR array, matching data_sect.
+
+    gdq_sect : 3-D ndarray, shape (ngroups, ny, nx)
+        The group data quality array.  This may be a subarray, matching
+        data_sect.
+
+    readnoise_sect : 2-D ndarray, shape (ny, nx)
+        The read noise in electrons at each detector pixel (i.e. not a
+        ramp).  This may be a subarray, similar to data_sect.
+
+    gain_sect : 2-D ndarray, or None, shape (ny, nx)
+        The gain in electrons per DN at each detector pixel (i.e. not a
+        ramp).  This may be a subarray, matching readnoise_sect.  If
+        gain_sect is None, a value of 1 will be assumed.
+
+    frame_time : float
+        The time to read one frame, in seconds (e.g. 10.6 s).
+
+    group_time : float
+        Time increment between groups, in seconds.
+
+    nframes_used : int
+        Number of frames that were averaged together to make a group.
+        Note that this value does not include the number (if any) of
+        skipped frames.
+
+    max_num_cr : non-negative int
+        The maximum number of cosmic rays that should be handled.  This
+        must be specified by the caller, because determine_slope may be
+        called for different sections of the input data, and those sections
+        may have differing maximum numbers of cosmic rays.
+
+    saturated_flag : int
+        The saturation flag.
+
+    jump_flag : int
+        The jump detection flag.
+
+    med_rates : ndarray
+        A 2D array for the median rate for each pixel.
+
+    Returns
+    -------
+    tuple :  (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
+             cr_sect, cr_var_sect)
+
+        intercept_sect : 2-D ndarray, shape (ny, nx)
+            The intercept of the ramp at each pixel.
+
+        int_var_sect : 2-D ndarray, shape (ny, nx)
+            The variance of the intercept at each pixel.
+
+        slope_sect : 2-D ndarray, shape (ny, nx)
+            The ramp slope at each pixel of data_sect.
+
+        slope_var_sect : 2-D ndarray, shape (ny, nx)
+            The ramp slope at each pixel of data_sect.
+
+        cr_sect : 3-D ndarray, shape (ny, nx, cr_dimen)
+            The amplitude of each cosmic ray at each pixel.  cr_dimen is
+            max_num_cr or 1, whichever is larger.
+
+        cr_var_sect : 3-D ndarray, shape (ny, nx, cr_dimen)
+            The variance of each cosmic-ray amplitude.
+    """
+    ngroups, nrows, ncols = data_sect.shape
+
+    imshape = (nrows, ncols)
+    intercept_sect = np.zeros(imshape, dtype=np.float32)
+    int_var_sect = np.zeros(imshape, dtype=np.float32)
+
+    slope_sect = data_sect[0, :, :] / group_time
+    slope_var_sect = np.zeros(imshape, dtype=np.float32)
+    var_r = 12. * (readnoise_sect / group_time)**2
+    var_p = med_rates / (group_time * gain_sect)
+
+    # Handle ZEROFRAME
+    if ramp_data.zframe_locs:
+        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
+            row, col = pix
+            slope_sect = data_sect[0, row, col] / frame_time
+            var_r[row, col] = 12. * (readnoise_sect[row, col] / frame_time)**2.
+            var_p[row, col] = med_rates[row, col] / (frame_time * gain_sect[row, col])
+    slope_var_sect = var_r + var_p
+
+    cubeshape = (1, nrows, ncols)
+    cr_sect = np.zeros(cubeshape, dtype=np.float32)  # Not sure what this is
+    cr_var_sect = np.zeros(cubeshape, dtype=np.float32)  # Not sure what this is
 
     return (intercept_sect, int_var_sect, slope_sect,
             slope_var_sect, cr_sect, cr_var_sect)

@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
+def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
              min_jump_to_flag_neighbors, dqflags, copy_arrs=True):
@@ -28,7 +28,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     read_noise : float, 2D array
         The read noise of each pixel
 
-    normal_rej_thresh : float
+    rejection_thresh : float
         cosmic ray sigma rejection threshold
 
     two_diff_rej_thresh : float
@@ -131,7 +131,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # there are different threshold for 4+, 3, and 2 usable groups
         num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
         row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
-                                  max_ratio > normal_rej_thresh))
+                                  max_ratio > rejection_thresh))
         row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
                                   max_ratio > three_diff_rej_thresh))
         row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
@@ -187,7 +187,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 # check if largest ratio exceeds threhold appropriate for num remaining groups
 
                 # select appropriate thresh. based on number of remaining groups
-                rej_thresh = normal_rej_thresh
+                rej_thresh = rejection_thresh
                 if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
                     rej_thresh = three_diff_rej_thresh
                 if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:

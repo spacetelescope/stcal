@@ -8,7 +8,6 @@ class RampData:
         self.err = None
         self.groupdq = None
         self.pixeldq = None
-        self.int_times = None
 
         # Meta information
         self.instrument_name = None
@@ -29,6 +28,7 @@ class RampData:
         # ZEROFRAME
         self.zframe_locs = None
         self.zframe_cnt = 0
+        self.zeroframe = None
 
         # Slice info
         self.start_row = None
@@ -36,11 +36,10 @@ class RampData:
 
         # One group ramp suppression for saturated ramps after 0th group.
         self.suppress_one_group_ramps = False
-        self.one_groups = None
 
         self.current_integ = -1
 
-    def set_arrays(self, data, err, groupdq, pixeldq, int_times):
+    def set_arrays(self, data, err, groupdq, pixeldq):
         """
         Set the arrays needed for ramp fitting.
 
@@ -61,16 +60,12 @@ class RampData:
         pixeldq : ndarray (uint32)
             4-D array containing the pixel data quality information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
-
-        int_times : list
-            Time information for each integration.
         """
         # Get arrays from the data model
         self.data = data
         self.err = err
         self.groupdq = groupdq
         self.pixeldq = pixeldq
-        self.int_times = int_times
 
     def set_meta(self, name, frame_time, group_time, groupgap,
                  nframes, drop_frames1=None):
@@ -125,3 +120,59 @@ class RampData:
         self.flags_saturated = dqflags["SATURATED"]
         self.flags_no_gain_val = dqflags["NO_GAIN_VALUE"]
         self.flags_unreliable_slope = dqflags["UNRELIABLE_SLOPE"]
+
+    def dbg_print_types(self):
+        # Arrays from the data model
+        print("-" * 80)
+        print("    Array Types:")
+        print(f"data : {type(self.data)}")
+        print(f"err : {type(self.err)}")
+        print(f"groupdq : {type(self.groupdq)}")
+        print(f"pixeldq : {type(self.pixeldq)}")
+
+        self.dbg_print_meta()
+        self.dbg_print_mp()
+        self.dbg_print_zframe()
+        self.dbg_print_1grp()
+
+    def dbg_print_meta(self):
+        # Meta information
+        print("-" * 80)
+        print("    Meta:")
+        print(f"Instumet: {self.instrument_name}")
+
+        print(f"Frame time : {self.frame_time}")
+        print(f"Group time : {self.group_time}")
+        print(f"Group Gap : {self.groupgap}")
+        print(f"Nframes : {self.nframes}")
+        print(f"Drop Frames : {self.drop_frames1}")
+
+    def dbg_print_mp(self):
+        # Multiprocessing
+        print("-" * 80)
+        print(f"Start row : {self.start_row}")
+        print(f"Number of rows : {self.num_rows}")
+
+    def dbg_print_zframe(self):
+        # ZEROFRAME
+        print("-" * 80)
+        print("    ZEROFRAME:")
+        print(f"zframe_locs : {type(self.zframe_locs)}")
+        print(f"zeroframe : {type(self.zeroframe)}")
+
+    def dbg_print_1grp(self):
+        # One group ramp suppression for saturated ramps after 0th group.
+        print("-" * 80)
+        print("    One Group Suppression:")
+        print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")
+
+    def dbg_print_basic_info(self):
+        # Arrays from the data model
+        print("-" * 80)
+        print("    Array Types:")
+        print(f"data : {self.data}")
+        print(f"err : {self.err}")
+        print(f"groupdq : {self.groupdq}")
+        print(f"pixeldq : {self.pixeldq}")
+
+        self.dbg_print_meta()
