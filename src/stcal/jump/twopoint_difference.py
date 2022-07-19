@@ -8,8 +8,10 @@ log.setLevel(logging.DEBUG)
 def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
-             min_jump_to_flag_neighbors, flag_n_after_jump, dqflags,
-             copy_arrs=True):
+             min_jump_to_flag_neighbors,
+             after_jump_flag_dn1, after_jump_flag_n1,
+             after_jump_flag_dn2, after_jump_flag_n2,
+             dqflags, copy_arrs=True):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -55,9 +57,25 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         neighbors (marginal detections). Any primary jump below this value will
         not have its neighbors flagged.
 
-    flag_n_after_jump : int
-        flag n groups after a jump to remove the transient seen from the
-        slope calculation
+    after_jump_flag_dn1 : float
+        1st flag after jumps with the specified DN jump
+        to remove the transient seen from the slope calculation
+
+    after_jump_flag_n1 : int
+        1st flag n groups after companion threshold
+        to remove the transient seen from the slope calculation
+
+    after_jump_flag_dn2 : float
+        2nd flag after jumps with the specified DN jump
+        to remove the transient seen from the slope calculation
+
+    after_jump_flag_n2 : int
+        2nd flag n groups after companion threshold
+        to remove the transient seen from the slope calculation
+
+    dqflags: dict
+        A dictionary with at least the following keywords:
+        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
     copy_arrs : bool
         Flag for making internal copies of the arrays so the input isn't modified,
@@ -262,27 +280,28 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
 
         # flag n groups after all jumps to account for the transient seen
-        if flag_n_after_jump > 0:
-            log.info(f"Flagging {flag_n_after_jump} extra groups after all detected jumps.")
+        flag_dn_threshold = [after_jump_flag_dn1, after_jump_flag_dn2]
+        flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
+        for cthres, cgroup in zip(flag_dn_threshold, flag_groups):
+            if cgroup > 0:
+                log.info(f"Flagging {cgroup} groups after detected jumps with DN > {cthres}.")
 
-            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
+                cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
 
-            for j in range(len(cr_group)):
-                group = cr_group[j]
-                row = cr_row[j]
-                col = cr_col[j]
-                # print(j)
-                # print(gdq[integ, :, row, col])
-                for kk in range(group, min(group + flag_n_after_jump, ngroups)):
-                    if (gdq[integ, kk, row, col] & sat_flag) == 0:
-                        if (gdq[integ, kk, row, col] & dnu_flag) == 0:
-                            gdq[integ, kk, row, col] =\
-                                np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-                # print(gdq[integ, :, row, col])
-                # if j > 10:
-                #     exit()
-        else:
-            log.info("No extra groups flagged after detected jumps.")
+                for j in range(len(cr_group)):
+                    group = cr_group[j]
+                    row = cr_row[j]
+                    col = cr_col[j]
+                    # print(j)
+                    # print(gdq[integ, :, row, col])
+                    for kk in range(group, min(group + cgroup, ngroups)):
+                        if (gdq[integ, kk, row, col] & sat_flag) == 0:
+                            if (gdq[integ, kk, row, col] & dnu_flag) == 0:
+                                gdq[integ, kk, row, col] =\
+                                    np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+                    # print(gdq[integ, :, row, col])
+                    # if j > 10:
+                    #     exit()
 
     return gdq, row_below_gdq, row_above_gdq
 

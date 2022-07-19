@@ -14,6 +14,8 @@ log.setLevel(logging.DEBUG)
 def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  gain_2d, readnoise_2d, rejection_thresh,
                  three_grp_thresh, four_grp_thresh, max_cores, max_jump_to_flag_neighbors,
+                 after_jump_flag_dn1, after_jump_flag_n1,
+                 after_jump_flag_dn2, after_jump_flag_n2,
                  min_jump_to_flag_neighbors, flag_4_neighbors, dqflags):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -84,11 +86,25 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         if set to True (default is True), it will cause the four perpendicular
         neighbors of all detected jumps to also be flagged as a jump.
 
+    after_jump_flag_dn1 : float
+        1st flag after jumps with the specified DN jump
+        to remove the transient seen from the slope calculation
+
+    after_jump_flag_n1 : int
+        1st flag n groups after companion threshold
+        to remove the transient seen from the slope calculation
+
+    after_jump_flag_dn2 : float
+        2nd flag after jumps with the specified DN jump
+        to remove the transient seen from the slope calculation
+
+    after_jump_flag_n2 : int
+        2nd flag n groups after companion threshold
+        to remove the transient seen from the slope calculation
+
     dqflags: dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
-
-
 
     Returns
     -------
@@ -144,13 +160,14 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     elif max_cores == 'all':
         n_slices = max_available
 
-    flag_n_after_jump = 5
     if n_slices == 1:
         gdq, row_below_dq, row_above_dq = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
-                           min_jump_to_flag_neighbors, flag_n_after_jump, dqflags)
+                           after_jump_flag_dn1, after_jump_flag_n1,
+                           after_jump_flag_dn2, after_jump_flag_n2,
+                           dqflags)
 
         elapsed = time.time() - start
     else:
@@ -175,8 +192,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               rejection_thresh, three_grp_thresh, four_grp_thresh,
                               frames_per_group, flag_4_neighbors,
                               max_jump_to_flag_neighbors,
-                              min_jump_to_flag_neighbors, flag_n_after_jump, dqflags,
-                              copy_arrs))
+                              min_jump_to_flag_neighbors,
+                              after_jump_flag_dn1, after_jump_flag_n1,
+                              after_jump_flag_dn2, after_jump_flag_n2,
+                              dqflags, copy_arrs))
 
         # last slice get the rest
         slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
@@ -185,7 +204,9 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                      rejection_thresh, three_grp_thresh,
                                      four_grp_thresh, frames_per_group,
                                      flag_4_neighbors, max_jump_to_flag_neighbors,
-                                     min_jump_to_flag_neighbors, flag_n_after_jump,
+                                     min_jump_to_flag_neighbors,
+                                     after_jump_flag_dn1, after_jump_flag_n1,
+                                     after_jump_flag_dn2, after_jump_flag_n2,
                                      dqflags, copy_arrs))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
