@@ -14,9 +14,10 @@ log.setLevel(logging.DEBUG)
 def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  gain_2d, readnoise_2d, rejection_thresh,
                  three_grp_thresh, four_grp_thresh, max_cores, max_jump_to_flag_neighbors,
+                 min_jump_to_flag_neighbors, flag_4_neighbors,
                  after_jump_flag_dn1, after_jump_flag_n1,
                  after_jump_flag_dn2, after_jump_flag_n2,
-                 min_jump_to_flag_neighbors, flag_4_neighbors, dqflags):
+                 dqflags):
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -165,6 +166,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
+                           min_jump_to_flag_neighbors,
                            after_jump_flag_dn1, after_jump_flag_n1,
                            after_jump_flag_dn2, after_jump_flag_n2,
                            dqflags)
