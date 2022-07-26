@@ -283,35 +283,45 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         # flag n groups after all jumps to account for the transient seen
         flag_dn_threshold = [after_jump_flag_dn1, after_jump_flag_dn2]
         flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
+        # ensure the smallest threshold is 1st
+        if flag_dn_threshold[0] > flag_dn_threshold[1]:
+            flag_dn_threshold = np.flip(flag_dn_threshold)
+            flag_groups = np.flip(flag_groups)
 
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
+        #
+        #  **should** work and be faster.  But does not.  Sigh.
+        #
+        # for jj in range(2):
+        #     if flag_groups[jj] > 0:
+        #         uplimit = 1e6
+        #         if jj == 0:
+        #             if flag_groups[1] > 0:
+        #                 uplimit = flag_dn_threshold[1]
+        #         print(jj, flag_dn_threshold[jj], uplimit)
+        #         flagcrs = (cr_group >= flag_dn_threshold[jj]) & (cr_group < uplimit)
+        #         log.info(f"Flagging {flag_groups[jj]} groups after {flag_dn_threshold[jj]} DN jumps for {np.sum(flagcrs)} pixels.")
+        #         for group, row, col in zip(cr_group[flagcrs], cr_row[flagcrs], cr_col[flagcrs]):
+        #             for kk in range(group, min(group + flag_groups[jj], ngroups)):
+        #                 if (gdq[integ, kk, row, col] & sat_flag) == 0:
+        #                     if (gdq[integ, kk, row, col] & dnu_flag) == 0:
+        #                         gdq[integ, kk, row, col] =\
+        #                             np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+
         for cthres, cgroup in zip(flag_dn_threshold, flag_groups):
             if cgroup > 0:
-                log.info(f"Flagging {cgroup} groups after detected jumps with DN > {cthres}.")
+                log.info(f"Flagging {cgroup} groups after detected jumps with DN >= {cthres}.")
 
                 for j in range(len(cr_group)):
                     group = cr_group[j]
                     row = cr_row[j]
                     col = cr_col[j]
-                    ratio_this_pix = ratio[cr_group[j] - 1, cr_row[j], cr_col[j]]
-                    # print(j, row, col)
-                    # print(gdq[integ, :, row, col])
-                    # print(dataa[integ, :, row, col])
-                    # print(group)
-                    # print(dataa[integ, group + 1, row, col] - dataa[integ, group, row, col])
-                    # print(dn_diff[:, row, col])
-                    # print(dn_diff[group-1, row, col], dn_diff[group, row, col], dn_diff[group + 1, row, col])
-                    # exit()
-                    if dn_jump[group - 1, row, col] > cthres:
+                    if dn_jump[group - 1, row, col] >= cthres:
                         for kk in range(group, min(group + cgroup, ngroups)):
                             if (gdq[integ, kk, row, col] & sat_flag) == 0:
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-                    # print(group, row, col, cthres, ratio_this_pix, dn_jump[group-1, row, col])
-                    # print(gdq[integ, :, row, col])
-                    # if j > 2:
-                    #     exit()
 
     return gdq, row_below_gdq, row_above_gdq
 
