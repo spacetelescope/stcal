@@ -1363,7 +1363,18 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     """
     sat_flag = ramp_data.flags_saturated
     jump_flag = ramp_data.flags_jump_det
+    dnu_flag = ramp_data.flags_do_not_use
 
+    ngroups, nrows, ncols = gdq_sect.shape
+
+    # If all groups are set to DO_NOT_USE, mark as DO_NOT_USE.
+    dnu = np.zeros(gdq_sect.shape, dtype=np.uint32)
+    dnu[np.where(np.bitwise_and(gdq_sect, dnu_flag))] = 1
+    dnu_sum = dnu.sum(axis=0)
+    all_dnu = np.where(dnu_sum == ngroups)
+    pixeldq_sect[all_dnu] = np.bitwise_or(pixeldq_sect[all_dnu], dnu_flag)
+
+    # If saturation or a jump occures mark the appropriate flag.
     sat_loc_r = np.bitwise_and(gdq_sect, sat_flag)
     sat_loc_im = np.where(sat_loc_r.sum(axis=0) > 0)
     pixeldq_sect[sat_loc_im] = np.bitwise_or(pixeldq_sect[sat_loc_im], sat_flag)

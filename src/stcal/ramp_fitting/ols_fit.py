@@ -535,7 +535,6 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice = ramp_fit_class.RampData()
 
     # Slice data by row
-    # XXX change the type of copy
     data = ramp_data.data[:, :, start_row:start_row + nrows, :].copy()
     err = ramp_data.err[:, :, start_row:start_row + nrows, :].copy()
     groupdq = ramp_data.groupdq[:, :, start_row:start_row + nrows, :].copy()
@@ -1179,7 +1178,9 @@ def ramp_fit_overall(
         variances_ans, save_opt, tstart):
     """
     Computes the final/overall slope and variance values using the
-    intermediate computations previously computed.
+    intermediate computations previously computed.  When computing
+    integration slopes, if NaNs are computed, the corresponding DQ
+    flag is set to DO_NOT_USE and the value is set to 0. per INS.
 
 
     Parameters
@@ -1273,13 +1274,20 @@ def ramp_fit_overall(
     # Suppress, then re-enable harmless arithmetic warnings
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+
     slope_int = the_num / the_den
+
+    # Adjust DQ flags for NaNs.
+    wh_nans = np.where(np.isnan(slope_int))
+    dq_int[wh_nans] = np.bitwise_or(dq_int[wh_nans], ramp_data.flags_do_not_use)
+    slope_int[wh_nans] = 0.
     warnings.resetwarnings()
 
-    del the_num, the_den
+    del the_num, the_den, wh_nans
 
     # Clean up ramps that are SAT on their initial groups; set ramp parameters
     #   for variances and slope so they will not contribute
+
     var_p3, var_both3, slope_int, dq_int = utils.fix_sat_ramps(
         ramp_data, sat_0th_group_int, var_p3, var_both3, slope_int, dq_int)
 

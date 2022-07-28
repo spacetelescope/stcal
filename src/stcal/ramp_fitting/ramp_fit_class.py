@@ -169,10 +169,17 @@ class RampData:
     def dbg_print_basic_info(self):
         # Arrays from the data model
         print("-" * 80)
-        print("    Array Types:")
+        print(f"Shape : {self.data.shape}")
         print(f"data : {self.data}")
         print(f"err : {self.err}")
         print(f"groupdq : {self.groupdq}")
         print(f"pixeldq : {self.pixeldq}")
 
         self.dbg_print_meta()
+
+    def dbg_print_pixel_info(self, row, col):
+        print("-" * 80)
+        print(f"    data :\n{self.data[:, :, row, col]}")
+        print(f"    err :\n{self.err[:, :, row, col]}")
+        print(f"    groupdq :\n{self.groupdq[:, :, row, col]}")
+        print(f"    pixeldq :\n{self.pixeldq[row, col]}")
