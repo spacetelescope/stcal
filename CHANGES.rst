@@ -1,7 +1,7 @@
 1.0.1 (unreleased)
 ==================
 
-GENERAL
+General
 -------
 
 - Made style changes due to the new 5.0.3 version of flake8, which
