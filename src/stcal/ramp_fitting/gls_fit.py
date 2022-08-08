@@ -237,7 +237,7 @@ def create_output_image(ramp_data):
     pdq = np.zeros(image_shape, dtype=np.uint32)
     err = np.zeros(image_shape, dtype=np.float32)
 
-    return (slope, pdq, err)
+    return slope, pdq, err
 
 
 def create_output_integ(ramp_data):
@@ -252,7 +252,7 @@ def create_output_integ(ramp_data):
     pdq = np.zeros(image_shape, dtype=np.uint32)
     err = np.zeros(image_shape, dtype=np.float32)
 
-    return (slope, pdq, err)
+    return slope, pdq, err
 
 
 def create_output_opt_res(ramp_data):
@@ -1589,4 +1589,4 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     # shape of both result2d and variances is (nz, 2 + num_cr)
     fitparam_uncs = fitparam_cov.diagonal(axis1=1, axis2=2).copy()
 
-    return (fitparam2d, fitparam_uncs)
+    return fitparam2d, fitparam_uncs
