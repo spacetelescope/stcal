@@ -142,7 +142,6 @@ def test_two_integrations():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    import ipdb; ipdb.set_trace()
     ans = slopes[0][row, col]
     np.testing.assert_allclose(slopes[0][row, col], 133.3377685, 1e-6)
 
