@@ -8,10 +8,12 @@ log.setLevel(logging.DEBUG)
 def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
-             min_jump_to_flag_neighbors,
-             after_jump_flag_dn1, after_jump_flag_n1,
-             after_jump_flag_dn2, after_jump_flag_n2,
-             dqflags, copy_arrs=True):
+             min_jump_to_flag_neighbors, dqflags,
+             after_jump_flag_dn1=0.0,
+             after_jump_flag_n1=0,
+             after_jump_flag_dn2=0.0,
+             after_jump_flag_n2=0,
+             copy_arrs=True):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -57,6 +59,10 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         neighbors (marginal detections). Any primary jump below this value will
         not have its neighbors flagged.
 
+    dqflags: dict
+        A dictionary with at least the following keywords:
+        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
+
     after_jump_flag_dn1 : float
         1st flag after jumps with the specified DN jump
         to remove the transient seen from the slope calculation
@@ -72,10 +78,6 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
     after_jump_flag_n2 : int
         2nd flag n groups after companion threshold
         to remove the transient seen from the slope calculation
-
-    dqflags: dict
-        A dictionary with at least the following keywords:
-        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
     copy_arrs : bool
         Flag for making internal copies of the arrays so the input isn't modified,
@@ -284,9 +286,9 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         flag_dn_threshold = [after_jump_flag_dn1, after_jump_flag_dn2]
         flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
         # ensure the smallest threshold is 1st
-        if flag_dn_threshold[0] > flag_dn_threshold[1]:
-            flag_dn_threshold = np.flip(flag_dn_threshold)
-            flag_groups = np.flip(flag_groups)
+        # if flag_dn_threshold[0] > flag_dn_threshold[1]:
+        #     flag_dn_threshold = np.flip(flag_dn_threshold)
+        #     flag_groups = np.flip(flag_groups)
 
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
 
@@ -316,7 +318,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                     row = cr_row[j]
                     col = cr_col[j]
                     if dn_jump[group - 1, row, col] >= cthres:
-                        for kk in range(group, min(group + cgroup, ngroups)):
+                        for kk in range(group, min(group + cgroup + 1, ngroups)):
                             if (gdq[integ, kk, row, col] & sat_flag) == 0:
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\

@@ -14,10 +14,11 @@ log.setLevel(logging.DEBUG)
 def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  gain_2d, readnoise_2d, rejection_thresh,
                  three_grp_thresh, four_grp_thresh, max_cores, max_jump_to_flag_neighbors,
-                 min_jump_to_flag_neighbors, flag_4_neighbors,
-                 after_jump_flag_dn1, after_jump_flag_n1,
-                 after_jump_flag_dn2, after_jump_flag_n2,
-                 dqflags):
+                 min_jump_to_flag_neighbors, flag_4_neighbors, dqflags,
+                 after_jump_flag_dn1=0.0,
+                 after_jump_flag_n1=0,
+                 after_jump_flag_dn2=0.0,
+                 after_jump_flag_n2=0):
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -87,6 +88,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         if set to True (default is True), it will cause the four perpendicular
         neighbors of all detected jumps to also be flagged as a jump.
 
+    dqflags: dict
+        A dictionary with at least the following keywords:
+        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
+
     after_jump_flag_dn1 : float
         1st flag after jumps with the specified DN jump
         to remove the transient seen from the slope calculation
@@ -102,10 +107,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     after_jump_flag_n2 : int
         2nd flag n groups after companion threshold
         to remove the transient seen from the slope calculation
-
-    dqflags: dict
-        A dictionary with at least the following keywords:
-        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
     Returns
     -------
@@ -166,10 +167,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
-                           min_jump_to_flag_neighbors,
-                           after_jump_flag_dn1, after_jump_flag_n1,
-                           after_jump_flag_dn2, after_jump_flag_n2,
-                           dqflags)
+                           min_jump_to_flag_neighbors, dqflags,
+                           after_jump_flag_dn1=after_jump_flag_dn1,
+                           after_jump_flag_n1=after_jump_flag_n1,
+                           after_jump_flag_dn2=after_jump_flag_dn2,
+                           after_jump_flag_n2=after_jump_flag_n2)
 
         elapsed = time.time() - start
     else:
