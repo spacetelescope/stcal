@@ -134,6 +134,9 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     data *= gain_2d
     err *= gain_2d
     readnoise_2d *= gain_2d
+    # also apply to the after_jump thresholds
+    after_jump_flag_e1 = after_jump_flag_dn1 * gain_2d
+    after_jump_flag_e2 = after_jump_flag_dn2 * gain_2d
 
     # Apply the 2-point difference method as a first pass
     log.info('Executing two-point difference method')
@@ -168,9 +171,9 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
                            min_jump_to_flag_neighbors, dqflags,
-                           after_jump_flag_dn1=after_jump_flag_dn1,
+                           after_jump_flag_e1=after_jump_flag_e1,
                            after_jump_flag_n1=after_jump_flag_n1,
-                           after_jump_flag_dn2=after_jump_flag_dn2,
+                           after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2)
 
         elapsed = time.time() - start
@@ -196,10 +199,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               rejection_thresh, three_grp_thresh, four_grp_thresh,
                               frames_per_group, flag_4_neighbors,
                               max_jump_to_flag_neighbors,
-                              min_jump_to_flag_neighbors,
-                              after_jump_flag_dn1, after_jump_flag_n1,
-                              after_jump_flag_dn2, after_jump_flag_n2,
-                              dqflags, copy_arrs))
+                              min_jump_to_flag_neighbors, dqflags,
+                              after_jump_flag_e1, after_jump_flag_n1,
+                              after_jump_flag_e2, after_jump_flag_n2,
+                              copy_arrs))
 
         # last slice get the rest
         slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
@@ -208,10 +211,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                      rejection_thresh, three_grp_thresh,
                                      four_grp_thresh, frames_per_group,
                                      flag_4_neighbors, max_jump_to_flag_neighbors,
-                                     min_jump_to_flag_neighbors,
-                                     after_jump_flag_dn1, after_jump_flag_n1,
-                                     after_jump_flag_dn2, after_jump_flag_n2,
-                                     dqflags, copy_arrs))
+                                     min_jump_to_flag_neighbors, dqflags,
+                                     after_jump_flag_e1, after_jump_flag_n1,
+                                     after_jump_flag_e2, after_jump_flag_n2,
+                                     copy_arrs))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one
