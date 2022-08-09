@@ -293,11 +293,11 @@ def calc_med_first_diffs(first_diffs):
             mask[np.nanargmax(np.abs(first_diffs))] = False  # clip the diff with the largest abs value
             return np.nanmedian(first_diffs[mask])
         elif num_usable_groups == 3:  # if 3, no clipping just return median
-            return(np.nanmedian(first_diffs))
+            return np.nanmedian(first_diffs)
         elif num_usable_groups == 2:  # if 2, return diff with minimum abs
-            return(first_diffs[np.nanargmin(np.abs(first_diffs))])
+            return first_diffs[np.nanargmin(np.abs(first_diffs))]
         else:
-            return(np.nan)
+            return np.nan
 
     # if input is multi-dimensional
 
@@ -332,4 +332,4 @@ def calc_med_first_diffs(first_diffs):
     row_none, col_none = np.where(num_usable_groups < 2)
     median_diffs[row_none, col_none] = np.nan
 
-    return(median_diffs)
+    return median_diffs

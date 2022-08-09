@@ -1,6 +1,12 @@
 1.0.1 (unreleased)
 ==================
 
+General
+-------
+
+- Made style changes due to the new 5.0.3 version of flake8, which
+  noted many missing white spaces after keywords. [#114]
+
 Bug Fixes
 ---------
 
