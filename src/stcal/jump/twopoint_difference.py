@@ -301,7 +301,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         #                 uplimit = flag_dn_threshold[1]
         #         cdn_jumps = dn_jump[cr_group, cr_row, cr_col]
         #         flagcrs = (cdn_jumps >= flag_dn_threshold[jj]) & (cdn_jumps < uplimit)
-        #         log.info(f"Flagging {flag_groups[jj]} groups after {flag_dn_threshold[jj]} DN jumps for {np.sum(flagcrs)} pixels.")
+        #         log.info(f"Flagging {flag_groups[jj]} groups after {flag_dn_threshold[jj]}
+        #                   DN jumps for {np.sum(flagcrs)} pixels.")
         #         for group, row, col in zip(cr_group[flagcrs], cr_row[flagcrs], cr_col[flagcrs]):
         #             for kk in range(group, min(group + flag_groups[jj], ngroups)):
         #                 if (gdq[integ, kk, row, col] & sat_flag) == 0:
