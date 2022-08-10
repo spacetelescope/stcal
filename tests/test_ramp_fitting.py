@@ -132,6 +132,9 @@ def base_neg_med_rates_multi_integrations():
 
 
 def test_neg_med_rates_multi_integrations_slopes():
+    """
+    Test computing median rates of a ramp with multiple integrations.
+    """
     slopes, cube, optional, gls_dummy, dims = \
         base_neg_med_rates_multi_integrations()
 
@@ -292,6 +295,9 @@ def test_utils_dq_compress_final():
 
 
 def jp_2326_test_setup():
+    """
+    Sets up data for MIRI testing DO_NOT_USE flags at the beginning of ramps.
+    """
     # Set up ramp data
     ramp = np.array([120.133545, 117.85222, 87.38832, 66.90588,  51.392555,
                      41.65941,   32.15081,  24.25277, 15.955284, 9.500946])
@@ -365,9 +371,8 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
 
 def test_2_group_cases():
     """
-    Tests the special cases of 2 group ramps.
-
-    JP-2346
+    Tests the special cases of 2 group ramps.  Create multiple pixel ramps
+    with two groups to test the various DQ cases.
     """
     base_group = [-12328.601, -4289.051]
     base_err = [0., 0.]
@@ -437,7 +442,7 @@ def test_2_group_cases():
     # Check the outputs
     data, dq, var_poisson, var_rnoise, err = slopes
     chk_dt = np.array([[551.0735, 0., 0., 0., -293.9943, -845.0678, -845.0677]])
-    chk_dq = np.array([[0, dnu | sat, dnu | sat, sat, 0, 0, sat]])
+    chk_dq = np.array([[0, dnu | sat, dnu | sat, dnu | sat, 0, 0, sat]])
     chk_vp = np.array([[38.945766, 0., 0., 0., 38.945766, 38.945766, 0.]])
     chk_vr = np.array([[0.420046, 0.420046, 0.420046, 0., 0.420046, 0.420046, 0.420046]])
     chk_er = np.array([[6.274218, 0.64811, 0.64811, 0., 6.274218, 6.274218, 0.64811]])
@@ -508,17 +513,21 @@ def run_one_group_ramp_suppression(nints, suppress):
 
 
 def test_one_group_ramp_suppressed_one_integration():
+    """
+    Tests one group ramp fitting where suppression turned on.
+    """
     slopes, cube, dims = run_one_group_ramp_suppression(1, True)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
 
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
+    sat, dnu = dqflags["SATURATED"], dqflags["DO_NOT_USE"]
 
     check = np.array([[0., 0., 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[3, 2, 0]])
+    check = np.array([[dnu | sat, dnu | sat, 0]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0., 0., 0.01]])
@@ -533,10 +542,10 @@ def test_one_group_ramp_suppressed_one_integration():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[0., np.nan, 1.0000001]]])
+    check = np.array([[[0., 0., 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 2, 0]]])
+    check = np.array([[[dnu | sat, dnu | sat, 0]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0., 0., 0.01]]])
@@ -550,6 +559,9 @@ def test_one_group_ramp_suppressed_one_integration():
 
 
 def test_one_group_ramp_not_suppressed_one_integration():
+    """
+    Tests one group ramp fitting where suppression turned off.
+    """
     slopes, cube, dims = run_one_group_ramp_suppression(1, False)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
@@ -592,17 +604,22 @@ def test_one_group_ramp_not_suppressed_one_integration():
 
 
 def test_one_group_ramp_suppressed_two_integrations():
+    """
+    Test one good group ramp and two integrations with
+    suppression suppression turned on.
+    """
     slopes, cube, dims = run_one_group_ramp_suppression(2, True)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
 
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
+    sat, dnu = dqflags["SATURATED"], dqflags["DO_NOT_USE"]
 
     check = np.array([[1.0000001, 1.0000001, 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[2, 2, 0]])
+    check = np.array([[sat, sat, 0]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.005, 0.01, 0.005]])
@@ -617,11 +634,11 @@ def test_one_group_ramp_suppressed_two_integrations():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[0.,        np.nan,        1.0000001]],
+    check = np.array([[[0.,        0.,        1.0000001]],
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 2, 0]],
+    check = np.array([[[dnu | sat, dnu | sat, 0]],
                       [[0, 0, 0]]])
     np.testing.assert_allclose(cdq, check, tol)
 
@@ -639,6 +656,10 @@ def test_one_group_ramp_suppressed_two_integrations():
 
 
 def test_one_group_ramp_not_suppressed_two_integrations():
+    """
+    Test one good group ramp and two integrations with
+    suppression suppression turned off.
+    """
     slopes, cube, dims = run_one_group_ramp_suppression(2, False)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
@@ -816,6 +837,9 @@ def test_zeroframe():
 
 
 def test_all_sat():
+    """
+    Test all ramps in all integrations saturated.
+    """
     nints, ngroups, nrows, ncols = 2, 5, 1, 3
     rnval, gval = 10., 5.
     frame_time, nframes, groupgap = 10.736, 4, 1
@@ -836,7 +860,82 @@ def test_all_sat():
     assert cube is None
 
 
+def test_dq_multi_int_dnu():
+    """
+    Tests to make sure that integration DQ flags get set when all groups
+    in an integration are set to DO_NOT_USE.
+    """
+    # XXX JP-2669
+    nints, ngroups, nrows, ncols = 2, 5, 1, 1
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    base_arr = [(k+1) * 100 for k in range(ngroups)]
+    dq_arr = [ramp.flags_do_not_use] * ngroups
+
+    ramp.data[0, :, 0, 0] = np.array(base_arr)
+    ramp.data[1, :, 0, 0] = np.array(base_arr)
+    ramp.groupdq[0, :, 0, 0] = np.array(dq_arr)
+
+    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo,
+        "optimal", ncores, dqflags)
+
+    tol = 1.e-5
+
+    # Check slopes information
+    sdata, sdq, svp, svr, serr = slopes
+
+    check = np.array([[1.8628913]])
+    np.testing.assert_allclose(sdata, check, tol, tol)
+
+    check = np.array([[0]])
+    np.testing.assert_allclose(sdq, check, tol, tol)
+
+    check = np.array([[0.00173518]])
+    np.testing.assert_allclose(svp, check, tol, tol)
+
+    check = np.array([[0.0004338]])
+    np.testing.assert_allclose(svr, check, tol, tol)
+
+    check = np.array([[0.04657228]])
+    np.testing.assert_allclose(serr, check, tol, tol)
+
+    # Check slopes information
+    cdata, cdq, cvp, cvr, cerr = cube
+
+    check = np.array([[[0.]],
+                      [[1.8628913]]])
+    np.testing.assert_allclose(cdata, check, tol, tol)
+
+    check = np.array([[[dqflags["DO_NOT_USE"]]],
+                      [[0]]])
+    np.testing.assert_allclose(cdq, check, tol, tol)
+
+    check = np.array([[[0.]],
+                      [[0.00173518]]])
+    np.testing.assert_allclose(cvp, check, tol, tol)
+
+    check = np.array([[[2.5000000e+07]],
+                      [[4.3379547e-04]]])
+    np.testing.assert_allclose(cvr, check, tol, tol)
+
+    check = np.array([[[0.]],
+                      [[0.04657228]]])
+    np.testing.assert_allclose(cerr, check, tol, tol)
+
+
 def create_blank_ramp_data(dims, var, tm):
+    """
+    Create empty RampData classes, as well as gain and read noise arrays,
+    based on dimensional, variance, and timing input.
+    """
     nints, ngroups, nrows, ncols = dims
     rnval, gval = var
     frame_time, nframes, groupgap = tm
@@ -909,7 +1008,7 @@ def setup_inputs(dims, var, tm):
 
 
 def base_print(label, arr):
-    arr_str = np.array2string(arr, separator=", ")
+    arr_str = np.array2string(arr, max_line_width=np.nan, separator=", ")
     print(label)
     print(arr_str)
 

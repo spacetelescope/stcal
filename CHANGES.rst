@@ -19,6 +19,9 @@ ramp_fitting
 - Fixed crash due to two group ramps with saturated groups that used
   an intermediate array with an incorrect shape. [#109]
 
+- Updating how NaNs and DO_NOT_USE flags are handled in the rateints
+  product. [#112]
+
 Changes to API
 --------------
 
