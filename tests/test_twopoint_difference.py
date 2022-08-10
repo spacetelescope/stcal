@@ -849,10 +849,12 @@ def test_10grps_1cr_afterjump(setup_cube):
     data[0, 7, 100, 100] = 1175
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS,
-                                                     after_jump_flag_e1=0.0,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
                                                      after_jump_flag_n1=10)
     # all groups after CR should be flagged
     for k in range(6, 10):
@@ -873,10 +875,12 @@ def test_10grps_1cr_afterjump_2group(setup_cube):
     data[0, 7, 100, 100] = 1175
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS,
-                                                     after_jump_flag_e1=0.0,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
                                                      after_jump_flag_n1=2)
 
     # 2 groups after CR should be flagged
@@ -902,10 +906,12 @@ def test_10grps_1cr_afterjump_toosmall(setup_cube):
     data[0, 7, 100, 100] = 1175
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 10000.0
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS,
-                                                     after_jump_flag_e1=10000,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
                                                      after_jump_flag_n1=10)
     # all groups after CR should be flagged
     for k in range(7, 10):
@@ -926,12 +932,15 @@ def test_10grps_1cr_afterjump_twothresholds(setup_cube):
     data[0, 7, 100, 100] = 1175
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 500.
+    after_jump_flag_e2 = np.full(data.shape[2:4], 1.0) * 10.
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS,
-                                                     after_jump_flag_e1=500,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
                                                      after_jump_flag_n1=10,
-                                                     after_jump_flag_e2=10,
+                                                     after_jump_flag_e2=after_jump_flag_e2,
                                                      after_jump_flag_n2=2)
     # 2 groups after CR should be flagged
     for k in range(2, 5):
