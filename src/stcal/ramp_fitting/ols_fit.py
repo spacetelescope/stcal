@@ -1278,7 +1278,7 @@ def ramp_fit_overall(
     slope_int = the_num / the_den
 
     # Adjust DQ flags for NaNs.
-    wh_nans = np.where(np.isnan(slope_int))
+    wh_nans = np.isnan(slope_int)
     dq_int[wh_nans] = np.bitwise_or(dq_int[wh_nans], ramp_data.flags_do_not_use)
     slope_int[wh_nans] = 0.
     warnings.resetwarnings()
