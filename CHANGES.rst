@@ -7,6 +7,12 @@ General
 - Made style changes due to the new 5.0.3 version of flake8, which
   noted many missing white spaces after keywords. [#114]
 
+jump
+~~~~
+
+ - Added flagging after detected ramp jumps based on two DN thresholds and
+   two number of groups to flag [#110]
+
 Bug Fixes
 ---------
 
@@ -139,7 +145,7 @@ saturation
 - Pin astropy min version to 5.0.4. [#82]
 
 - Fix for jumps in first good group after dropping groups [#84]
-  
+
 
 0.6.2 (22-03-29)
 ================
