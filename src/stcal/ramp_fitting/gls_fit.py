@@ -543,7 +543,6 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
         ampl_int, ampl_err_int) = create_opt_res(save_opt, data.shape, max_num_cr)
 
-    # XXX Bad Gain Val
     pixeldq = utils.reset_bad_gain(ramp_data, pixeldq, gain_2d)  # Flag bad pixels in gain
 
     med_rates = None
@@ -661,10 +660,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
 
     # Create new model...
     if number_ints > 1:
-        # image_info = (slopes.astype(np.float32), final_pixeldq, gls_err.astype(np.float32))
         fslope, ferr = (slopes.astype(np.float32), gls_err.astype(np.float32))
     else:
-        # image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
         fslope, ferr = (slope_int[0], slope_err_int[0])
 
     wh_nan = np.isnan(fslope)
