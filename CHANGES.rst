@@ -22,6 +22,8 @@ ramp_fitting
 - Updating how NaNs and DO_NOT_USE flags are handled in the rateints
   product. [#112]
 
+- Updating how GLS handles bad gain values. [#115]
+
 Changes to API
 --------------
 
