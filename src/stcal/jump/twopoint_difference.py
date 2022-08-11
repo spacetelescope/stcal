@@ -63,21 +63,21 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
-    after_jump_flag_e1 : float, 2D array
-        1st flag after jumps with the specified electron jump per pixel
-        to remove the transient seen from the slope calculation
+    after_jump_flag_e1 : float
+        Jumps with amplitudes above the specified e value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n1
 
     after_jump_flag_n1 : int
-        1st flag n groups after companion threshold
-        to remove the transient seen from the slope calculation
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn1
 
-    after_jump_flag_e2 : float, 2D array
-        2nd flag after jumps with the specified electron jump per pixel
-        to remove the transient seen from the slope calculation
+    after_jump_flag_e2 : float
+        Jumps with amplitudes above the specified e value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n2
 
     after_jump_flag_n2 : int
-        2nd flag n groups after companion threshold
-        to remove the transient seen from the slope calculation
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn2
 
     copy_arrs : bool
         Flag for making internal copies of the arrays so the input isn't modified,
@@ -282,7 +282,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
 
-        # flag n groups after all jumps to account for the transient seen
+        # flag n groups after jumps above the specified thresholds to account for
+        # the transient seen after ramp jumps
         flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
         flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
 

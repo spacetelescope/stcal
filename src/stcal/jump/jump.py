@@ -93,20 +93,20 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
     after_jump_flag_dn1 : float
-        1st flag after jumps with the specified DN jump
-        to remove the transient seen from the slope calculation
+        Jumps with amplitudes above the specified DN value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n1
 
     after_jump_flag_n1 : int
-        1st flag n groups after companion threshold
-        to remove the transient seen from the slope calculation
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn1
 
     after_jump_flag_dn2 : float
-        2nd flag after jumps with the specified DN jump
-        to remove the transient seen from the slope calculation
+        Jumps with amplitudes above the specified DN value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n2
 
     after_jump_flag_n2 : int
-        2nd flag n groups after companion threshold
-        to remove the transient seen from the slope calculation
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn2
 
     Returns
     -------
