@@ -63,16 +63,16 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
-    after_jump_flag_e1 : float
-        1st flag after jumps with the specified electron jump
+    after_jump_flag_e1 : float, 2D array
+        1st flag after jumps with the specified electron jump per pixel
         to remove the transient seen from the slope calculation
 
     after_jump_flag_n1 : int
         1st flag n groups after companion threshold
         to remove the transient seen from the slope calculation
 
-    after_jump_flag_e2 : float
-        2nd flag after jumps with the specified electron jump
+    after_jump_flag_e2 : float, 2D array
+        2nd flag after jumps with the specified electron jump per pixel
         to remove the transient seen from the slope calculation
 
     after_jump_flag_n2 : int
@@ -147,8 +147,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         # compute 'ratio' for each group. this is the value that will be
         # compared to 'threshold' to classify jumps. subtract the median of
         # first_diffs from first_diffs, take the abs. value and divide by sigma.
-        dn_jump = first_diffs - median_diffs[np.newaxis, :, :]
-        ratio = np.abs(dn_jump) / sigma[np.newaxis, :, :]
+        e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
         # create a 2d array containing the value of the largest 'ratio' for each group
         max_ratio = np.nanmax(ratio, axis=0)
@@ -283,34 +283,12 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
 
         # flag n groups after all jumps to account for the transient seen
-        flag_dn_threshold = [after_jump_flag_e1, after_jump_flag_e2]
+        flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
         flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
-        # ensure the smallest threshold is 1st
-        # if flag_dn_threshold[0] > flag_dn_threshold[1]:
-        #     flag_dn_threshold = np.flip(flag_dn_threshold)
-        #     flag_groups = np.flip(flag_groups)
 
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
 
-        # **should** work and be faster.  But does not.  Sigh.
-        # for jj in range(2):
-        #     if flag_groups[jj] > 0:
-        #         uplimit = 1e6
-        #         if jj == 0:
-        #             if flag_groups[1] > 0:
-        #                 uplimit = flag_dn_threshold[1]
-        #         cdn_jumps = dn_jump[cr_group, cr_row, cr_col]
-        #         flagcrs = (cdn_jumps >= flag_dn_threshold[jj]) & (cdn_jumps < uplimit)
-        #         log.info(f"Flagging {flag_groups[jj]} groups after {flag_dn_threshold[jj]}
-        #                   DN jumps for {np.sum(flagcrs)} pixels.")
-        #         for group, row, col in zip(cr_group[flagcrs], cr_row[flagcrs], cr_col[flagcrs]):
-        #             for kk in range(group, min(group + flag_groups[jj], ngroups)):
-        #                 if (gdq[integ, kk, row, col] & sat_flag) == 0:
-        #                     if (gdq[integ, kk, row, col] & dnu_flag) == 0:
-        #                         gdq[integ, kk, row, col] =\
-        #                             np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-
-        for cthres, cgroup in zip(flag_dn_threshold, flag_groups):
+        for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
                 log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
 
@@ -318,9 +296,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                     group = cr_group[j]
                     row = cr_row[j]
                     col = cr_col[j]
-                    if dn_jump[group - 1, row, col] >= cthres[row, col]:
-                        # print("stcal ", group, group + cgroup + 1,
-                        #       dn_jump[group - 1, row, col], cthres[row, col])
+                    if e_jump[group - 1, row, col] >= cthres[row, col]:
                         for kk in range(group, min(group + cgroup + 1, ngroups)):
                             if (gdq[integ, kk, row, col] & sat_flag) == 0:
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
