@@ -875,7 +875,7 @@ def test_dq_multi_int_dnu():
     tm = frame_time, nframes, groupgap
 
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
-    base_arr = [(k+1) * 100 for k in range(ngroups)]
+    base_arr = [(k + 1) * 100 for k in range(ngroups)]
     dq_arr = [ramp.flags_do_not_use] * ngroups
 
     ramp.data[0, :, 0, 0] = np.array(base_arr)
