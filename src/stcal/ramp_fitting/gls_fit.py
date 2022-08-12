@@ -658,7 +658,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     else:
         gls_opt_info = None
 
-    # Create new model...
+    # Get output image information
     if number_ints > 1:
         fslope, ferr = (slopes.astype(np.float32), gls_err.astype(np.float32))
     else:
