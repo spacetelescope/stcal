@@ -22,7 +22,9 @@ ramp_fitting
 - Updating how NaNs and DO_NOT_USE flags are handled in the rateints
   product. [#112]
 
-- Updating how GLS handles bad gain values. [#115]
+- Updating how GLS handles bad gain values.  NaNs found in the image
+  data are set to 0.0 and the corresponding DQ flag is set to 
+  DO_NOT_USE. [#115]
 
 Changes to API
 --------------
