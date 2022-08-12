@@ -543,6 +543,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
         ampl_int, ampl_err_int) = create_opt_res(save_opt, data.shape, max_num_cr)
 
+    pixeldq = utils.reset_bad_gain(ramp_data, pixeldq, gain_2d)  # Flag bad pixels in gain
+
     med_rates = None
     if ngroups == 1:
         med_rates = utils.compute_median_rates(ramp_data)
@@ -656,30 +658,17 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     else:
         gls_opt_info = None
 
-    '''
+    # Get output image information
     if number_ints > 1:
-        utils.log_stats(slopes)
+        fslope, ferr = (slopes.astype(np.float32), gls_err.astype(np.float32))
     else:
-        utils.log_stats(slope_int[0])
-    '''
+        fslope, ferr = (slope_int[0], slope_err_int[0])
 
-    '''
-    log.debug('Instrument: %s' % instrume)
-    log.debug('Number of pixels in 2D array: %d' % npix)
-    log.debug('Shape of 2D image: (%d, %d)' % imshape)
-    log.debug('Shape of data cube: (%d, %d, %d)' % cubeshape)
-    log.debug('Buffer size (bytes): %d' % buffsize)
-    log.debug('Number of rows per slice: %d' % rows_per_slice)
-    log.info('Number of groups per integration: %d' % nreads)
-    log.info('Number of integrations: %d' % n_int)
-    log.debug('The execution time in seconds: %f' % (tstop - tstart,))
-    '''
+    wh_nan = np.isnan(fslope)
+    fslope[wh_nan] = 0.0
+    final_pixeldq[wh_nan] |= ramp_data.flags_do_not_use
 
-    # Create new model...
-    if number_ints > 1:
-        image_info = (slopes.astype(np.float32), final_pixeldq, gls_err.astype(np.float32))
-    else:
-        image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
+    image_info = (fslope, final_pixeldq, ferr)
 
     return image_info, integ_info, gls_opt_info
 

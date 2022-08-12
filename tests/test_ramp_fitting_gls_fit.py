@@ -1,4 +1,3 @@
-import copy
 import pytest
 import numpy as np
 
@@ -142,7 +141,6 @@ def test_two_integrations():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
-    ans = slopes[0][row, col]
     np.testing.assert_allclose(slopes[0][row, col], 133.3377685, 1e-6)
 
 
@@ -281,9 +279,13 @@ def test_five_groups_two_integrations_Poisson_noise_only():
     np.testing.assert_allclose(out_slope, check, 75.0, 1e-6)
 
 
-@pytest.mark.skip(reason="GLS returns NaN's, but should return zeros.")
 def test_bad_gain_values():
-    nints, ngroups, nrows, ncols = 1, 5, 103, 102
+    """
+    Test for bad gain values where gain values are negative
+    and NaN.
+    """
+    nints, ngroups, nrows, ncols = 1, 5, 10, 11
+    r1, c1, r2, c2 = 3, 3, 7, 7
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 7, 2000
     group_time, frame_time = 3.0, 1
@@ -291,19 +293,21 @@ def test_bad_gain_values():
     ramp_data, gain2d, rnoise2d = setup_inputs(
         dims, gain, rnoise, group_time, frame_time
     )
-    gain2d[10, 10] = -10
-    gain2d[20, 20] = np.nan
+    gain2d[r1, c1] = -10
+    gain2d[r2, c2] = np.nan
 
+    # save_opt, algo, ncores = False, "OLS", "none"
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
         "optimal", ncores, test_dq_flags)
 
+    # data, dq, var_poisson, var_rnoise, err = slopes
     data, dq, err = slopes
     flag_check = NO_GAIN_VALUE | DO_NOT_USE
 
-    assert dq[10, 10] == flag_check
-    assert dq[20, 20] == flag_check
+    assert dq[r1, c1] == flag_check
+    assert dq[r2, c2] == flag_check
 
     # These asserts are wrong for some reason
     assert(0 == np.max(data))
