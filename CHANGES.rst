@@ -30,7 +30,11 @@ ramp_fitting
 Changes to API
 --------------
 
+jump
+~~~~
 
+ - Added flagging after detected ramp jumps based on two DN thresholds and
+   two number of groups to flag [#110]
 
 1.0.0 (2022-06-24)
 ==================
@@ -144,7 +148,7 @@ saturation
 - Pin astropy min version to 5.0.4. [#82]
 
 - Fix for jumps in first good group after dropping groups [#84]
-  
+
 
 0.6.2 (22-03-29)
 ================

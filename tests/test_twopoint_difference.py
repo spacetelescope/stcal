@@ -835,6 +835,122 @@ def test_first_last_3group(setup_cube):
     assert outgdq[0, 1, 0, 0] == 0
 
 
+def test_10grps_1cr_afterjump(setup_cube):
+    ngroups = 10
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    nframes = 1
+    data[0, 0, 100, 100] = 0
+    data[0, 1, 100, 100] = 10
+    data[0, 2, 100, 100] = 21
+    data[0, 3, 100, 100] = 33
+    data[0, 4, 100, 100] = 46
+    data[0, 5, 100, 100] = 60
+    data[0, 6, 100, 100] = 1160
+    data[0, 7, 100, 100] = 1175
+    data[0, 8, 100, 100] = 1190
+    data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
+    out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
+                                                     rej_threshold, rej_threshold, nframes,
+                                                     False, 200, 10, DQFLAGS,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
+                                                     after_jump_flag_n1=10)
+    # all groups after CR should be flagged
+    for k in range(6, 10):
+        assert 4 == out_gdq[0, k, 100, 100], f"after jump flagging failed in group {k}"
+
+
+def test_10grps_1cr_afterjump_2group(setup_cube):
+    ngroups = 10
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    nframes = 1
+    data[0, 0, 100, 100] = 0
+    data[0, 1, 100, 100] = 10
+    data[0, 2, 100, 100] = 21
+    data[0, 3, 100, 100] = 33
+    data[0, 4, 100, 100] = 46
+    data[0, 5, 100, 100] = 60
+    data[0, 6, 100, 100] = 1160
+    data[0, 7, 100, 100] = 1175
+    data[0, 8, 100, 100] = 1190
+    data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
+    out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
+                                                     rej_threshold, rej_threshold, nframes,
+                                                     False, 200, 10, DQFLAGS,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
+                                                     after_jump_flag_n1=2)
+
+    # 2 groups after CR should be flagged
+    for k in range(6, 9):
+        assert 4 == out_gdq[0, k, 100, 100], f"after jump flagging failed in group {k}"
+
+    # rest not flagged
+    for k in range(9, 10):
+        assert 0 == out_gdq[0, k, 100, 100], f"after jump flagging incorrect in group {k}"
+
+
+def test_10grps_1cr_afterjump_toosmall(setup_cube):
+    ngroups = 10
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    nframes = 1
+    data[0, 0, 100, 100] = 0
+    data[0, 1, 100, 100] = 10
+    data[0, 2, 100, 100] = 21
+    data[0, 3, 100, 100] = 33
+    data[0, 4, 100, 100] = 46
+    data[0, 5, 100, 100] = 60
+    data[0, 6, 100, 100] = 1160
+    data[0, 7, 100, 100] = 1175
+    data[0, 8, 100, 100] = 1190
+    data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 10000.0
+    out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
+                                                     rej_threshold, rej_threshold, nframes,
+                                                     False, 200, 10, DQFLAGS,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
+                                                     after_jump_flag_n1=10)
+    # all groups after CR should be flagged
+    for k in range(7, 10):
+        assert 0 == out_gdq[0, k, 100, 100], f"after jump flagging incorrect in group {k}"
+
+
+def test_10grps_1cr_afterjump_twothresholds(setup_cube):
+    ngroups = 10
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    nframes = 1
+    data[0, 0, 100, 100] = 0
+    data[0, 1, 100, 100] = 10
+    data[0, 2, 100, 100] = 121
+    data[0, 3, 100, 100] = 133
+    data[0, 4, 100, 100] = 146
+    data[0, 5, 100, 100] = 160
+    data[0, 6, 100, 100] = 1160
+    data[0, 7, 100, 100] = 1175
+    data[0, 8, 100, 100] = 1190
+    data[0, 9, 100, 100] = 1209
+
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 500.
+    after_jump_flag_e2 = np.full(data.shape[2:4], 1.0) * 10.
+    out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
+                                                     rej_threshold, rej_threshold, nframes,
+                                                     False, 200, 10, DQFLAGS,
+                                                     after_jump_flag_e1=after_jump_flag_e1,
+                                                     after_jump_flag_n1=10,
+                                                     after_jump_flag_e2=after_jump_flag_e2,
+                                                     after_jump_flag_n2=2)
+    # 2 groups after CR should be flagged
+    for k in range(2, 5):
+        assert 4 == out_gdq[0, k, 100, 100], f"after jump flagging incorrect in group {k}"
+
+    # all groups after CR should be flagged
+    for k in range(6, 10):
+        assert 4 == out_gdq[0, k, 100, 100], f"after jump flagging incorrect in group {k}"
+
+
 def test_median_func():
 
     """
