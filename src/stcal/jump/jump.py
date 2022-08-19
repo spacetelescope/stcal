@@ -254,5 +254,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
+    # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
+    #    back in units of DN
+    data /= gain_2d
+    err /= gain_2d
+    readnoise_2d /= gain_2d
+
     # Return the updated data quality arrays
     return gdq, pdq

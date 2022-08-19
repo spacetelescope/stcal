@@ -15,6 +15,13 @@ General
 Bug Fixes
 ---------
 
+jump
+~~~~
+
+ - Early in the step, the object arrays are converted from DN to electrons
+   by multiplying by the gain. The values need to be reverted back to DN
+   at the end of the step. [#116]
+
 ramp_fitting
 ~~~~~~~~~~~~
 
