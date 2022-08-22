@@ -238,7 +238,7 @@ class OptRes:
                 for nn in range(len(cr_int_has_cr[0])):
                     y, x = cr_int_has_cr[0][nn], cr_int_has_cr[1][nn]
 
-                    if (cr_mag_int[k_rd, y, x] > 0.):
+                    if cr_mag_int[k_rd, y, x] > 0.:
                         cr_com[ii_int, end_cr[y, x], y, x] = cr_mag_int[k_rd, y, x]
                         end_cr[y, x] += 1
 
@@ -364,7 +364,7 @@ def alloc_arrays_1(n_int, imshape):
     # for estimated median slopes
     sat_0th_group_int = np.zeros((n_int,) + imshape, dtype=np.uint8)
 
-    return (dq_int, num_seg_per_int, sat_0th_group_int)
+    return dq_int, num_seg_per_int, sat_0th_group_int
 
 
 def alloc_arrays_2(n_int, imshape, max_seg):
@@ -523,7 +523,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
 
     i_read = 0
     # Loop over reads for all pixels to get segments (segments per pixel)
-    while (i_read < nreads and np.any(pix_not_done)):
+    while i_read < nreads and np.any(pix_not_done):
         gdq_1d = gdq_2d_nan[i_read, :]
         wh_good = np.where(gdq_1d == 0)  # good groups
 
@@ -537,7 +537,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
             gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
 
         # ... but not on final read:
-        if (len(wh_cr[0]) > 0 and (i_read < nreads - 1)):
+        if len(wh_cr[0]) > 0 and (i_read < nreads - 1):
             sr_index[wh_cr[0]] += 1
             segs[sr_index[wh_cr], wh_cr] += 1
 
@@ -614,7 +614,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     den_r3[wh_seg_pos] = 1. / (segs_beg_3[wh_seg_pos] ** 3. - segs_beg_3[wh_seg_pos])
     warnings.resetwarnings()
 
-    return (den_r3, den_p3, num_r3, segs_beg_3)
+    return den_r3, den_p3, num_r3, segs_beg_3
 
 
 def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
@@ -843,7 +843,7 @@ def get_efftim_ped(ramp_data):
     frame_time = ramp_data.frame_time
     dropframes1 = ramp_data.drop_frames1
 
-    if (dropframes1 is None):    # set to default if missing
+    if dropframes1 is None:    # set to default if missing
         dropframes1 = 0
         log.debug('Missing keyword DRPFRMS1, so setting to default value of 0')
 
@@ -950,7 +950,7 @@ def get_more_info(ramp_data, saturated_flag, jump_flag):  # pragma: no cover
     saturated_flag = ramp_data.flags_saturated
     jump_flag = ramp_data.flags_jump_det
 
-    return (group_time, nframes_used, saturated_flag, jump_flag)
+    return group_time, nframes_used, saturated_flag, jump_flag
 
 
 def get_max_num_cr(gdq_cube, jump_flag):  # pragma: no cover
@@ -1045,13 +1045,13 @@ def remove_bad_singles(segs_beg_3):
     tot_num_single_grp_ramps = len(np.where((segs_beg_3 == 1) &
                                             (segs_beg_3.sum(axis=0) > 1))[0])
 
-    while(tot_num_single_grp_ramps > 0):
+    while tot_num_single_grp_ramps > 0:
         # until there are no more single-group segments
         for ii_0 in range(max_seg):
             slice_0 = segs_beg_3[ii_0, :, :]
 
             for ii_1 in range(max_seg):  # correctly includes EARLIER segments
-                if (ii_0 == ii_1):  # don't compare with itself
+                if ii_0 == ii_1:  # don't compare with itself
                     continue
 
                 slice_1 = segs_beg_3[ii_1, :, :]
@@ -1060,7 +1060,7 @@ def remove_bad_singles(segs_beg_3):
                 # either earlier or later
                 wh_y, wh_x = np.where((slice_0 == 1) & (slice_1 > 0))
 
-                if (len(wh_y) == 0):
+                if len(wh_y) == 0:
                     # Are none, so go to next pair of segments to check
                     continue
 
@@ -1363,7 +1363,18 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     """
     sat_flag = ramp_data.flags_saturated
     jump_flag = ramp_data.flags_jump_det
+    dnu_flag = ramp_data.flags_do_not_use
 
+    ngroups, nrows, ncols = gdq_sect.shape
+
+    # If all groups are set to DO_NOT_USE, mark as DO_NOT_USE.
+    dnu = np.zeros(gdq_sect.shape, dtype=np.uint32)
+    dnu[np.where(np.bitwise_and(gdq_sect, dnu_flag))] = 1
+    dnu_sum = dnu.sum(axis=0)
+    all_dnu = np.where(dnu_sum == ngroups)
+    pixeldq_sect[all_dnu] = np.bitwise_or(pixeldq_sect[all_dnu], dnu_flag)
+
+    # If saturation or a jump occures mark the appropriate flag.
     sat_loc_r = np.bitwise_and(gdq_sect, sat_flag)
     sat_loc_im = np.where(sat_loc_r.sum(axis=0) > 0)
     pixeldq_sect[sat_loc_im] = np.bitwise_or(pixeldq_sect[sat_loc_im], sat_flag)

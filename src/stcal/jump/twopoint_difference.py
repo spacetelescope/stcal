@@ -8,7 +8,12 @@ log.setLevel(logging.DEBUG)
 def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,
-             min_jump_to_flag_neighbors, dqflags, copy_arrs=True):
+             min_jump_to_flag_neighbors, dqflags,
+             after_jump_flag_e1=0.0,
+             after_jump_flag_n1=0,
+             after_jump_flag_e2=0.0,
+             after_jump_flag_n2=0,
+             copy_arrs=True):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -53,6 +58,26 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         value in units of sigma that sets the lower limit for flagging of
         neighbors (marginal detections). Any primary jump below this value will
         not have its neighbors flagged.
+
+    dqflags: dict
+        A dictionary with at least the following keywords:
+        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
+
+    after_jump_flag_e1 : float
+        Jumps with amplitudes above the specified e value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n1
+
+    after_jump_flag_n1 : int
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn1
+
+    after_jump_flag_e2 : float
+        Jumps with amplitudes above the specified e value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n2
+
+    after_jump_flag_n2 : int
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn2
 
     copy_arrs : bool
         Flag for making internal copies of the arrays so the input isn't modified,
@@ -122,7 +147,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         # compute 'ratio' for each group. this is the value that will be
         # compared to 'threshold' to classify jumps. subtract the median of
         # first_diffs from first_diffs, take the abs. value and divide by sigma.
-        ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
+        e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
         # create a 2d array containing the value of the largest 'ratio' for each group
         max_ratio = np.nanmax(ratio, axis=0)
@@ -138,7 +164,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                   max_ratio > two_diff_rej_thresh))
 
         log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
-        log.info(log_str.format(len(row4cr), 'five'))
+        log.info(log_str.format(len(row4cr), 'five or more'))
         log.info(log_str.format(len(row3cr), 'four'))
         log.info(log_str.format(len(row2cr), 'three'))
 
@@ -255,6 +281,29 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                             if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
+
+        # flag n groups after jumps above the specified thresholds to account for
+        # the transient seen after ramp jumps
+        flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
+        flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
+
+        cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
+
+        for cthres, cgroup in zip(flag_e_threshold, flag_groups):
+            if cgroup > 0:
+                log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
+
+                for j in range(len(cr_group)):
+                    group = cr_group[j]
+                    row = cr_row[j]
+                    col = cr_col[j]
+                    if e_jump[group - 1, row, col] >= cthres[row, col]:
+                        for kk in range(group, min(group + cgroup + 1, ngroups)):
+                            if (gdq[integ, kk, row, col] & sat_flag) == 0:
+                                if (gdq[integ, kk, row, col] & dnu_flag) == 0:
+                                    gdq[integ, kk, row, col] =\
+                                        np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+
     return gdq, row_below_gdq, row_above_gdq
 
 
@@ -293,11 +342,11 @@ def calc_med_first_diffs(first_diffs):
             mask[np.nanargmax(np.abs(first_diffs))] = False  # clip the diff with the largest abs value
             return np.nanmedian(first_diffs[mask])
         elif num_usable_groups == 3:  # if 3, no clipping just return median
-            return(np.nanmedian(first_diffs))
+            return np.nanmedian(first_diffs)
         elif num_usable_groups == 2:  # if 2, return diff with minimum abs
-            return(first_diffs[np.nanargmin(np.abs(first_diffs))])
+            return first_diffs[np.nanargmin(np.abs(first_diffs))]
         else:
-            return(np.nan)
+            return np.nan
 
     # if input is multi-dimensional
 
@@ -332,4 +381,4 @@ def calc_med_first_diffs(first_diffs):
     row_none, col_none = np.where(num_usable_groups < 2)
     median_diffs[row_none, col_none] = np.nan
 
-    return(median_diffs)
+    return median_diffs

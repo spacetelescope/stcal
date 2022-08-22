@@ -237,7 +237,7 @@ def create_output_image(ramp_data):
     pdq = np.zeros(image_shape, dtype=np.uint32)
     err = np.zeros(image_shape, dtype=np.float32)
 
-    return (slope, pdq, err)
+    return slope, pdq, err
 
 
 def create_output_integ(ramp_data):
@@ -252,7 +252,7 @@ def create_output_integ(ramp_data):
     pdq = np.zeros(image_shape, dtype=np.uint32)
     err = np.zeros(image_shape, dtype=np.float32)
 
-    return (slope, pdq, err)
+    return slope, pdq, err
 
 
 def create_output_opt_res(ramp_data):
@@ -526,27 +526,24 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     group_time = ramp_data.group_time
     nframes_used = ramp_data.nframes
 
-    gdq_cube = ramp_data.groupdq
-    data_sect = ramp_data.data
-    input_var_sect = ramp_data.err
+    gdq = ramp_data.groupdq
+    data = ramp_data.data
     pixeldq = ramp_data.pixeldq
 
     jump_flag = ramp_data.flags_jump_det
     saturated_flag = ramp_data.flags_saturated
 
-    number_ints = data_sect.shape[0]
-    ngroups = data_sect.shape[1]
-    # number_rows = data_sect.shape[2]
-    # number_cols = data_sect.shape[3]
-
-    # imshape = (data_sect.shape[2], data_sect.shape[3])
+    number_ints = data.shape[0]
+    ngroups = data.shape[1]
 
     slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight = \
-        create_integration_arrays(data_sect.shape)
+        create_integration_arrays(data.shape)
 
     # REFAC
     (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
-        ampl_int, ampl_err_int) = create_opt_res(save_opt, data_sect.shape, max_num_cr)
+        ampl_int, ampl_err_int) = create_opt_res(save_opt, data.shape, max_num_cr)
+
+    pixeldq = utils.reset_bad_gain(ramp_data, pixeldq, gain_2d)  # Flag bad pixels in gain
 
     med_rates = None
     if ngroups == 1:
@@ -554,22 +551,25 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
 
     # We'll propagate error estimates from previous steps to the
     # current step by using the variance.
-    input_var_sect = input_var_sect ** 2
+    input_var = ramp_data.err**2
 
     # Convert the data section from DN to electrons.
-    data_sect *= gain_2d
+    data *= gain_2d
 
-    # loop over data integrations
     for num_int in range(number_ints):
         ramp_data.current_integ = num_int
+        gdq_cube = gdq[num_int, :, :, :]
+        data_cube = data[num_int, :, :, :]
+        input_var_sect = input_var[num_int, :, :, :]
+
         if save_opt:
-            first_group[:, :] = data_sect[num_int, 0, :, :].copy()
+            first_group[:, :] = data[num_int, 0, :, :].copy()
 
         (intercept_sect, intercept_var_sect, slope_sect,
          slope_var_sect, cr_sect, cr_var_sect) = determine_slope(
              ramp_data,
-             data_sect[num_int, :, :, :], input_var_sect[num_int, :, :, :],
-             gdq_cube[num_int, :, :, :], readnoise_2d, gain_2d, frame_time, group_time,
+             data_cube, input_var_sect, gdq_cube,
+             readnoise_2d, gain_2d, frame_time, group_time,
              nframes_used, max_num_cr, saturated_flag, jump_flag, med_rates)
 
         slope_int[num_int, :, :] = slope_sect.copy()
@@ -579,7 +579,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
             slope_var_sect[v_mask] = utils.LARGE_VARIANCE
 
             # Also set a flag in the pixel dq array.
-            temp_dq[:, :][v_mask] = ramp_data.flags_unreliable_slope
+            temp_dq[v_mask] = ramp_data.flags_unreliable_slope
             del v_mask
 
         # If a pixel was flagged (by an earlier step) as saturated in
@@ -587,8 +587,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # Note:  save s_mask until after the call to utils.gls_pedestal.
         s_mask = (gdq_cube[0] == saturated_flag)
         if s_mask.any():
-            # TODO The dimensions of s_mask are larger than temp_dq
-            temp_dq[:, :][s_mask] = ramp_data.flags_unreliable_slope
+            temp_dq[s_mask] = ramp_data.flags_do_not_use
         slope_err_int[num_int, :, :] = np.sqrt(slope_var_sect)
 
         # We need to take a weighted average if (and only if) number_ints > 1.
@@ -606,6 +605,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
             pedestal_int[num_int, :, :] = utils.gls_pedestal(
                 first_group[:, :], slope_int[num_int, :, :],
                 s_mask, frame_time, nframes_used)
+            del s_mask
 
             ampl_int[num_int, :, :, :] = cr_sect.copy()
             ampl_err_int[num_int, :, :, :] = np.sqrt(np.abs(cr_var_sect))
@@ -614,13 +614,12 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # pixels
         pixeldq_sect = pixeldq[:, :].copy()
         dq_int[num_int, :, :] = utils.dq_compress_sect(
-            ramp_data, num_int, gdq_cube[num_int, :, :, :], pixeldq_sect).copy()
+            ramp_data, num_int, gdq_cube, pixeldq_sect).copy()
 
         dq_int[num_int, :, :] |= temp_dq
         temp_dq[:, :] = 0  # initialize for next integration
 
     # Average the slopes over all integrations.
-    # number_ints = data_sect.shape[0]
     if number_ints > 1:
         sum_weight = np.where(sum_weight <= 0., 1., sum_weight)
         recip_sum_weight = 1. / sum_weight
@@ -659,30 +658,17 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     else:
         gls_opt_info = None
 
-    '''
+    # Get output image information
     if number_ints > 1:
-        utils.log_stats(slopes)
+        fslope, ferr = (slopes.astype(np.float32), gls_err.astype(np.float32))
     else:
-        utils.log_stats(slope_int[0])
-    '''
+        fslope, ferr = (slope_int[0], slope_err_int[0])
 
-    '''
-    log.debug('Instrument: %s' % instrume)
-    log.debug('Number of pixels in 2D array: %d' % npix)
-    log.debug('Shape of 2D image: (%d, %d)' % imshape)
-    log.debug('Shape of data cube: (%d, %d, %d)' % cubeshape)
-    log.debug('Buffer size (bytes): %d' % buffsize)
-    log.debug('Number of rows per slice: %d' % rows_per_slice)
-    log.info('Number of groups per integration: %d' % nreads)
-    log.info('Number of integrations: %d' % n_int)
-    log.debug('The execution time in seconds: %f' % (tstop - tstart,))
-    '''
+    wh_nan = np.isnan(fslope)
+    fslope[wh_nan] = 0.0
+    final_pixeldq[wh_nan] |= ramp_data.flags_do_not_use
 
-    # Create new model...
-    if number_ints > 1:
-        image_info = (slopes.astype(np.float32), final_pixeldq, gls_err.astype(np.float32))
-    else:
-        image_info = (slope_int[0], final_pixeldq, slope_err_int[0])
+    image_info = (fslope, final_pixeldq, ferr)
 
     return image_info, integ_info, gls_opt_info
 
@@ -1270,7 +1256,6 @@ def compute_slope(
         cr_var_sect is a 3-D ndarray, the variance of each cosmic ray
         amplitude.
     """
-
     cr_flagged = np.empty(data_sect.shape, dtype=np.uint8)
     cr_flagged[:] = np.where(np.bitwise_and(gdq_sect, jump_flag), 1, 0)
 
@@ -1593,4 +1578,4 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     # shape of both result2d and variances is (nz, 2 + num_cr)
     fitparam_uncs = fitparam_cov.diagonal(axis1=1, axis2=2).copy()
 
-    return (fitparam2d, fitparam_uncs)
+    return fitparam2d, fitparam_uncs

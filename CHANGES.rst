@@ -1,8 +1,26 @@
-1.0.1 (unreleased)
+1.1.1 (unreleased)
 ==================
+
+-
+
+1.1.0 (2022-08-17)
+==================
+
+General
+-------
+
+- Made style changes due to the new 5.0.3 version of flake8, which
+  noted many missing white spaces after keywords. [#114]
 
 Bug Fixes
 ---------
+
+jump
+~~~~
+
+ - Early in the step, the object arrays are converted from DN to electrons
+   by multiplying by the gain. The values need to be reverted back to DN
+   at the end of the step. [#116]
 
 ramp_fitting
 ~~~~~~~~~~~~
@@ -10,10 +28,25 @@ ramp_fitting
 - Updating multi-integration processing to correctly combine multiple
   integration computations for the final image information. [#108]
 
+- Fixed crash due to two group ramps with saturated groups that used
+  an intermediate array with an incorrect shape. [#109]
+
+- Updating how NaNs and DO_NOT_USE flags are handled in the rateints
+  product. [#112]
+
+- Updating how GLS handles bad gain values.  NaNs and negative gain
+  values have the DO_NOT_USE and NO_GAIN_VALUE flag set.  Any NaNs
+  found in the image data are set to 0.0 and the corresponding DQ flag
+  is set to DO_NOT_USE. [#115]
+
 Changes to API
 --------------
 
+jump
+~~~~
 
+ - Added flagging after detected ramp jumps based on two DN thresholds and
+   two number of groups to flag [#110]
 
 1.0.0 (2022-06-24)
 ==================
@@ -127,7 +160,7 @@ saturation
 - Pin astropy min version to 5.0.4. [#82]
 
 - Fix for jumps in first good group after dropping groups [#84]
-  
+
 
 0.6.2 (22-03-29)
 ================

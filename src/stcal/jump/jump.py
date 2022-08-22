@@ -14,7 +14,11 @@ log.setLevel(logging.DEBUG)
 def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  gain_2d, readnoise_2d, rejection_thresh,
                  three_grp_thresh, four_grp_thresh, max_cores, max_jump_to_flag_neighbors,
-                 min_jump_to_flag_neighbors, flag_4_neighbors, dqflags):
+                 min_jump_to_flag_neighbors, flag_4_neighbors, dqflags,
+                 after_jump_flag_dn1=0.0,
+                 after_jump_flag_n1=0,
+                 after_jump_flag_dn2=0.0,
+                 after_jump_flag_n2=0):
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -88,7 +92,21 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
+    after_jump_flag_dn1 : float
+        Jumps with amplitudes above the specified DN value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n1
 
+    after_jump_flag_n1 : int
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn1
+
+    after_jump_flag_dn2 : float
+        Jumps with amplitudes above the specified DN value will have subsequent
+        groups flagged with the number determined by the after_jump_flag_n2
+
+    after_jump_flag_n2 : int
+        Gives the number of groups to flag after jumps with DN values above that
+        given by after_jump_flag_dn2
 
     Returns
     -------
@@ -116,6 +134,9 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     data *= gain_2d
     err *= gain_2d
     readnoise_2d *= gain_2d
+    # also apply to the after_jump thresholds
+    after_jump_flag_e1 = after_jump_flag_dn1 * gain_2d
+    after_jump_flag_e2 = after_jump_flag_dn2 * gain_2d
 
     # Apply the 2-point difference method as a first pass
     log.info('Executing two-point difference method')
@@ -149,7 +170,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
-                           min_jump_to_flag_neighbors, dqflags)
+                           min_jump_to_flag_neighbors, dqflags,
+                           after_jump_flag_e1=after_jump_flag_e1,
+                           after_jump_flag_n1=after_jump_flag_n1,
+                           after_jump_flag_e2=after_jump_flag_e2,
+                           after_jump_flag_n2=after_jump_flag_n2)
 
         elapsed = time.time() - start
     else:
@@ -174,7 +199,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               rejection_thresh, three_grp_thresh, four_grp_thresh,
                               frames_per_group, flag_4_neighbors,
                               max_jump_to_flag_neighbors,
-                              min_jump_to_flag_neighbors, dqflags, copy_arrs))
+                              min_jump_to_flag_neighbors, dqflags,
+                              after_jump_flag_e1, after_jump_flag_n1,
+                              after_jump_flag_e2, after_jump_flag_n2,
+                              copy_arrs))
 
         # last slice get the rest
         slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) * yinc:n_rows, :],
@@ -183,7 +211,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                      rejection_thresh, three_grp_thresh,
                                      four_grp_thresh, frames_per_group,
                                      flag_4_neighbors, max_jump_to_flag_neighbors,
-                                     min_jump_to_flag_neighbors, dqflags, copy_arrs))
+                                     min_jump_to_flag_neighbors, dqflags,
+                                     after_jump_flag_e1, after_jump_flag_n1,
+                                     after_jump_flag_e2, after_jump_flag_n2,
+                                     copy_arrs))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one
@@ -222,6 +253,12 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
+
+    # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
+    #    back in units of DN
+    data /= gain_2d
+    err /= gain_2d
+    readnoise_2d /= gain_2d
 
     # Return the updated data quality arrays
     return gdq, pdq

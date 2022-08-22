@@ -315,7 +315,7 @@ def correct_for_flag(lin_coeffs, lin_dq, dqflags):
 
     # If there are pixels flagged as 'NO_LIN_CORR', update the corresponding
     #     coefficients so that those SCI values will be unchanged.
-    if (num_flag > 0):
+    if num_flag > 0:
         ben_cor = ben_coeffs(lin_coeffs)  # get benign coefficients
 
         for ii in range(num_flag):
