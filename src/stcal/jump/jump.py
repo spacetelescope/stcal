@@ -1,11 +1,13 @@
 import time
 import logging
 import numpy as np
+import cv2 as cv
+from astropy.io import fits
 
 from . import twopoint_difference as twopt
 from . import constants
 
-import multiprocessing  # 05/18/21: TODO- commented out now; reinstate later
+import multiprocessing
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -18,7 +20,13 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  after_jump_flag_dn1=0.0,
                  after_jump_flag_n1=0,
                  after_jump_flag_dn2=0.0,
-                 after_jump_flag_n2=0):
+                 after_jump_flag_n2=0,
+                 min_sat_area=1,
+                 min_jump_area=6,
+                 max_offset=4,
+                 expand_factor=1.9,
+                 use_ellipses=False,
+                 sat_required_snowball=True):
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -117,7 +125,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         updated pixel dq array
     """
     constants.update_dqflags(dqflags)  # populate dq flags
-
+    sat_flag = dqflags["SATURATED"]
+    jump_flag = dqflags["JUMP_DET"]
     # Flag the pixeldq where the gain is <=0 or NaN so they will be ignored
     wh_g = np.where(gain_2d <= 0.)
     if len(wh_g[0] > 0):
@@ -251,6 +260,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             k += 1
         elapsed = time.time() - start
 
+        flag_large_events(data, gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
+                          min_jump_area=min_jump_area, max_offset=max_offset,
+                          expand_factor=expand_factor, use_ellipses=use_ellipses,
+                          sat_required_snowball=sat_required_snowball)
+
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
@@ -262,3 +276,97 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
     # Return the updated data quality arrays
     return gdq, pdq
+
+
+def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
+                          min_jump_area=6, max_offset=4,
+                          expand_factor=1.9, use_ellipses=False,
+                          sat_required_snowball=True):
+    for integration in range(gdq.shape[0]):
+        for group in range(gdq.shape[1]):
+            if use_ellipses:
+                jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
+                gdq[integration, group, :, :] = extend_ellipses(gdq[integration, group, :, :],
+                                                                jump_ellipses, sat_flag, jump_flag,
+                                                                expansion=expand_factor)
+            else:
+                sat_circles = find_circles(gdq[integration, group, :, :], sat_flag, min_sat_area)
+                jump_circles = find_circles(gdq[integration, group, :, :], jump_flag, min_jump_area)
+                if sat_required_snowball:
+                    snowballs = make_snowballs(jump_circles, sat_circles, max_offset)
+                else:
+                    snowballs = jump_circles
+                gdq[integration, group, :, :] = extend_snowballs(gdq[integration, group, :, :],
+                                                                 snowballs, expansion=expand_factor)
+
+
+def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
+    for snowball in snowballs:
+        jump_radius = snowball[1]
+        jump_center = snowball[0]
+        xcen = jump_center[0]
+        ycen = jump_center[1]
+        extend_radius = jump_radius * expansion
+        xmin = int(xcen - extend_radius)
+        xmax = int(xcen + extend_radius)
+        ymin = int(ycen - extend_radius)
+        ymax = int(ycen + extend_radius)
+        for x in range(max(0, xmin), min(plane.shape[1], xmax)):
+            for y in range(max(0, ymin), min(plane.shape[1], ymax)):
+                if np.sqrt((y - ycen) ** 2 + (x - xcen) ** 2) < extend_radius:
+                    if not np.bitwise_and(plane[y, x], sat_flag):
+                        plane[y, x] = np.bitwise_or(plane[y, x], jump_flag)
+    return plane
+
+
+def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
+    image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
+    print(len(ellipses))
+    for ellipse in ellipses:
+        ceny = ellipse[0][0]
+        cenx = ellipse[0][1]
+        majaxis = ellipse[1][0] * expansion
+        minaxis = ellipse[1][1] * expansion
+        alpha = ellipse[2]
+        image = cv.ellipse(image, (round(ceny), round(cenx)), (round(majaxis/ 2),
+                           round(minaxis/ 2)), alpha,
+                           0, 360, (0, 0, 4), -1)
+        jump_ellipse = image[:, :, 2]
+#        fits.writeto("jump_ellipse.fits", jump_ellipse, overwrite=True)
+        pixels = np.where(jump_ellipse == jump_flag)
+        min_y = np.min(pixels[0])
+        min_x = np.min(pixels[1])
+        max_y = np.max(pixels[0])
+        max_x = np.max(pixels[1])
+        for x in range(min_x, max_x+1):
+            for y in range(min_y, max_y+1):
+                if not np.bitwise_and(plane[y, x], sat_flag):
+                    plane[y, x] = np.bitwise_or(jump_ellipse[y, x], plane[y, x])
+    return plane
+
+
+def find_circles(dqplane, bitmask, min_area):
+    pixels = np.bitwise_and(dqplane, bitmask)
+    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, 2)
+    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+    circles = [cv.minEnclosingCircle(con) for con in bigcontours]
+    return circles
+
+
+def find_ellipses(dqplane, bitmask, min_area):
+    pixels = np.bitwise_and(dqplane, bitmask)
+    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, 2)
+    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+    ellipses = [cv.fitEllipse(con) for con in bigcontours]
+    return ellipses
+
+
+def make_snowballs(jump_circles, sat_circles, max_offset):
+    snowballs = []
+    for jump in jump_circles:
+        for sat in sat_circles:
+            distance = np.sqrt((jump[0][0] - sat[0][0]) ** 2 + (jump[0][1] - sat[0][1]) ** 2)
+            if distance < max_offset:
+                if jump not in snowballs:
+                    snowballs.append(jump)
+    return snowballs
