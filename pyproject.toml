@@ -42,7 +42,7 @@ test = [
 
 [build-system]
 requires = [
-    'setuptools >=42',
+    'setuptools >=61',
     'setuptools_scm[toml] >=3.4',
     'wheel',
 ]
