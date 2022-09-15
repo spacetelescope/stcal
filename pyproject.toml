@@ -57,7 +57,7 @@ zip-safe = true
 [tool.setuptools.packages.find]
 where = ['src']
 
-[tool.pytest]
+[tool.pytest.ini_options]
 minversion = 4.6
 doctest_plus = true
 doctest_rst = true
