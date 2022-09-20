@@ -22,12 +22,13 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "stcal"))
 
 # Read the package's `pyproject.toml` so that we can use relevant
 # values here:
-conf = toml.load(str(REPO_ROOT / 'pyproject.toml'))
-setup_metadata = conf['project']
+with open(REPO_ROOT / "pyproject.toml", "rb") as configuration_file:
+    conf = tomli.load(configuration_file)
+setup_cfg = conf['project']
 
 project = setup_metadata["name"]
-author = setup_metadata["authors"][0]['name']
-copyright = f"{datetime.now().year}, {author}"
+author = f'{setup_cfg["authors"][0]["name"]} <{setup_cfg["authors"][0]["email"]}>'
+copyright = f'{datetime.datetime.now().year}, {author}'
 
 package = importlib.import_module(setup_metadata["name"])
 version = package.__version__.split("-", 1)[0]
