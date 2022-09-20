@@ -26,7 +26,7 @@ docs = [
     'sphinx-astropy',
     'sphinx-rtd-theme',
     'stsci-rtd-theme',
-    'toml',
+    'tomli; python_version <"3.11"',
 ]
 test = [
     'psutil',
