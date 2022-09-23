@@ -53,3 +53,6 @@ html_theme_path = [stsci_rtd_theme.get_html_theme_path()]
 html_domain_indices = True
 html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
 html_use_index = True
+
+# Enable nitpicky mode - which ensures that all references in the docs resolve.
+nitpicky = True
