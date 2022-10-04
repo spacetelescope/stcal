@@ -4,6 +4,12 @@
 Bug Fixes
 ---------
 
+dark_current
+~~~~~~~~~~~~
+
+- Bug fix for computation of the total number of frames when science data
+  use on-board frame averaging and/or group gaps. [#121]
+
 ramp_fitting
 ~~~~~~~~~~~~
 
