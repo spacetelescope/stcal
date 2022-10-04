@@ -79,10 +79,10 @@ class ScienceData:
             populating the data.
         """
         if science_model is not None:
-            self.data = science_model.data
+            self.data = science_model.data.value
             self.groupdq = science_model.groupdq
             self.pixeldq = science_model.pixeldq
-            self.err = science_model.err
+            self.err = science_model.err.value
 
             self.exp_nframes = science_model.meta.exposure.nframes
             self.exp_groupgap = science_model.meta.exposure.groupgap

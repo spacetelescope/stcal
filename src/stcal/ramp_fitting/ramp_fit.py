@@ -50,7 +50,7 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     ramp_data = ramp_fit_class.RampData()
 
     ramp_data.set_arrays(
-        model.data, model.err, model.groupdq, model.pixeldq)
+        model.data.value, model.err.value, model.groupdq, model.pixeldq)
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     if hasattr(model, 'drop_frames1'):
