@@ -282,7 +282,7 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     # nints.  (if science data only has 1 integration then there is no
     # need to average the second integration of the dark refefence file)
     num_ints = dint
-    if(dint > nints):
+    if dint > nints:
         num_ints = nints
 
     # Loop over valid integrations in dark reference file

@@ -1,0 +1,46 @@
+documentation:
+  - 'docs/**/*'
+  - any: [ '*.rst', '!CHANGES.rst' ]
+  - '*.md'
+  - '.readthedocs.yaml'
+  - 'LICENSE'
+
+installation:
+  - 'pyproject.toml'
+  - 'setup.*'
+  - 'requirements-*.txt'
+  - 'MANIFEST.in'
+
+# --------------------------------------- testing ---------------------------------------
+
+automation:
+  - '.github/**'
+  - '.bandit.yaml'
+  - '.codecov.yml'
+
+testing:
+  - '**/tests/**'
+  - '.github/workflows/ci*.yml'
+  - 'conftest.py'
+
+# --------------------------------------- modules ---------------------------------------
+
+dark_current:
+  - '**/*dark_current*'
+  - '**/*dark_current*/**'
+
+jump:
+  - '**/*jump*'
+  - '**/*jump*/**'
+
+linearity:
+  - '**/*linearity*'
+  - '**/*linearity*/**'
+
+ramp_fitting:
+  - '**/*ramp_fitting*'
+  - '**/*ramp_fitting*/**'
+
+saturation:
+  - '**/*saturation*'
+  - '**/*saturation*/**'
