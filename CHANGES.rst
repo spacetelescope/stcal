@@ -1,11 +1,24 @@
 1.1.1 (unreleased)
 ==================
 
+Bug Fixes
+---------
+
+dark_current
+~~~~~~~~~~~~
+
+- Bug fix for computation of the total number of frames when science data
+  use on-board frame averaging and/or group gaps. [#121]
+
 jump
-----
+~~~~
 
 - Changes to flag both NIR snowballs and MIRI showers
 for  JP-#2645. [#118]
+
+- Early in the step, the object arrays are converted from DN to electrons
+by multiplying by the gain. The values need to be reverted back to DN
+at the end of the step. [#116]
 
 1.1.0 (2022-08-17)
 ==================
@@ -18,13 +31,6 @@ General
 
 Bug Fixes
 ---------
-
-jump
-~~~~
-
- - Early in the step, the object arrays are converted from DN to electrons
-   by multiplying by the gain. The values need to be reverted back to DN
-   at the end of the step. [#116]
 
 ramp_fitting
 ~~~~~~~~~~~~
@@ -57,12 +63,6 @@ jump
 
 Bug Fixes
 ---------
-
-dark_current
-~~~~~~~~~~~~
-
-- Bug fix for computation of the total number of frames when science data
-  use on-board frame averaging and/or group gaps. [#121]
 
 ramp_fitting
 ~~~~~~~~~~~~
