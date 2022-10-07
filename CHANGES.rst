@@ -1,7 +1,11 @@
 1.1.1 (unreleased)
 ==================
 
--
+jump
+----
+
+- Changes to flag both NIR snowballs and MIRI showers
+for  JP-#2645. [#118]
 
 1.1.0 (2022-08-17)
 ==================

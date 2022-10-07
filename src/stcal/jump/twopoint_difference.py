@@ -165,8 +165,6 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
 
         log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
         log.info(log_str.format(len(row4cr), 'five or more'))
-        log.info(log_str.format(len(row3cr), 'four'))
-        log.info(log_str.format(len(row2cr), 'three'))
 
         # get the rows, col pairs for all pixels with at least one CR
         all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
@@ -288,7 +286,6 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
 
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
-
         for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
                 log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
