@@ -407,6 +407,10 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
     for ellipse in ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
+        # Expand the ellipse by the expansion factor. The number of pixels added to both axes is
+        # the number of pixels added to the minor axis. This prevents very large flagged ellipses
+        # for high axis ratio ellipses. The major and minor axis are not always the same index.
+        # Therefore, we have to test to find which is actually the minor axis.
         if ellipse[1][1] < ellipse[1][0]:
             majaxis = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
             print("bigaxis", majaxis, "orig 1 1", ellipse[1][1], "orig 1 0 ",ellipse[1][0])
