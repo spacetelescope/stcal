@@ -408,7 +408,7 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
         majaxis = ellipse[1][1] + expansion * ellipse[1][0]
-        print("majaxis", majaxis, "original", ellipse[1][1])
+        print("majaxis", majaxis, "orig 1 1", ellipse[1][1], "orig 1 0 ",ellipse[1][0])
         minaxis = ellipse[1][0] * expansion
         alpha = ellipse[2]
         image = cv.ellipse(image, (round(ceny), round(cenx)), (round(majaxis / 2),
