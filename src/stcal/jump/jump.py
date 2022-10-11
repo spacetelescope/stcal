@@ -409,19 +409,17 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
         cenx = ellipse[0][1]
         # Expand the ellipse by the expansion factor. The number of pixels added to both axes is
         # the number of pixels added to the minor axis. This prevents very large flagged ellipses
-        # for high axis ratio ellipses. The major and minor axis are not always the same index.
+        # with high axis ratio ellipses. The major and minor axis are not always the same index.
         # Therefore, we have to test to find which is actually the minor axis.
         if ellipse[1][1] < ellipse[1][0]:
-            majaxis = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
-            print("bigaxis", majaxis, "orig 1 1", ellipse[1][1], "orig 1 0 ",ellipse[1][0])
-            minaxis = ellipse[1][1] * expansion
+            axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
+            axis2 = ellipse[1][1] * expansion
         else:
-            majaxis = ellipse[1][0] * expansion
-            minaxis = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
-            print("bigaxis2", minaxis, "orig 1 1", ellipse[1][1], "orig 1 0 ", ellipse[1][0])
+            axis1 = ellipse[1][0] * expansion
+            axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
         alpha = ellipse[2]
-        image = cv.ellipse(image, (round(ceny), round(cenx)), (round(majaxis / 2),
-                           round(minaxis / 2)), alpha, 0, 360, (0, 0, 4), -1)
+        image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
+                           round(axis2 / 2)), alpha, 0, 360, (0, 0, 4), -1)
         jump_ellipse = image[:, :, 2]
         saty, satx = np.where(sat_pix == 2)
         jump_ellipse[saty, satx] = 0
