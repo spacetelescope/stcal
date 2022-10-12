@@ -411,6 +411,7 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
         # the number of pixels added to the minor axis. This prevents very large flagged ellipses
         # with high axis ratio ellipses. The major and minor axis are not always the same index.
         # Therefore, we have to test to find which is actually the minor axis.
+        print("expansion", expansion)
         if ellipse[1][1] < ellipse[1][0]:
             axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
             axis2 = ellipse[1][1] * expansion
