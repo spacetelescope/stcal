@@ -1,6 +1,13 @@
 1.2.1 (unreleased)
 ==================
 
+Bug Fixes
+---------
+
+jump
+~~~~
+- Changes to limit the expansion of MIRI shower ellipses to be the same
+  number of pixels for both the major and minor axis. JP-2944 [#123]
 
 1.2.0 (2022-10-07)
 ==================
@@ -18,11 +25,11 @@ jump
 ~~~~
 
 - Changes to flag both NIR snowballs and MIRI showers
-for  JP-#2645. [#118]
+  for  JP-#2645. [#118]
 
 - Early in the step, the object arrays are converted from DN to electrons
-by multiplying by the gain. The values need to be reverted back to DN
-at the end of the step. [#116]
+  by multiplying by the gain. The values need to be reverted back to DN
+  at the end of the step. [#116]
 
 1.1.0 (2022-08-17)
 ==================
