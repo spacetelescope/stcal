@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 import stsci_rtd_theme
-import toml as toml
+import tomli
 
 
 def setup(app):
@@ -24,13 +24,14 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "stcal"))
 # values here:
 with open(REPO_ROOT / "pyproject.toml", "rb") as configuration_file:
     conf = tomli.load(configuration_file)
-setup_cfg = conf['project']
+setup_metadata = conf['project']
 
 project = setup_metadata["name"]
-author = f'{setup_cfg["authors"][0]["name"]} <{setup_cfg["authors"][0]["email"]}>'
-copyright = f'{datetime.datetime.now().year}, {author}'
+primary_author = setup_metadata["authors"][0]
+author = f'{primary_author["name"]} <{primary_author["email"]}>'
+copyright = f'{datetime.now().year}, {primary_author["name"]}'
 
-package = importlib.import_module(setup_metadata["name"])
+package = importlib.import_module(project)
 version = package.__version__.split("-", 1)[0]
 release = package.__version__
 
