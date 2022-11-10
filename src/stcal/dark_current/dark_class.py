@@ -1,4 +1,5 @@
 import numpy as np
+from astropy import units as u
 
 
 class DarkData:
@@ -79,10 +80,16 @@ class ScienceData:
             populating the data.
         """
         if science_model is not None:
-            self.data = science_model.data.value
+            if (type(science_model.data) == u.Quantity):
+                self.data = science_model.data.value
+            else:
+                self.data = science_model.data
             self.groupdq = science_model.groupdq
             self.pixeldq = science_model.pixeldq
-            self.err = science_model.err.value
+            if (type(science_model.err) == u.Quantity):
+                self.err = science_model.err.value
+            else:
+                self.err = science_model.err
 
             self.exp_nframes = science_model.meta.exposure.nframes
             self.exp_groupgap = science_model.meta.exposure.groupgap
