@@ -1,6 +1,7 @@
 1.2.2 (unreleased)
 ==================
 
+- Added support for Quantities in models required for the RomanCAL pipeline. [#124]
 
 
 1.2.1 (2022-10-14)
