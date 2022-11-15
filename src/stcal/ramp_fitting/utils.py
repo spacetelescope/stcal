@@ -1414,7 +1414,10 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
 
     # XXX JP-2988
     # If all groups are set to SATURATED, mark as SATURATED.
-    is_flag_set_for_all_groups(pixeldq_sect, gdq_sect, sat_flag)
+    # A group 0 marked as saturated implies all groups are saturated.
+    gdq0_sat = np.bitwise_and(gdq_sect[0], sat_flag)
+    pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(
+        pixeldq_sect[gdq0_sat != 0], sat_flag)
 
     # If jump occures mark the appropriate flag.
     cr_loc_r = np.bitwise_and(gdq_sect, jump_flag)
