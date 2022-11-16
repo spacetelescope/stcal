@@ -1290,7 +1290,9 @@ def dq_compress_final(dq_int, ramp_data):
     """
     Combine the integration-specific dq arrays (which have already been
     compressed and combined with the PIXELDQ array) to create the dq array
-    of the primary output product.
+    of the primary output product.  The saturation flag is set only if the
+    saturation flag is set for all integrations; in this case, the do not
+    use flag is also set.
 
     Parameters
     ----------
@@ -1320,10 +1322,7 @@ def dq_compress_final(dq_int, ramp_data):
     dnu_flag = ramp_data.flags_do_not_use
     is_flag_set_for_all_ints(dq_int, f_dq, dnu_flag)
 
-    # XXX JP-2988
-    # XXX This change breaks tests, so leave it out for now.
-    # Do something similar for the SATURATED flag.  If all integrations
-    # for a pixel are saturated, it also must be marked as DO_NOT_USE.
+    # Set the SATURATED flag in a similar way DO_NOT_USE is set.
     sat_flag = ramp_data.flags_saturated
     is_flag_set_for_all_ints(dq_int, f_dq, sat_flag)
 
@@ -1372,15 +1371,11 @@ def is_flag_set_for_all_ints(dq_int, f_dq, flag):
 
 def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     """
-    Get ramp locations where the data has been flagged as saturated in the 4D
-    GROUPDQ array for the current data section, find the corresponding image
-    locations, and set the SATURATED flag in those locations in the PIXELDQ
-    array. Similarly, get the ramp locations where the data has been flagged as
-    a jump detection in the 4D GROUPDQ array, find the corresponding image
-    locations, and set the JUMP_DET flag in those locations in the PIXELDQ
-    array. These modifications to the section of the PIXELDQ array are not used
-    to flag groups for any computations; they are used only in the integration-
-    specific output.
+    This sets the integration level flags for DO_NOT_USE, JUMP_DET and
+    SATURATED.  If any ramp has a jump, this flag will be set for the
+    integraion.  If all groups in a ramp are flagged as DO_NOT_USE, then the
+    integration level DO_NOT_USE flag will be set.  If a ramp is saturated in
+    group 0, then the integration level flag is marked as SATURATED.
 
     Parameters
     ----------
@@ -1412,7 +1407,6 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     # If all groups are set to DO_NOT_USE, mark as DO_NOT_USE.
     is_flag_set_for_all_groups(pixeldq_sect, gdq_sect, dnu_flag)
 
-    # XXX JP-2988
     # If all groups are set to SATURATED, mark as SATURATED.
     # A group 0 marked as saturated implies all groups are saturated.
     gdq0_sat = np.bitwise_and(gdq_sect[0], sat_flag)
