@@ -2,6 +2,13 @@
 ==================
 
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Set saturation flag only for full saturation.  The rateints product will
+  have the saturation flag set for an integration only if saturation starts
+  in group 0.  The rate product will have the saturation flag set only if
+  each integration for a pixel is marked as fully saturated. [#125]
 
 1.2.1 (2022-10-14)
 ==================
