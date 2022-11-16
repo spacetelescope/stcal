@@ -1329,8 +1329,8 @@ def dq_compress_final(dq_int, ramp_data):
     # If the saturated flag is set, then the entire pixel is
     # saturated, so should be marked as DO_NOT_USE.
     sat_loc = np.zeros(f_dq.shape, dtype=f_dq.dtype)
-    sat_loc[np.where(np.bitwise_and(f_dq, sat_flag))] = True
-    f_dq[sat_loc==True] = np.bitwise_or(f_dq[sat_loc==True], dnu_flag)
+    sat_loc[np.where(np.bitwise_and(f_dq, sat_flag))] = 1
+    f_dq[sat_loc == 1] = np.bitwise_or(f_dq[sat_loc == 1], dnu_flag)
 
     return f_dq
 
@@ -1344,7 +1344,7 @@ def is_flag_set_for_all_ints(dq_int, f_dq, flag):
     dq_int : ndarray
         Cube of the compressed pixel DQ per integration.  It is
         a 3-D cube with dimensions (nints, nrows, ncols).
-        
+
     f_dq : ndarray
         The flattened DQ array that is only 2-D, (nrows, ncols),
         containing the Or'ing of each integration.
@@ -1365,7 +1365,7 @@ def is_flag_set_for_all_ints(dq_int, f_dq, flag):
 
     not_flag = np.uint32(~flag)
     f_dq[not_all_flag] = np.bitwise_and(f_dq[not_all_flag], not_flag)
-    
+
     return not_all_flag
 
 
