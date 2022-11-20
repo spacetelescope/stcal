@@ -1288,11 +1288,84 @@ def compute_slices(max_cores):
 
 def dq_compress_final(dq_int, ramp_data):
     """
+    From the integration level DQ flags, set the final pixel DQ flags.
+
+    Parameters
+    ----------
+    dq_int : ndarray
+        The integration level DQ flags, 3-D (nints, nrows, ncols).
+
+    ramp_data : RampData
+        Contains the DQ flag information
+    """
+    final_dq = dq_int[0, :, :]
+    nints = dq_int.shape[0]
+    for integ in range(1, nints):
+        final_dq = np.bitwise_or(final_dq, dq_int[integ, :, :])
+
+    dnu, sat = ramp_data.flags_do_not_use, ramp_data.flags_saturated
+    
+    # Remove DO_NOT_USE and SATURATED because they need special handling.
+    # These flags are not set in the final pixel DQ array by simply being set
+    # in one of the integrations.
+    not_sat_or_dnu = np.uint32(~(dnu | sat))
+    final_dq = np.bitwise_and(final_dq, not_sat_or_dnu)
+
+    '''
+    not_dnu = np.uint32(~dnu)
+    not_sat = np.uint32(~sat)
+    final_dq = np.bitwise_and(final_dq, not_dnu)
+    final_dq = np.bitwise_and(final_dq, not_sat)
+    '''
+
+    # If all integrations are DO_NOT_USE or SATURATED, then set DO_NOT_USE.
+    set_if_total_integ(final_dq, dq_int, dnu | sat, dnu)
+
+    # If all integrations have SATURATED, then set DO_NOT_USE and SATURATED.
+    set_if_total_integ(final_dq, dq_int, sat, dnu | sat)
+
+    return final_dq
+
+
+def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
+    """
+    Set set_flag in final_dq if flag is present in all integrations.
+
+    Parameters
+    ----------
+    final_dq : ndarray
+        2-D array (nrows, ncols) of the final pixel DQ.
+
+    integ_dq : ndarray
+        3-D array (nints, nrows, ncols) of the integration level DQ.
+
+    flag : int
+        Flag to check in each integration.
+
+    set_flag : int
+        Flag to set if flag is found in each integration.
+    """
+    nints = integ_dq.shape[0]
+
+    # Find where flag is set
+    test_dq = np.zeros(integ_dq.shape, dtype=np.uint32)
+    test_dq[np.where(np.bitwise_and(integ_dq, flag))] = 1
+
+    # Sum over all integrations
+    test_sum = test_dq.sum(axis=0)
+    all_set = np.where(test_sum == nints)
+
+    # If flag is set in all integrations, then set the set_flag
+    final_dq[all_set] = np.bitwise_or(final_dq[all_set], set_flag)
+
+
+def dq_compress_final_dep(dq_int, ramp_data):
+    """
     Combine the integration-specific dq arrays (which have already been
     compressed and combined with the PIXELDQ array) to create the dq array
-    of the primary output product.  The saturation flag is set only if the
-    saturation flag is set for all integrations; in this case, the do not
-    use flag is also set.
+    of the primary output product.  The SATURATED flag is set only if the
+    SATURATED flag is set for all integrations; in this case, the
+    DO_NOT_USE flag is also set.
 
     Parameters
     ----------
@@ -1310,6 +1383,7 @@ def dq_compress_final(dq_int, ramp_data):
     """
     f_dq = dq_int[0, :, :]
     nints = dq_int.shape[0]
+    dnu, sat = ramp_data.flags_do_not_use, ramp_data.flags_saturated
 
     for jj in range(1, nints):
         f_dq = np.bitwise_or(f_dq, dq_int[jj, :, :])
@@ -1319,28 +1393,29 @@ def dq_compress_final(dq_int, ramp_data):
     # total number of integrations, that means at least one integration
     # has good data, so the final DQ flag for that pixel should NOT
     # include the DO_NOT_USE flag.
-    dnu_flag = ramp_data.flags_do_not_use
-    is_flag_set_for_all_ints(dq_int, f_dq, dnu_flag)
+    is_flag_set_for_all_ints(dq_int, f_dq, dnu)
 
     # Set the SATURATED flag in a similar way DO_NOT_USE is set.
-    sat_flag = ramp_data.flags_saturated
-    is_flag_set_for_all_ints(dq_int, f_dq, sat_flag)
+    is_flag_set_for_all_ints(dq_int, f_dq, sat)
 
     # If the saturated flag is set, then the entire pixel is
     # saturated, so should be marked as DO_NOT_USE.
     sat_loc = np.zeros(f_dq.shape, dtype=f_dq.dtype)
-    sat_loc[np.where(np.bitwise_and(f_dq, sat_flag))] = 1
-    f_dq[sat_loc == 1] = np.bitwise_or(f_dq[sat_loc == 1], dnu_flag)
+    sat_loc[np.where(np.bitwise_and(f_dq, sat))] = 1
+    f_dq[sat_loc == 1] = np.bitwise_or(f_dq[sat_loc == 1], dnu)
 
     return f_dq
 
 
 def is_flag_set_for_all_ints(dq_int, f_dq, flag):
     """
-    The final flag in the compressed 2-D compressed DQ array
-    should only be set if the flag is set for a pixel in all
-    integrations.
+    In the calling function (dq_compress_final) any flag that occurs in any
+    integration is set in the final pixel DQ flag.  This behavior is not
+    desired for some flags.  This function removes a flag from the pixel
+    DQ array if they are not present in all integrations.
 
+    Parameters
+    ----------
     dq_int : ndarray
         Cube of the compressed pixel DQ per integration.  It is
         a 3-D cube with dimensions (nints, nrows, ncols).
@@ -1363,17 +1438,57 @@ def is_flag_set_for_all_ints(dq_int, f_dq, flag):
     flag_sum = flag_locs.sum(axis=0)
     not_all_flag = np.where(flag_sum < nints)
 
+    # If the flag is not present in all integrations, remove it from the final
+    # pixel DQ.
     not_flag = np.uint32(~flag)
     f_dq[not_all_flag] = np.bitwise_and(f_dq[not_all_flag], not_flag)
-
-    return not_all_flag
 
 
 def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     """
     This sets the integration level flags for DO_NOT_USE, JUMP_DET and
     SATURATED.  If any ramp has a jump, this flag will be set for the
-    integraion.  If all groups in a ramp are flagged as DO_NOT_USE, then the
+    integration.  If all groups in a ramp are flagged as DO_NOT_USE, then the
+    integration level DO_NOT_USE flag will be set.  If a ramp is saturated in
+    group 0, then the integration level flag is marked as SATURATED.  Also, if
+    all groups are marked as DO_NOT_USE or SATURATED (as in suppressed one
+    groups), then the DO_NOT_USE flag is set.
+
+    """
+    sat = ramp_data.flags_saturated
+    jump = ramp_data.flags_jump_det
+    dnu = ramp_data.flags_do_not_use
+    ngroups, nrows, ncols = gdq_sect.shape
+
+    # Check total SATURATED or DO_NOT_USE
+    set_if_total_ramp(pixeldq_sect, gdq_sect, sat | dnu, dnu)
+
+    # Assume total saturation if group 0 is SATURATED.
+    gdq0_sat = np.bitwise_and(gdq_sect[0], sat)
+    pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(
+        pixeldq_sect[gdq0_sat != 0], sat | dnu)
+
+    # If jump occurs mark the appropriate flag.
+    jump_loc = np.bitwise_and(gdq_sect, jump)
+    jump_check = np.where(jump_loc.sum(axis=0) > 0)
+    pixeldq_sect[jump_check] = np.bitwise_or(pixeldq_sect[jump_check], jump)
+
+    return pixeldq_sect
+
+
+def set_if_total_ramp(pixeldq_sect, gdq_sect, flag, set_flag):
+    # Checking for all groups is the same as checking for all integrations
+    # because in both we are checking cubes.  For the integration check the
+    # first dimension is the number of integrations, for the ramp check the
+    # first dimension is the number of groups.
+    set_if_total_integ(pixeldq_sect, gdq_sect, flag, set_flag)
+
+
+def dq_compress_sect_dep(ramp_data, num_int, gdq_sect, pixeldq_sect):
+    """
+    This sets the integration level flags for DO_NOT_USE, JUMP_DET and
+    SATURATED.  If any ramp has a jump, this flag will be set for the
+    integration.  If all groups in a ramp are flagged as DO_NOT_USE, then the
     integration level DO_NOT_USE flag will be set.  If a ramp is saturated in
     group 0, then the integration level flag is marked as SATURATED.
 
@@ -1413,7 +1528,7 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(
         pixeldq_sect[gdq0_sat != 0], sat_flag)
 
-    # If jump occures mark the appropriate flag.
+    # If jump occurs mark the appropriate flag.
     cr_loc_r = np.bitwise_and(gdq_sect, jump_flag)
     cr_loc_im = np.where(cr_loc_r.sum(axis=0) > 0)
     pixeldq_sect[cr_loc_im] = np.bitwise_or(pixeldq_sect[cr_loc_im], jump_flag)
