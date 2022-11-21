@@ -1309,7 +1309,7 @@ def dq_compress_final(dq_int, ramp_data):
         final_dq = np.bitwise_or(final_dq, dq_int[integ, :, :])
 
     dnu, sat = ramp_data.flags_do_not_use, ramp_data.flags_saturated
-    
+
     # Remove DO_NOT_USE and SATURATED because they need special handling.
     # These flags are not set in the final pixel DQ array by simply being set
     # in one of the integrations.
