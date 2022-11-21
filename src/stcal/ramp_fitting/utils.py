@@ -1408,6 +1408,23 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
 
 
 def set_if_total_ramp(pixeldq_sect, gdq_sect, flag, set_flag):
+    """
+    Set set_flag in final_dq if flag is present in all integrations.
+
+    Parameters
+    ----------
+    pixeldq_sect: ndarray
+        2-D array (nrows, ncols) of the integration DQ.
+
+    gdq_dq : ndarray
+        3-D array (ngroups, nrows, ncols) of the integration level DQ.
+
+    flag : int
+        Flag to check in each integration.
+
+    set_flag : int
+        Flag to set if flag is found in each integration.
+    """
     # Checking for all groups is the same as checking for all integrations
     # because in both we are checking cubes.  For the integration check the
     # first dimension is the number of integrations, for the ramp check the
