@@ -1370,7 +1370,7 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     Parameters
     ----------
     ramp_data : RampData
-        Contains the data needed to compute the median rates.
+        Contains the DQ flag information.
 
     num_int : int
         The current integration number.
