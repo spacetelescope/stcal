@@ -5,7 +5,7 @@ General
 -------
 
 - Moved build configuration from ``setup.cfg`` to ``pyproject.toml`` to support PEP621 [#95]
-
+- made dependency on ``opencv-python`` conditional [#126]
 
 ramp_fitting
 ~~~~~~~~~~~~
