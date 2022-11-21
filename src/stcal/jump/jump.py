@@ -14,7 +14,8 @@ try:
     OPENCV_INSTALLED = True
 except ImportError:
     OPENCV_INSTALLED = False
-    warnings.warn('Could not import `opencv-python`; certain snowball detection and usage of ellipses will be inoperable')
+    warnings.warn('Could not import `opencv-python`; '
+                  'certain snowball detection and usage of ellipses will be inoperable')
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
