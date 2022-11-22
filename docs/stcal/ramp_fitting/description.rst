@@ -286,16 +286,26 @@ Similarly, the variance of the slope due to the read noise of the
 segment-specific slope  is written to the VAR_RNOISE extension.
 
 Data Quality Propagation
-=================
+========================
+For a given pixel, if all groups in an integration are flagged as DO_NOT_USE or
+SATURATED, then that pixel will be flagged as DO_NOT_USE in the corresponding
+integration in the rateints product.  Note this does NOT mean that all groups
+are flagged as SATURATED, nor that all groups are flagged as DO_NOT_USE.  For
+example, suppressed one ramp groups will be flagged as DO_NOT_USE in the
+zeroeth group, but not necessarily any other group, while only groups one and
+on are flagged as SATURATED.  Further, only if all integrations in the rateints
+product are marked as DO_NOT_USE, then the pixel will be flagged as DO_NOT_USE
+in the rate product.
 
-If all groups in an integration are flagged as DO_NOT_USE or SATURATED, then
-the rateints product will be flagged as DO_NOT_USE.  For the rates product, the
-DO_NOT_USE flag will be set if all integrations are flagged as DO_NOT_USE.
+For a given pixel, if all groups in an integration are flagged as SATURATED,
+then that pixel will be flagged as SATURATED and DO_NOT_USE in the corresponding
+integration in the rateints product.  This is different from the above case in
+that this is only for all groups flagged as SATURATED, not for some combination
+of DO_NOT_USE and SATURATED.  Further, only if all integrations in the rateints
+product are marked as SATURATED, then the pixel will be flagged as SATURATED
+and DO_NOT_USE in the rate product.
 
-If all groups in an integration are flaggd as SATURATED, then the rateints
-product will be flagged as SATURATED and DO_NOT_USE.  If all integrations are
-flagged as SATURATED, the rates product will be flagged as SATURATED and DO_NOT_USE.
-
-If a group in an integration is flagged as JUMP_DET, then rateints will be
-flagged as JUMP_DET.  If any integration is flagged as JUMP_DET, the rates
-product will be flagged as JUMP_DET.
+For a given pixel, if any group in an integration is flagged as JUMP_DET, then
+that pixel will be flagged as JUMP_DET in the corresponding integration in the
+rateints product.  Also, that pixel will be flagged as JUMP_DET in the rate
+product.
