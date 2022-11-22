@@ -284,3 +284,18 @@ For the optional output product, the variance of the slope due to the Poisson
 noise of the segment-specific slope is written to the VAR_POISSON extension.
 Similarly, the variance of the slope due to the read noise of the
 segment-specific slope  is written to the VAR_RNOISE extension.
+
+Data Quality Propagation
+=================
+
+If all groups in an integration are flagged as DO_NOT_USE or SATURATED, then
+the rateints product will be flagged as DO_NOT_USE.  For the rates product, the
+DO_NOT_USE flag will be set if all integrations are flagged as DO_NOT_USE.
+
+If all groups in an integration are flaggd as SATURATED, then the rateints
+product will be flagged as SATURATED and DO_NOT_USE.  If all integrations are
+flagged as SATURATED, the rates product will be flagged as SATURATED and DO_NOT_USE.
+
+If a group in an integration is flagged as JUMP_DET, then rateints will be
+flagged as JUMP_DET.  If any integration is flagged as JUMP_DET, the rates
+product will be flagged as JUMP_DET.
