@@ -115,17 +115,17 @@ def _params():
     """
 
     # Dictionary of NIRCam readout patterns
-    readpatterns = dict(
-        DEEP8=dict(ngroups=20, nframes=8, nskip=12),
-        DEEP2=dict(ngroups=20, nframes=2, nskip=18),
-        MEDIUM8=dict(ngroups=10, nframes=8, nskip=2),
-        MEDIUM2=dict(ngroups=10, nframes=2, nskip=8),
-        SHALLOW4=dict(ngroups=10, nframes=4, nskip=1),
-        SHALLOW2=dict(ngroups=10, nframes=2, nskip=3),
-        BRIGHT2=dict(ngroups=10, nframes=2, nskip=0),
-        BRIGHT1=dict(ngroups=10, nframes=1, nskip=1),
-        RAPID=dict(ngroups=10, nframes=1, nskip=0),
-    )
+    readpatterns = {
+        "DEEP8": {"ngroups": 20, "nframes": 8, "nskip": 12},
+        "DEEP2": {"ngroups": 20, "nframes": 2, "nskip": 18},
+        "MEDIUM8": {"ngroups": 10, "nframes": 8, "nskip": 2},
+        "MEDIUM2": {"ngroups": 10, "nframes": 2, "nskip": 8},
+        "SHALLOW4": {"ngroups": 10, "nframes": 4, "nskip": 1},
+        "SHALLOW2": {"ngroups": 10, "nframes": 2, "nskip": 3},
+        "BRIGHT2": {"ngroups": 10, "nframes": 2, "nskip": 0},
+        "BRIGHT1": {"ngroups": 10, "nframes": 1, "nskip": 1},
+        "RAPID": {"ngroups": 10, "nframes": 1, "nskip": 0},
+    }
 
     params = []
     ngroups = 3
