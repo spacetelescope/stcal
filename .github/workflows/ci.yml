@@ -93,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toxenv: [ test-cov, test-jwst-xdist-cov, test-roman-xdist-cov ]
+        toxenv: [ test-cov, test-jwst-xdist-cov, test-romancal-xdist-cov ]
         python-version: [ '3.x' ]
         os: [ ubuntu-latest ]
     steps:
