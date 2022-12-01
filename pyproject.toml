@@ -65,3 +65,19 @@ doctest_rst = true
 text_file_format = 'rst'
 addopts = '--open-files'
 
+[tool.ruff]
+line-length = 110
+select = ['F', 'W', 'E', 'C']
+ignore = [
+    'E231', # Missing whitespace after ',', ';', or ':'
+    'E241', # Multiple spaces after ','
+    'W503', # Line break occurred before a binary operator
+    'W504', # Line break occurred after a binary operator
+]
+exclude = [
+    'docs',
+    'build',
+    'dist',
+    '.tox',
+    '.eggs',
+]
