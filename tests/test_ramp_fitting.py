@@ -19,6 +19,11 @@ dqflags = {
     'UNRELIABLE_SLOPE': 2**24,  # Slope variance large (i.e., noisy pixel).
 }
 
+GOOD = dqflags["GOOD"]
+DNU = dqflags["DO_NOT_USE"]
+SAT = dqflags["SATURATED"]
+JUMP = dqflags["JUMP_DET"]
+
 
 # -----------------------------------------------------------------------------
 #                           Test Suite
@@ -378,21 +383,20 @@ def test_2_group_cases():
     base_err = [0., 0.]
     gain_val = 0.9699
     rnoise_val = 9.4552
-    sat, dnu = dqflags["SATURATED"], dqflags["DO_NOT_USE"]
 
     possibilities = [
         # Both groups are good
-        [0, 0],
+        [GOOD, GOOD],
 
         # Both groups are bad.  Note saturated 0th group kills group 1.
-        [sat, 0],
-        [dnu | sat, 0],
-        [dnu, sat],
+        [SAT, GOOD],
+        [DNU | SAT, GOOD],
+        [DNU, SAT],
 
         # One group is bad, while the other group is good.
-        [dnu, 0],
-        [0, dnu],
-        [0, dnu | sat],
+        [DNU, GOOD],
+        [GOOD, DNU],
+        [GOOD, DNU | SAT],
     ]
     nints, ngroups, nrows, ncols = 1, 2, 1, len(possibilities)
     dims = nints, ngroups, nrows, ncols
@@ -442,7 +446,7 @@ def test_2_group_cases():
     # Check the outputs
     data, dq, var_poisson, var_rnoise, err = slopes
     chk_dt = np.array([[551.0735, 0., 0., 0., -293.9943, -845.0678, -845.0677]])
-    chk_dq = np.array([[0, dnu | sat, dnu | sat, dnu | sat, 0, 0, sat]])
+    chk_dq = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU, GOOD, GOOD, GOOD]])
     chk_vp = np.array([[38.945766, 0., 0., 0., 38.945766, 38.945766, 0.]])
     chk_vr = np.array([[0.420046, 0.420046, 0.420046, 0., 0.420046, 0.420046, 0.420046]])
     chk_er = np.array([[6.274218, 0.64811, 0.64811, 0., 6.274218, 6.274218, 0.64811]])
@@ -522,12 +526,11 @@ def test_one_group_ramp_suppressed_one_integration():
 
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
-    sat, dnu = dqflags["SATURATED"], dqflags["DO_NOT_USE"]
 
     check = np.array([[0., 0., 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[dnu | sat, dnu | sat, 0]])
+    check = np.array([[DNU | SAT, DNU, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0., 0., 0.01]])
@@ -545,7 +548,7 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[[0., 0., 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[dnu | sat, dnu | sat, 0]]])
+    check = np.array([[[DNU | SAT, DNU, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0., 0., 0.01]]])
@@ -572,7 +575,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     check = np.array([[0., 1., 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[3, 2, 0]])
+    check = np.array([[DNU | SAT, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0., 0.04, 0.01]])
@@ -590,7 +593,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     check = np.array([[[0., 1., 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 2, 0]]])
+    check = np.array([[[DNU | SAT, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0., 0.04, 0.01]]])
@@ -614,12 +617,11 @@ def test_one_group_ramp_suppressed_two_integrations():
 
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
-    sat, dnu = dqflags["SATURATED"], dqflags["DO_NOT_USE"]
 
     check = np.array([[1.0000001, 1.0000001, 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[sat, sat, 0]])
+    check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.005, 0.01, 0.005]])
@@ -638,8 +640,8 @@ def test_one_group_ramp_suppressed_two_integrations():
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[dnu | sat, dnu | sat, 0]],
-                      [[0, 0, 0]]])
+    check = np.array([[[DNU | SAT, DNU, GOOD]],
+                      [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.,    0.,    0.01]],
@@ -670,7 +672,7 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     check = np.array([[1.0000001, 1.0000002, 1.0000002]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[2, 2, 0]])
+    check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.005, 0.008, 0.005]])
@@ -689,8 +691,8 @@ def test_one_group_ramp_not_suppressed_two_integrations():
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[3, 2, 0]],
-                      [[0, 0, 0]]])
+    check = np.array([[[DNU | SAT, GOOD, GOOD]],
+                      [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.,    0.04, 0.01]],
@@ -790,8 +792,6 @@ def test_zeroframe():
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
         "optimal", ncores, dqflags)
 
-    # return
-
     tol = 1.e-5
 
     # Check slopes information
@@ -800,7 +800,7 @@ def test_zeroframe():
     check = np.array([[44.256306, 18.62891, 23.787909]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    check = np.array([[2, 2, 2]])
+    check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
     check = np.array([[0.06246654, 0.00867591, 0.29745975]])
@@ -819,8 +819,8 @@ def test_zeroframe():
                       [[18.62891, 18.62891, 18.62891]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
-    check = np.array([[[2, 3, 2]],
-                      [[0, 0, 0]]])
+    check = np.array([[[GOOD, DNU | SAT, GOOD]],
+                      [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol, tol)
 
     check = np.array([[[0.31233272, 0., 6.246655]],
@@ -928,6 +928,121 @@ def test_dq_multi_int_dnu():
 
     check = np.array([[[0.]],
                       [[0.04657228]]])
+    np.testing.assert_allclose(cerr, check, tol, tol)
+
+
+def get_new_saturation():
+    """
+    Three columns (pixels) with two integrations each.
+    1. One integ good, one partially saturated.
+    2. One integ partially saturated, one fully saturated.
+    2. Both integrations fully saturated.
+    """
+    nints, ngroups, nrows, ncols = 2, 20, 1, 3
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    bramp = [ 149.3061,  299.0544,  449.9949,  599.7617,  749.7327,
+              900.117 , 1049.314 , 1200.6003, 1350.0906, 1500.7772,
+             1649.3098, 1799.8952, 1949.1304, 2100.1875, 2249.85  ,
+             2399.1154, 2550.537 , 2699.915 , 2850.0734, 2999.7891]
+
+    # Set up ramp data.
+    for integ in range(nints):
+        for col in range(ncols):
+            ramp.data[integ, :, 0, col] = np.array(bramp)
+
+    #                    Set up DQ's.
+    # Set up col 0
+    # One integ no sat, one with jump and saturated
+    dq = [GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD,
+          GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD, GOOD]
+    ramp.groupdq[0, :, 0, 0] = np.array(dq)
+    dq = [GOOD, GOOD, GOOD, GOOD, GOOD, JUMP, JUMP, GOOD, GOOD, GOOD,
+          GOOD, GOOD, GOOD, GOOD, GOOD, SAT,  SAT,  SAT,  SAT,  SAT]
+    ramp.groupdq[1, :, 0, 0] = np.array(dq)
+
+    # Set up col 1
+    # One integ with jump and saturated, one fully saturated
+    dq = [GOOD, GOOD, GOOD, GOOD, GOOD, JUMP, JUMP, GOOD, GOOD, GOOD,
+          GOOD, GOOD, GOOD, GOOD, GOOD, SAT,  SAT,  SAT,  SAT,  SAT]
+    ramp.groupdq[0, :, 0, 1] = np.array(dq)
+    dq = [SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT,
+          SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT]
+    ramp.groupdq[1, :, 0, 1] = np.array(dq)
+
+    # Set up col 2
+    # One integ fully saturated
+    ramp.groupdq[0, :, 0, 2] = np.array(dq)
+    ramp.groupdq[1, :, 0, 2] = np.array(dq)
+
+    return ramp, gain, rnoise
+
+
+def test_new_saturation():
+    """
+    Test the updated saturation flag setting implemented
+    in JP-2988.  Integration level saturation is now only
+    set if all groups in the integration are saturated.
+    The saturation flag is set for the pixel only if all
+    integrations are saturated.  If the pixel is flagged
+    as saturated, then it must also be marked as do not
+    use.
+    """
+    # XXX JP-2988
+    ramp, gain, rnoise = get_new_saturation()
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+
+    tol = 1.e-5
+
+    # Check slopes information
+    sdata, sdq, svp, svr, serr = slopes
+
+    check = np.array([[2.797567 , 2.8022935, 0.]])
+    np.testing.assert_allclose(sdata, check, tol, tol)
+
+    check = np.array([[JUMP, JUMP, DNU | SAT]])
+    np.testing.assert_allclose(sdq, check, tol, tol)
+
+    check = np.array([[0.00033543, 0.00043342, 0.]])
+    np.testing.assert_allclose(svp, check, tol, tol)
+
+    check = np.array([[5.9019785e-06, 6.1970772e-05, 0.0000000e+00]])
+    np.testing.assert_allclose(svr, check, tol, tol)
+
+    check = np.array([[0.01847528, 0.02225729, 0.]])
+    np.testing.assert_allclose(serr, check, tol, tol)
+
+    # Check slopes information
+    cdata, cdq, cvp, cvr, cerr = cube
+
+    check = np.array([[[2.7949152, 2.8022935, 0.]],
+                     [[2.8020892, 0.       , 0.]]])
+    np.testing.assert_allclose(cdata, check, tol, tol)
+
+    check = np.array([[[GOOD, JUMP, DNU | SAT]],
+                      [[JUMP, DNU | SAT, DNU | SAT]]])
+    np.testing.assert_allclose(cdq, check, tol, tol)
+
+    check = np.array([[[0.00054729, 0.00043342, 0.]],
+                      [[0.00086654, 0.        , 0.]]])
+    np.testing.assert_allclose(cvp, check, tol, tol)
+
+    check = np.array([[[6.5232398e-06, 6.1970772e-05, 3.3333334e+07]],
+                      [[6.1970772e-05, 3.3333334e+07, 3.3333334e+07]]])
+    np.testing.assert_allclose(cvr, check, tol, tol)
+
+    check = np.array([[[0.02353317, 0.02258242, 0.]],
+                      [[0.03073696, 0.        , 0.]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
@@ -1064,7 +1179,7 @@ def print_integ_data(integ_info):
     base_print("Integration data:", idata)
 
 
-def print_integ_gdq(integ_info):
+def print_integ_dq(integ_info):
     idata, idq, ivp, ivr, ierr = integ_info
     base_print("Integration DQ:", idq)
 
@@ -1091,7 +1206,7 @@ def print_integ(integ_info):
     print_integ_data(integ_info)
 
     print(DELIM)
-    print_integ_gdq(integ_info)
+    print_integ_dq(integ_info)
 
     print(DELIM)
     print_integ_poisson(integ_info)
@@ -1156,3 +1271,19 @@ def print_all_info(slopes, cube, optional):
     print_slopes(slopes)
     print_integ(cube)
     print_optional(optional)
+
+
+def print_ramp_data(ramp_data):
+    print(DELIM)
+    print_ramp_data_data(ramp_data)
+    print(DELIM)
+    print_ramp_data_dq(ramp_data)
+    print(DELIM)
+
+
+def print_ramp_data_data(ramp_data):
+    base_print("RampData Data:", ramp_data.data)
+
+
+def print_ramp_data_dq(ramp_data):
+    base_print("RampData Data Quality:", ramp_data.groupdq)

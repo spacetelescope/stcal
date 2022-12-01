@@ -1364,8 +1364,7 @@ def ramp_fit_overall(
 
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output
-    final_pixeldq = utils.dq_compress_final(
-        dq_int, ramp_data.flags_do_not_use)
+    final_pixeldq = utils.dq_compress_final(dq_int, ramp_data)
 
     if dq_int is not None:
         del dq_int
