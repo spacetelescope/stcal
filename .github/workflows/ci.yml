@@ -16,7 +16,7 @@ on:
 
 jobs:
   check:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.toxenv }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
