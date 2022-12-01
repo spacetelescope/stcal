@@ -1,8 +1,22 @@
 1.2.2 (unreleased)
 ==================
 
+=======
+General
+-------
+
+- Moved build configuration from ``setup.cfg`` to ``pyproject.toml`` to support PEP621 [#95]
+
 - Added support for Quantities in models required for the RomanCAL pipeline. [#124]
 
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Set saturation flag only for full saturation.  The rateints product will
+  have the saturation flag set for an integration only if saturation starts
+  in group 0.  The rate product will have the saturation flag set only if
+  each integration for a pixel is marked as fully saturated. [#125]
 
 1.2.1 (2022-10-14)
 ==================

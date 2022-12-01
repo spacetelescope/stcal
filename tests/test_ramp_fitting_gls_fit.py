@@ -515,7 +515,7 @@ def test_two_groups_fit():
     np.testing.assert_allclose(ans_data, check, tol)
 
     assert ans_dq[0, 0] == GOOD
-    assert ans_dq[0, 1] == SATURATED | UNRELIABLE_SLOPE
+    assert ans_dq[0, 1] == UNRELIABLE_SLOPE
     assert ans_dq[0, 2] == SATURATED | DO_NOT_USE
 
 

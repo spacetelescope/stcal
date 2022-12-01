@@ -29,8 +29,8 @@ jobs:
         with:
           path: ${{ env.pythonLocation }}
           key: style-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
-      - run: pip install pyproject-flake8
-      - run: pflake8 --count src
+      - run: pip install flake8
+      - run: flake8 --count src
   audit:
     name: Bandit security audit
     runs-on: ubuntu-latest
@@ -79,7 +79,7 @@ jobs:
           key: test-coverage-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('**/pyproject.toml', '**/setup.*') }}
       - run: pip install ".[test]" pytest-xdist pytest-cov
       - run: pip freeze
-      - run: pytest -n auto --cov-report=xml --cov=src/stcal
+      - run: pytest -n auto --cov-report=xml --cov=src/stcal --cov-config=pyproject.toml
       - run: coverage report -m
       - uses: codecov/codecov-action@v2
         with:
@@ -100,7 +100,7 @@ jobs:
       - run: pip install ".[test]" pytest-xdist pytest-cov
       - run: pip install "jwst[test] @ git+https://github.com/spacetelescope/jwst.git"
       - run: pip freeze
-      - run: pytest -n auto --cov-report=xml --cov=src/stcal --ignore-glob=timeconversion --ignore-glob=associations --pyargs jwst
+      - run: pytest -n auto --cov-report=xml --cov=src/stcal --cov-config=pyproject.toml --ignore-glob=timeconversion --ignore-glob=associations --pyargs jwst
         env:
           CRDS_SERVER_URL: https://jwst-crds.stsci.edu
       - run: coverage report -m
@@ -123,7 +123,7 @@ jobs:
       - run: pip install ".[test]" pytest-xdist pytest-cov
       - run: pip install "romancal[test] @ git+https://github.com/spacetelescope/romancal.git"
       - run: pip freeze
-      - run: pytest -n auto --cov-report=xml --cov=src/stcal --pyargs romancal
+      - run: pytest -n auto --cov-report=xml --cov=src/stcal --cov-config=pyproject.toml --pyargs romancal
         env:
           CRDS_SERVER_URL: https://roman-crds-test.stsci.edu
       - run: coverage report -m

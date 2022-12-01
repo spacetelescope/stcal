@@ -284,3 +284,28 @@ For the optional output product, the variance of the slope due to the Poisson
 noise of the segment-specific slope is written to the VAR_POISSON extension.
 Similarly, the variance of the slope due to the read noise of the
 segment-specific slope  is written to the VAR_RNOISE extension.
+
+Data Quality Propagation
+========================
+For a given pixel, if all groups in an integration are flagged as DO_NOT_USE or
+SATURATED, then that pixel will be flagged as DO_NOT_USE in the corresponding
+integration in the rateints product.  Note this does NOT mean that all groups
+are flagged as SATURATED, nor that all groups are flagged as DO_NOT_USE.  For
+example, suppressed one ramp groups will be flagged as DO_NOT_USE in the
+zeroeth group, but not necessarily any other group, while only groups one and
+on are flagged as SATURATED.  Further, only if all integrations in the rateints
+product are marked as DO_NOT_USE, then the pixel will be flagged as DO_NOT_USE
+in the rate product.
+
+For a given pixel, if all groups in an integration are flagged as SATURATED,
+then that pixel will be flagged as SATURATED and DO_NOT_USE in the corresponding
+integration in the rateints product.  This is different from the above case in
+that this is only for all groups flagged as SATURATED, not for some combination
+of DO_NOT_USE and SATURATED.  Further, only if all integrations in the rateints
+product are marked as SATURATED, then the pixel will be flagged as SATURATED
+and DO_NOT_USE in the rate product.
+
+For a given pixel, if any group in an integration is flagged as JUMP_DET, then
+that pixel will be flagged as JUMP_DET in the corresponding integration in the
+rateints product.  Also, that pixel will be flagged as JUMP_DET in the rate
+product.
