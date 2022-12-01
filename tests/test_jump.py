@@ -1,9 +1,8 @@
 import pytest
 import numpy as np
 from astropy.io import fits
-import cv2 as cv
 
-from stcal.jump.jump import flag_large_events, make_snowballs, extend_snowballs, extend_ellipses, find_circles, find_ellipses
+from stcal.jump.jump import flag_large_events, find_circles, find_ellipses
 
 
 
