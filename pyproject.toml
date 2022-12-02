@@ -15,7 +15,6 @@ dependencies = [
     'astropy >=5.0.4',
     'scipy >=1.6.0',
     'numpy >=1.17',
-    'opencv-python >=4.6.0.66',
 ]
 dynamic = ['version']
 
@@ -35,6 +34,9 @@ test = [
     'pytest-cov',
     'pytest-doctestplus',
     'pytest-openfiles >=0.5.0',
+]
+opencv = [
+    'opencv-python >=4.6.0.66',
 ]
 
 [project.urls]
