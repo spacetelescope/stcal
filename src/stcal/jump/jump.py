@@ -1,11 +1,21 @@
 import time
 import logging
+import warnings
+
 import numpy as np
-import cv2 as cv
 from . import twopoint_difference as twopt
 from . import constants
 
 import multiprocessing
+
+try:
+    import cv2 as cv
+
+    OPENCV_INSTALLED = True
+except ImportError:
+    OPENCV_INSTALLED = False
+    warnings.warn('Could not import `opencv-python`; '
+                  'certain snowball detection and usage of ellipses will be inoperable')
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

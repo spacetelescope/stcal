@@ -50,7 +50,7 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     ramp_data = ramp_fit_class.RampData()
 
-    if (type(model.data) == u.Quantity):
+    if isinstance(model.data,u.Quantity):
         ramp_data.set_arrays(model.data.value, model.err.value,
                              model.groupdq, model.pixeldq)
     else:

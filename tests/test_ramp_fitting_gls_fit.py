@@ -328,7 +328,7 @@ def test_simple_ramp():
         dims, gain, rnoise, group_time, frame_time
     )
 
-    ramp = np.array([k for k in range(ngroups)]) * 20 + 10
+    ramp = np.array(list(range(ngroups))) * 20 + 10
     ramp_data.data[0, :, 50, 50] = ramp
 
     save_opt, algo, ncores = False, "GLS", "none"

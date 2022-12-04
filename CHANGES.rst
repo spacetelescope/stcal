@@ -1,4 +1,14 @@
-1.2.2 (unreleased)
+1.2.3 (unreleased)
+==================
+
+=======
+General
+-------
+
+- Added support for Quantities in models required for the RomanCAL pipeline. [#124]
+
+
+1.2.2 (2022-12-01)
 ==================
 
 =======
@@ -7,7 +17,7 @@ General
 
 - Moved build configuration from ``setup.cfg`` to ``pyproject.toml`` to support PEP621 [#95]
 
-- Added support for Quantities in models required for the RomanCAL pipeline. [#124]
+- made dependency on ``opencv-python`` conditional [#126]
 
 
 ramp_fitting
