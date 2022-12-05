@@ -7,7 +7,7 @@ from stcal.jump.jump import flag_large_events, find_circles, find_ellipses
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 
 try:
-    import cv2 as cv
+    import cv2 as cv # noqa: F401
 
     OPENCV_INSTALLED = True
 except ImportError:
