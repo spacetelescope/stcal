@@ -5,9 +5,11 @@
 General
 -------
 
-- Added support for Quantities in models required for the RomanCAL pipeline. [#124]
+- use ``tox`` environments [#130]
 
+- Added support for Quantities in models required for the RomanCAL pipeline. [#124]     
 
+  
 1.2.2 (2022-12-01)
 ==================
 
