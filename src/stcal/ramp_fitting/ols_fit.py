@@ -1280,7 +1280,6 @@ def ramp_fit_overall(
     # Adjust DQ flags for NaNs.
     wh_nans = np.isnan(slope_int)
     dq_int[wh_nans] = np.bitwise_or(dq_int[wh_nans], ramp_data.flags_do_not_use)
-    slope_int[wh_nans] = 0.
     warnings.resetwarnings()
 
     del the_num, the_den, wh_nans
@@ -1347,7 +1346,7 @@ def ramp_fit_overall(
 
     # Output integration-specific results to separate file
     integ_info = utils.output_integ(
-        slope_int, dq_int, effintim, var_p3, var_r3, var_both3)
+        ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_both3)
 
     if opt_res is not None:
         del opt_res
@@ -1365,6 +1364,12 @@ def ramp_fit_overall(
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output
     final_pixeldq = utils.dq_compress_final(dq_int, ramp_data)
+
+    # For invalid slope calculations set to NaN.  Pixels flagged as SATURATED or
+    # DO_NOT_USE have invalid data.
+    invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
+    wh_invalid = np.where(np.bitwise_and(final_pixeldq, invalid_data))
+    c_rates[wh_invalid] = np.nan
 
     if dq_int is not None:
         del dq_int
