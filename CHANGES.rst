@@ -1,19 +1,26 @@
 1.2.3 (unreleased)
 ==================
 
+=======
 General
 -------
 
 - use ``tox`` environments [#130]
 
+- Added support for Quantities in models required for the RomanCAL pipeline. [#124]     
+
+  
 1.2.2 (2022-12-01)
 ==================
 
+=======
 General
 -------
 
 - Moved build configuration from ``setup.cfg`` to ``pyproject.toml`` to support PEP621 [#95]
+
 - made dependency on ``opencv-python`` conditional [#126]
+
 
 ramp_fitting
 ~~~~~~~~~~~~
