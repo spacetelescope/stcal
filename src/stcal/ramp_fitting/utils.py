@@ -667,7 +667,7 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
     return ped
 
 
-def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
+def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
     """
     For the OLS algorithm, construct the output integration-specific results.
     Any variance values that are a large fraction of the default value
@@ -676,6 +676,9 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
 
     Parameters
     ----------
+    ramp_data : RampData
+        Contains flag information.
+
     model : instance of Data Model
        DM object for input
 
@@ -715,6 +718,10 @@ def output_integ(slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
     var_both3[var_both3 > 0.4 * LARGE_VARIANCE] = 0.
 
     data = slope_int / effintim
+    invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
+    wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
+    data[wh_invalid] = np.nan
+
     err = np.sqrt(var_both3)
     dq = dq_int
     var_poisson = var_p3
@@ -1133,7 +1140,7 @@ def fix_sat_ramps(ramp_data, sat_0th_group_int, var_p3, var_both3, slope_int, dq
     """
     var_p3[sat_0th_group_int > 0] = LARGE_VARIANCE
     var_both3[sat_0th_group_int > 0] = LARGE_VARIANCE
-    slope_int[sat_0th_group_int > 0] = 0.
+    slope_int[sat_0th_group_int > 0] = np.nan
     dq_int[sat_0th_group_int > 0] = np.bitwise_or(
         dq_int[sat_0th_group_int > 0], ramp_data.flags_do_not_use)
 

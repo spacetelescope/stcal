@@ -135,6 +135,13 @@ is the following: the type of noise (when appropriate) will appear as the supers
 and the form of the data will appear as the subscript: ‘s’, ‘i’, ‘o’ for segment,
 integration, or overall (for the entire dataset), respectively.
 
+It is possible for an integration or pixel to have invalid data, so useable
+slope data will not be available.  If a pixel has an invalid integration, the value
+for that integration for that pixel will be set to NaN in the rateints product.
+Further, if all integrations for a given pixel are invalid the pixel value for
+the rate product will be set to NaN.  An example of invalid data would be a
+fully saturated integration for a pixel.
+
 Optimal Weighting Algorithm
 ---------------------------
 The slope of each segment is calculated using the least-squares method with optimal

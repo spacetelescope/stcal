@@ -10,6 +10,13 @@ General
 - Added support for Quantities in models required for the RomanCAL pipeline. [#124]     
 
   
+ramp_fitting
+~~~~~~~~~~~~
+
+- Set values in the rate and rateints product to NaN when no usable data is
+  available to compute slopes. [#131]
+
+
 1.2.2 (2022-12-01)
 ==================
 
