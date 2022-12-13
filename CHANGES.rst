@@ -8,7 +8,6 @@ General
 - use ``tox`` environments [#130]
 
 - Added support for Quantities in models required for the RomanCAL pipeline. [#124]     
-
   
 ramp_fitting
 ~~~~~~~~~~~~
