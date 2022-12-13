@@ -14,7 +14,7 @@ ramp_fitting
 ~~~~~~~~~~~~
 
 - Set values in the rate and rateints product to NaN when no usable data is
-  available to compute slopes. [#131]
+  available to compute slopes. [#133]
 
 
 1.2.2 (2022-12-01)
