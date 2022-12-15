@@ -1,11 +1,13 @@
-1.2.3 (unreleased)
+1.3.0 (2022-12-15)
 ==================
 
-=======
 General
 -------
 
 - use ``tox`` environments [#130]
+
+Changes to API
+--------------
 
 - Added support for Quantities in models required for the RomanCAL pipeline. [#124]     
   
@@ -19,7 +21,6 @@ ramp_fitting
 1.2.2 (2022-12-01)
 ==================
 
-=======
 General
 -------
 
