@@ -328,7 +328,7 @@ def test_simple_ramp():
         dims, gain, rnoise, group_time, frame_time
     )
 
-    ramp = np.array([k for k in range(ngroups)]) * 20 + 10
+    ramp = np.array(list(range(ngroups))) * 20 + 10
     ramp_data.data[0, :, 50, 50] = ramp
 
     save_opt, algo, ncores = False, "GLS", "none"
@@ -515,7 +515,7 @@ def test_two_groups_fit():
     np.testing.assert_allclose(ans_data, check, tol)
 
     assert ans_dq[0, 0] == GOOD
-    assert ans_dq[0, 1] == SATURATED | UNRELIABLE_SLOPE
+    assert ans_dq[0, 1] == UNRELIABLE_SLOPE
     assert ans_dq[0, 2] == SATURATED | DO_NOT_USE
 
 

@@ -1,7 +1,59 @@
-1.2.2 (unreleased)
+1.3.1 (unreleased)
 ==================
 
+General
+-------
 
+-
+
+Bug Fixes
+---------
+
+-
+
+Changes to API
+--------------
+
+-
+
+1.3.0 (2022-12-15)
+==================
+
+General
+-------
+
+- use ``tox`` environments [#130]
+
+Changes to API
+--------------
+
+- Added support for Quantities in models required for the RomanCAL pipeline. [#124]     
+  
+ramp_fitting
+~~~~~~~~~~~~
+
+- Set values in the rate and rateints product to NaN when no usable data is
+  available to compute slopes. [#131]
+
+
+1.2.2 (2022-12-01)
+==================
+
+General
+-------
+
+- Moved build configuration from ``setup.cfg`` to ``pyproject.toml`` to support PEP621 [#95]
+
+- made dependency on ``opencv-python`` conditional [#126]
+
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Set saturation flag only for full saturation.  The rateints product will
+  have the saturation flag set for an integration only if saturation starts
+  in group 0.  The rate product will have the saturation flag set only if
+  each integration for a pixel is marked as fully saturated. [#125]
 
 1.2.1 (2022-10-14)
 ==================

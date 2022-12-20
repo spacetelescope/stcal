@@ -135,6 +135,13 @@ is the following: the type of noise (when appropriate) will appear as the supers
 and the form of the data will appear as the subscript: ‘s’, ‘i’, ‘o’ for segment,
 integration, or overall (for the entire dataset), respectively.
 
+It is possible for an integration or pixel to have invalid data, so useable
+slope data will not be available.  If a pixel has an invalid integration, the value
+for that integration for that pixel will be set to NaN in the rateints product.
+Further, if all integrations for a given pixel are invalid the pixel value for
+the rate product will be set to NaN.  An example of invalid data would be a
+fully saturated integration for a pixel.
+
 Optimal Weighting Algorithm
 ---------------------------
 The slope of each segment is calculated using the least-squares method with optimal
@@ -284,3 +291,28 @@ For the optional output product, the variance of the slope due to the Poisson
 noise of the segment-specific slope is written to the VAR_POISSON extension.
 Similarly, the variance of the slope due to the read noise of the
 segment-specific slope  is written to the VAR_RNOISE extension.
+
+Data Quality Propagation
+========================
+For a given pixel, if all groups in an integration are flagged as DO_NOT_USE or
+SATURATED, then that pixel will be flagged as DO_NOT_USE in the corresponding
+integration in the rateints product.  Note this does NOT mean that all groups
+are flagged as SATURATED, nor that all groups are flagged as DO_NOT_USE.  For
+example, suppressed one ramp groups will be flagged as DO_NOT_USE in the
+zeroeth group, but not necessarily any other group, while only groups one and
+on are flagged as SATURATED.  Further, only if all integrations in the rateints
+product are marked as DO_NOT_USE, then the pixel will be flagged as DO_NOT_USE
+in the rate product.
+
+For a given pixel, if all groups in an integration are flagged as SATURATED,
+then that pixel will be flagged as SATURATED and DO_NOT_USE in the corresponding
+integration in the rateints product.  This is different from the above case in
+that this is only for all groups flagged as SATURATED, not for some combination
+of DO_NOT_USE and SATURATED.  Further, only if all integrations in the rateints
+product are marked as SATURATED, then the pixel will be flagged as SATURATED
+and DO_NOT_USE in the rate product.
+
+For a given pixel, if any group in an integration is flagged as JUMP_DET, then
+that pixel will be flagged as JUMP_DET in the corresponding integration in the
+rateints product.  Also, that pixel will be flagged as JUMP_DET in the rate
+product.
