@@ -1,6 +1,7 @@
 import time
 import logging
 import warnings
+from astropy.io import fits
 
 import numpy as np
 from . import twopoint_difference as twopt
@@ -320,7 +321,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=1.9, use_ellipses=False,
-                      sat_required_snowball=True):
+                      sat_required_snowball=True, min_sat_radius_extend=2, sat_expand=1):
     """
     This routine controls the creation of expanded regions that are flagged as jumps. These are called
     snowballs for the NIR and are almost always circular with a saturated core. For MIRI they are better
@@ -352,20 +353,31 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 gdq[integration, group, :, :], num_events = \
                     extend_ellipses(gdq[integration, group, :, :],
                                     jump_ellipses, sat_flag, jump_flag,
-                                    expansion=expand_factor)
+                                    expansion=sat_expand)
             else:
-                #  this line needs to be changed later to just look at saturation flags.
                 new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
-
+                # find the circle parameters for newly saturated pixels
                 sat_circles = find_circles(new_flagged_pixels, sat_flag, min_sat_area)
-                sat_pixels = np.bitwise_and(new_flagged_pixels, sat_flag)
+                # expand the larger saturated cores to deal with the charge migration from the
+                # saturated cores.
+#                gdq[integration, , :, :] = extend_saturation(gdq[integration, :, :, :],
+                gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
+                                                              group, sat_circles, sat_flag, jump_flag,
+                                                              min_sat_radius_extend, expansion=sat_expand)
+                fits.writeto("after_extend_large_events.fits", gdq, overwrite=True)
+                #  recalculate the newly flagged pixels after the expansion of saturation
+                new_flagged_pixels2 = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
+                sat_circles2 = find_circles(new_flagged_pixels2, sat_flag, min_sat_area)
+                # find all the newlay saturated pixel
+                sat_pixels = np.bitwise_and(new_flagged_pixels2, sat_flag)
                 saty, satx = np.where(sat_pixels == sat_flag)
                 only_jump = gdq[integration, group, :, :].copy()
+                # reset the saturated pixel to be jump to allow the jump circles to have the
+                # central saturated region set to "jump" instead of "saturation".
                 only_jump[saty, satx] = jump_flag
                 jump_circles = find_circles(only_jump, jump_flag, min_jump_area)
-
                 if sat_required_snowball:
-                    snowballs = make_snowballs(jump_circles, sat_circles)
+                    snowballs = make_snowballs(jump_circles, sat_circles2)
                 else:
                     snowballs = jump_circles
                 n_showers_grp.append(len(snowballs))
@@ -392,7 +404,7 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
     # the jump flag set.
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
     num_circles = len(snowballs)
-    sat_pix = np.bitwise_and(plane, 2)
+    sat_pix = np.bitwise_and(plane, sat_flag)
     for snowball in snowballs:
         jump_radius = snowball[1]
         jump_center = snowball[0]
@@ -401,11 +413,35 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
         extend_radius = round(jump_radius * expansion)
         image = cv.circle(image, (round(ceny), round(cenx)), extend_radius, (0, 0, 4), -1)
         jump_circle = image[:, :, 2]
-        saty, satx = np.where(sat_pix == 2)
+        saty, satx = np.where(sat_pix == sat_flag)
         jump_circle[saty, satx] = 0
         plane = np.bitwise_or(plane, jump_circle)
 
     return plane, num_circles
+
+
+def extend_saturation(cube, grp, sat_circles, sat_flag, jump_flag,
+                      min_sat_radius_extend, expansion=1):
+    image = np.zeros(shape=(cube.shape[1], cube.shape[2], 3), dtype=np.uint8)
+    jump_pix = np.bitwise_and(cube[grp, :, :], jump_flag)
+    print("Grp in ES", grp)
+    count = 0
+    for sat_circle in sat_circles:
+        radius = sat_circle[1]
+        count = count +1
+        print("Grp", grp, " radius ", radius, "count", count)
+        if radius > min_sat_radius_extend:
+            new_radius = round(radius + expansion)
+            sat_center = sat_circle[0]
+            cenx = sat_center[1]
+            ceny = sat_center[0]
+            image = cv.circle(image, (round(ceny), round(cenx)), new_radius, (0, 0, 4), -1)
+            sat_circle = image[:, :, 2]
+            saty, satx = np.where(sat_circle == 4)
+            cube[grp:, saty, satx] = sat_flag
+    return cube
+
+
 
 
 def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
@@ -413,7 +449,7 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
     # the jump flag set.
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
-    sat_pix = np.bitwise_and(plane, 2)
+    sat_pix = np.bitwise_and(plane, sat_flag)
     for ellipse in ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
@@ -431,7 +467,7 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
         image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
                            round(axis2 / 2)), alpha, 0, 360, (0, 0, 4), -1)
         jump_ellipse = image[:, :, 2]
-        saty, satx = np.where(sat_pix == 2)
+        saty, satx = np.where(sat_pix == sat_flag)
         jump_ellipse[saty, satx] = 0
         plane = np.bitwise_or(plane, jump_ellipse)
     return plane, num_ellipses
