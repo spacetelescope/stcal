@@ -341,7 +341,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
     :return: none
     """
 
-    log.info('Flagging large events (snowballs, showers).')
+    log.info('TEST Flagging large events (snowballs, showers).')
 
     n_showers_grp = []
     n_showers_grp_ellipse = []
