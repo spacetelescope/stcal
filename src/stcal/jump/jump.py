@@ -19,7 +19,8 @@ except (ImportError, ModuleNotFoundError):
         import skimage.measure
 
         ELLIPSE_PACKAGE = 'scikit-image'
-        ELLIPSE_PACKAGE_WARNING = f'`opencv-python` not installed; using `scikit-image` for ellipse construction'
+        ELLIPSE_PACKAGE_WARNING = '`opencv-python` not installed; ' \
+                                  'using `scikit-image` for ellipse construction'
     except (ImportError, ModuleNotFoundError):
         ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[ellipse]`) ' \
                                   'in order to use ellipses'
