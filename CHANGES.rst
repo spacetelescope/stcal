@@ -9,7 +9,7 @@ General
 Bug Fixes
 ---------
 
--
+- improve exception handling when attempting to use ellipses without ``opencv-python`` installed [#136]
 
 Changes to API
 --------------
