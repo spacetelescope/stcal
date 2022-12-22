@@ -1,7 +1,6 @@
 import logging
 import multiprocessing
 import time
-import warnings
 
 import numpy as np
 
@@ -14,7 +13,7 @@ try:
 
     ELLIPSE_PACKAGE = 'opencv-python'
 except (ImportError, ModuleNotFoundError):
-    ELLIPSE_PACKAGE_WARNING = f'`opencv-python` must be installed to use ellipse construction'
+    ELLIPSE_PACKAGE_WARNING = f'`opencv-python` must be installed (`pip install jwst[jump_ellipses]`) to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
