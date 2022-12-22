@@ -73,6 +73,9 @@ jobs:
           - toxenv: test-numpy120
             os: ubuntu-latest
             python-version: '3.8'
+          - toxenv: test-opencv-xdist
+            os: ubuntu-latest
+            python-version: '3.x'
           - toxenv: test-jwst-xdist-cov
             os: ubuntu-latest
             python-version: '3.x'
