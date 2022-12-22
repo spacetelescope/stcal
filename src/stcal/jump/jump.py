@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import time
+import warnings
 
 import numpy as np
 
@@ -13,8 +14,15 @@ try:
 
     ELLIPSE_PACKAGE = 'opencv-python'
 except (ImportError, ModuleNotFoundError):
-    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[opencv]`) ' \
-                              'in order to use ellipses'
+    try:
+        import skimage.draw
+        import skimage.measure
+
+        ELLIPSE_PACKAGE = 'scikit-image'
+        ELLIPSE_PACKAGE_WARNING = f'`opencv-python` not installed; using `scikit-image` for ellipse construction'
+    except (ImportError, ModuleNotFoundError):
+        ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[ellipse]`) ' \
+                                  'in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -402,6 +410,10 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
         color = (0, 0, 4)
         if ELLIPSE_PACKAGE == 'opencv-python':
             image = cv.circle(image, center, extend_radius, color, -1)
+        elif ELLIPSE_PACKAGE == 'scikit-image':
+            warnings.warn(ELLIPSE_PACKAGE_WARNING)
+            disk = skimage.draw.disk(center, extend_radius)
+            image[disk] = color
         else:
             raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
         jump_circle = image[:, :, 2]
@@ -437,6 +449,10 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
         color = (0, 0, 4)
         if ELLIPSE_PACKAGE == 'opencv-python':
             image = cv.ellipse(image, center, axes, alpha, 0, 360, color, -1)
+        elif ELLIPSE_PACKAGE == 'scikit-image':
+            warnings.warn(ELLIPSE_PACKAGE_WARNING)
+            ellipse = skimage.draw.ellipse(*center, *axes, rotation=alpha)
+            image[ellipse] = color
         else:
             raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
         jump_ellipse = image[:, :, 2]
@@ -455,7 +471,8 @@ def find_circles(dqplane, bitmask, min_area):
         bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
         circles = [cv.minEnclosingCircle(con) for con in bigcontours]
     else:
-        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+        # raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+        raise ModuleNotFoundError('`opencv-python` required for this functionality')
     return circles
 
 
@@ -470,7 +487,8 @@ def find_ellipses(dqplane, bitmask, min_area):
         # with just 4 points.
         ellipses = [cv.minAreaRect(con) for con in bigcontours]
     else:
-        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+        # raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+        raise ModuleNotFoundError('`opencv-python` required for this functionality')
     return ellipses
 
 
