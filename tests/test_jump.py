@@ -10,12 +10,12 @@ try:
     import cv2  # noqa: F401
 
     ELLIPSE_PACKAGE_INSTALLED = True
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     try:
         import skimage  # noqa: F401
 
         ELLIPSE_PACKAGE_INSTALLED = True
-    except:
+    except (ImportError, ModuleNotFoundError):
         ELLIPSE_PACKAGE_INSTALLED = False
 
 
