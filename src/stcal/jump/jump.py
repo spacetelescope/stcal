@@ -13,8 +13,7 @@ try:
 
     ELLIPSE_PACKAGE = 'opencv-python'
 except (ImportError, ModuleNotFoundError):
-    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install jwst[jump_ellipses]`) ' \
-                              'in order to use ellipses'
+    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[opencv]`) in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
