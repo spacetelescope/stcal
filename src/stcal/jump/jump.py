@@ -15,15 +15,18 @@ try:
     ELLIPSE_PACKAGE = 'opencv-python'
 except (ImportError, ModuleNotFoundError):
     try:
+        from shapely import Polygon
         import skimage.draw
         import skimage.measure
 
+        from .circle import Circle
+
         ELLIPSE_PACKAGE = 'scikit-image'
         ELLIPSE_PACKAGE_WARNING = '`opencv-python` not installed; ' \
-                                  'using `scikit-image` for ellipse construction'
+                                  'using `scikit-image` + `shapely` for ellipse construction'
     except (ImportError, ModuleNotFoundError):
-        ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[ellipse]`) ' \
-                                  'in order to use ellipses'
+        ELLIPSE_PACKAGE_WARNING = 'an image processing package (either `opencv-python` or `scikit-image` + `shapely`)' \
+                                  'must be installed in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -471,9 +474,12 @@ def find_circles(dqplane, bitmask, min_area):
         contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
         circles = [cv.minEnclosingCircle(con) for con in bigcontours]
+    elif ELLIPSE_PACKAGE == 'scikit-image':
+        contours = [Polygon(con) for con in skimage.measure.find_contours(pixels)]
+        bigcontours = [con for con in contours if con.area > min_area]
+        circles = [Circle.from_points(con) for con in bigcontours]
     else:
-        # raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
-        raise ModuleNotFoundError('`opencv-python` required for this functionality')
+        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
     return circles
 
 
@@ -487,9 +493,12 @@ def find_ellipses(dqplane, bitmask, min_area):
         # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
         # with just 4 points.
         ellipses = [cv.minAreaRect(con) for con in bigcontours]
+    elif ELLIPSE_PACKAGE == 'scikit-image':
+        contours = [Polygon(con) for con in skimage.measure.find_contours(pixels)]
+        bigcontours = [con for con in contours if con.area > min_area]
+        ellipses = [con.minimum_rotated_rectangle for con in bigcontours]
     else:
-        # raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
-        raise ModuleNotFoundError('`opencv-python` required for this functionality')
+        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
     return ellipses
 
 
