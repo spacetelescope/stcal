@@ -82,10 +82,11 @@ norecursedirs = [
 [tool.ruff]
 line-length = 110
 select = ['F', 'W', 'E', 'C']
-ignore = [
-    'C901', # variable is too complex
+extend-ignore = [
+    'C901', # variable is too complex,
+    'E501', # Line too long
 ]
-exclude = [
+extend-exclude = [
     'docs',
     'build',
     'dist',
