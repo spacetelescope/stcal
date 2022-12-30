@@ -478,7 +478,7 @@ def find_circles(dqplane, bitmask, min_area):
     elif ELLIPSE_PACKAGE == 'scikit-image':
         contours = [shapely.geometry.Polygon(con) for con in skimage.measure.find_contours(pixels)]
         bigcontours = [con for con in contours if con.area > min_area]
-        circles = [Circle.from_points(con.exterior.xy) for con in bigcontours]
+        circles = [Circle.from_points(numpy.stack(con.exterior.xy, axis=1)) for con in bigcontours]
     else:
         raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
     return circles
