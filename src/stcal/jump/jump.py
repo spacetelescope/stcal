@@ -3,6 +3,7 @@ import multiprocessing
 import time
 import warnings
 
+import numpy
 import numpy as np
 
 from . import constants
@@ -15,7 +16,7 @@ try:
     ELLIPSE_PACKAGE = 'opencv-python'
 except (ImportError, ModuleNotFoundError):
     try:
-        from shapely import Polygon
+        import shapely.geometry
         import skimage.draw
         import skimage.measure
 
@@ -475,9 +476,9 @@ def find_circles(dqplane, bitmask, min_area):
         bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
         circles = [cv.minEnclosingCircle(con) for con in bigcontours]
     elif ELLIPSE_PACKAGE == 'scikit-image':
-        contours = [Polygon(con) for con in skimage.measure.find_contours(pixels)]
+        contours = [shapely.geometry.Polygon(con) for con in skimage.measure.find_contours(pixels)]
         bigcontours = [con for con in contours if con.area > min_area]
-        circles = [Circle.from_points(con) for con in bigcontours]
+        circles = [Circle.from_points(con.exterior.xy) for con in bigcontours]
     else:
         raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
     return circles
@@ -487,18 +488,31 @@ def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
+
     if ELLIPSE_PACKAGE == 'opencv-python':
         contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
         # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
         # with just 4 points.
-        ellipses = [cv.minAreaRect(con) for con in bigcontours]
+        ellipses = [cv.minAreaRect(numpy.flip(con, axis=1)) for con in bigcontours]
     elif ELLIPSE_PACKAGE == 'scikit-image':
-        contours = [Polygon(con) for con in skimage.measure.find_contours(pixels)]
+        contours = [shapely.geometry.Polygon(con) for con in skimage.measure.find_contours(pixels)]
         bigcontours = [con for con in contours if con.area > min_area]
-        ellipses = [con.minimum_rotated_rectangle for con in bigcontours]
+        rectangles = [
+            numpy.flip(numpy.stack(con.minimum_rotated_rectangle.exterior.xy, axis=1), axis=1)
+            for con in bigcontours
+        ]
+        ellipses = [
+            (
+                numpy.mean(rectangle[[0, 2], :], axis=0),
+                numpy.hypot(*numpy.diff(rectangle[[-2, 0, 1], :], axis=0)),
+                numpy.degrees(numpy.arctan2(*numpy.flip(numpy.diff(rectangle[[0, 1], :], axis=0)[0])))
+            )
+            for rectangle in rectangles
+        ]
     else:
         raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+
     return ellipses
 
 
