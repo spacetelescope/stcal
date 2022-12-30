@@ -20,6 +20,7 @@
 #
 
 import random
+from typing import Tuple, List
 
 import pytest
 
@@ -70,14 +71,14 @@ def test_scaling(trial):
     assert scaled_circle.almost_equals(scaled_reference_circle, delta=RELATIVE_TOLERANCE)
 
 
-def _random_points(n: int) -> list[tuple[float, float]]:
+def _random_points(n: int) -> List[Tuple[float, float]]:
     if random.random() < 0.2:  # Discrete lattice (to have a chance of duplicated points)
         return [(random.randrange(10), random.randrange(10)) for _ in range(n)]
     else:  # Gaussian distribution
         return [(random.gauss(0, 1), random.gauss(0, 1)) for _ in range(n)]
 
 
-def _smallest_enclosing_circle_naive(points: list[tuple[float, float]]) -> Circle:
+def _smallest_enclosing_circle_naive(points: List[Tuple[float, float]]) -> Circle:
     """
     Returns the smallest enclosing circle in O(n^4) time using the naive algorithm.
     """

@@ -2,7 +2,7 @@
 
 import math
 import random
-from typing import Union
+from typing import Union, Tuple, List
 
 import numpy
 
@@ -10,12 +10,12 @@ import numpy
 class Circle:
     RELATIVE_TOLERANCE = 1 + 1e-14
 
-    def __init__(self, center: tuple[float, float], radius: float):
+    def __init__(self, center: Tuple[float, float], radius: float):
         self.center = center
         self.radius = radius
 
     @classmethod
-    def from_points(cls, points: list[tuple[float, float]]) -> 'Circle':
+    def from_points(cls, points: List[Tuple[float, float]]) -> 'Circle':
         """
         Returns the smallest circle that encloses all the given points.
 
@@ -62,7 +62,7 @@ class Circle:
         else:
             raise IndexError(f'{self.__class__.__name__} index out of range')
 
-    def __add__(self, delta: tuple[float, float]) -> 'Circle':
+    def __add__(self, delta: Tuple[float, float]) -> 'Circle':
         if isinstance(delta, float):
             delta = [delta, delta]
         return self.__class__((self.center[0] + delta[0], self.center[1] + delta[1]), self.radius)
@@ -70,7 +70,7 @@ class Circle:
     def __mul__(self, factor: float) -> 'Circle':
         return self.__class__(self.center, self.radius + factor)
 
-    def __contains__(self, point: tuple[float, float]):
+    def __contains__(self, point: Tuple[float, float]):
         return math.hypot(point[0] - self.center[0], point[1] - self.center[1]) <= self.radius * self.RELATIVE_TOLERANCE
 
     def __eq__(self, other: 'Circle') -> bool:
@@ -86,32 +86,38 @@ class Circle:
         return f'{self.__class__.__name__}({self.center}, {self.radius})'
 
 
-def _expand_circle_from_one_point(point_1: tuple[float, float], points: list[tuple[float, float]]) -> Circle:
+def _expand_circle_from_one_point(
+        a: Tuple[float, float],
+        points: List[Tuple[float, float]],
+) -> Circle:
     """
     One boundary point known
     """
 
-    circle = Circle(point_1, 0.0)
-    for (point_2_index, point_2) in enumerate(points):
-        if point_2 not in circle:
+    circle = Circle(a, 0.0)
+    for (b_index, b) in enumerate(points):
+        if b not in circle:
             if circle.radius == 0.0:
-                circle = Circle.from_points([point_1, point_2])
+                circle = Circle.from_points([a, b])
             else:
-                circle = _expand_circle_from_two_points(point_1, point_2, points[: point_2_index + 1])
+                circle = _expand_circle_from_two_points(a, b, points[: b_index + 1])
     return circle
 
 
-def _expand_circle_from_two_points(p: tuple[float, float], q: tuple[float, float],
-                                   points: list[tuple[float, float]]) -> Circle:
+def _expand_circle_from_two_points(
+        a: Tuple[float, float],
+        b: Tuple[float, float],
+        points: List[Tuple[float, float]],
+) -> Circle:
     """
     Two boundary points known
     """
 
-    circ = Circle.from_points([p, q])
+    circ = Circle.from_points([a, b])
     left = None
     right = None
-    px, py = p
-    qx, qy = q
+    px, py = a
+    qx, qy = b
 
     # For each point not in the two-point circle
     for r in points:
@@ -120,7 +126,7 @@ def _expand_circle_from_two_points(p: tuple[float, float], q: tuple[float, float
 
         # Form a circumcircle and classify it on left or right side
         cross = _cross_product(((px, py), (qx, qy), (r[0], r[1])))
-        c = circumcircle(p, q, r)
+        c = circumcircle(a, b, r)
         cross_2 = _cross_product(((px, py), (qx, qy), (c.center[0], c.center[1])))
         if c is None:
             continue
@@ -152,15 +158,19 @@ def _expand_circle_from_two_points(p: tuple[float, float], q: tuple[float, float
         return left if (left.radius <= right.radius) else right
 
 
-def circumcircle(a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> Circle:
+def circumcircle(
+        a: Tuple[float, float],
+        b: Tuple[float, float],
+        c: Tuple[float, float],
+) -> Circle:
     # Mathematical algorithm from Wikipedia: Circumscribed circle
     ox = (min(a[0], b[0], c[0]) + max(a[0], b[0], c[0])) / 2
     oy = (min(a[1], b[1], c[1]) + max(a[1], b[1], c[1])) / 2
-    ax = a[0] - ox;
+    ax = a[0] - ox
     ay = a[1] - oy
-    bx = b[0] - ox;
+    bx = b[0] - ox
     by = b[1] - oy
-    cx = c[0] - ox;
+    cx = c[0] - ox
     cy = c[1] - oy
     d = (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by)) * 2.0
     if d == 0.0:
@@ -175,7 +185,7 @@ def circumcircle(a: tuple[float, float], b: tuple[float, float], c: tuple[float,
     return Circle((x, y), max(ra, rb, rc))
 
 
-def _cross_product(triangle: tuple[tuple[float, float], tuple[float, float], tuple[float, float]]) -> float:
+def _cross_product(triangle: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]) -> float:
     """
     :param triangle: three points defining a triangle
     :return: twice the signed area of triangle
