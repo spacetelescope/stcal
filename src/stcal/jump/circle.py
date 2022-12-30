@@ -1,5 +1,3 @@
-# from https://www.nayuki.io/page/smallest-enclosing-circle
-
 import math
 import random
 from typing import Union, Tuple, List
@@ -18,6 +16,7 @@ class Circle:
     def from_points(cls, points: List[Tuple[float, float]]) -> 'Circle':
         """
         Returns the smallest circle that encloses all the given points.
+        from https://www.nayuki.io/page/smallest-enclosing-circle
 
         If 0 points are given, `None` is returned.
         If 1 point is given, a circle of radius 0 is returned.
@@ -92,6 +91,7 @@ def _expand_circle_from_one_point(
 ) -> Circle:
     """
     One boundary point known
+    from https://www.nayuki.io/page/smallest-enclosing-circle
     """
 
     circle = Circle(a, 0.0)
@@ -111,6 +111,7 @@ def _expand_circle_from_two_points(
 ) -> Circle:
     """
     Two boundary points known
+    from https://www.nayuki.io/page/smallest-enclosing-circle
     """
 
     circ = Circle.from_points([a, b])
@@ -125,27 +126,15 @@ def _expand_circle_from_two_points(
             continue
 
         # Form a circumcircle and classify it on left or right side
-        cross = _cross_product(((px, py), (qx, qy), (r[0], r[1])))
+        cross = _triangle_cross_product(((px, py), (qx, qy), (r[0], r[1])))
         c = circumcircle(a, b, r)
-        cross_2 = _cross_product(((px, py), (qx, qy), (c.center[0], c.center[1])))
+        cross_2 = _triangle_cross_product(((px, py), (qx, qy), (c.center[0], c.center[1])))
         if c is None:
             continue
-        elif cross > 0.0 and (left is None or cross_2 > _cross_product(((px, py), (qx, qy), left.center))):
+        elif cross > 0.0 and (left is None or cross_2 > _triangle_cross_product(((px, py), (qx, qy), left.center))):
             left = c
-        elif cross < 0.0 and (right is None or cross_2 < _cross_product(((px, py), (qx, qy), right.center))):
+        elif cross < 0.0 and (right is None or cross_2 < _triangle_cross_product(((px, py), (qx, qy), right.center))):
             right = c
-        # cross = _cross_product(((px, py), (qx, qy), (r[0], r[1])))
-        # c = Circle.from_points([p, q, r])
-        # if c is None:
-        #     continue
-        # elif cross > 0.0 and (
-        #         left is None or _cross_product(px, py, qx, qy, c[0], c[1]) > _cross_product(px, py, qx, qy, left[0],
-        #                                                                                     left[1])):
-        #     left = c
-        # elif cross < 0.0 and (
-        #         right is None or _cross_product(px, py, qx, qy, c[0], c[1]) < _cross_product(px, py, qx, qy, right[0],
-        #                                                                                      right[1])):
-        #     right = c
 
     # Select which circle to return
     if left is None and right is None:
@@ -163,6 +152,10 @@ def circumcircle(
         b: Tuple[float, float],
         c: Tuple[float, float],
 ) -> Circle:
+    """
+    from https://www.nayuki.io/page/smallest-enclosing-circle
+    """
+
     # Mathematical algorithm from Wikipedia: Circumscribed circle
     ox = (min(a[0], b[0], c[0]) + max(a[0], b[0], c[0])) / 2
     oy = (min(a[1], b[1], c[1]) + max(a[1], b[1], c[1])) / 2
@@ -185,8 +178,10 @@ def circumcircle(
     return Circle((x, y), max(ra, rb, rc))
 
 
-def _cross_product(triangle: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]) -> float:
+def _triangle_cross_product(triangle: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]) -> float:
     """
+    from https://www.nayuki.io/page/smallest-enclosing-circle
+
     :param triangle: three points defining a triangle
     :return: twice the signed area of triangle
     """
