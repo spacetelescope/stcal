@@ -494,7 +494,7 @@ def find_ellipses(dqplane, bitmask, min_area):
         bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
         # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
         # with just 4 points.
-        ellipses = [cv.minAreaRect(numpy.flip(con, axis=1)) for con in bigcontours]
+        ellipses = [cv.minAreaRect(con) for con in bigcontours]
     elif ELLIPSE_PACKAGE == 'scikit-image':
         contours = [shapely.geometry.Polygon(con) for con in skimage.measure.find_contours(pixels)]
         bigcontours = [con for con in contours if con.area > min_area]
