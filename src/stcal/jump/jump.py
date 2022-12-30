@@ -505,8 +505,8 @@ def find_ellipses(dqplane, bitmask, min_area):
         ellipses = [
             (
                 numpy.mean(rectangle[[0, 2], :], axis=0),
-                numpy.hypot(*numpy.diff(rectangle[[-2, 0, 1], :], axis=0)),
-                numpy.degrees(numpy.arctan2(*numpy.flip(numpy.diff(rectangle[[0, 1], :], axis=0)[0])))
+                numpy.hypot(*numpy.diff(rectangle[[0, 1, 2], :], axis=0)),
+                numpy.degrees(numpy.arctan2(*numpy.flip(numpy.diff(rectangle[[3, 0], :], axis=0)[0])))
             )
             for rectangle in rectangles
         ]
