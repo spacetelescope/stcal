@@ -1,20 +1,10 @@
-1.3.1 (unreleased)
+1.3.1 (2023-01-03)
 ==================
-
-General
--------
-
--
 
 Bug Fixes
 ---------
 
 - improve exception handling when attempting to use ellipses without ``opencv-python`` installed [#136]
-
-Changes to API
---------------
-
--
 
 1.3.0 (2022-12-15)
 ==================
