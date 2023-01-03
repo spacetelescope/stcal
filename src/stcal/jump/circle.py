@@ -1,15 +1,15 @@
-import math
 import random
 from typing import Union, Tuple, List
 
 import numpy
 
+RELATIVE_TOLERANCE = 1 + 1e-14
+
 
 class Circle:
-    RELATIVE_TOLERANCE = 1 + 1e-14
 
     def __init__(self, center: Tuple[float, float], radius: float):
-        self.center = center
+        self.center = numpy.array(center)
         self.radius = radius
 
     @classmethod
@@ -31,15 +31,13 @@ class Circle:
         if len(points) == 0:
             return None
         elif len(points) == 1:
-            return Circle(points[0], 0.0)
+            return cls(center=points[0], radius=0.0)
         elif len(points) == 2:
-            a, b = points
+            points = numpy.array(points)
+            center = numpy.mean(points, axis=0)
+            radius = numpy.max(numpy.hypot(*(center - points).T))
 
-            cx = (a[0] + b[0]) / 2
-            cy = (a[1] + b[1]) / 2
-            r0 = math.hypot(cx - a[0], cy - a[1])
-            r1 = math.hypot(cx - b[0], cy - b[1])
-            return cls((cx, cy), max(r0, r1))
+            return cls(center=center, radius=radius)
         else:
             # Convert to float and randomize order
             shuffled_points = [(float(point[0]), float(point[1])) for point in points]
@@ -55,7 +53,7 @@ class Circle:
 
     def __getitem__(self, index: int) -> Union[tuple, float]:
         if index == 0:
-            return self.center
+            return tuple(self.center)
         elif index == 1:
             return self.radius
         else:
@@ -63,82 +61,90 @@ class Circle:
 
     def __add__(self, delta: Tuple[float, float]) -> 'Circle':
         if isinstance(delta, float):
-            delta = [delta, delta]
-        return self.__class__((self.center[0] + delta[0], self.center[1] + delta[1]), self.radius)
+            delta = (delta, delta)
+        return self.__class__(center=self.center + numpy.array(delta), radius=self.radius)
 
     def __mul__(self, factor: float) -> 'Circle':
-        return self.__class__(self.center, self.radius + factor)
+        return self.__class__(center=self.center, radius=self.radius + factor)
 
-    def __contains__(self, point: Tuple[float, float]):
-        return math.hypot(point[0] - self.center[0], point[1] - self.center[1]) <= self.radius * self.RELATIVE_TOLERANCE
+    def __contains__(self, point: Tuple[float, float]) -> bool:
+        return numpy.hypot(*(numpy.array(point) - self.center)) <= self.radius * RELATIVE_TOLERANCE
 
     def __eq__(self, other: 'Circle') -> bool:
-        return self.center[0] == other.center[0] and self.center[1] == other.center[1] and self.radius == other.radius
+        return numpy.all(self.center == other.center) and self.radius == other.radius
 
     def almost_equals(self, other: 'Circle', delta: float = None) -> bool:
         if delta is None:
-            delta = self.RELATIVE_TOLERANCE
-        return numpy.allclose([self.center[0], self.center[1], self.radius],
-                              [other.center[0], other.center[1], other.radius], atol=delta)
+            delta = RELATIVE_TOLERANCE
+        return numpy.allclose(self.center, other.center, atol=delta) and \
+            numpy.allclose(self.radius, other.radius, atol=delta)
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.center}, {self.radius})'
 
 
 def _expand_circle_from_one_point(
-        a: Tuple[float, float],
+        known_boundary_point: Tuple[float, float],
         points: List[Tuple[float, float]],
 ) -> Circle:
     """
-    One boundary point known
+    iteratively expand a circle from one known boundary point to enclose the given set of points
     from https://www.nayuki.io/page/smallest-enclosing-circle
     """
 
-    circle = Circle(a, 0.0)
-    for (b_index, b) in enumerate(points):
-        if b not in circle:
+    circle = Circle(known_boundary_point, 0.0)
+    for point_index, point in enumerate(points):
+        if point not in circle:
             if circle.radius == 0.0:
-                circle = Circle.from_points([a, b])
+                circle = Circle.from_points([known_boundary_point, point])
             else:
-                circle = _expand_circle_from_two_points(a, b, points[: b_index + 1])
+                circle = _expand_circle_from_two_points(known_boundary_point, point, points[: point_index + 1])
     return circle
 
 
 def _expand_circle_from_two_points(
-        a: Tuple[float, float],
-        b: Tuple[float, float],
+        known_boundary_point_a: Tuple[float, float],
+        known_boundary_point_b: Tuple[float, float],
         points: List[Tuple[float, float]],
 ) -> Circle:
     """
-    Two boundary points known
+    iteratively expand a circle from two known boundary points to enclose the given set of points
     from https://www.nayuki.io/page/smallest-enclosing-circle
     """
 
-    circ = Circle.from_points([a, b])
+    known_boundary_points = numpy.array([known_boundary_point_a, known_boundary_point_b])
+
+    circle = Circle.from_points(known_boundary_points)
     left = None
     right = None
-    px, py = a
-    qx, qy = b
 
     # For each point not in the two-point circle
-    for r in points:
-        if r in circ:
+    for point in points:
+        if point in circle:
             continue
 
         # Form a circumcircle and classify it on left or right side
-        cross = _triangle_cross_product(((px, py), (qx, qy), (r[0], r[1])))
-        c = circumcircle(a, b, r)
-        cross_2 = _triangle_cross_product(((px, py), (qx, qy), (c.center[0], c.center[1])))
-        if c is None:
+        circumcircle_cross_product = _triangle_cross_product((*known_boundary_points, point))
+        circumcircle = circumcircle_from_points(known_boundary_point_a, known_boundary_point_b, point)
+        circumcenter_cross_product = _triangle_cross_product((*known_boundary_points, circumcircle.center))
+        if circumcircle is None:
             continue
-        elif cross > 0.0 and (left is None or cross_2 > _triangle_cross_product(((px, py), (qx, qy), left.center))):
-            left = c
-        elif cross < 0.0 and (right is None or cross_2 < _triangle_cross_product(((px, py), (qx, qy), right.center))):
-            right = c
+        elif circumcircle_cross_product > 0.0 and \
+                (
+                        left is None or
+                        circumcenter_cross_product > _triangle_cross_product((*known_boundary_points, left.center))
+                ):
+            left = circumcircle
+        elif circumcircle_cross_product < 0.0 and \
+                (
+                        right is None or
+                        circumcenter_cross_product < _triangle_cross_product((*known_boundary_points, right.center))
+                ):
+            right = circumcircle
 
     # Select which circle to return
     if left is None and right is None:
-        return circ
+        return circle
     elif left is None:
         return right
     elif right is None:
@@ -147,39 +153,44 @@ def _expand_circle_from_two_points(
         return left if (left.radius <= right.radius) else right
 
 
-def circumcircle(
+def circumcircle_from_points(
         a: Tuple[float, float],
         b: Tuple[float, float],
         c: Tuple[float, float],
 ) -> Circle:
     """
+    build a circumcircle from three points, using the algorithm from https://en.wikipedia.org/wiki/Circumscribed_circle
     from https://www.nayuki.io/page/smallest-enclosing-circle
     """
 
-    # Mathematical algorithm from Wikipedia: Circumscribed circle
-    ox = (min(a[0], b[0], c[0]) + max(a[0], b[0], c[0])) / 2
-    oy = (min(a[1], b[1], c[1]) + max(a[1], b[1], c[1])) / 2
-    ax = a[0] - ox
-    ay = a[1] - oy
-    bx = b[0] - ox
-    by = b[1] - oy
-    cx = c[0] - ox
-    cy = c[1] - oy
-    d = (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by)) * 2.0
-    if d == 0.0:
+    points = numpy.array([a, b, c])
+    incenter = ((numpy.min(points, axis=0) + numpy.max(points, axis=0)) / 2)
+
+    relative_points = points - incenter
+    a, b, c = relative_points
+
+    intermediate = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]))
+    if intermediate == 0:
         return None
-    x = ox + ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (
-            ay - by)) / d
-    y = oy + ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (
-            bx - ax)) / d
-    ra = math.hypot(x - a[0], y - a[1])
-    rb = math.hypot(x - b[0], y - b[1])
-    rc = math.hypot(x - c[0], y - c[1])
-    return Circle((x, y), max(ra, rb, rc))
+
+    relative_circumcenter = numpy.array([
+        (a[0] ** 2 + a[1] ** 2) * (b[1] - c[1]) +
+        (b[0] ** 2 + b[1] ** 2) * (c[1] - a[1]) +
+        (c[0] ** 2 + c[1] ** 2) * (a[1] - b[1]),
+        (a[0] ** 2 + a[1] ** 2) * (c[0] - b[0]) +
+        (b[0] ** 2 + b[1] ** 2) * (a[0] - c[0]) +
+        (c[0] ** 2 + c[1] ** 2) * (b[0] - a[0]),
+    ]) / intermediate
+
+    return Circle(
+        center=relative_circumcenter + incenter,
+        radius=numpy.max(numpy.hypot(*(relative_circumcenter - relative_points).T)),
+    )
 
 
 def _triangle_cross_product(triangle: Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]) -> float:
     """
+    calculates twice the signed area of the provided triangle
     from https://www.nayuki.io/page/smallest-enclosing-circle
 
     :param triangle: three points defining a triangle
