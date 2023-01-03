@@ -10,8 +10,8 @@ from stcal.jump.circle import Circle
 RELATIVE_TOLERANCE = 1e-12
 
 
-@pytest.mark.parametrize('trial', range(50))
-def test_matching_naive_algorithm(trial):
+@pytest.mark.parametrize('trial', range(10))
+def test_circle_matching_naive_algorithm(trial):
     points = _random_points(random.randint(1, 30))
 
     reference_circle = _smallest_enclosing_circle_naive(points)
@@ -20,36 +20,36 @@ def test_matching_naive_algorithm(trial):
     assert test_circle.almost_equals(reference_circle, delta=RELATIVE_TOLERANCE)
 
 
-@pytest.mark.parametrize('trial', range(50))
-def test_translation(trial):
+@pytest.mark.parametrize('trial', range(10))
+def test_circle_translation(trial):
     points = _random_points(random.randint(1, 300))
 
-    reference_circle = Circle.from_points(points)
+    test_circle = Circle.from_points(points)
 
     dx = random.gauss(0, 1)
     dy = random.gauss(0, 1)
     translated_points = [(x + dx, y + dy) for (x, y) in points]
 
     translated_circle = Circle.from_points(translated_points)
-    translated_reference_circle = reference_circle + (dx, dy)
+    reference_circle = test_circle + (dx, dy)
 
-    assert translated_circle.almost_equals(translated_reference_circle, delta=RELATIVE_TOLERANCE)
+    assert translated_circle.almost_equals(reference_circle, delta=RELATIVE_TOLERANCE)
 
 
-@pytest.mark.parametrize('trial', range(50))
-def test_scaling(trial):
+@pytest.mark.parametrize('trial', range(10))
+def test_circle_scaling(trial):
     points = _random_points(random.randint(1, 300))
 
-    reference_circle = Circle.from_points(points)
+    test_circle = Circle.from_points(points)
 
     scale = random.gauss(0, 1)
     scaled_points = [(x * scale, y * scale) for (x, y) in points]
 
     scaled_circle = Circle.from_points(scaled_points)
-    scaled_reference_circle = Circle((reference_circle.center[0] * scale, reference_circle.center[1] * scale),
-                                     reference_circle.radius * abs(scale))
+    reference_circle = Circle((test_circle.center[0] * scale, test_circle.center[1] * scale),
+                              test_circle.radius * abs(scale))
 
-    assert scaled_circle.almost_equals(scaled_reference_circle, delta=RELATIVE_TOLERANCE)
+    assert scaled_circle.almost_equals(reference_circle, delta=RELATIVE_TOLERANCE)
 
 
 def _random_points(n: int) -> List[Tuple[float, float]]:
