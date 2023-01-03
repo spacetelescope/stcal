@@ -320,7 +320,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                       min_jump_area=6,
-                      expand_factor=1.9, use_ellipses=False,
+                      expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2, sat_expand=2):
     """
     This routine controls the creation of expanded regions that are flagged as jumps. These are called
