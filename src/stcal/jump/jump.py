@@ -512,7 +512,7 @@ def make_snowballs(jump_ellipses, sat_circles, grp):
                 if jump not in snowballs:
                     snowballs.append(jump)
                     sat_found = True
-        if not sat_found and grp > 22 and jump[]:
+        if not sat_found and grp > 22:
             print("no saturation within jump rectangle ", grp, jump)
     return snowballs
 
