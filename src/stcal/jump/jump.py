@@ -376,7 +376,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 # reset the saturated pixel to be jump to allow the jump circles to have the
                 # central saturated region set to "jump" instead of "saturation".
                 only_jump[saty, satx] = jump_flag
-                jump_ellipses = find_circles(only_jump, jump_flag, min_jump_area)
+                jump_ellipses = find_ellipses(only_jump, jump_flag, min_jump_area)
                 if sat_required_snowball:
                     snowballs = make_snowballs(jump_ellipses, sat_circles2)
                 else:
