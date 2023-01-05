@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation
+from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation, \
+    point_inside_ellipse, point_inside_rectangle
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 
@@ -111,6 +112,25 @@ def test_single_group():
     indq = np.zeros(shape=(1, 1, inplane.shape[0], inplane.shape[1]), dtype=np.uint8)
     indq[0, 0, :, :] = inplane
     flag_large_events(indq, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=15, max_offset=1, expand_factor=1.1, use_ellipses=True,
-                      sat_required_snowball=False, min_sat_radius_extend=1)
-    fits.writeto("jumppix_expand.fits", indq, overwrite=True)
+                      min_jump_area=15, expand_factor=1.9, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=1)
+    fits.writeto("jumppix_expand.new.fits", indq, overwrite=True)
+
+def test_inside_ellipse3():
+        ellipse = ((0, 0), (1, 2), -45)
+        point = (1, 2)
+        result = point_inside_rectangle(point, ellipse)
+        assert not result
+
+
+def test_inside_ellipse5():
+    ellipse = ((0, 0), (1, 2), -10)
+    point = (0.5, 1)
+    result = point_inside_rectangle(point, ellipse)
+    assert not result
+
+def test_inside_ellipse4():
+    ellipse = ((0, 0), (1, 2), 0)
+    point = (0.5, 1)
+    result = point_inside_rectangle(point, ellipse)
+    assert result

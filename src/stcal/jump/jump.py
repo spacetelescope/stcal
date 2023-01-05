@@ -348,7 +348,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
             if use_ellipses:
-                jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
+                new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
+                jump_ellipses = find_ellipses(new_flagged_pixels, jump_flag, min_jump_area)
                 n_showers_grp_ellipse.append(len(jump_ellipses))
                 gdq[integration, group, :, :], num_events = \
                     extend_ellipses(gdq[integration, group, :, :],
@@ -368,18 +369,18 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 #  recalculate the newly flagged pixels after the expansion of saturation
                 new_flagged_pixels2 = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
                 sat_circles2 = find_circles(new_flagged_pixels2, sat_flag, min_sat_area)
-                # find all the newlay saturated pixel
+                # find all the newly saturated pixel
                 sat_pixels = np.bitwise_and(new_flagged_pixels2, sat_flag)
                 saty, satx = np.where(sat_pixels == sat_flag)
                 only_jump = gdq[integration, group, :, :].copy()
                 # reset the saturated pixel to be jump to allow the jump circles to have the
                 # central saturated region set to "jump" instead of "saturation".
                 only_jump[saty, satx] = jump_flag
-                jump_circles = find_circles(only_jump, jump_flag, min_jump_area)
+                jump_ellipses = find_circles(only_jump, jump_flag, min_jump_area)
                 if sat_required_snowball:
-                    snowballs = make_snowballs(jump_circles, sat_circles2)
+                    snowballs = make_snowballs(jump_ellipses, sat_circles2)
                 else:
-                    snowballs = jump_circles
+                    snowballs = jump_ellipses
                 n_showers_grp.append(len(snowballs))
                 gdq[integration, group, :, :], num_events = extend_snowballs(gdq[integration, group, :, :],
                                                                              snowballs, sat_flag,
@@ -495,15 +496,53 @@ def find_ellipses(dqplane, bitmask, min_area):
     return ellipses
 
 
-def make_snowballs(jump_circles, sat_circles):
-    # Ths routine will create a list of snowballs (circles) that have the center of the saturation circle
-    # within the unclosing jump circle.
+def make_snowballs(jump_ellipses, sat_circles):
+    # Ths routine will create a list of snowballs (ellipses) that have the center of the saturation circle
+    # within the enclosing jump rectangle.
     snowballs = []
-    for jump in jump_circles:
-        radius = jump[1]
+    for jump in jump_ellipses:
         for sat in sat_circles:
-            distance = np.sqrt((jump[0][0] - sat[0][0]) ** 2 + (jump[0][1] - sat[0][1]) ** 2)
-            if distance < radius:  # center of saturation is within the enclosing jump circle
+            # center of saturation is within the enclosing jump rectangle
+            if point_inside_rectangle(sat[0], jump):
                 if jump not in snowballs:
                     snowballs.append(jump)
     return snowballs
+
+
+def point_inside_ellipse(pointy, pointx, ellipse):
+    box = cv.boxPoints(ellipse)
+    ceny = ellipse[0][0]
+    cenx = ellipse[0][1]
+    axis1 = ellipse[1][0]
+    axis2 = ellipse[1][1]
+    theta = np.deg2rad(ellipse[2])
+    radius = ((np.cos(theta) * (pointx - cenx) + np.sin(theta) * (pointy - ceny))**2)/axis2**2 + \
+             ((np.sin(theta) * (pointx - cenx) + np.cos(theta) * (pointy - ceny))**2)/axis1**2
+    if radius < 1:
+        return True
+    else:
+        return False
+
+
+def point_inside_rectangle(point, ellipse):
+    box = cv.boxPoints(ellipse)
+    area1 = triangle_area(point, box[0], box[1])
+    area2 = triangle_area(point, box[1], box[2])
+    area3 = triangle_area(point, box[2], box[3])
+    area4 = triangle_area(point, box[3], box[0])
+    rectangle_area = ellipse[1][0] * ellipse[1][1]
+    triangle_area_sum = area1 + area2 + area3 + area4
+    if triangle_area_sum > rectangle_area:
+        return False
+    else:
+        return True
+
+#Area = abs( (Bx * Ay - Ax * By) +
+#            (Cx * By - Bx * Cy) +
+#            (Ax * Cy - Cx * Ay) ) / 2
+def triangle_area(point, vert1, vert2):
+    area = np.abs((vert1[1] * point[0] - point[1] * vert1[0]) +
+                  (vert2[1] * vert1[0] - vert1[1] * vert2[0]) +
+                  (point[1] * vert2[0] - vert2[1] * point[0])) / 2
+    return area
+
