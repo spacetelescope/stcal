@@ -354,6 +354,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 gdq[integration, group, :, :], num_events = \
                     extend_ellipses(gdq[integration, group, :, :],
                                     jump_ellipses, sat_flag, jump_flag,
+############# is sat_expand the right parameter?????????????????? ###########################
                                     expansion=sat_expand)
             else:
                 new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
@@ -382,7 +383,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 else:
                     snowballs = jump_ellipses
                 n_showers_grp.append(len(snowballs))
-                gdq[integration, group, :, :], num_events = extend_snowballs(gdq[integration, group, :, :],
+                gdq[integration, group, :, :], num_events = extend_ellipses(gdq[integration, group, :, :],
                                                                              snowballs, sat_flag,
                                                                              jump_flag,
                                                                              expansion=expand_factor)
