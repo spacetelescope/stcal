@@ -381,7 +381,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
  #               only_jump_cube[integration, group, :, :] = only_jump
                 jump_ellipses = find_ellipses(only_jump, jump_flag, min_jump_area)
                 if sat_required_snowball:
-                    snowballs = make_snowballs(jump_ellipses, sat_circles2)
+                    snowballs = make_snowballs(jump_ellipses, sat_circles2, group)
                 else:
                     snowballs = jump_ellipses
                 n_showers_grp.append(len(snowballs))
@@ -500,7 +500,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     return ellipses
 
 
-def make_snowballs(jump_ellipses, sat_circles):
+def make_snowballs(jump_ellipses, sat_circles, grp):
     # Ths routine will create a list of snowballs (ellipses) that have the center of the saturation circle
     # within the enclosing jump rectangle.
     snowballs = []
@@ -512,8 +512,8 @@ def make_snowballs(jump_ellipses, sat_circles):
                 if jump not in snowballs:
                     snowballs.append(jump)
                     sat_found = True
-        if not sat_found:
-            print("no saturation within jump rectangle ", jump)
+        if not sat_found and grp > 22:
+            print("no saturation within jump rectangle ", grp, jump)
     return snowballs
 
 
