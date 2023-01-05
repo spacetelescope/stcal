@@ -433,7 +433,7 @@ def extend_saturation(cube, grp, sat_circles, sat_flag, jump_flag,
     count = 0
     for sat_circle in sat_circles:
         radius = sat_circle[1]
-        count = count +1
+        count = count + 1
         print("Grp", grp, " radius ", radius, "count", count)
         if radius > min_sat_radius_extend:
             new_radius = round(radius + expansion)
@@ -505,11 +505,15 @@ def make_snowballs(jump_ellipses, sat_circles):
     # within the enclosing jump rectangle.
     snowballs = []
     for jump in jump_ellipses:
+        sat_found = False
         for sat in sat_circles:
             # center of saturation is within the enclosing jump rectangle
             if point_inside_rectangle(sat[0], jump):
                 if jump not in snowballs:
                     snowballs.append(jump)
+                    sat_found = True
+        if not sat_found:
+            print("no saturation within jump rectangle ", jump)
     return snowballs
 
 
