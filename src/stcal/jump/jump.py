@@ -321,7 +321,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2, sat_expand=2):
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2):
     """
     This routine controls the creation of expanded regions that are flagged as jumps. These are called
     snowballs for the NIR and are almost always circular with a saturated core. For MIRI they are better
@@ -345,7 +345,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
 
     n_showers_grp = []
     n_showers_grp_ellipse = []
-    only_jump_cube = np.zeros_like(gdq)
+#    only_jump_cube = np.zeros_like(gdq)
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
             if use_ellipses:
@@ -378,7 +378,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 # reset the saturated pixel to be jump to allow the jump circles to have the
                 # central saturated region set to "jump" instead of "saturation".
                 only_jump[saty, satx] = jump_flag
-                only_jump_cube[integration, group, :, :] = only_jump
+ #               only_jump_cube[integration, group, :, :] = only_jump
                 jump_ellipses = find_ellipses(only_jump, jump_flag, min_jump_area)
                 if sat_required_snowball:
                     snowballs = make_snowballs(jump_ellipses, sat_circles2)
@@ -389,7 +389,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                                                                              snowballs, sat_flag,
                                                                              jump_flag,
                                                                              expansion=expand_factor)
-        fits.writeto("only_jump_cube.fits", only_jump_cube, overwrite=True)
+#        fits.writeto("only_jump_cube.fits", only_jump_cube, overwrite=True)
         if use_ellipses:
             if np.all(np.array(n_showers_grp_ellipse) == 0):
                 log.info(f'No showers found in integration {integration}.')
