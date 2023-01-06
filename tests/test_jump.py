@@ -125,16 +125,21 @@ def test_inside_ellipse3():
 
 def test_inside_ellipse5():
     ellipse = ((0, 0), (1, 2), -10)
-    point = (0.5, 1)
-    result = point_inside_rectangle(point, ellipse)
+    point = (1, 0.6)
+    result = point_inside_ellipse(point, ellipse)
     assert not result
 
 def test_inside_ellipse4():
     ellipse = ((0, 0), (1, 2), 0)
-    point = (0.5, 1)
-    result = point_inside_rectangle(point, ellipse)
+    point = (1, 0.5)
+    result = point_inside_ellipse(point, ellipse)
     assert result
 
+def test_inside_ellipes5():
+    point = (1110.5, 870.5)
+    ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
+    result = point_inside_ellipse(point, ellipse)
+    assert result
 
 def test_plane23():
     incube = fits.getdata('input_jump_cube.fits')
@@ -144,4 +149,14 @@ def test_plane23():
                           min_jump_area=6,
                           expand_factor=2.0, use_ellipses=False,
                           sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("output_jump_cube.fits", testcube, overwrite=True)
+    fits.writeto("output_jump_cube23.fits", testcube, overwrite=True)
+
+def test_plane13():
+        incube = fits.getdata('input_jump_cube.fits')
+        testcube = incube[:, 13:15, :, :]
+
+        flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                          min_jump_area=6,
+                          expand_factor=2.0, use_ellipses=False,
+                          sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+        fits.writeto("output_jump_cube13.fits", testcube, overwrite=True)

@@ -533,22 +533,24 @@ def make_snowballs(jump_ellipses, sat_circles, grp):
         sat_found = False
         for sat in sat_circles:
             # center of saturation is within the enclosing jump rectangle
-            if point_inside_rectangle(sat[0], jump):
+            if point_inside_ellipse(sat[0], jump):
                 if jump not in snowballs:
                     snowballs.append(jump)
                     sat_found = True
-        if not sat_found and grp > 22:
+        if not sat_found:
             print("no saturation within jump rectangle ", grp, jump)
     return snowballs
 
 
-def point_inside_ellipse(pointy, pointx, ellipse):
+def old_point_inside_ellipse(point, ellipse):
     box = cv.boxPoints(ellipse)
     ceny = ellipse[0][0]
     cenx = ellipse[0][1]
     axis1 = ellipse[1][0]
     axis2 = ellipse[1][1]
     theta = np.deg2rad(ellipse[2])
+    pointx = point[0]
+    pointy = point[1]
     radius = ((np.cos(theta) * (pointx - cenx) + np.sin(theta) * (pointy - ceny))**2)/axis2**2 + \
              ((np.sin(theta) * (pointx - cenx) + np.cos(theta) * (pointy - ceny))**2)/axis1**2
     if radius < 1:
@@ -556,7 +558,13 @@ def point_inside_ellipse(pointy, pointx, ellipse):
     else:
         return False
 
-
+def point_inside_ellipse(point, ellipse):
+    delta_center = np.sqrt((point[0]-ellipse[0][0])**2 + (point[1]-ellipse[0][1])**2)
+    minor_axis = min(ellipse[1][0], ellipse[1][0])
+    if delta_center < minor_axis:
+        return True
+    else:
+        return False
 def point_inside_rectangle(point, ellipse):
     box = cv.boxPoints(ellipse)
     area1 = triangle_area(point, box[0], box[1])
