@@ -3,7 +3,7 @@ import pytest
 from astropy.io import fits
 
 from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation, \
-    point_inside_ellipse, point_inside_rectangle
+    point_inside_ellipse, point_inside_rectangle, flag_large_events
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 
@@ -134,3 +134,14 @@ def test_inside_ellipse4():
     point = (0.5, 1)
     result = point_inside_rectangle(point, ellipse)
     assert result
+
+
+def test_plane23():
+    incube = fits.getdata('input_jump_cube.fits')
+    testcube = incube[:, 22:24, :, :]
+
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                          min_jump_area=6,
+                          expand_factor=2.0, use_ellipses=False,
+                          sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("output_jump_cube.fits", testcube, overwrite=True)
