@@ -345,7 +345,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
 
     n_showers_grp = []
     n_showers_grp_ellipse = []
-#    only_jump_cube = np.zeros_like(gdq)
+    input_jump_cube = np.zeros_like(gdq)
+    fits.writeto("input_jump_cube.fits", input_jump_cube, overwrite=True)
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
             if use_ellipses:
