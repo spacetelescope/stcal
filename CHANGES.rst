@@ -8,8 +8,13 @@ General
 
 Bug Fixes
 ---------
+  
+ramp_fitting
+~~~~~~~~~~~~
 
--
+- Changed a cast due to numpy deprecation that now throws a warning.  The
+  negation of a DQ flag then cast to a np.uint32 caused an over flow.  The
+  flag is now cast to a np.uint32 before negation. [#139]
 
 Changes to API
 --------------
