@@ -160,3 +160,24 @@ def test_plane13():
                           expand_factor=2.0, use_ellipses=False,
                           sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
         fits.writeto("output_jump_cube13.fits", testcube, overwrite=True)
+
+
+def test_5580_plane8():
+    incube = fits.getdata('input5580_jump_cube.fits')
+    testcube = incube[:, 2:5, :, :]
+
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=6,
+                      expand_factor=2.0, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("output_jump_cube8.fits", testcube, overwrite=True)
+
+def test_1035_plane3():
+    incube = fits.getdata('input1035_jump_cube.fits')
+    testcube = incube[:, 1:3, :, :]
+
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=6,
+                      expand_factor=2.0, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("output_jump_cube8.fits", testcube, overwrite=True)

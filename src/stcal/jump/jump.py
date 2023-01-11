@@ -349,9 +349,9 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
             if (group//10) * 10 == group:
-                print("Group ", group)
+                print("Grp", group)
             else:
-                print("Group ", group, end=" ")
+                print("Grp", group, end=" ")
             if use_ellipses:
                 new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
                 jump_ellipses = find_ellipses(new_flagged_pixels, jump_flag, min_jump_area)
