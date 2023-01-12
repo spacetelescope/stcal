@@ -4,7 +4,7 @@
 General
 -------
 
--
+- 
 
 Bug Fixes
 ---------
@@ -15,6 +15,11 @@ Changes to API
 --------------
 
 -
+
+dark
+----
+
+- Modified dark class to support quantities in Roman.[#140]
 
 1.3.1 (2023-01-03)
 ==================
