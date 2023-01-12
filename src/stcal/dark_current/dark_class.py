@@ -36,7 +36,7 @@ class DarkData:
             meta data set based on the arrays in the dark_model.
         """
         if dark_model is not None:
-            if isinstance(dark_model.data,u.Quantity):
+            if isinstance(dark_model.data, u.Quantity):
                 self.data = dark_model.data.value
                 self.err = dark_model.err.value
             else:
