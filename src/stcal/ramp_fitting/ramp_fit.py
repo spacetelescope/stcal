@@ -274,4 +274,5 @@ def suppress_one_good_group_ramps(ramp_data):
             # ramp saturated, mark the 0th groups as saturated, too.
             good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
             if ramp_data.groupdq[integ, good_index, row, col] == 0:
-                ramp_data.groupdq[integ, good_index, row, col] = dnu_flag
+                ramp_data.groupdq[integ, :, row, col] = np.bitwise_or(
+                 ramp_data.groupdq[integ, :, row, col], dnu_flag)

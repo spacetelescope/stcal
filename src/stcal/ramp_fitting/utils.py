@@ -12,6 +12,7 @@ log.setLevel(logging.DEBUG)
 
 # Replace zero or negative variances with this:
 LARGE_VARIANCE = 1.e8
+LARGE_VARIANCE_THRESHOLD = 0.01 * LARGE_VARIANCE
 
 
 class OptRes:
@@ -272,15 +273,15 @@ class OptRes:
         opt_info : tuple
             The tuple of computed optional results arrays for fitting.
         """
-        self.var_p_seg[self.var_p_seg > 0.4 * LARGE_VARIANCE] = 0.
-        self.var_r_seg[self.var_r_seg > 0.4 * LARGE_VARIANCE] = 0.
+        self.var_p_seg[self.var_p_seg > LARGE_VARIANCE_THRESHOLD] = 0.
+        self.var_r_seg[self.var_r_seg > LARGE_VARIANCE_THRESHOLD] = 0.
 
         # Suppress, then re-enable, arithmetic warnings
         warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
         # Tiny 'weights' values correspond to non-existent segments, so set to 0.
-        self.weights[1. / self.weights > 0.4 * LARGE_VARIANCE] = 0.
+        self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
         warnings.resetwarnings()
 
         self.slope_seg /= effintim
@@ -533,8 +534,10 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         del wh_good
 
         # Locate any CRs that appear before the first SAT group...
-        wh_cr = np.where(
-            gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
+            wh_cr = np.where(
+                gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
 
         # ... but not on final read:
         if len(wh_cr[0]) > 0 and (i_read < nreads - 1):
@@ -713,9 +716,9 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-    var_p3[var_p3 > 0.4 * LARGE_VARIANCE] = 0.
-    var_r3[var_r3 > 0.4 * LARGE_VARIANCE] = 0.
-    var_both3[var_both3 > 0.4 * LARGE_VARIANCE] = 0.
+    var_p3[var_p3 > LARGE_VARIANCE_THRESHOLD] = 0.
+    var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
+    var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
 
     data = slope_int / effintim
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
@@ -725,6 +728,7 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
     err = np.sqrt(var_both3)
     dq = dq_int
     var_poisson = var_p3
+
     var_rnoise = var_r3
     integ_info = (data, dq, var_poisson, var_rnoise, err)
 
