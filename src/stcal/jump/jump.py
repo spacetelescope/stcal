@@ -371,8 +371,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
 #                fits.writeto('current_gdq.fits', current_gdq, overwrite = True)
 #                fits.writeto('prev_gdq.fits', prev_gdq, overwrite=True)
 #                new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
-#                fits.writeto("new_flagged_pixels1.fits", new_flagged_pixels, overwrite=True)
-                # find the circle parameters for newly saturated pixels
+                fits.writeto("new_sat.fits", new_sat, overwrite=True)
+                # find the ellipse parameters for newly saturated pixels
                 sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
                 # expand the larger saturated cores to deal with the charge migration from the
                 # saturated cores.
@@ -397,7 +397,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 # reset the saturated pixel to be jump to allow the jump circles to have the
                 # central saturated region set to "jump" instead of "saturation".
                 only_jump[saty, satx] = jump_flag
-#                fits.writeto("onlyjump2.fits", only_jump, overwrite=True)
+                fits.writeto("onlyjump2.fits", only_jump, overwrite=True)
  #               only_jump_cube[integration, group, :, :] = only_jump
                 jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
                 if sat_required_snowball:
@@ -452,6 +452,7 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
     jump_pix = np.bitwise_and(cube[grp, :, :], jump_flag)
 #    print("Grp in ES", grp)
     count = 0
+    outcube = cube.copy()
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
@@ -470,8 +471,8 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
                                                                    round(axis2 / 2)), alpha, 0, 360, (0, 0, 22), -1)
             sat_ellipse = image[:, :, 2]
             saty, satx = np.where(sat_ellipse == 22)
-            cube[grp:, saty, satx] = sat_flag
-    return cube
+            outcube[grp:, saty, satx] = sat_flag
+    return outcube
 
 
 
@@ -539,6 +540,7 @@ def make_snowballs(jump_ellipses, sat_circles, grp):
             if point_inside_ellipse(sat[0], jump):
                 if jump not in snowballs:
                     snowballs.append(jump)
+                    print("sat inside found", sat, jump)
                     sat_found = True
  #       if not sat_found:
  #           print("no saturation within jump rectangle ", grp, jump)
@@ -561,9 +563,10 @@ def old_point_inside_ellipse(point, ellipse):
     else:
         return False
 
+
 def point_inside_ellipse(point, ellipse):
     delta_center = np.sqrt((point[0]-ellipse[0][0])**2 + (point[1]-ellipse[0][1])**2)
-    minor_axis = min(ellipse[1][0], ellipse[1][0])
+    minor_axis = min(ellipse[1][0], ellipse[1][1])
     if delta_center < minor_axis:
         return True
     else:
