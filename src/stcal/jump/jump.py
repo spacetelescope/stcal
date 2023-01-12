@@ -385,6 +385,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 current_gdq = 1.0 * gdq[integration, group, :, :]
                 prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
                 diff_gdq = 1.0 * current_gdq - prev_gdq
+                diff_gdq[diff_gdq < 0] = 0
                 new_sat = diff_gdq.astype('uint8')
 #                fits.writeto("diff_gdq2.fits", diff_gdq, overwrite=True)
 #                fits.writeto('current_gdq2.fits', current_gdq, overwrite=True)
@@ -410,7 +411,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                                                                              jump_flag,
                                                                              expansion=expand_factor)
 #                fits.writeto("final_gdq.fits", gdq[integration, group,:, :], overwrite=True)
-#        fits.writeto("only_jump_cube.fits", only_jump_cube, overwrite=True)
+        fits.writeto("last_gdq_inside.fits", gdq, overwrite=True)
         if use_ellipses:
             if np.all(np.array(n_showers_grp_ellipse) == 0):
                 log.info(f'No showers found in integration {integration}.')

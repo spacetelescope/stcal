@@ -3,9 +3,9 @@ import pytest
 from astropy.io import fits
 
 from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation, \
-    point_inside_ellipse, point_inside_rectangle, flag_large_events
+    point_inside_ellipse, point_inside_rectangle, flag_large_events, detect_jumps
 
-DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
+DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
 
 try:
     import cv2 as cv # noqa: F401
@@ -177,8 +177,8 @@ def test_2333_plane25():
     testcube = incube[:, 0:3, :, :]
 
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=6,
-                      expand_factor=2.0, use_ellipses=False,
+                      min_jump_area=15,
+                      expand_factor=2.5, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
 
@@ -191,3 +191,29 @@ def test_inputjumpall():
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
+
+
+def test_detect_jumps_runaway():
+    testcube = fits.getdata('smalldark2232_00_dark_current.fits')
+    hdl = fits.open('smalldark2232_00_dark_current.fits')
+    gdq = hdl['GROUPDQ'].data
+    pdq = hdl['pixeldq'].data
+    err = np.ones_like(pdq).astype('float64')
+    gain_2d = fits.getdata('jwst_nirspec_gain_0023.fits')
+    readnoise_2d = fits.getdata('jwst_nirspec_readnoise_0038.fits')
+
+    detect_jumps(1, testcube, gdq, pdq, err,
+                     gain_2d, readnoise_2d, 4,
+                     5, 6, 'half', 1000,
+                     10, True, DQFLAGS,
+                     after_jump_flag_dn1=0.0,
+                     after_jump_flag_n1=0,
+                     after_jump_flag_dn2=0.0,
+                     after_jump_flag_n2=0,
+                     min_sat_area=1,
+                     min_jump_area=15,
+                     expand_factor=2.5,
+                     use_ellipses=False,
+                     sat_required_snowball=True,
+                     expand_large_events=True)
+    fits.writeto("output_gdq.fits", gdq, overwrite=True)
