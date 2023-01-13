@@ -549,7 +549,7 @@ def make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold):
                 if point_inside_ellipse(sat[0], jump):
                     if jump not in snowballs:
                         snowballs.append(jump)
-                        print("sat inside found", sat, jump)
+#                        print("sat inside found", sat, jump)
                         sat_found = True
  #       if not sat_found:
  #           print("no saturation within jump rectangle ", grp, jump)
