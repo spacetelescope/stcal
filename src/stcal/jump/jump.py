@@ -35,7 +35,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  expand_factor=2.0,
                  use_ellipses=False,
                  sat_required_snowball=True,
-                 expand_large_events=True):
+                 expand_large_events=True,
+                 edge_size = 15):
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -303,7 +304,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor, use_ellipses=use_ellipses,
-                              sat_required_snowball=sat_required_snowball)
+                              sat_required_snowball=sat_required_snowball,
+                              edge_size=edge_size)
 
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
@@ -321,7 +323,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2):
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2,
+                      edge_size=15):
     """
     This routine controls the creation of expanded regions that are flagged as jumps. These are called
     snowballs for the NIR and are almost always circular with a saturated core. For MIRI they are better
@@ -402,7 +405,9 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
  #               only_jump_cube[integration, group, :, :] = only_jump
                 jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
                 if sat_required_snowball:
-                    snowballs = make_snowballs(jump_ellipses, sat_ellipses, group)
+                    low_threshold = edge_size
+                    high_threshold = gdq.shape[0] - edge_size
+                    snowballs = make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold)
                 else:
                     snowballs = jump_ellipses
                 n_showers_grp.append(len(snowballs))
@@ -530,19 +535,22 @@ def find_ellipses(dqplane, bitmask, min_area):
     return ellipses
 
 
-def make_snowballs(jump_ellipses, sat_circles, grp):
+def make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold):
     # Ths routine will create a list of snowballs (ellipses) that have the center of the saturation circle
     # within the enclosing jump rectangle.
     snowballs = []
     for jump in jump_ellipses:
         sat_found = False
-        for sat in sat_circles:
-            # center of saturation is within the enclosing jump rectangle
-            if point_inside_ellipse(sat[0], jump):
-                if jump not in snowballs:
-                    snowballs.append(jump)
-                    print("sat inside found", sat, jump)
-                    sat_found = True
+        if near_edge(jump, low_threshold, high_threshold):
+            snowballs.append(jump)
+        else:
+            for sat in sat_ellipses:
+                # center of saturation is within the enclosing jump rectangle
+                if point_inside_ellipse(sat[0], jump):
+                    if jump not in snowballs:
+                        snowballs.append(jump)
+                        print("sat inside found", sat, jump)
+                        sat_found = True
  #       if not sat_found:
  #           print("no saturation within jump rectangle ", grp, jump)
     return snowballs
@@ -594,3 +602,10 @@ def triangle_area(point, vert1, vert2):
                   (point[1] * vert2[0] - vert2[1] * point[0])) / 2
     return area
 
+def near_edge(jump, low_threshold, high_threshold):
+    if jump[0][0] < low_threshold or jump[0][1] < low_threshold:
+        return True
+    elif jump[0][0] > high_threshold or jump[0][1] > high_threshold:
+        return True
+    else:
+        return False
