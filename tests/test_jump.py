@@ -182,6 +182,17 @@ def test_2333_plane25():
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
 
+def test_edgeflage_130140():
+    incube = fits.getdata('input_jump_cube130140.fits')
+    testcube = incube[:, 3:5, :, :]
+
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=7,
+                      expand_factor=2.5, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
+
+
 
 def test_inputjumpall():
     testcube = fits.getdata('input_jump_cube.fits')

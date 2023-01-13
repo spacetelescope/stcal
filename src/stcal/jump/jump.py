@@ -36,7 +36,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  use_ellipses=False,
                  sat_required_snowball=True,
                  expand_large_events=True,
-                 edge_size = 15):
+                 edge_size = 25):
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -324,7 +324,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2,
-                      edge_size=15):
+                      edge_size=25):
     """
     This routine controls the creation of expanded regions that are flagged as jumps. These are called
     snowballs for the NIR and are almost always circular with a saturated core. For MIRI they are better
@@ -551,8 +551,8 @@ def make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold):
                         snowballs.append(jump)
 #                        print("sat inside found", sat, jump)
                         sat_found = True
- #       if not sat_found:
- #           print("no saturation within jump rectangle ", grp, jump)
+        if not sat_found:
+            print("no saturation within jump rectangle ", jump)
     return snowballs
 
 
