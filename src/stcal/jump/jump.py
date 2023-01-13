@@ -406,7 +406,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
                 if sat_required_snowball:
                     low_threshold = edge_size
-                    high_threshold = gdq.shape[0] - edge_size
+                    high_threshold = gdq.shape[2] - edge_size
                     snowballs = make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold)
                 else:
                     snowballs = jump_ellipses
@@ -603,9 +603,8 @@ def triangle_area(point, vert1, vert2):
     return area
 
 def near_edge(jump, low_threshold, high_threshold):
-    if jump[0][0] < low_threshold or jump[0][1] < low_threshold:
-        return True
-    elif jump[0][0] > high_threshold or jump[0][1] > high_threshold:
+    if jump[0][0] < low_threshold or jump[0][1] < low_threshold\
+        or jump[0][0] > high_threshold or jump[0][1] > high_threshold:
         return True
     else:
         return False

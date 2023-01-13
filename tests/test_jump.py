@@ -177,7 +177,7 @@ def test_2333_plane25():
     testcube = incube[:, 0:3, :, :]
 
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=15,
+                      min_jump_area=7,
                       expand_factor=2.5, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
@@ -211,7 +211,7 @@ def test_detect_jumps_runaway():
                      after_jump_flag_dn2=0.0,
                      after_jump_flag_n2=0,
                      min_sat_area=1,
-                     min_jump_area=15,
+                     min_jump_area=5,
                      expand_factor=2.5,
                      use_ellipses=False,
                      sat_required_snowball=True,
