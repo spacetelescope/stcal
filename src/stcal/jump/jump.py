@@ -362,8 +362,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 gdq[integration, group, :, :], num_events = \
                     extend_ellipses(gdq[integration, group, :, :],
                                     jump_ellipses, sat_flag, jump_flag,
-############# is sat_expand the right parameter?????????????????? ###########################
-                                    expansion=sat_expand)
+                                    expansion=expand_factor)
             else:
                 current_gdq = 1.0 * gdq[integration, group, :, :]
                 prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
@@ -397,7 +396,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 sat_pixels = np.bitwise_and(diff_gdq.astype('uint8'), sat_flag)
                 saty, satx = np.where(sat_pixels == sat_flag)
                 only_jump = diff_gdq.copy()
-#                fits.writeto("onlyjump.fits", only_jump, overwrite=True)
+                fits.writeto("onlyjump.fits", only_jump, overwrite=True)
                 # reset the saturated pixel to be jump to allow the jump circles to have the
                 # central saturated region set to "jump" instead of "saturation".
                 only_jump[saty, satx] = jump_flag
@@ -453,28 +452,21 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
 
 
 def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
-                      min_sat_radius_extend, expansion=1):
+                      min_sat_radius_extend, expansion=2):
     image = np.zeros(shape=(cube.shape[1], cube.shape[2], 3), dtype=np.uint8)
     jump_pix = np.bitwise_and(cube[grp, :, :], jump_flag)
-#    print("Grp in ES", grp)
-    count = 0
     outcube = cube.copy()
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
         minor_axis = min(ellipse[1][1], ellipse[1][0])
-        count = count + 1
 #        print("Grp", grp, " radius ", minor_axis, "count", count, "center", ellipse[0])
         if minor_axis > min_sat_radius_extend:
-            if ellipse[1][1] < ellipse[1][0]:
-                axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
-                axis2 = ellipse[1][1] * expansion
-            else:
-                axis1 = ellipse[1][0] * expansion
-                axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
+            axis1 = ellipse[1][0] + expansion
+            axis2 = ellipse[1][1] + expansion
             alpha = ellipse[2]
-            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
-                                                                   round(axis2 / 2)), alpha, 0, 360, (0, 0, 22), -1)
+            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 + 0.5),
+                               round(axis2 + 0.5)), alpha, 0, 360, (0, 0, 22), -1)
             sat_ellipse = image[:, :, 2]
             saty, satx = np.where(sat_ellipse == 22)
             outcube[grp:, saty, satx] = sat_flag
@@ -483,7 +475,7 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
 
 
 
-def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1, expand_by_ratio=True):
+def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.9, expand_by_ratio=True):
     # For a given DQ plane it will use the list of ellipses to create expanded ellipses of pixels with
     # the jump flag set.
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
@@ -496,12 +488,16 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1, expand_
         # the number of pixels added to the minor axis. This prevents very large flagged ellipses
         # with high axis ratio ellipses. The major and minor axis are not always the same index.
         # Therefore, we have to test to find which is actually the minor axis.
-        if ellipse[1][1] < ellipse[1][0]:
-            axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
-            axis2 = ellipse[1][1] * expansion
+        if expand_by_ratio:
+            if ellipse[1][1] < ellipse[1][0]:
+                axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
+                axis2 = ellipse[1][1] * expansion
+            else:
+                axis1 = ellipse[1][0] * expansion
+                axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
         else:
-            axis1 = ellipse[1][0] * expansion
-            axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
+            axis1 = ellipse[1][0] + expansion
+            axis2 = ellipse[1][1] + expansion
         alpha = ellipse[2]
         image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
                            round(axis2 / 2)), alpha, 0, 360, (0, 0, 4), -1)
@@ -551,8 +547,8 @@ def make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold):
                         snowballs.append(jump)
 #                        print("sat inside found", sat, jump)
                         sat_found = True
-        if not sat_found:
-            print("no saturation within jump rectangle ", jump)
+#        if not sat_found:
+#            print("no saturation within jump rectangle ", jump)
     return snowballs
 
 
