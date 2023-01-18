@@ -356,8 +356,10 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             else:
                 print("Grp", group, end=" ")
             if use_ellipses:
-                new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
-                jump_ellipses = find_ellipses(new_flagged_pixels, jump_flag, min_jump_area)
+                new_flagged_pixels = 1.0*gdq[integration, group, :, :] - 1.0*gdq[integration, group - 1, :, :]
+                new_flagged_pixels[new_flagged_pixels < 0] = 0
+                fits.writeto('new_flagged_pixels.fits', new_flagged_pixels, overwrite=True)
+                jump_ellipses = find_ellipses(new_flagged_pixels.astype('uint8'), jump_flag, min_jump_area)
                 n_showers_grp_ellipse.append(len(jump_ellipses))
                 gdq[integration, group, :, :], num_events = \
                     extend_ellipses(gdq[integration, group, :, :],

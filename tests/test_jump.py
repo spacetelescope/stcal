@@ -192,7 +192,16 @@ def test_edgeflage_130140():
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=3)
     fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
 
+def test_miri_input():
+    incube = fits.getdata('input_jump_cube_miri_01.fits')
+    testcube = incube[:, 1:5, :, :]
+    testcube = incube
 
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=7,
+                      expand_factor=2.5, use_ellipses=True,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=3)
+    fits.writeto("output_jump_cube_miri.fits", testcube, overwrite=True)
 
 def test_inputjumpall():
     testcube = fits.getdata('input_jump_cube.fits')
