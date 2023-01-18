@@ -61,8 +61,6 @@ def flag_saturated_pixels(
     """
 
     nints, ngroups, nrows, ncols = data.shape
-    print("local version of saturation")
-    stop
     saturated = dqflags['SATURATED']
     ad_floor = dqflags['AD_FLOOR']
     no_sat_check = dqflags['NO_SAT_CHECK']
