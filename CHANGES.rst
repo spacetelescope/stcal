@@ -13,7 +13,7 @@ Bug Fixes
 ramp_fitting
 ~~~~~~~~~~~~
 
-- Fixed zeros that should be NaNs in rateints product and suppressed
+- Fixed zeros that should be NaNs in rate and rateints product and suppressed
   a cast warning due to attempts to cast NaN to an integer. [#141]
 
 Changes to API
