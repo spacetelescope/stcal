@@ -96,7 +96,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         pixels above current row also to be flagged as a CR
 
     """
-
+    print("min groups ", minimum_groups )
     # copy data and group DQ array
     if copy_arrs:
         dataa = dataa.copy()
