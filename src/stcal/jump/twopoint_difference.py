@@ -120,8 +120,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
     jump_flag = dqflags["JUMP_DET"]
 
     for integ in range(nints):
-        if integ//100 * 100 == integ:
-            log.info(f'Working on integration {integ + 1}:')
+        log.info(f'Working on integration {integ + 1}:')
 
         # get data, gdq for this integration
         dat = dataa[integ]
@@ -162,9 +161,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                   max_ratio > three_diff_rej_thresh))
         row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                   max_ratio > two_diff_rej_thresh))
-        if integ // 100 * 100 == integ:
-            log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
-            log.info(log_str.format(len(row4cr), 'five or more'))
+        log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
+        log.info(log_str.format(len(row4cr), 'five or more'))
 
         # get the rows, col pairs for all pixels with at least one CR
         all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
@@ -288,8 +286,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
         for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
-                if integ // 100 * 100 == integ:
-                    log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
+                log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
 
                 for j in range(len(cr_group)):
                     group = cr_group[j]
