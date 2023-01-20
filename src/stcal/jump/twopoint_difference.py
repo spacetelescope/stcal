@@ -120,8 +120,8 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
     jump_flag = dqflags["JUMP_DET"]
 
     for integ in range(nints):
-
-        log.info(f'Working on integration {integ + 1}:')
+        if integ//100 * 100 == integ:
+            log.info(f'Working on integration {integ + 1}:')
 
         # get data, gdq for this integration
         dat = dataa[integ]

@@ -60,6 +60,16 @@ def test_find_simple_ellipse():
     assert ellipse[0][0] == pytest.approx((2.5, 2.0))  # center
 
 
+def test_find_ellipse2():
+    plane = np.zeros(shape=(5, 5), dtype=np.uint8)
+    plane[1,:] = [0,  DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'],DQFLAGS['JUMP_DET'], 0]
+    plane[2,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    plane[3,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    ellipse = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
+    print(ellipse)
+    assert ellipse == 1
+
+
 def test_extend_saturation_simple():
     cube = np.zeros(shape=(5, 7, 7), dtype=np.uint8)
     grp = 1
