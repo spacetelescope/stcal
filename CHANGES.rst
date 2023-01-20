@@ -4,7 +4,7 @@
 General
 -------
 
--
+- 
 
 Bug Fixes
 ---------
@@ -16,6 +16,12 @@ Changes to API
 
 -
 
+dark
+----
+
+- Modified dark class to support quantities in Roman.[#140]
+
+=======
 1.3.2 (2023-01-10)
 ==================
 
@@ -28,6 +34,7 @@ ramp_fitting
 - Changed a cast due to numpy deprecation that now throws a warning.  The
   negation of a DQ flag then cast to a np.uint32 caused an over flow.  The
   flag is now cast to a np.uint32 before negation. [#139]
+
 
 1.3.1 (2023-01-03)
 ==================
