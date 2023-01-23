@@ -3,7 +3,7 @@ import pytest
 from astropy.io import fits
 
 from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation, \
-    point_inside_ellipse, point_inside_rectangle, flag_large_events, detect_jumps
+    point_inside_ellipse, point_inside_rectangle, flag_large_events, detect_jumps, find_faint_extended
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
 
@@ -247,3 +247,13 @@ def test_detect_jumps_runaway():
                      sat_required_snowball=True,
                      expand_large_events=True)
     fits.writeto("output_gdq.fits", gdq, overwrite=True)
+
+
+def test_extended1():
+    incube = fits.getdata("dark_imager_withexpand_00_jump.fits")
+    testcube = incube[0, 230:234, :, :]
+    hdl = fits.open("dark_imager_withexpand_00_jump.fits")
+    gdq = hdl['GROUPDQ'].data
+    pdq = hdl['pixeldq'].data
+    find_faint_extended(testcube, gdq, readnoise, kernel_size, snr_threshold, min_area=40, inner=1,
+                        outer=2):
