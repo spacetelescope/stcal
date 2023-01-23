@@ -277,4 +277,4 @@ def test_extended_all():
     print("readnoise shape", readnoise_2d.shape)
     newgdq = find_faint_extended(incube, gdq, readnoise_2d, snr_threshold=1.1, min_area=60, inner=1,
                                 outer=2)
-    fits.writeto("newgdq_big.fits", newgdq, overwrite=True)
+    #fits.writeto("newgdq_big.fits", newgdq, overwrite=True)
