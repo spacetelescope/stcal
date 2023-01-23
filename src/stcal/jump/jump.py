@@ -606,3 +606,17 @@ def near_edge(jump, low_threshold, high_threshold):
         return True
     else:
         return False
+
+    def find_faint_extended(data, gdq, readnoise, kernel_size, snr_threshold, min_area=40, inner=1,
+                            outer=2):
+        diff = np.diff(data, axis=1)
+        ratio = diff / readnoise
+        for intg in range(data.shape[0]):
+            for grp in range(diff.shape[1]):
+                ring_2D_kernel = Ring2DKernel(inner, outer)
+                smoothed_data = convolve(ratio, ring_2D_kernel)
+                extended_emission = np.zeros(shape=(ratio.size[0], ratio.size[1]), dtype=np.uint8)
+                extended_emission[smoothed_data > snr_threshold] = 1
+                contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+                bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+        return bigcontours
