@@ -607,26 +607,41 @@ def near_edge(jump, low_threshold, high_threshold):
     else:
         return False
 
-def find_faint_extended(data, gdq, readnoise, snr_threshold, min_area=40, inner=1,
-                            outer=2, sat_flag=2, jump_flag=4):
-    diff = np.diff(data, axis=1)
+def find_faint_extended(data, gdq, readnoise, nframes, snr_threshold, min_area=40, inner=1,
+                            outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1):
+    read_noise_2 = readnoise ** 2
+    data[gdq == sat_flag] = np.nan
+    data[gdq == 1] = np.nan
     for intg in range(data.shape[0]):
-        ratio = np.squeeze(diff[intg, :, :, :] / readnoise)
-        #fits.writeto("ratio.fits", ratio, overwrite=True)
-        for grp in range(1, data.shape[1]):
+        diff = np.diff(data[intg], axis=0)
+        median_diffs = np.nanmedian(diff, axis=0)
+        # calculate sigma for each pixel
+        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+        e_jump = diff - median_diffs[np.newaxis, :, :]
+        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
+#        fits.writeto("sigma.fits", sigma, overwrite=True)
+#        fits.writeto("ratio.fits", ratio, overwrite=True)
+        for grp in range(1, ratio.shape[0]):
             if grp//10 == grp:
                 print("group ", grp)
             ring_2D_kernel = Ring2DKernel(inner, outer)
+            masked_ratio = ratio[grp-1].copy()
+            masked_ratio[gdq[intg, grp, : :] == jump_flag] = np.nan
+            masked_ratio[gdq[intg, grp, ::] == sat_flag] = np.nan
+#            fits.writeto("masked_ratio.fits", masked_ratio, overwrite=True)
+            masked_smoothed_data = convolve(masked_ratio, ring_2D_kernel)
+#            fits.writeto("masked_smoothed_data.fits", masked_smoothed_data, overwrite=True)
             smoothed_data = convolve(ratio[grp-1], ring_2D_kernel)
-         #   fits.writeto("smoothed_data.fits", smoothed_data, overwrite=True)
+#            fits.writeto("smoothed_data.fits", smoothed_data, overwrite=True)
             extended_emission = np.zeros(shape=(ratio.shape[1], ratio.shape[2]), dtype=np.uint8)
-            extended_emission[smoothed_data > snr_threshold] = 1
-          #  fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
+            extended_emission[masked_smoothed_data > snr_threshold] = 1
+#            fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
             pixels = np.bitwise_and(extended_emission, 1)
             contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
-           # fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
-            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag, expansion=1.0, expand_by_ratio=True)
-           # fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
+#            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
+            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
+                                                        expansion=ellipse_expand, expand_by_ratio=True)
+ #           fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
     return gdq
