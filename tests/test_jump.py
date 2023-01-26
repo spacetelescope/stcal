@@ -260,11 +260,11 @@ def test_extended1():
 
     pdq = hdl['pixeldq'].data
 
-    readnoise_2d = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')
-    gain_2d = np.zeros_like(readnoise_2d)
+    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')**2
+    gain_2d = np.zeros_like(readnoise_2)
     gain_2d[:, :] = 3.9
-    print("readnoise shape", readnoise_2d.shape)
-    newgdq = find_faint_extended(testcube, testgdq, readnoise_2d, 1, snr_threshold=1.2, min_area=60,
+    print("readnoise shape", readnoise_2.shape)
+    newgdq = find_faint_extended(testcube, testgdq, readnoise_2, 1, snr_threshold=1.2, min_area=60,
                                  inner=1., outer=2.1)
     fits.writeto("newgdall.fits", newgdq, overwrite=True)
 #    [print(cv.contourArea(con)) for con in contours]
@@ -276,9 +276,9 @@ def test_extended_all():
     incube = hdl['SCI'].data
     gdq = hdl['GROUPDQ'].data
     pdq = hdl['pixeldq'].data
-    readnoise_2d = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')
-    print("readnoise shape", readnoise_2d.shape)
-    newgdq = find_faint_extended(incube, gdq, readnoise_2d, 1, snr_threshold=1.3,
+    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')**2
+    print("readnoise shape", readnoise_2.shape)
+    newgdq = find_faint_extended(incube, gdq, readnoise_2, 1, snr_threshold=1.3,
                                  min_area=100, inner=1, jump_flag=4,
                                  outer=2.6)
     fits.writeto("newgdq_big_th1.3.100.fits", newgdq, overwrite=True)
