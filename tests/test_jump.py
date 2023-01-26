@@ -279,6 +279,6 @@ def test_extended_all():
     readnoise_2d = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')
     print("readnoise shape", readnoise_2d.shape)
     newgdq = find_faint_extended(incube, gdq, readnoise_2d, 1, snr_threshold=1.3,
-                                 min_area=100, inner=1, jump_flag=5,
+                                 min_area=100, inner=1, jump_flag=4,
                                  outer=2.6)
     fits.writeto("newgdq_big_th1.3.100.fits", newgdq, overwrite=True)

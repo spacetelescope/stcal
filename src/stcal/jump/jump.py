@@ -308,7 +308,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size)
 
-        find_faint_extended(data, gdq, readnoise_2d, frames_per_group, 1.3, min_area=100, inner=1,
+        find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.3,
+                            min_area=100, inner=1,
                             outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
@@ -609,7 +610,7 @@ def near_edge(jump, low_threshold, high_threshold):
     else:
         return False
 
-def find_faint_extended(data, gdq, readnoise, nframes, snr_threshold, min_area=40, inner=1,
+def find_faint_extended(data, gdq, readnoise, nframes, snr_threshold=1.3, min_area=40, inner=1,
                             outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1):
     read_noise_2 = readnoise ** 2
     data[gdq == sat_flag] = np.nan
