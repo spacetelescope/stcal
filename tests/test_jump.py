@@ -250,7 +250,7 @@ def test_detect_jumps_runaway():
 
 
 def test_extended1():
-    incube = fits.getdata("dark_imager_wthexp_00_jump.fits")
+    incube = fits.getdata("dark_imager_wthexp_00_jump.fits") * 3.9
  #   testcube = np.expand_dims(incube[0, 12:14, :, :], 0)
     testcube = np.expand_dims(incube[0, 13:26, :, :], 0)
     hdl = fits.open("dark_imager_wthexp_00_jump.fits")
@@ -260,11 +260,11 @@ def test_extended1():
 
     pdq = hdl['pixeldq'].data
 
-    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')**2
+    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits') * 3.9
     gain_2d = np.zeros_like(readnoise_2)
     gain_2d[:, :] = 3.9
     print("readnoise shape", readnoise_2.shape)
-    newgdq = find_faint_extended(testcube, testgdq, readnoise_2, 1, snr_threshold=1.2, min_area=60,
+    newgdq = find_faint_extended(testcube, testgdq, readnoise_2, 1, snr_threshold=1.3, min_area=100,
                                  inner=1., outer=2.1)
     fits.writeto("newgdall.fits", newgdq, overwrite=True)
 #    [print(cv.contourArea(con)) for con in contours]
@@ -273,12 +273,12 @@ def test_extended1():
 def test_extended_all():
 #    incube = fits.getdata("dark_imager_wthexp_00_jump.fits")
     hdl = fits.open("dark_imager_wthexp_00_jump.fits")
-    incube = hdl['SCI'].data
+    incube = hdl['SCI'].data * 3.9
     gdq = hdl['GROUPDQ'].data
     pdq = hdl['pixeldq'].data
-    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')**2
+    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')*3.9
     print("readnoise shape", readnoise_2.shape)
     newgdq = find_faint_extended(incube, gdq, readnoise_2, 1, snr_threshold=1.3,
-                                 min_area=100, inner=1, jump_flag=4,
+                                 min_area=100, inner=1, jump_flag=5,
                                  outer=2.6)
     fits.writeto("newgdq_big_th1.3.100.fits", newgdq, overwrite=True)
