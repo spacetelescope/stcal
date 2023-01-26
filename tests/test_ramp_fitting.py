@@ -924,7 +924,7 @@ def test_dq_multi_int_dnu():
                       [[0.00173518]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[2.5000000e+07]],
+    check = np.array([[[0.]],
                       [[4.3379547e-04]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
@@ -1038,8 +1038,8 @@ def test_new_saturation():
                       [[0.00086654, 0.        , 0.]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[6.5232398e-06, 6.1970772e-05, 3.3333334e+07]],
-                      [[6.1970772e-05, 3.3333334e+07, 3.3333334e+07]]])
+    check = np.array([[[6.5232398e-06, 6.1970772e-05, 0.]],
+                      [[6.1970772e-05, 0., 0.]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
     check = np.array([[[0.02353317, 0.02258242, 0.]],

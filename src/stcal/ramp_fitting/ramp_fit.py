@@ -264,14 +264,16 @@ def suppress_one_good_group_ramps(ramp_data):
         ngood_groups = good_groups.sum(axis=0)
         wh_one = np.where(ngood_groups == 1)
 
-        # Suppress the ramps with only one good group by flagg
+        # Suppress the ramps with only one good group by flagging
+        # all groups in the ramp as DO_NOT_USE.
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
         for n in range(len(wh1_rows)):
             row = wh1_rows[n]
             col = wh1_cols[n]
-            # For ramps that have good 0th group, but the rest of the
-            # ramp saturated, mark the 0th groups as saturated, too.
+            # Find ramps that have good 0th group, but the rest of the
+            # ramp flagged.
             good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
             if ramp_data.groupdq[integ, good_index, row, col] == 0:
-                ramp_data.groupdq[integ, good_index, row, col] = dnu_flag
+                ramp_data.groupdq[integ, :, row, col] = np.bitwise_or(
+                 ramp_data.groupdq[integ, :, row, col], dnu_flag)

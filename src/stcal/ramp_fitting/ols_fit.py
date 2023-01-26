@@ -1105,7 +1105,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
-        var_p3[var_p3 > 0.1 * utils.LARGE_VARIANCE] = 0.
+        var_p3[var_p3 > utils.LARGE_VARIANCE_THRESHOLD] = 0.
         var_p3[:, med_rates <= 0.] = 0.
         warnings.resetwarnings()
 
@@ -1396,8 +1396,8 @@ def ramp_fit_overall(
     #  to nullify their contribution.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
-        var_p2[var_p2 > 0.1 * utils.LARGE_VARIANCE] = 0.
-        var_r2[var_r2 > 0.1 * utils.LARGE_VARIANCE] = 0.
+        var_p2[var_p2 > utils.LARGE_VARIANCE_THRESHOLD] = 0.
+        var_r2[var_r2 > utils.LARGE_VARIANCE_THRESHOLD] = 0.
 
     # Some contributions to these vars may be NaN as they are from ramps
     # having PIXELDQ=DO_NOT_USE
