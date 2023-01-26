@@ -1,14 +1,8 @@
-1.3.3 (unreleased)
+1.3.3 (2023-01-26)
 ==================
-
-General
--------
-
-- 
 
 Bug Fixes
 ---------
-
   
 ramp_fitting
 ~~~~~~~~~~~~
@@ -19,14 +13,11 @@ ramp_fitting
 Changes to API
 --------------
 
--
-
 dark
 ----
 
 - Modified dark class to support quantities in Roman.[#140]
 
-=======
 1.3.2 (2023-01-10)
 ==================
 
