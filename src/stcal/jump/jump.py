@@ -612,6 +612,8 @@ def near_edge(jump, low_threshold, high_threshold):
 
 def find_faint_extended(data, gdq, readnoise, nframes, snr_threshold=1.3, min_area=40, inner=1,
                             outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1):
+    print("input to find_faint_extended")
+    print(np.nanmedian(readnoise), nframes, snr_threshold, min_area, inner, outer, sat_flag, jump_flag, ellipse_expand)
     read_noise_2 = readnoise ** 2
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
