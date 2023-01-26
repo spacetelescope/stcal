@@ -308,7 +308,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size)
 
-        find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.25,
+        gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.25,
                             min_area=100, inner=1,
                             outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1)
     elapsed = time.time() - start
