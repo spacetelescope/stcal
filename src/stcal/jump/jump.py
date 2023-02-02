@@ -309,7 +309,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               edge_size=edge_size)
 
         gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
-                            min_area=100, inner=1,
+                            min_shower_area=60, inner=1,
                             outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
@@ -610,13 +610,14 @@ def near_edge(jump, low_threshold, high_threshold):
     else:
         return False
 
-def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, min_area=40, inner=1,
+def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, min_shower_area=40, inner=1,
                             outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1):
     print("input to find_faint_extended")
-    print(np.nanmedian(read_noise_2d), nframes, snr_threshold, min_area, inner, outer, sat_flag, jump_flag, ellipse_expand)
+    print(np.nanmedian(read_noise_2d), nframes, snr_threshold, min_shower_area, inner, outer, sat_flag, jump_flag, ellipse_expand)
     read_noise_2 = read_noise_2d**2
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
+    data[gdq == jump_flag] = np.nan
     for intg in range(data.shape[0]):
         diff = np.diff(data[intg], axis=0)
         median_diffs = np.nanmedian(diff, axis=0)
@@ -625,7 +626,10 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
         e_jump = diff - median_diffs[np.newaxis, :, :]
         ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 #        fits.writeto("sigma.fits", sigma, overwrite=True)
-#        fits.writeto("ratio.fits", ratio, overwrite=True)
+        fits.writeto("input_data.fits", data[intg], overwrite=True)
+        fits.writeto("diffs.fits", diff, overwrite=True)
+        fits.writeto("ratio.fits", ratio, overwrite=True)
+        fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
         for grp in range(1, ratio.shape[0] + 1):
             ring_2D_kernel = Ring2DKernel(inner, outer)
             masked_ratio = ratio[grp-1].copy()
@@ -641,9 +645,11 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
 #            extended_emission[masked_smoothed_ratio > snr_threshold] = 1
             pixels = np.bitwise_and(extended_emission, 1)
             contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-            bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+            bigcontours = [con for con in contours if cv.contourArea(con) > min_shower_area]
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
-            if grp == 26 and intg == 0:
+            if grp == 1 and intg == 0:
+                fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
+                fits.writeto("simga.fits", sigma, overwrite=True)
                 fits.writeto("ratio_grp.fits", ratio[grp-1], overwrite=True)
                 fits.writeto("starting_gdq.fits",gdq[intg, grp], overwrite=True)
                 fits.writeto("extended_emission.fits", 1.0*extended_emission, overwrite=True)
@@ -651,6 +657,13 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                 fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
                 fits.writeto("pixels.fits", pixels, overwrite=True)
                 print('grp', grp, snr_threshold, 'ellipses', ellipses)
+                print('min_shower_area', min_shower_area)
+                for con in contours:
+                    if cv.contourArea(con) > 20:
+                        M = cv.moments(con)
+                        cx = int(M['m10'] / M['m00'])
+                        cy = int(M['m01'] / M['m00'])
+                        print("area", cx, cy, cv.contourArea(con))
             for con in bigcontours:
                 M = cv.moments(con)
                 cx = int(M['m10'] / M['m00'])
@@ -660,5 +673,6 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
 #            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
             gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
                                                         expansion=ellipse_expand, expand_by_ratio=True)
-#            fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
+            if grp == 1 and intg == 0:
+                fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
     return gdq
