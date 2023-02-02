@@ -1,4 +1,5 @@
 import numpy as np
+from astropy.io import fits
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
@@ -53,6 +54,32 @@ def base_neg_med_rates_single_integration():
 
     return slopes, cube, optional, gls_dummy
 
+def test_contiguous_jumps():
+#    hdul = fits.open('/users/mregan/downloads/dark_imager_wthfaint_1_jump.fits')
+    hdul = fits.open('/users/mregan/downloads/dark_imager_wthfaint_200_jump.fits')
+#    hdul = fits.open('/users/mregan/downloads/dark_imager_baseline_2_00_jump.fits')
+    jumpdiff = np.diff(hdul['SCI'].data, axis=1)
+    data = hdul['SCI'].data
+    gdq = hdul['groupdq'].data
+    ypix = 236
+    xpix = 319
+    indata = data[0, :, ypix, xpix] - data[0, 2, ypix, xpix]
+    indataraw = data[0, :, ypix, xpix]
+    ingdq = gdq[0, :, ypix, xpix]
+#    ingdq[135] = 125
+    nints, ngroups, nrows, ncols = 1, len(indata), 1, 1
+    rnoise_val, gain_val = 100000, 1
+    nframes, gtime, dtime = 1, 2.77, 2.77
+    dims = (nints, ngroups, nrows, ncols)
+    var = (rnoise_val, gain_val)
+    tm = (nframes, gtime, dtime)
+    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+    ramp_data.data[0, :, 0, 0] = indata
+    ramp_data.groupdq[0, :, 0, 0] = ingdq
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+    print(slopes)
 
 def test_neg_med_rates_single_integration_slope():
     """
