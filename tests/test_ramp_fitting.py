@@ -56,16 +56,18 @@ def base_neg_med_rates_single_integration():
 
 def test_contiguous_jumps():
 #    hdul = fits.open('/users/mregan/downloads/dark_imager_wthfaint_1_jump.fits')
-    hdul = fits.open('/users/mregan/downloads/dark_imager_wthfaint_200_jump.fits')
+    hdul = fits.open('dark_imager_findextend_3_00_jump.fits')
 #    hdul = fits.open('/users/mregan/downloads/dark_imager_baseline_2_00_jump.fits')
     jumpdiff = np.diff(hdul['SCI'].data, axis=1)
     data = hdul['SCI'].data
     gdq = hdul['groupdq'].data
-    ypix = 236
-    xpix = 319
+    ypix = 176
+    xpix = 282
     indata = data[0, :, ypix, xpix] - data[0, 2, ypix, xpix]
     indataraw = data[0, :, ypix, xpix]
     ingdq = gdq[0, :, ypix, xpix]
+    stx1 = 1
+
 #    ingdq[135] = 125
     nints, ngroups, nrows, ncols = 1, len(indata), 1, 1
     rnoise_val, gain_val = 100000, 1

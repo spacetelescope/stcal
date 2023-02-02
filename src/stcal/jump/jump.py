@@ -309,7 +309,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               edge_size=edge_size)
 
         gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
-                            min_shower_area=60, inner=1,
+                            min_shower_area=90, inner=1,
                             outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
