@@ -1024,11 +1024,11 @@ def test_median_func():
     assert calc_med_first_diffs(arr)[0, 0] == -1
 
 def test_sigma_clip():
-    hdul = fits.open('TSOjump_sc__linearity.fits')
-    data = hdul['SCI'].data
+    hdul = fits.open('TSOjump_sc__refpix.fits')
+    data = hdul['SCI'].data * 4.0
     gdq = hdul['GROUPDQ'].data
-    indata = np.reshape(data[:, :, 20:22, 40:42], (data.shape[0], data.shape[1], 2, 2))
-    ingdq = np.reshape(gdq[:, :, 20:22, 40:42], (data.shape[0], data.shape[1], 2, 2))
+    indata = np.reshape(data[:, :, 20:40, 40:60], (data.shape[0], data.shape[1], 20, 20))
+    ingdq = np.reshape(gdq[:, :, 20:40, 40:60], (data.shape[0], data.shape[1], 20, 20))
     read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
     gain = np.ones_like(indata) * 4.0
     hdul.close()
