@@ -251,7 +251,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                             if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
-
+        print("finish flag 4 neighbors")
         # flag n groups after jumps above the specified thresholds to account for
         # the transient seen after ramp jumps
         for integ in range(nints):
@@ -273,6 +273,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+    print("finish flag after jump")
     return gdq, row_below_gdq, row_above_gdq
 
 
