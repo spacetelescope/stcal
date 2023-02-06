@@ -102,8 +102,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         gdq = group_dq.copy()
     else:
         gdq = group_dq
-    fits.writeto("gdq_in.fits", gdq, overwrite=True)
-    # Get data characteristics
+     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
 
@@ -146,7 +145,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-        fits.writeto("first_diffs_mask.fits", first_diffs_masked.mask *1.0, overwrite=True)
         median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
         # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
@@ -169,7 +167,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             log.info(" Jump Step using selfcal sigma clip {} greater than {}".format(
                 str(total_groups), str(minimum_selfcal_groups)))
             mean, median, stddev = stats.sigma_clipped_stats(np.abs(first_diffs_masked), axis=(0,1))
-            fits.writeto("stddev.fits", stddev, overwrite=True)
             clipped_diffs = stats.sigma_clip(np.abs(first_diffs_masked), sigma=normal_rej_thresh,
                                              axis=(0,1), masked=True)
             max_diffs = np.nanmax(clipped_diffs, axis=(0, 1))
@@ -276,7 +273,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-    fits.writeto("output_2pt_gdq.fits", gdq, overwrite=True)
     return gdq, row_below_gdq, row_above_gdq
 
 
