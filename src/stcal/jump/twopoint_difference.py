@@ -3,7 +3,7 @@ import numpy as np
 import astropy.stats as stats
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-
+from astropy.io import fits
 
 def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
@@ -102,7 +102,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         gdq = group_dq.copy()
     else:
         gdq = group_dq
-
+    fits.writeto("gdq_in.fits", gdq, overwrite=True)
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
@@ -126,7 +126,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     for integ in range(dat.shape[0]):
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
-                gdqvalue = gdq[integ, grp, 0, 0]
                 num_flagged_grps += 1
     total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
     print("test total_groups", total_groups, "minimum groups", minimum_groups, "seflcal min groups",
@@ -158,9 +157,14 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # compared to 'threshold' to classify jumps. subtract the median of
         # first_diffs from first_diffs, take the abs. value and divide by sigma.
         e_jump = first_diffs - median_diffs[np.newaxis, :, :]
-        ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
+#        if nints > 1:
+
+#        else:
+
 
         if total_groups >= minimum_selfcal_groups:
+            ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
+                    sigma[np.newaxis, np.newaxis, :, :]
             log.info(" Jump Step using selfcal sigma clip {} greater than {}".format(
                 str(total_groups), str(minimum_selfcal_groups)))
             clipped_diffs = stats.sigma_clip(np.abs(first_diffs_masked), sigma=normal_rej_thresh,
@@ -174,8 +178,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_rms = rms_diff.filled(fill_value=np.nan)
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
+#            print(jump_mask[0:300,:, 0, 0])
         else:
-
+            ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / \
+                    sigma[np.newaxis, :, :]
             if ndiffs >= 4:
                 masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
             if ndiffs == 3:

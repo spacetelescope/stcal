@@ -1029,7 +1029,7 @@ def test_sigma_clip():
     gdq = hdul['GROUPDQ'].data
     indata = np.reshape(data[:, :, 20:21, 40:41], (data.shape[0], data.shape[1], 1, 1))
     ingdq = np.reshape(gdq[:, :, 20:21, 40:41], (data.shape[0], data.shape[1], 1, 1))
-    read_noise = np.ones_like(indata) * 5.9 * 4.0
+    read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
     gain = np.ones_like(indata) * 4.0
     hdul.close()
     find_crs(indata, ingdq, read_noise, 3,
