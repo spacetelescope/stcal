@@ -147,6 +147,18 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
+        median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
+        # calculate sigma for each pixel
+        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+
+        # reset sigma so pxels with 0 readnoise are not flagged as jumps
+        sigma[np.where(sigma == 0.)] = np.nan
+
+        # compute 'ratio' for each group. this is the value that will be
+        # compared to 'threshold' to classify jumps. subtract the median of
+        # first_diffs from first_diffs, take the abs. value and divide by sigma.
+        e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+        ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
 
         if total_groups >= minimum_selfcal_groups:
             log.info(" Jump Step using selfcal sigma clip {} greater than {}".format(
@@ -163,18 +175,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
         else:
-            median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
-            # calculate sigma for each pixel
-            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-
-            # reset sigma so pxels with 0 readnoise are not flagged as jumps
-            sigma[np.where(sigma == 0.)] = np.nan
-
-            # compute 'ratio' for each group. this is the value that will be
-            # compared to 'threshold' to classify jumps. subtract the median of
-            # first_diffs from first_diffs, take the abs. value and divide by sigma.
-            e_jump = first_diffs - median_diffs[np.newaxis, :, :]
-            ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
 
             if ndiffs >= 4:
                 masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
