@@ -123,10 +123,12 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     dat = dataa
     num_flagged_grps = 0
     # determine the number of groups with all pixels set to DO_NOT_USE
-    for grp in range(dat.shape[1]):
-        if np.all(np.bitwise_and(gdq[0, grp, :, :], dnu_flag)):
-            num_flagged_grps += 1
-    total_groups = dat.shape[0] * (dat.shape[1] - num_flagged_grps)
+    for integ in range(dat.shape[0]):
+        for grp in range(dat.shape[1]):
+            if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
+                gdqvalue = gdq[integ, grp, 0, 0]
+                num_flagged_grps += 1
+    total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
     print("test total_groups", total_groups, "minimum groups", minimum_groups, "seflcal min groups",
           minimum_selfcal_groups)
     if total_groups < minimum_groups:
@@ -145,18 +147,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-        median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
-        # calculate sigma for each pixel
-        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-
-        # reset sigma so pxels with 0 readnoise are not flagged as jumps
-        sigma[np.where(sigma == 0.)] = np.nan
-
-        # compute 'ratio' for each group. this is the value that will be
-        # compared to 'threshold' to classify jumps. subtract the median of
-        # first_diffs from first_diffs, take the abs. value and divide by sigma.
-        e_jump = first_diffs - median_diffs[np.newaxis, :, :]
-        ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
 
         if total_groups >= minimum_selfcal_groups:
             log.info(" Jump Step using selfcal sigma clip {} greater than {}".format(
@@ -173,6 +163,19 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
         else:
+            median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
+            # calculate sigma for each pixel
+            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+
+            # reset sigma so pxels with 0 readnoise are not flagged as jumps
+            sigma[np.where(sigma == 0.)] = np.nan
+
+            # compute 'ratio' for each group. this is the value that will be
+            # compared to 'threshold' to classify jumps. subtract the median of
+            # first_diffs from first_diffs, take the abs. value and divide by sigma.
+            e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+            ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / sigma[np.newaxis, :, :]
+
             if ndiffs >= 4:
                 masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
             if ndiffs == 3:

@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from astropy.io import fits
 
 from stcal.jump.twopoint_difference import find_crs, calc_med_first_diffs
 
@@ -1021,3 +1022,22 @@ def test_median_func():
     arr = np.zeros(4 * 2 * 2).reshape(4, 2, 2)
     arr[:, 0, 0] = np.array([-1., -2., np.nan, np.nan])
     assert calc_med_first_diffs(arr)[0, 0] == -1
+
+def test_sigma_clip():
+    hdul = fits.open('TSOjump_sc__linearity.fits')
+    data = hdul['SCI'].data
+    gdq = hdul['GROUPDQ'].data
+    indata = np.reshape(data[:, :, 20:21, 40:41], (data.shape[0], data.shape[1], 1, 1))
+    ingdq = np.reshape(gdq[:, :, 20:21, 40:41], (data.shape[0], data.shape[1], 1, 1))
+    read_noise = np.ones_like(indata) * 5.9 * 4.0
+    gain = np.ones_like(indata) * 4.0
+    hdul.close()
+    find_crs(indata, ingdq, read_noise, 3,
+             4, 5, 1,
+             True, 1000,
+             10, DQFLAGS,
+             after_jump_flag_e1=0.0,
+             after_jump_flag_n1=0,
+             after_jump_flag_e2=0.0,
+             after_jump_flag_n2=0,
+             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=100,)
