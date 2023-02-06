@@ -1027,8 +1027,8 @@ def test_sigma_clip():
     hdul = fits.open('TSOjump_sc__linearity.fits')
     data = hdul['SCI'].data
     gdq = hdul['GROUPDQ'].data
-    indata = np.reshape(data[:, :, 20:21, 40:41], (data.shape[0], data.shape[1], 1, 1))
-    ingdq = np.reshape(gdq[:, :, 20:21, 40:41], (data.shape[0], data.shape[1], 1, 1))
+    indata = np.reshape(data[:, :, 20:22, 40:42], (data.shape[0], data.shape[1], 2, 2))
+    ingdq = np.reshape(gdq[:, :, 20:22, 40:42], (data.shape[0], data.shape[1], 2, 2))
     read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
     gain = np.ones_like(indata) * 4.0
     hdul.close()

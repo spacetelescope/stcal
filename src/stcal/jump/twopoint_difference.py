@@ -178,7 +178,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_rms = rms_diff.filled(fill_value=np.nan)
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
-#            print(jump_mask[0:300,:, 0, 0])
+            trimmed_mask = jump_mask[:,1:-1,:,:]
+#            print(trimmed_mask[0:300,:, 0, 0])
+            print(np.sum(trimmed_mask))
         else:
             ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / \
                     sigma[np.newaxis, :, :]
@@ -192,8 +194,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             jump_mask = masked_ratio.mask
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
+        fits.writeto("jump_mask.fits", jump_mask, overwrite=True)
         gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask * dqflags["JUMP_DET"])
-
+        print("start flag 4 neighbors")
         if flag_4_neighbors:  # iterate over each 'jump' pixel
             cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
 
@@ -270,7 +273,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-
+    fits.writeto("output_2pt_gdq.fits", gdq, overwrite=True)
     return gdq, row_below_gdq, row_above_gdq
 
 
