@@ -196,6 +196,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             jump_mask = masked_ratio.mask
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
+        jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
 #        fits.writeto("jump_mask.fits", jump_mask *1.0, overwrite=True)
         gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask * dqflags["JUMP_DET"])
         print("start flag 4 neighbors")
