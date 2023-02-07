@@ -219,13 +219,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2)
 
-        #  This is the flag that controls the flagging of either snowballs or showers.
-        if expand_large_events:
-            flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
-                              min_jump_area=min_jump_area,
-                              expand_factor=expand_factor, use_ellipses=use_ellipses,
-                              sat_required_snowball=sat_required_snowball)
-
     else:
         yinc = int(n_rows / n_slices)
         slices = []
@@ -300,12 +293,12 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             k += 1
 
         #  This is the flag that controls the flagging of either snowballs or showers.
-        if expand_large_events:
-            flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
-                              min_jump_area=min_jump_area,
-                              expand_factor=expand_factor, use_ellipses=use_ellipses,
-                              sat_required_snowball=sat_required_snowball,
-                              edge_size=edge_size)
+    if expand_large_events:
+        flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
+                          min_jump_area=min_jump_area,
+                          expand_factor=expand_factor, use_ellipses=use_ellipses,
+                          sat_required_snowball=sat_required_snowball,
+                          edge_size=edge_size)
 
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
