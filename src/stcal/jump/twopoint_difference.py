@@ -138,10 +138,12 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # set 'saturated' or 'do not use' pixels to nan in data
         dat[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
         dat[np.where(np.bitwise_and(gdq, dnu_flag))] = np.nan
+        dat[np.where(np.bitwise_and(gdq, dnu_flag + sat_flag))] = np.nan
 
         # calculate the differences between adjacent groups (first diffs)
         # use mask on data, so the results will have sat/donotuse groups masked
         first_diffs = np.diff(dat, axis=1)
+        fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
