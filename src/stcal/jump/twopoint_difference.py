@@ -180,7 +180,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             jump_mask = clipped_diffs.mask
             trimmed_mask = jump_mask[:, 4:-1, :, :]
 #            print(trimmed_mask[0:300,:, 0, 0])
-            print("total masked pixels", np.sum(trimmed_mask))
+            print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
+                  trimmed_mask.shape[3])
+            print("done")
         else:
             ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / \
                     sigma[np.newaxis, :, :]
