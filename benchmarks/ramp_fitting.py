@@ -2,9 +2,362 @@ import numpy
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
-from tests.test_ramp_fitting import base_neg_med_rates_single_integration, base_neg_med_rates_multi_integrations, \
-    base_neg_med_rates_single_integration_multi_segment, setup_inputs, dqflags, jp_2326_test_setup, DNU, GOOD, SAT, \
-    run_one_group_ramp_suppression, create_zero_frame_data, create_blank_ramp_data
+
+dqflags = {
+    "GOOD": 0,  # Good pixel.
+    "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
+    "SATURATED": 2**1,  # Pixel saturated during exposure.
+    "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
+    "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
+}
+
+GOOD = dqflags["GOOD"]
+DNU = dqflags["DO_NOT_USE"]
+SAT = dqflags["SATURATED"]
+JUMP = dqflags["JUMP_DET"]
+
+
+def base_neg_med_rates_single_integration():
+    """
+    Creates single integration data for testing ensuring negative median rates.
+    """
+    nints, ngroups, nrows, ncols = 1, 10, 1, 1
+    rnoise_val, gain_val = 10.0, 1.0
+    nframes, gtime, dtime = 1, 1.0, 1
+    dims = (nints, ngroups, nrows, ncols)
+    var = (rnoise_val, gain_val)
+    tm = (nframes, gtime, dtime)
+    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+
+    # Set up negative ramp
+    neg_ramp = numpy.array([k + 1 for k in range(ngroups)])
+    nslope = -0.5
+    neg_ramp = neg_ramp * nslope
+    ramp_data.data[0, :, 0, 0] = neg_ramp
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
+
+    return slopes, cube, optional, gls_dummy
+
+
+def base_neg_med_rates_multi_integrations():
+    """
+    Creates multi-integration data for testing ensuring negative median rates.
+    """
+    nints, ngroups, nrows, ncols = 3, 10, 1, 1
+    rnoise_val, gain_val = 10.0, 1.0
+    nframes, gtime, dtime = 1, 1.0, 1
+    dims = (nints, ngroups, nrows, ncols)
+    var = (rnoise_val, gain_val)
+    tm = (nframes, gtime, dtime)
+    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+
+    # Set up negative ramp
+    neg_ramp = numpy.array([k + 1 for k in range(ngroups)])
+    nslope = -0.5
+    neg_ramp = neg_ramp * nslope
+    ramp_data.data[0, :, 0, 0] = neg_ramp
+    for k in range(1, nints):
+        n = k + 1
+        ramp_data.data[k, :, 0, 0] = neg_ramp * n
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
+
+    return slopes, cube, optional, gls_dummy, dims
+
+
+def base_neg_med_rates_single_integration_multi_segment():
+    """
+    Creates single integration, multi-segment data for testing ensuring
+    negative median rates.
+    """
+    nints, ngroups, nrows, ncols = 1, 15, 2, 1
+    rnoise_val, gain_val = 10.0, 1.0
+    nframes, gtime, dtime = 1, 1.0, 1
+    dims = (nints, ngroups, nrows, ncols)
+    var = (rnoise_val, gain_val)
+    tm = (nframes, gtime, dtime)
+    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+
+    # Set up negative ramp
+    neg_ramp = numpy.array([k + 1 for k in range(ngroups)])
+    nslope = -0.5
+    neg_ramp = neg_ramp * nslope
+    ramp_data.data[0, :, 0, 0] = neg_ramp
+
+    ramp_data.data[0, 5:, 1, 0] = ramp_data.data[0, 5:, 1, 0] + 50
+    ramp_data.groupdq[0, 5, 1, 0] = dqflags["JUMP_DET"]
+    ramp_data.data[0, 10:, 1, 0] = ramp_data.data[0, 10:, 1, 0] + 50
+    ramp_data.groupdq[0, 10, 1, 0] = dqflags["JUMP_DET"]
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
+
+    return slopes, cube, optional, gls_dummy, dims
+
+
+def setup_inputs(dims, var, tm):
+    """
+    Given dimensions, variances, and timing data, this creates test data to
+    be used for unit tests.
+    """
+    nints, ngroups, nrows, ncols = dims
+    rnoise, gain = var
+    nframes, gtime, dtime = tm
+
+    data = numpy.zeros(shape=(nints, ngroups, nrows, ncols), dtype=numpy.float32)
+    err = numpy.ones(shape=(nints, ngroups, nrows, ncols), dtype=numpy.float32)
+    pixdq = numpy.zeros(shape=(nrows, ncols), dtype=numpy.uint32)
+    gdq = numpy.zeros(shape=(nints, ngroups, nrows, ncols), dtype=numpy.uint8)
+
+    base_array = numpy.array([k + 1 for k in range(ngroups)])
+    base, inc = 1.5, 1.5
+    for row in range(nrows):
+        for col in range(ncols):
+            data[0, :, row, col] = base_array * base
+            base = base + inc
+
+    for c_int in range(1, nints):
+        data[c_int, :, :, :] = data[0, :, :, :].copy()
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_meta(
+        name="MIRI",
+        frame_time=dtime,
+        group_time=gtime,
+        groupgap=0,
+        nframes=nframes,
+        drop_frames1=None,
+    )
+    ramp_data.set_dqflags(dqflags)
+
+    gain = numpy.ones(shape=(nrows, ncols), dtype=numpy.float64) * gain
+    rnoise = numpy.full((nrows, ncols), rnoise, dtype=numpy.float32)
+
+    return ramp_data, rnoise, gain
+
+
+def jp_2326_test_setup():
+    """
+    Sets up data for MIRI testing DO_NOT_USE flags at the beginning of ramps.
+    """
+    # Set up ramp data
+    ramp = numpy.array(
+        [
+            120.133545,
+            117.85222,
+            87.38832,
+            66.90588,
+            51.392555,
+            41.65941,
+            32.15081,
+            24.25277,
+            15.955284,
+            9.500946,
+        ]
+    )
+    dnu = dqflags["DO_NOT_USE"]
+    dq = numpy.array([dnu, 0, 0, 0, 0, 0, 0, 0, 0, dnu])
+
+    nints, ngroups, nrows, ncols = 1, len(ramp), 1, 1
+    data = numpy.zeros((nints, ngroups, nrows, ncols))
+    gdq = numpy.zeros((nints, ngroups, nrows, ncols), dtype=numpy.uint8)
+    err = numpy.zeros((nints, ngroups, nrows, ncols))
+    pdq = numpy.zeros((nrows, ncols), dtype=numpy.uint32)
+
+    data[0, :, 0, 0] = ramp.copy()
+    gdq[0, :, 0, 0] = dq.copy()
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pdq)
+    ramp_data.set_meta(
+        name="MIRI",
+        frame_time=2.77504,
+        group_time=2.77504,
+        groupgap=0,
+        nframes=1,
+        drop_frames1=None,
+    )
+    ramp_data.set_dqflags(dqflags)
+
+    # Set up gain and read noise
+    gain = numpy.ones(shape=(nrows, ncols), dtype=numpy.float32) * 5.5
+    rnoise = numpy.ones(shape=(nrows, ncols), dtype=numpy.float32) * 1000.0
+
+    return ramp_data, gain, rnoise
+
+
+def run_one_group_ramp_suppression(nints, suppress):
+    """
+    Forms the base of the one group suppression tests.  Create three ramps
+    using three pixels with two integrations.  In the first integration:
+        The first ramp has no good groups.
+        The second ramp has one good groups.
+        The third ramp has all good groups.
+
+    In the second integration all pixels have all good groups.
+    """
+    # Define the data.
+    ngroups, nrows, ncols = 5, 1, 3
+    dims = (nints, ngroups, nrows, ncols)
+    rnoise, gain = 10, 1
+    nframes, group_time, frame_time = 1, 5.0, 1
+    var = rnoise, gain
+    tm = nframes, group_time, frame_time
+
+    # Using the above create the classes and arrays.
+    ramp_data, rnoise2d, gain2d = setup_inputs(dims, var, tm)
+
+    arr = numpy.array([k + 1 for k in range(ngroups)], dtype=float)
+
+    sat = ramp_data.flags_saturated
+    sat_dq = numpy.array([sat] * ngroups, dtype=ramp_data.groupdq.dtype)
+    zdq = numpy.array([0] * ngroups, dtype=ramp_data.groupdq.dtype)
+
+    ramp_data.data[0, :, 0, 0] = arr
+    ramp_data.data[0, :, 0, 1] = arr
+    ramp_data.data[0, :, 0, 2] = arr
+
+    ramp_data.groupdq[0, :, 0, 0] = sat_dq  # All groups sat
+    ramp_data.groupdq[0, :, 0, 1] = sat_dq  # 0th good, all others sat
+    ramp_data.groupdq[0, 0, 0, 1] = 0
+    ramp_data.groupdq[0, :, 0, 2] = zdq  # All groups good
+
+    if nints > 1:
+        ramp_data.data[1, :, 0, 0] = arr
+        ramp_data.data[1, :, 0, 1] = arr
+        ramp_data.data[1, :, 0, 2] = arr
+
+        # All good ramps
+        ramp_data.groupdq[1, :, 0, 0] = zdq
+        ramp_data.groupdq[1, :, 0, 1] = zdq
+        ramp_data.groupdq[1, :, 0, 2] = zdq
+
+    ramp_data.suppress_one_group_ramps = suppress
+
+    algo = "OLS"
+    save_opt, ncores, bufsize = False, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, dqflags
+    )
+
+    return slopes, cube, dims
+
+
+def create_zero_frame_data():
+    """
+    A two integration three pixel image.
+
+    The first integration:
+    1. Good first group with the remainder of the ramp being saturated.
+    2. Saturated ramp.
+    3. Saturated ramp with ZEROFRAME data used for the first group.
+
+    The second integration has all good groups with half the data values.
+    """
+    # Create meta data.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+    group_time = (nframes + groupgap) * frame_time
+    nints, ngroups, nrows, ncols = 2, 5, 1, 3
+    rnval, gval = 10.0, 5.0
+
+    # Create arrays for RampData.
+    data = numpy.zeros(shape=(nints, ngroups, nrows, ncols), dtype=numpy.float32)
+    err = numpy.ones(shape=(nints, ngroups, nrows, ncols), dtype=numpy.float32)
+    pixdq = numpy.zeros(shape=(nrows, ncols), dtype=numpy.uint32)
+    gdq = numpy.zeros(shape=(nints, ngroups, nrows, ncols), dtype=numpy.uint8)
+    zframe = numpy.ones(shape=(nints, nrows, ncols), dtype=numpy.float32)
+
+    # Create base ramps for each pixel in each integration.
+    base_slope = 2000.0
+    base_arr = [8000.0 + k * base_slope for k in range(ngroups)]
+    base_ramp = numpy.array(base_arr, dtype=numpy.float32)
+
+    data[0, :, 0, 0] = base_ramp
+    data[0, :, 0, 1] = base_ramp
+    data[0, :, 0, 2] = base_ramp
+    data[1, :, :, :] = data[0, :, :, :] / 2.0
+
+    # ZEROFRAME data.
+    fdn = (data[0, 1, 0, 0] - data[0, 0, 0, 0]) / (nframes + groupgap)
+    dummy = data[0, 0, 0, 2] - (fdn * 2.5)
+    zframe[0, 0, :] *= dummy
+    zframe[0, 0, 1] = 0.0  # ZEROFRAME is saturated too.
+    fdn = (data[1, 1, 0, 0] - data[1, 0, 0, 0]) / (nframes + groupgap)
+    dummy = data[1, 0, 0, 2] - (fdn * 2.5)
+    zframe[1, 0, :] *= dummy
+
+    # Set up group DQ array.
+    gdq[0, :, :, :] = dqflags["SATURATED"]
+    gdq[0, 0, 0, 0] = dqflags["GOOD"]
+
+    # Create RampData for testing.
+    ramp_data = RampData()
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_meta(
+        name="NIRCam",
+        frame_time=frame_time,
+        group_time=group_time,
+        groupgap=groupgap,
+        nframes=nframes,
+        drop_frames1=None,
+    )
+    ramp_data.set_dqflags(dqflags)
+
+    ramp_data.suppress_one_group_ramps = False
+    ramp_data.zeroframe = zframe
+
+    # Create variance arrays
+    gain = numpy.ones((nrows, ncols), numpy.float32) * gval
+    rnoise = numpy.ones((nrows, ncols), numpy.float32) * rnval
+
+    return ramp_data, gain, rnoise
+
+
+def create_blank_ramp_data(dims, var, tm):
+    """
+    Create empty RampData classes, as well as gain and read noise arrays,
+    based on dimensional, variance, and timing input.
+    """
+    nints, ngroups, nrows, ncols = dims
+    rnval, gval = var
+    frame_time, nframes, groupgap = tm
+    group_time = (nframes + groupgap) * frame_time
+
+    data = numpy.zeros(shape=(nints, ngroups, nrows, ncols), dtype=numpy.float32)
+    err = numpy.ones(shape=(nints, ngroups, nrows, ncols), dtype=numpy.float32)
+    pixdq = numpy.zeros(shape=(nrows, ncols), dtype=numpy.uint32)
+    gdq = numpy.zeros(shape=(nints, ngroups, nrows, ncols), dtype=numpy.uint8)
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_meta(
+        name="NIRSpec",
+        frame_time=frame_time,
+        group_time=group_time,
+        groupgap=groupgap,
+        nframes=nframes,
+        drop_frames1=None,
+    )
+    ramp_data.set_dqflags(dqflags)
+
+    gain = numpy.ones(shape=(nrows, ncols), dtype=numpy.float64) * gval
+    rnoise = numpy.ones(shape=(nrows, ncols), dtype=numpy.float64) * rnval
+
+    return ramp_data, gain, rnoise
 
 
 def time_neg_med_rates_single_integration_slope():
@@ -88,8 +441,8 @@ def time_utils_dq_compress_final():
           set, nor should it be set in the final DQ.
     """
     nints, ngroups, nrows, ncols = 2, 5, 1, 3
-    rnoise_val, gain_val = 10., 1.
-    nframes, gtime, dtime = 1, 1., 1
+    rnoise_val, gain_val = 10.0, 1.0
+    nframes, gtime, dtime = 1, 1.0, 1
     dims = (nints, ngroups, nrows, ncols)
     var = (rnoise_val, gain_val)
     tm = (nframes, gtime, dtime)
@@ -102,7 +455,9 @@ def time_utils_dq_compress_final():
 
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
-    ramp_fit_data(ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+    ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
 
 
 def time_miri_ramp_dnu_at_ramp_beginning():
@@ -115,7 +470,9 @@ def time_miri_ramp_dnu_at_ramp_beginning():
 
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
-    ramp_fit_data(ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+    ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
 
 
 def time_miri_ramp_dnu_and_jump_at_ramp_beginning():
@@ -129,7 +486,9 @@ def time_miri_ramp_dnu_and_jump_at_ramp_beginning():
 
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
-    ramp_fit_data(ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+    ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
 
 
 def time_2_group_cases():
@@ -138,19 +497,17 @@ def time_2_group_cases():
     with two groups to test the various DQ cases.
     """
     base_group = [-12328.601, -4289.051]
-    base_err = [0., 0.]
+    base_err = [0.0, 0.0]
     gain_val = 0.9699
     rnoise_val = 9.4552
 
     possibilities = [
         # Both groups are good
         [GOOD, GOOD],
-
         # Both groups are bad.  Note saturated 0th group kills group 1.
         [SAT, GOOD],
         [DNU | SAT, GOOD],
         [DNU, SAT],
-
         # One group is bad, while the other group is good.
         [DNU, GOOD],
         [GOOD, DNU],
@@ -192,13 +549,16 @@ def time_2_group_cases():
         group_time=14.58889,
         groupgap=0,
         nframes=1,
-        drop_frames1=None)
+        drop_frames1=None,
+    )
 
     ramp_data.set_dqflags(dqflags)
 
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
-    ramp_fit_data(ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
+    ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+    )
 
 
 def time_one_group_ramp_suppressed_one_integration():
@@ -245,7 +605,9 @@ def time_zeroframe():
     ramp_data, gain, rnoise = create_zero_frame_data()
 
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
-    ramp_fit_data(ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
+    ramp_fit_data(
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
 
 def time_all_sat():
@@ -253,7 +615,7 @@ def time_all_sat():
     Test all ramps in all integrations saturated.
     """
     nints, ngroups, nrows, ncols = 2, 5, 1, 3
-    rnval, gval = 10., 5.
+    rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
 
     dims = nints, ngroups, nrows, ncols
@@ -264,7 +626,9 @@ def time_all_sat():
     ramp.groupdq[:, 0, :, :] = ramp.flags_saturated
 
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
-    ramp_fit_data(ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
+    ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
 
 def time_dq_multi_int_dnu():
@@ -273,7 +637,7 @@ def time_dq_multi_int_dnu():
     in an integration are set to DO_NOT_USE.
     """
     nints, ngroups, nrows, ncols = 2, 5, 1, 1
-    rnval, gval = 10., 5.
+    rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
 
     dims = nints, ngroups, nrows, ncols
@@ -289,4 +653,6 @@ def time_dq_multi_int_dnu():
     ramp.groupdq[0, :, 0, 0] = numpy.array(dq_arr)
 
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
-    ramp_fit_data(ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
+    ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )

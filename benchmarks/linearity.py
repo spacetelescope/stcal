@@ -1,7 +1,15 @@
 import numpy
 
 from stcal.linearity.linearity import linearity_correction
-from tests.test_linearity import DQFLAGS
+
+DQFLAGS = {
+    "GOOD": 0,
+    "DO_NOT_USE": 1,
+    "SATURATED": 2,
+    "DEAD": 1024,
+    "HOT": 2048,
+    "NO_LIN_CORR": 1048576,
+}
 
 
 def time_coeff_dq():
@@ -30,11 +38,11 @@ def time_coeff_dq():
     # Equation is DNcorr = L0 + L1*DN(i) + L2*DN(i)^2 + L3*DN(i)^3 + L4*DN(i)^4
     # DN(i) = signal in pixel, Ln = coefficient from ref file
     # L0 = 0 for all pixels for CDP6
-    L0 = 0.0e+00
+    L0 = 0.0e00
     L1 = 0.85
-    L2 = 4.62E-6
-    L3 = -6.16E-11
-    L4 = 7.23E-16
+    L2 = 4.62e-6
+    L3 = -6.16e-11
+    L4 = 7.23e-16
 
     coeffs = numpy.asfarray([L0, L1, L2, L3, L4])
 
@@ -65,15 +73,15 @@ def time_coeff_dq():
     data[0, 30, 35, 36] = 35  # pixel to check that dq=2 meant no correction was applied
 
     # check if dq flags in pixeldq are correctly populated in output
-    pdq[50, 40] = DQFLAGS['DO_NOT_USE']
-    pdq[50, 41] = DQFLAGS['SATURATED']
-    pdq[50, 42] = DQFLAGS['DEAD']
-    pdq[50, 43] = DQFLAGS['HOT']
+    pdq[50, 40] = DQFLAGS["DO_NOT_USE"]
+    pdq[50, 41] = DQFLAGS["SATURATED"]
+    pdq[50, 42] = DQFLAGS["DEAD"]
+    pdq[50, 43] = DQFLAGS["HOT"]
 
     # set dq flags in DQ of reference file
-    lin_dq[35, 35] = DQFLAGS['DO_NOT_USE']
-    lin_dq[35, 36] = DQFLAGS['NO_LIN_CORR']
-    lin_dq[30, 50] = DQFLAGS['GOOD']
+    lin_dq[35, 35] = DQFLAGS["DO_NOT_USE"]
+    lin_dq[35, 36] = DQFLAGS["NO_LIN_CORR"]
+    lin_dq[30, 50] = DQFLAGS["GOOD"]
 
     numpy.bitwise_or(pdq, lin_dq)
 
@@ -93,10 +101,12 @@ def time_zero_frame():
     data, gdq, pdq, lin_coeffs, lin_dq, zframe = create_science_data(dims, ncoeffs)
 
     base = 31.459
-    data[0, :, 0, 0] = numpy.array([(k + 1) * base for k in range(ngroups)], dtype=float)
-    zframe[0, 0, :] = numpy.array([data[0, 0, 0, 0] * 0.666666, 0.])
+    data[0, :, 0, 0] = numpy.array(
+        [(k + 1) * base for k in range(ngroups)], dtype=float
+    )
+    zframe[0, 0, :] = numpy.array([data[0, 0, 0, 0] * 0.666666, 0.0])
 
-    lin_base = 2.718 / (base * 10.)
+    lin_base = 2.718 / (base * 10.0)
     coeffs = numpy.array([lin_base ** (k) for k in range(ncoeffs)], dtype=float)
     lin_coeffs[:, 0, 0] = coeffs
 
