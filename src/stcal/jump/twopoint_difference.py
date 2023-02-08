@@ -143,11 +143,11 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # calculate the differences between adjacent groups (first diffs)
         # use mask on data, so the results will have sat/donotuse groups masked
         first_diffs = np.diff(dat, axis=1)
-        fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
+#        fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
+#        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
         median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
 #        fits.writeto("median_diffs.fits", median_diffs.filled(fill_value=np.nan), overwrite=True)
         # calculate sigma for each pixel
@@ -182,7 +182,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_rms = rms_diff.filled(fill_value=np.nan)
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
-            fits.writeto("jump_mask.fits", jump_mask * 1.0, overwrite=True)
+#            fits.writeto("jump_mask.fits", jump_mask * 1.0, overwrite=True)
             trimmed_mask = jump_mask[:, 4:-1, :, :]
 #            print(trimmed_mask[0:300,:, 0, 0])
             print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
@@ -202,8 +202,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
-        fits.writeto("jump_mask2.fits", jump_mask * 1.0, overwrite=True)
-        fits.writeto("incoming_gdq.fits",gdq, overwrite=True)
+#        fits.writeto("jump_mask2.fits", jump_mask * 1.0, overwrite=True)
+#        fits.writeto("incoming_gdq.fits",gdq, overwrite=True)
         gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                          np.uint8(dqflags["JUMP_DET"]))
         #if grp is all jump set to do not use
