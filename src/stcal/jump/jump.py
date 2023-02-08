@@ -669,7 +669,7 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
                 print('grp', grp, cx, cy, cv.contourArea(con))
-            all_ellipses = all_ellipses + [integ, grp, ellipses]
+            all_ellipses = all_ellipses + [intg, grp, ellipses]
 #            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
             gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
                                                         expansion=ellipse_expand, expand_by_ratio=True)
