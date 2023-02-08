@@ -37,6 +37,9 @@ class RampData:
         # One group ramp suppression for saturated ramps after 0th group.
         self.suppress_one_group_ramps = False
 
+        self._1ggroups_locs = None
+        self._1ggroups_time = None
+
         self.current_integ = -1
 
     def set_arrays(self, data, err, groupdq, pixeldq):

@@ -569,6 +569,49 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     return ramp_data_slice
 
 
+def find_0th_one_good_group(ramp_data):
+    """
+    Finds the location of ramps with the 0th group as the only good group.
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+    """
+    # XXX JP-3077
+    nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
+    _1ggroup = [None] * nints
+    for integ in range(nints):
+        cintegdq = ramp_data.groupdq[integ, :, :, :]
+        
+        # Find pixels with good group 0
+        good_0 = np.zeros((nrows, ncols), dtype=int)
+        cintegdq_0  = cintegdq[0, :, :]
+        good_0[cintegdq_0 == 0] = 1  # Pixels with good 0 group
+
+        # Find pixels with only one good group
+        cinteg_sm = np.zeros((ngroups-1, nrows, ncols), dtype=int)
+        cintegdq_1 = cintegdq[1:, :, :]
+        cinteg_sm[cintegdq_1 != 0] = 1
+        gp_sum = cinteg_sm.sum(axis=0)
+        bad_1_ = np.zeros((nrows, ncols), dtype=int)
+        bad_1_[gp_sum == ngroups-1] = 1  # Pixels with groups 1: bad
+
+        # Get the locations of pixels that have good zeroeth group, with
+        # all other groups bad.
+        _1ggroup_int = np.logical_and(good_0, bad_1_)
+        _1ggroup[integ] = np.where(_1ggroup_int)
+
+        del _1ggroup_int
+        del good_0
+        del bad_1_
+
+    ramp_data._1ggroups_locs = _1ggroup
+    # (NFrames + 1) * TFrame / 2
+    nframes = ramp_data.nframes - ramp_data.groupgap
+    ramp_data._1ggroups_time = (nframes + 1) * ramp_data.frame_time / 2
+        
+
 def ols_ramp_fit_single(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
     """
@@ -610,10 +653,15 @@ def ols_ramp_fit_single(
     """
     tstart = time.time()
 
-    if not ramp_data.suppress_one_group_ramps and ramp_data.zeroframe is not None:
-        zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
-        ramp_data.zframe_locs = zframe_locs
-        ramp_data.cnt = cnt
+    # import ipdb; ipdb.set_trace()
+    if not ramp_data.suppress_one_group_ramps:
+        if ramp_data.zeroframe is not None:
+            zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
+            ramp_data.zframe_locs = zframe_locs
+            ramp_data.cnt = cnt
+        # XXX JP-3077 Add one group finder here.
+        if ramp_data.groupgap > 0:
+            find_0th_one_good_group(ramp_data)
 
     # Save original shapes for writing to log file, as these may change for MIRI
     n_int, ngroups, nrows, ncols = ramp_data.data.shape
