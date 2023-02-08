@@ -583,16 +583,16 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     den_p3 = 1. / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
 
     if ramp_data.zframe_locs:
-        integ_locs = ramp_data.zframe_locs[ramp_data.current_integ]
+        zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
         frame_time = ramp_data.frame_time
         tmp_den_p3 = den_p3[0, :, :]
-        tmp_den_p3[integ_locs] = 1. / (frame_time * gain_sect[integ_locs])
+        tmp_den_p3[zinteg_locs] = 1. / (frame_time * gain_sect[zinteg_locs])
         den_p3[0, :, :] = tmp_den_p3
 
     if ramp_data._1ggroups_time is not None:
-        integ_locs = ramp_data._1ggroups_locs[ramp_data.current_integ]
+        ginteg_locs = ramp_data._1ggroups_locs[ramp_data.current_integ]
         tmp_den_p3 = den_p3[0, :, :]
-        tmp_den_p3[integ_locs] = 1. / (ramp_data._1ggroups_time * gain_sect[integ_locs])
+        tmp_den_p3[ginteg_locs] = 1. / (ramp_data._1ggroups_time * gain_sect[ginteg_locs])
         den_p3[0, :, :] = tmp_den_p3
 
     warnings.resetwarnings()
@@ -602,13 +602,13 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     num_r3 = 12. * (rn_sect / group_time)**2.  # always >0
 
     if ramp_data.zframe_locs:
-        integ_locs = ramp_data.zframe_locs[ramp_data.current_integ]
+        zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
         frame_time = ramp_data.frame_time
-        num_r3[integ_locs] = 12. * (rn_sect[integ_locs] / frame_time)**2.
+        num_r3[zinteg_locs] = 12. * (rn_sect[zinteg_locs] / frame_time)**2.
 
     if ramp_data._1ggroups_time is not None:
-        integ_locs = ramp_data._1ggroups_locs[ramp_data.current_integ]
-        num_r3[integ_locs] = 12. * (rn_sect[integ_locs] / ramp_data._1ggroups_time)**2.
+        ginteg_locs = ramp_data._1ggroups_locs[ramp_data.current_integ]
+        num_r3[ginteg_locs] = 12. * (rn_sect[ginteg_locs] / ramp_data._1ggroups_time)**2.
 
     # Reshape for every group, every pixel in section
     num_r3 = np.dstack([num_r3] * max_seg)
@@ -1505,9 +1505,9 @@ def compute_median_rates(ramp_data):
             data_sect[0, :, :] = tmp_dsect
 
         if ramp_data.zframe_locs is not None:
-            integ_locs = ramp_data.zframe_locs[integ]
+            zinteg_locs = ramp_data.zframe_locs[integ]
             tmp_dsect = data_sect[0, :, :]
-            tmp_dsect[integ_locs] = tmp_dsect[integ_locs] * adjustment
+            tmp_dsect[zinteg_locs] = tmp_dsect[zinteg_locs] * adjustment
             data_sect[0, :, :] = tmp_dsect
 
         # Compute the first differences of all groups

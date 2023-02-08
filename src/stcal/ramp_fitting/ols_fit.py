@@ -655,13 +655,17 @@ def ols_ramp_fit_single(
 
     # import ipdb; ipdb.set_trace()
     if not ramp_data.suppress_one_group_ramps:
+        # XXX JP-3077 Add one group finder here.
+        # This must be done before the ZEROFRAME replacements to prevent
+        # ZEROFRAME replacement being confused for one good group ramps
+        # in the 0th group.
+        if ramp_data.groupgap > 0:
+            find_0th_one_good_group(ramp_data)
+
         if ramp_data.zeroframe is not None:
             zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
             ramp_data.zframe_locs = zframe_locs
             ramp_data.cnt = cnt
-        # XXX JP-3077 Add one group finder here.
-        if ramp_data.groupgap > 0:
-            find_0th_one_good_group(ramp_data)
 
     # Save original shapes for writing to log file, as these may change for MIRI
     n_int, ngroups, nrows, ncols = ramp_data.data.shape
