@@ -479,7 +479,6 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
     return outcube
 
 
-
 def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.9, expand_by_ratio=True):
     # For a given DQ plane it will use the list of ellipses to create expanded ellipses of pixels with
     # the jump flag set.
@@ -618,6 +617,7 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
     data[gdq == jump_flag] = np.nan
+    all_ellipses = []
     for intg in range(data.shape[0]):
         diff = np.diff(data[intg], axis=0)
         median_diffs = np.nanmedian(diff, axis=0)
@@ -630,8 +630,8 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
         fits.writeto("diffs.fits", diff, overwrite=True)
         fits.writeto("ratio.fits", ratio, overwrite=True)
         fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
+        ring_2D_kernel = Ring2DKernel(inner, outer)
         for grp in range(1, ratio.shape[0] + 1):
-            ring_2D_kernel = Ring2DKernel(inner, outer)
             masked_ratio = ratio[grp-1].copy()
             jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
             masked_ratio[jumpy, jumpx] = np.nan
@@ -669,10 +669,11 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
                 print('grp', grp, cx, cy, cv.contourArea(con))
-
+            all_ellipses = all_ellipses + [integ, grp, ellipses]
 #            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
             gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
                                                         expansion=ellipse_expand, expand_by_ratio=True)
             if grp == 1 and intg == 0:
                 fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
+    print("all ellipses", all_ellipses)
     return gdq
