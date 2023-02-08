@@ -608,8 +608,7 @@ def find_0th_one_good_group(ramp_data):
 
     ramp_data._1ggroups_locs = _1ggroup
     # (NFrames + 1) * TFrame / 2
-    nframes = ramp_data.nframes - ramp_data.groupgap
-    ramp_data._1ggroups_time = (nframes + 1) * ramp_data.frame_time / 2
+    ramp_data._1ggroups_time = (ramp_data.nframes + 1) * ramp_data.frame_time / 2
         
 
 def ols_ramp_fit_single(

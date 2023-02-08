@@ -797,19 +797,19 @@ def test_zeroframe():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[30.196423, 18.62891, 23.787909]])
+    check = np.array([[32.78594, 18.62891, 23.787909]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
-    check = np.array([[0.165631, 0.00867591, 0.29745975]])
+    check = np.array([[0.13110262, 0.00867591, 0.29745975]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
     check = np.array([[0.00043035, 0.0004338, 0.00043293]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.40750626, 0.09544477, 0.54579544]])
+    check = np.array([[0.36267212, 0.09544477, 0.54579544]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
@@ -826,16 +826,16 @@ def test_zeroframe():
                       [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol, tol)
 
-    check = np.array([[[1.821941, 0., 6.246655]],
-                      [[0.1821941, 0.00867591, 0.31233275]]])
+    check = np.array([[[1.1799237 , 0.        , 6.246655  ]],
+                      [[0.14749046, 0.00867591, 0.31233275]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[0.05422444, 0., 0.21689774]],
+    check = np.array([[[0.03470363, 0., 0.21689774]],
                       [[0.0004338, 0.0004338, 0.0004338]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
-    check = np.array([[[1.3697318, 0., 2.542352]],
-                      [[0.42734987, 0.09544477, 0.55925536]]])
+    check = np.array([[[1.1021013, 0., 2.542352]],
+                      [[0.38460922, 0.09544477, 0.55925536]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
