@@ -142,13 +142,14 @@ class RampData:
         # Meta information
         print("-" * 80)
         print("    Meta:")
-        print(f"Instumet: {self.instrument_name}")
+        print(f"Instrument: {self.instrument_name}")
 
         print(f"Frame time : {self.frame_time}")
         print(f"Group time : {self.group_time}")
         print(f"Group Gap : {self.groupgap}")
         print(f"Nframes : {self.nframes}")
         print(f"Drop Frames : {self.drop_frames1}")
+        print("-" * 80)
 
     def dbg_print_mp(self):
         # Multiprocessing
@@ -171,14 +172,15 @@ class RampData:
 
     def dbg_print_basic_info(self):
         # Arrays from the data model
-        print("-" * 80)
-        print(f"Shape : {self.data.shape}")
-        print(f"data : {self.data}")
-        print(f"err : {self.err}")
-        print(f"groupdq : {self.groupdq}")
-        print(f"pixeldq : {self.pixeldq}")
-
         self.dbg_print_meta()
+
+        print(f"Shape : {self.data.shape}")
+        print(f"data : \n{self.data}")
+        print(f"err : \n{self.err}")
+        print(f"groupdq : \n{self.groupdq}")
+        print(f"pixeldq : \n{self.pixeldq}")
+        print("-" * 80)
+
 
     def dbg_print_pixel_info(self, row, col):
         print("-" * 80)
