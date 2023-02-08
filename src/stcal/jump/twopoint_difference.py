@@ -94,7 +94,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
 
     """
 
-    # copy data and group DQ array
+# copy data and group DQ array
     if copy_arrs:
         dataa = dataa.copy()
         gdq = group_dq.copy()
