@@ -118,7 +118,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     dnu_flag = dqflags["DO_NOT_USE"]
     jump_flag = dqflags["JUMP_DET"]
 
-    # get data, gdq for this integration
+    # get data, gdq
     dat = dataa
     num_flagged_grps = 0
     # determine the number of groups with all pixels set to DO_NOT_USE
@@ -206,7 +206,12 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         fits.writeto("incoming_gdq.fits",gdq, overwrite=True)
         gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                          np.uint8(dqflags["JUMP_DET"]))
-
+        #if grp is all jump set to do not use
+        for integ in range(dat.shape[0]):
+            for grp in range(dat.shape[1]):
+                if np.all(np.bitwise_or(np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
+                                        np.bitwise_and(gdq[integ, grp, :, :], sat_flag))):
+                    gdq[integ, grp, :, :] = dnu_flag
         print("start flag 4 neighbors")
         if flag_4_neighbors:  # iterate over each 'jump' pixel
             cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
