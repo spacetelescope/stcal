@@ -10,6 +10,10 @@ ramp_fitting
 - Fixed zeros that should be NaNs in rate and rateints product and suppressed
   a cast warning due to attempts to cast NaN to an integer. [#141]
 
+- Changed computations for ramps that have only one good group in the 0th
+  group.  Ramps that have a non-zero groupgap should not use group_time, but
+  (NFrames+1)*TFrame/2, instead. [#142]
+
 Changes to API
 --------------
 
