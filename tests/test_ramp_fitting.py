@@ -902,6 +902,8 @@ def test_only_good_0th_group():
     2. A saturated ramp starting at group 2 with the first two groups good.
     3. A saturated ramp starting at group 1 with only group 0 good.
     """
+
+    # Dimensions are (1, 5, 1, 3)
     ramp_data, gain, rnoise = create_only_good_0th_group_data()
     
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000

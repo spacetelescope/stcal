@@ -578,7 +578,6 @@ def find_0th_one_good_group(ramp_data):
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
     """
-    # XXX JP-3077
     nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
     _1ggroup = [None] * nints
     for integ in range(nints):
@@ -652,9 +651,7 @@ def ols_ramp_fit_single(
     """
     tstart = time.time()
 
-    # import ipdb; ipdb.set_trace()
     if not ramp_data.suppress_one_group_ramps:
-        # XXX JP-3077 Add one group finder here.
         # This must be done before the ZEROFRAME replacements to prevent
         # ZEROFRAME replacement being confused for one good group ramps
         # in the 0th group.
