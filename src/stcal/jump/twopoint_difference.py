@@ -162,7 +162,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         e_jump = first_diffs - median_diffs[np.newaxis, :, :]
 #        if nints > 1:
 
-#        else:
 
 
         if total_groups >= minimum_selfcal_groups:
