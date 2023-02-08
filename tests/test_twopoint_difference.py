@@ -1027,17 +1027,19 @@ def test_sigma_clip():
     hdul = fits.open('TSOjump_sc__refpix.fits')
     data = hdul['SCI'].data * 4.0
     gdq = hdul['GROUPDQ'].data
-    indata = np.reshape(data[:, :, 20:40, 40:60], (data.shape[0], data.shape[1], 20, 20))
-    ingdq = np.reshape(gdq[:, :, 20:40, 40:60], (data.shape[0], data.shape[1], 20, 20))
+    indata = data[:14, :, :, :]
+    ingdq = gdq[:14, :, :, :]
     read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
     gain = np.ones_like(indata) * 4.0
     hdul.close()
-    find_crs(indata, ingdq, read_noise, 3,
+    gdq, row_below_gdq, row_above_gdq = find_crs(indata, ingdq, read_noise, 3,
              4, 5, 1,
-             True, 1000,
+             False, 1000,
              10, DQFLAGS,
              after_jump_flag_e1=0.0,
              after_jump_flag_n1=0,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
-             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=100,)
+             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=50,)
+    fits.writeto("outgdq.fits", gdq, overwrite=True)
+    print('done')
