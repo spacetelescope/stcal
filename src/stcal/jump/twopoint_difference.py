@@ -101,6 +101,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
     else:
         gdq = group_dq
 
+
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
