@@ -14,8 +14,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
              copy_arrs=True):
-
-    """
+   """
     Find CRs/Jumps in each integration within the input data array. The input
     data array is assumed to be in units of electrons, i.e. already multiplied
     by the gain. We also assume that the read noise is in units of electrons.
