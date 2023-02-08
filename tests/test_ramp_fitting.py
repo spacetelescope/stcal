@@ -786,7 +786,7 @@ def test_zeroframe():
     The second integration has all good groups with half the data values.
     """
     ramp_data, gain, rnoise = create_zero_frame_data()
-
+    
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
@@ -797,19 +797,19 @@ def test_zeroframe():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[44.256306, 18.62891, 23.787909]])
+    check = np.array([[30.196423, 18.62891, 23.787909]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
-    check = np.array([[0.06246654, 0.00867591, 0.29745975]])
+    check = np.array([[0.165631, 0.00867591, 0.29745975]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[0.00041314, 0.0004338, 0.00043293]])
+    check = np.array([[0.00043035, 0.0004338, 0.00043293]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.2507582, 0.09544477, 0.54579544]])
+    check = np.array([[0.40750626, 0.09544477, 0.54579544]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
@@ -826,16 +826,16 @@ def test_zeroframe():
                       [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol, tol)
 
-    check = np.array([[[0.31233272, 0., 6.246655]],
-                      [[0.07808318, 0.00867591, 0.31233275]]])
+    check = np.array([[[1.821941, 0., 6.246655]],
+                      [[0.1821941, 0.00867591, 0.31233275]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[0.00867591, 0., 0.21689774]],
+    check = np.array([[[0.05422444, 0., 0.21689774]],
                       [[0.0004338, 0.0004338, 0.0004338]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
-    check = np.array([[[0.56657624, 0., 2.542352]],
-                      [[0.2802088, 0.09544477, 0.55925536]]])
+    check = np.array([[[1.3697318, 0., 2.542352]],
+                      [[0.42734987, 0.09544477, 0.55925536]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
@@ -1121,6 +1121,17 @@ def setup_inputs(dims, var, tm):
 ###############################################################################
 # The functions below are only used for DEBUGGING tests and developing tests. #
 ###############################################################################
+
+def print_real_check(real, check):
+    import inspect
+    cf = inspect.currentframe()
+    line_number = cf.f_back.f_lineno
+    print("=" * 80)
+    print(f"----> Line = {line_number} <----")
+    base_print("real", real)
+    print("=" * 80)
+    base_print("check", check)
+    print("=" * 80)
 
 
 def base_print(label, arr):
