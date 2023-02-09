@@ -480,8 +480,8 @@ def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag, expansio
                     num_grps_masked=1):
     # For a given DQ plane it will use the list of ellipses to create expanded ellipses of pixels with
     # the jump flag set.
-    plane = cube[intg, grp, :, :]
-    max_grp = cube.shape[1]
+    plane = gdq_cube[intg, grp, :, :]
+    max_grp = gdq_cube.shape[1]
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
     sat_pix = np.bitwise_and(plane, sat_flag)
@@ -506,7 +506,7 @@ def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag, expansio
         image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
                            round(axis2 / 2)), alpha, 0, 360, (0, 0, jump_flag), -1)
         jump_ellipse = image[:, :, 2]
-        last_grp = min(grp + num_grps_masked, cube.shape[1])
+        last_grp = min(grp + num_grps_masked, gdq_cube.shape[1])
         for flg_grp in range(grp, last_grp):
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
             saty, satx = np.where(sat_pix == sat_flag)
@@ -634,6 +634,7 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
         fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
         ring_2D_kernel = Ring2DKernel(inner, outer)
         for grp in range(1, ratio.shape[0] + 1):
+            ellipses = []
             masked_ratio = ratio[grp-1].copy()
             jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
             masked_ratio[jumpy, jumpx] = np.nan
@@ -671,7 +672,13 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
                 print('grp', grp, cx, cy, cv.contourArea(con))
-            all_ellipses = all_ellipses + [intg, grp, ellipses]
+            if len(ellipses) > 0:
+                if not all_ellipses:
+                    all_ellipses = [[intg, grp, ellipses]]
+                else:
+                    new_element = [intg, grp, ellipses]
+                    all_ellipses.append(new_element)
+            test = 7
 #            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
 #            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
 #                                                        expansion=ellipse_expand, expand_by_ratio=True)
@@ -679,11 +686,12 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
 #                fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
 #    saty, satx = np.where(sat_pix == sat_flag)
 #    jump_ellipse[saty, satx] = 0
-    for shower in all_ellipses:
-        intg = shower[0]
-        grp = shower[1]
-        ellipse = shower[2]
-        gdq[intg, grp, :, :], num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag, jump_flag,
+    if all_ellipses:
+        for shower in all_ellipses:
+            intg = shower[0]
+            grp = shower[1]
+            ellipses = shower[2]
+            gdq, num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag, jump_flag,
                                                     expansion=ellipse_expand, expand_by_ratio=True,
                                                     num_grps_masked=num_grps_masked)
     return gdq

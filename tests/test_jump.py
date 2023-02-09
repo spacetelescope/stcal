@@ -270,16 +270,13 @@ def test_extended1():
 #    [print(cv.contourArea(con)) for con in contours]
 ##    [print('moment', cv.moments(con)['m10']/cv.moments(con)['m00'], cv.moments(con)['m01']/cv.moments(con)['m00']) for con in contours]
 def test_extended_dblshw():
-    incube = fits.getdata("input_jump_cube.afterle.fits") * 3.9
+    incube = fits.getdata("dark_imager_findextend_5_00_refpix.fits") * 3.9
  #   testcube = np.expand_dims(incube[0, 12:14, :, :], 0)
-    testcube = np.expand_dims(incube[0, 28:128, :, :], 0)
-    gdq = fits.getdata("input_jump_dblshw.fits")
+    testcube = np.expand_dims(incube[0, 25:38, :, :], 0)
+    gdq = fits.getdata("input_jump_cube_after_le.fits")
 #    gdq = hdl['GROUPDQ'].data
 #    testgdq = np.expand_dims(gdq[0, 230:240, :, :], 0)
-    testgdq = np.expand_dims(gdq[0, 28:128, :, :], 0)
-
-#    pdq = hdl['pixeldq'].data
-
+    testgdq = np.expand_dims(gdq[0, 25:38, :, :], 0)
     readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits') * 3.9
     gain_2d = np.zeros_like(readnoise_2)
     gain_2d[:, :] = 3.9
