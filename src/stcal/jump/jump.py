@@ -677,8 +677,8 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
 #                                                        expansion=ellipse_expand, expand_by_ratio=True)
 #            if grp == 1 and intg == 0:
 #                fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
-    saty, satx = np.where(sat_pix == sat_flag)
-    jump_ellipse[saty, satx] = 0
+#    saty, satx = np.where(sat_pix == sat_flag)
+#    jump_ellipse[saty, satx] = 0
     for shower in all_ellipses:
         intg = shower[0]
         grp = shower[1]

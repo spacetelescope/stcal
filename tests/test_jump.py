@@ -270,7 +270,7 @@ def test_extended1():
 #    [print(cv.contourArea(con)) for con in contours]
 ##    [print('moment', cv.moments(con)['m10']/cv.moments(con)['m00'], cv.moments(con)['m01']/cv.moments(con)['m00']) for con in contours]
 def test_extended_dblshw():
-    incube = fits.getdata("input_jump_cube.dblshw.fits") * 3.9
+    incube = fits.getdata("input_jump_cube.afterle.fits") * 3.9
  #   testcube = np.expand_dims(incube[0, 12:14, :, :], 0)
     testcube = np.expand_dims(incube[0, 28:128, :, :], 0)
     gdq = fits.getdata("input_jump_dblshw.fits")
