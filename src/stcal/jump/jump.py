@@ -666,18 +666,14 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                         M = cv.moments(con)
                         cx = int(M['m10'] / M['m00'])
                         cy = int(M['m01'] / M['m00'])
-                        print("area", cx, cy, cv.contourArea(con))
+#                        print("area", cx, cy, cv.contourArea(con))
             for con in bigcontours:
                 M = cv.moments(con)
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
-                print('grp', grp, cx, cy, cv.contourArea(con))
+#                print('grp', grp, cx, cy, cv.contourArea(con))
             if len(ellipses) > 0:
-                if not all_ellipses:
-                    all_ellipses = [[intg, grp, ellipses]]
-                else:
-                    new_element = [intg, grp, ellipses]
-                    all_ellipses.append(new_element)
+                    all_ellipses.append([intg, grp, ellipses])
             test = 7
 #            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
 #            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
@@ -687,10 +683,10 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
 #    saty, satx = np.where(sat_pix == sat_flag)
 #    jump_ellipse[saty, satx] = 0
     if all_ellipses:
-        for shower in all_ellipses:
-            intg = shower[0]
-            grp = shower[1]
-            ellipses = shower[2]
+        for showers in all_ellipses:
+            intg = showers[0]
+            grp = showers[1]
+            ellipses = showers[2]
             gdq, num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag, jump_flag,
                                                     expansion=ellipse_expand, expand_by_ratio=True,
                                                     num_grps_masked=num_grps_masked)
