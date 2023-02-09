@@ -299,7 +299,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-
+#        fits.writeto("input_jump_cube.fits", gdq, overwrite=True)
         #  This is the flag that controls the flagging of either snowballs or showers.
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
@@ -307,7 +307,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               expand_factor=expand_factor, use_ellipses=use_ellipses,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size)
-
+        fits.writeto("input_jump_cube_after_le.fits", gdq, overwrite=True)
         gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
                             min_shower_area=90, inner=1,
                             outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1)
@@ -366,8 +366,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 jump_ellipses = find_ellipses(new_flagged_pixels.astype('uint8'), jump_flag, min_jump_area)
                 n_showers_grp_ellipse.append(len(jump_ellipses))
                 gdq[integration, group, :, :], num_events = \
-                    extend_ellipses(gdq[integration, group, :, :],
-                                    jump_ellipses, sat_flag, jump_flag,
+                    extend_ellipses(gdq, integration, group, jump_ellipses, sat_flag, jump_flag,
                                     expansion=expand_factor)
             else:
                 current_gdq = 1.0 * gdq[integration, group, :, :]
@@ -416,10 +415,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 else:
                     snowballs = jump_ellipses
                 n_showers_grp.append(len(snowballs))
-                gdq[integration, group, :, :], num_events = extend_ellipses(gdq[integration, group, :, :],
-                                                                             snowballs, sat_flag,
-                                                                             jump_flag,
-                                                                             expansion=expand_factor)
+                gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
+                                                  jump_flag, expansion=expand_factor)
 #                fits.writeto("final_gdq.fits", gdq[integration, group,:, :], overwrite=True)
         fits.writeto("last_gdq_inside.fits", gdq, overwrite=True)
         if use_ellipses:
@@ -479,9 +476,12 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
     return outcube
 
 
-def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.9, expand_by_ratio=True):
+def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag, expansion=1.9, expand_by_ratio=True,
+                    num_grps_masked=1):
     # For a given DQ plane it will use the list of ellipses to create expanded ellipses of pixels with
     # the jump flag set.
+    plane = cube[intg, grp, :, :]
+    max_grp = cube.shape[1]
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
     sat_pix = np.bitwise_and(plane, sat_flag)
@@ -506,11 +506,13 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.9, expand_
         image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
                            round(axis2 / 2)), alpha, 0, 360, (0, 0, jump_flag), -1)
         jump_ellipse = image[:, :, 2]
-        #  don't add any jump flags to pixels that are already saturated
-        saty, satx = np.where(sat_pix == sat_flag)
-        jump_ellipse[saty, satx] = 0
-        plane = np.bitwise_or(plane, jump_ellipse)
-    return plane, num_ellipses
+        last_grp = min(grp + num_grps_masked, cube.shape[1])
+        for flg_grp in range(grp, last_grp):
+            sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
+            saty, satx = np.where(sat_pix == sat_flag)
+            jump_ellipse[saty, satx] = 0
+            gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
+    return gdq_cube, num_ellipses
 
 
 def find_circles(dqplane, bitmask, min_area):
@@ -610,7 +612,7 @@ def near_edge(jump, low_threshold, high_threshold):
         return False
 
 def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, min_shower_area=40, inner=1,
-                            outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1):
+                            outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1, num_grps_masked=10):
     print("input to find_faint_extended")
     print(np.nanmedian(read_noise_2d), nframes, snr_threshold, min_shower_area, inner, outer, sat_flag, jump_flag, ellipse_expand)
     read_noise_2 = read_noise_2d**2
@@ -671,9 +673,17 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                 print('grp', grp, cx, cy, cv.contourArea(con))
             all_ellipses = all_ellipses + [intg, grp, ellipses]
 #            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
-            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
-                                                        expansion=ellipse_expand, expand_by_ratio=True)
-            if grp == 1 and intg == 0:
-                fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
-    print("all ellipses", all_ellipses)
+#            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
+#                                                        expansion=ellipse_expand, expand_by_ratio=True)
+#            if grp == 1 and intg == 0:
+#                fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
+    saty, satx = np.where(sat_pix == sat_flag)
+    jump_ellipse[saty, satx] = 0
+    for shower in all_ellipses:
+        intg = shower[0]
+        grp = shower[1]
+        ellipse = shower[2]
+        gdq[intg, grp, :, :], num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag, jump_flag,
+                                                    expansion=ellipse_expand, expand_by_ratio=True,
+                                                    num_grps_masked=num_grps_masked)
     return gdq
