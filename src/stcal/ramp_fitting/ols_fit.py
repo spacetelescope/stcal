@@ -579,9 +579,9 @@ def find_0th_one_good_group(ramp_data):
         Input data necessary for computing ramp fitting.
     """
     nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
-    _1ggroup = [None] * nints
+    _1ggroup = [None] * nints  # One good group list of pixels per integration
     for integ in range(nints):
-        cintegdq = ramp_data.groupdq[integ, :, :, :]
+        cintegdq = ramp_data.groupdq[integ, :, :, :]  # Current integration DQ array
         
         # Find pixels with good group 0
         good_0 = np.zeros((nrows, ncols), dtype=int)
@@ -590,11 +590,11 @@ def find_0th_one_good_group(ramp_data):
 
         # Find pixels with only one good group
         cinteg_sm = np.zeros((ngroups-1, nrows, ncols), dtype=int)
-        cintegdq_1 = cintegdq[1:, :, :]
-        cinteg_sm[cintegdq_1 != 0] = 1
-        gp_sum = cinteg_sm.sum(axis=0)
+        cintegdq_1 = cintegdq[1:, :, :]  # Current integration DQ array excluding 0th group
+        cinteg_sm[cintegdq_1 != 0] = 1  # Mark flagged groups to use in sum
+        gp_sum = cinteg_sm.sum(axis=0)  # Find the number of flagged groups excluding 0th group
         bad_1_ = np.zeros((nrows, ncols), dtype=int)
-        bad_1_[gp_sum == ngroups-1] = 1  # Pixels with groups 1: bad
+        bad_1_[gp_sum == ngroups-1] = 1  # Pixels with all groups flagged after the 0th group
 
         # Get the locations of pixels that have good zeroeth group, with
         # all other groups bad.

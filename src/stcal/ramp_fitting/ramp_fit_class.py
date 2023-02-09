@@ -37,8 +37,8 @@ class RampData:
         # One group ramp suppression for saturated ramps after 0th group.
         self.suppress_one_group_ramps = False
 
-        self._1ggroups_locs = None
-        self._1ggroups_time = None
+        self._1ggroups_locs = None  # One good group locations.
+        self._1ggroups_time = None  # Time to use for one good group ramps.
 
         self.current_integ = -1
 

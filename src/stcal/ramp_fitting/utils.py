@@ -1480,9 +1480,9 @@ def compute_median_rates(ramp_data):
     adjustment = group_time / frame_time
 
     if ramp_data._1ggroups_time is not None:
-        _1ggroups_time = group_time / ramp_data._1ggroups_time
+        _1ggroups_time_adjustment = group_time / ramp_data._1ggroups_time
     else:
-        _1ggroups_time = None
+        _1ggroups_time_adjustment = None
 
     median_diffs_2d = np.zeros(imshape, dtype=np.float32)
 
@@ -1498,10 +1498,10 @@ def compute_median_rates(ramp_data):
 
         data_sect = data_sect / group_time
 
-        if _1ggroups_time is not None:
+        if _1ggroups_time_adjustment is not None:
             _1ggroups_locs = ramp_data._1ggroups_locs[integ]
             tmp_dsect = data_sect[0, :, :]
-            tmp_dsect[_1ggroups_locs] = tmp_dsect[_1ggroups_locs] * _1ggroups_time
+            tmp_dsect[_1ggroups_locs] = tmp_dsect[_1ggroups_locs] * _1ggroups_time_adjustment
             data_sect[0, :, :] = tmp_dsect
 
         if ramp_data.zframe_locs is not None:
