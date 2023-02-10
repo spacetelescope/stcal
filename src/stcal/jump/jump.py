@@ -37,7 +37,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  use_ellipses=False,
                  sat_required_snowball=True,
                  expand_large_events=True,
-                 find_showers=False,
+                 find_showers=True,
                  edge_size = 25, extend_snr_threshold=1.2, extend_min_area=90, extend_inner_radius=1,
                  extend_outer_radius=2.6, extend_ellipse_expand_ratio = 1.1, extend_grps_masked=5):
 
@@ -315,7 +315,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
                             min_shower_area=90, inner=1,
                             outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1,
-                            num_grps_masked=5)
+                            num_grps_masked=extend_grps_masked)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
