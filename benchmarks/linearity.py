@@ -12,6 +12,31 @@ DQFLAGS = {
 }
 
 
+def create_science_data(dims, ncoeffs):
+    """
+    Create science data arrays with specific dimensions.
+
+    dims : tuple
+        The dimensions of the science data (nints, ngroups, nrows, ncols).
+
+    ncoeffs : int
+        The number of coefficients for the linear correction.
+    """
+    nints, ngroups, nrows, ncols = dims
+    image_shape = (nrows, ncols)
+    coeffs_shape = (ncoeffs, nrows, ncols)
+
+    data = numpy.zeros(dims, dtype=float)
+    gdq = numpy.zeros(dims, dtype=numpy.uint8)
+    pdq = numpy.zeros(image_shape, dtype=numpy.uint8)
+    zframe = numpy.zeros((nints, nrows, ncols), dtype=float)
+
+    lin_coeffs = numpy.zeros(coeffs_shape, dtype=float)
+    lin_dq = numpy.zeros(image_shape, dtype=numpy.uint32)
+
+    return data, gdq, pdq, lin_coeffs, lin_dq, zframe
+
+
 def time_coeff_dq():
     """
     Test linearity algorithm with random data ramp (does
