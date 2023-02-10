@@ -579,7 +579,7 @@ def find_0th_one_good_group(ramp_data):
         Input data necessary for computing ramp fitting.
     """
     nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
-    _1ggroup = [None] * nints  # One good group list of pixels per integration
+    one_group = [None] * nints  # One good group list of pixels per integration
     for integ in range(nints):
         cintegdq = ramp_data.groupdq[integ, :, :, :]  # Current integration DQ array
         
@@ -598,16 +598,16 @@ def find_0th_one_good_group(ramp_data):
 
         # Get the locations of pixels that have good zeroeth group, with
         # all other groups bad.
-        _1ggroup_int = np.logical_and(good_0, bad_1_)
-        _1ggroup[integ] = np.where(_1ggroup_int)
+        one_group_int = np.logical_and(good_0, bad_1_)
+        one_group[integ] = np.where(one_group_int)
 
-        del _1ggroup_int
+        del one_group_int
         del good_0
         del bad_1_
 
-    ramp_data._1ggroups_locs = _1ggroup
+    ramp_data.one_groups_locs = one_group
     # (NFrames + 1) * TFrame / 2
-    ramp_data._1ggroups_time = (ramp_data.nframes + 1) * ramp_data.frame_time / 2
+    ramp_data.one_groups_time = (ramp_data.nframes + 1) * ramp_data.frame_time / 2
         
 
 def ols_ramp_fit_single(

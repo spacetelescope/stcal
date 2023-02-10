@@ -589,10 +589,10 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         tmp_den_p3[zinteg_locs] = 1. / (frame_time * gain_sect[zinteg_locs])
         den_p3[0, :, :] = tmp_den_p3
 
-    if ramp_data._1ggroups_time is not None:
-        ginteg_locs = ramp_data._1ggroups_locs[ramp_data.current_integ]
+    if ramp_data.one_groups_time is not None:
+        ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
         tmp_den_p3 = den_p3[0, :, :]
-        tmp_den_p3[ginteg_locs] = 1. / (ramp_data._1ggroups_time * gain_sect[ginteg_locs])
+        tmp_den_p3[ginteg_locs] = 1. / (ramp_data.one_groups_time * gain_sect[ginteg_locs])
         den_p3[0, :, :] = tmp_den_p3
 
     warnings.resetwarnings()
@@ -606,9 +606,9 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         frame_time = ramp_data.frame_time
         num_r3[zinteg_locs] = 12. * (rn_sect[zinteg_locs] / frame_time)**2.
 
-    if ramp_data._1ggroups_time is not None:
-        ginteg_locs = ramp_data._1ggroups_locs[ramp_data.current_integ]
-        num_r3[ginteg_locs] = 12. * (rn_sect[ginteg_locs] / ramp_data._1ggroups_time)**2.
+    if ramp_data.one_groups_time is not None:
+        ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
+        num_r3[ginteg_locs] = 12. * (rn_sect[ginteg_locs] / ramp_data.one_groups_time)**2.
 
     # Reshape for every group, every pixel in section
     num_r3 = np.dstack([num_r3] * max_seg)
@@ -1479,10 +1479,10 @@ def compute_median_rates(ramp_data):
     frame_time = ramp_data.frame_time
     adjustment = group_time / frame_time
 
-    if ramp_data._1ggroups_time is not None:
-        _1ggroups_time_adjustment = group_time / ramp_data._1ggroups_time
+    if ramp_data.one_groups_time is not None:
+        one_groups_time_adjustment = group_time / ramp_data.one_groups_time
     else:
-        _1ggroups_time_adjustment = None
+        one_groups_time_adjustment = None
 
     median_diffs_2d = np.zeros(imshape, dtype=np.float32)
 
@@ -1498,10 +1498,10 @@ def compute_median_rates(ramp_data):
 
         data_sect = data_sect / group_time
 
-        if _1ggroups_time_adjustment is not None:
-            _1ggroups_locs = ramp_data._1ggroups_locs[integ]
+        if one_groups_time_adjustment is not None:
+            one_groups_locs = ramp_data.one_groups_locs[integ]
             tmp_dsect = data_sect[0, :, :]
-            tmp_dsect[_1ggroups_locs] = tmp_dsect[_1ggroups_locs] * _1ggroups_time_adjustment
+            tmp_dsect[one_groups_locs] = tmp_dsect[one_groups_locs] * one_groups_time_adjustment
             data_sect[0, :, :] = tmp_dsect
 
         if ramp_data.zframe_locs is not None:
