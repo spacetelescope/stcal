@@ -786,7 +786,7 @@ def test_zeroframe():
     The second integration has all good groups with half the data values.
     """
     ramp_data, gain, rnoise = create_zero_frame_data()
-
+    
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
@@ -797,19 +797,19 @@ def test_zeroframe():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[44.256306, 18.62891, 23.787909]])
+    check = np.array([[32.78594, 18.62891, 23.787909]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
-    check = np.array([[0.06246654, 0.00867591, 0.29745975]])
+    check = np.array([[0.13110262, 0.00867591, 0.29745975]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[0.00041314, 0.0004338, 0.00043293]])
+    check = np.array([[0.00043035, 0.0004338, 0.00043293]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.2507582, 0.09544477, 0.54579544]])
+    check = np.array([[0.36267212, 0.09544477, 0.54579544]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
@@ -826,17 +826,118 @@ def test_zeroframe():
                       [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol, tol)
 
-    check = np.array([[[0.31233272, 0., 6.246655]],
-                      [[0.07808318, 0.00867591, 0.31233275]]])
+    check = np.array([[[1.1799237 , 0.        , 6.246655  ]],
+                      [[0.14749046, 0.00867591, 0.31233275]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[0.00867591, 0., 0.21689774]],
+    check = np.array([[[0.03470363, 0., 0.21689774]],
                       [[0.0004338, 0.0004338, 0.0004338]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
-    check = np.array([[[0.56657624, 0., 2.542352]],
-                      [[0.2802088, 0.09544477, 0.55925536]]])
+    check = np.array([[[1.1021013, 0., 2.542352]],
+                      [[0.38460922, 0.09544477, 0.55925536]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
+
+
+def create_only_good_0th_group_data():
+    """
+    Create three ramps to the the good 0th group.
+    1. An all good ramp.
+    2. A saturated ramp starting at group 2 with the first two groups good.
+    3. A saturated ramp starting at group 1 with only group 0 good.
+    """
+    # Create meta data.
+    frame_time, nframes, groupgap = 10.736, 2, 3
+    group_time = (nframes + groupgap) * frame_time
+    nints, ngroups, nrows, ncols = 1, 5, 1, 3
+    rnval, gval = 10., 5.
+
+    # Create arrays for RampData.
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+
+    # Create base ramps for each pixel in each integration.
+    base_slope = 2000.0
+    base_arr = [8000. + k * base_slope for k in range(ngroups)]
+    base_ramp = np.array(base_arr, dtype=np.float32)
+
+    data[0, :, 0, 0] = base_ramp
+    data[0, :, 0, 1] = base_ramp
+    data[0, :, 0, 2] = base_ramp
+
+    # Set up group DQ array.
+    gdq[0, :, 0, 0] = np.array([GOOD] * ngroups)
+
+    gdq[0, :, 0, 1] = np.array([SAT] * ngroups)
+    gdq[0, 0, 0, 1] = GOOD
+    gdq[0, 1, 0, 1] = GOOD
+
+    gdq[0, :, 0, 2] = np.array([SAT] * ngroups)
+    gdq[0, 0, 0, 2] = GOOD
+
+    # Create RampData for testing.
+    ramp_data = RampData()
+    ramp_data.set_arrays(
+        data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_meta(
+        name="NIRCam", frame_time=frame_time, group_time=group_time,
+        groupgap=groupgap, nframes=nframes, drop_frames1=None)
+    ramp_data.set_dqflags(dqflags)
+
+    ramp_data.suppress_one_group_ramps = False
+
+    # Create variance arrays
+    gain = np.ones((nrows, ncols), np.float32) * gval
+    rnoise = np.ones((nrows, ncols), np.float32) * rnval
+
+    return ramp_data, gain, rnoise
+
+
+def test_only_good_0th_group():
+    """
+    Tests three ramps to the the good 0th group.
+    1. An all good ramp.
+    2. A saturated ramp starting at group 2 with the first two groups good.
+    3. A saturated ramp starting at group 1 with only group 0 good.
+    """
+
+    # Dimensions are (1, 5, 1, 3)
+    ramp_data, gain, rnoise = create_only_good_0th_group_data()
+    
+    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, bufsize, save_opt, rnoise, gain, algo,
+        "optimal", ncores, dqflags)
+
+    tol = 1.e-5
+
+    # Check slopes information
+    sdata, sdq, svp, svr, serr = slopes
+
+    # The slopes for the first two ramps should be the same, including
+    # for the rateints directory.  The last ramp will be different
+    # because a different time is used as the denominator for the slope.
+    # Because the number of groups used in the first two ramps are different
+    # the variances are expected to be different, even though the slopes
+    # should be the same.
+    check = np.array([[37.257824,  37.257824, 149.0313]])
+    np.testing.assert_allclose(sdata, check, tol, tol)
+
+    check = np.array([[GOOD, GOOD, GOOD]])
+    np.testing.assert_allclose(sdq, check, tol, tol)
+
+    check = np.array([[0.03470363, 0.13881457, 6.169534]])
+    np.testing.assert_allclose(svp, check, tol, tol)
+
+    check = np.array([[0.00086759, 0.01735182, 0.19279794]])
+    np.testing.assert_allclose(svr, check, tol, tol)
+
+    check = np.array([[0.18860336, 0.39517894, 2.5223665]])
+    np.testing.assert_allclose(serr, check, tol, tol)
+
+    # Cube checks ignored because the data has only one integration.
 
 
 def test_all_sat():
@@ -1121,6 +1222,17 @@ def setup_inputs(dims, var, tm):
 ###############################################################################
 # The functions below are only used for DEBUGGING tests and developing tests. #
 ###############################################################################
+
+def print_real_check(real, check):
+    import inspect
+    cf = inspect.currentframe()
+    line_number = cf.f_back.f_lineno
+    print("=" * 80)
+    print(f"----> Line = {line_number} <----")
+    base_print("real", real)
+    print("=" * 80)
+    base_print("check", check)
+    print("=" * 80)
 
 
 def base_print(label, arr):

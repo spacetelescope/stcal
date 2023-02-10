@@ -1,9 +1,19 @@
+1.3.4 (unreleased)
+==================
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changed computations for ramps that have only one good group in the 0th
+  group.  Ramps that have a non-zero groupgap should not use group_time, but
+  (NFrames+1)*TFrame/2, instead. [#142]
+
 1.3.3 (2023-01-26)
 ==================
 
 Bug Fixes
 ---------
-  
+
 ramp_fitting
 ~~~~~~~~~~~~
 

@@ -581,20 +581,34 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     den_p3 = 1. / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
+
     if ramp_data.zframe_locs:
-        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
-            frame_time = ramp_data.frame_time
-            row, col = pix
-            den_p3[0, row, col] = 1. / (frame_time * gain_sect[row, col])
+        zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
+        frame_time = ramp_data.frame_time
+        tmp_den_p3 = den_p3[0, :, :]
+        tmp_den_p3[zinteg_locs] = 1. / (frame_time * gain_sect[zinteg_locs])
+        den_p3[0, :, :] = tmp_den_p3
+
+    if ramp_data.one_groups_time is not None:
+        ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
+        tmp_den_p3 = den_p3[0, :, :]
+        tmp_den_p3[ginteg_locs] = 1. / (ramp_data.one_groups_time * gain_sect[ginteg_locs])
+        den_p3[0, :, :] = tmp_den_p3
+
     warnings.resetwarnings()
 
     # For a segment, the variance due to readnoise noise
     # = 12 * readnoise**2 /(ngroups_seg**3. - ngroups_seg)/( tgroup **2.)
     num_r3 = 12. * (rn_sect / group_time)**2.  # always >0
+
     if ramp_data.zframe_locs:
-        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
-            row, col = pix
-            num_r3[row, col] = 12. * (rn_sect[row, col] / frame_time)**2.
+        zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
+        frame_time = ramp_data.frame_time
+        num_r3[zinteg_locs] = 12. * (rn_sect[zinteg_locs] / frame_time)**2.
+
+    if ramp_data.one_groups_time is not None:
+        ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
+        num_r3[ginteg_locs] = 12. * (rn_sect[ginteg_locs] / ramp_data.one_groups_time)**2.
 
     # Reshape for every group, every pixel in section
     num_r3 = np.dstack([num_r3] * max_seg)
@@ -1464,6 +1478,12 @@ def compute_median_rates(ramp_data):
     group_time = ramp_data.group_time
     frame_time = ramp_data.frame_time
     adjustment = group_time / frame_time
+
+    if ramp_data.one_groups_time is not None:
+        one_groups_time_adjustment = group_time / ramp_data.one_groups_time
+    else:
+        one_groups_time_adjustment = None
+
     median_diffs_2d = np.zeros(imshape, dtype=np.float32)
 
     for integ in range(nints):
@@ -1477,11 +1497,18 @@ def compute_median_rates(ramp_data):
         del where_sat
 
         data_sect = data_sect / group_time
+
+        if one_groups_time_adjustment is not None:
+            one_groups_locs = ramp_data.one_groups_locs[integ]
+            tmp_dsect = data_sect[0, :, :]
+            tmp_dsect[one_groups_locs] = tmp_dsect[one_groups_locs] * one_groups_time_adjustment
+            data_sect[0, :, :] = tmp_dsect
+
         if ramp_data.zframe_locs is not None:
-            for pixel in ramp_data.zframe_locs[integ]:
-                row, col = pixel
-                # This makes the division by frame_time, instead of group_time
-                data_sect[0, row, col] = data_sect[0, row, col] * adjustment
+            zinteg_locs = ramp_data.zframe_locs[integ]
+            tmp_dsect = data_sect[0, :, :]
+            tmp_dsect[zinteg_locs] = tmp_dsect[zinteg_locs] * adjustment
+            data_sect[0, :, :] = tmp_dsect
 
         # Compute the first differences of all groups
         first_diffs_sect = np.diff(data_sect, axis=0)
@@ -1565,15 +1592,15 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
 
     cnt = 0
     for integ in range(nints):
-        zframe_locs[integ] = []
         intdq = dq[integ, :, :, :]
 
         # Find ramps with a good zeroeth group, but saturated in
         # the remainder of the ramp.
         wh_sat = groups_saturated_in_integration(intdq, sat_flag, ngroups)
 
-        whs_rows = wh_sat[0]
-        whs_cols = wh_sat[1]
+        whs_rows, whs_cols = wh_sat
+        row_list = []
+        col_list = []
         for n in range(len(whs_rows)):
             row = whs_rows[n]
             col = whs_cols[n]
@@ -1582,10 +1609,13 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
             # that is non-zero.  If it is non-zero, replace group zero in the
             # ramp with the data in ZEROFRAME.
             if ramp_data.zeroframe[integ, row, col] != 0:
-                zframe_locs[integ].append((row, col))
+                row_list.append(row)
+                col_list.append(col)
                 ramp_data.data[integ, 0, row, col] = ramp_data.zeroframe[integ, row, col]
                 ramp_data.groupdq[integ, 0, row, col] = good_flag
                 cnt = cnt + 1
+
+        zframe_locs[integ] = (np.array(row_list, dtype=int), np.array(col_list, dtype=int))
 
     return zframe_locs, cnt
 
