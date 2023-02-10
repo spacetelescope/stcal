@@ -37,7 +37,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  use_ellipses=False,
                  sat_required_snowball=True,
                  expand_large_events=True,
-                 edge_size = 25):
+                 find_showers=False,
+                 edge_size = 25, extend_snr_threshold=1.2, extend_min_area=90, extend_inner_radius=1,
+                 extend_outer_radius=2.6, extend_ellipse_expand_ratio = 1.1, extend_grps_masked=5):
+
     """
     This is the high-level controlling routine for the jump detection process.
     It loads and sets the various input data and parameters needed by each of
@@ -308,9 +311,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size)
         fits.writeto("input_jump_cube_after_le.fits", gdq, overwrite=True)
-        gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
+        if find_showers:
+            gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
                             min_shower_area=90, inner=1,
-                            outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1)
+                            outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1,
+                            num_grps_masked=5)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
@@ -359,64 +364,54 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                 print("Grp", group)
             else:
                 print("Grp", group, end=" ")
-            if use_ellipses:
-                new_flagged_pixels = 1.0*gdq[integration, group, :, :] - 1.0*gdq[integration, group - 1, :, :]
-                new_flagged_pixels[new_flagged_pixels < 0] = 0
-                fits.writeto('new_flagged_pixels.fits', new_flagged_pixels, overwrite=True)
-                jump_ellipses = find_ellipses(new_flagged_pixels.astype('uint8'), jump_flag, min_jump_area)
-                n_showers_grp_ellipse.append(len(jump_ellipses))
-                gdq[integration, group, :, :], num_events = \
-                    extend_ellipses(gdq, integration, group, jump_ellipses, sat_flag, jump_flag,
-                                    expansion=expand_factor)
-            else:
-                current_gdq = 1.0 * gdq[integration, group, :, :]
-                prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-                diff_gdq = 1.0 * current_gdq - prev_gdq
-                diff_gdq[diff_gdq != sat_flag] = 0
-                new_sat = diff_gdq.astype('uint8')
+            current_gdq = 1.0 * gdq[integration, group, :, :]
+            prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
+            diff_gdq = 1.0 * current_gdq - prev_gdq
+            diff_gdq[diff_gdq != sat_flag] = 0
+            new_sat = diff_gdq.astype('uint8')
 #                fits.writeto("diff_gdq.fits", diff_gdq, overwrite=True)
 #                fits.writeto('current_gdq.fits', current_gdq, overwrite = True)
 #                fits.writeto('prev_gdq.fits', prev_gdq, overwrite=True)
 #                new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
-                fits.writeto("new_sat.fits", new_sat, overwrite=True)
-                # find the ellipse parameters for newly saturated pixels
-                sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-                # expand the larger saturated cores to deal with the charge migration from the
-                # saturated cores.
+            fits.writeto("new_sat.fits", new_sat, overwrite=True)
+            # find the ellipse parameters for newly saturated pixels
+            sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
+            # expand the larger saturated cores to deal with the charge migration from the
+            # saturated cores.
 #                gdq[integration, , :, :] = extend_saturation(gdq[integration, :, :, :],
-                gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
-                                                              group, sat_ellipses, sat_flag, jump_flag,
-                                                              min_sat_radius_extend, expansion=sat_expand)
+            gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
+                                                          group, sat_ellipses, sat_flag, jump_flag,
+                                                          min_sat_radius_extend, expansion=sat_expand)
 #               fits.writeto("after_extend_large_events.fits", gdq, overwrite=True)
-                #  recalculate the newly flagged pixels after the expansion of saturation
-                current_gdq = 1.0 * gdq[integration, group, :, :]
-                prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-                diff_gdq = 1.0 * current_gdq - prev_gdq
-                diff_gdq[diff_gdq < 0] = 0
-                new_sat = diff_gdq.astype('uint8')
+            #  recalculate the newly flagged pixels after the expansion of saturation
+            current_gdq = 1.0 * gdq[integration, group, :, :]
+            prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
+            diff_gdq = 1.0 * current_gdq - prev_gdq
+            diff_gdq[diff_gdq < 0] = 0
+            new_sat = diff_gdq.astype('uint8')
 #                fits.writeto("diff_gdq2.fits", diff_gdq, overwrite=True)
 #                fits.writeto('current_gdq2.fits', current_gdq, overwrite=True)
 #                fits.writeto('prev_gdq2.fits', prev_gdq, overwrite=True)
-                # find all the newly saturated pixel
-                sat_pixels = np.bitwise_and(diff_gdq.astype('uint8'), sat_flag)
-                saty, satx = np.where(sat_pixels == sat_flag)
-                only_jump = diff_gdq.copy()
-                fits.writeto("onlyjump.fits", only_jump, overwrite=True)
-                # reset the saturated pixel to be jump to allow the jump circles to have the
-                # central saturated region set to "jump" instead of "saturation".
-                only_jump[saty, satx] = jump_flag
-                fits.writeto("onlyjump2.fits", only_jump, overwrite=True)
- #               only_jump_cube[integration, group, :, :] = only_jump
-                jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
-                if sat_required_snowball:
-                    low_threshold = edge_size
-                    high_threshold = gdq.shape[2] - edge_size
-                    snowballs = make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold)
-                else:
-                    snowballs = jump_ellipses
-                n_showers_grp.append(len(snowballs))
-                gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
-                                                  jump_flag, expansion=expand_factor)
+            # find all the newly saturated pixel
+            sat_pixels = np.bitwise_and(diff_gdq.astype('uint8'), sat_flag)
+            saty, satx = np.where(sat_pixels == sat_flag)
+            only_jump = diff_gdq.copy()
+            fits.writeto("onlyjump.fits", only_jump, overwrite=True)
+            # reset the saturated pixel to be jump to allow the jump circles to have the
+            # central saturated region set to "jump" instead of "saturation".
+            only_jump[saty, satx] = jump_flag
+            fits.writeto("onlyjump2.fits", only_jump, overwrite=True)
+#               only_jump_cube[integration, group, :, :] = only_jump
+            jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
+            if sat_required_snowball:
+                low_threshold = edge_size
+                high_threshold = gdq.shape[2] - edge_size
+                snowballs = make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold)
+            else:
+                snowballs = jump_ellipses
+            n_showers_grp.append(len(snowballs))
+            gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
+                                              jump_flag, expansion=expand_factor)
 #                fits.writeto("final_gdq.fits", gdq[integration, group,:, :], overwrite=True)
         fits.writeto("last_gdq_inside.fits", gdq, overwrite=True)
         if use_ellipses:
