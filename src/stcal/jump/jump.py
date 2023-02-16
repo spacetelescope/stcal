@@ -37,7 +37,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  use_ellipses=False,
                  sat_required_snowball=True,
                  expand_large_events=True,
-                 find_showers=True,
+                 sat_expand=2, find_showers=True,
                  edge_size = 25, extend_snr_threshold=1.2, extend_min_area=90, extend_inner_radius=1,
                  extend_outer_radius=2.6, extend_ellipse_expand_ratio = 1.1, grps_masked_after_shower=5):
 
@@ -309,7 +309,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor, use_ellipses=use_ellipses,
                               sat_required_snowball=sat_required_snowball,
-                              edge_size=edge_size)
+                              edge_size=edge_size, sat_expand=sat_expand)
         fits.writeto("input_jump_cube_after_le.fits", gdq, overwrite=True)
         if find_showers:
             gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
