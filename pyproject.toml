@@ -66,6 +66,14 @@ doctest_plus = true
 doctest_rst = true
 text_file_format = 'rst'
 addopts = '--open-files'
+norecursedirs = [
+    'benchmarks',
+    '.asv',
+    '.eggs',
+    '.tox',
+    'build',
+    'venv',
+]
 
 [tool.ruff]
 line-length = 110
