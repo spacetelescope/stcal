@@ -65,9 +65,14 @@ def test_find_ellipse2():
     plane[1,:] = [0,  DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'],DQFLAGS['JUMP_DET'], 0]
     plane[2,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
     plane[3,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
-    ellipse = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
-    print(ellipse)
-    assert ellipse == 1
+    ellipses = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
+    ellipse = ellipses[0]
+    assert ellipse[0][0] == 2
+    assert ellipse[0][1] == 2
+    assert ellipse[1][0] == 2
+    assert ellipse[1][1] == 2
+    assert ellipse[2] == 90.0
+
 
 
 def test_extend_saturation_simple():
@@ -81,12 +86,13 @@ def test_extend_saturation_simple():
     cube[1, 3, 2] = DQFLAGS['SATURATED']
     cube[1, 2, 2] = DQFLAGS['JUMP_DET']
     fits.writeto("start_sat_extend.fits", cube, overwrite=True)
-    sat_circles = find_circles(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
+    sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
     new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'], DQFLAGS['JUMP_DET'],
                                  min_sat_radius_extend, expansion=1)
-    assert cube[grp, 2, 2] == DQFLAGS['SATURATED']
-    assert cube[grp, 3, 5] == DQFLAGS['SATURATED']
-    assert cube[grp, 3, 6] == 0
+    fits.writeto("out_sat_extend.fits", new_cube, overwrite=True)
+    assert new_cube[grp, 2, 2] == DQFLAGS['SATURATED']
+    assert new_cube[grp, 3, 5] == DQFLAGS['SATURATED']
+    assert new_cube[grp, 0, 5] == 0
     fits.writeto("out_sat_extend.fits", cube, overwrite=True)
 
 
@@ -116,6 +122,54 @@ def test_flag_large_events():
     assert cube[0, 1, 3, 6] == 0
     fits.writeto("out_flag_large_events.fits", cube, overwrite=True)
 
+
+def test_find_faint_extended():
+    nint, ngrps, ncols, nrows = 1, 6, 30, 30
+    data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
+    gdq = np.zeros_like(data, dtype=np.uint8)
+    gain = 4
+    readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
+    rng = np.random.default_rng(12345)
+    data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
+ #   print("data shape", data.shape)
+    fits.writeto("rawdata.fits", data, overwrite=True)
+    data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
+    fits.writeto("data.fits", data, overwrite=True)
+    gdq = find_faint_extended(data, gdq, readnoise, 1, snr_threshold=1.3, min_shower_area=20, inner=1,
+                              outer=2, sat_flag=2, jump_flag=4, ellipse_expand=1.1, num_grps_masked=3)
+    fits.writeto("gdq.fits", gdq, overwrite=True)
+    #  Check that all the expected samples in group 2 are flagged as jump and that they are not flagged outside
+    assert (np.all(gdq[0, 1, 22, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 21, 16:20] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 20, 15:22] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 19, 15:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 18, 14:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 17, 14:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 16, 14:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 15, 14:22] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 14, 16:22] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 13, 17:21] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 1, 12, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 12:22, 24] == 0))
+    assert (np.all(gdq[0, 1, 12:22, 13] == 0))
+    #  Check that the same area is flagged in the first group after the event
+    assert (np.all(gdq[0, 2, 22, 14:23] == 0))
+    assert (np.all(gdq[0, 2, 21, 16:20] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 20, 15:22] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 19, 15:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 18, 14:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 17, 14:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 16, 14:23] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 15, 14:22] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 14, 16:22] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 13, 17:21] == DQFLAGS['JUMP_DET']))
+    assert (np.all(gdq[0, 2, 12, 14:23] == 0))
+    assert (np.all(gdq[0, 2, 12:22, 24] == 0))
+    assert (np.all(gdq[0, 2, 12:22, 13] == 0))
+
+    #  Check that the flags are not applied in the 3rd group after the event
+    assert (np.all(gdq[0, 4, 12:22, 14:23]) == 0)
+
 @pytest.mark.skip(reason="only for local testing")
 def test_single_group():
     inplane = fits.getdata("jumppix.fits")
@@ -143,7 +197,7 @@ def test_inside_ellipse4():
     ellipse = ((0, 0), (1, 2), 0)
     point = (1, 0.5)
     result = point_inside_ellipse(point, ellipse)
-    assert result
+    assert not result
 
 def test_inside_ellipes5():
     point = (1110.5, 870.5)

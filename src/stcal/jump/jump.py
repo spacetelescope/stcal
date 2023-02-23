@@ -657,16 +657,16 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
                 print('grp', grp, snr_threshold, 'ellipses', ellipses)
                 print('min_shower_area', min_shower_area)
                 for con in contours:
-                    if cv.contourArea(con) > 20:
+                    if cv.contourArea(con) > 10:
                         M = cv.moments(con)
                         cx = int(M['m10'] / M['m00'])
                         cy = int(M['m01'] / M['m00'])
-#                        print("area", cx, cy, cv.contourArea(con))
+                        print("area", cx, cy, cv.contourArea(con))
             for con in bigcontours:
                 M = cv.moments(con)
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
-#                print('grp', grp, cx, cy, cv.contourArea(con))
+                print('grp', grp, cx, cy, cv.contourArea(con))
             if len(ellipses) > 0:
                     all_ellipses.append([intg, grp, ellipses])
             test = 7
