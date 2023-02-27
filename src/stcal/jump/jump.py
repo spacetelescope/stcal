@@ -1,7 +1,6 @@
 import time
 import logging
 import warnings
-from astropy.io import fits
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 import numpy as np
@@ -228,8 +227,13 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor, use_ellipses=use_ellipses,
-                              sat_required_snowball=sat_required_snowball)
-
+                              sat_required_snowball=sat_required_snowball,
+                              edge_size=edge_size, sat_expand=sat_expand)
+        if find_showers:
+            gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
+                            min_shower_area=90, inner=1,
+                            outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1,
+                            num_grps_masked=grps_masked_after_shower)
     else:
         yinc = int(n_rows / n_slices)
         slices = []
@@ -302,7 +306,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-#        fits.writeto("input_jump_cube.fits", gdq, overwrite=True)
         #  This is the flag that controls the flagging of either snowballs or showers.
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
@@ -310,7 +313,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               expand_factor=expand_factor, use_ellipses=use_ellipses,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size, sat_expand=sat_expand)
-        fits.writeto("input_jump_cube_after_le.fits", gdq, overwrite=True)
         if find_showers:
             gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
                             min_shower_area=90, inner=1,
@@ -357,51 +359,33 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
 
     n_showers_grp = []
     n_showers_grp_ellipse = []
-    fits.writeto("input_jump_cube.fits", gdq, overwrite=True)
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
-            if (group//10) * 10 == group:
-                print("Grp", group)
-            else:
-                print("Grp", group, end=" ")
             current_gdq = 1.0 * gdq[integration, group, :, :]
             prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
             diff_gdq = 1.0 * current_gdq - prev_gdq
             diff_gdq[diff_gdq != sat_flag] = 0
             new_sat = diff_gdq.astype('uint8')
-#                fits.writeto("diff_gdq.fits", diff_gdq, overwrite=True)
-#                fits.writeto('current_gdq.fits', current_gdq, overwrite = True)
-#                fits.writeto('prev_gdq.fits', prev_gdq, overwrite=True)
-#                new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
-            fits.writeto("new_sat.fits", new_sat, overwrite=True)
             # find the ellipse parameters for newly saturated pixels
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
             # expand the larger saturated cores to deal with the charge migration from the
             # saturated cores.
-#                gdq[integration, , :, :] = extend_saturation(gdq[integration, :, :, :],
             gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
                                                           group, sat_ellipses, sat_flag, jump_flag,
                                                           min_sat_radius_extend, expansion=sat_expand)
-#               fits.writeto("after_extend_large_events.fits", gdq, overwrite=True)
             #  recalculate the newly flagged pixels after the expansion of saturation
             current_gdq = 1.0 * gdq[integration, group, :, :]
             prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
             diff_gdq = 1.0 * current_gdq - prev_gdq
             diff_gdq[diff_gdq < 0] = 0
             new_sat = diff_gdq.astype('uint8')
-#                fits.writeto("diff_gdq2.fits", diff_gdq, overwrite=True)
-#                fits.writeto('current_gdq2.fits', current_gdq, overwrite=True)
-#                fits.writeto('prev_gdq2.fits', prev_gdq, overwrite=True)
             # find all the newly saturated pixel
             sat_pixels = np.bitwise_and(diff_gdq.astype('uint8'), sat_flag)
             saty, satx = np.where(sat_pixels == sat_flag)
             only_jump = diff_gdq.copy()
-            fits.writeto("onlyjump.fits", only_jump, overwrite=True)
             # reset the saturated pixel to be jump to allow the jump circles to have the
             # central saturated region set to "jump" instead of "saturation".
             only_jump[saty, satx] = jump_flag
-            fits.writeto("onlyjump2.fits", only_jump, overwrite=True)
-#               only_jump_cube[integration, group, :, :] = only_jump
             jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
@@ -412,8 +396,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             n_showers_grp.append(len(snowballs))
             gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
                                               jump_flag, expansion=expand_factor)
-#                fits.writeto("final_gdq.fits", gdq[integration, group,:, :], overwrite=True)
-        fits.writeto("last_gdq_inside.fits", gdq, overwrite=True)
         if use_ellipses:
             if np.all(np.array(n_showers_grp_ellipse) == 0):
                 log.info(f'No showers found in integration {integration}.')
@@ -458,13 +440,12 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
         minor_axis = min(ellipse[1][1], ellipse[1][0])
-#        print("Grp", grp, " radius ", minor_axis, "count", count, "center", ellipse[0])
         if minor_axis > min_sat_radius_extend:
             axis1 = ellipse[1][0] + expansion
             axis2 = ellipse[1][1] + expansion
             alpha = ellipse[2]
-            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 + 0.5),
-                               round(axis2 + 0.5)), alpha, 0, 360, (0, 0, 22), -1)
+            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1),
+                               round(axis2)), alpha, 0, 360, (0, 0, 22), -1)
             sat_ellipse = image[:, :, 2]
             saty, satx = np.where(sat_ellipse == 22)
             outcube[grp:, saty, satx] = sat_flag
@@ -546,28 +527,8 @@ def make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold):
                 if point_inside_ellipse(sat[0], jump):
                     if jump not in snowballs:
                         snowballs.append(jump)
-#                        print("sat inside found", sat, jump)
                         sat_found = True
-#        if not sat_found:
-#            print("no saturation within jump rectangle ", jump)
     return snowballs
-
-
-def old_point_inside_ellipse(point, ellipse):
-    box = cv.boxPoints(ellipse)
-    ceny = ellipse[0][0]
-    cenx = ellipse[0][1]
-    axis1 = ellipse[1][0]
-    axis2 = ellipse[1][1]
-    theta = np.deg2rad(ellipse[2])
-    pointx = point[0]
-    pointy = point[1]
-    radius = ((np.cos(theta) * (pointx - cenx) + np.sin(theta) * (pointy - ceny))**2)/axis2**2 + \
-             ((np.sin(theta) * (pointx - cenx) + np.cos(theta) * (pointy - ceny))**2)/axis1**2
-    if radius < 1:
-        return True
-    else:
-        return False
 
 
 def point_inside_ellipse(point, ellipse):
@@ -577,6 +538,7 @@ def point_inside_ellipse(point, ellipse):
         return True
     else:
         return False
+
 def point_inside_rectangle(point, ellipse):
     box = cv.boxPoints(ellipse)
     area1 = triangle_area(point, box[0], box[1])
@@ -590,15 +552,6 @@ def point_inside_rectangle(point, ellipse):
     else:
         return True
 
-#Area = abs( (Bx * Ay - Ax * By) +
-#            (Cx * By - Bx * Cy) +
-#            (Ax * Cy - Cx * Ay) ) / 2
-def triangle_area(point, vert1, vert2):
-    area = np.abs((vert1[1] * point[0] - point[1] * vert1[0]) +
-                  (vert2[1] * vert1[0] - vert1[1] * vert2[0]) +
-                  (point[1] * vert2[0] - vert2[1] * point[0])) / 2
-    return area
-
 def near_edge(jump, low_threshold, high_threshold):
     if jump[0][0] < low_threshold or jump[0][1] < low_threshold\
         or jump[0][0] > high_threshold or jump[0][1] > high_threshold:
@@ -608,8 +561,6 @@ def near_edge(jump, low_threshold, high_threshold):
 
 def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, min_shower_area=40, inner=1,
                             outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1, num_grps_masked=25):
-    print("input to find_faint_extended")
-    print(np.nanmedian(read_noise_2d), nframes, snr_threshold, min_shower_area, inner, outer, sat_flag, jump_flag, ellipse_expand)
     read_noise_2 = read_noise_2d**2
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
@@ -622,11 +573,6 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
         e_jump = diff - median_diffs[np.newaxis, :, :]
         ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-#        fits.writeto("sigma.fits", sigma, overwrite=True)
-        fits.writeto("input_data.fits", data[intg], overwrite=True)
-        fits.writeto("diffs.fits", diff, overwrite=True)
-        fits.writeto("ratio.fits", ratio, overwrite=True)
-        fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
         ring_2D_kernel = Ring2DKernel(inner, outer)
         for grp in range(1, ratio.shape[0] + 1):
             ellipses = []
@@ -636,47 +582,15 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
             saty, satx = np.where(gdq[intg, grp, :, :] == sat_flag)
             masked_ratio[saty, satx] = np.nan
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
-#            smoothed_data = convolve(ratio[grp-1], ring_2D_kernel)
             extended_emission = np.zeros(shape=(ratio.shape[1], ratio.shape[2]), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
-#            extended_emission[masked_smoothed_ratio > snr_threshold] = 1
             pixels = np.bitwise_and(extended_emission, 1)
             contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             bigcontours = [con for con in contours if cv.contourArea(con) > min_shower_area]
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
-            if grp == 1 and intg == 0:
-                fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
-                fits.writeto("simga.fits", sigma, overwrite=True)
-                fits.writeto("ratio_grp.fits", ratio[grp-1], overwrite=True)
-                fits.writeto("starting_gdq.fits",gdq[intg, grp], overwrite=True)
-                fits.writeto("extended_emission.fits", 1.0*extended_emission, overwrite=True)
-                fits.writeto("masked_ratio.fits", masked_ratio, overwrite=True)
-                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
-                fits.writeto("pixels.fits", pixels, overwrite=True)
-                print('grp', grp, snr_threshold, 'ellipses', ellipses)
-                print('min_shower_area', min_shower_area)
-                for con in contours:
-                    if cv.contourArea(con) > 10:
-                        M = cv.moments(con)
-                        cx = int(M['m10'] / M['m00'])
-                        cy = int(M['m01'] / M['m00'])
-                        print("area", cx, cy, cv.contourArea(con))
-            for con in bigcontours:
-                M = cv.moments(con)
-                cx = int(M['m10'] / M['m00'])
-                cy = int(M['m01'] / M['m00'])
-                print('grp', grp, cx, cy, cv.contourArea(con))
             if len(ellipses) > 0:
                     all_ellipses.append([intg, grp, ellipses])
-            test = 7
-#            fits.writeto("before_ext_gdq.fits",gdq, overwrite=True)
-#            gdq[intg, grp, :, :], num = extend_ellipses(gdq[intg, grp, :, :], ellipses, sat_flag, jump_flag,
-#                                                        expansion=ellipse_expand, expand_by_ratio=True)
-#            if grp == 1 and intg == 0:
-#                fits.writeto("after_ext_gdq.fits", gdq, overwrite=True)
-#    saty, satx = np.where(sat_pix == sat_flag)
-#    jump_ellipse[saty, satx] = 0
     if all_ellipses:
         for showers in all_ellipses:
             intg = showers[0]

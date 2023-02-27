@@ -88,12 +88,12 @@ def test_extend_saturation_simple():
     fits.writeto("start_sat_extend.fits", cube, overwrite=True)
     sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
     new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'], DQFLAGS['JUMP_DET'],
-                                 min_sat_radius_extend, expansion=1)
+                                 min_sat_radius_extend, expansion=1.1)
     fits.writeto("out_sat_extend.fits", new_cube, overwrite=True)
     assert new_cube[grp, 2, 2] == DQFLAGS['SATURATED']
     assert new_cube[grp, 3, 5] == DQFLAGS['SATURATED']
     assert new_cube[grp, 0, 5] == 0
-    fits.writeto("out_sat_extend.fits", cube, overwrite=True)
+    #fits.writeto("out_sat_extend.fits", cube, overwrite=True)
 
 
 
@@ -115,11 +115,11 @@ def test_flag_large_events():
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=1.9, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=1, sat_expand=1)
+                      sat_required_snowball=True, min_sat_radius_extend=1, sat_expand=1.1)
     fits.writeto("out_flag_large_events.fits", cube, overwrite=True)
     assert cube[0, 1, 2, 2] == DQFLAGS['SATURATED']
     assert cube[0, 1, 3, 5] == DQFLAGS['SATURATED']
-    assert cube[0, 1, 3, 6] == 0
+    assert cube[0, 1, 1, 6] == DQFLAGS['JUMP_DET']
     fits.writeto("out_flag_large_events.fits", cube, overwrite=True)
 
 
@@ -131,13 +131,10 @@ def test_find_faint_extended():
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
- #   print("data shape", data.shape)
-    fits.writeto("rawdata.fits", data, overwrite=True)
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-    fits.writeto("data.fits", data, overwrite=True)
     gdq = find_faint_extended(data, gdq, readnoise, 1, snr_threshold=1.3, min_shower_area=20, inner=1,
                               outer=2, sat_flag=2, jump_flag=4, ellipse_expand=1.1, num_grps_masked=3)
-    fits.writeto("gdq.fits", gdq, overwrite=True)
+    fits.writeto("faint_extended_gdq.fits", gdq, overwrite=True)
     #  Check that all the expected samples in group 2 are flagged as jump and that they are not flagged outside
     assert (np.all(gdq[0, 1, 22, 14:23] == 0))
     assert (np.all(gdq[0, 1, 21, 16:20] == DQFLAGS['JUMP_DET']))
@@ -150,8 +147,8 @@ def test_find_faint_extended():
     assert (np.all(gdq[0, 1, 14, 16:22] == DQFLAGS['JUMP_DET']))
     assert (np.all(gdq[0, 1, 13, 17:21] == DQFLAGS['JUMP_DET']))
     assert (np.all(gdq[0, 1, 12, 14:23] == 0))
-    assert (np.all(gdq[0, 1, 12:22, 24] == 0))
-    assert (np.all(gdq[0, 1, 12:22, 13] == 0))
+    assert (np.all(gdq[0, 1, 12:23, 24] == 0))
+    assert (np.all(gdq[0, 1, 12:23, 13] == 0))
     #  Check that the same area is flagged in the first group after the event
     assert (np.all(gdq[0, 2, 22, 14:23] == 0))
     assert (np.all(gdq[0, 2, 21, 16:20] == DQFLAGS['JUMP_DET']))
@@ -256,25 +253,16 @@ def test_edgeflage_130140():
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=3)
     fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
 
-def test_miri_input():
-    incube = fits.getdata('input_jump_cube_miri_01.fits')
-    testcube = incube[:, 1:5, :, :]
-    testcube = incube
-
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=7,
-                      expand_factor=2.5, use_ellipses=True,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=3)
-    fits.writeto("output_jump_cube_miri.fits", testcube, overwrite=True)
-
 def test_inputjumpall():
-    testcube = fits.getdata('input_jump_cube.fits')
-
+    testcube = fits.getdata('large_event_input_dq_cube2.fits')
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
+    snowball_1 = testcube[0, 1,  260:280, 310:331]
+    correct_snowball_1 = fits.getdata('snowball1.fits')
+    snowball_diff = snowball_1 - correct_snowball_1
+    assert (np.all(snowball_diff == 0))
 
 
 def test_detect_jumps_runaway():
@@ -301,55 +289,3 @@ def test_detect_jumps_runaway():
                      sat_required_snowball=True,
                      expand_large_events=True)
     fits.writeto("output_gdq.fits", gdq, overwrite=True)
-
-
-def test_extended1():
-    incube = fits.getdata("dark_imager_wthexp_00_jump.fits") * 3.9
- #   testcube = np.expand_dims(incube[0, 12:14, :, :], 0)
-    testcube = np.expand_dims(incube[0, 13:26, :, :], 0)
-    hdl = fits.open("dark_imager_wthexp_00_jump.fits")
-    gdq = hdl['GROUPDQ'].data
-#    testgdq = np.expand_dims(gdq[0, 230:240, :, :], 0)
-    testgdq = np.expand_dims(gdq[0, 13:26, :, :], 0)
-
-    pdq = hdl['pixeldq'].data
-
-    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits') * 3.9
-    gain_2d = np.zeros_like(readnoise_2)
-    gain_2d[:, :] = 3.9
-    print("readnoise shape", readnoise_2.shape)
-    newgdq = find_faint_extended(testcube, testgdq, readnoise_2, 1, snr_threshold=1.3, min_shower_area=100,
-                                 inner=1., outer=2.1)
-    fits.writeto("newgdall.fits", newgdq, overwrite=True)
-#    [print(cv.contourArea(con)) for con in contours]
-##    [print('moment', cv.moments(con)['m10']/cv.moments(con)['m00'], cv.moments(con)['m01']/cv.moments(con)['m00']) for con in contours]
-def test_extended_dblshw():
-    incube = fits.getdata("dark_imager_findextend_5_00_refpix.fits") * 3.9
- #   testcube = np.expand_dims(incube[0, 12:14, :, :], 0)
-    testcube = np.expand_dims(incube[0, 25:38, :, :], 0)
-    gdq = fits.getdata("input_jump_cube_after_le.fits")
-#    gdq = hdl['GROUPDQ'].data
-#    testgdq = np.expand_dims(gdq[0, 230:240, :, :], 0)
-    testgdq = np.expand_dims(gdq[0, 25:38, :, :], 0)
-    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits') * 3.9
-    gain_2d = np.zeros_like(readnoise_2)
-    gain_2d[:, :] = 3.9
-    print("readnoise shape", readnoise_2.shape)
-    newgdq = find_faint_extended(testcube, testgdq, readnoise_2, 1, snr_threshold=1.3, min_shower_area=70,
-                                 inner=1., outer=2.1)
-    fits.writeto("newgdall.fits", newgdq, overwrite=True)
-#    [print(cv.contourArea(con)) for con in contours]
-##    [print('moment', cv.moments(con)['m10']/cv.moments(con)['m00'], cv.moments(con)['m01']/cv.moments(con)['m00']) for con in contours]
-
-def test_extended_all():
-#    incube = fits.getdata("dark_imager_wthexp_00_jump.fits")
-    hdl = fits.open("dark_imager_wthexp_00_jump.fits")
-    incube = hdl['SCI'].data * 3.9
-    gdq = hdl['GROUPDQ'].data
-    pdq = hdl['pixeldq'].data
-    readnoise_2 = fits.getdata('MIRI_IMAGER_FASTR1_FULL_READNOISE_09.00.04.fits')*3.9
-    print("readnoise shape", readnoise_2.shape)
-    newgdq = find_faint_extended(incube, gdq, readnoise_2, 1, snr_threshold=1.3,
-                                 min_area=100, inner=1, jump_flag=5,
-                                 outer=2.6)
-    fits.writeto("newgdq_big_th1.3.100.fits", newgdq, overwrite=True)
