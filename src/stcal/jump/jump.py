@@ -140,18 +140,41 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         The factor that is used to increase the size of the enclosing circle/ellipse jump
         flagged pixels.
 
-    use_ellipses : bool
-        If true the minimum enclosing ellipse will be created for jump regions that meet the area
-        requirement. This is best for MIRI showers which are only rarely circular. For the NIR detectors
-        this should set to False to force circles to be used.
+    use_ellipses : deprecated
 
     sat_required_snowball : bool
         If true there must be a saturation circle within the radius of the jump circle to trigger
         the creation of a snowball. All true snowballs appear to have at least one saturated pixel.
 
+    edge_size : int
+        The distance from the edge of the detector where saturated cores are not required for snowball detection
+
     expand_large_events : bool
-        When True this triggers the flagging of snowballs and showers for NIR and MIRI detectors. If
-        set to False nether type of extended flagging occurrs.
+        When True this triggers the flagging of snowballs for NIR detectors.
+
+    sat_expand : int
+        The number of pixels to expand the saturated core of detected snowballs
+
+    find_showers : boolean
+        Turns on the flagging of the faint extended emission of MIRI showers
+
+    extend_snr_threshold : float
+        The SNR minimum for the detection of faint extended showers in MIRI
+
+    extend_min_area : float
+        The required minimum area of extended emission after convolution for the detection of showers in MIRI
+
+    extend_inner_radius : float
+        The inner radius of the Ring2DKernal that is used for the detection of extended emission in showers
+
+    extend_outer_radius : float
+        The inner radius of the Ring2DKernal that is used for the detection of extended emission in showers
+
+    extend_ellipse_expand_ratio : float
+        Multiplicative factor to expand the radius of the ellipse fit to the detected extended emission in MIRI showers
+
+    grps_masked_after_shower : int
+        Number of groups after detected extended emission to flag as a jump for MIRI showers
 
     Returns
     -------
@@ -230,10 +253,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size, sat_expand=sat_expand)
         if find_showers:
-            gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
-                            min_shower_area=90, inner=1,
-                            outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1,
-                            num_grps_masked=grps_masked_after_shower)
+            gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=extend_snr_threshold,
+                            min_shower_area=extend_min_area, inner=extend_inner_radius,
+                            outer=extend_outer_radius, sat_flag=sat_flag, jump_flag=jump_flag,
+                            ellipse_expand=extend_ellipse_expand_ratio, num_grps_masked=grps_masked_after_shower)
     else:
         yinc = int(n_rows / n_slices)
         slices = []
@@ -314,10 +337,11 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               sat_required_snowball=sat_required_snowball,
                               edge_size=edge_size, sat_expand=sat_expand)
         if find_showers:
-            gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=1.2,
-                            min_shower_area=90, inner=1,
-                            outer=2.6, sat_flag=sat_flag, jump_flag=jump_flag, ellipse_expand=1.1,
-                            num_grps_masked=grps_masked_after_shower)
+            gdq = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=extend_snr_threshold,
+                                      min_shower_area=extend_min_area, inner=extend_inner_radius,
+                                      outer=extend_outer_radius, sat_flag=sat_flag, jump_flag=jump_flag,
+                                      ellipse_expand=extend_ellipse_expand_ratio,
+                                      num_grps_masked=grps_masked_after_shower)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
@@ -396,7 +420,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             n_showers_grp.append(len(snowballs))
             gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
                                               jump_flag, expansion=expand_factor)
-        if use_ellipses:
+        if find_faint_extended:
             if np.all(np.array(n_showers_grp_ellipse) == 0):
                 log.info(f'No showers found in integration {integration}.')
             else:

@@ -85,11 +85,11 @@ def test_extend_saturation_simple():
     cube[1, 4, 3] = DQFLAGS['SATURATED']
     cube[1, 3, 2] = DQFLAGS['SATURATED']
     cube[1, 2, 2] = DQFLAGS['JUMP_DET']
-    fits.writeto("start_sat_extend.fits", cube, overwrite=True)
+    fits.writeto("data/start_sat_extend.fits", cube, overwrite=True)
     sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
     new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'], DQFLAGS['JUMP_DET'],
                                  min_sat_radius_extend, expansion=1.1)
-    fits.writeto("out_sat_extend.fits", new_cube, overwrite=True)
+#    fits.writeto("out_sat_extend.fits", new_cube, overwrite=True)
     assert new_cube[grp, 2, 2] == DQFLAGS['SATURATED']
     assert new_cube[grp, 3, 5] == DQFLAGS['SATURATED']
     assert new_cube[grp, 0, 5] == 0
