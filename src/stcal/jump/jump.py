@@ -506,7 +506,7 @@ def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag, expansio
                            round(axis2 / 2)), alpha, 0, 360, (0, 0, jump_flag), -1)
         jump_ellipse = image[:, :, 2]
         last_grp = min(grp + num_grps_masked, gdq_cube.shape[1])
-        #  This loop will flag the number of groups 
+        #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
             saty, satx = np.where(sat_pix == sat_flag)
