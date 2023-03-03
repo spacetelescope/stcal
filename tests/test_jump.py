@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation, \
+from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
     point_inside_ellipse, flag_large_events, detect_jumps, find_faint_extended
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
@@ -30,18 +30,6 @@ def setup_cube():
         return data, gdq, nframes, read_noise, rej_threshold
 
     return _cube
-
-
-@pytest.mark.skipif(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
-def test_find_simple_circle():
-    plane = np.zeros(shape=(5, 5), dtype=np.uint8)
-    plane[2, 2] = DQFLAGS['JUMP_DET']
-    plane[3, 2] = DQFLAGS['JUMP_DET']
-    plane[1, 2] = DQFLAGS['JUMP_DET']
-    plane[2, 3] = DQFLAGS['JUMP_DET']
-    plane[2, 1] = DQFLAGS['JUMP_DET']
-    circle = find_circles(plane, DQFLAGS['JUMP_DET'], 1)
-    assert circle[0][1] == pytest.approx(1.0, 1e-3)
 
 
 @pytest.mark.skipif(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
