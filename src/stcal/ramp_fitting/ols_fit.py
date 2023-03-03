@@ -582,7 +582,7 @@ def find_0th_one_good_group(ramp_data):
     one_group = [None] * nints  # One good group list of pixels per integration
     for integ in range(nints):
         cintegdq = ramp_data.groupdq[integ, :, :, :]  # Current integration DQ array
-        
+
         # Find pixels with good group 0
         good_0 = np.zeros((nrows, ncols), dtype=int)
         cintegdq_0  = cintegdq[0, :, :]
@@ -608,7 +608,7 @@ def find_0th_one_good_group(ramp_data):
     ramp_data.one_groups_locs = one_group
     # (NFrames + 1) * TFrame / 2
     ramp_data.one_groups_time = (ramp_data.nframes + 1) * ramp_data.frame_time / 2
-        
+
 
 def ols_ramp_fit_single(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):

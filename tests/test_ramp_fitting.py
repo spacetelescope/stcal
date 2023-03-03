@@ -786,7 +786,7 @@ def test_zeroframe():
     The second integration has all good groups with half the data values.
     """
     ramp_data, gain, rnoise = create_zero_frame_data()
-    
+
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
@@ -905,7 +905,7 @@ def test_only_good_0th_group():
 
     # Dimensions are (1, 5, 1, 3)
     ramp_data, gain, rnoise = create_only_good_0th_group_data()
-    
+
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
