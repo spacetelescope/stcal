@@ -4,12 +4,13 @@
 Bug Fixes
 ---------
 
--
+Other
+-----
+
+- Updated the ``dynamic_mask`` function to include an inversion. [#145]
 
 1.3.4 (2023-02-13)
 ==================
-
-- Updated the `dynamic_mask` function to include an inversion. [#145]
 
 ramp_fitting
 ~~~~~~~~~~~~
