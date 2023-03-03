@@ -61,7 +61,7 @@ def dynamic_mask(input_model, mnemonic_map, inv=False):
                 just_this_bit = np.bitwise_and(input_model.dq, standard_bitvalue)
                 pixels = np.where(just_this_bit != 0)
                 dqmask[pixels] = np.bitwise_or(dqmask[pixels], bitplane)
-                
+
     else:
         dqmask = input_model.dq
 
