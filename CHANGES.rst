@@ -35,6 +35,8 @@ ramp_fitting
 
 - Switch multiprocessing method to ``fork_server``. [#249]
 
+- Refactor ramp fitting using a C extension to improve performance. [#156]
+
 Bug Fixes
 ---------
 
