@@ -1,3 +1,5 @@
+INDENT = "    "
+
 class RampData:
     def __init__(self):
         """Creates an internal ramp fit class."""
@@ -43,6 +45,7 @@ class RampData:
         self.current_integ = -1
 
     def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current):
+        self.dbg_run_c_code = False
         """
         Set the arrays needed for ramp fitting.
 
@@ -179,14 +182,114 @@ class RampData:
 
         print(f"Shape : {self.data.shape}")
         print(f"data : \n{self.data}")
-        print(f"err : \n{self.err}")
         print(f"groupdq : \n{self.groupdq}")
-        print(f"pixeldq : \n{self.pixeldq}")
+        # print(f"err : \n{self.err}")
+        # print(f"pixeldq : \n{self.pixeldq}")
         print("-" * 80)
 
     def dbg_print_pixel_info(self, row, col):
         print("-" * 80)
-        print(f"    data :\n{self.data[:, :, row, col]}")
-        print(f"    err :\n{self.err[:, :, row, col]}")
-        print(f"    groupdq :\n{self.groupdq[:, :, row, col]}")
-        print(f"    pixeldq :\n{self.pixeldq[row, col]}")
+        print(f"    data")
+        for integ in range(self.data.shape[0]):
+            print(f"[{integ}] {self.data[integ, :, row, col]}")
+        print(f"    groupdq")
+        for integ in range(self.data.shape[0]):
+            print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
+        # print(f"    err :\n{self.err[:, :, row, col]}")
+        # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
+
+    def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):
+        fd.write("def create_ramp_data_pixel():\n")
+        indent = INDENT
+        fd.write(f"{indent}'''\n")
+        fd.write(f"{indent}Using pixel ({row}, {col})\n")
+        fd.write(f"{indent}'''\n")
+        fd.write(f"{indent}ramp_data = RampData()\n\n")
+
+        fd.write(f"{indent}ramp_data.instrument_name = '{self.instrument_name}'\n\n")
+
+        fd.write(f"{indent}ramp_data.frame_time = {self.frame_time}\n")
+        fd.write(f"{indent}ramp_data.group_time = {self.group_time}\n")
+        fd.write(f"{indent}ramp_data.groupgap = {self.groupgap}\n")
+        fd.write(f"{indent}ramp_data.nframes = {self.nframes}\n")
+        fd.write(f"{indent}ramp_data.drop_frames1 = {self.drop_frames1}\n\n")
+
+        fd.write(f"{indent}ramp_data.flags_do_not_use = {self.flags_do_not_use}\n")
+        fd.write(f"{indent}ramp_data.flags_jump_det = {self.flags_jump_det}\n")
+        fd.write(f"{indent}ramp_data.flags_saturated = {self.flags_saturated}\n")
+        fd.write(f"{indent}ramp_data.flags_no_gain_val = {self.flags_no_gain_val}\n")
+        fd.write(f"{indent}ramp_data.flags_unreliable_slope = {self.flags_unreliable_slope}\n\n")
+
+
+        fd.write(f"{indent}ramp_data.start_row = 0\n")
+        fd.write(f"{indent}ramp_data.num_rows = 1\n\n")
+
+        fd.write(f"{indent}ramp_data.suppress_one_group_ramps = {self.suppress_one_group_ramps}\n\n")
+
+        nints, ngroups, nrows, ncols = self.data.shape
+        fd.write(f"{indent}data = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.float32)\n")
+        fd.write(f"{indent}err = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.float32)\n")
+        fd.write(f"{indent}gdq = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.uint8)\n")
+        fd.write(f"{indent}pdq = np.zeros((1, 1), dtype=np.uint32)\n")
+
+
+    def dbg_write_ramp_data_pix_post(self, fname, row, col, fd):
+        indent = INDENT
+
+        fd.write(f"{indent}ramp_data.data = data\n")
+        fd.write(f"{indent}ramp_data.err = err\n")
+        fd.write(f"{indent}ramp_data.groupdq = gdq\n")
+        fd.write(f"{indent}ramp_data.pixeldq = pdq\n")
+        fd.write(f"{indent}ramp_data.zeroframe = zframe\n\n")
+
+        fd.write(f"{indent}return ramp_data, ngain, nrnoise\n")
+
+    def dbg_write_ramp_data_pix_pixel(self, fname, row, col, gain, rnoise, fd):
+        import numpy as np
+        indent = INDENT
+
+        # XXX Make this a separate function
+        delimiter = "-" * 40
+        fd.write(f"{indent}# {delimiter}\n\n");
+        fd.write(f"{indent}# ({row}, {col})\n\n");
+
+        nints = self.data.shape[0]
+
+        for integ in range(nints):
+            arr_str = np.array2string(self.data[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            fd.write(f"{indent}data[{integ}, :, 0, 0] = np.array({arr_str})\n")
+        fd.write("\n")
+
+        for integ in range(nints):
+            arr_str = np.array2string(self.err[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            fd.write(f"{indent}err[{integ}, :, 0, 0] = np.array({arr_str})\n")
+        fd.write("\n")
+
+        for integ in range(nints):
+            arr_str = np.array2string(self.groupdq[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            fd.write(f"{indent}gdq[{integ}, :, 0, 0] = np.array({arr_str})\n")
+        fd.write("\n")
+
+        arr_str = np.array2string(self.pixeldq[row, col], precision=12, max_line_width=np.nan, separator=", ")
+        fd.write(f"{indent}pdq[0, 0] = {arr_str}\n\n")
+
+        if self.zeroframe is not None:
+            fd.write(f"{indent}zframe = np.zeros((1, 1), dtype=np.float32)\n\n")
+            arr_str = np.array2string(self.zeroframe[row, col], precision=12, max_line_width=np.nan, separator=", ")
+            fd.write(f"{indent}zframe[0, 0] = {arr_str}\n\n")
+        else:
+            fd.write(f"{indent}zframe = None\n\n")
+
+        fd.write(f"{indent}ngain = np.zeros((1, 1), dtype=np.float32)\n")
+        fd.write(f"{indent}ngain[0, 0] = {gain[row, col]}\n\n")
+
+        fd.write(f"{indent}nrnoise = np.zeros((1, 1), dtype=np.float32)\n")
+        fd.write(f"{indent}nrnoise[0, 0] = {rnoise[row, col]}\n\n")
+
+
+    def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):
+        print(f"*** {fname} ***")
+        with open(fname, "w") as fd:
+            self.dbg_write_ramp_data_pix_pre(fname, row, col, fd)
+            self.dbg_write_ramp_data_pix_pixel(fname, row, col, gain, rnoise, fd)
+            self.dbg_write_ramp_data_pix_post(fname, row, col, fd)
