@@ -184,6 +184,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     pdq : int, 2D array
         updated pixel dq array
     """
+    print("Find Showers", find_showers)
     constants.update_dqflags(dqflags)  # populate dq flags
     sat_flag = dqflags["SATURATED"]
     jump_flag = dqflags["JUMP_DET"]
