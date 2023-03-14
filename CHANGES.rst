@@ -6,6 +6,12 @@ Bug Fixes
 
 -
 
+Other
+~~~~~
+
+- Remove the ``dqflags``, ``dynamicdq``, and ``basic_utils`` modules and replace
+  them with thin imports from ``stdatamodels`` where the code as been moved. [#146]
+
 1.3.4 (2023-02-13)
 ==================
 
