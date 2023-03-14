@@ -84,7 +84,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
     drk_nframes = dark_data.exp_nframes
     drk_groupgap = dark_data.exp_groupgap
-    drk_nframes = 1
+    drk_nframes = dark_data.data.shape[1]
     drk_groupgap = 0
 
     log.info(
