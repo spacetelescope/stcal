@@ -7,11 +7,16 @@ from stcal.jump.jump import flag_large_events, find_circles, find_ellipses
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 
 try:
-    import cv2 as cv # noqa: F401
+    import cv2  # noqa: F401
 
-    OPENCV_INSTALLED = True
-except ImportError:
-    OPENCV_INSTALLED = False
+    ELLIPSE_PACKAGE_INSTALLED = True
+except (ImportError, ModuleNotFoundError):
+    try:
+        import skimage  # noqa: F401
+
+        ELLIPSE_PACKAGE_INSTALLED = True
+    except (ImportError, ModuleNotFoundError):
+        ELLIPSE_PACKAGE_INSTALLED = False
 
 
 @pytest.fixture(scope='function')
@@ -31,7 +36,7 @@ def setup_cube():
     return _cube
 
 
-@pytest.mark.xfail(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
+@pytest.mark.xfail(not ELLIPSE_PACKAGE_INSTALLED, reason="image package not installed")
 def test_find_simple_circle():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[2, 2] = DQFLAGS['JUMP_DET']
@@ -40,23 +45,25 @@ def test_find_simple_circle():
     plane[2, 3] = DQFLAGS['JUMP_DET']
     plane[2, 1] = DQFLAGS['JUMP_DET']
     circle = find_circles(plane, DQFLAGS['JUMP_DET'], 1)
+    assert circle[0][0] == pytest.approx((2, 2))
     assert circle[0][1] == pytest.approx(1.0, 1e-3)
 
 
-@pytest.mark.xfail(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
+@pytest.mark.xfail(not ELLIPSE_PACKAGE_INSTALLED, reason="image package not installed")
 def test_find_simple_ellipse():
-    plane = np.zeros(shape=(5, 5), dtype=np.uint8)
+    plane = np.zeros(shape=(5, 7), dtype=np.uint8)
+    plane[2, 1] = DQFLAGS['JUMP_DET']
     plane[2, 2] = DQFLAGS['JUMP_DET']
     plane[3, 2] = DQFLAGS['JUMP_DET']
-    plane[1, 2] = DQFLAGS['JUMP_DET']
-    plane[2, 3] = DQFLAGS['JUMP_DET']
-    plane[2, 1] = DQFLAGS['JUMP_DET']
     plane[1, 3] = DQFLAGS['JUMP_DET']
-    plane[2, 4] = DQFLAGS['JUMP_DET']
+    plane[2, 3] = DQFLAGS['JUMP_DET']
     plane[3, 3] = DQFLAGS['JUMP_DET']
+    plane[1, 4] = DQFLAGS['JUMP_DET']
+    plane[2, 4] = DQFLAGS['JUMP_DET']
+    plane[2, 5] = DQFLAGS['JUMP_DET']
     ellipse = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
-    assert ellipse[0][2] == pytest.approx(45.0, 1e-3)  # 90 degree rotation
-    assert ellipse[0][0] == pytest.approx((2.5, 2.0))  # center
+    assert ellipse[0][2] == pytest.approx(63.435, 1e-3)  # anti-clockwise rotation
+    assert ellipse[0][0] == pytest.approx((3, 2))  # center
 
 
 @pytest.mark.skip(reason="only for local testing")

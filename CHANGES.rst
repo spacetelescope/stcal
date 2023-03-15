@@ -37,6 +37,8 @@ ramp_fitting
 Changes to API
 --------------
 
+- when using ellipses without ``opencv-python`` installed, attempt to fallback to analogous ``scikit-image`` functionality before raising an exception [#138]
+
 dark
 ----
 
