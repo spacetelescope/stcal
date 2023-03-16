@@ -1034,6 +1034,40 @@ def test_dq_multi_int_dnu():
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
+def test_multi_more_cores_than_rows():
+    """
+    This tests a (1, 10, 1, 2) dimensional dataset with multi-
+    processing using "all" to force all available processors to
+    be selected.  The data is divided by row.  Since there is
+    only one row, the number of processors actually used should
+    only be one.  Otherwise, there would be a crash as an empty
+    slice of the data would be sent through ramp fitting.
+    """
+    nints, ngroups, nrows, ncols = 2, 10, 1, 2
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 5, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    bramp = np.array([ 150.4896,  299.7697,  449.0971,  600.6752,  749.6968,
+                       900.9771, 1050.1395, 1199.9658, 1349.9163, 1499.8358])
+    factor = 1.05
+    for integ in range(nints):
+        for row in range(nrows):
+            for col in range(ncols):
+                ramp.data[integ, :, row, col] = bramp
+                bramp = bramp * factor
+
+    algo, save_opt, ncores = "OLS", False, "all"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, 512, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
+    # The test is simply to make sure ramp fitting doesn't crash
+
+
+
 def get_new_saturation():
     """
     Three columns (pixels) with two integrations each.
