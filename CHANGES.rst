@@ -6,6 +6,14 @@ Bug Fixes
 
 -
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- During multiprocessing, if the number of processors requested are greater
+  than the number of rows in the image, then ramp fitting errors out.  To
+  prevent this error, the during multiprocessing, the number of processors
+  actually used will be no greater than the number of rows in the image. [#154]
+
 Other
 ~~~~~
 
