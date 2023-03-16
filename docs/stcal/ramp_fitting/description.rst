@@ -33,7 +33,11 @@ default the step runs on a single processor. At the other extreme if max_cores i
 set to 'all', it will use all available cores (real and virtual). Testing has shown
 a reduction in the elapsed time for the step proportional to the number of real
 cores used. Using the virtual cores also reduces the elasped time but at a slightly
-lower rate than the real cores.
+lower rate than the real cores.  Since the data is sliced based on the number
+of rows, if the number of cores requested for multiprocessing is greater than
+the number of rows, the number of cores actually used will be no more than the
+number of rows.  This prevents any additional cores from operating on empty
+datasets, which would cause errors during ramp fitting.
 
 Special Cases
 +++++++++++++
