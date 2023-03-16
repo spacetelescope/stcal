@@ -1278,7 +1278,7 @@ def log_stats(c_rates):
               % (c_rates.min(), c_rates.mean(), c_rates.max(), c_rates.std()))
 
 
-def compute_slices(max_cores):
+def compute_slices(max_cores, nrows):
     """
     Computes the number of slices to be created for multiprocessing.
 
@@ -1308,6 +1308,8 @@ def compute_slices(max_cores):
             number_slices = num_cores
         else:
             number_slices = 1
+        if number_slices > nrows:
+            number_slices = nrows
     return number_slices
 
 
