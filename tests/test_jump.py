@@ -179,3 +179,9 @@ def test_inputjumpall():
     assert (np.all(snowball_diff == 0))
 
 
+def test_inputjump_sat_star():
+    testcube = fits.getdata('data/input_gdq_flarge.fits')
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=6,
+                      expand_factor=2.0, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)

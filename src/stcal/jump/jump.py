@@ -396,6 +396,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
             # expand the larger saturated cores to deal with the charge migration from the
             # saturated cores.
+            print("sat expand", sat_expand)
+            print("sat ellipses", sat_ellipses)
             gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
                                                           group, sat_ellipses, sat_flag, jump_flag,
                                                           min_sat_radius_extend, expansion=sat_expand)
@@ -422,6 +424,9 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             n_showers_grp.append(len(snowballs))
             gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
                                               jump_flag, expansion=expand_factor)
+            if group == 1:
+                fits.writeto("only_jump.fits", only_jump, overwrite=True)
+                fits.writeto("new_sat.fits", new_sat, overwrite=True)
         if find_faint_extended:
             if np.all(np.array(n_showers_grp_ellipse) == 0):
                 log.info(f'No showers found in integration {integration}.')
@@ -465,12 +470,13 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
         minor_axis = min(ellipse[1][1], ellipse[1][0])
+        print("minor axis", minor_axis)
         if minor_axis > min_sat_radius_extend:
             axis1 = ellipse[1][0] + expansion
             axis2 = ellipse[1][1] + expansion
             alpha = ellipse[2]
-            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1),
-                               round(axis2)), alpha, 0, 360, (0, 0, 22), -1)
+            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1/2),
+                               round(axis2/2)), alpha, 0, 360, (0, 0, 22), -1)
             sat_ellipse = image[:, :, 2]
             saty, satx = np.where(sat_ellipse == 22)
             outcube[grp:, saty, satx] = sat_flag
