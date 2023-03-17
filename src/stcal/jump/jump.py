@@ -6,6 +6,7 @@ from astropy.convolution import convolve
 import numpy as np
 from . import twopoint_difference as twopt
 from . import constants
+from astropy.io import fits
 
 import multiprocessing
 
@@ -184,7 +185,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     pdq : int, 2D array
         updated pixel dq array
     """
-    print("Find Showers", find_showers)
     constants.update_dqflags(dqflags)  # populate dq flags
     sat_flag = dqflags["SATURATED"]
     jump_flag = dqflags["JUMP_DET"]
@@ -331,6 +331,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
         #  This is the flag that controls the flagging of either snowballs or showers.
+        fits.writeto("input_gdq_flarge.fits", gdq, overwrite=True)
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
