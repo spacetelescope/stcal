@@ -1073,9 +1073,9 @@ def test_multi_more_cores_than_rows():
                 ramp.data[integ, :, row, col] = bramp
                 bramp = bramp * factor
 
-    algo, save_opt, ncores = "OLS", False, "all"
+    bufsize, algo, save_opt, ncores = 512, "OLS", False, "all"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp, 512, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
     # This part of the test is simply to make sure ramp fitting
     # doesn't crash.  No asserts are necessary here.
 
