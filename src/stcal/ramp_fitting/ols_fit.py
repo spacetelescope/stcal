@@ -72,7 +72,8 @@ def ols_ramp_fit_multi(
     """
 
     # Determine number of slices to use for multi-processor computations
-    number_slices = utils.compute_slices(max_cores)
+    nrows = ramp_data.data.shape[2]
+    number_slices = utils.compute_slices(max_cores, nrows)
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the

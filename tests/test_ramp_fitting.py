@@ -1034,6 +1034,53 @@ def test_dq_multi_int_dnu():
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
+def test_multi_more_cores_than_rows():
+    """
+    This tests a (1, 10, 1, 2) dimensional dataset with multi-
+    processing using "all" to force all available processors to
+    be selected.  The data is divided by row.  Since there is
+    only one row, the number of processors actually used should
+    only be one.  Otherwise, there would be a crash as an empty
+    slice of the data would be sent through ramp fitting.
+    """
+    nints, ngroups, nrows, ncols = 2, 10, 1, 2
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 5, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    from stcal.ramp_fitting.utils import compute_slices
+    requested_slices = 8
+    requested_slices = compute_slices(requested_slices, nrows)
+    assert requested_slices == 1
+
+    """
+    NOTE: The following is useful only on computers with more than
+          one available processor.  Running this test on one
+          processor does NOT test the safety features of multi-
+          processing preventing the number of processors used
+          being no more than the number of processors requested.
+    """
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    bramp = np.array([ 150.4896,  299.7697,  449.0971,  600.6752,  749.6968,
+                       900.9771, 1050.1395, 1199.9658, 1349.9163, 1499.8358])
+    factor = 1.05
+    for integ in range(nints):
+        for row in range(nrows):
+            for col in range(ncols):
+                ramp.data[integ, :, row, col] = bramp
+                bramp = bramp * factor
+
+    bufsize, algo, save_opt, ncores = 512, "OLS", False, "all"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags)
+    # This part of the test is simply to make sure ramp fitting
+    # doesn't crash.  No asserts are necessary here.
+
+
+
 def get_new_saturation():
     """
     Three columns (pixels) with two integrations each.
