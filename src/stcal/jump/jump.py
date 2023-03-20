@@ -416,7 +416,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
-                high_threshold = gdq.shape[2] - edge_size
+                high_threshold = max(0, gdq.shape[2] - edge_size)
 
                 gdq, snowballs = make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses, low_threshold,
                                                 high_threshold, min_sat_radius_extend, sat_expand, sat_flag, jump_flag)
@@ -425,9 +425,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             n_showers_grp.append(len(snowballs))
             gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
                                               jump_flag, expansion=expand_factor)
-            if group == 1:
-                fits.writeto("only_jump.fits", only_jump, overwrite=True)
-                fits.writeto("new_sat.fits", new_sat, overwrite=True)
         if find_faint_extended:
             if np.all(np.array(n_showers_grp_ellipse) == 0):
                 log.info(f'No showers found in integration {integration}.')
