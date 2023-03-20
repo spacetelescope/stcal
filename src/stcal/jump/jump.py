@@ -39,7 +39,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  expand_large_events=False,
                  sat_expand=2, min_sat_radius_extend= 2.5, find_showers=False,
                  edge_size = 25, extend_snr_threshold=1.2, extend_min_area=90, extend_inner_radius=1,
-                 extend_outer_radius=2.6, extend_ellipse_expand_ratio = 1.1, grps_masked_after_shower=5):
+                 extend_outer_radius=2.6, extend_ellipse_expand_ratio = 1.2, grps_masked_after_shower=5):
 
     """
     This is the high-level controlling routine for the jump detection process.
