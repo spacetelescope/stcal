@@ -394,8 +394,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             new_sat = diff_gdq.astype('uint8')
             # find the ellipse parameters for newly saturated pixels
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-            print("sat expand", sat_expand)
-            print("sat ellipses", sat_ellipses)
 #            gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
 #                                                          group, sat_ellipses, sat_flag, jump_flag,
 #                                                          min_sat_radius_extend, expansion=sat_expand)
@@ -461,7 +459,6 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
 
 def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
                       min_sat_radius_extend, expansion=2):
-    print("inside extend sat")
     image = np.zeros(shape=(cube.shape[1], cube.shape[2], 3), dtype=np.uint8)
     jump_pix = np.bitwise_and(cube[grp, :, :], jump_flag)
     outcube = cube.copy()
@@ -469,7 +466,6 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
         minor_axis = min(ellipse[1][1], ellipse[1][0])
-        print("minor axis", minor_axis)
         if minor_axis > min_sat_radius_extend:
             axis1 = ellipse[1][0] + expansion
             axis2 = ellipse[1][1] + expansion
