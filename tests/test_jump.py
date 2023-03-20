@@ -73,9 +73,12 @@ def test_extend_saturation_simple():
     cube[1, 4, 3] = DQFLAGS['SATURATED']
     cube[1, 3, 2] = DQFLAGS['SATURATED']
     cube[1, 2, 2] = DQFLAGS['JUMP_DET']
+    fits.writeto("extend_saturation_in.fits", cube, overwrite=True)
     sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
     new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'], DQFLAGS['JUMP_DET'],
                                  min_sat_radius_extend, expansion=1.1)
+
+    fits.writeto("extend_saturation_new.fits", new_cube, overwrite=True)
     assert new_cube[grp, 2, 2] == DQFLAGS['SATURATED']
     assert new_cube[grp, 3, 5] == DQFLAGS['SATURATED']
     assert new_cube[grp, 0, 5] == 0
@@ -174,6 +177,8 @@ def test_inputjumpall():
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     snowball_1 = testcube[0, 1,  260:280, 310:331]
+    fits.writeto("output_jumlall.fits", testcube, overwrite=True)
+    fits.writeto("output_snowball1.fits", snowball_1, overwrite=True)
     correct_snowball_1 = fits.getdata('data/snowball1.fits')
     snowball_diff = snowball_1 - correct_snowball_1
     assert (np.all(snowball_diff == 0))
@@ -185,3 +190,4 @@ def test_inputjump_sat_star():
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("outgdq2.fits", testcube, overwrite=True)
