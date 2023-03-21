@@ -32,7 +32,7 @@ def setup_cube():
     return _cube
 
 
-@pytest.mark.skipif(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
+
 def test_find_simple_ellipse():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[2, 2] = DQFLAGS['JUMP_DET']
