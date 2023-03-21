@@ -6,7 +6,6 @@ from astropy.convolution import convolve
 import numpy as np
 from . import twopoint_difference as twopt
 from . import constants
-from astropy.io import fits
 
 import multiprocessing
 
@@ -246,7 +245,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2)
 
-        #  This is the flag that controls the flagging of either snowballs or showers.
+        #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
@@ -331,7 +330,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
         #  This is the flag that controls the flagging of either snowballs or showers.
-        fits.writeto("input_gdq_flarge.fits", gdq, overwrite=True)
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
@@ -394,23 +392,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             new_sat = diff_gdq.astype('uint8')
             # find the ellipse parameters for newly saturated pixels
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-#            gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
-#                                                          group, sat_ellipses, sat_flag, jump_flag,
-#                                                          min_sat_radius_extend, expansion=sat_expand)
-            #  recalculate the newly flagged pixels after the expansion of saturation
-#            current_gdq = 1.0 * gdq[integration, group, :, :]
-#            prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-#            diff_gdq = 1.0 * current_gdq - prev_gdq
-#            diff_gdq[diff_gdq < 0] = 0
-#            new_sat = diff_gdq.astype('uint8')
-            # find all the newly saturated pixel
-            sat_pixels = np.bitwise_and(diff_gdq.astype('uint8'), sat_flag)
-            saty, satx = np.where(sat_pixels == sat_flag)
-            only_jump = diff_gdq.copy()
-            # reset the saturated pixel to be jump to allow the jump circles to have the
-            # central saturated region set to "jump" instead of "saturation".
-            only_jump[saty, satx] = jump_flag
-#            jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
+
+            # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
@@ -423,12 +406,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             n_showers_grp.append(len(snowballs))
             gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
                                               jump_flag, expansion=expand_factor)
-        if find_faint_extended:
-            if np.all(np.array(n_showers_grp_ellipse) == 0):
-                log.info(f'No showers found in integration {integration}.')
-            else:
-                log.info(f' In integration {integration}, number of' +
-                         f'showers in each group = {n_showers_grp_ellipse}')
         if np.all(np.array(n_showers_grp) == 0):
             log.info(f'No snowballs found in integration {integration}.')
         else:
