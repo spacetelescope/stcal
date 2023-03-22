@@ -223,3 +223,12 @@ def test_inputjump_sat_star():
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("outgdq2.fits", testcube, overwrite=True)
+
+#@pytest.mark.skip("Used for local testing")
+def test_inputjump_sat_star():
+    testcube = fits.getdata('input_gdq_satstar.fits')
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=6,
+                      expand_factor=2.0, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("outgdq_satstar.fits", testcube, overwrite=True)
