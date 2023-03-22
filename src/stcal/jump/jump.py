@@ -329,6 +329,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
+            
         fits.writeto("input_gdq_fle.fits", gdq, overwrite=True)
         #  This is the flag that controls the flagging of either snowballs or showers.
         if expand_large_events:
