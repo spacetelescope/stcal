@@ -8,7 +8,7 @@ from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation,
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
 
 try:
-    import cv2 as cv # noqa: F401
+    import cv2 as cv  # noqa: F401
 
     OPENCV_INSTALLED = True
 except ImportError:
@@ -32,7 +32,6 @@ def setup_cube():
     return _cube
 
 
-
 def test_find_simple_ellipse():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[2, 2] = DQFLAGS['JUMP_DET']
@@ -50,9 +49,9 @@ def test_find_simple_ellipse():
 
 def test_find_ellipse2():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
-    plane[1,:] = [0,  DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'],DQFLAGS['JUMP_DET'], 0]
-    plane[2,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
-    plane[3,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    plane[1, :] = [0,  DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    plane[2, :] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    plane[3, :] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
     ellipses = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
     ellipse = ellipses[0]
     assert ellipse[0][0] == 2
@@ -60,7 +59,6 @@ def test_find_ellipse2():
     assert ellipse[1][0] == 2
     assert ellipse[1][1] == 2
     assert ellipse[2] == 90.0
-
 
 
 def test_extend_saturation_simple():
@@ -149,8 +147,11 @@ def test_find_faint_extended():
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, snr_threshold=1.3, min_shower_area=20, inner=1,
-                              outer=2, sat_flag=2, jump_flag=4, ellipse_expand=1.1, num_grps_masked=3)
+    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1,
+                                           snr_threshold=1.3,
+                                           min_shower_area=20, inner=1,
+                                           outer=2, sat_flag=2, jump_flag=4,
+                                           ellipse_expand=1.1, num_grps_masked=3)
     #  Check that all the expected samples in group 2 are flagged as jump and that they are not flagged outside
     assert (np.all(gdq[0, 1, 22, 14:23] == 0))
     assert (np.all(gdq[0, 1, 21, 16:20] == DQFLAGS['JUMP_DET']))
@@ -190,11 +191,13 @@ def test_inside_ellipse5():
     result = point_inside_ellipse(point, ellipse)
     assert not result
 
+
 def test_inside_ellipse4():
     ellipse = ((0, 0), (1, 2), 0)
     point = (1, 0.5)
     result = point_inside_ellipse(point, ellipse)
     assert not result
+
 
 def test_inside_ellipes5():
     point = (1110.5, 870.5)
@@ -224,7 +227,8 @@ def test_inputjump_sat_star():
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("outgdq2.fits", testcube, overwrite=True)
 
-#@pytest.mark.skip("Used for local testing")
+
+# @pytest.mark.skip("Used for local testing")
 def test_inputjump_sat_star():
     testcube = fits.getdata('input_gdq_satstar.fits')
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
