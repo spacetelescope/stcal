@@ -20,6 +20,8 @@ Other
 - Remove the ``dqflags``, ``dynamicdq``, and ``basic_utils`` modules and replace
   them with thin imports from ``stdatamodels`` where the code as been moved. [#146]
 
+- update minimum version of ``numpy`` to ``1.20`` and add minimum dependency testing to CI [#153]
+
 1.3.4 (2023-02-13)
 ==================
 
