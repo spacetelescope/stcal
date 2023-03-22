@@ -523,10 +523,14 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses, low_thr
             for sat in sat_ellipses:
                 # center of saturation is within the enclosing jump rectangle
                 if point_inside_ellipse(sat[0], jump):
-                    if jump not in snowballs:
-                        snowballs.append(jump)
-                        sat_found = True
-                        gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
+                    # center of jump should be saturated
+                    jump_center = jump[0]
+                    value = gdq[integration, group, round(jump_center[1]), round(jump_center[0])]
+                    if gdq[integration, group, round(jump_center[1]), round(jump_center[0])] == sat_flag:
+                        if jump not in snowballs:
+                            snowballs.append(jump)
+                            sat_found = True
+                            gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
                                                                       group, [sat], sat_flag, jump_flag,
                                                                       min_sat_radius, expansion)
     return gdq, snowballs
