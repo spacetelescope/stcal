@@ -130,8 +130,32 @@ def test_flag_large_events_withsnowball():
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
     assert cube[0, 2, 0, 0] == 0
-    assert cube[0, 2, 1, 1] == DQFLAGS['JUMP_DET']  # Jump was extended
+    assert cube[0, 2, 1, 0] == DQFLAGS['JUMP_DET']  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS['SATURATED']  # Saturation was extended
+
+def test_flag_large_events_withsnowball_noextension():
+    cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
+    grp = 1
+    min_sat_radius_extend = 1
+    # cross of saturation surrounding by jump -> snowball
+    cube[0, 2, 3, 3] = DQFLAGS['SATURATED']
+    cube[0, 2, 2, 3] = DQFLAGS['SATURATED']
+    cube[0, 2, 3, 4] = DQFLAGS['SATURATED']
+    cube[0, 2, 4, 3] = DQFLAGS['SATURATED']
+    cube[0, 2, 3, 2] = DQFLAGS['SATURATED']
+    cube[0, 2, 1, 1:6] = DQFLAGS['JUMP_DET']
+    cube[0, 2, 5, 1:6] = DQFLAGS['JUMP_DET']
+    cube[0, 2, 1:6, 1] = DQFLAGS['JUMP_DET']
+    cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
+    flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=6,
+                      expand_factor=1.9, use_ellipses=False, edge_size=0,
+                      sat_required_snowball=True, min_sat_radius_extend=.5, sat_expand=1.1, max_extended_radius=1)
+    assert cube[0, 1, 2, 2] == 0
+    assert cube[0, 1, 3, 5] == 0
+    assert cube[0, 2, 0, 0] == 0
+    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_radius=1
+    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_radius=1
 
 
 def test_find_faint_extended():
@@ -225,7 +249,7 @@ def test_inputjump_sat_star():
 
 
 @pytest.mark.skip("Used for local testing")
-def test_inputjump_sat_star():
+def test_inputjump_sat_star2():
     testcube = fits.getdata('input_gdq_satstar.fits')
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
