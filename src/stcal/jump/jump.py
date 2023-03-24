@@ -11,7 +11,6 @@ from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 try:
     import cv2 as cv
-
     OPENCV_INSTALLED = True
 except ImportError:
     OPENCV_INSTALLED = False
