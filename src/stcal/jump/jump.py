@@ -1,14 +1,14 @@
 import time
 import logging
 import warnings
-from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
+
 import numpy as np
 from . import twopoint_difference as twopt
 from . import constants
 
 import multiprocessing
-
+from astropy.convolution import Ring2DKernel
+from astropy.convolution import convolve
 try:
     import cv2 as cv
 
