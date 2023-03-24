@@ -36,9 +36,10 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  use_ellipses=False,
                  sat_required_snowball=True,
                  expand_large_events=False,
-                 sat_expand=2, min_sat_radius_extend= 2.5, find_showers=False,
-                 edge_size = 25, extend_snr_threshold=1.2, extend_min_area=90, extend_inner_radius=1,
-                 extend_outer_radius=2.6, extend_ellipse_expand_ratio = 1.2, grps_masked_after_shower=5):
+                 sat_expand=2, min_sat_radius_extend=2.5, find_showers=False,
+                 edge_size=25, extend_snr_threshold=1.2, extend_min_area=90,
+                 extend_inner_radius=1, extend_outer_radius=2.6,
+                 extend_ellipse_expand_ratio=1.2, grps_masked_after_shower=5):
 
     """
     This is the high-level controlling routine for the jump detection process.
@@ -250,13 +251,19 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor, use_ellipses=use_ellipses,
-                              sat_required_snowball=sat_required_snowball, min_sat_radius_extend=min_sat_radius_extend,
+                              sat_required_snowball=sat_required_snowball,
+                              min_sat_radius_extend=min_sat_radius_extend,
                               edge_size=edge_size, sat_expand=sat_expand)
         if find_showers:
-            gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=extend_snr_threshold,
-                            min_shower_area=extend_min_area, inner=extend_inner_radius,
-                            outer=extend_outer_radius, sat_flag=sat_flag, jump_flag=jump_flag,
-                            ellipse_expand=extend_ellipse_expand_ratio, num_grps_masked=grps_masked_after_shower)
+            gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d,
+                                                   frames_per_group,
+                                                   snr_threshold=extend_snr_threshold,
+                                                   min_shower_area=extend_min_area,
+                                                   inner=extend_inner_radius,
+                                                   outer=extend_outer_radius,
+                                                   sat_flag=sat_flag, jump_flag=jump_flag,
+                                                   ellipse_expand=extend_ellipse_expand_ratio,
+                                                   num_grps_masked=grps_masked_after_shower)
     else:
         yinc = int(n_rows / n_slices)
         slices = []
@@ -338,11 +345,16 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               sat_required_snowball=sat_required_snowball, min_sat_radius_extend=min_sat_radius_extend,
                               edge_size=edge_size, sat_expand=sat_expand)
         if find_showers:
-            gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d, frames_per_group, snr_threshold=extend_snr_threshold,
-                                      min_shower_area=extend_min_area, inner=extend_inner_radius,
-                                      outer=extend_outer_radius, sat_flag=sat_flag, jump_flag=jump_flag,
-                                      ellipse_expand=extend_ellipse_expand_ratio,
-                                      num_grps_masked=grps_masked_after_shower)
+            gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d,
+                                                   frames_per_group,
+                                                   snr_threshold=extend_snr_threshold,
+                                                   min_shower_area=extend_min_area,
+                                                   inner=extend_inner_radius,
+                                                   outer=extend_outer_radius,
+                                                   sat_flag=sat_flag,
+                                                   jump_flag=jump_flag,
+                                                   ellipse_expand=extend_ellipse_expand_ratio,
+                                                   num_grps_masked=grps_masked_after_shower)
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
@@ -359,25 +371,41 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2,
-                      edge_size=25):
+                      sat_required_snowball=True, min_sat_radius_extend=2.5,
+                      sat_expand=2, edge_size=25):
     """
-    This routine controls the creation of expanded regions that are flagged as jumps. These are called
-    snowballs for the NIR. While they are most commonly circular, there are elliptical ones. This routine
-    does not handle the detection of MIRI showers.
+    This routine controls the creation of expanded regions that are flagged as
+    jumps.
 
-    :param gdq: The group DQ cube for all integrations
-    :param jump_flag: The bit value that represents jump
-    :param sat_flag:  The bit value that represents saturation
-    :param min_sat_area:  The minimum area of saturated pixels within the jump circle to trigger the
-                        creation of a snowball.
-    :param min_jump_area:  The minimum area of a contour to cause the creation of the minimum
-                        enclosing ellipse or circle
-    :param expand_factor: The factor that increases the size of the snowball or enclosing ellipse.
-    :param use_ellipses:  Use ellipses rather than circles (better for MIRI)
-    :param sat_required_snowball: Require that there is a saturated pixel within the radius of the jump
-                        circle to trigger the formation of a snowball.
-    :return: none
+    These events are called snowballs for the NIR. While they are most commonly
+    circular, there are elliptical ones. This routine does not handle the
+    detection of MIRI showers.
+
+    Parameters
+    ----------
+
+    gdq : int, 4D array
+        Group dq array
+    jump_flag : int
+        DQ flag for jump detection.
+    sat_flag: int
+        DQ flag for saturation
+    min_sat_area : int
+        The minimum area of saturated pixels within the jump circle to trigger
+        the creation of a snowball.
+    min_jump_area : int
+        The minimum area of a contour to cause the creation of the
+        minimum enclosing ellipse or circle.
+    expand_factor : float
+        The factor that increases the size of the snowball or enclosing ellipse.
+    sat_required_snowball : bool
+        Require that there is a saturated pixel within the radius of the jump
+        circle to trigger the formation of a snowball.
+
+    Returns
+    -------
+    Nothing, gdq array is modified.
+
     """
 
     log.info('Flagging large Snowballs')
@@ -395,28 +423,34 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
 
             # find the ellipse parameters for jump regions
-            jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
+            jump_ellipses = find_ellipses(gdq[integration, group, :, :],
+                                          jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
                 high_threshold = max(0, gdq.shape[2] - edge_size)
 
-                gdq, snowballs = make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses, low_threshold,
-                                                high_threshold, min_sat_radius_extend, sat_expand, sat_flag, jump_flag)
+                gdq, snowballs = make_snowballs(gdq, integration, group,
+                                                jump_ellipses, sat_ellipses,
+                                                low_threshold, high_threshold,
+                                                min_sat_radius_extend,
+                                                sat_expand, sat_flag,
+                                                jump_flag)
             else:
                 snowballs = jump_ellipses
             n_showers_grp.append(len(snowballs))
-            gdq, num_events = extend_ellipses(gdq, integration, group, snowballs, sat_flag,
-                                              jump_flag, expansion=expand_factor)
+            gdq, num_events = extend_ellipses(gdq, integration, group, snowballs,
+                                              sat_flag, jump_flag,
+                                              expansion=expand_factor)
         if np.all(np.array(n_showers_grp) == 0):
             log.info(f'No snowballs found in integration {integration}.')
         else:
             log.info(f' In integration {integration}, number of snowballs ' +
-                         f'in each group = {n_showers_grp}')
+                     f'in each group = {n_showers_grp}')
 
 
 def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
-    # For a given DQ plane it will use the list of snowballs to create expanded circles of pixels with
-    # the jump flag set.
+    # For a given DQ plane it will use the list of snowballs to create expanded
+    # circles of pixels with the jump flag set.
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
     num_circles = len(snowballs)
     sat_pix = np.bitwise_and(plane, sat_flag)
@@ -510,8 +544,8 @@ def find_ellipses(dqplane, bitmask, min_area):
 
 def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses, low_threshold, high_threshold,
                    min_sat_radius, expansion, sat_flag, jump_flag):
-    # Ths routine will create a list of snowballs (ellipses) that have the center of the saturation circle
-    # within the enclosing jump rectangle.
+    # Ths routine will create a list of snowballs (ellipses) that have the center
+    # of the saturation circle within the enclosing jump rectangle.
     snowballs = []
     for jump in jump_ellipses:
         sat_found = False
@@ -535,42 +569,68 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses, low_thr
 
 
 def point_inside_ellipse(point, ellipse):
-    delta_center = np.sqrt((point[0]-ellipse[0][0])**2 + (point[1]-ellipse[0][1])**2)
+    delta_center = np.sqrt((point[0]-ellipse[0][0])**2 +
+                           (point[1]-ellipse[0][1])**2)
     minor_axis = min(ellipse[1][0], ellipse[1][1])
     if delta_center < minor_axis:
         return True
     else:
         return False
 
-#  This routing tests whether the center of a jump is close to the edge of the detector.
-#  Jumps that are within the threshold will not requre a saturated core since this may be off the
-#  detector
+
 def near_edge(jump, low_threshold, high_threshold):
+    #  This routing tests whether the center of a jump is close to the edge of
+    # the detector. Jumps that are within the threshold will not requre a
+    # saturated core since this may be off the detector
     if jump[0][0] < low_threshold or jump[0][1] < low_threshold\
-        or jump[0][0] > high_threshold or jump[0][1] > high_threshold:
+            or jump[0][0] > high_threshold or jump[0][1] > high_threshold:
         return True
     else:
         return False
 
-def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, min_shower_area=40, inner=1,
-                            outer=2, sat_flag=2, jump_flag=4, ellipse_expand = 1.1, num_grps_masked=25):
+
+def find_faint_extended(data, gdq, readnoise_2d, nframes, snr_threshold=1.3,
+                        min_shower_area=40, inner=1, outer=2, sat_flag=2,
+                        jump_flag=4, ellipse_expand=1.1, num_grps_masked=25):
     """
-    :param data: The input data cube
-    :param gdq: The group dq cube after regular jump detection has been run
-    :param read_noise_2d: The read noise for each pixel
-    :param nframes: The number frames that are averaged in the group
-    :param snr_threshold: The signal-to-noise ratio threshold for detection of extended emission
-    :param min_shower_area: The minimum area for a group of pixels to be flagged as a shower
-    :param inner: The inner radius of the ring_2D_kernal used for the convolution
-    :param outer: The outer radius of the ring_2D_kernal used for the convolution
-    :param sat_flag: The integer value of the saturation flag
-    :param jump_flag: The integer value of the jump flag
-    :param ellipse_expand: The relative increase in the size of the fitted ellipse to be applied to the shower
-    :param num_grps_masked: The number of groups after the detected shower to be flagged as jump
-    :return: gdq (updated gdq cube)
-             number_ellipse (total number of showers detected)
+    Parameters
+    ----------
+      data : float, 4D array
+          Science array.
+      gdq : int, 2D array
+          Group dq array.
+      readnoise_2d : float, 2D array
+          Readnoise for all pixels.
+      nframes : int
+          The number frames that are averaged in the group.
+      snr_threshold : float
+          The signal-to-noise ratio threshold for detection of extended
+          emission.
+      min_shower_area : int
+          The minimum area for a group of pixels to be flagged as a shower.
+      inner: int
+          The inner radius of the ring_2D_kernal used for the convolution.
+      outer : int
+          The outer radius of the ring_2D_kernal used for the convolution.
+      sat_flag : int
+          The integer value of the saturation flag.
+      jump_flat : int
+          The integer value of the jump flag
+      ellipse_expand: float
+          The relative increase in the size of the fitted ellipse to be
+          applied to the shower.
+    num_grps_masked: int
+        The number of groups after the detected shower to be flagged as jump.
+
+    Returns
+    -------
+    gdq : int, 4D array
+      updated group dq array.
+    number_ellipse : int
+    Total number of showers detected.
+
     """
-    read_noise_2 = read_noise_2d**2
+    read_noise_2 = readnoise_2d**2
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
     data[gdq == jump_flag] = np.nan
@@ -580,39 +640,56 @@ def find_faint_extended(data, gdq, read_noise_2d, nframes, snr_threshold=1.3, mi
         median_diffs = np.nanmedian(diff, axis=0)
         # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-        e_jump = diff - median_diffs[np.newaxis, :, :]  #  The difference from the median difference for each group
-        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :] #  The SNR ratio of each difference
-        ring_2D_kernel = Ring2DKernel(inner, outer)  #  The convolution kernal creation
+
+        # The difference from the median difference for each group
+        e_jump = diff - median_diffs[np.newaxis, :, :]
+
+        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]  # SNR ratio of each diff.
+
+        #  The convolution kernal creation
+        ring_2D_kernel = Ring2DKernel(inner, outer)
         for grp in range(1, ratio.shape[0] + 1):
             ellipses = []
             masked_ratio = ratio[grp-1].copy()
             jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
-            masked_ratio[jumpy, jumpx] = np.nan  #  mask all pixels that are already flagged as jump
+            #  mask pix. that are already flagged as jump
+            masked_ratio[jumpy, jumpx] = np.nan
+
             saty, satx = np.where(gdq[intg, grp, :, :] == sat_flag)
-            masked_ratio[saty, satx] = np.nan  #  mask all pixels that are already flagged as saturated
+
+            #  mask pix. that are already flagged as sat.
+            masked_ratio[saty, satx] = np.nan
+
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
-            extended_emission = np.zeros(shape=(ratio.shape[1], ratio.shape[2]), dtype=np.uint8)
+            extended_emission = np.zeros(shape=(ratio.shape[1],
+                                                ratio.shape[2]), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
-#            pixels = np.bitwise_and(extended_emission, 1)
             #  find the contours of the extended emission
-            contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+            contours, hierarchy = cv.findContours(extended_emission,
+                                                  cv.RETR_EXTERNAL,
+                                                  cv.CHAIN_APPROX_SIMPLE)
             #  get the countours that are above the minimum size
-            bigcontours = [con for con in contours if cv.contourArea(con) > min_shower_area]
-            #  get the minimum enclosing rectangle which is the same as the minimum enclosing ellipse
+            bigcontours = [con for con in contours if cv.contourArea(con) >
+                           min_shower_area]
+            #  get the minimum enclosing rectangle which is the same as the
+            # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
             if len(ellipses) > 0:
-                    all_ellipses.append([intg, grp, ellipses]) # add all the showers for this integration to the list
+                # add all the showers for this integration to the list
+                all_ellipses.append([intg, grp, ellipses])
     if all_ellipses:
-        #  Now we actually do the flagging of the pixels inside showers. This is deferred until all showers are detected
-        #  because the showers can flag future groups and would confuse the detection algorthim if we worked on groups
-        #  that already had some flagged showers.
+        #  Now we actually do the flagging of the pixels inside showers.
+        # This is deferred until all showers are detected. because the showers
+        # can flag future groups and would confuse the detection algorthim if
+        # we worked on groups that already had some flagged showers.
         for showers in all_ellipses:
             intg = showers[0]
             grp = showers[1]
             ellipses = showers[2]
-            gdq, num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag, jump_flag,
-                                                    expansion=ellipse_expand, expand_by_ratio=True,
+            gdq, num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag,
+                                       jump_flag, expansion=ellipse_expand,
+                                       expand_by_ratio=True,
                                        num_grps_masked=num_grps_masked)
     if np.all((all_ellipses) == 0):
         log.info(f'No showers found in exposure.')
