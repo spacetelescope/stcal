@@ -93,8 +93,6 @@ def do_correction_data(science_data, dark_data, dark_output=None):
         'Dark data nints=%d, ngroups=%d, nframes=%d, groupgap=%d',
         drk_nints, drk_ngroups, drk_nframes, drk_groupgap
     )
-    print('Dark data nints=%d, ngroups=%d, nframes=%d, groupgap=%d',
-        drk_nints, drk_ngroups, drk_nframes, drk_groupgap)
     # Check that the number of groups in the science data does not exceed
     # the number of groups in the dark current array.
     sci_total_frames = sci_ngroups * sci_nframes + (sci_ngroups - 1) * sci_groupgap
