@@ -169,7 +169,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         The inner radius of the Ring2DKernal that is used for the detection of extended emission in showers
 
     extend_outer_radius : float
-        The inner radius of the Ring2DKernal that is used for the detection of extended emission in showers
+        The outer radius of the Ring2DKernal that is used for the detection of extended emission in showers
 
     extend_ellipse_expand_ratio : float
         Multiplicative factor to expand the radius of the ellipse fit to the detected extended emission in MIRI showers

@@ -101,12 +101,10 @@ def test_flag_large_events_nosnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS['JUMP_DET']
     cube[0, 2, 1:6, 1] = DQFLAGS['JUMP_DET']
     cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
-    fits.writeto('input_flag_large_events.fits', cube, overwrite=True)
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=1.9, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=1, sat_expand=1.1)
-    fits.writeto("output_flag_large_events.fits", cube, overwrite=True)
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
 
@@ -125,12 +123,10 @@ def test_flag_large_events_withsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS['JUMP_DET']
     cube[0, 2, 1:6, 1] = DQFLAGS['JUMP_DET']
     cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
-    fits.writeto('input_flag_large_events.fits', cube, overwrite=True)
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=1.9, use_ellipses=False, edge_size=0,
                       sat_required_snowball=True, min_sat_radius_extend=.5, sat_expand=1.1)
-    fits.writeto("output_flag_large_events.fits", cube, overwrite=True)
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
     assert cube[0, 2, 0, 0] == 0
