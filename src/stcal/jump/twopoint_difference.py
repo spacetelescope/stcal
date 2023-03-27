@@ -176,6 +176,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             min_diffs = np.nanmin(clipped_diffs, axis=(0, 1))
             delta_diff = max_diffs - min_diffs
             rms_diff = np.nanstd(clipped_diffs, axis=(0, 1))
+            fits.writeto("rms_diff.fits", rms_diff, overwrite=True)
             avg_diff = np.nanmean(clipped_diffs, axis=(0, 1))
             out_avg = avg_diff.filled(fill_value=np.nan)
             out_rms = rms_diff.filled(fill_value=np.nan)
