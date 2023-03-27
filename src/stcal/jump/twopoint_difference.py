@@ -169,7 +169,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     sigma[np.newaxis, np.newaxis, :, :]
             log.info(" Jump Step using selfcal sigma clip {} greater than {}".format(
                 str(total_groups), str(minimum_selfcal_groups)))
-            mean, median, stddev = stats.sigma_clipped_stats(np.abs(first_diffs_masked), axis=(0,1))
+            mean, median, stddev = stats.sigma_clipped_stats(np.abs(first_diffs_masked), axis=(0, 1))
+            fits.writeto('stddev_sigclip.fits', stddev, overwrite=True)
             clipped_diffs = stats.sigma_clip(np.abs(first_diffs_masked), sigma=normal_rej_thresh,
                                              axis=(0, 1), masked=True)
             max_diffs = np.nanmax(clipped_diffs, axis=(0, 1))
