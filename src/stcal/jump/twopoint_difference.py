@@ -149,7 +149,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
 #        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
         median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
-#        fits.writeto("median_diffs.fits", median_diffs.filled(fill_value=np.nan), overwrite=True)
         # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
 
