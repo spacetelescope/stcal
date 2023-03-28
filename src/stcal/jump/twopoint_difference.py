@@ -4,6 +4,7 @@ import numpy as np
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
 def find_crs(dataa, group_dq, read_noise, rejection_thresh,
              two_diff_rej_thresh, three_diff_rej_thresh, nframes,
              flag_4_neighbors, max_jump_to_flag_neighbors,

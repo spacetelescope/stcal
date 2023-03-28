@@ -3514,7 +3514,7 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
 
     # For those pixels that are all False, set to sentinel value of -1
     fnz[c_mask_2d.sum(axis=0) == 0] = -1
-    c_mask_2d[0, 0] = False
+
     mask_2d_sum = c_mask_2d.sum(axis=0)   # number of valid groups/pixel
 
     # get final valid group for each pixel for this semiramp
