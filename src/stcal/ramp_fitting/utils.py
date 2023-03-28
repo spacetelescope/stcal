@@ -12,6 +12,7 @@ log.setLevel(logging.DEBUG)
 
 # Replace zero or negative variances with this:
 LARGE_VARIANCE = 1.e8
+LARGE_VARIANCE_THRESHOLD = 0.01 * LARGE_VARIANCE
 
 
 class OptRes:
@@ -272,15 +273,15 @@ class OptRes:
         opt_info : tuple
             The tuple of computed optional results arrays for fitting.
         """
-        self.var_p_seg[self.var_p_seg > 0.4 * LARGE_VARIANCE] = 0.
-        self.var_r_seg[self.var_r_seg > 0.4 * LARGE_VARIANCE] = 0.
+        self.var_p_seg[self.var_p_seg > LARGE_VARIANCE_THRESHOLD] = 0.
+        self.var_r_seg[self.var_r_seg > LARGE_VARIANCE_THRESHOLD] = 0.
 
         # Suppress, then re-enable, arithmetic warnings
         warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
         # Tiny 'weights' values correspond to non-existent segments, so set to 0.
-        self.weights[1. / self.weights > 0.4 * LARGE_VARIANCE] = 0.
+        self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
         warnings.resetwarnings()
 
         self.slope_seg /= effintim
@@ -533,8 +534,10 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         del wh_good
 
         # Locate any CRs that appear before the first SAT group...
-        wh_cr = np.where(
-            gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
+            wh_cr = np.where(
+                gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
 
         # ... but not on final read:
         if len(wh_cr[0]) > 0 and (i_read < nreads - 1):
@@ -578,20 +581,34 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     den_p3 = 1. / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
+
     if ramp_data.zframe_locs:
-        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
-            frame_time = ramp_data.frame_time
-            row, col = pix
-            den_p3[0, row, col] = 1. / (frame_time * gain_sect[row, col])
+        zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
+        frame_time = ramp_data.frame_time
+        tmp_den_p3 = den_p3[0, :, :]
+        tmp_den_p3[zinteg_locs] = 1. / (frame_time * gain_sect[zinteg_locs])
+        den_p3[0, :, :] = tmp_den_p3
+
+    if ramp_data.one_groups_time is not None:
+        ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
+        tmp_den_p3 = den_p3[0, :, :]
+        tmp_den_p3[ginteg_locs] = 1. / (ramp_data.one_groups_time * gain_sect[ginteg_locs])
+        den_p3[0, :, :] = tmp_den_p3
+
     warnings.resetwarnings()
 
     # For a segment, the variance due to readnoise noise
     # = 12 * readnoise**2 /(ngroups_seg**3. - ngroups_seg)/( tgroup **2.)
     num_r3 = 12. * (rn_sect / group_time)**2.  # always >0
+
     if ramp_data.zframe_locs:
-        for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
-            row, col = pix
-            num_r3[row, col] = 12. * (rn_sect[row, col] / frame_time)**2.
+        zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
+        frame_time = ramp_data.frame_time
+        num_r3[zinteg_locs] = 12. * (rn_sect[zinteg_locs] / frame_time)**2.
+
+    if ramp_data.one_groups_time is not None:
+        ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
+        num_r3[ginteg_locs] = 12. * (rn_sect[ginteg_locs] / ramp_data.one_groups_time)**2.
 
     # Reshape for every group, every pixel in section
     num_r3 = np.dstack([num_r3] * max_seg)
@@ -713,9 +730,9 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-    var_p3[var_p3 > 0.4 * LARGE_VARIANCE] = 0.
-    var_r3[var_r3 > 0.4 * LARGE_VARIANCE] = 0.
-    var_both3[var_both3 > 0.4 * LARGE_VARIANCE] = 0.
+    var_p3[var_p3 > LARGE_VARIANCE_THRESHOLD] = 0.
+    var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
+    var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
 
     data = slope_int / effintim
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
@@ -725,6 +742,7 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
     err = np.sqrt(var_both3)
     dq = dq_int
     var_poisson = var_p3
+
     var_rnoise = var_r3
     integ_info = (data, dq, var_poisson, var_rnoise, err)
 
@@ -1260,7 +1278,7 @@ def log_stats(c_rates):
               % (c_rates.min(), c_rates.mean(), c_rates.max(), c_rates.std()))
 
 
-def compute_slices(max_cores):
+def compute_slices(max_cores, nrows):
     """
     Computes the number of slices to be created for multiprocessing.
 
@@ -1290,6 +1308,14 @@ def compute_slices(max_cores):
             number_slices = num_cores
         else:
             number_slices = 1
+
+        # Make sure the number of slices created isn't more than the available
+        # number of rows.  If so, this would cause empty datasets to be run
+        # through ramp fitting with dimensions (nints, ngroups, 0, ncols),
+        # which would cause a crash.
+        if number_slices > nrows:
+            number_slices = nrows
+
     return number_slices
 
 
@@ -1315,7 +1341,8 @@ def dq_compress_final(dq_int, ramp_data):
     for integ in range(1, nints):
         final_dq = np.bitwise_or(final_dq, dq_int[integ, :, :])
 
-    dnu, sat = ramp_data.flags_do_not_use, ramp_data.flags_saturated
+    dnu = np.uint32(ramp_data.flags_do_not_use)
+    sat = np.uint32(ramp_data.flags_saturated)
 
     # Remove DO_NOT_USE and SATURATED because they need special handling.
     # These flags are not set in the final pixel DQ array by simply being set
@@ -1459,6 +1486,12 @@ def compute_median_rates(ramp_data):
     group_time = ramp_data.group_time
     frame_time = ramp_data.frame_time
     adjustment = group_time / frame_time
+
+    if ramp_data.one_groups_time is not None:
+        one_groups_time_adjustment = group_time / ramp_data.one_groups_time
+    else:
+        one_groups_time_adjustment = None
+
     median_diffs_2d = np.zeros(imshape, dtype=np.float32)
 
     for integ in range(nints):
@@ -1472,11 +1505,18 @@ def compute_median_rates(ramp_data):
         del where_sat
 
         data_sect = data_sect / group_time
+
+        if one_groups_time_adjustment is not None:
+            one_groups_locs = ramp_data.one_groups_locs[integ]
+            tmp_dsect = data_sect[0, :, :]
+            tmp_dsect[one_groups_locs] = tmp_dsect[one_groups_locs] * one_groups_time_adjustment
+            data_sect[0, :, :] = tmp_dsect
+
         if ramp_data.zframe_locs is not None:
-            for pixel in ramp_data.zframe_locs[integ]:
-                row, col = pixel
-                # This makes the division by frame_time, instead of group_time
-                data_sect[0, row, col] = data_sect[0, row, col] * adjustment
+            zinteg_locs = ramp_data.zframe_locs[integ]
+            tmp_dsect = data_sect[0, :, :]
+            tmp_dsect[zinteg_locs] = tmp_dsect[zinteg_locs] * adjustment
+            data_sect[0, :, :] = tmp_dsect
 
         # Compute the first differences of all groups
         first_diffs_sect = np.diff(data_sect, axis=0)
@@ -1560,15 +1600,15 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
 
     cnt = 0
     for integ in range(nints):
-        zframe_locs[integ] = []
         intdq = dq[integ, :, :, :]
 
         # Find ramps with a good zeroeth group, but saturated in
         # the remainder of the ramp.
         wh_sat = groups_saturated_in_integration(intdq, sat_flag, ngroups)
 
-        whs_rows = wh_sat[0]
-        whs_cols = wh_sat[1]
+        whs_rows, whs_cols = wh_sat
+        row_list = []
+        col_list = []
         for n in range(len(whs_rows)):
             row = whs_rows[n]
             col = whs_cols[n]
@@ -1577,10 +1617,13 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
             # that is non-zero.  If it is non-zero, replace group zero in the
             # ramp with the data in ZEROFRAME.
             if ramp_data.zeroframe[integ, row, col] != 0:
-                zframe_locs[integ].append((row, col))
+                row_list.append(row)
+                col_list.append(col)
                 ramp_data.data[integ, 0, row, col] = ramp_data.zeroframe[integ, row, col]
                 ramp_data.groupdq[integ, 0, row, col] = good_flag
                 cnt = cnt + 1
+
+        zframe_locs[integ] = (np.array(row_list, dtype=int), np.array(col_list, dtype=int))
 
     return zframe_locs, cnt
 

@@ -1,21 +1,23 @@
-import time
 import logging
-import warnings
+import multiprocessing
+import time
 
 import numpy as np
-from . import twopoint_difference as twopt
-from . import constants
 
-import multiprocessing
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
+
+from . import constants
+from . import twopoint_difference as twopt
+
+ELLIPSE_PACKAGE = None
 try:
     import cv2 as cv
-    OPENCV_INSTALLED = True
-except ImportError:
-    OPENCV_INSTALLED = False
-    warnings.warn('Could not import `opencv-python`; '
-                  'certain snowball detection and usage of ellipses will be inoperable')
+
+    ELLIPSE_PACKAGE = 'opencv-python'
+except (ImportError, ModuleNotFoundError):
+    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[opencv]`) ' \
+                              'in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -294,7 +296,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         # modified unless copied beforehand
         gdq = gdq.copy()
         data = data.copy()
-        copy_arrs = False   # we dont need to copy arrays again in find_crs
+        copy_arrs = False  # we dont need to copy arrays again in find_crs
 
         for i in range(n_slices - 1):
             slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
@@ -485,6 +487,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                      f'in each group = {n_showers_grp}')
 
 
+
 def extend_saturation(cube, grp, sat_ellipses, sat_flag,
                       min_sat_radius_extend, expansion=2,
                       max_extended_radius=200):
@@ -554,6 +557,19 @@ def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag,
             gdq_cube[intg, flg_grp, :, :] = \
                 np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     return gdq_cube, num_ellipses
+
+
+def find_circles(dqplane, bitmask, min_area):
+    # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
+    # area and return a list of the minimum enclosing circle parameters.
+    pixels = np.bitwise_and(dqplane, bitmask)
+    if ELLIPSE_PACKAGE == 'opencv-python':
+        contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
+        circles = [cv.minEnclosingCircle(con) for con in bigcontours]
+    else:
+        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+    return circles
 
 
 def find_ellipses(dqplane, bitmask, min_area):
