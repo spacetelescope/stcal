@@ -748,5 +748,5 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
         log.info('No showers found in exposure.')
     else:
         num_showers = len(all_ellipses)
-        log.info(f' In number of' + f'showers = {num_showers}')
+        log.info(f' Number of showers flagged = {num_showers}')
     return gdq, len(all_ellipses)

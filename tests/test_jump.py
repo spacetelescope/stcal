@@ -82,8 +82,6 @@ def test_extend_saturation_simple():
 
 def test_flag_large_events_nosnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
-    grp = 1
-    min_sat_radius_extend = 1
     # cross of saturation with no jump
     cube[0, 1, 3, 3] = DQFLAGS['SATURATED']
     cube[0, 1, 2, 3] = DQFLAGS['SATURATED']
@@ -111,8 +109,6 @@ def test_flag_large_events_nosnowball():
 
 def test_flag_large_events_withsnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
-    grp = 1
-    min_sat_radius_extend = 1
     # cross of saturation surrounding by jump -> snowball
     cube[0, 2, 3, 3] = DQFLAGS['SATURATED']
     cube[0, 2, 2, 3] = DQFLAGS['SATURATED']
@@ -135,8 +131,6 @@ def test_flag_large_events_withsnowball():
 
 def test_flag_large_events_withsnowball_noextension():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
-    grp = 1
-    min_sat_radius_extend = 1
     # cross of saturation surrounding by jump -> snowball
     cube[0, 2, 3, 3] = DQFLAGS['SATURATED']
     cube[0, 2, 2, 3] = DQFLAGS['SATURATED']
@@ -150,7 +144,8 @@ def test_flag_large_events_withsnowball_noextension():
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
                       expand_factor=1.9, edge_size=0,
-                      sat_required_snowball=True, min_sat_radius_extend=.5, sat_expand=1.1, max_extended_radius=1)
+                      sat_required_snowball=True, min_sat_radius_extend=.5,
+                      sat_expand=1.1, max_extended_radius=1)
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
     assert cube[0, 2, 0, 0] == 0
@@ -172,7 +167,8 @@ def test_find_faint_extended():
                                            min_shower_area=20, inner=1,
                                            outer=2, sat_flag=2, jump_flag=4,
                                            ellipse_expand=1.1, num_grps_masked=3)
-    #  Check that all the expected samples in group 2 are flagged as jump and that they are not flagged outside
+    #  Check that all the expected samples in group 2 are flagged as jump and
+    #  that they are not flagged outside
     assert (np.all(gdq[0, 1, 22, 14:23] == 0))
     assert (np.all(gdq[0, 1, 21, 16:20] == DQFLAGS['JUMP_DET']))
     assert (np.all(gdq[0, 1, 20, 15:22] == DQFLAGS['JUMP_DET']))
