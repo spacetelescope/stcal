@@ -96,13 +96,12 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
 
     """
 
-# copy data and group DQ array
+    # copy data and group DQ array
     if copy_arrs:
         dataa = dataa.copy()
         gdq = group_dq.copy()
     else:
         gdq = group_dq
-
 
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
@@ -121,6 +120,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
     jump_flag = dqflags["JUMP_DET"]
 
     for integ in range(nints):
+
         log.info(f'Working on integration {integ + 1}:')
 
         # get data, gdq for this integration
@@ -162,6 +162,7 @@ def find_crs(dataa, group_dq, read_noise, rejection_thresh,
                                   max_ratio > three_diff_rej_thresh))
         row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                   max_ratio > two_diff_rej_thresh))
+
         log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
         log.info(log_str.format(len(row4cr), 'five or more'))
 
