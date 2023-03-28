@@ -543,6 +543,19 @@ def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag, expansio
     return gdq_cube, num_ellipses
 
 
+def find_circles(dqplane, bitmask, min_area):
+    # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
+    # area and return a list of the minimum enclosing circle parameters.
+    pixels = np.bitwise_and(dqplane, bitmask)
+    if ELLIPSE_PACKAGE == 'opencv-python':
+        contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
+        circles = [cv.minEnclosingCircle(con) for con in bigcontours]
+    else:
+        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+    return circles
+
+
 def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
