@@ -72,7 +72,7 @@ def test_extend_saturation_simple():
     cube[1, 3, 2] = DQFLAGS['SATURATED']
     cube[1, 2, 2] = DQFLAGS['JUMP_DET']
     sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
-    new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'], DQFLAGS['JUMP_DET'],
+    new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'],
                                  min_sat_radius_extend, expansion=1.1)
 
     assert new_cube[grp, 2, 2] == DQFLAGS['SATURATED']
@@ -103,7 +103,7 @@ def test_flag_large_events_nosnowball():
     cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
-                      expand_factor=1.9, use_ellipses=False,
+                      expand_factor=1.9,
                       sat_required_snowball=True, min_sat_radius_extend=1, sat_expand=1.1)
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
@@ -125,7 +125,7 @@ def test_flag_large_events_withsnowball():
     cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
-                      expand_factor=1.9, use_ellipses=False, edge_size=0,
+                      expand_factor=1.9, edge_size=0,
                       sat_required_snowball=True, min_sat_radius_extend=.5, sat_expand=1.1)
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
@@ -149,7 +149,7 @@ def test_flag_large_events_withsnowball_noextension():
     cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
-                      expand_factor=1.9, use_ellipses=False, edge_size=0,
+                      expand_factor=1.9, edge_size=0,
                       sat_required_snowball=True, min_sat_radius_extend=.5, sat_expand=1.1, max_extended_radius=1)
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
@@ -230,7 +230,7 @@ def test_inputjumpall():
     testcube = fits.getdata('data/large_event_input_dq_cube2.fits')
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
-                      expand_factor=2.0, use_ellipses=False,
+                      expand_factor=2.0,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     snowball_1 = testcube[0, 1,  1900:1934, 1710:1746]
     correct_snowball_1 = fits.getdata('data/snowball1.fits')
