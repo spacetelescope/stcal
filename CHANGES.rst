@@ -1,20 +1,78 @@
-1.3.1 (unreleased)
+1.3.5 (unreleased)
 ==================
-
-General
--------
-
--
 
 Bug Fixes
 ---------
 
 -
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- During multiprocessing, if the number of processors requested are greater
+  than the number of rows in the image, then ramp fitting errors out.  To
+  prevent this error, during multiprocessing, the number of processors actually
+  used will be no greater than the number of rows in the image. [#154]
+
+Other
+~~~~~
+
+- Remove the ``dqflags``, ``dynamicdq``, and ``basic_utils`` modules and replace
+  them with thin imports from ``stdatamodels`` where the code as been moved. [#146]
+
+- update minimum version of ``numpy`` to ``1.20`` and add minimum dependency testing to CI [#153]
+
+1.3.4 (2023-02-13)
+==================
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changed computations for ramps that have only one good group in the 0th
+  group.  Ramps that have a non-zero groupgap should not use group_time, but
+  (NFrames+1)*TFrame/2, instead. [#142]
+
+1.3.3 (2023-01-26)
+==================
+
+Bug Fixes
+---------
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Fixed zeros that should be NaNs in rate and rateints product and suppressed
+  a cast warning due to attempts to cast NaN to an integer. [#141]
+
 Changes to API
 --------------
 
--
+dark
+----
+
+- Modified dark class to support quantities in Roman.[#140]
+
+1.3.2 (2023-01-10)
+==================
+
+Bug Fixes
+---------
+  
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changed a cast due to numpy deprecation that now throws a warning.  The
+  negation of a DQ flag then cast to a np.uint32 caused an over flow.  The
+  flag is now cast to a np.uint32 before negation. [#139]
+
+
+1.3.1 (2023-01-03)
+==================
+
+Bug Fixes
+---------
+
+- improve exception handling when attempting to use ellipses without ``opencv-python`` installed [#136]
 
 1.3.0 (2022-12-15)
 ==================

@@ -1,21 +1,23 @@
-import time
 import logging
-import warnings
+import multiprocessing
+import time
 
 import numpy as np
-from . import twopoint_difference as twopt
-from . import constants
 
-import multiprocessing
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
+
+from . import constants
+from . import twopoint_difference as twopt
+
+ELLIPSE_PACKAGE = None
 try:
     import cv2 as cv
-    OPENCV_INSTALLED = True
-except ImportError:
-    OPENCV_INSTALLED = False
-    warnings.warn('Could not import `opencv-python`; '
-                  'certain snowball detection and usage of ellipses will be inoperable')
+
+    ELLIPSE_PACKAGE = 'opencv-python'
+except (ImportError, ModuleNotFoundError):
+    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[opencv]`) ' \
+                              'in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -277,7 +279,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         # modified unless copied beforehand
         gdq = gdq.copy()
         data = data.copy()
-        copy_arrs = False   # we dont need to copy arrays again in find_crs
+        copy_arrs = False  # we dont need to copy arrays again in find_crs
 
         for i in range(n_slices - 1):
             slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
@@ -460,8 +462,13 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5, max_e
         jump_center = snowball[0]
         cenx = jump_center[1]
         ceny = jump_center[0]
+        center = (round(ceny), round(cenx))
         extend_radius = round(jump_radius * expansion)
-        image = cv.circle(image, (round(ceny), round(cenx)), extend_radius, (0, 0, 4), -1)
+        color = (0, 0, 4)
+        if ELLIPSE_PACKAGE == 'opencv-python':
+            image = cv.circle(image, center, extend_radius, color, -1)
+        else:
+            raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
         jump_circle = image[:, :, 2]
         saty, satx = np.where(sat_pix == sat_flag)
         jump_circle[saty, satx] = 0
@@ -540,11 +547,14 @@ def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
-    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
-    # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
-    # with just 4 points.
-    ellipses = [cv.minAreaRect(con) for con in bigcontours]
+    if ELLIPSE_PACKAGE == 'opencv-python':
+        contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+        # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
+        # with just 4 points.
+        ellipses = [cv.minAreaRect(con) for con in bigcontours]
+    else:
+        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
     return ellipses
 
 

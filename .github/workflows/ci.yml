@@ -16,100 +16,38 @@ on:
 
 jobs:
   check:
-    name: ${{ matrix.toxenv }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        toxenv: [ check-style, check-security, check-build ]
-        python-version: [ '3.x' ]
-        os: [ ubuntu-latest ]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: pyproject.toml
-      - run: pip install tox
-      - run: tox -e ${{ matrix.toxenv }}
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      envs: |
+        - linux: check-style
+        - linux: check-security
+        - linux: check-build
   test:
-    name: ${{ matrix.toxenv }} (Python ${{ matrix.python-version }}, ${{ matrix.os }})
-    needs: [ check ]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        toxenv: [ test-xdist ]
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
-        os: [ ubuntu-latest, macos-latest ]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: pyproject.toml
-      - run: pip install tox
-      - run: tox -e ${{ matrix.toxenv }}
-  test_older_numpy:
-    name: ${{ matrix.toxenv }} (Python ${{ matrix.python-version }}, ${{ matrix.os }})
-    needs: [ test ]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        toxenv: [ test-numpy120, test-numpy121, test-numpy122 ]
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
-        os: [ ubuntu-latest ]
-        exclude:
-          - python-version: '3.10'
-            toxenv: test-numpy120
-          - python-version: '3.11'
-            toxenv: test-numpy120
-          - python-version: '3.11'
-            toxenv: test-numpy121
-          - python-version: '3.11'
-            toxenv: test-numpy122
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: pyproject.toml
-      - run: pip install tox
-      - run: tox -e ${{ matrix.toxenv }}
-  test_with_coverage:
-    name: ${{ matrix.toxenv }} (Python ${{ matrix.python-version }}, ${{ matrix.os }})
-    needs: [ test ]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        toxenv: [ test-cov, test-jwst-xdist-cov, test-romancal-xdist-cov ]
-        python-version: [ '3.x' ]
-        os: [ ubuntu-latest ]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: pyproject.toml
-      - run: pip install tox
-      - run: tox -e ${{ matrix.toxenv }}
-      - if: ${{ contains(matrix.toxenv,'-cov') }}
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unit
-          fail_ci_if_error: true
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      envs: |
+        - linux: test-oldestdeps-cov-xdist
+          python-version: 3.8
+        - linux: test-xdist
+          python-version: '3.8'
+        - linux: test-xdist
+          python-version: '3.9'
+        - linux: test-xdist
+          python-version: '3.10'
+        - linux: test-xdist
+          python-version: '3.11'
+        - macos: test-xdist
+          python-version: '3.11'
+        - linux: test-opencv-xdist
+        - linux: test-cov-xdist
+          coverage: 'codecov'
+  test_downstream:
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@main
+    with:
+      setenv: |
+        CRDS_PATH: /tmp/crds_cache
+        CRDS_CLIENT_RETRY_COUNT: 3
+        CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
+      envs: |
+        - linux: test-jwst-cov-xdist
+        - linux: test-romancal-cov-xdist

@@ -72,7 +72,8 @@ def ols_ramp_fit_multi(
     """
 
     # Determine number of slices to use for multi-processor computations
-    number_slices = utils.compute_slices(max_cores)
+    nrows = ramp_data.data.shape[2]
+    number_slices = utils.compute_slices(max_cores, nrows)
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
@@ -569,6 +570,47 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     return ramp_data_slice
 
 
+def find_0th_one_good_group(ramp_data):
+    """
+    Finds the location of ramps with the 0th group as the only good group.
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+    """
+    nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
+    one_group = [None] * nints  # One good group list of pixels per integration
+    for integ in range(nints):
+        cintegdq = ramp_data.groupdq[integ, :, :, :]  # Current integration DQ array
+
+        # Find pixels with good group 0
+        good_0 = np.zeros((nrows, ncols), dtype=int)
+        cintegdq_0  = cintegdq[0, :, :]
+        good_0[cintegdq_0 == 0] = 1  # Pixels with good 0 group
+
+        # Find pixels with only one good group
+        cinteg_sm = np.zeros((ngroups-1, nrows, ncols), dtype=int)
+        cintegdq_1 = cintegdq[1:, :, :]  # Current integration DQ array excluding 0th group
+        cinteg_sm[cintegdq_1 != 0] = 1  # Mark flagged groups to use in sum
+        gp_sum = cinteg_sm.sum(axis=0)  # Find the number of flagged groups excluding 0th group
+        bad_1_ = np.zeros((nrows, ncols), dtype=int)
+        bad_1_[gp_sum == ngroups-1] = 1  # Pixels with all groups flagged after the 0th group
+
+        # Get the locations of pixels that have good zeroeth group, with
+        # all other groups bad.
+        one_group_int = np.logical_and(good_0, bad_1_)
+        one_group[integ] = np.where(one_group_int)
+
+        del one_group_int
+        del good_0
+        del bad_1_
+
+    ramp_data.one_groups_locs = one_group
+    # (NFrames + 1) * TFrame / 2
+    ramp_data.one_groups_time = (ramp_data.nframes + 1) * ramp_data.frame_time / 2
+
+
 def ols_ramp_fit_single(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
     """
@@ -610,10 +652,17 @@ def ols_ramp_fit_single(
     """
     tstart = time.time()
 
-    if not ramp_data.suppress_one_group_ramps and ramp_data.zeroframe is not None:
-        zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
-        ramp_data.zframe_locs = zframe_locs
-        ramp_data.cnt = cnt
+    if not ramp_data.suppress_one_group_ramps:
+        # This must be done before the ZEROFRAME replacements to prevent
+        # ZEROFRAME replacement being confused for one good group ramps
+        # in the 0th group.
+        if ramp_data.groupgap > 0:
+            find_0th_one_good_group(ramp_data)
+
+        if ramp_data.zeroframe is not None:
+            zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
+            ramp_data.zframe_locs = zframe_locs
+            ramp_data.cnt = cnt
 
     # Save original shapes for writing to log file, as these may change for MIRI
     n_int, ngroups, nrows, ncols = ramp_data.data.shape
@@ -1105,7 +1154,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
-        var_p3[var_p3 > 0.1 * utils.LARGE_VARIANCE] = 0.
+        var_p3[var_p3 > utils.LARGE_VARIANCE_THRESHOLD] = 0.
         var_p3[:, med_rates <= 0.] = 0.
         warnings.resetwarnings()
 
@@ -1396,8 +1445,8 @@ def ramp_fit_overall(
     #  to nullify their contribution.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
-        var_p2[var_p2 > 0.1 * utils.LARGE_VARIANCE] = 0.
-        var_r2[var_r2 > 0.1 * utils.LARGE_VARIANCE] = 0.
+        var_p2[var_p2 > utils.LARGE_VARIANCE_THRESHOLD] = 0.
+        var_r2[var_r2 > utils.LARGE_VARIANCE_THRESHOLD] = 0.
 
     # Some contributions to these vars may be NaN as they are from ramps
     # having PIXELDQ=DO_NOT_USE
