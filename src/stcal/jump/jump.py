@@ -596,7 +596,7 @@ def near_edge(jump, low_threshold, high_threshold):
         return False
 
 
-def find_faint_extended(data, gdq, readnoise_2d, nframes, snr_threshold=1.3,
+def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                         min_shower_area=40, inner=1, outer=2, sat_flag=2,
                         jump_flag=4, ellipse_expand=1.1, num_grps_masked=25, max_extended_radius=200):
     """
@@ -638,6 +638,7 @@ def find_faint_extended(data, gdq, readnoise_2d, nframes, snr_threshold=1.3,
 
     """
     read_noise_2 = readnoise_2d**2
+    data = indata.copy()
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
     data[gdq == jump_flag] = np.nan
