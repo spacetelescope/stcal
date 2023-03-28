@@ -271,7 +271,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               expand_factor=expand_factor,
                               sat_required_snowball=sat_required_snowball,
                               min_sat_radius_extend=min_sat_radius_extend,
-                              edge_size=edge_size, sat_expand=sat_expand, max_extended_radius=max_extended_radius)
+                              edge_size=edge_size, sat_expand=sat_expand,
+                              max_extended_radius=max_extended_radius)
         if find_showers:
             gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d,
                                                    frames_per_group,
@@ -744,7 +745,8 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                                        num_grps_masked=num_grps_masked,
                                        max_extended_radius=max_extended_radius)
     if np.all(all_ellipses == 0):
-        log.info(f'No showers found in exposure.')
+        log.info('No showers found in exposure.')
     else:
-        log.info(f' In number of' + f'showers = {len(all_ellipses)}')
+        num_showers = len(all_ellipses)
+        log.info(f' In number of' + f'showers = {num_showers}')
     return gdq, len(all_ellipses)
