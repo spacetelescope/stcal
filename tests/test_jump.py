@@ -6,14 +6,6 @@ from stcal.jump.jump import flag_large_events, find_circles, find_ellipses
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 
-try:
-    import cv2 as cv # noqa: F401
-
-    OPENCV_INSTALLED = True
-except ImportError:
-    OPENCV_INSTALLED = False
-
-
 @pytest.fixture(scope='function')
 def setup_cube():
     def _cube(ngroups, readnoise=10):
@@ -31,7 +23,6 @@ def setup_cube():
     return _cube
 
 
-@pytest.mark.xfail(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
 def test_find_simple_circle():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[2, 2] = DQFLAGS['JUMP_DET']
@@ -43,7 +34,6 @@ def test_find_simple_circle():
     assert circle[0][1] == pytest.approx(1.0, 1e-3)
 
 
-@pytest.mark.xfail(not OPENCV_INSTALLED, reason="`opencv-python` not installed")
 def test_find_simple_ellipse():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[2, 2] = DQFLAGS['JUMP_DET']
