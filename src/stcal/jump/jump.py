@@ -3,18 +3,10 @@ import multiprocessing
 import time
 
 import numpy as np
+import cv2 as cv
 
 from . import constants
 from . import twopoint_difference as twopt
-
-ELLIPSE_PACKAGE = None
-try:
-    import cv2 as cv
-
-    ELLIPSE_PACKAGE = 'opencv-python'
-except (ImportError, ModuleNotFoundError):
-    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[opencv]`) ' \
-                              'in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -400,10 +392,7 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
         center = (round(ceny), round(cenx))
         extend_radius = round(jump_radius * expansion)
         color = (0, 0, 4)
-        if ELLIPSE_PACKAGE == 'opencv-python':
-            image = cv.circle(image, center, extend_radius, color, -1)
-        else:
-            raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+        image = cv.circle(image, center, extend_radius, color, -1)
         jump_circle = image[:, :, 2]
         saty, satx = np.where(sat_pix == 2)
         jump_circle[saty, satx] = 0
@@ -435,10 +424,7 @@ def extend_ellipses(plane, ellipses, sat_flag, jump_flag, expansion=1.1):
         center = (round(ceny), round(cenx))
         axes = (round(axis1 / 2), round(axis2 / 2))
         color = (0, 0, 4)
-        if ELLIPSE_PACKAGE == 'opencv-python':
-            image = cv.ellipse(image, center, axes, alpha, 0, 360, color, -1)
-        else:
-            raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+        image = cv.ellipse(image, center, axes, alpha, 0, 360, color, -1)
         jump_ellipse = image[:, :, 2]
         saty, satx = np.where(sat_pix == 2)
         jump_ellipse[saty, satx] = 0
@@ -450,12 +436,9 @@ def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing circle parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
-    if ELLIPSE_PACKAGE == 'opencv-python':
-        contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
-        circles = [cv.minEnclosingCircle(con) for con in bigcontours]
-    else:
-        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
+    circles = [cv.minEnclosingCircle(con) for con in bigcontours]
     return circles
 
 
@@ -463,14 +446,11 @@ def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
-    if ELLIPSE_PACKAGE == 'opencv-python':
-        contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
-        # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
-        # with just 4 points.
-        ellipses = [cv.minAreaRect(con) for con in bigcontours]
-    else:
-        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+    # minAreaRect is used becuase fitEllipse requires 5 points and it is possible to have a contour
+    # with just 4 points.
+    ellipses = [cv.minAreaRect(con) for con in bigcontours]
     return ellipses
 
 
