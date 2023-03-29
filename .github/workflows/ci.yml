@@ -38,7 +38,6 @@ jobs:
           python-version: '3.11'
         - macos: test-xdist
           python-version: '3.11'
-        - linux: test-opencv-xdist
         - linux: test-cov-xdist
           coverage: 'codecov'
   test_downstream:

@@ -7,13 +7,6 @@ from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation,
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
 
-try:
-    import cv2 as cv  # noqa: F401
-
-    OPENCV_INSTALLED = True
-except ImportError:
-    OPENCV_INSTALLED = False
-
 
 @pytest.fixture(scope='function')
 def setup_cube():
@@ -31,7 +24,7 @@ def setup_cube():
 
     return _cube
 
-
+  
 def test_find_simple_ellipse():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[2, 2] = DQFLAGS['JUMP_DET']

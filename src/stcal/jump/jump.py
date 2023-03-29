@@ -3,21 +3,13 @@ import multiprocessing
 import time
 
 import numpy as np
+import cv2 as cv
 
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
 from . import constants
 from . import twopoint_difference as twopt
-
-ELLIPSE_PACKAGE = None
-try:
-    import cv2 as cv
-
-    ELLIPSE_PACKAGE = 'opencv-python'
-except (ImportError, ModuleNotFoundError):
-    ELLIPSE_PACKAGE_WARNING = '`opencv-python` must be installed (`pip install stcal[opencv]`) ' \
-                              'in order to use ellipses'
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -488,7 +480,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                      f'in each group = {n_showers_grp}')
 
 
-
 def extend_saturation(cube, grp, sat_ellipses, sat_flag,
                       min_sat_radius_extend, expansion=2,
                       max_extended_radius=200):
@@ -564,12 +555,9 @@ def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing circle parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
-    if ELLIPSE_PACKAGE == 'opencv-python':
-        contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
-        circles = [cv.minEnclosingCircle(con) for con in bigcontours]
-    else:
-        raise ModuleNotFoundError(ELLIPSE_PACKAGE_WARNING)
+    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
+    circles = [cv.minEnclosingCircle(con) for con in bigcontours]
     return circles
 
 

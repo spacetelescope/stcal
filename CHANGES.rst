@@ -31,6 +31,8 @@ Other
 
 - update minimum version of ``numpy`` to ``1.20`` and add minimum dependency testing to CI [#153]
 
+- restore ``opencv-python`` to a hard dependency [#155]
+
 1.3.4 (2023-02-13)
 ==================
 
