@@ -203,16 +203,17 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
-#        fits.writeto("jump_mask2.fits", jump_mask * 1.0, overwrite=True)
-#        fits.writeto("incoming_gdq.fits",gdq, overwrite=True)
+        fits.writeto("jump_mask2.fits", jump_mask * 1.0, overwrite=True)
+        fits.writeto("incoming_gdq.fits",gdq, overwrite=True)
         gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                          np.uint8(dqflags["JUMP_DET"]))
+        fits.writeto("new_gdq.fis", gdq, overwrite=True)
         #if grp is all jump set to do not use
         for integ in range(dat.shape[0]):
             for grp in range(dat.shape[1]):
                 if np.all(np.bitwise_or(np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
                                         np.bitwise_and(gdq[integ, grp, :, :], sat_flag))):
-                    gdq[integ, grp, :, :] = 0
+                    gdq[integ, grp, :, :] = dnu_flag
         print("start flag 4 neighbors")
         if flag_4_neighbors:  # iterate over each 'jump' pixel
             cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
