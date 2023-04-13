@@ -148,8 +148,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-#        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
+        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
         median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
+#        fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
         # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
 
@@ -182,7 +183,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             fits.writeto("rms_diff.fits", out_rms, overwrite=True)
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
-#            fits.writeto("jump_mask.fits", jump_mask * 1.0, overwrite=True)
+            fits.writeto("jump_mask.fits", jump_mask * 1.0, overwrite=True)
             trimmed_mask = jump_mask[:, 4:-1, :, :]
 #            print(trimmed_mask[0:300,:, 0, 0])
             print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
