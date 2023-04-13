@@ -14,7 +14,8 @@ classifiers = [
 dependencies = [
     'astropy >=5.0.4',
     'scipy >=1.6.0',
-    'numpy >=1.17',
+    'numpy >=1.20',
+    'opencv-python >=4.6.0.66',
 ]
 dynamic = ['version']
 
@@ -33,10 +34,6 @@ test = [
     'pytest >=4.6.0',
     'pytest-cov',
     'pytest-doctestplus',
-    'pytest-openfiles >=0.5.0',
-]
-opencv = [
-    'opencv-python >=4.6.0.66',
 ]
 
 [project.urls]
@@ -65,7 +62,18 @@ minversion = 4.6
 doctest_plus = true
 doctest_rst = true
 text_file_format = 'rst'
-addopts = '--open-files'
+addopts = ''
+norecursedirs = [
+    'benchmarks',
+    '.asv',
+    '.eggs',
+    '.tox',
+    'build',
+    'venv',
+]
+filterwarnings = [
+    "error::ResourceWarning",
+]
 
 [tool.ruff]
 line-length = 110

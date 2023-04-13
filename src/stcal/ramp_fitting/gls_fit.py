@@ -100,7 +100,8 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
     gls_opt_info: tuple
         Tuple of optional product ndarrays computed for GLS ramp fitting.
     """
-    number_slices = utils.compute_slices(max_cores)
+    nrows = ramp_data.data.shape[2]
+    number_slices = utils.compute_slices(max_cores, nrows)
 
     log.info(f"Number of data slices: {number_slices}")
 
