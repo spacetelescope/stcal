@@ -1024,7 +1024,8 @@ def test_median_func():
     assert calc_med_first_diffs(arr)[0, 0] == -1
 
 def test_sigma_clip():
-    hdul = fits.open('TSOjump_sc__refpix.fits')
+#    hdul = fits.open('TSOjump_sc__refpix.fits')
+    hdul = fits.open('lrs_TSOjump_sigmaclip5_00_refpix.fits')
     data = hdul['SCI'].data * 4.0
     gdq = hdul['GROUPDQ'].data
     indata = data[:14, :, :, :]

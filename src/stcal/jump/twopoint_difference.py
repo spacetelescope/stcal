@@ -164,8 +164,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #        if nints > 1:
 
         if total_groups >= minimum_selfcal_groups:
-            ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
-                    sigma[np.newaxis, np.newaxis, :, :]
+#            ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
+#                    sigma[np.newaxis, np.newaxis, :, :]
             log.info(" Jump Step using selfcal sigma clip {} greater than {}, rejection threshold {}".format(
                 str(total_groups), str(minimum_selfcal_groups), str(normal_rej_thresh)))
             mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
@@ -184,7 +184,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_diffs = delta_diff.filled(fill_value=np.nan)
             jump_mask = clipped_diffs.mask
             fits.writeto("jump_mask.fits", jump_mask * 1.0, overwrite=True)
-            trimmed_mask = jump_mask[:, 4:-1, :, :]
+            trimmed_mask = jump_mask[:, 4:-4, :, :]
 #            print(trimmed_mask[0:300,:, 0, 0])
             print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
                   trimmed_mask.shape[3])
@@ -212,8 +212,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         for integ in range(dat.shape[0]):
             for grp in range(dat.shape[1]):
                 if np.all(np.bitwise_or(np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
-                                        np.bitwise_and(gdq[integ, grp, :, :], sat_flag))):
-                    gdq[integ, grp, :, :] = dnu_flag
+                                        np.bitwise_and(gdq[integ, grp, :, :], dnu_flag))):
+                    jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
+                    gdq[integ, grp, jumpy, jumpx] = 0
+        fits.writeto("new_gdq2.fits", gdq, overwrite=True)
         print("start flag 4 neighbors")
         if flag_4_neighbors:  # iterate over each 'jump' pixel
             cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
