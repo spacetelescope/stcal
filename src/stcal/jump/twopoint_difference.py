@@ -216,7 +216,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
                     gdq[integ, grp, jumpy, jumpx] = 0
         fits.writeto("new_gdq2.fits", gdq, overwrite=True)
-        print("start flag 4 neighbors")
+        print("start flag 4 neighbors part")
         if flag_4_neighbors:  # iterate over each 'jump' pixel
             cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
 
