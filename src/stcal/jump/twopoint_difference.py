@@ -164,8 +164,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #        if nints > 1:
 
         if total_groups >= minimum_selfcal_groups:
-#            ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
-#                    sigma[np.newaxis, np.newaxis, :, :]
+            ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
+                    sigma[np.newaxis, np.newaxis, :, :]
             log.info(" Jump Step using selfcal sigma clip {} greater than {}, rejection threshold {}".format(
                 str(total_groups), str(minimum_selfcal_groups), str(normal_rej_thresh)))
             mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
