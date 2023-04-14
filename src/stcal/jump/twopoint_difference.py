@@ -182,8 +182,11 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             out_rms = rms_diff.filled(fill_value=np.nan)
             fits.writeto("rms_diff.fits", out_rms, overwrite=True)
             out_diffs = delta_diff.filled(fill_value=np.nan)
-            jump_mask = clipped_diffs.mask
-            fits.writeto("jump_mask.fits", jump_mask * 1.0, overwrite=True)
+ #           jump_mask = 1.0 * clipped_diffs.mask - 1.0 * first_diffs_masked.mask
+            jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
+            fits.writeto('mask_of_first_diffs.fits', 1.0*first_diffs_masked.mask, overwrite=True)
+            fits.writeto('mask_of_clipped_diffs.fits', 1.0*clipped_diffs.mask, overwrite=True)
+            fits.writeto("jump_mask.fits", jump_mask * 4.0, overwrite=True)
             trimmed_mask = jump_mask[:, 4:-4, :, :]
 #            print(trimmed_mask[0:300,:, 0, 0])
             print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
@@ -204,10 +207,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
         jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
         fits.writeto("jump_mask2.fits", jump_mask * 1.0, overwrite=True)
-        fits.writeto("incoming_gdq.fits",gdq, overwrite=True)
+        fits.writeto("incoming_gdq.fits", gdq, overwrite=True)
         gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                          np.uint8(dqflags["JUMP_DET"]))
-        fits.writeto("new_gdq.fis", gdq, overwrite=True)
+        fits.writeto("new_gdq.fits", gdq, overwrite=True)
         #if grp is all jump set to do not use
         for integ in range(dat.shape[0]):
             for grp in range(dat.shape[1]):
