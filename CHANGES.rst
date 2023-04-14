@@ -9,7 +9,7 @@ Bug Fixes
 Changes to API
 --------------
 
-- 
+- drop support for Python 3.8 [#162]
 
 Other
 -----
