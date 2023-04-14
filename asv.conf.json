@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "project": "stcal",
+  "project_url": "https://github.com/spacetelescope/stcal",
+  "repo": ".",
+  "branches": [
+    "main"
+  ],
+  "environment_type": "conda",
+  "install_command": [
+    "pip install ."
+  ],
+  "build_command": [
+    "pip install ."
+  ],
+  "env_dir": ".asv/env",
+  "results_dir": ".asv/results",
+  "html_dir": ".asv/html"
+}

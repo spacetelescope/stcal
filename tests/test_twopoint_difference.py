@@ -676,7 +676,6 @@ def test_median_with_saturation(setup_cube):
     data[0, 7, 100, 100] = 49900
     data[0, 8:10, 100, 100] = 60000
     gdq[0, 7:10, 100, 100] = DQFLAGS['SATURATED']
-    print(np.diff(data[0, :, 100, 100]))
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
@@ -698,7 +697,6 @@ def test_median_with_saturation_even_num_sat_frames(setup_cube):
     data[0, 7, 100, 100] = 49900
     data[0, 8:10, 100, 100] = 60000
     gdq[0, 6:10, 100, 100] = DQFLAGS['SATURATED']
-    print(np.diff(data[0, :, 100, 100]))
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
@@ -720,7 +718,6 @@ def test_median_with_saturation_odd_number_final_difference(setup_cube):
     data[0, 7, 100, 100] = 49900
     data[0, 8:9, 100, 100] = 60000
     gdq[0, 6:9, 100, 100] = DQFLAGS['SATURATED']
-    print(np.diff(data[0, :, 100, 100]))
     out_gdq, row_below_gdq, row_above_gdq = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
