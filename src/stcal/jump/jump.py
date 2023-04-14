@@ -1,7 +1,6 @@
 import logging
-import warnings
-from astropy.io import fits
-
+import multiprocessing
+import time
 
 import numpy as np
 import cv2 as cv
@@ -277,7 +276,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                                    ellipse_expand=extend_ellipse_expand_ratio,
                                                    num_grps_masked=grps_masked_after_shower,
                                                    max_extended_radius=max_extended_radius)
-
     else:
         yinc = int(n_rows / n_slices)
         slices = []
@@ -441,83 +439,32 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
 
     """
 
-    log.info('TEST Flagging large events (snowballs, showers).')
+    log.info('Flagging large Snowballs')
 
     n_showers_grp = []
-    n_showers_grp_ellipse = []
-    fits.writeto("input_jump_cube.fits", gdq, overwrite=True)
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
-            if (group//10) * 10 == group:
-                print("Grp", group)
-            else:
-                print("Grp", group, end=" ")
-            if use_ellipses:
-                new_flagged_pixels = 1.0*gdq[integration, group, :, :] - 1.0*gdq[integration, group - 1, :, :]
-                new_flagged_pixels[new_flagged_pixels < 0] = 0
-                fits.writeto('new_flagged_pixels.fits', new_flagged_pixels, overwrite=True)
-                jump_ellipses = find_ellipses(new_flagged_pixels.astype('uint8'), jump_flag, min_jump_area)
-                n_showers_grp_ellipse.append(len(jump_ellipses))
-                gdq[integration, group, :, :], num_events = \
-                    extend_ellipses(gdq[integration, group, :, :],
-                                    jump_ellipses, sat_flag, jump_flag,
-                                    expansion=expand_factor)
-            else:
-                current_gdq = 1.0 * gdq[integration, group, :, :]
-                prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-                diff_gdq = 1.0 * current_gdq - prev_gdq
-                diff_gdq[diff_gdq != sat_flag] = 0
-                new_sat = diff_gdq.astype('uint8')
-#                fits.writeto("diff_gdq.fits", diff_gdq, overwrite=True)
-#                fits.writeto('current_gdq.fits', current_gdq, overwrite = True)
-#                fits.writeto('prev_gdq.fits', prev_gdq, overwrite=True)
-#                new_flagged_pixels = gdq[integration, group, :, :] - gdq[integration, group - 1, :, :]
-                fits.writeto("new_sat.fits", new_sat, overwrite=True)
-                # find the ellipse parameters for newly saturated pixels
-                sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-                # expand the larger saturated cores to deal with the charge migration from the
-                # saturated cores.
-#                gdq[integration, , :, :] = extend_saturation(gdq[integration, :, :, :],
-                gdq[integration, :, :, :] = extend_saturation(gdq[integration, :, :, :],
-                                                              group, sat_ellipses, sat_flag, jump_flag,
-                                                              min_sat_radius_extend, expansion=sat_expand)
-#               fits.writeto("after_extend_large_events.fits", gdq, overwrite=True)
-                #  recalculate the newly flagged pixels after the expansion of saturation
-                current_gdq = 1.0 * gdq[integration, group, :, :]
-                prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-                diff_gdq = 1.0 * current_gdq - prev_gdq
-                diff_gdq[diff_gdq < 0] = 0
-                new_sat = diff_gdq.astype('uint8')
-#                fits.writeto("diff_gdq2.fits", diff_gdq, overwrite=True)
-#                fits.writeto('current_gdq2.fits', current_gdq, overwrite=True)
-#                fits.writeto('prev_gdq2.fits', prev_gdq, overwrite=True)
-                # find all the newly saturated pixel
-                sat_pixels = np.bitwise_and(diff_gdq.astype('uint8'), sat_flag)
-                saty, satx = np.where(sat_pixels == sat_flag)
-                only_jump = diff_gdq.copy()
-                fits.writeto("onlyjump.fits", only_jump, overwrite=True)
-                # reset the saturated pixel to be jump to allow the jump circles to have the
-                # central saturated region set to "jump" instead of "saturation".
-                only_jump[saty, satx] = jump_flag
-                fits.writeto("onlyjump2.fits", only_jump, overwrite=True)
- #               only_jump_cube[integration, group, :, :] = only_jump
-                jump_ellipses = find_ellipses(only_jump.astype('uint8'), jump_flag, min_jump_area)
-                if sat_required_snowball:
-                    low_threshold = edge_size
-                    high_threshold = gdq.shape[2] - edge_size
-                    snowballs = make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold)
-                else:
-                    snowballs = jump_ellipses
-                n_showers_grp.append(len(snowballs))
-                gdq[integration, group, :, :], num_events = extend_ellipses(gdq[integration, group, :, :],
-                                                                             snowballs, sat_flag,
-                                                                             jump_flag,
-                                                                             expansion=expand_factor)
-#                fits.writeto("final_gdq.fits", gdq[integration, group,:, :], overwrite=True)
-        fits.writeto("last_gdq_inside.fits", gdq, overwrite=True)
-        if use_ellipses:
-            if np.all(np.array(n_showers_grp_ellipse) == 0):
-                log.info(f'No showers found in integration {integration}.')
+            current_gdq = 1.0 * gdq[integration, group, :, :]
+            prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
+            diff_gdq = 1.0 * current_gdq - prev_gdq
+            diff_gdq[diff_gdq != sat_flag] = 0
+            new_sat = diff_gdq.astype('uint8')
+            # find the ellipse parameters for newly saturated pixels
+            sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
+
+            # find the ellipse parameters for jump regions
+            jump_ellipses = find_ellipses(gdq[integration, group, :, :],
+                                          jump_flag, min_jump_area)
+            if sat_required_snowball:
+                low_threshold = edge_size
+                high_threshold = max(0, gdq.shape[2] - edge_size)
+
+                gdq, snowballs = make_snowballs(gdq, integration, group,
+                                                jump_ellipses, sat_ellipses,
+                                                low_threshold, high_threshold,
+                                                min_sat_radius_extend,
+                                                sat_expand, sat_flag,
+                                                max_extended_radius)
             else:
                 snowballs = jump_ellipses
             n_showers_grp.append(len(snowballs))
@@ -532,45 +479,20 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             log.info(f' In integration {integration}, number of snowballs ' +
                      f'in each group = {n_showers_grp}')
 
-def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
-    # For a given DQ plane it will use the list of snowballs to create expanded circles of pixels with
-    # the jump flag set.
-    image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
-    num_circles = len(snowballs)
-    sat_pix = np.bitwise_and(plane, sat_flag)
-    for snowball in snowballs:
-        jump_radius = snowball[1]
-        jump_center = snowball[0]
-        cenx = jump_center[1]
-        ceny = jump_center[0]
-        extend_radius = round(jump_radius * expansion)
-        image = cv.circle(image, (round(ceny), round(cenx)), extend_radius, (0, 0, 4), -1)
-        jump_circle = image[:, :, 2]
-        saty, satx = np.where(sat_pix == sat_flag)
-        jump_circle[saty, satx] = 0
-        plane = np.bitwise_or(plane, jump_circle)
 
-    return plane, num_circles
-
-
-def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
-                      min_sat_radius_extend, expansion=2):
+def extend_saturation(cube, grp, sat_ellipses, sat_flag,
+                      min_sat_radius_extend, expansion=2,
+                      max_extended_radius=200):
     image = np.zeros(shape=(cube.shape[1], cube.shape[2], 3), dtype=np.uint8)
-    jump_pix = np.bitwise_and(cube[grp, :, :], jump_flag)
     outcube = cube.copy()
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
         minor_axis = min(ellipse[1][1], ellipse[1][0])
-
-#        print("Grp", grp, " radius ", minor_axis, "count", count, "center", ellipse[0])
-
         if minor_axis > min_sat_radius_extend:
             axis1 = ellipse[1][0] + expansion
             axis2 = ellipse[1][1] + expansion
             alpha = ellipse[2]
-            image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 + 0.5),
-                               round(axis2 + 0.5)), alpha, 0, 360, (0, 0, 22), -1)
             axis1 = min(axis1, max_extended_radius)
             axis2 = min(axis2, max_extended_radius)
             image = cv.ellipse(image, (round(ceny), round(cenx)),
@@ -582,18 +504,15 @@ def extend_saturation(cube, grp, sat_ellipses, sat_flag, jump_flag,
     return outcube
 
 
-
-
 def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag,
                     expansion=1.9, expand_by_ratio=True,
                     num_grps_masked=1, max_extended_radius=200):
     # For a given DQ plane it will use the list of ellipses to create
-    #  expanded ellipses of pixels with>>>>>>> 4e967f89e0d11a9de159aebe178ba44cae154e24
+    #  expanded ellipses of pixels with
     # the jump flag set.
     plane = gdq_cube[intg, grp, :, :]
     image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
-    sat_pix = np.bitwise_and(plane, sat_flag)
     for ellipse in ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
@@ -616,17 +535,21 @@ def extend_ellipses(gdq_cube, intg, grp, ellipses, sat_flag, jump_flag,
             axis2 = ellipse[1][1] + expansion
         axis1 = min(axis1, max_extended_radius)
         axis2 = min(axis2, max_extended_radius)
-
         alpha = ellipse[2]
         image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
                            round(axis2 / 2)), alpha, 0, 360,
                            (0, 0, jump_flag), -1)
         jump_ellipse = image[:, :, 2]
-        #  don't add any jump flags to pixels that are already saturated
-        saty, satx = np.where(sat_pix == sat_flag)
-        jump_ellipse[saty, satx] = 0
-        plane = np.bitwise_or(plane, jump_ellipse)
-    return plane, num_ellipses
+        last_grp = min(grp + num_grps_masked, gdq_cube.shape[1])
+        #  This loop will flag the number of groups
+        for flg_grp in range(grp, last_grp):
+            sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
+            saty, satx = np.where(sat_pix == sat_flag)
+            jump_ellipse[saty, satx] = 0
+            gdq_cube[intg, flg_grp, :, :] = \
+                np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
+    return gdq_cube, num_ellipses
+
 
 def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
@@ -653,74 +576,43 @@ def find_ellipses(dqplane, bitmask, min_area):
     return ellipses
 
 
-def make_snowballs(jump_ellipses, sat_ellipses, low_threshold, high_threshold):
-    # Ths routine will create a list of snowballs (ellipses) that have the center of the saturation circle
-    # within the enclosing jump rectangle.
+def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
+                   low_threshold, high_threshold,
+                   min_sat_radius, expansion, sat_flag, max_extended_radius):
+    # Ths routine will create a list of snowballs (ellipses) that have the
+    # center
+    # of the saturation circle within the enclosing jump rectangle.
     snowballs = []
     for jump in jump_ellipses:
-        sat_found = False
         if near_edge(jump, low_threshold, high_threshold):
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
                 # center of saturation is within the enclosing jump rectangle
                 if point_inside_ellipse(sat[0], jump):
-                    if jump not in snowballs:
-                        snowballs.append(jump)
-#                        print("sat inside found", sat, jump)
-                        sat_found = True
-#        if not sat_found:
-#            print("no saturation within jump rectangle ", jump)
-    return snowballs
-
-
-def old_point_inside_ellipse(point, ellipse):
-    box = cv.boxPoints(ellipse)
-    ceny = ellipse[0][0]
-    cenx = ellipse[0][1]
-    axis1 = ellipse[1][0]
-    axis2 = ellipse[1][1]
-    theta = np.deg2rad(ellipse[2])
-    pointx = point[0]
-    pointy = point[1]
-    radius = ((np.cos(theta) * (pointx - cenx) + np.sin(theta) * (pointy - ceny))**2)/axis2**2 + \
-             ((np.sin(theta) * (pointx - cenx) + np.cos(theta) * (pointy - ceny))**2)/axis1**2
-    if radius < 1:
-        return True
-    else:
-        return False
+                    # center of jump should be saturated
+                    jump_center = jump[0]
+                    if gdq[integration, group, round(jump_center[1]),
+                           round(jump_center[0])] == sat_flag:
+                        if jump not in snowballs:
+                            snowballs.append(jump)
+                            gdq[integration, :, :, :] = \
+                                extend_saturation(gdq[integration, :, :, :],
+                                                  group, [sat], sat_flag,
+                                                  min_sat_radius,
+                                                  expansion=expansion,
+                                                  max_extended_radius=max_extended_radius)
+    return gdq, snowballs
 
 
 def point_inside_ellipse(point, ellipse):
-    delta_center = np.sqrt((point[0]-ellipse[0][0])**2 + (point[1]-ellipse[0][1])**2)
+    delta_center = np.sqrt((point[0]-ellipse[0][0])**2 +
+                           (point[1]-ellipse[0][1])**2)
     minor_axis = min(ellipse[1][0], ellipse[1][1])
     if delta_center < minor_axis:
         return True
     else:
         return False
-
-def point_inside_rectangle(point, ellipse):
-    box = cv.boxPoints(ellipse)
-    area1 = triangle_area(point, box[0], box[1])
-    area2 = triangle_area(point, box[1], box[2])
-    area3 = triangle_area(point, box[2], box[3])
-    area4 = triangle_area(point, box[3], box[0])
-    rectangle_area = ellipse[1][0] * ellipse[1][1]
-    triangle_area_sum = area1 + area2 + area3 + area4
-    if triangle_area_sum > rectangle_area:
-        return False
-    else:
-        return True
-
-#Area = abs( (Bx * Ay - Ax * By) +
-#            (Cx * By - Bx * Cy) +
-#            (Ax * Cy - Cx * Ay) ) / 2
-def triangle_area(point, vert1, vert2):
-    area = np.abs((vert1[1] * point[0] - point[1] * vert1[0]) +
-                  (vert2[1] * vert1[0] - vert1[1] * vert2[0]) +
-                  (point[1] * vert2[0] - vert2[1] * point[0])) / 2
-    return area
-
 
 
 def near_edge(jump, low_threshold, high_threshold):
