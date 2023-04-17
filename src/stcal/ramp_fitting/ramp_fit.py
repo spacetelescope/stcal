@@ -59,7 +59,7 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     if hasattr(model, 'drop_frames1'):
-        drop_frames1 = model.exposure.drop_frames1
+        drop_frames1 = model.meta.exposure.drop_frames1
     else:
         drop_frames1 = None
     ramp_data.set_meta(

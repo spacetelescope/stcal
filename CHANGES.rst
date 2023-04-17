@@ -4,7 +4,12 @@
 Bug Fixes
 ---------
 
--
+ramp_fitting
+~~~~~~~~~~~~
+
+- The ``meta`` tag was missing when checking for ``drop_frame1``.  It has been
+  added to the check. [#161]
+
 
 Changes to API
 --------------
