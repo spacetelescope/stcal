@@ -31,9 +31,7 @@ jobs:
     with:
       envs: |
         - linux: test-oldestdeps-cov-xdist
-          python-version: 3.8
-        - linux: test-xdist
-          python-version: '3.8'
+          python-version: 3.9
         - linux: test-xdist
           python-version: '3.9'
         - linux: test-xdist
