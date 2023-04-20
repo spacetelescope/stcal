@@ -3615,7 +3615,7 @@ def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, 
 
     # Make array of number of good groups, and exponents for each pixel
     power_wt_r = calc_power(snr)  # Get the interpolated power for this SNR
-    num_nz = (c_mask_2d == True).sum(0)  # number of groups in segment
+    num_nz = c_mask_2d.sum(0)  # number of groups in segment
     nrd_prime = (num_nz - 1) / 2.
     num_nz = 0
 
