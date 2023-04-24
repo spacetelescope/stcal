@@ -220,9 +220,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     gdq[integ, grp, jumpy, jumpx] = 0
         fits.writeto("new_gdq2.fits", gdq, overwrite=True)
         print("start flag 4 neighbors part")
+        cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
+        num_primary_crs = len(cr_group)
         if flag_4_neighbors:  # iterate over each 'jump' pixel
-            cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
-
             for j in range(len(cr_group)):
 
                 ratio_this_pix = ratio[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
@@ -297,7 +297,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
     print("finish flag after jump")
-    return gdq, row_below_gdq, row_above_gdq
+    return gdq, row_below_gdq, row_above_gdq, num_primary_crs
 
 
 def calc_med_first_diffs(first_diffs):

@@ -246,7 +246,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         n_slices = max_available
 
     if n_slices == 1:
-        gdq, row_below_dq, row_above_dq = \
+        gdq, row_below_dq, row_above_dq, total_primary_crs = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
@@ -255,7 +255,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_n1=after_jump_flag_n1,
                            after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2)
-
+        print("total primary CRs", total_primary_crs)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
@@ -330,11 +330,12 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         # Reconstruct gdq, the row_above_gdq, and the row_below_gdq from the
         # slice result
         for resultslice in real_result:
-
             if len(real_result) == k + 1:  # last result
                 gdq[:, :, k * yinc:n_rows, :] = resultslice[0]
+                total_primary_crs = resultslice[3]
             else:
                 gdq[:, :, k * yinc:(k + 1) * yinc, :] = resultslice[0]
+                total_primary_crs += resultslice[3]
             row_below_gdq[:, :, :] = resultslice[1]
             row_above_gdq[:, :, :] = resultslice[2]
             if k != 0:
@@ -352,7 +353,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-
+        print("total primary CRs", total_primary_crs)
         #  This is the flag that controls the flagging of either
         #  snowballs or showers.
         if expand_large_events:
