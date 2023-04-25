@@ -14,7 +14,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              after_jump_flag_n1=0,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
-             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=100,):
+             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=1000,):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
