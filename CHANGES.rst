@@ -4,16 +4,6 @@
 Bug Fixes
 ---------
 
-Changes to API
---------------
-
-- drop support for Python 3.8 [#162]
-
-Other
------
-
--
-
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -21,6 +11,17 @@ ramp_fitting
   optimal weights for the OLS ramp fitting algorithm.  Originally, this
   computation had the potential to include groups not in the segment being
   computed. [#163]
+
+Changes to API
+--------------
+
+- Drop support for Python 3.8 [#162]
+
+Other
+-----
+
+-
+
 
 1.3.6 (2023-04-19)
 ==================
