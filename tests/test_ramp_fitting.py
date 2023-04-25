@@ -1156,7 +1156,7 @@ def test_new_saturation():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[2.797567 , 2.8022935, np.nan]])
+    check = np.array([[2.795187 , 2.795632, np.nan]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[JUMP, JUMP, DNU | SAT]])
@@ -1174,8 +1174,8 @@ def test_new_saturation():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[2.7949152, 2.8022935, np.nan]],
-                      [[2.8020892, np.nan, np.nan]]])
+    check = np.array([[[2.7949152, 2.7956316, np.nan]],
+                      [[2.7956493, np.nan, np.nan]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
     check = np.array([[[GOOD, JUMP, DNU | SAT]],

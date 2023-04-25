@@ -4,17 +4,24 @@
 Bug Fixes
 ---------
 
--
+ramp_fitting
+~~~~~~~~~~~~
+
+- Correctly compute the number of groups in a segment to properly compute the
+  optimal weights for the OLS ramp fitting algorithm.  Originally, this
+  computation had the potential to include groups not in the segment being
+  computed. [#163]
 
 Changes to API
 --------------
 
-- drop support for Python 3.8 [#162]
+- Drop support for Python 3.8 [#162]
 
 Other
 -----
 
 -
+
 
 1.3.6 (2023-04-19)
 ==================

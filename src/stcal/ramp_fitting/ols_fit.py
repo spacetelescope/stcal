@@ -920,6 +920,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     # Loop over data integrations:
     for num_int in range(0, n_int):
         # Loop over data sections
+        ramp_data.current_integ = num_int
         for rlo in range(0, cubeshape[1], nrows):
             rhi = rlo + nrows
 
@@ -2841,7 +2842,7 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     if weighting.lower() == 'optimal':  # fit using optimal weighting
         # get sums from optimal weighting
         sumx, sumxx, sumxy, sumy, nreads_wtd, xvalues = calc_opt_sums(
-            rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
+            ramp_data, rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
 
         slope, intercept, sig_slope, sig_intercept = \
             calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy)
@@ -3500,7 +3501,7 @@ def calc_unwtd_sums(data_masked, xvalues):
     return sumx, sumxx, sumxy, sumy
 
 
-def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
+def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
     """
     Calculate the sums needed to determine the slope and intercept (and sigma of
     each) using the optimal weights.  For each good pixel's segment, from the
@@ -3571,6 +3572,7 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
 
     # get SCI value of initial good group for semiramp
     data_zero = data_masked[fnz, range(data_masked.shape[1])]
+    fnz = 0
 
     # get SCI value of final good group for semiramp
     data_final = data_masked[(ind_lastnz), range(data_masked.shape[1])]
@@ -3581,6 +3583,7 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
     # Use the readnoise and gain for good pixels only
     rn_sect_rav = rn_sect.flatten()[good_pix]
     rn_2_r = rn_sect_rav * rn_sect_rav
+    rn_sect = 0
 
     gain_sect_r = gain_sect.flatten()[good_pix]
 
@@ -3610,23 +3613,17 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
     data_diff = 0
     sigma_ir = 0
 
-    power_wt_r = calc_power(snr)  # Get the interpolated power for this SNR
     # Make array of number of good groups, and exponents for each pixel
-    num_nz = (data_masked != 0.).sum(0)  # number of nonzero groups per pixel
-    nrd_data_a = num_nz.copy()
+    power_wt_r = calc_power(snr)  # Get the interpolated power for this SNR
+    num_nz = c_mask_2d.sum(0)  # number of groups in segment
+    nrd_prime = (num_nz - 1) / 2.
     num_nz = 0
-
-    nrd_prime = (nrd_data_a - 1) / 2.
-    nrd_data_a = 0
 
     # Calculate inverse read noise^2 for use in weights
     # Suppress, then re-enable, harmless arithmetic warning
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     invrdns2_r = 1. / rn_2_r
     warnings.resetwarnings()
-
-    rn_sect = 0
-    fnz = 0
 
     # Set optimal weights for each group of each pixel;
     #    for all pixels at once, loop over the groups
