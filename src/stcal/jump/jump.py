@@ -329,6 +329,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
         # Reconstruct gdq, the row_above_gdq, and the row_below_gdq from the
         # slice result
+        total_primary_crs = 0
         for resultslice in real_result:
             if len(real_result) == k + 1:  # last result
                 gdq[:, :, k * yinc:n_rows, :] = resultslice[0]
