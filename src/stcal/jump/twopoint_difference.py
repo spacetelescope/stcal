@@ -296,7 +296,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-    print("finish flag after jump")
+    print("finish flag after jump, num crs =", num_primary_crs)
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs
 
 
