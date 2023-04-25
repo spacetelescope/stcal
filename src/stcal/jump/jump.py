@@ -338,6 +338,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             row_below_gdq[:, :, :] = resultslice[1]
             row_above_gdq[:, :, :] = resultslice[2]
             total_primary_crs += resultslice[3]
+            print("in Jump ", total_primary_crs)
             if k != 0:
                 # For all but the first slice, flag any CR neighbors in the top
                 # row of the previous slice and flag any neighbors in the
