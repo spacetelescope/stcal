@@ -4,6 +4,24 @@
 Bug Fixes
 ---------
 
+- 
+
+Changes to API
+--------------
+
+- 
+
+Other
+-----
+
+- 
+
+1.3.7 (unreleased)
+==================
+
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -16,12 +34,6 @@ Changes to API
 --------------
 
 - Drop support for Python 3.8 [#162]
-
-Other
------
-
--
-
 
 1.3.6 (2023-04-19)
 ==================
