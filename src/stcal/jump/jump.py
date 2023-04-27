@@ -729,7 +729,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                 plane = gdq[intg, grp, :, :]
                 image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
                 image2 = np.zeros_like(image)
-                cv.drawContours(image2, bigcontours, -1, (0, 0, jump_flag), 3)
+                cv.drawContours(image2, bigcontours, -1, (0, 0, jump_flag), -1)
                 big_contour_image = image2[:, :, 2]
                 fits.writeto("big_contour.fits", big_contour_image, overwrite=True)
                 fits.writeto("image2.fits", image2, overwrite=True)
