@@ -723,10 +723,16 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
             if grp==179 and intg == 0:
+
                 expand_by_ratio = True
                 expansion = 1.0
                 plane = gdq[intg, grp, :, :]
                 image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
+                image2 = np.zeros_like(image)
+                cv.drawContours(image2, bigcontours, -1, (0, 255, 0), 3)
+                big_contour_image = image2[:, :, 2]
+                fits.writeto("big_contour.fits", big_contour_image, overwrite=True)
+                fits.writeto("image2.fits", image2, overwrite=True)
                 num_ellipses = len(ellipses)
                 for ellipse in ellipses:
                     ceny = ellipse[0][0]
