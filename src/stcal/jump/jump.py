@@ -722,6 +722,40 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
+            if grp==179 and intg == 0:
+                expand_by_ratio = True
+                expansion = 1.0
+                plane = gdq[intg, grp, :, :]
+                image = np.zeros(shape=(plane.shape[0], plane.shape[1], 3), dtype=np.uint8)
+                num_ellipses = len(ellipses)
+                for ellipse in ellipses:
+                    ceny = ellipse[0][0]
+                    cenx = ellipse[0][1]
+                    # Expand the ellipse by the expansion factor. The number of pixels
+                    # added to both axes is
+                    # the number of pixels added to the minor axis. This prevents very
+                    # large flagged ellipses
+                    # with high axis ratio ellipses. The major and minor axis are not
+                    # always the same index.
+                    # Therefore, we have to test to find which is actually the minor axis.
+                    if expand_by_ratio:
+                        if ellipse[1][1] < ellipse[1][0]:
+                            axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
+                            axis2 = ellipse[1][1] * expansion
+                        else:
+                            axis1 = ellipse[1][0] * expansion
+                            axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
+                    else:
+                        axis1 = ellipse[1][0] + expansion
+                        axis2 = ellipse[1][1] + expansion
+                    axis1 = min(axis1, max_extended_radius)
+                    axis2 = min(axis2, max_extended_radius)
+                    alpha = ellipse[2]
+                    image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
+                                                                           round(axis2 / 2)), alpha, 0, 360,
+                                       (0, 0, jump_flag), -1)
+                    jump_ellipse = image[:, :, 2]
+                fits.writeto("jump_ellipse.fits", jump_ellipse, overwrite=True)
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
