@@ -671,6 +671,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
     Total number of showers detected.
 
     """
+    print("find showers on sigmaclip")
     read_noise_2 = readnoise_2d**2
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
