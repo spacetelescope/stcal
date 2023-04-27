@@ -708,7 +708,8 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                                                 ratio.shape[2]), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
-            if grp == 138 and intg == 0:
+            if grp == 179 and intg == 0:
+                fits.writeto("masked_ratio.fits",masked_ratio, overwrite=True)
                 fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
                 fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
             #  find the contours of the extended emission
