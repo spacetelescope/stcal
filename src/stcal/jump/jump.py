@@ -1,7 +1,7 @@
 import logging
 import multiprocessing
 import time
-
+from astropy.io import fits
 import numpy as np
 import cv2 as cv
 
@@ -707,6 +707,9 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                                                 ratio.shape[2]), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
+            if grp == 138 and intg == 0:
+                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
+                fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission,
                                                   cv.RETR_EXTERNAL,
