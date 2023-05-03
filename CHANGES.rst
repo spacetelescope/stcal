@@ -4,7 +4,11 @@
 Bug Fixes
 ---------
 
-- 
+dark_current
+~~~~~~~~~~~~
+
+- Fixed handling of MIRI segmented data files so that the correct dark
+  integrations get subtracted from the correct science integrations. [#165]
 
 Changes to API
 --------------
