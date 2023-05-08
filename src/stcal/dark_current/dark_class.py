@@ -98,7 +98,10 @@ class ScienceData:
 
             self.exp_nframes = science_model.meta.exposure.nframes
             self.exp_groupgap = science_model.meta.exposure.groupgap
-            self.exp_intstart = science_model.meta.exposure.integration_start
+            try:  # JWST only
+                self.exp_intstart = science_model.meta.exposure.integration_start
+            except AttributeError:
+                self.exp_intstart = None
 
             self.cal_step = None
         else:
