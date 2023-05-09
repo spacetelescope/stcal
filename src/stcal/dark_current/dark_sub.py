@@ -143,10 +143,10 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
         # Create a frame-averaged version of the dark data to match
         # the nframes and groupgap settings of the science data.
-        # If the data are from MIRI, the darks are integration-dependent and
-        # we average them with a seperate routine.
+        # If the data are from JWST/MIRI, the darks are integration-dependent
+        # and we average them with a seperate routine.
 
-        if len(dark_data.data.shape) == 4:
+        if len(dark_data.data.shape) == 4:  # only MIRI uses 4-D darks
             averaged_dark = average_dark_frames_4d(
                 dark_data, sci_nints, sci_ngroups, sci_nframes, sci_groupgap
             )
@@ -173,7 +173,7 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
     """
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
-    This routine is not used for MIRI (see average_MIRIdark_frames)
+    This routine is not used for JWST/MIRI (see average_dark_frames_4d).
 
     Parameters
     ----------
@@ -240,8 +240,9 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     """
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
-    MIRI needs a separate routine because the darks are integration dependent.
-    We need an average dark for each dark integration.
+    JWST/MIRI needs a separate routine because the darks are
+    integration-dependent and hence 4D in shape, instead of 3D.
+    An average dark is created for each integration.
 
     Parameters
     ----------
@@ -339,6 +340,11 @@ def subtract_dark(science_data, dark_data):
         dark-subtracted science data
     """
 
+    # The integration start number is only needed for JWST/MIRI data.
+    # It defaults to 1 if the keyword is not in the science data.
+    int_start = 1 if science_data.exp_intstart is None else science_data.exp_intstart
+
+    # Determine the number of integrations contained in the dark reference file
     if len(dark_data.data.shape) == 4:
         dark_nints = dark_data.data.shape[0]
     else:
@@ -361,22 +367,25 @@ def subtract_dark(science_data, dark_data):
         # All other instruments have a single 2D dark DQ array
         darkdq = dark_data.groupdq
 
-    # Combine the dark and science DQ data
+    # Propagate the dark DQ data into the science DQ data
     output.pixeldq = np.bitwise_or(science_data.pixeldq, darkdq)
 
     # Loop over all integrations in input science data
     for i in range(science_data.data.shape[0]):
 
-        if len(dark_data.data.shape) == 4:
-            # use integration-specific dark data
-            if i < dark_nints:
+        if len(dark_data.data.shape) == 4:  # MIRI data
+            # Apply the first dark_nints-1 integrations from the dark ref file
+            # to the first few science integrations. There's an additional
+            # check of the starting integration number in case the science
+            # data are segmented.
+            if i < dark_nints and int_start == 1:
                 dark_sci = dark_data.data[i]
             else:
-                # for science integrations beyond the number of
+                # For science integrations beyond the number of
                 # dark integrations, use the last dark integration
                 dark_sci = dark_data.data[-1]
         else:
-            # use single-integration dark data
+            # Use single-integration dark data
             dark_sci = dark_data.data
 
         # Loop over all groups in this integration
