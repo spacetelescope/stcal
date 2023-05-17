@@ -10,6 +10,13 @@ dark_current
 - Fixed handling of MIRI segmented data files so that the correct dark
   integrations get subtracted from the correct science integrations. [#165]
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Correct the "averaging" of the final image slope by properly excluding
+  variances as a part of the denominator from integrations with invalid slopes.
+  [#167]
+
 Changes to API
 --------------
 
