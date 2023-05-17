@@ -1301,6 +1301,12 @@ def ramp_fit_overall(
 
     s_slope_by_var3 = slope_by_var4.sum(axis=1)  # sum over segments (not integs)
     s_slope_by_var2 = s_slope_by_var3.sum(axis=0)  # sum over integrations
+
+    # Ensure bad integrations don't contribute to the denominator
+    # for slope calculations
+    invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
+    wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
+    s_inv_var_both3[wh_invalid] = 0.
     s_inv_var_both2 = s_inv_var_both3.sum(axis=0)
 
     # Compute the 'dataset-averaged' slope
