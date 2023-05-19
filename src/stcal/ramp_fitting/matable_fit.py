@@ -29,15 +29,21 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
-
-import numpy as np
-from . import parameters
-import romanisim.ramp_fit_casertano
-from scipy import interpolate
 from astropy import units as u
+import numpy as np
+from scipy import interpolate
+
+from . import matable_fit_cas2022
 
 
-def ma_table_to_tbar(ma_table):
+# Read Time in seconds
+#   For Roman, the read time of the detectors is a fixed value and is currently
+#   backed into code. Will need to refactor to consider the more general case.
+#   Used to deconstruct the MultiAccum tables into integration times.
+READ_TIME = 3.04
+
+
+def ma_table_to_tbar(ma_table, read_time=READ_TIME):
     """Construct the mean times for each resultant from an ma_table.
 
     Parameters
@@ -53,7 +59,6 @@ def ma_table_to_tbar(ma_table):
     """
     firstreads = np.array([x[0] for x in ma_table])
     nreads = np.array([x[1] for x in ma_table])
-    read_time = parameters.read_time
     meantimes = read_time * firstreads + read_time * (nreads - 1) / 2
     # at some point I need to think hard about whether the first read has
     # slightly less exposure time than all other reads due to the read/reset
@@ -61,7 +66,7 @@ def ma_table_to_tbar(ma_table):
     return meantimes
 
 
-def ma_table_to_tau(ma_table):
+def ma_table_to_tau(ma_table, read_time=READ_TIME):
     """Construct the tau for each resultant from an ma_table.
 
     .. math:: \\tau = \\overline{t} - (n - 1)(n + 1)\\delta t / 6n
@@ -82,7 +87,6 @@ def ma_table_to_tau(ma_table):
 
     meantimes = ma_table_to_tbar(ma_table)
     nreads = np.array([x[1] for x in ma_table])
-    read_time = parameters.read_time
     return meantimes - (nreads - 1) * (nreads + 1) * read_time / 6 / nreads
 
 
@@ -421,51 +425,6 @@ def resultants_to_differences(resultants):
                       np.diff(resultants, axis=0)])
 
 
-# how do I demonstrate things are right?
-# let's just make a bunch of simulations of the same ramp, compute
-# an empirical covariance matrix, and compare it with an analytic one?
-def simulate_many_ramps(ntrial=100, flux=100, readnoise=5, ma_table=None):
-    """Simulate many ramps with a particular flux, read noise, and ma_table.
-
-    To test ramp fitting, it's useful to be able to simulate a large number
-    of ramps that are identical up to noise.  This function does that.
-
-    Parameters
-    ----------
-    ntrial : int
-        number of ramps to simulate
-    flux : float
-        flux in electrons / s
-    read_noise : float
-        read noise in electrons
-    ma_table : list[list] (int)
-        list of lists indicating first read and number of reads in each
-        resultant
-
-    Returns
-    -------
-    ma_table : list[list] (int)
-        ma_table used
-    flux : float
-        flux used
-    readnoise : float
-        read noise used
-    resultants : np.ndarray[n_resultant, ntrial] (float)
-        simulated resultants
-    """
-    from . import l1
-
-    if ma_table is None:
-        ma_table = [[1, 4], [5, 1], [6, 3], [9, 10], [19, 3], [22, 15]]
-    nread = np.array([x[1] for x in ma_table])
-    tij = l1.ma_table_to_tij(ma_table)
-    totcounts = np.random.poisson(flux * np.max(np.concatenate(tij)), ntrial)
-    resultants, dq = l1.apportion_counts_to_resultants(totcounts, tij)
-    resultants += np.random.randn(len(ma_table), ntrial) * (
-        readnoise / np.sqrt(nread)).reshape(len(ma_table), 1)
-    return (ma_table, flux, readnoise, resultants)
-
-
 def fit_ramps_casertano(resultants, dq, read_noise, ma_table):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
@@ -513,7 +472,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table):
         dq = dq.reshape(origshape + (1,))
         read_noise = read_noise.reshape(origshape[1:] + (1,))
 
-    rampfitdict = romanisim.ramp_fit_casertano.fit_ramps(
+    rampfitdict = matable_fit_cas2022.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),

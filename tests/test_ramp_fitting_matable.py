@@ -15,17 +15,18 @@ Unit tests for ramp-fitting functions.  Tested routines:
 * resultants_to_differences
 * simulate_many_ramps
 """
+import pytest
 
 import numpy as np
+
 from stcal.ramp_fitting import matable_fit as ramp
-from romanisim import parameters
 
 
 def test_ramp(test_table=None):
     if test_table is None:
         test_table = [[0, 3], [3, 5], [8, 1], [9, 1], [20, 3]]
     tbar = ramp.ma_table_to_tbar(test_table)
-    read_time = parameters.read_time
+    read_time = ramp.READ_TIME
     assert np.allclose(
         tbar, [read_time * np.mean(x[0] + np.arange(x[1])) for x in test_table])
     tau = ramp.ma_table_to_tau(test_table)
@@ -126,6 +127,7 @@ def test_hard_ramps():
         test_ramp(tab)
 
 
+@pytest.mark.skip(reason='Setup dependency on romanisim')
 def test_simulated_ramps():
     ntrial = 100000
     ma_table, flux, read_noise, resultants = ramp.simulate_many_ramps(
