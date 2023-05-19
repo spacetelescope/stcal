@@ -18,15 +18,16 @@ Unit tests for ramp-fitting functions.  Tested routines:
 import pytest
 
 import numpy as np
+from stcal import ramp_fitting
 
 from stcal.ramp_fitting import matable_fit as ramp
-
+from stcal.ramp_fitting.matable_util import READ_TIME
 
 def test_ramp(test_table=None):
     if test_table is None:
         test_table = [[0, 3], [3, 5], [8, 1], [9, 1], [20, 3]]
     tbar = ramp.ma_table_to_tbar(test_table)
-    read_time = ramp.READ_TIME
+    read_time = READ_TIME
     assert np.allclose(
         tbar, [read_time * np.mean(x[0] + np.arange(x[1])) for x in test_table])
     tau = ramp.ma_table_to_tau(test_table)
@@ -88,16 +89,12 @@ def test_ramp(test_table=None):
             atcinva, atcinv, [rcovar, fcovar * scale, acovar])
         assert np.allclose(kigrid[i], ki, atol=1e-6)
         assert np.allclose(vargrid[i], var, atol=1e-6)
-    fitter = ramp.RampFitInterpolator(test_table, flux_on_readvar_pts)
-    ki = fitter.ki(flux, read_noise)
-    var = fitter.variances(flux, read_noise)
     fluxes = np.array([10, 100, 1000, 1, 2, 3, 0])
     pedestals = np.array([-10, 0, 10, -1, 0, 1, 2])
     resultants = (fluxes.reshape(1, -1) * tbar.reshape(-1, 1)
                   + pedestals.reshape(1, -1))
     from functools import partial
     rampfitters = [
-        fitter.fit_ramps,
         partial(ramp.fit_ramps_casertano_no_dq, ma_table=test_table),
         partial(ramp.fit_ramps_casertano, ma_table=test_table,
                 dq=resultants * 0)
@@ -127,36 +124,11 @@ def test_hard_ramps():
         test_ramp(tab)
 
 
-@pytest.mark.skip(reason='Setup dependency on romanisim')
 def test_simulated_ramps():
+    romanisim_ramp = pytest.importorskip('romanisim.ramp')
     ntrial = 100000
-    ma_table, flux, read_noise, resultants = ramp.simulate_many_ramps(
+    ma_table, flux, read_noise, resultants = romanisim_ramp.simulate_many_ramps(
         ntrial=ntrial)
-    fitter = ramp.RampFitInterpolator(ma_table)
-    par, var = fitter.fit_ramps(resultants, read_noise)
-    par2, var2 = fitter.fit_ramps(resultants, read_noise, fluxest=flux)
-    # in the simulation, the true flux was flux, so we expect this
-    # to be ~Gaussian distributed about 0 with variance var.
-    # the offset was 0.
-    for p, v in [[par, var], [par2, var2]]:
-        chi2dof_slope = np.sum((p[:, 1] - flux)**2 / v[:, 2, 1, 1]) / ntrial
-        chi2dof_pedestal = np.sum((p[:, 0] - 0)**2 / v[:, 2, 0, 0]) / ntrial
-        assert np.abs(chi2dof_slope - 1) < 0.03
-        assert np.abs(chi2dof_pedestal - 1) < 0.03
-    # It's not clear what level of precision to demand here.  This should
-    # not actually give a value consistent with a normal chi^2 distribution
-    # because the Poisson noise is Poisson distributed, but we are treating
-    # it as Gaussian distributed in the ramp fitting.  So we kind of just want
-    # good rather than perfect.  The above requires that the sigmas be right
-    # at the 5% level, which isn't terrible.  Presumably the accuracy
-    # of the simulation is best for very high and very low count rates,
-    # as in those two limits either the Poisson counts can be very closely
-    # approximated as Gaussians, or the Poisson counts are not important.
-    # Still, the default settings do give something very close to chi^2/dof
-    # = 1.  Running 10**6 samples, we get chi^2/dof ~ 1 +/- 0.001 or so.
-    # This test depends on random numbers and may eventually fail, but
-    # the 0.03 margin is enough that it should very (_very_) rarely fail
-    # absent code changes.
 
     par, var = ramp.fit_ramps_casertano(
         resultants, resultants * 0, read_noise, ma_table)

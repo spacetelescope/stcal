@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-import romanisim.ramp
+from stcal.ramp_fitting.matable_util import ma_table_to_tau, ma_table_to_tbar
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -53,9 +53,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 	).astype('f4')
     cdef np.ndarray[int] nn = np.array([x[1] for x in ma_table]).astype('i4')
     # number of reads in each resultant
-    cdef np.ndarray[float] tbar = romanisim.ramp.ma_table_to_tbar(
+    cdef np.ndarray[float] tbar = ma_table_to_tbar(
         ma_table).astype('f4')
-    cdef np.ndarray[float] tau = romanisim.ramp.ma_table_to_tau(
+    cdef np.ndarray[float] tau = ma_table_to_tau(
         ma_table).astype('f4')
     cdef int npixel = resultants.shape[1]
     cdef int nramp = (np.sum(dq[0, :] == 0) +
