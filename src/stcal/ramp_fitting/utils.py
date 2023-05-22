@@ -509,11 +509,9 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     gdq_2d_nan = gdq_2d.copy()  # group dq with SATS will be replaced by nans
     gdq_2d_nan = gdq_2d_nan.astype(np.float32)
 
-    wh_sat = np.where(np.bitwise_and(gdq_2d, ramp_data.flags_saturated))
-    if len(wh_sat[0]) > 0:
-        gdq_2d_nan[wh_sat] = np.nan  # set all SAT groups to nan
-
-    del wh_sat
+    # set all SAT groups to nan
+    gdq_2d_nan[np.bitwise_and(
+            gdq_2d, ramp_data.flags_saturated).astype(bool)] = np.nan
 
     # Get lengths of semiramps for all pix [number_of_semiramps, number_of_pix]
     segs = np.zeros_like(gdq_2d)
@@ -564,9 +562,8 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
 
     # Create a version 1 less for later calculations for the variance due to
     #   Poisson, with a floor=1 to handle single-group segments
-    wh_pos_3 = np.where(segs_beg_3 > 1)
     segs_beg_3_m1 = segs_beg_3.copy()
-    segs_beg_3_m1[wh_pos_3] -= 1
+    segs_beg_3_m1[segs_beg_3 > 1] -= 1
     segs_beg_3_m1[segs_beg_3_m1 < 1] = 1
 
     # For a segment, the variance due to Poisson noise
@@ -736,8 +733,7 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
 
     data = slope_int / effintim
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
-    wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
-    data[wh_invalid] = np.nan
+    data[np.bitwise_and(dq_int, invalid_data).astype(bool)] = np.nan
 
     err = np.sqrt(var_both3)
     dq = dq_int
@@ -1381,7 +1377,7 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
 
     # Find where flag is set
     test_dq = np.zeros(integ_dq.shape, dtype=np.uint32)
-    test_dq[np.where(np.bitwise_and(integ_dq, flag))] = 1
+    test_dq[np.bitwise_and(integ_dq, flag).astype(bool)] = 1
 
     # Sum over all integrations
     test_sum = test_dq.sum(axis=0)
@@ -1499,10 +1495,7 @@ def compute_median_rates(ramp_data):
         gdq_sect = ramp_data.groupdq[integ, :, :, :]
 
         # Reset all saturated groups in the input data array to NaN
-        where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
-
-        data_sect[where_sat] = np.NaN
-        del where_sat
+        data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
 
         data_sect = data_sect / group_time
 
@@ -1644,7 +1637,7 @@ def groups_saturated_in_integration(intdq, sat_flag, num_sat_groups):
         The number of saturated groups in an integration of interest.
     """
     sat_groups = np.zeros(intdq.shape, dtype=int)
-    sat_groups[np.where(np.bitwise_and(intdq, sat_flag))] = 1
+    sat_groups[np.bitwise_and(intdq, sat_flag).astype(bool)] = 1
     nsat_groups = sat_groups.sum(axis=0)
     wh_nsat_groups = np.where(nsat_groups == num_sat_groups)
 

@@ -1291,6 +1291,42 @@ def test_invalid_integrations():
     np.testing.assert_allclose(cerr[:, 0, 0], check, tol, tol)
 
 
+def test_one_group():
+    """
+    Test ngroups = 1
+    """
+    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.data[0, 0, 0, 0] = 105.31459
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+
+    tol = 1e-5
+    sdata, sdq, svp, svr, serr = slopes
+    assert abs(sdata[0, 0] - 1.9618962) < tol
+    assert sdq[0, 0] == 0
+    assert abs(svp[0, 0] - 0.02923839) < tol
+    assert abs(svr[0, 0] - 0.03470363) < tol
+    assert abs(serr[0, 0] - 0.2528676) < tol
+
+    cdata, cdq, cvp, cvr, cerr = cube
+    assert abs(sdata[0, 0] - cdata[0, 0, 0]) < tol
+    assert sdq[0, 0] == cdq[0, 0, 0]
+    assert abs(svp[0, 0] - cvp[0, 0, 0]) < tol
+    assert abs(svr[0, 0] - cvr[0, 0, 0]) < tol
+    assert abs(serr[0, 0] - cerr[0, 0, 0]) < tol
+
+
 def create_blank_ramp_data(dims, var, tm):
     """
     Create empty RampData classes, as well as gain and read noise arrays,
