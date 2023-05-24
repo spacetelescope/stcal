@@ -6,7 +6,7 @@
 
 [![codecov](https://codecov.io/gh/spacetelescope/stcal/branch/main/graph/badge.svg?token=C1LO00W9CZ)](https://codecov.io/gh/spacetelescope/stcal)
 
-STScI Calibration algorithms and tools.
+STScI Calibration algorithms and tools..
 
 ![STScI Logo](docs/_static/stsci_logo.png)
 
