@@ -284,7 +284,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
         for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
-                log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
+#                log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
 
                 for j in range(len(cr_group)):
                     group = cr_group[j]
