@@ -14,7 +14,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              after_jump_flag_n1=0,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
-             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=1000,):
+             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=50,):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -96,7 +96,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         pixels above current row also to be flagged as a CR
 
     """
-    print("min groups ", minimum_groups )
+#    print("min groups ", minimum_groups )
     # copy data and group DQ array
     if copy_arrs:
         dataa = dataa.copy()
@@ -128,8 +128,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
     total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
-    print("test total_groups", total_groups, "minimum groups", minimum_groups, "seflcal min groups",
-          minimum_selfcal_groups)
+#    print("test total_groups", total_groups, "minimum groups", minimum_groups, "seflcal min groups",
+#          minimum_selfcal_groups)
     if total_groups < minimum_groups:
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
         return gdq, row_below_gdq, row_above_gdq
@@ -189,9 +189,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #            fits.writeto("jump_mask.fits", jump_mask * 4.0, overwrite=True)
             trimmed_mask = jump_mask[:, 4:-4, :, :]
 #            print(trimmed_mask[0:300,:, 0, 0])
-            print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
-                  trimmed_mask.shape[3])
-            print("done")
+#            print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
+#                  trimmed_mask.shape[3])
+#            print("done")
         else:
             ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / \
                     sigma[np.newaxis, :, :]
@@ -219,7 +219,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
                     gdq[integ, grp, jumpy, jumpx] = 0
 #        fits.writeto("new_gdq2.fits", gdq, overwrite=True)
-        print("start flag 4 neighbors part")
+#        print("start flag 4 neighbors part")
         cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
         num_primary_crs = len(cr_group)
         if flag_4_neighbors:  # iterate over each 'jump' pixel
@@ -274,7 +274,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                             if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
-        print("finish flag 4 neighbors")
+#        print("finish flag 4 neighbors")
         # flag n groups after jumps above the specified thresholds to account for
         # the transient seen after ramp jumps
         for integ in range(nints):
