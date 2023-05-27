@@ -256,7 +256,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_n1=after_jump_flag_n1,
                            after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2, copy_arrs=False,
-                           minimum_groups=3, minimum_selfcal_groups=30)
+                           minimum_groups=3, minimum_selfcal_groups=50)
         print("total primary CRs", total_primary_crs)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
