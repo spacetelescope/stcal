@@ -282,7 +282,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     # or there is only one two diffs left (which means there is
                     # actually one left, since the next CR will be masked after
                     # checking that condition)
-
+                    ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
+                            sigma[np.newaxis, np.newaxis, :, :]
                     while new_CR_found and ((ndiffs - np.sum(np.isnan(pix_first_diffs))) > 2):
 
                         new_CR_found = False
