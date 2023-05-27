@@ -14,7 +14,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              after_jump_flag_n1=0,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
-             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=30,):
+             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=30):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -34,7 +34,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     read_noise : float, 2D array
         The read noise of each pixel
 
-    rejection_thresh : float
+    normal_rej_thresh : float
         cosmic ray sigma rejection threshold
 
     two_diff_rej_thresh : float
@@ -96,7 +96,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         pixels above current row also to be flagged as a CR
 
     """
-#    print("min groups ", minimum_groups )
+    print("min self groups ", minimum_selfcal_groups)
     # copy data and group DQ array
     if copy_arrs:
         dataa = dataa.copy()
@@ -251,8 +251,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                                          max_ratio > two_diff_rej_thresh))
 
-                log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
-                log.info(log_str.format(len(row4cr), 'five or more'))
+#                log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
+#                log.info(log_str.format(len(row4cr), 'five or more'))
 
                 # get the rows, col pairs for all pixels with at least one CR
                 all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
