@@ -195,6 +195,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         else:
             ratio = np.abs(first_diffs - median_diffs[np.newaxis, :, :]) / \
                     sigma[np.newaxis, :, :]
+            fits.writeto("baselineratio.fits", ratio, overwrite=True)
             if ndiffs >= 4:
                 masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
             if ndiffs == 3:
