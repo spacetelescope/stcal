@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-from stcal.ramp_fitting.matable_util import ma_table_to_tau, ma_table_to_tbar
+from stcal.ramp_fitting.ols_cas21_util import ma_table_to_tau, ma_table_to_tbar
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

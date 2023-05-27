@@ -33,8 +33,8 @@ from astropy import units as u
 import numpy as np
 from scipy import interpolate
 
-from . import matable_fit_cas2022
-from .matable_util import ma_table_to_tau, ma_table_to_tbar
+from . import ols_cas21
+from .ols_cas21_util import ma_table_to_tau, ma_table_to_tbar
 
 
 def construct_covar(read_noise, flux, ma_table):
@@ -258,7 +258,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table):
         dq = dq.reshape(origshape + (1,))
         read_noise = read_noise.reshape(origshape[1:] + (1,))
 
-    rampfitdict = matable_fit_cas2022.fit_ramps(
+    rampfitdict = ols_cas21.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),

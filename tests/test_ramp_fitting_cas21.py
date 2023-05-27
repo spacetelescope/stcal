@@ -20,8 +20,8 @@ import pytest
 import numpy as np
 from stcal import ramp_fitting
 
-from stcal.ramp_fitting import matable_fit as ramp
-from stcal.ramp_fitting.matable_util import READ_TIME
+from stcal.ramp_fitting import ols_cas21_fit as ramp
+from stcal.ramp_fitting.ols_cas21_util import READ_TIME
 
 def test_ramp(test_table=None):
     if test_table is None:
