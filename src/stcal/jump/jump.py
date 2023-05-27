@@ -34,7 +34,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  edge_size=25, extend_snr_threshold=1.2, extend_min_area=90,
                  extend_inner_radius=1, extend_outer_radius=2.6,
                  extend_ellipse_expand_ratio=1.2, grps_masked_after_shower=5,
-                 max_extended_radius=200):
+                 max_extended_radius=200, minimum_groups=3,
+                 minimum_selfcal_groups=50):
 
     """
     This is the high-level controlling routine for the jump detection process.
@@ -254,7 +255,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_e1=after_jump_flag_e1,
                            after_jump_flag_n1=after_jump_flag_n1,
                            after_jump_flag_e2=after_jump_flag_e2,
-                           after_jump_flag_n2=after_jump_flag_n2)
+                           after_jump_flag_n2=after_jump_flag_n2, copy_arrs=False,
+                           minimum_groups=3, minimum_selfcal_groups=50)
         print("total primary CRs", total_primary_crs)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
@@ -289,7 +291,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         # modified unless copied beforehand
         gdq = gdq.copy()
         data = data.copy()
-        copy_arrs = False  # we dont need to copy arrays again in find_crs
+        copy_arrs = False  # we don't need to copy arrays again in find_crs
 
         for i in range(n_slices - 1):
             slices.insert(i, (data[:, :, i * yinc:(i + 1) * yinc, :],
@@ -301,7 +303,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               min_jump_to_flag_neighbors, dqflags,
                               after_jump_flag_e1, after_jump_flag_n1,
                               after_jump_flag_e2, after_jump_flag_n2,
-                              copy_arrs))
+                              copy_arrs, minimum_groups, minimum_selfcal_groups))
 
         # last slice get the rest
         slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) *
@@ -317,7 +319,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                      min_jump_to_flag_neighbors, dqflags,
                                      after_jump_flag_e1, after_jump_flag_n1,
                                      after_jump_flag_e2, after_jump_flag_n2,
-                                     copy_arrs))
+                                     copy_arrs, minimum_groups, minimum_selfcal_groups))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one
@@ -338,7 +340,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             row_below_gdq[:, :, :] = resultslice[1]
             row_above_gdq[:, :, :] = resultslice[2]
             total_primary_crs += resultslice[3]
-            print("in Jump ", total_primary_crs)
             if k != 0:
                 # For all but the first slice, flag any CR neighbors in the top
                 # row of the previous slice and flag any neighbors in the
@@ -354,7 +355,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-        print("total primary CRs", total_primary_crs)
+        print("total primary CRs, multiple threads", total_primary_crs)
         #  This is the flag that controls the flagging of either
         #  snowballs or showers.
         if expand_large_events:
