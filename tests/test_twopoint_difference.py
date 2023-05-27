@@ -1030,7 +1030,7 @@ def test_sigma_clip():
     read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
     gain = np.ones_like(indata) * 4.0
     hdul.close()
-    gdq, row_below_gdq, row_above_gdq = find_crs(indata, ingdq, read_noise, 3,
+    gdq, row_below_gdq, row_above_gdq, total_primary_crs = find_crs(indata, ingdq, read_noise, 3,
              4, 5, 1,
              False, 1000,
              10, DQFLAGS,
@@ -1041,3 +1041,26 @@ def test_sigma_clip():
              copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=50,)
     fits.writeto("outgdq.fits", gdq, overwrite=True)
     print('done')
+
+def test_first_grp_flag_issue():
+    nints = 8
+    nrows = 2
+    ncols = 2
+    ngroups = 10
+    rej_threshold = 3
+    nframes = 1
+    readnoise = 2
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    data = np.random.normal(0, readnoise, size=(nints, ngroups, nrows, ncols))
+    read_noise = np.full((nrows, ncols), readnoise, dtype=np.float32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+
+    gdq[:, 0, :, :] = DQFLAGS['DO_NOT_USE']
+    gdq[1:, 1, :, :] = DQFLAGS['DO_NOT_USE']
+    gdq[:, -1, :, :] = DQFLAGS['DO_NOT_USE']
+    gdq, row_below_gdq, row_above_gdq, total_primary_crs = \
+        find_crs(data, gdq, read_noise, 3, 4, 5, 1, False, 1000, 10, DQFLAGS,
+                 after_jump_flag_e1=0.0, after_jump_flag_n1=0,
+                 after_jump_flag_e2=0.0, after_jump_flag_n2=0,
+                 copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=50)
+    fits.writeto("outgdq.fits",gdq, overwrite=True)
