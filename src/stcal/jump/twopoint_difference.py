@@ -169,19 +169,21 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             log.info(" Jump Step using selfcal sigma clip {} greater than {}, rejection threshold {}".format(
                 str(total_groups), str(minimum_selfcal_groups), str(normal_rej_thresh)))
             mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
-                                                             axis=(0, 1))
+         #                                                    axis=(0, 1))
+                                                             axis=0)
             fits.writeto('stddev_sigclip.fits', stddev, overwrite=True)
             clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh,
-                                             axis=(0, 1), masked=True)
-            max_diffs = np.nanmax(clipped_diffs, axis=(0, 1))
-            min_diffs = np.nanmin(clipped_diffs, axis=(0, 1))
-            delta_diff = max_diffs - min_diffs
-            rms_diff = np.nanstd(clipped_diffs, axis=(0, 1))
-            avg_diff = np.nanmean(clipped_diffs, axis=(0, 1))
-            fits.writeto("avg_diff.fits", avg_diff.filled(fill_value=np.nan), overwrite=True)
-            out_rms = rms_diff.filled(fill_value=np.nan)
-            fits.writeto("rms_diff.fits", out_rms, overwrite=True)
-            out_diffs = delta_diff.filled(fill_value=np.nan)
+        #                                     axis=(0, 1), masked=True)
+                                             axis=0, masked = True)
+        #    max_diffs = np.nanmax(clipped_diffs, axis=(0, 1))
+        #    min_diffs = np.nanmin(clipped_diffs, axis=(0, 1))
+        #    delta_diff = max_diffs - min_diffs
+        #    rms_diff = np.nanstd(clipped_diffs, axis=(0, 1))
+        #    avg_diff = np.nanmean(clipped_diffs, axis=(0, 1))
+        #    fits.writeto("avg_diff.fits", avg_diff.filled(fill_value=np.nan), overwrite=True)
+        #    out_rms = rms_diff.filled(fill_value=np.nan)
+        #    fits.writeto("rms_diff.fits", out_rms, overwrite=True)
+        #    out_diffs = delta_diff.filled(fill_value=np.nan)
  #           jump_mask = 1.0 * clipped_diffs.mask - 1.0 * first_diffs_masked.mask
             jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
             fits.writeto('mask_of_first_diffs.fits', 1.0*first_diffs_masked.mask, overwrite=True)
@@ -282,8 +284,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     # or there is only one two diffs left (which means there is
                     # actually one left, since the next CR will be masked after
                     # checking that condition)
-                    ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
-                            sigma[np.newaxis, np.newaxis, :, :]
+
                     while new_CR_found and ((ndiffs - np.sum(np.isnan(pix_first_diffs))) > 2):
 
                         new_CR_found = False
@@ -392,7 +393,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] =\
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-    print("finish flag after jump, num crs =", num_primary_crs)
+    log.info("Total Primary CRs = %i", num_primary_crs)
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs
 
 

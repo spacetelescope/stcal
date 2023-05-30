@@ -257,7 +257,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2, copy_arrs=False,
                            minimum_groups=3, minimum_selfcal_groups=50)
-        print("total primary CRs", total_primary_crs)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
@@ -359,7 +358,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         #  This is the flag that controls the flagging of either
         #  snowballs or showers.
         if expand_large_events:
-            flag_large_events(gdq, jump_flag, sat_flag,
+            total_snowballs = flag_large_events(gdq, jump_flag, sat_flag,
                               min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor,
@@ -367,6 +366,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               min_sat_radius_extend=min_sat_radius_extend,
                               edge_size=edge_size, sat_expand=sat_expand,
                               max_extended_radius=max_extended_radius)
+            log.info('Total snowballs = %i' % total_snowballs)
+            number_extended_events = total_snowballs
         if find_showers:
             gdq, num_showers = \
                 find_faint_extended(data, gdq, readnoise_2d,
@@ -380,6 +381,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                     ellipse_expand=extend_ellipse_expand_ratio,
                                     num_grps_masked=grps_masked_after_shower,
                                     max_extended_radius=max_extended_radius)
+            log.info('Total showers= %i' % num_showers)
+            number_extended_events = num_showers
     elapsed = time.time() - start
     log.info('Total elapsed time = %g sec' % elapsed)
 
@@ -390,7 +393,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     readnoise_2d /= gain_2d
 
     # Return the updated data quality arrays
-    return gdq, pdq
+    return gdq, pdq, total_primary_crs, number_extended_events
 
 
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
@@ -445,6 +448,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
     log.info('Flagging large Snowballs')
 
     n_showers_grp = []
+    total_snowballs = 0
     for integration in range(gdq.shape[0]):
         for group in range(1, gdq.shape[1]):
             current_gdq = 1.0 * gdq[integration, group, :, :]
@@ -471,6 +475,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             else:
                 snowballs = jump_ellipses
             n_showers_grp.append(len(snowballs))
+            total_snowballs += len(snowballs)
             gdq, num_events = extend_ellipses(gdq, integration, group,
                                               snowballs,
                                               sat_flag, jump_flag,
@@ -481,7 +486,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
         else:
             log.info(f' In integration {integration}, number of snowballs ' +
                      f'in each group = {n_showers_grp}')
-
+    return total_snowballs
 
 def extend_saturation(cube, grp, sat_ellipses, sat_flag,
                       min_sat_radius_extend, expansion=2,
