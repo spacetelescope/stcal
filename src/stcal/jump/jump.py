@@ -199,6 +199,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     constants.update_dqflags(dqflags)  # populate dq flags
     sat_flag = dqflags["SATURATED"]
     jump_flag = dqflags["JUMP_DET"]
+    number_extended_events = 0
     # Flag the pixeldq where the gain is <=0 or NaN so they will be ignored
     wh_g = np.where(gain_2d <= 0.)
     if len(wh_g[0] > 0):
@@ -357,7 +358,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         print("total primary CRs, multiple threads", total_primary_crs)
         #  This is the flag that controls the flagging of either
         #  snowballs or showers.
-        number_extended_events = 0
         if expand_large_events:
             total_snowballs = flag_large_events(gdq, jump_flag, sat_flag,
                               min_sat_area=min_sat_area,
