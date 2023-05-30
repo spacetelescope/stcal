@@ -394,7 +394,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     readnoise_2d /= gain_2d
 
     # Return the updated data quality arrays
-    return gdq, pdq, total_primary_crs, number_extended_events
+    return gdq, pdq
+    #return gdq, pdq, total_primary_crs, number_extended_events
 
 
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
