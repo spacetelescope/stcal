@@ -16,6 +16,8 @@ ramp_fitting
 - Correct the "averaging" of the final image slope by properly excluding
   variances as a part of the denominator from integrations with invalid slopes.
   [#167]
+- Removing the usage of ``numpy.where`` where possible for perfomance
+  reasons. [#169]
 
 Changes to API
 --------------
