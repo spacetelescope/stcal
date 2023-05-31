@@ -164,7 +164,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #        if nints > 1:
 
         if total_groups >= minimum_selfcal_groups:
-            ratio = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
+            ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
             log.info(" Jump Step using selfcal sigma clip {} greater than {}, rejection threshold {}".format(
                 str(total_groups), str(minimum_selfcal_groups), str(normal_rej_thresh)))
@@ -322,7 +322,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         if flag_4_neighbors:  # iterate over each 'jump' pixel
             for j in range(len(cr_group)):
 
-                ratio_this_pix = ratio[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
+                ratio_this_pix = ratio_all[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
 
                 # Jumps must be in a certain range to have neighbors flagged
                 if ratio_this_pix < max_jump_to_flag_neighbors and \
@@ -372,28 +372,28 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
 
-                # flag n groups after jumps above the specified thresholds to account for
-                # the transient seen after ramp jumps
-                flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
-                flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
+            # flag n groups after jumps above the specified thresholds to account for
+            # the transient seen after ramp jumps
+            flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
+            flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
 
-                cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
-                for cthres, cgroup in zip(flag_e_threshold, flag_groups):
-                    if cgroup > 0:
-                        log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
+            cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
+            for cthres, cgroup in zip(flag_e_threshold, flag_groups):
+                if cgroup > 0:
+                    log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
 
-                        for j in range(len(cr_group)):
-                            group = cr_group[j]
-                            row = cr_row[j]
-                            col = cr_col[j]
-                            if e_jump[group - 1, row, col] >= cthres[row, col]:
-                                for kk in range(group, min(group + cgroup + 1, ngroups)):
-                                    if (gdq[integ, kk, row, col] & sat_flag) == 0:
-                                        if (gdq[integ, kk, row, col] & dnu_flag) == 0:
-                                            gdq[integ, kk, row, col] = \
-                                                np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+                    for j in range(len(cr_group)):
+                        group = cr_group[j]
+                        row = cr_row[j]
+                        col = cr_col[j]
+                        if e_jump[group - 1, row, col] >= cthres[row, col]:
+                            for kk in range(group, min(group + cgroup + 1, ngroups)):
+                                if (gdq[integ, kk, row, col] & sat_flag) == 0:
+                                    if (gdq[integ, kk, row, col] & dnu_flag) == 0:
+                                        gdq[integ, kk, row, col] = \
+                                            np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
 
-    log.info("Total Primary CRs = %i", num_primary_crs)
+#    log.info("Total Primary CRs = %i", num_primary_crs)
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs
 
 
