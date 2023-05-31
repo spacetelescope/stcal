@@ -4,6 +4,24 @@
 Bug Fixes
 ---------
 
+-
+
+Changes to API
+--------------
+
+- 
+
+Other
+-----
+
+- 
+
+1.3.8 (2023-05-31)
+==================
+
+Bug Fixes
+---------
+
 dark_current
 ~~~~~~~~~~~~
 
@@ -18,16 +36,6 @@ ramp_fitting
   [#167]
 - Removing the usage of ``numpy.where`` where possible for perfomance
   reasons. [#169]
-
-Changes to API
---------------
-
-- 
-
-Other
------
-
-- 
 
 1.3.7 (2023-04-26)
 ==================
