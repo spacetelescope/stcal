@@ -35,7 +35,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  extend_inner_radius=1, extend_outer_radius=2.6,
                  extend_ellipse_expand_ratio=1.2, grps_masked_after_shower=5,
                  max_extended_radius=200, minimum_groups=3,
-                 minimum_selfcal_groups=50):
+                 minimum_selfcal_groups=5000):
 
     """
     This is the high-level controlling routine for the jump detection process.
