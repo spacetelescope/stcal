@@ -1064,3 +1064,22 @@ def test_first_grp_flag_issue():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=50)
     fits.writeto("outgdq.fits",gdq, overwrite=True)
+
+def test_5grp_TSO():
+    nints=20
+    nrows = 2
+    ncols = 2
+    ngroups = 5
+    readnoise = 25
+    data = np.random.normal(0, readnoise, size=(nints, ngroups, nrows, ncols))
+    read_noise = np.full((nrows, ncols), readnoise, dtype=np.float32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+
+    gdq[:, 0, :, :] = DQFLAGS['DO_NOT_USE']
+    gdq[1:, 1, :, :] = DQFLAGS['DO_NOT_USE']
+    gdq[:, -1, :, :] = DQFLAGS['DO_NOT_USE']
+    gdq, row_below_gdq, row_above_gdq, total_primary_crs = \
+        find_crs(data, gdq, read_noise, 3, 4, 5, 1, False, 1000, 10, DQFLAGS,
+                 after_jump_flag_e1=0.0, after_jump_flag_n1=0,
+                 after_jump_flag_e2=0.0, after_jump_flag_n2=0,
+                 copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=50)
