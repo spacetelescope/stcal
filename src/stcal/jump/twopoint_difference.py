@@ -371,7 +371,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                             if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
                                 gdq[integ, group, row, col + 1] =\
                                     np.bitwise_or(gdq[integ, group, row, col + 1], jump_flag)
-                                
+
                 # flag n groups after jumps above the specified thresholds to account for
                 # the transient seen after ramp jumps
                 flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
