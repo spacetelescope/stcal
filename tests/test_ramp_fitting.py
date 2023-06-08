@@ -4,6 +4,14 @@ from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 
 
+################## DEBUG ################## 
+#                  HELP!!
+import sys
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from general_funcs import dbg_print
+################## DEBUG ################## 
+
+
 DELIM = "-" * 70
 
 # single group intergrations fail in the GLS fitting
@@ -470,12 +478,20 @@ def run_one_group_ramp_suppression(nints, suppress):
 
     In the second integration all pixels have all good groups.
     """
+    # XXX
+    # This is a bad way to do things.  The inputs are bad.  The
+    # group_time is defined independently from nframes, frame_time,
+    # and groupgap, which is bad.
+
     # Define the data.
     ngroups, nrows, ncols = 5, 1, 3
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 10, 1
-    nframes, group_time, frame_time = 1, 5.0, 1
+    # nframes, group_time, frame_time = 1, 5.0, 1
+    nframes, frame_time, groupgap = 1, 1, 0
     var = rnoise, gain
+    # group_time = (nframes + groupgap) * frame_time
+    group_time = 5.0
     tm = nframes, group_time, frame_time
 
     # Using the above create the classes and arrays.
@@ -546,7 +562,7 @@ def test_one_group_ramp_suppressed_one_integration():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan, np.nan, 1.0000001]]])
+    check = np.array([[[np.nan, np.nan, 0.20000002]]])
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, DNU, GOOD]]])
@@ -591,7 +607,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan, 1., 1.0000001]]])
+    check = np.array([[[np.nan, 0.2, 0.20000002]]])
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, GOOD, GOOD]]])
@@ -637,8 +653,8 @@ def test_one_group_ramp_suppressed_two_integrations():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan,    np.nan,    1.0000001]],
-                      [[1.0000001, 1.0000001, 1.0000001]]])
+    check = np.array([[[np.nan,     np.nan,     0.20000002]],
+                      [[0.20000002, 0.20000002, 0.20000002]]])
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, DNU, GOOD]],
@@ -688,8 +704,8 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan,    1.,        1.0000001]],
-                      [[1.0000001, 1.0000001, 1.0000001]]])
+    check = np.array([[[np.nan,     0.2,        0.20000002]],
+                      [[0.20000002, 0.20000002, 0.20000002]]])
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, GOOD, GOOD]],

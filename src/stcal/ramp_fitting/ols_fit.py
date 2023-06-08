@@ -11,6 +11,13 @@ from . import ramp_fit_class
 from . import utils
 
 
+################## DEBUG ################## 
+#                  HELP!!
+import sys
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from general_funcs import dbg_print
+################## DEBUG ################## 
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -1375,7 +1382,7 @@ def ramp_fit_overall(
         opt_res.var_p_seg = var_p4[:, :f_max_seg, :, :]
         opt_res.var_r_seg = var_r4[:, :f_max_seg, :, :]
 
-        opt_info = opt_res.output_optional(effintim)
+        opt_info = opt_res.output_optional(ramp_data.group_time)
     else:
         opt_info = None
 
@@ -1396,7 +1403,7 @@ def ramp_fit_overall(
 
     # Output integration-specific results to separate file
     integ_info = utils.output_integ(
-        ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_both3)
+        ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3)
 
     if opt_res is not None:
         del opt_res

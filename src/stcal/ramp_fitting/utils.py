@@ -7,6 +7,14 @@ import numpy as np
 import warnings
 
 
+################## DEBUG ################## 
+#                  HELP!!
+import sys
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from general_funcs import dbg_print
+################## DEBUG ################## 
+
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -250,7 +258,7 @@ class OptRes:
         else:
             self.cr_mag_seg = cr_com[:, :max_num_crs, :, :]
 
-    def output_optional(self, effintim):
+    def output_optional(self, group_time):
         """
         These results are the cosmic ray magnitudes in the
         segment-specific results for the count rates, y-intercept,
@@ -265,7 +273,7 @@ class OptRes:
 
         Parameters
         ----------
-        effintim : float
+        group_time : float
             effective integration time for a single group
 
         Returns
@@ -284,7 +292,7 @@ class OptRes:
         self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
         warnings.resetwarnings()
 
-        self.slope_seg /= effintim
+        self.slope_seg /= group_time
 
         opt_info = (self.slope_seg, self.sigslope_seg, self.var_p_seg,
                     self.var_r_seg, self.yint_seg, self.sigyint_seg,
@@ -681,7 +689,7 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
     return ped
 
 
-def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
+def output_integ(ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3):
     """
     For the OLS algorithm, construct the output integration-specific results.
     Any variance values that are a large fraction of the default value
@@ -701,9 +709,6 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
 
     dq_int : ndarray
        Data cube of DQ arrays for each integration, 3-D int
-
-    effintim : float
-       Effective integration time per integration
 
     var_p3 : ndarray
         Cube of integration-specific values for the slope variance due to
@@ -731,7 +736,7 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
     var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
     var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
 
-    data = slope_int / effintim
+    data = slope_int / ramp_data.group_time
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
     data[np.bitwise_and(dq_int, invalid_data).astype(bool)] = np.nan
 
