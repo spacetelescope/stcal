@@ -840,6 +840,7 @@ def shift_z(a, off):
 
 def get_efftim_ped(ramp_data):
     """
+    XXX - Work to remove this function.
     Calculate the effective integration time for a single group, and return the
     number of frames per group, and the number of frames dropped between groups.
 

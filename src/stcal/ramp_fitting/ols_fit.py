@@ -838,9 +838,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     gdq_cube_shape : ndarray
         Group DQ dimensions
 
-    effintim : float
-        effective integration time for a single group
-
     f_max_seg : int
         Actual maximum number of segments over all groups and segments
 
@@ -881,14 +878,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     n_int, ngroups, nrows, ncols = data.shape
     imshape = (nrows, ncols)
     cubeshape = (ngroups,) + imshape
-
-    # Calculate effective integration time (once EFFINTIM has been populated
-    #   and accessible, will use that instead), and other keywords that will
-    #   needed if the pedestal calculation is requested. Note 'nframes'
-    #   is the number of given by the NFRAMES keyword, and is the number of
-    #   frames averaged on-board for a group, i.e., it does not include the
-    #   groupgap.
-    effintim = (nframes + groupgap) * frame_time
 
     # Get GROUP DQ and ERR arrays from input file
     gdq_cube = groupdq
@@ -1005,7 +994,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     ramp_data.groupdq = groupdq
     ramp_data.pixeldq = inpixeldq
 
-    return max_seg, gdq_cube_shape, effintim, f_max_seg, dq_int, num_seg_per_int,\
+    return max_seg, gdq_cube_shape, f_max_seg, dq_int, num_seg_per_int,\
         sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates
 
 
@@ -1090,7 +1079,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
     max_seg = fit_slopes_ans[0]
     num_seg_per_int = fit_slopes_ans[5]
-    med_rates = fit_slopes_ans[10]
+    med_rates = fit_slopes_ans[9]
 
     var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, \
         inv_var_both4, s_inv_var_p3, s_inv_var_r3, s_inv_var_both3, segs_4 = \
@@ -1290,8 +1279,8 @@ def ramp_fit_overall(
     imshape = (nrows, ncols)
 
     # Unpack intermediate computations from preious steps
-    max_seg, gdq_cube_shape, effintim, f_max_seg, dq_int, num_seg_per_int = fit_slopes_ans[:6]
-    sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates = fit_slopes_ans[6:]
+    max_seg, gdq_cube_shape, f_max_seg, dq_int, num_seg_per_int = fit_slopes_ans[:5]
+    sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates = fit_slopes_ans[5:]
 
     var_p3, var_r3, var_p4, var_r4, var_both4, var_both3 = variances_ans[:6]
     inv_var_both4, s_inv_var_p3, s_inv_var_r3, s_inv_var_both3 = variances_ans[6:]
@@ -1416,7 +1405,7 @@ def ramp_fit_overall(
 
     # Divide slopes by total (summed over all integrations) effective
     #   integration time to give count rates.
-    c_rates = slope_dataset2 / effintim
+    c_rates = slope_dataset2 / ramp_data.group_time
 
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output

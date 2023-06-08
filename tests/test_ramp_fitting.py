@@ -544,7 +544,7 @@ def test_one_group_ramp_suppressed_one_integration():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[np.nan, np.nan, 1.0000002]])
+    check = np.array([[np.nan, np.nan, 0.20000005]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[DNU | SAT, DNU, GOOD]])
@@ -589,7 +589,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[np.nan, 1., 1.0000002]])
+    check = np.array([[np.nan, 0.2, 0.20000005]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[DNU | SAT, GOOD, GOOD]])
@@ -635,7 +635,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[1.0000001, 1.0000001, 1.0000002]])
+    check = np.array([[0.20000002, 0.20000005, 0.20000005]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
@@ -686,7 +686,7 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[1.0000001, 1.0000002, 1.0000002]])
+    check = np.array([[0.20000002, 0.20000005, 0.20000005]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
