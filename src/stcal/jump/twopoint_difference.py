@@ -393,7 +393,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
 
 #    log.info("Total Primary CRs = %i", num_primary_crs)
-    return gdq, row_below_gdq, row_above_gdq, num_primary_crs, num_flagged_grps
+    return gdq, row_below_gdq, row_above_gdq, num_primary_crs
 
 
 def calc_med_first_diffs(first_diffs):
