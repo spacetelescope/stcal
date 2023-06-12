@@ -132,6 +132,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
     if total_groups < minimum_groups:
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
+        log.info("Total Groups {}".format(str(total_groups)))
         return gdq, row_below_gdq, row_above_gdq, 0
     else:
 
