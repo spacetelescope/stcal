@@ -126,6 +126,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
+    print("dat shape", dat.shape)
     if only_use_ints:
         total_groups = dat.shape[0]
     else:
