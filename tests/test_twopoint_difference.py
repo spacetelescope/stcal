@@ -1102,15 +1102,15 @@ def test_5grp_realTSO():
     fits.writeto("new_gdq_cutout.fits", gdq, overwrite=True)
 
 def test_5grp_allTSO():
-    hdul = fits.open("obs2508_sigmaclip_base_dark_current.fits")
+    hdul = fits.open("obs2508_noshower_sigclip_base_00_dark_current.fits")
     gdq = hdul['groupdq'].data
-    data = hdul['sci'].data
-    readnoise = 25
+    data = hdul['sci'].data * 5.5
+    readnoise = 5.5 * 6
     read_noise = np.full((gdq.shape[2], gdq.shape[3]), readnoise, dtype=np.float32)
 
     gdq, row_below_gdq, row_above_gdq, total_primary_crs = \
-        find_crs(data, gdq, read_noise, 3, 4, 5, 1, False, 1000, 10, DQFLAGS,
+        find_crs(data, gdq, read_noise, 5, 4, 5, 1, False, 1000, 10, DQFLAGS,
                  after_jump_flag_e1=0.0, after_jump_flag_n1=0,
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
-                 copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=15000)
-    fits.writeto("new_sigma_clip_base.fits", gdq, overwrite=True)
+                 copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
+    fits.writeto("new_no_sigma_clip_gdq.fits", gdq, overwrite=True)

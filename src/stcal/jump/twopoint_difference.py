@@ -1,9 +1,9 @@
 import logging
 import numpy as np
 import astropy.stats as stats
+from astropy.io import fits
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-from astropy.io import fits
 
 
 def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
@@ -14,7 +14,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              after_jump_flag_n1=0,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
-             copy_arrs=True, minimum_groups=3, minimum_selfcal_groups=30):
+             copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=100,
+             only_use_ints=True):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -96,7 +97,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         pixels above current row also to be flagged as a CR
 
     """
-    print("min self groups ", minimum_selfcal_groups)
     # copy data and group DQ array
     if copy_arrs:
         dataa = dataa.copy()
@@ -109,7 +109,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
     # get readnoise, squared
     read_noise_2 = read_noise**2
-
     # create arrays for output
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
@@ -127,12 +126,13 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
-    total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
-#    print("test total_groups", total_groups, "minimum groups", minimum_groups, "seflcal min groups",
-#          minimum_selfcal_groups)
+    if only_use_ints:
+        total_groups = dat.shape[0]
+    else:
+        total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
     if total_groups < minimum_groups:
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        return gdq, row_below_gdq, row_above_gdq
+        return gdq, row_below_gdq, row_above_gdq, 0
     else:
 
         # set 'saturated' or 'do not use' pixels to nan in data
@@ -148,7 +148,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-#        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
+        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
         median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
 #        fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
         # calculate sigma for each pixel
@@ -164,43 +164,28 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #        if nints > 1:
         ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
-        if nints >= minimum_selfcal_groups:
+        if (only_use_ints and nints >= minimum_sigclip_groups) or \
+           (not only_use_ints and total_groups >= minimum_sigclip_groups):
             log.info(" Jump Step using selfcal sigma clip {} greater than {}, rejection threshold {}".format(
-                str(total_groups), str(minimum_selfcal_groups), str(normal_rej_thresh)))
-            mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
-         #                                                    axis=(0, 1))
-                                                             axis=0)
-            fits.writeto('stddev_sigclip.fits', stddev, overwrite=True)
-            clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh,
-        #                                     axis=(0, 1), masked=True)
-                                             axis=0, masked = True)
-        #    max_diffs = np.nanmax(clipped_diffs, axis=(0, 1))
-        #    min_diffs = np.nanmin(clipped_diffs, axis=(0, 1))
-        #    delta_diff = max_diffs - min_diffs
-        #    rms_diff = np.nanstd(clipped_diffs, axis=(0, 1))
-        #    avg_diff = np.nanmean(clipped_diffs, axis=(0, 1))
-        #    fits.writeto("avg_diff.fits", avg_diff.filled(fill_value=np.nan), overwrite=True)
-        #    out_rms = rms_diff.filled(fill_value=np.nan)
-        #    fits.writeto("rms_diff.fits", out_rms, overwrite=True)
-        #    out_diffs = delta_diff.filled(fill_value=np.nan)
- #           jump_mask = 1.0 * clipped_diffs.mask - 1.0 * first_diffs_masked.mask
+                str(total_groups), str(minimum_sigclip_groups), str(normal_rej_thresh)))
+            if only_use_ints:
+                mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
+                                                                 axis=0)
+                fits.writeto("stddev.fits", stddev, overwrite=True)
+                clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh,
+                                                 axis=0, masked=True)
+            else:
+                mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
+                                                                 axis=(0, 1))
+                fits.writeto("stddev.fits", stddev, overwrite=True)
+                clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh,
+                                                 axis=(0, 1), masked=True)
             jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
-            fits.writeto('mask_of_first_diffs.fits', 1.0*first_diffs_masked.mask, overwrite=True)
-            fits.writeto('mask_of_clipped_diffs.fits', 1.0*clipped_diffs.mask, overwrite=True)
-            fits.writeto("jump_mask.fits", jump_mask * 4.0, overwrite=True)
-            trimmed_mask = jump_mask[:, 4:-4, :, :]
-#            print(trimmed_mask[0:300,:, 0, 0])
-#            print("total masked pixels", np.sum(trimmed_mask), "total Pixels", trimmed_mask.shape[0]*trimmed_mask.shape[1]*trimmed_mask.shape[2]*
-#                  trimmed_mask.shape[3])
-#            print("done")
             jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
             jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
             jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
-            #        fits.writeto("jump_mask2.fits", jump_mask * 1.0, overwrite=True)
-            fits.writeto("incoming_gdq.fits", gdq, overwrite=True)
             gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                              np.uint8(dqflags["JUMP_DET"]))
-            fits.writeto("new_gdq.fits", gdq, overwrite=True)
             # if grp is all jump set to do not use
             for integ in range(dat.shape[0]):
                 for grp in range(dat.shape[1]):
@@ -208,7 +193,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                             np.bitwise_and(gdq[integ, grp, :, :], dnu_flag))):
                         jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
                         gdq[integ, grp, jumpy, jumpx] = 0
-            fits.writeto("new_gdq2.fits", gdq, overwrite=True)
         else:
             for integ in range(nints):
 
@@ -229,7 +213,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
                 # calculate sigma for each pixel
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-
+                if integ == 5:
+                    fits.writeto("sigma.fits", sigma, overwrite=True)
                 # reset sigma so pxels with 0 readnoise are not flagged as jumps
                 sigma[np.where(sigma == 0.)] = np.nan
 
@@ -251,9 +236,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                                          max_ratio > three_diff_rej_thresh))
                 row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                                          max_ratio > two_diff_rej_thresh))
-
-#                log_str = 'From highest outlier, two-point found {} pixels with at least one CR from {} groups.'
-#                log.info(log_str.format(len(row4cr), 'five or more'))
 
                 # get the rows, col pairs for all pixels with at least one CR
                 all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
@@ -315,7 +297,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                         np.bitwise_or(gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
                                       dqflags["JUMP_DET"] * np.invert(pix_cr_mask))
 
- #        print("start flag 4 neighbors part")
         cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
         num_primary_crs = len(cr_group)
         if flag_4_neighbors:  # iterate over each 'jump' pixel
@@ -324,8 +305,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 ratio_this_pix = ratio_all[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
 
                 # Jumps must be in a certain range to have neighbors flagged
-                if ratio_this_pix < max_jump_to_flag_neighbors and \
-                        ratio_this_pix > min_jump_to_flag_neighbors:
+                if (ratio_this_pix < max_jump_to_flag_neighbors) and \
+                        (ratio_this_pix > min_jump_to_flag_neighbors):
                     integ = cr_integ[j]
                     group = cr_group[j]
                     row = cr_row[j]
@@ -379,8 +360,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
         for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
-                log.info(f"Flagging {cgroup} groups after detected jumps with e >= {np.mean(cthres)}.")
-
                 for j in range(len(cr_group)):
                     group = cr_group[j]
                     row = cr_row[j]
@@ -392,7 +371,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                     gdq[integ, kk, row, col] = \
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
 
-#    log.info("Total Primary CRs = %i", num_primary_crs)
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs
 
 

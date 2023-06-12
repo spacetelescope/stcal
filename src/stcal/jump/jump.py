@@ -35,7 +35,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                  extend_inner_radius=1, extend_outer_radius=2.6,
                  extend_ellipse_expand_ratio=1.2, grps_masked_after_shower=5,
                  max_extended_radius=200, minimum_groups=3,
-                 minimum_selfcal_groups=100):
+                 minimum_sigclip_groups=100, only_use_ints=True):
 
     """
     This is the high-level controlling routine for the jump detection process.
@@ -257,7 +257,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_n1=after_jump_flag_n1,
                            after_jump_flag_e2=after_jump_flag_e2,
                            after_jump_flag_n2=after_jump_flag_n2, copy_arrs=False,
-                           minimum_groups=3, minimum_selfcal_groups=minimum_selfcal_groups)
+                           minimum_groups=3, minimum_sigclip_groups=minimum_sigclip_groups,
+                           only_use_ints=only_use_ints)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
             flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
@@ -303,7 +304,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               min_jump_to_flag_neighbors, dqflags,
                               after_jump_flag_e1, after_jump_flag_n1,
                               after_jump_flag_e2, after_jump_flag_n2,
-                              copy_arrs, minimum_groups, minimum_selfcal_groups))
+                              copy_arrs, minimum_groups, minimum_sigclip_groups,
+                              only_use_ints))
 
         # last slice get the rest
         slices.insert(n_slices - 1, (data[:, :, (n_slices - 1) *
@@ -319,7 +321,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                      min_jump_to_flag_neighbors, dqflags,
                                      after_jump_flag_e1, after_jump_flag_n1,
                                      after_jump_flag_e2, after_jump_flag_n2,
-                                     copy_arrs, minimum_groups, minimum_selfcal_groups))
+                                     copy_arrs, minimum_groups, minimum_sigclip_groups,
+                                     only_use_ints))
         log.info("Creating %d processes for jump detection " % n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one
