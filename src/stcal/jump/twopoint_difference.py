@@ -106,7 +106,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
      # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
-
+    print("only use ints twopoint",only_use_ints)
     # get readnoise, squared
     read_noise_2 = read_noise**2
     # create arrays for output
