@@ -15,7 +15,9 @@ from . import utils
 #                  HELP!!
 import sys
 sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import dbg_print
+from general_funcs import dbg_print, \
+                          print_ramp_pix, \
+                          print_ramp_pix_dq
 ################## DEBUG ################## 
 
 log = logging.getLogger(__name__)
@@ -986,6 +988,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             del ff_sect
             del gdq_sect
 
+    # END LOOP
+
     if pixeldq_sect is not None:
         del pixeldq_sect
 
@@ -1405,7 +1409,9 @@ def ramp_fit_overall(
 
     # Divide slopes by total (summed over all integrations) effective
     #   integration time to give count rates.
-    c_rates = slope_dataset2 / ramp_data.group_time
+    # XXX JP-3242, push this divide to segment computations
+    # c_rates = slope_dataset2 / ramp_data.group_time
+    c_rates = slope_dataset2
 
     # Compress all integration's dq arrays to create 2D PIXELDDQ array for
     #   primary output
@@ -2778,14 +2784,16 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     # Calculate slopes etc. for datasets having either 1 or 2 groups per
     #   integration, and return
     if ngroups == 1:  # process all pixels in 1 group/integration dataset
+        # XXX JP-3242
         slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s = \
             fit_1_group(slope_s, intercept_s, variance_s, sig_intercept_s,
-                        sig_slope_s, npix, data, c_mask_2d)
+                        sig_slope_s, npix, data, c_mask_2d, ramp_data)
 
         return slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s
 
     if ngroups == 2:  # process all pixels in 2 group/integration dataset
         rn_sect_1d = rn_sect.reshape(npix)
+        # XXX JP-3242
         slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s = fit_2_group(
             slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s, npix,
             data, c_mask_2d, rn_sect_1d, gdq_sect_r, ramp_data)
@@ -2802,9 +2810,10 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     wh_pix_1r = np.where(c_mask_2d[0, :] & (np.logical_not(c_mask_2d[1, :])))
 
     if len(wh_pix_1r[0]) > 0:
+        # XXX JP-3242
         slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s = \
             fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
-                            sig_slope_s, npix, data, wh_pix_1r)
+                            sig_slope_s, npix, data, wh_pix_1r, ramp_data)
 
     del wh_pix_1r
 
@@ -2812,9 +2821,10 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     #   the 0th and 1st group are good, set slope, etc
     wh_pix_2r = np.where(c_mask_2d.sum(axis=0) == 2)  # ramps with 2 good groups
 
+    # XXX JP-3242
     slope_s, intercept_s, variance_s, sig_slope_s, sig_intercept_s = \
         fit_double_read(c_mask_2d, wh_pix_2r, data_masked, slope_s, intercept_s,
-                        variance_s, sig_slope_s, sig_intercept_s, rn_sect)
+                        variance_s, sig_slope_s, sig_intercept_s, rn_sect, ramp_data)
 
     del wh_pix_2r
 
@@ -2837,8 +2847,11 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
         sumx, sumxx, sumxy, sumy, nreads_wtd, xvalues = calc_opt_sums(
             ramp_data, rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
 
+        # XXX JP-3242
         slope, intercept, sig_slope, sig_intercept = \
             calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy)
+
+        slope = slope / ramp_data.group_time
 
         variance = sig_slope**2.  # variance due to fit values
 
@@ -2873,7 +2886,7 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
 
 
 def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
-                    sig_slope_s, npix, data, wh_pix_1r):
+                    sig_slope_s, npix, data, wh_pix_1r, ramp_data):
     """
     For datasets having >2 groups/integrations, for any semiramp in which the
     0th group is good and the 1st group is either SAT or CR, set slope, etc.
@@ -2904,6 +2917,9 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
     wh_pix_1r : tuple
         locations of pixels whose only good group is the 0th group
 
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     Returns
     -------
     slope_s : ndarray
@@ -2922,6 +2938,8 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
         1-D sigma of y-intercepts from fit for data section
     """
     data0_slice = data[0, :, :].reshape(npix)
+
+    # XXX JP-3242 - divide by timing
     slope_s[wh_pix_1r] = data0_slice[wh_pix_1r]
 
     # The following arrays will have values correctly calculated later; for
@@ -2935,7 +2953,7 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
 
 
 def fit_double_read(mask_2d, wh_pix_2r, data_masked, slope_s, intercept_s,
-                    variance_s, sig_slope_s, sig_intercept_s, rn_sect):
+                    variance_s, sig_slope_s, sig_intercept_s, rn_sect, ramp_data):
     """
     Process all semi-ramps having exactly 2 good groups. May need to optimize
     later to remove loop over pixels.
@@ -2969,6 +2987,9 @@ def fit_double_read(mask_2d, wh_pix_2r, data_masked, slope_s, intercept_s,
     rn_sect : ndarray
         2-D read noise values for all pixels in data section
 
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     Returns
     -------
     slope_s : ndarray
@@ -2999,7 +3020,8 @@ def fit_double_read(mask_2d, wh_pix_2r, data_masked, slope_s, intercept_s,
         data_semi = data_ramp[mask_2d[:, pixel_ff]]  # picks only the 2
         diff_data = data_semi[1] - data_semi[0]
 
-        slope_s[pixel_ff] = diff_data
+        # XXX JP-3242 - divide by timing
+        slope_s[pixel_ff] = diff_data / ramp_data.group_time
         intercept_s[pixel_ff] = \
             data_semi[1] * (1. - second_read) + data_semi[0] * second_read  # by geometry
         variance_s[pixel_ff] = 2.0 * rn * rn
@@ -3126,7 +3148,7 @@ def calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy):
 
 
 def fit_1_group(slope_s, intercept_s, variance_s, sig_intercept_s,
-                sig_slope_s, npix, data, mask_2d):
+                sig_slope_s, npix, data, mask_2d, ramp_data):
     """
     This function sets the fitting arrays for datasets having only 1 group
     per integration.
@@ -3157,6 +3179,9 @@ def fit_1_group(slope_s, intercept_s, variance_s, sig_intercept_s,
     mask_2d : ndarray
         delineates which channels to fit for each pixel, 2-D bool
 
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     Returns
     -------
     slope_s : ndarray
@@ -3179,6 +3204,7 @@ def fit_1_group(slope_s, intercept_s, variance_s, sig_intercept_s,
     #   time to give the count rate. Recalculate other fit quantities to be
     #   benign.
     slope_s = data[0, :, :].reshape(npix)
+    slope_s = slope_s / ramp_data.group_time
 
     # The following arrays will have values correctly calculated later; for
     #    now they are just place-holders
@@ -3403,6 +3429,9 @@ def fit_2_group(slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s,
         slope_s[one_group_locs] = data1[one_group_locs]
         variance_s[one_group_locs] = 1.
     del one_group_locs
+
+    # XXX JP-3242
+    slope_s = slope_s / ramp_data.group_time
 
     return slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s
 

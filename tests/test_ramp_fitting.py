@@ -8,7 +8,8 @@ from stcal.ramp_fitting.ramp_fit_class import RampData
 #                  HELP!!
 import sys
 sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import dbg_print
+from general_funcs import dbg_print, \
+                          print_ramp_pix
 ################## DEBUG ################## 
 
 
@@ -1430,6 +1431,10 @@ def print_real_check(real, check):
     print("=" * 80)
 
 
+def print_arr_str(arr):
+    return np.array2string(arr, max_line_width=np.nan, separator=", ")
+
+
 def base_print(label, arr):
     arr_str = np.array2string(arr, max_line_width=np.nan, separator=", ")
     print(label)
@@ -1580,17 +1585,12 @@ def print_all_info(slopes, cube, optional):
     print_integ(cube)
     print_optional(optional)
 
-
 def print_ramp_data(ramp_data):
     print(DELIM)
     print_ramp_data_data(ramp_data)
     print(DELIM)
     print_ramp_data_dq(ramp_data)
     print(DELIM)
-
-
-def print_ramp_data_data(ramp_data):
-    base_print("RampData Data:", ramp_data.data)
 
 
 def print_ramp_data_dq(ramp_data):

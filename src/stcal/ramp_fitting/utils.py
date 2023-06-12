@@ -292,6 +292,7 @@ class OptRes:
         self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
         warnings.resetwarnings()
 
+        # XXX JP-3242, push this divide to segment computations
         self.slope_seg /= group_time
 
         opt_info = (self.slope_seg, self.sigslope_seg, self.var_p_seg,
@@ -736,7 +737,9 @@ def output_integ(ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3):
     var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
     var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
 
-    data = slope_int / ramp_data.group_time
+    # XXX JP-3242 - push this computation to the segments
+    # data = slope_int / ramp_data.group_time
+    data = slope_int
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
     data[np.bitwise_and(dq_int, invalid_data).astype(bool)] = np.nan
 
