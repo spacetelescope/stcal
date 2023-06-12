@@ -127,13 +127,16 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
     print("dat shape", dat.shape)
-    if only_use_ints:
+    print()
+    if only_use_ints and dat.shape[0]:
         total_groups = dat.shape[0]
     else:
         total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
-    if total_groups < minimum_groups:
+    if (dat.shape[1] < minimum_groups and only_use_ints and dat.shape[0] < minimum_sigclip_groups) or \
+            (not only_use_ints and dat.shape[0] * dat.shape[1] < minimum_sigclip_groups and
+             dat.shape[1] < minimum_groups):
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        log.info("Total Groups {}".format(str(total_groups)))
+        log.info("Data shape {}".format(str(dat.shape)))
         return gdq, row_below_gdq, row_above_gdq, 0
     else:
 
