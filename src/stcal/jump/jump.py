@@ -359,7 +359,6 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-        print("total primary CRs, multiple threads", total_primary_crs)
         #  This is the flag that controls the flagging of either
         #  snowballs or showers.
         if expand_large_events:
@@ -683,7 +682,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
     Total number of showers detected.
 
     """
-    print("find showers on sigmaclip")
     read_noise_2 = readnoise_2d**2
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
@@ -720,10 +718,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                                                 ratio.shape[2]), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
-            if grp == 179 and intg == 0:
-                fits.writeto("masked_ratio.fits",masked_ratio, overwrite=True)
-                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
-                fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission,
                                                   cv.RETR_EXTERNAL,
@@ -743,8 +737,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                 image2 = np.zeros_like(image)
                 cv.drawContours(image2, bigcontours, -1, (0, 0, jump_flag), -1)
                 big_contour_image = image2[:, :, 2]
-                fits.writeto("big_contour.fits", big_contour_image, overwrite=True)
-                fits.writeto("image2.fits", image2, overwrite=True)
                 num_ellipses = len(ellipses)
                 for ellipse in ellipses:
                     ceny = ellipse[0][0]
@@ -773,7 +765,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                                                                            round(axis2 / 2)), alpha, 0, 360,
                                        (0, 0, jump_flag), -1)
                     jump_ellipse = image[:, :, 2]
-                fits.writeto("jump_ellipse.fits", jump_ellipse, overwrite=True)
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])

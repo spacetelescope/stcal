@@ -106,7 +106,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
      # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
-    print("only use ints twopoint",only_use_ints)
     # get readnoise, squared
     read_noise_2 = read_noise**2
     # create arrays for output
@@ -126,7 +125,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
-    print("dat shape", dat.shape)
     if only_use_ints and dat.shape[0]:
         total_groups = dat.shape[0]
     else:
@@ -217,8 +215,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
                 # calculate sigma for each pixel
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-                if integ == 5:
-                    fits.writeto("sigma.fits", sigma, overwrite=True)
                 # reset sigma so pxels with 0 readnoise are not flagged as jumps
                 sigma[np.where(sigma == 0.)] = np.nan
 
@@ -251,10 +247,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 # to the threshold to determine if another CR can be flagged and clipped.
                 # repeat this process until no more CRs are found.
                 for j in range(len(all_crs_row)):
-                    if j == 2724:
-                        row = all_crs_row[j]
-                        col = all_crs_col[j]
-                        test = first_diffs[:, all_crs_row[j], all_crs_col[j]]
                     # get arrays of abs(diffs), ratio, readnoise for this pixel
                     pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
                     pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
@@ -293,10 +285,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                             rej_thresh = three_diff_rej_thresh
                         if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
                             rej_thresh = two_diff_rej_thresh
-                        if np.isnan(new_pix_ratio).all():
-                            print("all nan")
-                        else:
-                            new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
+                        new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
                         if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
                             new_CR_found = True
                             pix_cr_mask[new_pix_max_ratio_idx] = 0
