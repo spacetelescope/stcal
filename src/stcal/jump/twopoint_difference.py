@@ -127,7 +127,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
     print("dat shape", dat.shape)
-    print()
     if only_use_ints and dat.shape[0]:
         total_groups = dat.shape[0]
     else:
@@ -252,7 +251,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 # to the threshold to determine if another CR can be flagged and clipped.
                 # repeat this process until no more CRs are found.
                 for j in range(len(all_crs_row)):
-
+                    if j == 2724:
+                        row = all_crs_row[j]
+                        col = all_crs_col[j]
+                        test = first_diffs[:, all_crs_row[j], all_crs_col[j]]
                     # get arrays of abs(diffs), ratio, readnoise for this pixel
                     pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
                     pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
@@ -292,11 +294,14 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                             rej_thresh = three_diff_rej_thresh
                         if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
                             rej_thresh = two_diff_rej_thresh
-                        new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
+                        if np.isnan(new_pix_ratio).all():
+                            print("all nan")
+                        else:
+                            new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
                         if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
                             new_CR_found = True
                             pix_cr_mask[new_pix_max_ratio_idx] = 0
-
+                        unusable_diffs = np.sum(np.isnan(pix_first_diffs))
                     # Found all CRs for this pix - set flags in input DQ array
                     gdq[integ, 1:, all_crs_row[j], all_crs_col[j]] = \
                         np.bitwise_or(gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
