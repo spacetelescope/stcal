@@ -362,8 +362,15 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 if (gdq[integ, kk, row, col] & dnu_flag) == 0:
                                     gdq[integ, kk, row, col] = \
                                         np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
-
-    return gdq, row_below_gdq, row_above_gdq, num_primary_crs
+    if stddev in locals():
+        return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
+    else:
+        if only_use_ints:
+            dummy = np.zeros((dat.shape[1]-1, dat.shape[2], dat.shape[3]),
+                             dtype=np.float32)
+        else:
+            dummy = np.zeros((dat.shape[2], dat.shape[3]), dtype=np.float32)
+        return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 
 
 def calc_med_first_diffs(first_diffs):

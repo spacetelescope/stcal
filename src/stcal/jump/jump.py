@@ -247,7 +247,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         n_slices = max_available
 
     if n_slices == 1:
-        gdq, row_below_dq, row_above_dq, total_primary_crs = \
+        gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
                            three_grp_thresh, four_grp_thresh, frames_per_group,
                            flag_4_neighbors, max_jump_to_flag_neighbors,
@@ -334,11 +334,25 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         # Reconstruct gdq, the row_above_gdq, and the row_below_gdq from the
         # slice result
         total_primary_crs = 0
+        if only_use_ints:
+            stddev = np.zeros((gdq.shape[1]- 1, gdq.shape[2], gdq.shape[3]),
+                              dtype=np.float32)
+        else:
+            stddev = np.zeros((gdq.shape[2], gdq.shape[3]),
+                              dtype=np.float32)
         for resultslice in real_result:
             if len(real_result) == k + 1:  # last result
                 gdq[:, :, k * yinc:n_rows, :] = resultslice[0]
+                if only_use_ints:
+                    stddev[:, k * yinc:n_rows, :] = resultslice[4]
+                else:
+                    stddev[k * yinc:n_rows, :] = resultslice[4]
             else:
                 gdq[:, :, k * yinc:(k + 1) * yinc, :] = resultslice[0]
+                if only_use_ints:
+                    stddev[:, k * yinc:(k + 1) * yinc, :] = resultslice[4]
+                else:
+                    stddev[k * yinc:(k + 1) * yinc, :] = resultslice[4]
             row_below_gdq[:, :, :] = resultslice[1]
             row_above_gdq[:, :, :] = resultslice[2]
             total_primary_crs += resultslice[3]
@@ -396,7 +410,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
 
     # Return the updated data quality arrays
 #    return gdq, pdq
-    return gdq, pdq, total_primary_crs, number_extended_events
+    return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
 
 def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
