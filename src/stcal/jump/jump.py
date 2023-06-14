@@ -1,7 +1,6 @@
 import logging
 import multiprocessing
 import time
-from astropy.io import fits
 import numpy as np
 import cv2 as cv
 

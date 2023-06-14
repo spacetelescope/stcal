@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 import astropy.stats as stats
-from astropy.io import fits
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -146,13 +145,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # calculate the differences between adjacent groups (first diffs)
         # use mask on data, so the results will have sat/donotuse groups masked
         first_diffs = np.diff(dat, axis=1)
-#        fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
 
         # calc. the median of first_diffs for each pixel along the group axis
         first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-        fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(fill_value=np.nan), overwrite=True)
         median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
-#        fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
         # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
 
@@ -173,13 +169,11 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             if only_use_ints:
                 mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
                                                                  axis=0)
-                fits.writeto("stddev.fits", stddev, overwrite=True)
                 clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh,
                                                  axis=0, masked=True)
             else:
                 mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
                                                                  axis=(0, 1))
-                fits.writeto("stddev.fits", stddev, overwrite=True)
                 clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh,
                                                  axis=(0, 1), masked=True)
             jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
