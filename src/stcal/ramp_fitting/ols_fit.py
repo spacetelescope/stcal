@@ -607,7 +607,12 @@ def find_0th_one_good_group(ramp_data):
         del bad_1_
 
     ramp_data.one_groups_locs = one_group
-    # (NFrames + 1) * TFrame / 2
+
+    # Refer to JP-3242 for derivation.
+    # Updated: One Group Time = [(TFrame * NFrames * (NFrames + 1)] / [2 * NFrames]
+    # There is an NFrames term in the numerator and denominator, so when
+    # cancelled we get:
+    # One Group Time = (NFrames + 1) * TFrame / 2
     ramp_data.one_groups_time = (ramp_data.nframes + 1) * ramp_data.frame_time / 2
 
 
@@ -656,7 +661,7 @@ def ols_ramp_fit_single(
         # This must be done before the ZEROFRAME replacements to prevent
         # ZEROFRAME replacement being confused for one good group ramps
         # in the 0th group.
-        if ramp_data.groupgap > 0:
+        if ramp_data.nframes > 1:
             find_0th_one_good_group(ramp_data)
 
         if ramp_data.zeroframe is not None:
