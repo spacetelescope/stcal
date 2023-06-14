@@ -133,7 +133,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              dat.shape[1] < minimum_groups):
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
         log.info("Data shape {}".format(str(dat.shape)))
-        return gdq, row_below_gdq, row_above_gdq, 0
+        dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]),
+                         dtype=np.float32)
+        return gdq, row_below_gdq, row_above_gdq, 0, dummy
     else:
 
         # set 'saturated' or 'do not use' pixels to nan in data

@@ -2,17 +2,10 @@ import numpy as np
 import pytest
 from astropy.io import fits
 
-from stcal.jump.jump import flag_large_events, find_circles, find_ellipses, extend_saturation, \
-    point_inside_ellipse, point_inside_rectangle, flag_large_events, detect_jumps
+from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
+    point_inside_ellipse, find_faint_extended
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
-
-try:
-    import cv2 as cv # noqa: F401
-
-    OPENCV_INSTALLED = True
-except ImportError:
-    OPENCV_INSTALLED = False
 
 
 @pytest.fixture(scope='function')
@@ -49,13 +42,16 @@ def test_find_simple_ellipse():
 
 def test_find_ellipse2():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
-
-    plane[1,:] = [0,  DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'],DQFLAGS['JUMP_DET'], 0]
-    plane[2,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
-    plane[3,:] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
-    ellipse = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
-    print(ellipse)
-    assert ellipse == 1
+    plane[1, :] = [0,  DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    plane[2, :] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    plane[3, :] = [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], 0]
+    ellipses = find_ellipses(plane, DQFLAGS['JUMP_DET'], 1)
+    ellipse = ellipses[0]
+    assert ellipse[0][0] == 2
+    assert ellipse[0][1] == 2
+    assert ellipse[1][0] == 2
+    assert ellipse[1][1] == 2
+    assert ellipse[2] == 90.0
 
 
 def test_extend_saturation_simple():
@@ -68,21 +64,6 @@ def test_extend_saturation_simple():
     cube[1, 4, 3] = DQFLAGS['SATURATED']
     cube[1, 3, 2] = DQFLAGS['SATURATED']
     cube[1, 2, 2] = DQFLAGS['JUMP_DET']
-    fits.writeto("start_sat_extend.fits", cube, overwrite=True)
-    sat_circles = find_circles(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
-    new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'], DQFLAGS['JUMP_DET'],
-                                 min_sat_radius_extend, expansion=1)
-    assert cube[grp, 2, 2] == DQFLAGS['SATURATED']
-    assert cube[grp, 3, 5] == DQFLAGS['SATURATED']
-    assert cube[grp, 3, 6] == 0
-    fits.writeto("out_sat_extend.fits", cube, overwrite=True)
-
-
-
-def test_flag_large_events():
-    cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
-    grp = 1
-    min_sat_radius_extend = 1
     sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS['SATURATED'], 1)
     new_cube = extend_saturation(cube, grp, sat_circles, DQFLAGS['SATURATED'],
                                  min_sat_radius_extend, expansion=1.1)
@@ -100,7 +81,6 @@ def test_flag_large_events_nosnowball():
     cube[0, 1, 3, 4] = DQFLAGS['SATURATED']
     cube[0, 1, 4, 3] = DQFLAGS['SATURATED']
     cube[0, 1, 3, 2] = DQFLAGS['SATURATED']
-
     # cross of saturation surrounding by jump -> snowball but sat core is not new
     # should have no snowball trigger
     cube[0, 2, 3, 3] = DQFLAGS['SATURATED']
@@ -225,78 +205,14 @@ def test_inside_ellipse4():
     ellipse = ((0, 0), (1, 2), 0)
     point = (1, 0.5)
     result = point_inside_ellipse(point, ellipse)
-    assert result
+    assert not result
+
 
 def test_inside_ellipes5():
     point = (1110.5, 870.5)
     ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
     result = point_inside_ellipse(point, ellipse)
     assert result
-
-def test_plane23():
-    incube = fits.getdata('input_jump_cube.fits')
-    testcube = incube[:, 22:24, :, :]
-
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                          min_jump_area=6,
-                          expand_factor=2.0, use_ellipses=False,
-                          sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("output_jump_cube23.fits", testcube, overwrite=True)
-
-def test_plane13():
-        incube = fits.getdata('input_jump_cube.fits')
-        testcube = incube[:, 13:15, :, :]
-
-        flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                          min_jump_area=6,
-                          expand_factor=2.0, use_ellipses=False,
-                          sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-        fits.writeto("output_jump_cube13.fits", testcube, overwrite=True)
-
-
-def test_5580_plane8():
-    incube = fits.getdata('input5580_jump_cube.fits')
-    testcube = incube[:, 2:5, :, :]
-
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=6,
-                      expand_factor=2.0, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("output_jump_cube8.fits", testcube, overwrite=True)
-
-def test_2333_plane25():
-    incube = fits.getdata('input_jump_cube23-33.fits')
-    testcube = incube[:, 0:3, :, :]
-
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=7,
-                      expand_factor=2.5, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
-
-def test_edgeflage_130140():
-    incube = fits.getdata('input_jump_cube130140.fits')
-    testcube = incube[:, :-1, :, :]
-
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=7,
-                      expand_factor=2.5, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=3)
-    fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
-
-def test_miri_input():
-    incube = fits.getdata('input_jump_cube_miri_01.fits')
-    testcube = incube[:, 1:5, :, :]
-    testcube = incube
-
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=7,
-                      expand_factor=2.5, use_ellipses=True,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=3)
-    fits.writeto("output_jump_cube_miri.fits", testcube, overwrite=True)
-
-def test_inputjumpall():
-    testcube = fits.getdata('input_jump_cube.fits')
 
 
 @pytest.mark.skip("Fails in CI")
@@ -319,29 +235,14 @@ def test_inputjump_sat_star():
                       min_jump_area=6,
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("output_jump_cube2.fits", testcube, overwrite=True)
+    fits.writeto("outgdq2.fits", testcube, overwrite=True)
 
 
-def test_detect_jumps_runaway():
-    testcube = fits.getdata('smalldark2232_00_dark_current.fits')
-    hdl = fits.open('smalldark2232_00_dark_current.fits')
-    gdq = hdl['GROUPDQ'].data
-    pdq = hdl['pixeldq'].data
-    err = np.ones_like(pdq).astype('float64')
-    gain_2d = fits.getdata('jwst_nirspec_gain_0023.fits')
-    readnoise_2d = fits.getdata('jwst_nirspec_readnoise_0038.fits')
-
-    detect_jumps(1, testcube, gdq, pdq, err,
-                     gain_2d, readnoise_2d, 4,
-                     5, 6, 'half', 1000,
-                     10, True, DQFLAGS,
-                     after_jump_flag_dn1=0.0,
-                     after_jump_flag_n1=0,
-                     after_jump_flag_dn2=0.0,
-                     after_jump_flag_n2=0,
-                     min_sat_area=1,
-                     min_jump_area=5,
-                     expand_factor=2.5,
-                     use_ellipses=False,
-                     sat_required_snowball=True,
-                     expand_large_events=True)
+@pytest.mark.skip("Used for local testing")
+def test_inputjump_sat_star2():
+    testcube = fits.getdata('input_gdq_satstar.fits')
+    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
+                      min_jump_area=6,
+                      expand_factor=2.0, use_ellipses=False,
+                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
+    fits.writeto("outgdq_satstar.fits", testcube, overwrite=True)
