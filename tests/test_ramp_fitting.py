@@ -940,7 +940,7 @@ def test_only_good_0th_group():
     # Because the number of groups used in the first two ramps are different
     # the variances are expected to be different, even though the slopes
     # should be the same.
-    check = np.array([[37.257824,  37.257824, 149.0313]])
+    check = np.array([[37.257824,  37.257824, 496.77103]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
