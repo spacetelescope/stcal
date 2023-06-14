@@ -7,14 +7,6 @@ import numpy as np
 import warnings
 
 
-################## DEBUG ################## 
-#                  HELP!!
-import sys
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import dbg_print
-################## DEBUG ################## 
-
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
