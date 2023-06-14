@@ -729,8 +729,6 @@ def output_integ(ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3):
     var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
     var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
 
-    # XXX JP-3242 - push this computation to the segments
-    # data = slope_int / ramp_data.group_time
     data = slope_int
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
     data[np.bitwise_and(dq_int, invalid_data).astype(bool)] = np.nan

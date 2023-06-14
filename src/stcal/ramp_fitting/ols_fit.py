@@ -2922,12 +2922,9 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
     sig_intercept_s : ndarray
         1-D sigma of y-intercepts from fit for data section
     """
-    # XXX current dev
     data0_slice = data[0, :, :].reshape(npix)
 
-    # XXX JP-3242 - divide by timing
-    # This is ONLY for good 0th group, so need to only distinguish between
-    # ZEROFRAME and non-ZEROFRAME.
+    # If the one_groups_time is defined, use it.
     if ramp_data.one_groups_time is not None:
         slope_s[wh_pix_1r] = data0_slice[wh_pix_1r] / ramp_data.one_groups_time 
         timing = ramp_data.one_groups_time 
