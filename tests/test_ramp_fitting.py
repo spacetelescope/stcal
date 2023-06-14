@@ -815,7 +815,7 @@ def test_zeroframe():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[32.78594, 18.62891, 23.787909]])
+    check = np.array([[48.965397, 18.628912, 47.863224]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
@@ -836,7 +836,7 @@ def test_zeroframe():
     # The third pixel in integration zero has good data
     # because the zeroframe has good data, so the ramp
     # is not fully saturated.
-    check = np.array([[[149.0313, np.nan, 130.40239]],
+    check = np.array([[[298.0626, np.nan, 652.01196]],
                       [[18.62891, 18.62891, 18.62891]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 

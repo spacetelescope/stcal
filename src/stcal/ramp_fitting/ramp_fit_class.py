@@ -26,6 +26,7 @@ class RampData:
         self.flags_unreliable_slope = None
 
         # ZEROFRAME
+        self.zframe_mat = None
         self.zframe_locs = None
         self.zframe_cnt = 0
         self.zeroframe = None

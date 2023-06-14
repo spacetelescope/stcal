@@ -670,7 +670,8 @@ def ols_ramp_fit_single(
             find_0th_one_good_group(ramp_data)
 
         if ramp_data.zeroframe is not None:
-            zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
+            zframe_mat, zframe_locs, cnt = utils.use_zeroframe_for_saturated_ramps(ramp_data)
+            ramp_data.zframe_mat = zframe_mat
             ramp_data.zframe_locs = zframe_locs
             ramp_data.cnt = cnt
 
@@ -2946,8 +2947,20 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
     # ZEROFRAME and non-ZEROFRAME.
     if ramp_data.one_groups_time is not None:
         slope_s[wh_pix_1r] = data0_slice[wh_pix_1r] / ramp_data.one_groups_time 
+        timing = ramp_data.one_groups_time 
     else:
         slope_s[wh_pix_1r] = data0_slice[wh_pix_1r] / ramp_data.group_time
+        timing = ramp_data.group_time
+
+    # Adjust slope if ZEROFRAME used.  The slope numerator should be
+    # the frame time if the ZEROFRAME is used.
+    if ramp_data.zframe_mat is not None:
+        adjustment = timing / ramp_data.frame_time
+        good_0th_mat = np.zeros((data0_slice.shape), dtype=np.uint8)
+        good_0th_mat[wh_pix_1r] = 1
+        zframe = ramp_data.zframe_mat[ramp_data.current_integ, :, :].reshape(npix)
+        adj_mat = good_0th_mat & zframe 
+        slope_s[adj_mat == 1] *= adjustment
 
     # The following arrays will have values correctly calculated later; for
     #   now they are just place-holders

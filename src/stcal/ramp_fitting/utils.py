@@ -1601,6 +1601,7 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
     zframe_locs = [None] * nints
 
     cnt = 0
+    zframe_mat = np.zeros((nints, nrows, ncols), dtype=np.uint8)
     for integ in range(nints):
         intdq = dq[integ, :, :, :]
 
@@ -1623,11 +1624,12 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
                 col_list.append(col)
                 ramp_data.data[integ, 0, row, col] = ramp_data.zeroframe[integ, row, col]
                 ramp_data.groupdq[integ, 0, row, col] = good_flag
+                zframe_mat[integ, row, col] = 1
                 cnt = cnt + 1
 
         zframe_locs[integ] = (np.array(row_list, dtype=int), np.array(col_list, dtype=int))
 
-    return zframe_locs, cnt
+    return zframe_mat, zframe_locs, cnt
 
 
 def groups_saturated_in_integration(intdq, sat_flag, num_sat_groups):
