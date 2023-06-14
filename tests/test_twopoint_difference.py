@@ -918,7 +918,7 @@ def test_10grps_1cr_afterjump_toosmall(setup_cube):
 
 def test_10grps_1cr_afterjump_twothresholds(setup_cube):
     ngroups = 10
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    data, gdq, nframes, read_noise, rej_threshold, stddev = setup_cube(ngroups, readnoise=10)
     nframes = 1
     data[0, 0, 100, 100] = 0
     data[0, 1, 100, 100] = 10
@@ -1030,7 +1030,7 @@ def test_sigma_clip():
     read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
     gain = np.ones_like(indata) * 4.0
     hdul.close()
-    gdq, row_below_gdq, row_above_gdq, total_primary_crs = find_crs(indata, ingdq, read_noise, 3,
+    gdq, row_below_gdq, row_above_gdq, total_primary_crs, stddev = find_crs(indata, ingdq, read_noise, 3,
              4, 5, 1,
              False, 1000,
              10, DQFLAGS,
@@ -1074,13 +1074,14 @@ def test_5grp_TSO():
     data = np.random.normal(0, 0.1 * readnoise, size=(nints, ngroups, nrows, ncols))
     read_noise = np.full((nrows, ncols), readnoise, dtype=np.float32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
-
+    np.expand_dims(gdq, axis=0)
+    np.expand_dims(data, axis=0)
     gdq[:, 0, :, :] = DQFLAGS['DO_NOT_USE']
 #    gdq[1:, 1, :, :] = DQFLAGS['DO_NOT_USE']
     gdq[:, -1, :, :] = DQFLAGS['DO_NOT_USE']
     data[0, :, 0, 0] = [21500, 37600, 52082, 65068, 58627]
     data[0, :, 0, 1] = [21500, 37600, 52082, 65068, 58627]
-    gdq, row_below_gdq, row_above_gdq, total_primary_crs = \
+    gdq, row_below_gdq, row_above_gdq, total_primary_crs, stddev = \
         find_crs(data, gdq, read_noise, 3, 4, 5, 1, False, 1000, 10, DQFLAGS,
                  after_jump_flag_e1=0.0, after_jump_flag_n1=0,
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,

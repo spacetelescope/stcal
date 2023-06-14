@@ -335,7 +335,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         # slice result
         total_primary_crs = 0
         if only_use_ints:
-            stddev = np.zeros((gdq.shape[1]- 1, gdq.shape[2], gdq.shape[3]),
+            stddev = np.zeros((gdq.shape[1] - 1, gdq.shape[2], gdq.shape[3]),
                               dtype=np.float32)
         else:
             stddev = np.zeros((gdq.shape[2], gdq.shape[3]),
