@@ -498,11 +498,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
                                               sat_flag, jump_flag,
                                               expansion=expand_factor,
                                               max_extended_radius=max_extended_radius)
-        if np.all(np.array(n_showers_grp) == 0):
-            log.info(f'No snowballs found in integration {integration}.')
-        else:
-            log.info(f' In integration {integration}, number of snowballs ' +
-                     f'in each group = {n_showers_grp}')
     return total_snowballs
 
 def extend_saturation(cube, grp, sat_ellipses, sat_flag,
@@ -794,9 +789,4 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
                                        expand_by_ratio=True,
                                        num_grps_masked=num_grps_masked,
                                        max_extended_radius=max_extended_radius)
-    if np.all(all_ellipses == 0):
-        log.info('No showers found in exposure.')
-    else:
-        num_showers = len(all_ellipses)
-        log.info(f' Number of showers flagged = {num_showers}')
     return gdq, len(all_ellipses)
