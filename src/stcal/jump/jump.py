@@ -3,6 +3,7 @@ import multiprocessing
 import time
 import numpy as np
 import cv2 as cv
+from astropy.io import fits
 
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
@@ -409,7 +410,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     readnoise_2d /= gain_2d
 
     # Return the updated data quality arrays
-#    return gdq, pdq
+    fits.writeto("stddev.fits", stddev, overwrite=True)
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
 
