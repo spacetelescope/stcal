@@ -169,6 +169,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
            (not only_use_ints and total_groups >= minimum_sigclip_groups):
             log.info(" Jump Step using selfcal sigma clip {} greater than {}, rejection threshold {}".format(
                 str(total_groups), str(minimum_sigclip_groups), str(normal_rej_thresh)))
+            warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
             if only_use_ints:
                 mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=normal_rej_thresh,
                                                                  axis=0)
