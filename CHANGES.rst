@@ -4,11 +4,7 @@
 Bug Fixes
 ---------
 
-dark_current
-~~~~~~~~~~~~
-
-- Fixed handling of MIRI segmented data files so that the correct dark
-  integrations get subtracted from the correct science integrations. [#165]
+-
 
 Changes to API
 --------------
@@ -19,6 +15,27 @@ Other
 -----
 
 - 
+
+1.3.8 (2023-05-31)
+==================
+
+Bug Fixes
+---------
+
+dark_current
+~~~~~~~~~~~~
+
+- Fixed handling of MIRI segmented data files so that the correct dark
+  integrations get subtracted from the correct science integrations. [#165]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Correct the "averaging" of the final image slope by properly excluding
+  variances as a part of the denominator from integrations with invalid slopes.
+  [#167]
+- Removing the usage of ``numpy.where`` where possible for perfomance
+  reasons. [#169]
 
 1.3.7 (2023-04-26)
 ==================

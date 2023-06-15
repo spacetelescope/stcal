@@ -943,10 +943,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Reset all saturated groups in the input data array to NaN
-            where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
-
-            data_sect[where_sat] = np.NaN
-            del where_sat
+            data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
 
             # Calculate the slope of each segment
             # note that the name "opt_res", which stands for "optional results",
@@ -965,11 +962,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             num_seg_per_int[num_int, rlo:rhi, :] = num_seg.reshape(sect_shape)
 
             # Populate integ-spec slice which is set if 0th group has SAT
-            wh_sat0 = np.where(np.bitwise_and(gdq_sect[0, :, :], ramp_data.flags_saturated))
-            if len(wh_sat0[0]) > 0:
-                sat_0th_group_int[num_int, rlo:rhi, :][wh_sat0] = 1
-
-            del wh_sat0
+            sat_0th_group_int[num_int, rlo:rhi, :][np.bitwise_and(
+                    gdq_sect[0, :, :], ramp_data.flags_saturated).astype(bool)] = 1
 
             pixeldq_sect = pixeldq[rlo:rhi, :].copy()
             dq_int[num_int, rlo:rhi, :] = utils.dq_compress_sect(
@@ -1301,6 +1295,12 @@ def ramp_fit_overall(
 
     s_slope_by_var3 = slope_by_var4.sum(axis=1)  # sum over segments (not integs)
     s_slope_by_var2 = s_slope_by_var3.sum(axis=0)  # sum over integrations
+
+    # Ensure bad integrations don't contribute to the denominator
+    # for slope calculations
+    invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
+    wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
+    s_inv_var_both3[wh_invalid] = 0.
     s_inv_var_both2 = s_inv_var_both3.sum(axis=0)
 
     # Compute the 'dataset-averaged' slope
@@ -1418,8 +1418,7 @@ def ramp_fit_overall(
     # For invalid slope calculations set to NaN.  Pixels flagged as SATURATED or
     # DO_NOT_USE have invalid data.
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
-    wh_invalid = np.where(np.bitwise_and(final_pixeldq, invalid_data))
-    c_rates[wh_invalid] = np.nan
+    c_rates[np.bitwise_and(final_pixeldq, invalid_data).astype(bool)] = np.nan
 
     if dq_int is not None:
         del dq_int
@@ -1491,11 +1490,11 @@ def calc_power(snr):
         weighting exponent, 1-D float
     """
     pow_wt = snr.copy() * 0.0
-    pow_wt[np.where(snr > 5.)] = 0.4
-    pow_wt[np.where(snr > 10.)] = 1.0
-    pow_wt[np.where(snr > 20.)] = 3.0
-    pow_wt[np.where(snr > 50.)] = 6.0
-    pow_wt[np.where(snr > 100.)] = 10.0
+    pow_wt[snr > 5.] = 0.4
+    pow_wt[snr > 10.] = 1.0
+    pow_wt[snr > 20.] = 3.0
+    pow_wt[snr > 50.] = 6.0
+    pow_wt[snr > 100.] = 10.0
 
     return pow_wt.ravel()
 
@@ -1711,9 +1710,7 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
         # Find CRs in the ramp.
         jump_det = ramp_data.flags_jump_det
         mask_2d_jump = mask_2d.copy()
-        wh_jump = np.where(gdq_sect_r == jump_det)
-        mask_2d_jump[wh_jump] = True
-        del wh_jump
+        mask_2d_jump[gdq_sect_r == jump_det] = True
 
         # Add back possible CRs at the beginning of a ramp that were excluded
         # above.
@@ -3195,11 +3192,7 @@ def fit_1_group(slope_s, intercept_s, variance_s, sig_intercept_s,
     sig_intercept_s = slope_s * 0.
 
     # For saturated pixels, overwrite slope with benign values.
-    wh_sat0 = np.where(np.logical_not(mask_2d[0, :]))
-
-    if len(wh_sat0[0]) > 0:
-        sat_pix = wh_sat0[0]
-        slope_s[sat_pix] = 0.
+    slope_s[np.logical_not(mask_2d[0, :])] = 0.
 
     return slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s
 
