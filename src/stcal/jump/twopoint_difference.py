@@ -196,6 +196,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                             np.bitwise_and(gdq[integ, grp, :, :], dnu_flag))):
                         jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
                         gdq[integ, grp, jumpy, jumpx] = 0
+            warnings.resetwarnings()
         else:
             for integ in range(nints):
 
