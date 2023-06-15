@@ -1040,7 +1040,6 @@ def test_sigma_clip():
              after_jump_flag_n2=0,
              copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=50,)
     fits.writeto("outgdq.fits", gdq, overwrite=True)
-    print('done')
 
 def test_first_grp_flag_issue():
     nints = 8
