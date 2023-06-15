@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import astropy.stats as stats
+import warnings
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -221,8 +222,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
                 # create a 2d array containing the value of the largest 'ratio' for each group
+                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
                 max_ratio = np.nanmax(ratio, axis=0)
-
+                warnings.resetwarnings()
                 # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                 # there are different threshold for 4+, 3, and 2 usable groups
                 num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
