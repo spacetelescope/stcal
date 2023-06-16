@@ -4,6 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 from astropy.io import fits
+import astropy.stats as stats
 
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
@@ -270,7 +271,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                               max_extended_radius=max_extended_radius)
         if find_showers:
             gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d,
-                                                   frames_per_group,
+                                                   frames_per_group, minimum_sigclip_groups,
                                                    snr_threshold=extend_snr_threshold,
                                                    min_shower_area=extend_min_area,
                                                    inner=extend_inner_radius,
@@ -388,7 +389,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         if find_showers:
             gdq, num_showers = \
                 find_faint_extended(data, gdq, readnoise_2d,
-                                    frames_per_group,
+                                    frames_per_group, minimum_sigclip_groups,
                                     snr_threshold=extend_snr_threshold,
                                     min_shower_area=extend_min_area,
                                     inner=extend_inner_radius,
@@ -647,7 +648,8 @@ def near_edge(jump, low_threshold, high_threshold):
         return False
 
 
-def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
+def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_groups,
+                        snr_threshold=1.3,
                         min_shower_area=40, inner=1, outer=2, sat_flag=2,
                         jump_flag=4, ellipse_expand=1.1, num_grps_masked=25,
                         max_extended_radius=200):
@@ -696,21 +698,31 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, snr_threshold=1.3,
     data[gdq == 1] = np.nan
     data[gdq == jump_flag] = np.nan
     all_ellipses = []
+    first_diffs = np.diff(data, axis=1)
+    first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
+    if data.shape[0] > minimum_sigclip_groups:
+        mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5,
+                                                         axis=0)
     for intg in range(data.shape[0]):
-        diff = np.diff(data[intg], axis=0)
-        median_diffs = np.nanmedian(diff, axis=0)
         # calculate sigma for each pixel
-        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-
-        # The difference from the median difference for each group
-        e_jump = diff - median_diffs[np.newaxis, :, :]
-
-        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]  # SNR ratio of
-        # each diff.
+        if data.shape[0] <= minimum_sigclip_groups:
+            median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
+            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+           # The difference from the median difference for each group
+            e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
+           # SNR ratio of each diff.
+            ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
         #  The convolution kernal creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
-        for grp in range(1, ratio.shape[0] + 1):
+        for grp in range(1, data.shape[1]):
+            if data.shape[0] > minimum_sigclip_groups:
+                median_diffs = median[grp-1]
+                sigma = stddev[grp-1]
+                # The difference from the median difference for each group
+                e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
+                # SNR ratio of each diff.
+                ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
             masked_ratio = ratio[grp-1].copy()
             jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
             #  mask pix. that are already flagged as jump
