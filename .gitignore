@@ -144,3 +144,4 @@ src/stcal/_version.py
 # auto-generated API docs
 docs/source/api
 .DS_Store
+.DS_Store
