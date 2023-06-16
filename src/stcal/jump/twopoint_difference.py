@@ -103,7 +103,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         gdq = group_dq.copy()
     else:
         gdq = group_dq
-     # Get data characteristics
+    # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = ngroups - 1
     # get readnoise, squared
@@ -121,25 +121,25 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     dat = dataa
     num_flagged_grps = 0
     # determine the number of groups with all pixels set to DO_NOT_USE
-    for integ in range(dat.shape[0]):
+    nints = nints
+    ngrps = dat.shape[1]
+    for integ in range(nints):
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
-    if only_use_ints and dat.shape[0]:
-        total_groups = dat.shape[0]
+    if only_use_ints and nints:
+        total_groups = nints
     else:
-        total_groups = dat.shape[0] * dat.shape[1] - num_flagged_grps
-    if (dat.shape[1] < minimum_groups and only_use_ints and dat.shape[0] < minimum_sigclip_groups) or \
-            (not only_use_ints and dat.shape[0] * dat.shape[1] < minimum_sigclip_groups and
-             dat.shape[1] < minimum_groups):
+        total_groups = nints * ngrps - num_flagged_grps
+    if (ngrps < minimum_groups and only_use_ints and nints < minimum_sigclip_groups) or \
+            (not only_use_ints and nints * ngrps < minimum_sigclip_groups and
+             ngrps < minimum_groups):
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
         log.info("Data shape {}".format(str(dat.shape)))
         dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]),
                          dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, 0, dummy
     else:
-
-        # set 'saturated' or 'do not use' pixels to nan in data
         # set 'saturated' or 'do not use' pixels to nan in data
         dat[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
         dat[np.where(np.bitwise_and(gdq, dnu_flag))] = np.nan
@@ -190,8 +190,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
             gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                              np.uint8(dqflags["JUMP_DET"]))
             # if grp is all jump set to do not use
-            for integ in range(dat.shape[0]):
-                for grp in range(dat.shape[1]):
+            for integ in range(nints):
+                for grp in range(ngrps):
                     if np.all(np.bitwise_or(np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
                                             np.bitwise_and(gdq[integ, grp, :, :], dnu_flag))):
                         jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
