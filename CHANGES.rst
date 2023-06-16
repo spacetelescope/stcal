@@ -3,9 +3,21 @@
 
 Bug Fixes
 ---------
-
+Jump
+~~~~
+Updated the jump detection to switch to using the numpy sigmaclip routine to
+find the actual rms across integrations when there are at least 101 integrations
+in the exposure. This still allows cosmic rays and snowballs/showers to be flagged
+without being affected by slope variations due to either brigher-fatter/charge-spilling
+or errors in the nonlinearity correction.
+Also added the counting of the number of cosmic rays and snowballs/showers that
+is then placed in the FITS header in the JWST routines. [#382]
 -
-
+Ramp Fitting
+~~~
+Added another line of code to be included in the section where warnings are turned
+off. The large number of warnings can cause a hang in the Jupyter notebook when
+running with multiprocessing.
 Changes to API
 --------------
 
