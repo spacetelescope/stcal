@@ -1194,35 +1194,7 @@ def test_new_saturation():
                       [[0.03073696, 0.        , 0.]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
-def test_contiguous_jumps():
-#    hdul = fits.open('/users/mregan/downloads/dark_imager_wthfaint_1_jump.fits')
-    hdul = fits.open('TSOjump_sc__jump.fits')
-#    hdul = fits.open('/users/mregan/downloads/dark_imager_baseline_2_00_jump.fits')
-    jumpdiff = np.diff(hdul['SCI'].data, axis=1)
-    data = hdul['SCI'].data
-    gdq = hdul['groupdq'].data
-    ypix = 342
-    xpix = 37
-    indata = data[:, :, ypix:ypix+2, xpix:xpix+2]
-    indataraw = data[0, :, ypix:ypix+2, xpix:xpix+2]
-    ingdq = gdq[:, :, ypix:ypix+2, xpix:xpix+2]
-    stx1 = 1
 
-#    ingdq[135] = 125
-    nints, ngroups, nrows, ncols = indata.shape[0], indata.shape[1], 2, 2
-    rnoise_val, gain_val = 100000, 1
-    nframes, gtime, dtime = 1, 2.77, 2.77
-    dims = (nints, ngroups, nrows, ncols)
-    var = (rnoise_val, gain_val)
-    tm = (nframes, gtime, dtime)
-    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
-    ramp_data.data[:, :, :, :] = indata
-    ramp_data.groupdq[:, :, :, :] = ingdq
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
-    slopes, cube, optional, gls_dummy = ramp_fit_data(
-        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags)
-    fits.writeto("slopes.fits", slopes[0], overwrite=True)
-    print(slopes)
 def create_blank_ramp_data(dims, var, tm):
     """
     Create empty RampData classes, as well as gain and read noise arrays,

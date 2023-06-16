@@ -1040,7 +1040,7 @@ def test_sigma_clip():
              after_jump_flag_n2=0,
              copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=50,)
     fits.writeto("outgdq.fits", gdq, overwrite=True)
-
+@pytest.mark.skip("Used for local testing")
 def test_first_grp_flag_issue():
     nints = 8
     nrows = 2
@@ -1063,7 +1063,7 @@ def test_first_grp_flag_issue():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=50)
     fits.writeto("outgdq.fits",gdq, overwrite=True)
-
+@pytest.mark.skip("Used for local testing")
 def test_5grp_TSO():
     nints=20
     nrows = 2
@@ -1086,7 +1086,7 @@ def test_5grp_TSO():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=5000)
     fits.writeto("new_gdq.fits", gdq, overwrite=True)
-
+@pytest.mark.skip("Used for local testing")
 def test_5grp_realTSO():
     hdul = fits.open("obs2508_cutout_jump.fits")
     gdq = hdul['groupdq'].data
