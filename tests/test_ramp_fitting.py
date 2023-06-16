@@ -474,7 +474,7 @@ def run_one_group_ramp_suppression(nints, suppress):
     ngroups, nrows, ncols = 5, 1, 3
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 10, 1
-    nframes, frame_time, groupgap = 1, 1, 0
+    nframes, frame_time = 1, 1
     var = rnoise, gain
     group_time = 5.0
     tm = nframes, group_time, frame_time
@@ -1568,14 +1568,3 @@ def print_all_info(slopes, cube, optional):
     print_slopes(slopes)
     print_integ(cube)
     print_optional(optional)
-
-def print_ramp_data(ramp_data):
-    print(DELIM)
-    print_ramp_data_data(ramp_data)
-    print(DELIM)
-    print_ramp_data_dq(ramp_data)
-    print(DELIM)
-
-
-def print_ramp_data_dq(ramp_data):
-    base_print("RampData Data Quality:", ramp_data.groupdq)

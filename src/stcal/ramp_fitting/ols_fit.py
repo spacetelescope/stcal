@@ -870,8 +870,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
     # Get instrument and exposure data
     frame_time = ramp_data.frame_time
-    groupgap = ramp_data.groupgap
-    nframes = ramp_data.nframes
 
     # Get needed sizes and shapes
     n_int, ngroups, nrows, ncols = data.shape
@@ -2931,8 +2929,8 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
 
     # If the one_groups_time is defined, use it.
     if ramp_data.one_groups_time is not None:
-        slope_s[wh_pix_1r] = data0_slice[wh_pix_1r] / ramp_data.one_groups_time 
-        timing = ramp_data.one_groups_time 
+        slope_s[wh_pix_1r] = data0_slice[wh_pix_1r] / ramp_data.one_groups_time
+        timing = ramp_data.one_groups_time
     else:
         slope_s[wh_pix_1r] = data0_slice[wh_pix_1r] / ramp_data.group_time
         timing = ramp_data.group_time
@@ -2944,7 +2942,7 @@ def fit_single_read(slope_s, intercept_s, variance_s, sig_intercept_s,
         good_0th_mat = np.zeros((data0_slice.shape), dtype=np.uint8)
         good_0th_mat[wh_pix_1r] = 1
         zframe = ramp_data.zframe_mat[ramp_data.current_integ, :, :].reshape(npix)
-        adj_mat = good_0th_mat & zframe 
+        adj_mat = good_0th_mat & zframe
         slope_s[adj_mat == 1] *= adjustment
 
     # The following arrays will have values correctly calculated later; for
