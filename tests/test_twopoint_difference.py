@@ -1028,7 +1028,6 @@ def test_sigma_clip():
     indata = data[:53, :, :, :]
     ingdq = gdq[:53, :, :, :]
     read_noise = np.ones(shape=(indata.shape[2], indata.shape[3]), dtype=np.float32) * 5.9 * 4.0
-    gain = np.ones_like(indata) * 4.0
     hdul.close()
     gdq, row_below_gdq, row_above_gdq, total_primary_crs, stddev = find_crs(indata, ingdq, read_noise, 3,
              4, 5, 1,
@@ -1046,8 +1045,6 @@ def test_first_grp_flag_issue():
     nrows = 2
     ncols = 2
     ngroups = 10
-    rej_threshold = 3
-    nframes = 1
     readnoise = 2
     data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     data = np.random.normal(0, readnoise, size=(nints, ngroups, nrows, ncols))
@@ -1129,3 +1126,4 @@ def test_1059():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
     fits.writeto("new_no_sigma_clip_gdq.fits", gdq, overwrite=True)
+    

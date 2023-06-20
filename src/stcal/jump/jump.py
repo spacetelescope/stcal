@@ -3,7 +3,6 @@ import multiprocessing
 import time
 import numpy as np
 import cv2 as cv
-from astropy.io import fits
 import astropy.stats as stats
 
 from astropy.convolution import Ring2DKernel
@@ -798,7 +797,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
                 image = cv.ellipse(image, (round(ceny), round(cenx)), (round(axis1 / 2),
                                                                        round(axis2 / 2)), alpha, 0, 360,
                                    (0, 0, jump_flag), -1)
-                jump_ellipse = image[:, :, 2]
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
