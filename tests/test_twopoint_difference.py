@@ -1126,4 +1126,3 @@ def test_1059():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
     fits.writeto("new_no_sigma_clip_gdq.fits", gdq, overwrite=True)
-    
