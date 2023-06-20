@@ -56,3 +56,40 @@ def ma_table_to_tbar(ma_table, read_time=READ_TIME):
     # slightly less exposure time than all other reads due to the read/reset
     # time being slightly less than the read time.
     return meantimes
+
+
+def readpattern_to_matable(read_pattern):
+    """Convert read patterns to multi-accum lists
+
+    Using Roman terminology, a "read pattern" is a list of resultants. Each element of this list
+    is a list of reads that were combined, on-board, to create a resultant. An example read pattern is
+
+    [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
+
+    This pattern has 6 resultants, the first consistent of the first read, the next consisting of reads 2 and 3,
+    the third consists of read 4, and so on.
+
+    A "Multi-accum table" is a short-hand version of the read pattern. It is a list of 2-tuples consisting of the following:
+
+    (start_read, n_reads)
+
+    For example, the above read pattern would be represented as, using lists instead of tuples:
+
+    [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
+
+    The example above, using this function, should perform as follows:
+    >>> readpattern_to_matable([[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]])
+    [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
+
+    Parameters
+    ----------
+    read_pattern : [[int[,...]][,...]]
+
+    Returns
+    -------
+    ma_table : [(first_read, n_reads)[,...]]
+    """
+    ma_table = [[resultant[0], len(resultant)]
+                for resultant in read_pattern]
+
+    return ma_table
