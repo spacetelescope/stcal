@@ -224,24 +224,31 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
-    if algorithm.upper() == "GLS":
-        image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
-        opt_info = None
-    else:
-        # Get readnoise array for calculation of variance of noiseless ramps, and
-        #   gain array in case optimal weighting is to be done
-        nframes = ramp_data.nframes
-        readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
+    match algorithm.upper():
+        case "GLS":
+            image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
+                ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
+            opt_info = None
+        case "OLS":
+            # Get readnoise array for calculation of variance of noiseless ramps, and
+            #   gain array in case optimal weighting is to be done
+            nframes = ramp_data.nframes
+            readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
 
-        # Suppress one group ramps, if desired.
-        if ramp_data.suppress_one_group_ramps:
-            suppress_one_good_group_ramps(ramp_data)
+            # Suppress one group ramps, if desired.
+            if ramp_data.suppress_one_group_ramps:
+                suppress_one_good_group_ramps(ramp_data)
 
-        # Compute ramp fitting using ordinary least squares.
-        image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
-        gls_opt_info = None
+            # Compute ramp fitting using ordinary least squares.
+            image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
+                ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
+            gls_opt_info = None
+
+        case 'OLS_CAS21':
+            raise NotImplementedError('Algorithm {algorithm} has not been implemented.')
+
+        case _:
+            raise RuntimeError('Algorithm {algorithm} is unknown. Aborting ramp_fitting.')
 
     return image_info, integ_info, opt_info, gls_opt_info
 
