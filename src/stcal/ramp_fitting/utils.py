@@ -284,9 +284,6 @@ class OptRes:
         self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
         warnings.resetwarnings()
 
-        # XXX JP-3242, push this divide to segment computations
-        # self.slope_seg /= group_time
-
         opt_info = (self.slope_seg, self.sigslope_seg, self.var_p_seg,
                     self.var_r_seg, self.yint_seg, self.sigyint_seg,
                     self.ped_int, self.weights, self.cr_mag_seg)
