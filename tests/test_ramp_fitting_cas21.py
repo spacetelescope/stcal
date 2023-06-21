@@ -21,7 +21,7 @@ import numpy as np
 from stcal import ramp_fitting
 
 from stcal.ramp_fitting import ols_cas21_fit as ramp
-from stcal.ramp_fitting.ols_cas21_util import READ_TIME, readpattern_to_matable
+from stcal.ramp_fitting.ols_cas21_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
 
 
 def test_hard_ramps():
@@ -32,6 +32,16 @@ def test_hard_ramps():
     ma_tables.append([[0, 1], [100, 1]])  # big skip
     for tab in ma_tables:
         test_ramp(tab)
+
+
+def test_matable_to_readpattern():
+    """Test conversion from read pattern to multi-accum table"""
+    ma_table = [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
+    expected = [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
+
+    result = matable_to_readpattern(ma_table)
+
+    assert result == expected
 
 
 def test_ramp(test_table=None):
@@ -129,6 +139,7 @@ def test_readpattern_to_matable():
     """Test conversion from read pattern to multi-accum table"""
     pattern = [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
     expected = [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
+
     result = readpattern_to_matable(pattern)
 
     assert result == expected
