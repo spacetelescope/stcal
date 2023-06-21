@@ -285,7 +285,7 @@ class OptRes:
         warnings.resetwarnings()
 
         # XXX JP-3242, push this divide to segment computations
-        self.slope_seg /= group_time
+        # self.slope_seg /= group_time
 
         opt_info = (self.slope_seg, self.sigslope_seg, self.var_p_seg,
                     self.var_r_seg, self.yint_seg, self.sigyint_seg,
@@ -632,8 +632,8 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     return den_r3, den_p3, num_r3, segs_beg_3
 
 
-def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
-                  groupgap, dropframes1):
+def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first,
+                  nframes, groupgap, dropframes1):
     """
     The pedestal is calculated by extrapolating the final slope for each pixel
     from its value at the first sample in the integration to an exposure time
@@ -672,8 +672,8 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
         pedestal image, 2-D float
     """
     ff_all = firstf_int[num_int, :, :].astype(np.float32)
-    ped = ff_all - slope_int[num_int, ::] * \
-        (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
+    tmp = (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
+    ped = ff_all - slope_int[num_int, ::] * tmp
 
     sat_flag = ramp_data.flags_saturated
     ped[np.bitwise_and(dq_first, sat_flag) == sat_flag] = 0
