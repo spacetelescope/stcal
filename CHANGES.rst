@@ -26,6 +26,69 @@ Changes to API
 Other
 -----
 
+- 
+
+1.3.8 (2023-05-31)
+==================
+
+Bug Fixes
+---------
+
+dark_current
+~~~~~~~~~~~~
+
+- Fixed handling of MIRI segmented data files so that the correct dark
+  integrations get subtracted from the correct science integrations. [#165]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Correct the "averaging" of the final image slope by properly excluding
+  variances as a part of the denominator from integrations with invalid slopes.
+  [#167]
+- Removing the usage of ``numpy.where`` where possible for perfomance
+  reasons. [#169]
+
+1.3.7 (2023-04-26)
+==================
+
+Bug Fixes
+---------
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Correctly compute the number of groups in a segment to properly compute the
+  optimal weights for the OLS ramp fitting algorithm.  Originally, this
+  computation had the potential to include groups not in the segment being
+  computed. [#163]
+
+Changes to API
+--------------
+
+- Drop support for Python 3.8 [#162]
+
+1.3.6 (2023-04-19)
+==================
+
+Bug Fixes
+---------
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- The ``meta`` tag was missing when checking for ``drop_frame1``.  It has been
+  added to the check. [#161]
+
+
+Changes to API
+--------------
+
+- 
+
+Other
+-----
+
 - Remove use of deprecated ``pytest-openfiles`` ``pytest`` plugin. This has been replaced by
   catching ``ResourceWarning``s. [#159]
 

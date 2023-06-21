@@ -2,6 +2,7 @@ import numpy as np
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 
+
 DELIM = "-" * 70
 
 # single group intergrations fail in the GLS fitting
@@ -1155,7 +1156,7 @@ def test_new_saturation():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[2.797567 , 2.8022935, np.nan]])
+    check = np.array([[2.795187 , 2.795632, np.nan]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[JUMP, JUMP, DNU | SAT]])
@@ -1173,8 +1174,8 @@ def test_new_saturation():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[2.7949152, 2.8022935, np.nan]],
-                      [[2.8020892, np.nan, np.nan]]])
+    check = np.array([[[2.7949152, 2.7956316, np.nan]],
+                      [[2.7956493, np.nan, np.nan]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
     check = np.array([[[GOOD, JUMP, DNU | SAT]],
@@ -1192,6 +1193,137 @@ def test_new_saturation():
     check = np.array([[[0.02353317, 0.02258242, 0.]],
                       [[0.03073696, 0.        , 0.]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
+
+
+def test_invalid_integrations():
+    """
+    Tests a multi-integration data set with bad data in multiple integrations
+    to ensure these integrations to do not contribute to the final slope
+    calculation for the image.
+
+    The data and group DQ flags were taken from data used for JP-3004.  The
+    suppress_one_group is defaulted to True.  With this data and flag set
+    there are only two good integrations.
+    """
+    nints, ngroups, nrows, ncols = 8, 5, 1, 1
+    rnval, gval = 6.097407, 5.5
+    frame_time, nframes, groupgap = 2.77504, 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    int_data = [
+        [17343.719, 32944.32 , 48382.062, 63066.062, 58844.7  ],
+        [19139.965, 34863.45 , 50415.816, 52806.453, 59525.01 ],
+        [19020.926, 34759.785, 50351.984, 52774.695, 59533.586],
+        [19060.592, 34772.496, 50247.75 , 52781.04 , 59509.086],
+        [19011.01 , 34768.832, 50247.547, 52829.46 , 59557.85 ],
+        [18939.426, 34680.39 , 50175.406, 52685.527, 59486.184],
+        [19009.908, 34748.207, 50274.14 , 52723.406, 59523.812],
+        [19072.715, 34844.24 , 50421.906, 52781.83 , 59527.06 ]
+    ]
+    int_dq = [
+        [DNU, GOOD, JUMP, GOOD, DNU | SAT],
+        [DNU, GOOD, JUMP, SAT, DNU | SAT],
+        [DNU, GOOD, JUMP, SAT, DNU | SAT],
+        [DNU, GOOD, GOOD, SAT, DNU | SAT],
+        [DNU, GOOD, JUMP, SAT, DNU | SAT],
+        [DNU, GOOD, JUMP, SAT, DNU | SAT],
+        [DNU, GOOD, JUMP, SAT, DNU | SAT],
+        [DNU, GOOD, JUMP, SAT, DNU | SAT]
+    ]
+
+    for integ in range(nints):
+        ramp.data[integ, :, 0, 0] = np.array(int_data[integ], dtype=np.float32)
+        ramp.groupdq[integ, :, 0, 0] = np.array(int_dq[integ], dtype=np.uint8)
+
+    ramp.suppress_one_group_ramps = True
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+
+    tol = 1.e-5
+
+    # Check slopes information
+    sdata, sdq, svp, svr, serr = slopes
+
+
+    check = np.array([[5434.022]])
+    np.testing.assert_allclose(sdata, check, tol, tol)
+
+    check = np.array([[JUMP]])
+    np.testing.assert_allclose(sdq, check, tol, tol)
+
+    check = np.array([[46.189373]])
+    np.testing.assert_allclose(svp, check, tol, tol)
+
+    check = np.array([[0.6034785]])
+    np.testing.assert_allclose(svr, check, tol, tol)
+
+    check = np.array([[6.84053]])
+    np.testing.assert_allclose(serr, check, tol, tol)
+
+    # Check slopes information
+    cdata, cdq, cvp, cvr, cerr = cube
+
+    check = np.array([5291.4556, np.nan, np.nan, 5576.588,
+                      np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
+    np.testing.assert_allclose(cdata[:, 0, 0], check, tol, tol)
+
+    check = np.array([JUMP, JUMP | DNU, JUMP | DNU, GOOD,
+                      JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8)
+    np.testing.assert_allclose(cdq[:, 0, 0], check, tol, tol)
+
+    check = np.array([369.51498, 369.51498, 369.51498, 369.51498,
+                      369.51498, 369.51498, 369.51498, 369.51498], dtype=np.float32)
+    np.testing.assert_allclose(cvp[:, 0, 0], check, tol, tol)
+
+    check = np.array([4.827828, 4.827828, 4.827828, 4.827828,
+                      4.827828, 4.827828, 4.827828, 4.827828], dtype=np.float32)
+    np.testing.assert_allclose(cvr[:, 0, 0], check, tol, tol)
+
+    check = np.array([19.348047, 19.348047, 19.348047, 19.348047,
+                      19.348047, 19.348047, 19.348047, 19.348047], dtype=np.float32)
+    np.testing.assert_allclose(cerr[:, 0, 0], check, tol, tol)
+
+
+def test_one_group():
+    """
+    Test ngroups = 1
+    """
+    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+    rnval, gval = 10., 5.
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.data[0, 0, 0, 0] = 105.31459
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+
+    tol = 1e-5
+    sdata, sdq, svp, svr, serr = slopes
+    assert abs(sdata[0, 0] - 1.9618962) < tol
+    assert sdq[0, 0] == 0
+    assert abs(svp[0, 0] - 0.02923839) < tol
+    assert abs(svr[0, 0] - 0.03470363) < tol
+    assert abs(serr[0, 0] - 0.2528676) < tol
+
+    cdata, cdq, cvp, cvr, cerr = cube
+    assert abs(sdata[0, 0] - cdata[0, 0, 0]) < tol
+    assert sdq[0, 0] == cdq[0, 0, 0]
+    assert abs(svp[0, 0] - cvp[0, 0, 0]) < tol
+    assert abs(svr[0, 0] - cvr[0, 0, 0]) < tol
+    assert abs(serr[0, 0] - cerr[0, 0, 0]) < tol
 
 
 def create_blank_ramp_data(dims, var, tm):
