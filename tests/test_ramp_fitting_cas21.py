@@ -128,9 +128,9 @@ def test_ramp(test_table=None):
 
     # compare single ramp and multi-ramp versions
     p1, v1 = ramp.fit_ramps_casertano(resultants, resultants * 0, read_noise,
-                                      test_table)
+                                      ma_table=test_table)
     p2, v2 = ramp.fit_ramps_casertano(resultants[:, 0], resultants[:, 0] * 0,
-                                      read_noise, test_table)
+                                      read_noise, ma_table=test_table)
     assert np.all(np.isclose(p1[0], p2))
     assert np.all(np.isclose(v1[0], v2))
 
@@ -158,7 +158,7 @@ def test_simulated_ramps():
         ntrial=ntrial)
 
     par, var = ramp.fit_ramps_casertano(
-        resultants, resultants * 0, read_noise, ma_table)
+        resultants, resultants * 0, read_noise, ma_table=ma_table)
     chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2, 1, 1]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
 
@@ -166,7 +166,7 @@ def test_simulated_ramps():
     bad = np.random.uniform(size=resultants.shape) > 0.7
     dq = resultants * 0 + bad
     par, var = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ma_table)
+        resultants, dq, read_noise, ma_table=ma_table)
     # only use okay ramps
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.

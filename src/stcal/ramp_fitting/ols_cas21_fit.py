@@ -34,7 +34,7 @@ import numpy as np
 from scipy import interpolate
 
 from . import ols_cas21
-from .ols_cas21_util import ma_table_to_tau, ma_table_to_tbar
+from .ols_cas21_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
 
 
 def construct_covar(read_noise, flux, ma_table):
@@ -211,7 +211,7 @@ def resultants_to_differences(resultants):
                       np.diff(resultants, axis=0)])
 
 
-def fit_ramps_casertano(resultants, dq, read_noise, ma_table):
+def fit_ramps_casertano(resultants, dq, read_noise, ma_table=None, read_pattern=None):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
     Ramps are broken where dq != 0, and fits are performed on each sub-ramp.
@@ -227,8 +227,12 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table):
         the dq array.  dq != 0 implies bad pixel / CR.
     read noise: float
         the read noise in electrons
-    ma_table : list[list[int]]
-        the ma table prescription
+    ma_table : list[list[int]] or None
+        The MA table prescription. If None, use `read_pattern`.
+        One of `ma_table` or `read_pattern` must be defined.
+    read_pattern : list[list[int]] or None
+        The read pattern prescription. If None, use `ma_table`.
+        One of `ma_table` or `read_pattern` must be defined.
 
     Returns
     -------
@@ -238,6 +242,13 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table):
         the covariance matrix of par, for each of three noise terms:
         the read noise, Poisson source noise, and total noise.
     """
+
+    # Get the Multi-accum table, either as given or from the read pattern
+    if ma_table is None:
+        if read_pattern is not None:
+            ma_table = readpattern_to_matable(read_pattern)
+    if ma_table is None:
+        raise RuntimeError('One of `ma_table` or `read_pattern` must be given.')
 
     resultants_unit = getattr(resultants, 'unit', None)
     if resultants_unit is not None:
