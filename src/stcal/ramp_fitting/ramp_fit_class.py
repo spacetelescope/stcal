@@ -41,6 +41,9 @@ class RampData:
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
 
+        # For uneven ramp data, define the read pattern.
+        self.read_pattern = None
+
         self.current_integ = -1
 
     def set_arrays(self, data, err, groupdq, pixeldq):
@@ -72,7 +75,7 @@ class RampData:
         self.pixeldq = pixeldq
 
     def set_meta(self, name, frame_time, group_time, groupgap,
-                 nframes, drop_frames1=None):
+                 nframes, drop_frames1=None, read_pattern=None):
         """
         Set the metainformation needed for ramp fitting.
 
@@ -93,9 +96,12 @@ class RampData:
         nframes : int
             The number of frames that are included in the group average
 
-        drop_frames1 :
+        drop_frames1 : int or None
             The number of frames dropped at the beginning of every integration.
             May not be used in some pipelines, so is defaulted to NoneType.
+
+        read_pattern : [[int[,...]][,...]] or None
+            The read pattern description for uneven data, such as from Roman
         """
 
         # Get meta information
@@ -108,6 +114,7 @@ class RampData:
 
         # May not be available for all pipelines, so is defaulted to NoneType.
         self.drop_frames1 = drop_frames1
+        self.read_pattern = read_pattern
 
     def set_dqflags(self, dqflags):
         """

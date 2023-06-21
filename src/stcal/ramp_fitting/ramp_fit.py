@@ -62,13 +62,16 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
         drop_frames1 = model.meta.exposure.drop_frames1
     else:
         drop_frames1 = None
+    read_pattern = model.search('read_pattern').node
     ramp_data.set_meta(
         name=model.meta.instrument.name,
         frame_time=model.meta.exposure.frame_time,
         group_time=model.meta.exposure.group_time,
         groupgap=model.meta.exposure.groupgap,
         nframes=model.meta.exposure.nframes,
-        drop_frames1=drop_frames1)
+        drop_frames1=drop_frames1,
+        read_pattern=read_pattern
+    )
 
     if "zero_frame" in model.meta.exposure and model.meta.exposure.zero_frame:
         ramp_data.zeroframe = model.zeroframe
@@ -110,8 +113,9 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
         2-D array gain for all pixels
 
     algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
+        'OLS' specifies that ordinary least squares should be used.
         'GLS' specifies that generalized least squares should be used.
+        'OLS_CAS21' specifies that ordinary least squares are used but for uneven ramps.
 
     weighting : str
         'optimal' specifies that optimal weighting should be used;
