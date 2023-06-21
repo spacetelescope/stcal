@@ -118,7 +118,7 @@ def readpattern_to_matable(read_pattern):
 
     The example above, using this function, should perform as follows:
     >>> readpattern_to_matable([[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]])
-    [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
+    [[1, 1], [2, 2], [4, 1], [5, 4], [9, 2], [11, 1]]
 
     Parameters
     ----------
