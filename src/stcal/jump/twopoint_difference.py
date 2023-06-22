@@ -161,7 +161,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # compute 'ratio' for each group. this is the value that will be
         # compared to 'threshold' to classify jumps. subtract the median of
         # first_diffs from first_diffs, take the abs. value and divide by sigma.
-        e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+        e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
 #        if nints > 1:
         ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
@@ -361,16 +361,17 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
         for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
-                for j in range(len(cr_group)):
-                    group = cr_group[j]
-                    row = cr_row[j]
-                    col = cr_col[j]
-                    if e_jump[group - 1, row, col] >= cthres[row, col]:
-                        for kk in range(group, min(group + cgroup + 1, ngroups)):
-                            if (gdq[integ, kk, row, col] & sat_flag) == 0:
-                                if (gdq[integ, kk, row, col] & dnu_flag) == 0:
-                                    gdq[integ, kk, row, col] = \
-                                        np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+                for intg in range(nints):
+                    for j in range(len(cr_group)):
+                        group = cr_group[j]
+                        row = cr_row[j]
+                        col = cr_col[j]
+                        if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
+                            for kk in range(group, min(group + cgroup + 1, ngroups)):
+                                if (gdq[intg, kk, row, col] & sat_flag) == 0:
+                                    if (gdq[intg, kk, row, col] & dnu_flag) == 0:
+                                        gdq[intg, kk, row, col] = \
+                                            np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
     if 'stddev' in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
     else:
