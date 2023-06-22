@@ -920,6 +920,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     # Loop over data integrations:
     for num_int in range(0, n_int):
         # Loop over data sections
+        ramp_data.current_integ = num_int
         for rlo in range(0, cubeshape[1], nrows):
             rhi = rlo + nrows
 
@@ -942,10 +943,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Reset all saturated groups in the input data array to NaN
-            where_sat = np.where(np.bitwise_and(gdq_sect, ramp_data.flags_saturated))
-
-            data_sect[where_sat] = np.NaN
-            del where_sat
+            data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
 
             # Calculate the slope of each segment
             # note that the name "opt_res", which stands for "optional results",
@@ -964,11 +962,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             num_seg_per_int[num_int, rlo:rhi, :] = num_seg.reshape(sect_shape)
 
             # Populate integ-spec slice which is set if 0th group has SAT
-            wh_sat0 = np.where(np.bitwise_and(gdq_sect[0, :, :], ramp_data.flags_saturated))
-            if len(wh_sat0[0]) > 0:
-                sat_0th_group_int[num_int, rlo:rhi, :][wh_sat0] = 1
-
-            del wh_sat0
+            sat_0th_group_int[num_int, rlo:rhi, :][np.bitwise_and(
+                    gdq_sect[0, :, :], ramp_data.flags_saturated).astype(bool)] = 1
 
             pixeldq_sect = pixeldq[rlo:rhi, :].copy()
             dq_int[num_int, rlo:rhi, :] = utils.dq_compress_sect(
@@ -1300,6 +1295,12 @@ def ramp_fit_overall(
 
     s_slope_by_var3 = slope_by_var4.sum(axis=1)  # sum over segments (not integs)
     s_slope_by_var2 = s_slope_by_var3.sum(axis=0)  # sum over integrations
+
+    # Ensure bad integrations don't contribute to the denominator
+    # for slope calculations
+    invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
+    wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
+    s_inv_var_both3[wh_invalid] = 0.
     s_inv_var_both2 = s_inv_var_both3.sum(axis=0)
 
     # Compute the 'dataset-averaged' slope
@@ -1417,8 +1418,7 @@ def ramp_fit_overall(
     # For invalid slope calculations set to NaN.  Pixels flagged as SATURATED or
     # DO_NOT_USE have invalid data.
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
-    wh_invalid = np.where(np.bitwise_and(final_pixeldq, invalid_data))
-    c_rates[wh_invalid] = np.nan
+    c_rates[np.bitwise_and(final_pixeldq, invalid_data).astype(bool)] = np.nan
 
     if dq_int is not None:
         del dq_int
@@ -1490,11 +1490,11 @@ def calc_power(snr):
         weighting exponent, 1-D float
     """
     pow_wt = snr.copy() * 0.0
-    pow_wt[np.where(snr > 5.)] = 0.4
-    pow_wt[np.where(snr > 10.)] = 1.0
-    pow_wt[np.where(snr > 20.)] = 3.0
-    pow_wt[np.where(snr > 50.)] = 6.0
-    pow_wt[np.where(snr > 100.)] = 10.0
+    pow_wt[snr > 5.] = 0.4
+    pow_wt[snr > 10.] = 1.0
+    pow_wt[snr > 20.] = 3.0
+    pow_wt[snr > 50.] = 6.0
+    pow_wt[snr > 100.] = 10.0
 
     return pow_wt.ravel()
 
@@ -1710,9 +1710,7 @@ def calc_slope(data_sect, gdq_sect, frame_time, opt_res, save_opt, rn_sect,
         # Find CRs in the ramp.
         jump_det = ramp_data.flags_jump_det
         mask_2d_jump = mask_2d.copy()
-        wh_jump = np.where(gdq_sect_r == jump_det)
-        mask_2d_jump[wh_jump] = True
-        del wh_jump
+        mask_2d_jump[gdq_sect_r == jump_det] = True
 
         # Add back possible CRs at the beginning of a ramp that were excluded
         # above.
@@ -2841,7 +2839,7 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
     if weighting.lower() == 'optimal':  # fit using optimal weighting
         # get sums from optimal weighting
         sumx, sumxx, sumxy, sumy, nreads_wtd, xvalues = calc_opt_sums(
-            rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
+            ramp_data, rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix)
 
         slope, intercept, sig_slope, sig_intercept = \
             calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy)
@@ -3194,11 +3192,7 @@ def fit_1_group(slope_s, intercept_s, variance_s, sig_intercept_s,
     sig_intercept_s = slope_s * 0.
 
     # For saturated pixels, overwrite slope with benign values.
-    wh_sat0 = np.where(np.logical_not(mask_2d[0, :]))
-
-    if len(wh_sat0[0]) > 0:
-        sat_pix = wh_sat0[0]
-        slope_s[sat_pix] = 0.
+    slope_s[np.logical_not(mask_2d[0, :])] = 0.
 
     return slope_s, intercept_s, variance_s, sig_intercept_s, sig_slope_s
 
@@ -3500,7 +3494,7 @@ def calc_unwtd_sums(data_masked, xvalues):
     return sumx, sumxx, sumxy, sumy
 
 
-def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
+def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
     """
     Calculate the sums needed to determine the slope and intercept (and sigma of
     each) using the optimal weights.  For each good pixel's segment, from the
@@ -3571,6 +3565,7 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
 
     # get SCI value of initial good group for semiramp
     data_zero = data_masked[fnz, range(data_masked.shape[1])]
+    fnz = 0
 
     # get SCI value of final good group for semiramp
     data_final = data_masked[(ind_lastnz), range(data_masked.shape[1])]
@@ -3581,6 +3576,7 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
     # Use the readnoise and gain for good pixels only
     rn_sect_rav = rn_sect.flatten()[good_pix]
     rn_2_r = rn_sect_rav * rn_sect_rav
+    rn_sect = 0
 
     gain_sect_r = gain_sect.flatten()[good_pix]
 
@@ -3610,23 +3606,17 @@ def calc_opt_sums(rn_sect, gain_sect, data_masked, mask_2d, xvalues, good_pix):
     data_diff = 0
     sigma_ir = 0
 
-    power_wt_r = calc_power(snr)  # Get the interpolated power for this SNR
     # Make array of number of good groups, and exponents for each pixel
-    num_nz = (data_masked != 0.).sum(0)  # number of nonzero groups per pixel
-    nrd_data_a = num_nz.copy()
+    power_wt_r = calc_power(snr)  # Get the interpolated power for this SNR
+    num_nz = c_mask_2d.sum(0)  # number of groups in segment
+    nrd_prime = (num_nz - 1) / 2.
     num_nz = 0
-
-    nrd_prime = (nrd_data_a - 1) / 2.
-    nrd_data_a = 0
 
     # Calculate inverse read noise^2 for use in weights
     # Suppress, then re-enable, harmless arithmetic warning
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     invrdns2_r = 1. / rn_2_r
     warnings.resetwarnings()
-
-    rn_sect = 0
-    fnz = 0
 
     # Set optimal weights for each group of each pixel;
     #    for all pixels at once, loop over the groups
