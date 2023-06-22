@@ -4,7 +4,12 @@
 Bug Fixes
 ---------
 
--
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changing where time division occurs during ramp fitting in order to
+  properly handle special cases where the time is not group time, such
+  as when ZEROFRAME data is used, so the time is frame time. [#173]
 
 Changes to API
 --------------

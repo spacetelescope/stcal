@@ -250,7 +250,7 @@ class OptRes:
         else:
             self.cr_mag_seg = cr_com[:, :max_num_crs, :, :]
 
-    def output_optional(self, effintim):
+    def output_optional(self, group_time):
         """
         These results are the cosmic ray magnitudes in the
         segment-specific results for the count rates, y-intercept,
@@ -265,7 +265,7 @@ class OptRes:
 
         Parameters
         ----------
-        effintim : float
+        group_time : float
             effective integration time for a single group
 
         Returns
@@ -283,8 +283,6 @@ class OptRes:
         # Tiny 'weights' values correspond to non-existent segments, so set to 0.
         self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
         warnings.resetwarnings()
-
-        self.slope_seg /= effintim
 
         opt_info = (self.slope_seg, self.sigslope_seg, self.var_p_seg,
                     self.var_r_seg, self.yint_seg, self.sigyint_seg,
@@ -631,8 +629,8 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     return den_r3, den_p3, num_r3, segs_beg_3
 
 
-def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
-                  groupgap, dropframes1):
+def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first,
+                  nframes, groupgap, dropframes1):
     """
     The pedestal is calculated by extrapolating the final slope for each pixel
     from its value at the first sample in the integration to an exposure time
@@ -671,8 +669,8 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
         pedestal image, 2-D float
     """
     ff_all = firstf_int[num_int, :, :].astype(np.float32)
-    ped = ff_all - slope_int[num_int, ::] * \
-        (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
+    tmp = (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
+    ped = ff_all - slope_int[num_int, ::] * tmp
 
     sat_flag = ramp_data.flags_saturated
     ped[np.bitwise_and(dq_first, sat_flag) == sat_flag] = 0
@@ -681,7 +679,7 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes,
     return ped
 
 
-def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_both3):
+def output_integ(ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3):
     """
     For the OLS algorithm, construct the output integration-specific results.
     Any variance values that are a large fraction of the default value
@@ -701,9 +699,6 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
 
     dq_int : ndarray
        Data cube of DQ arrays for each integration, 3-D int
-
-    effintim : float
-       Effective integration time per integration
 
     var_p3 : ndarray
         Cube of integration-specific values for the slope variance due to
@@ -731,7 +726,7 @@ def output_integ(ramp_data, slope_int, dq_int, effintim, var_p3, var_r3, var_bot
     var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
     var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
 
-    data = slope_int / effintim
+    data = slope_int
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
     data[np.bitwise_and(dq_int, invalid_data).astype(bool)] = np.nan
 
@@ -835,6 +830,7 @@ def shift_z(a, off):
 
 def get_efftim_ped(ramp_data):
     """
+    XXX - Work to remove this function.
     Calculate the effective integration time for a single group, and return the
     number of frames per group, and the number of frames dropped between groups.
 
@@ -1592,6 +1588,7 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
     zframe_locs = [None] * nints
 
     cnt = 0
+    zframe_mat = np.zeros((nints, nrows, ncols), dtype=np.uint8)
     for integ in range(nints):
         intdq = dq[integ, :, :, :]
 
@@ -1614,11 +1611,12 @@ def use_zeroframe_for_saturated_ramps(ramp_data):
                 col_list.append(col)
                 ramp_data.data[integ, 0, row, col] = ramp_data.zeroframe[integ, row, col]
                 ramp_data.groupdq[integ, 0, row, col] = good_flag
+                zframe_mat[integ, row, col] = 1
                 cnt = cnt + 1
 
         zframe_locs[integ] = (np.array(row_list, dtype=int), np.array(col_list, dtype=int))
 
-    return zframe_locs, cnt
+    return zframe_mat, zframe_locs, cnt
 
 
 def groups_saturated_in_integration(intdq, sat_flag, num_sat_groups):
