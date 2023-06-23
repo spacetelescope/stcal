@@ -17,7 +17,7 @@ Ramp Fitting
 ~~~
 Added another line of code to be included in the section where warnings are turned
 off. The large number of warnings can cause a hang in the Jupyter notebook when
-running with multiprocessing.
+running with multiprocessing. [#174]
 Changes to API
 --------------
 
