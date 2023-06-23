@@ -473,8 +473,9 @@ def run_one_group_ramp_suppression(nints, suppress):
     ngroups, nrows, ncols = 5, 1, 3
     dims = (nints, ngroups, nrows, ncols)
     rnoise, gain = 10, 1
-    nframes, group_time, frame_time = 1, 5.0, 1
+    nframes, frame_time, groupgap = 1, 1, 0
     var = rnoise, gain
+    group_time = (nframes + groupgap) * frame_time
     tm = nframes, group_time, frame_time
 
     # Using the above create the classes and arrays.
@@ -527,19 +528,19 @@ def test_one_group_ramp_suppressed_one_integration():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[np.nan, np.nan, 1.0000002]])
+    check = np.array([[np.nan, np.nan, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[DNU | SAT, DNU, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
-    check = np.array([[0., 0., 0.01]])
+    check = np.array([[0., 0., 0.25]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[0., 0., 0.19999999]])
+    check = np.array([[0., 0., 4.999999]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0., 0., 0.45825756]])
+    check = np.array([[0., 0., 2.2912877]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
@@ -551,13 +552,13 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[[DNU | SAT, DNU, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
-    check = np.array([[[0., 0., 0.01]]])
+    check = np.array([[[0., 0., 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0., 0., 0.19999999]]])
+    check = np.array([[[0., 0., 4.999999]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0., 0., 0.4582576]]])
+    check = np.array([[[0., 0., 2.291288]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -572,19 +573,19 @@ def test_one_group_ramp_not_suppressed_one_integration():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[np.nan, 1., 1.0000002]])
+    check = np.array([[np.nan, 1., 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[DNU | SAT, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
-    check = np.array([[0., 0.04, 0.01]])
+    check = np.array([[0., 1., 0.25]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[0., 3.9999995, 0.19999999]])
+    check = np.array([[0., 100., 5.0000005]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0., 2.009975, 0.45825756]])
+    check = np.array([[0., 10.049875, 2.291288]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
@@ -596,13 +597,13 @@ def test_one_group_ramp_not_suppressed_one_integration():
     check = np.array([[[DNU | SAT, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
-    check = np.array([[[0., 0.04, 0.01]]])
+    check = np.array([[[0., 1, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0., 3.9999995, 0.19999999]]])
+    check = np.array([[[0., 100., 5.0000005]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0., 2.0099752, 0.4582576]]])
+    check = np.array([[[0., 10.049875, 2.291288]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -618,25 +619,25 @@ def test_one_group_ramp_suppressed_two_integrations():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[1.0000001, 1.0000001, 1.0000002]])
+    check = np.array([[1.0000001, 1.0000001, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
-    check = np.array([[0.005, 0.01, 0.005]])
+    check = np.array([[0.125, 0.25, 0.125]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[0.19999999, 0.19999999, 0.09999999]])
+    check = np.array([[4.999998 , 4.999998 , 2.4999995]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0.45276925, 0.45825756, 0.32403702]])
+    check = np.array([[2.263846 , 2.2912874, 1.620185]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan,    np.nan,    1.0000001]],
+    check = np.array([[[np.nan,     np.nan,     1.0000001]],
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
@@ -644,16 +645,16 @@ def test_one_group_ramp_suppressed_two_integrations():
                       [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
-    check = np.array([[[0.,    0.,    0.01]],
-                      [[0.005, 0.01, 0.01]]])
+    check = np.array([[[0.,    0.,    0.25]],
+                      [[0.125, 0.25, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0.,         0.,         0.19999999]],
-                      [[0.19999999, 0.19999999, 0.19999999]]])
+    check = np.array([[[0.,             0., 4.999999]],
+                      [[4.999999, 4.999999, 4.999999]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0.,         0.,         0.4582576]],
-                      [[0.45276922, 0.4582576, 0.4582576]]])
+    check = np.array([[[0.,             0., 2.291288]],
+                      [[2.2638464, 2.291288, 2.291288]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -669,25 +670,25 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[1.0000001, 1.0000002, 1.0000002]])
+    check = np.array([[1.0000001, 1.0000001, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
-    check = np.array([[0.005, 0.008, 0.005]])
+    check = np.array([[0.125, 0.2, 0.125]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[0.19999999, 0.19047618, 0.09999999]])
+    check = np.array([[5.       , 4.7619047, 2.5000002]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0.45276925, 0.44550666, 0.32403702]])
+    check = np.array([[2.2638464, 2.2275333, 1.6201853]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan,    1.,        1.0000001]],
+    check = np.array([[[np.nan,     1.,        1.0000001]],
                       [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
@@ -695,16 +696,16 @@ def test_one_group_ramp_not_suppressed_two_integrations():
                       [[GOOD, GOOD, GOOD]]])
     np.testing.assert_allclose(cdq, check, tol)
 
-    check = np.array([[[0.,    0.04, 0.01]],
-                      [[0.005, 0.01, 0.01]]])
+    check = np.array([[[0.,    1., 0.25]],
+                      [[0.125, 0.25, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0.,         3.9999995,  0.19999999]],
-                      [[0.19999999, 0.19999999, 0.19999999]]])
+    check = np.array([[[0.,             100., 5.0000005]],
+                      [[5.0000005, 5.0000005, 5.0000005]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0.,         2.0099752, 0.4582576]],
-                      [[0.45276922, 0.4582576, 0.4582576]]])
+    check = np.array([[[0.,         10.049875 ,  2.291288]],
+                      [[2.2638464,  2.291288 ,  2.291288]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -797,7 +798,7 @@ def test_zeroframe():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[32.78594, 18.62891, 23.787909]])
+    check = np.array([[48.965397, 18.628912, 47.863224]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
@@ -818,7 +819,7 @@ def test_zeroframe():
     # The third pixel in integration zero has good data
     # because the zeroframe has good data, so the ramp
     # is not fully saturated.
-    check = np.array([[[149.0313, np.nan, 130.40239]],
+    check = np.array([[[298.0626, np.nan, 652.01196]],
                       [[18.62891, 18.62891, 18.62891]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
@@ -922,7 +923,7 @@ def test_only_good_0th_group():
     # Because the number of groups used in the first two ramps are different
     # the variances are expected to be different, even though the slopes
     # should be the same.
-    check = np.array([[37.257824,  37.257824, 149.0313]])
+    check = np.array([[37.257824,  37.257824, 496.77103]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[GOOD, GOOD, GOOD]])
@@ -1413,6 +1414,10 @@ def print_real_check(real, check):
     print("=" * 80)
 
 
+def print_arr_str(arr):
+    return np.array2string(arr, max_line_width=np.nan, separator=", ")
+
+
 def base_print(label, arr):
     arr_str = np.array2string(arr, max_line_width=np.nan, separator=", ")
     print(label)
@@ -1562,19 +1567,3 @@ def print_all_info(slopes, cube, optional):
     print_slopes(slopes)
     print_integ(cube)
     print_optional(optional)
-
-
-def print_ramp_data(ramp_data):
-    print(DELIM)
-    print_ramp_data_data(ramp_data)
-    print(DELIM)
-    print_ramp_data_dq(ramp_data)
-    print(DELIM)
-
-
-def print_ramp_data_data(ramp_data):
-    base_print("RampData Data:", ramp_data.data)
-
-
-def print_ramp_data_dq(ramp_data):
-    base_print("RampData Data Quality:", ramp_data.groupdq)
