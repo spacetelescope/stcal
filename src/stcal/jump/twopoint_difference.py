@@ -358,20 +358,21 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
         flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
 
-        cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq[integ], jump_flag))
+
         for cthres, cgroup in zip(flag_e_threshold, flag_groups):
             if cgroup > 0:
-                for intg in range(nints):
-                    for j in range(len(cr_group)):
-                        group = cr_group[j]
-                        row = cr_row[j]
-                        col = cr_col[j]
-                        if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
-                            for kk in range(group, min(group + cgroup + 1, ngroups)):
-                                if (gdq[intg, kk, row, col] & sat_flag) == 0:
-                                    if (gdq[intg, kk, row, col] & dnu_flag) == 0:
-                                        gdq[intg, kk, row, col] = \
-                                            np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+                cr_intg, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
+                for j in range(len(cr_group)):
+                    intg = cr_intg[j]
+                    group = cr_group[j]
+                    row = cr_row[j]
+                    col = cr_col[j]
+                    if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
+                        for kk in range(group, min(group + cgroup + 1, ngroups)):
+                            if (gdq[intg, kk, row, col] & sat_flag) == 0:
+                                if (gdq[intg, kk, row, col] & dnu_flag) == 0:
+                                    gdq[intg, kk, row, col] = \
+                                        np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
     if 'stddev' in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
     else:
