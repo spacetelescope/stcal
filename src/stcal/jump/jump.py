@@ -718,7 +718,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
         if nints <= minimum_sigclip_groups:
             median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
             sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-           # The difference from the median difference for each group
+            # The difference from the median difference for each group
             e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
            # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
