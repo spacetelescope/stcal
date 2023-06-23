@@ -11,7 +11,7 @@ in the exposure. This still allows cosmic rays and snowballs/showers to be flagg
 without being affected by slope variations due to either brigher-fatter/charge-spilling
 or errors in the nonlinearity correction.
 Also added the counting of the number of cosmic rays and snowballs/showers that
-is then placed in the FITS header in the JWST routines. [#382]
+is then placed in the FITS header in the JWST routines. [#174]
 -
 Ramp Fitting
 ~~~
