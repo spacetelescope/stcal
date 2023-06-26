@@ -31,7 +31,6 @@ them, and interpolate between them for different different fluxes and ratios.
 """
 from astropy import units as u
 import numpy as np
-from scipy import interpolate
 
 from . import ols_cas21
 from .ols_cas21_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable

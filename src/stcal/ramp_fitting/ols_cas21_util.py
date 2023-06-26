@@ -19,10 +19,11 @@ def matable_to_readpattern(ma_table):
 
     [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
 
-    This pattern has 6 resultants, the first consistent of the first read, the next consisting of reads 2 and 3,
-    the third consists of read 4, and so on.
+    This pattern has 6 resultants, the first consistent of the first read, the
+    next consisting of reads 2 and 3, the third consists of read 4, and so on.
 
-    A "Multi-accum table" is a short-hand version of the read pattern. It is a list of 2-tuples consisting of the following:
+    A "Multi-accum table" is a short-hand version of the read pattern. It is a
+    list of 2-tuples consisting of the following:
 
     (start_read, n_reads)
 
@@ -43,6 +44,7 @@ def matable_to_readpattern(ma_table):
     -------
     read_pattern : [[int[,...]][,...]]
         The read pattern that represents the given multi-accum table.
+
     """
     read_pattern = [list(range(start, start + len))
                     for start, len in ma_table]
@@ -105,10 +107,11 @@ def readpattern_to_matable(read_pattern):
 
     [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
 
-    This pattern has 6 resultants, the first consistent of the first read, the next consisting of reads 2 and 3,
-    the third consists of read 4, and so on.
+    This pattern has 6 resultants, the first consistent of the first read, the
+    next consisting of reads 2 and 3, the third consists of read 4, and so on.
 
-    A "Multi-accum table" is a short-hand version of the read pattern. It is a list of 2-tuples consisting of the following:
+    A "Multi-accum table" is a short-hand version of the read pattern. It is a
+    list of 2-tuples consisting of the following:
 
     (start_read, n_reads)
 
@@ -129,6 +132,7 @@ def readpattern_to_matable(read_pattern):
     -------
     ma_table : [(first_read, n_reads)[,...]]
         The multi-accum table that represents the given read pattern.
+
     """
     ma_table = [[resultant[0], len(resultant)]
                 for resultant in read_pattern]

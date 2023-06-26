@@ -18,14 +18,13 @@ Unit tests for ramp-fitting functions.  Tested routines:
 import pytest
 
 import numpy as np
-from stcal import ramp_fitting
 
 from stcal.ramp_fitting import ols_cas21_fit as ramp
 from stcal.ramp_fitting.ols_cas21_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
 
 
 def test_hard_ramps():
-    ma_tables = list()
+    ma_tables = []
     ma_tables.append([[0, 1], [1, 1]])  # simple ramp
     ma_tables.append([[0, 100], [100, 100]])
     ma_tables.append([[x, 1] for x in np.arange(100)])  # big ramp
