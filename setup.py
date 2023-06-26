@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 from Cython.Compiler import Options
