@@ -17,26 +17,11 @@ Unit tests for ramp-fitting functions.  Tested routines:
 """
 import pytest
 
-from astropy import units as u
 import numpy as np
-
-from roman_datamodels import maker_utils
-from roman_datamodels.datamodels import RampModel
-
 from stcal import ramp_fitting
-from stcal.ramp_fitting import ols_cas21_fit
-from stcal.ramp_fitting.ols_cas21_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
-from stcal.ramp_fitting import ramp_fit
 
-# Define arbitrary data quality flags for testing purposes
-dqflags = {
-    'GOOD':             0,      # Good pixel.
-    'DO_NOT_USE':       2**0,   # Bad pixel. Do not use.
-    'SATURATED':        2**1,   # Pixel saturated during exposure.
-    'JUMP_DET':         2**2,   # Jump detected during exposure.
-    'NO_GAIN_VALUE':    2**19,  # Gain cannot be measured.
-    'UNRELIABLE_SLOPE': 2**24,  # Slope variance large (i.e., noisy pixel).
-}
+from stcal.ramp_fitting import ols_cas21_fit as ramp
+from stcal.ramp_fitting.ols_cas21_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
 
 
 def test_hard_ramps():
@@ -62,11 +47,11 @@ def test_matable_to_readpattern():
 def test_ramp(test_table=None):
     if test_table is None:
         test_table = [[0, 3], [3, 5], [8, 1], [9, 1], [20, 3]]
-    tbar = ols_cas21_fit.ma_table_to_tbar(test_table)
+    tbar = ramp.ma_table_to_tbar(test_table)
     read_time = READ_TIME
     assert np.allclose(
         tbar, [read_time * np.mean(x[0] + np.arange(x[1])) for x in test_table])
-    tau = ols_cas21_fit.ma_table_to_tau(test_table)
+    tau = ramp.ma_table_to_tau(test_table)
     # this is kind of just a defined function; I don't have a really good
     # test for this without just duplicating code.
     nreads = np.array([x[1] for x in test_table])
@@ -74,9 +59,9 @@ def test_ramp(test_table=None):
         tau, tbar - (nreads - 1) * (nreads + 1) * read_time / 6 / nreads)
     read_noise = 3
     flux = 100
-    covar1 = ols_cas21_fit.construct_covar(read_noise, 0, test_table)
-    covar2 = ols_cas21_fit.construct_covar(0, flux, test_table)
-    covar3 = ols_cas21_fit.construct_covar(read_noise, flux, test_table)
+    covar1 = ramp.construct_covar(read_noise, 0, test_table)
+    covar2 = ramp.construct_covar(0, flux, test_table)
+    covar3 = ramp.construct_covar(read_noise, flux, test_table)
     assert np.allclose(covar1 + covar2, covar3)
     for c in (covar1, covar2, covar3):
         assert np.allclose(c, c.T)
@@ -91,7 +76,7 @@ def test_ramp(test_table=None):
     assert np.allclose(np.diag(covar1, 1), read_offdiag)
     assert np.allclose(np.diag(covar2), flux_diag)
     assert np.allclose(np.diag(covar2, 1), flux_offdiag)
-    atcinva, atcinv = ols_cas21_fit.construct_ramp_fitting_matrices(covar3, test_table)
+    atcinva, atcinv = ramp.construct_ramp_fitting_matrices(covar3, test_table)
     aa = np.zeros((len(test_table), 2), dtype='f4')
     aa[0, 0] = 1
     aa[0, 1] = tbar[0]
@@ -102,26 +87,26 @@ def test_ramp(test_table=None):
     yy = aa.dot(param)
     param2 = np.linalg.inv(atcinva).dot(atcinv.dot(yy))
     assert np.allclose(param, param2, rtol=1e-3)
-    ki, var = ols_cas21_fit.construct_ki_and_variances(
+    ki, var = ramp.construct_ki_and_variances(
         atcinva, atcinv, [covar1, covar2, covar3])
     assert np.allclose(var[2], np.linalg.inv(atcinva), rtol=1e-3)
     assert np.allclose(ki, np.linalg.inv(atcinva).dot(atcinv), rtol=1e-3)
     npts = 101
     flux_on_readvar_pts = 10.**(np.linspace(-5, 5, npts))
-    kigrid, vargrid = ols_cas21_fit.ki_and_variance_grid(
+    kigrid, vargrid = ramp.ki_and_variance_grid(
         test_table, flux_on_readvar_pts)
     assert np.all(
         np.array(kigrid.shape) == np.array([npts, 2, len(test_table)]))
     assert np.all(
         np.array(vargrid.shape) == np.array([npts, 3, 2, 2]))
-    rcovar = ols_cas21_fit.construct_covar(1, 0, test_table)
-    fcovar = ols_cas21_fit.construct_covar(0, 1, test_table)
+    rcovar = ramp.construct_covar(1, 0, test_table)
+    fcovar = ramp.construct_covar(0, 1, test_table)
     for i in np.arange(0, npts, npts // 3):
-        acovar = ols_cas21_fit.construct_covar(1, flux_on_readvar_pts[i], test_table)
-        atcinva, atcinv = ols_cas21_fit.construct_ramp_fitting_matrices(
+        acovar = ramp.construct_covar(1, flux_on_readvar_pts[i], test_table)
+        atcinva, atcinv = ramp.construct_ramp_fitting_matrices(
             acovar, test_table)
         scale = flux_on_readvar_pts[i]
-        ki, var = ols_cas21_fit.construct_ki_and_variances(
+        ki, var = ramp.construct_ki_and_variances(
             atcinva, atcinv, [rcovar, fcovar * scale, acovar])
         assert np.allclose(kigrid[i], ki, atol=1e-6)
         assert np.allclose(vargrid[i], var, atol=1e-6)
@@ -131,8 +116,8 @@ def test_ramp(test_table=None):
                   + pedestals.reshape(1, -1))
     from functools import partial
     rampfitters = [
-        partial(ols_cas21_fit.fit_ramps_casertano_no_dq, ma_table=test_table),
-        partial(ols_cas21_fit.fit_ramps_casertano, ma_table=test_table,
+        partial(ramp.fit_ramps_casertano_no_dq, ma_table=test_table),
+        partial(ramp.fit_ramps_casertano, ma_table=test_table,
                 dq=resultants * 0)
     ]
     for fitfun in rampfitters:
@@ -142,9 +127,9 @@ def test_ramp(test_table=None):
             assert np.allclose(par[:, 0], pedestals, atol=1e-2)
 
     # compare single ramp and multi-ramp versions
-    p1, v1 = ols_cas21_fit.fit_ramps_casertano(resultants, resultants * 0, read_noise,
+    p1, v1 = ramp.fit_ramps_casertano(resultants, resultants * 0, read_noise,
                                       ma_table=test_table)
-    p2, v2 = ols_cas21_fit.fit_ramps_casertano(resultants[:, 0], resultants[:, 0] * 0,
+    p2, v2 = ramp.fit_ramps_casertano(resultants[:, 0], resultants[:, 0] * 0,
                                       read_noise, ma_table=test_table)
     assert np.all(np.isclose(p1[0], p2))
     assert np.all(np.isclose(v1[0], v2))
@@ -162,7 +147,7 @@ def test_readpattern_to_matable():
 
 def test_resultants_to_differences():
     resultants = np.array([[10, 11, 12, 13, 14, 15]], dtype='f4').T
-    differences = ols_cas21_fit.resultants_to_differences(resultants)
+    differences = ramp.resultants_to_differences(resultants)
     assert np.allclose(differences, np.array([[10, 1, 1, 1, 1, 1]]).T)
 
 
@@ -172,7 +157,7 @@ def test_simulated_ramps():
     ma_table, flux, read_noise, resultants = romanisim_ramp.simulate_many_ramps(
         ntrial=ntrial)
 
-    par, var = ols_cas21_fit.fit_ramps_casertano(
+    par, var = ramp.fit_ramps_casertano(
         resultants, resultants * 0, read_noise, ma_table=ma_table)
     chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2, 1, 1]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
@@ -180,46 +165,8 @@ def test_simulated_ramps():
     # now let's mark a bunch of the ramps as compromised.
     bad = np.random.uniform(size=resultants.shape) > 0.7
     dq = resultants * 0 + bad
-    par, var = ols_cas21_fit.fit_ramps_casertano(
+    par, var = ramp.fit_ramps_casertano(
         resultants, dq, read_noise, ma_table=ma_table)
-    # only use okay ramps
-    # ramps passing the below criterion have at least two adjacent valid reads
-    # i.e., we can make a measurement from them.
-    m = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
-    chi2dof_slope = np.sum((par[m, 1] - flux)**2 / var[m, 2, 1, 1]) / np.sum(m)
-    assert np.abs(chi2dof_slope - 1) < 0.03
-    assert np.all(par[~m, 1] == 0)
-    assert np.all(var[~m, 1] == 0)
-
-
-@pytest.mark.xfail(reason='Work-in-progress')
-def test_simulated_ramps_rampfit():
-    """Test simulated ramps using the standard ramp fit entrypoint"""
-    romanisim_ramp = pytest.importorskip('romanisim.ramp')
-
-    ntrial = 100 * 100
-    ma_table, flux, read_noise, resultants = romanisim_ramp.simulate_many_ramps(
-        ntrial=ntrial)
-    resultants.shape = (resultants.shape[0], 100, 100)
-
-    # now let's mark a bunch of the ramps as compromised.
-    bad = np.random.uniform(size=resultants.shape) > 0.7
-    dq = resultants * 0 + bad
-
-    # Create the model to feed to the ramp fitting.
-    resultants *= u.DN
-    ramp_node = maker_utils.mk_ramp(shape=resultants.shape)
-    ramp_node.data = resultants
-    ramp_node.meta.exposure.read_pattern = matable_to_readpattern(ma_table)
-    model = RampModel(ramp_node)
-
-    # Do the fitting
-    image_info, _, _, _, var = ramp_fit.ramp_fit(model, 0, False, read_noise, 1.0, 'ols_cas21', 'optimal', 'none', dqflags)
-    par, _, var_poisson, var_rnoise, err = image_info
-
-    chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2, 1, 1]) / ntrial
-    assert np.abs(chi2dof_slope - 1) < 0.03
-
     # only use okay ramps
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.

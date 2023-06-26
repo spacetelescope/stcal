@@ -17,8 +17,6 @@ import numpy as np
 from astropy import units as u
 import logging
 
-from stcal.ramp_fitting import ols_cas21_fit
-
 from . import gls_fit           # used only if algorithm is "GLS"
 from . import ols_fit           # used only if algorithm is "OLS"
 from . import ramp_fit_class
@@ -226,13 +224,11 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
-    opt_info = None
-    gls_opt_info = None
-    ols_cas21_info = None
     match algorithm.upper():
         case "GLS":
             image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
                 ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
+            opt_info = None
         case "OLS":
             # Get readnoise array for calculation of variance of noiseless ramps, and
             #   gain array in case optimal weighting is to be done
@@ -246,16 +242,10 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
             # Compute ramp fitting using ordinary least squares.
             image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
                 ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
+            gls_opt_info = None
 
         case 'OLS_CAS21':
-            rampvar, ramppar = ols_cas21_fit.ramp_fit(ramp_data, readnoise=readnoise_2d, gain=gain_2d)
-            var_rnoise = rampvar[..., 0, 1, 1]
-            var_poisson = rampvar[..., 1, 1, 1]
-            err = np.sqrt(var_poisson + var_rnoise)
-
-            image_info = (ramppar, None, var_poisson, var_rnoise, err)
-            integ_info = (None, None, None, None, None)
-            ols_cas21_info = rampvar
+            raise NotImplementedError('Algorithm {algorithm} has not been implemented.')
 
         case _:
             raise RuntimeError('Algorithm {algorithm} is unknown. Aborting ramp_fitting.')

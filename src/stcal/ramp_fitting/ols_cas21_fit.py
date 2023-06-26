@@ -37,35 +37,6 @@ from . import ols_cas21
 from .ols_cas21_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
 
 
-def ramp_fit(ramp_data, readnoise=5.0, gain=1.0):
-    """Fit ramps using the Cassertino 2021 algorithm
-
-    Parameters
-    ----------
-    ramp_data : RampClass
-        The data to be fit
-
-    readnoise : numpy.array or float
-       Read noise per pixel. May be either a 2D numpy.array
-       or a single value used for all pixels.
-
-    gain : numpy.array or float
-       Gain per pixel. May be either a 2D numpy.array
-       or a single value used for all pixels.
-
-    Returns
-    -------
-    ramppar, rampvar : numpy.array, numpy.array
-        2-tuple of the 2D ramp fits and variance
-    """
-    resultants = ramp_data.data * gain
-    rn_gain = readnoise * gain
-
-    ramppar, rampvar = fit_ramps_casertano(resultants, ramp_data.groupdq, rn_gain, read_pattern=ramp_data.read_pattern)
-
-    return ramppar, rampvar
-
-
 def construct_covar(read_noise, flux, ma_table):
     """Constructs covariance matrix for first finite differences of unevenly
     sampled resultants.
