@@ -1125,11 +1125,11 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         #   variance is proportional to the median estimated slope) to
         #   outrageously large values so that they will have negligible
         #   contributions.
-        var_p4[num_int, :, :, :] *= (segs_4[num_int, :, :, :] > 0)
 
         # Suppress, then re-enable harmless arithmetic warnings
         warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+        var_p4[num_int, :, :, :] *= (segs_4[num_int, :, :, :] > 0)
         var_p4[var_p4 <= 0.] = utils.LARGE_VARIANCE
 
         var_r4[num_int, :, :, :] *= (segs_4[num_int, :, :, :] > 0)

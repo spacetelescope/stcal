@@ -155,7 +155,7 @@ def test_find_faint_extended():
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1,
+    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
                                            snr_threshold=1.3,
                                            min_shower_area=20, inner=1,
                                            outer=2, sat_flag=2, jump_flag=4,
@@ -189,6 +189,40 @@ def test_find_faint_extended():
     assert (np.all(gdq[0, 2, 12, 14:23] == 0))
     assert (np.all(gdq[0, 2, 12:22, 24] == 0))
     assert (np.all(gdq[0, 2, 12:22, 13] == 0))
+
+    #  Check that the flags are not applied in the 3rd group after the event
+    assert (np.all(gdq[0, 4, 12:22, 14:23]) == 0)
+
+# No shower is found because the event is identical in all ints
+def test_find_faint_extended_sigclip():
+    nint, ngrps, ncols, nrows = 101, 6, 30, 30
+    data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
+    gdq = np.zeros_like(data, dtype=np.uint8)
+    gain = 4
+    readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
+    rng = np.random.default_rng(12345)
+    data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
+    data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
+    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
+                                           snr_threshold=1.3,
+                                           min_shower_area=20, inner=1,
+                                           outer=2, sat_flag=2, jump_flag=4,
+                                           ellipse_expand=1.1, num_grps_masked=3)
+    #  Check that all the expected samples in group 2 are flagged as jump and
+    #  that they are not flagged outside
+    assert (np.all(gdq[0, 1, 22, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 21, 16:20] == 0))
+    assert (np.all(gdq[0, 1, 20, 15:22] == 0))
+    assert (np.all(gdq[0, 1, 19, 15:23] == 0))
+    assert (np.all(gdq[0, 1, 18, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 17, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 16, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 15, 14:22] == 0))
+    assert (np.all(gdq[0, 1, 14, 16:22] == 0))
+    assert (np.all(gdq[0, 1, 13, 17:21] == 0))
+    assert (np.all(gdq[0, 1, 12, 14:23] == 0))
+    assert (np.all(gdq[0, 1, 12:23, 24] == 0))
+    assert (np.all(gdq[0, 1, 12:23, 13] == 0))
 
     #  Check that the flags are not applied in the 3rd group after the event
     assert (np.all(gdq[0, 4, 12:22, 14:23]) == 0)
