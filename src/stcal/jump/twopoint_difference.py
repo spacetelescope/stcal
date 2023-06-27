@@ -85,6 +85,19 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         Flag for making internal copies of the arrays so the input isn't modified,
         defaults to True.
 
+    minimum_groups : integer
+        The minimum number of groups to perform jump detection.
+
+    minimum_sigclip_groups : integer
+        The minimum number of groups required for the sigma clip routine to be
+        used for jump detection rather than using the expected noise based on
+        the read noise and gain files.
+
+    only_use_ints : boolean
+        If True the sigma clip process will only apply for groups between
+        integrations. This means that a group will only be compared against the
+        same group in other integrations. If False all groups across all integrations
+        will be used to detect outliers.
     Returns
     -------
     gdq : int, 4D array
@@ -99,9 +112,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     """
     # copy data and group DQ array
     if copy_arrs:
-        dataa = dataa.copy()
+        dat = dataa.copy()
         gdq = group_dq.copy()
     else:
+        dat = dataa
         gdq = group_dq
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
@@ -118,10 +132,8 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
     jump_flag = dqflags["JUMP_DET"]
 
     # get data, gdq
-    dat = dataa
     num_flagged_grps = 0
     # determine the number of groups with all pixels set to DO_NOT_USE
-    nints = nints
     ngrps = dat.shape[1]
     for integ in range(nints):
         for grp in range(dat.shape[1]):
@@ -162,7 +174,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         # compared to 'threshold' to classify jumps. subtract the median of
         # first_diffs from first_diffs, take the abs. value and divide by sigma.
         e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
-#        if nints > 1:
         ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
         if (only_use_ints and nints >= minimum_sigclip_groups) or \
