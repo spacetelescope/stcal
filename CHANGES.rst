@@ -1,7 +1,12 @@
 1.4.1 (unreleased)
 ==================
+
+Bug Fixes
+---------
+
 jump
 ~~~~
+
 - Added statement to prevent the number of cores used in multiprocessing from
   being larger than the number of rows. This was causing some CI tests to fail. [#176]
 
