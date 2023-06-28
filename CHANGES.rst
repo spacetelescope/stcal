@@ -3,7 +3,7 @@
 jump
 ~~~~
 - Added statement to prevent the number of cores used in multiprocessing from
-  being larger than the number of rows. This was causing some CI tests to fail.
+  being larger than the number of rows. This was causing some CI tests to fail. [#176]
 
 1.4.0 (2023-06-27)
 ==================
