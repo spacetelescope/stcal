@@ -246,7 +246,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
         n_slices = max_available // 2 or 1
     elif max_cores == 'all':
         n_slices = max_available
-
+    # Make sure we don't have more slices than rows.
+    n_slices = min(n_rows, n_slices)
     if n_slices == 1:
         gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
