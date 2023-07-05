@@ -1,5 +1,12 @@
-1.4.1 (2023-06-29)
+1.4.2 (unreleased)
 ==================
+jump
+~~~~
+
+- Added setting of number_extended_events for non-multiprocessing
+  mode. This is the value that is put into the header keyword EXTNCRS.
+
+1.4.1 (2023-06-29)
 
 Bug Fixes
 ---------
