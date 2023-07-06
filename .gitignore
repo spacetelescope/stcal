@@ -52,6 +52,7 @@ coverage.xml
 .pytest_cache/
 cover/
 coverage/
+cov.xml
 
 # Translations
 *.mo
