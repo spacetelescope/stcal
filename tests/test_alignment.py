@@ -8,7 +8,6 @@ from gwcs import WCS
 from gwcs import coordinate_frames as cf
 
 import pytest
-
 from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
