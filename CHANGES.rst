@@ -1,6 +1,6 @@
 1.4.2 (unreleased)
 ==================
-- Added ``alignment`` sub-package.
+- Added ``alignment`` sub-package. [#179]
 
 1.4.1 (2023-06-29)
 ==================
