@@ -17,7 +17,7 @@ from gwcs import utils as gwutils
 from gwcs.wcstools import wcs_from_fiducial
 
 from stdatamodels.jwst.datamodels import JwstDataModel
-from roman_datamodels.datamodels import DataModel
+from roman_datamodels.datamodels import DataModel as RstDataModel
 
 
 log = logging.getLogger(__name__)
@@ -231,10 +231,11 @@ def wcsinfo_from_model(input_model):
 def _generate_tranform_from_datamodel(
     refmodel, pscale_ratio, pscale, rotation, ref_fiducial
 ):
-    wcsinfo = wcsinfo_from_model(refmodel)
     if isinstance(refmodel, JwstDataModel):
+        wcsinfo = wcsinfo_from_model(refmodel)
         sky_axes, spec, other = gwutils.get_axes(wcsinfo)
-    elif isinstance(refmodel, DataModel):
+    elif isinstance(refmodel, RstDataModel):
+        wcsinfo = refmodel.meta.wcsinfo
         sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
 
         # Need to put the rotation matrix (List[float, float, float, float])
@@ -349,7 +350,7 @@ def wcs_from_footprints(
 
     if refmodel is None:
         refmodel = dmodels[0]
-    elif not isinstance(refmodel, (JwstDataModel, DataModel)):
+    elif not isinstance(refmodel, (JwstDataModel, RstDataModel)):
         raise TypeError("Expected refmodel to be an instance of DataModel.")
 
     fiducial = compute_fiducial(wcslist, bb)

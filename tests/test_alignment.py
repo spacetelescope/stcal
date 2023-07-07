@@ -6,7 +6,8 @@ from gwcs import coordinate_frames as cf
 import numpy as np
 import pytest
 from stdatamodels.jwst.datamodels import ImageModel
-from roman_datamodels.datamodels import DataModel
+from roman_datamodels import datamodels as rdm
+from roman_datamodels import maker_utils as utils
 from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
@@ -59,25 +60,57 @@ def _create_wcs_object_without_distortion(
     return wcs_obj
 
 
-def _create_wcs_and_jwst_datamodel(fiducial_world, shape, pscale):
+def _create_wcs_and_datamodel(datamodel_type, fiducial_world, shape, pscale):
     wcs = _create_wcs_object_without_distortion(
         fiducial_world=fiducial_world, shape=shape, pscale=pscale
     )
-    datamodel = ImageModel(np.zeros(tuple(shape.value.astype(int))))
-    datamodel.meta.wcs = wcs
-    datamodel.meta.wcsinfo.ra_ref = fiducial_world[0].value
-    datamodel.meta.wcsinfo.dec_ref = fiducial_world[1].value
-    datamodel.meta.wcsinfo.v2_ref = 0
-    datamodel.meta.wcsinfo.v3_ref = 0
-    datamodel.meta.wcsinfo.roll_ref = 0
-    datamodel.meta.wcsinfo.v3yangle = 0
-    datamodel.meta.wcsinfo.vparity = -1
-    datamodel.meta.wcsinfo.wcsaxes = 2
-    datamodel.meta.coordinates.reference_frame = "ICRS"
-    datamodel.meta.wcsinfo.ctype1 = "RA---TAN"
-    datamodel.meta.wcsinfo.ctype2 = "DEC--TAN"
+    if datamodel_type == "jwst":
+        datamodel = _create_jwst_meta(shape, fiducial_world, wcs)
+    elif datamodel_type == "roman":
+        datamodel = _create_roman_meta(shape, fiducial_world, wcs)
 
-    return (wcs, datamodel)
+    return datamodel
+
+
+def _create_jwst_meta(shape, fiducial_world, wcs):
+    result = ImageModel(np.zeros(tuple(shape.value.astype(int))))
+
+    result.meta.wcsinfo.ra_ref = fiducial_world[0].value
+    result.meta.wcsinfo.dec_ref = fiducial_world[1].value
+    result.meta.wcsinfo.ctype1 = "RA---TAN"
+    result.meta.wcsinfo.ctype2 = "DEC--TAN"
+    result.meta.wcsinfo.v2_ref = 0
+    result.meta.wcsinfo.v3_ref = 0
+    result.meta.wcsinfo.roll_ref = 0
+    result.meta.wcsinfo.v3yangle = 0
+    result.meta.wcsinfo.vparity = -1
+    result.meta.wcsinfo.wcsaxes = 2
+
+    result.meta.coordinates.reference_frame = "ICRS"
+
+    result.meta.wcs = wcs
+
+    return result
+
+
+def _create_roman_meta(shape, fiducial_world, wcs):
+    result = utils.mk_level2_image(shape=tuple(shape.value.astype(int)))
+
+    result.meta.wcsinfo.ra_ref = fiducial_world[0].value
+    result.meta.wcsinfo.dec_ref = fiducial_world[1].value
+    result.meta.wcsinfo.v2_ref = 0
+    result.meta.wcsinfo.v3_ref = 0
+    result.meta.wcsinfo.roll_ref = 0
+    result.meta.wcsinfo.v3yangle = 0
+    result.meta.wcsinfo.vparity = -1
+
+    result.meta.coordinates.reference_frame = "ICRS"
+
+    result.meta["wcs"] = wcs
+
+    result = rdm.ImageModel(result)
+
+    return result
 
 
 def test_compute_fiducial():
@@ -117,16 +150,23 @@ def test_compute_scale(pscales):
     assert np.isclose(expected_scale, computed_scale)
 
 
-def test_wcs_from_footprints():
+@pytest.mark.parametrize("datamodel_type", ["jwst", "roman"])
+def test_wcs_from_footprints(datamodel_type):
     shape = (3, 3) * u.pix
     fiducial_world = (10, 0) * u.deg
     pscale = (0.1, 0.1) * u.arcsec
 
-    wcs_1, dm_1 = _create_wcs_and_jwst_datamodel(fiducial_world, shape, pscale)
+    dm_1 = _create_wcs_and_datamodel(
+        datamodel_type, fiducial_world, shape, pscale
+    )
+    wcs_1 = dm_1.meta.wcs
 
     # new fiducial will be shifted by one pixel in both directions
     fiducial_world -= pscale
-    wcs_2, dm_2 = _create_wcs_and_jwst_datamodel(fiducial_world, shape, pscale)
+    dm_2 = _create_wcs_and_datamodel(
+        datamodel_type, fiducial_world, shape, pscale
+    )
+    wcs_2 = dm_2.meta.wcs
 
     # check overlapping pixels have approximate the same world coordinate
     assert all(np.isclose(wcs_1(0, 1), wcs_2(1, 2)))
@@ -140,5 +180,3 @@ def test_wcs_from_footprints():
     # expected position onto wcs_1 and wcs_2
     assert all(np.isclose(wcs(2, 2), wcs_1(0.5, 0.5)))
     assert all(np.isclose(wcs(2, 2), wcs_2(1.5, 1.5)))
-
-    assert True
