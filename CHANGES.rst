@@ -11,6 +11,17 @@ Bug Fixes
 jump
 ~~~~
 
+- Added setting of number_extended_events for non-multiprocessing
+  mode. This is the value that is put into the header keyword EXTNCRS. [#178]
+
+1.4.1 (2023-06-29)
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
 - Added statement to prevent the number of cores used in multiprocessing from
   being larger than the number of rows. This was causing some CI tests to fail. [#176]
 
