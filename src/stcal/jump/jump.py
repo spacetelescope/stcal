@@ -262,13 +262,15 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            only_use_ints=only_use_ints)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
-            flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
+            total_snowballs = flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor,
                               sat_required_snowball=sat_required_snowball,
                               min_sat_radius_extend=min_sat_radius_extend,
                               edge_size=edge_size, sat_expand=sat_expand,
                               max_extended_radius=max_extended_radius)
+            log.info('Total snowballs = %i' % total_snowballs)
+            number_extended_events = total_snowballs
         if find_showers:
             gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d,
                                                    frames_per_group, minimum_sigclip_groups,
@@ -280,6 +282,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                                    ellipse_expand=extend_ellipse_expand_ratio,
                                                    num_grps_masked=grps_masked_after_shower,
                                                    max_extended_radius=max_extended_radius)
+            log.info('Total showers= %i' % num_showers)
+            number_extended_events = num_showers
     else:
         yinc = int(n_rows / n_slices)
         slices = []
