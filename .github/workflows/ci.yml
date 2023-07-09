@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - '*x'
+      - use-protocols
     tags:
       - '*'
   pull_request:
