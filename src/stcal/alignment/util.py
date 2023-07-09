@@ -4,20 +4,19 @@ Utility function for assign_wcs.
 """
 import logging
 import functools
+from typing import List, Protocol, Union
+
 import numpy as np
 
 from astropy.coordinates import SkyCoord
 from astropy.utils.misc import isiterable
 from astropy import units as u
 from astropy.modeling import models as astmodels
-from typing import Union, List
 
+from asdf import AsdfFile
 from gwcs import WCS
 from gwcs import utils as gwutils
 from gwcs.wcstools import wcs_from_fiducial
-
-from stdatamodels.jwst.datamodels import JwstDataModel
-from roman_datamodels.datamodels import DataModel as RstDataModel
 
 
 log = logging.getLogger(__name__)
@@ -32,6 +31,13 @@ __all__ = [
     "compute_scale",
     "calc_rotation_matrix",
 ]
+
+
+class SupportsDataWithWcs(Protocol):
+    _asdf: AsdfFile
+
+    def to_flat_dict():
+        ...
 
 
 def compute_scale(
@@ -189,7 +195,7 @@ def compute_fiducial(wcslist, bounding_box=None):
     return fiducial
 
 
-def wcsinfo_from_model(input_model):
+def wcsinfo_from_model(input_model: SupportsDataWithWcs):
     """
     Create a dict {wcs_keyword: array_of_values} pairs from a data model.
 
@@ -231,16 +237,12 @@ def wcsinfo_from_model(input_model):
 def _generate_tranform_from_datamodel(
     refmodel, pscale_ratio, pscale, rotation, ref_fiducial
 ):
-    if isinstance(refmodel, JwstDataModel):
-        wcsinfo = wcsinfo_from_model(refmodel)
-        sky_axes, spec, other = gwutils.get_axes(wcsinfo)
-    elif isinstance(refmodel, RstDataModel):
-        wcsinfo = refmodel.meta.wcsinfo
-        sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
+    wcsinfo = refmodel.meta.wcsinfo
+    sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
 
-        # Need to put the rotation matrix (List[float, float, float, float])
-        # returned from calc_rotation_matrix into the correct shape for
-        # constructing the transformation
+    # Need to put the rotation matrix (List[float, float, float, float])
+    # returned from calc_rotation_matrix into the correct shape for
+    # constructing the transformation
     v3yangle = np.deg2rad(refmodel.meta.wcsinfo.v3yangle)
     vparity = refmodel.meta.wcsinfo.vparity
     if rotation is None:
