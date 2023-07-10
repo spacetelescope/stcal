@@ -278,8 +278,8 @@ def wcs_from_footprints(
     pscale=None,
     rotation=None,
     shape=None,
-    crpix=None,
-    crval=None,
+    ref_pixel=None,
+    ref_coord=None,
 ):
     """
     Create a WCS from a list of input data models.
@@ -330,11 +330,11 @@ def wcs_from_footprints(
         (``ny`` first and ``nx`` second). This value will be assigned to
         ``pixel_shape`` and ``array_shape`` properties of the returned
         WCS object.
-    crpix : tuple of float, None, optional
-        Position of the reference pixel in the image array.  If ``crpix`` is not
+    ref_pixel : tuple of float, None, optional
+        Position of the reference pixel in the image array.  If ``ref_pixel`` is not
         specified, it will be set to the center of the bounding box of the
         returned WCS object.
-    crval : tuple of float, None, optional
+    ref_coord : tuple of float, None, optional
         Right ascension and declination of the reference pixel. Automatically
         computed if not provided.
 
@@ -352,12 +352,12 @@ def wcs_from_footprints(
         refmodel = dmodels[0]
 
     fiducial = compute_fiducial(wcslist, bb)
-    if crval is not None:
+    if ref_coord is not None:
         # overwrite spatial axes with user-provided CRVAL:
         i = 0
         for k, axt in enumerate(wcslist[0].output_frame.axes_type):
             if axt == "SPATIAL":
-                fiducial[k] = crval[i]
+                fiducial[k] = ref_coord[i]
                 i += 1
 
     ref_fiducial = np.array(
@@ -395,14 +395,14 @@ def wcs_from_footprints(
         output_bounding_box.append((axis_min, axis_max))
 
     output_bounding_box = tuple(output_bounding_box)
-    if crpix is None:
+    if ref_pixel is None:
         offset1, offset2 = wnew.backward_transform(*fiducial)
         offset1 -= axis_min_values[0]
         offset2 -= axis_min_values[1]
     else:
-        offset1, offset2 = crpix
-    offsets = astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(
-        -offset2, name="crpix2"
+        offset1, offset2 = ref_pixel
+    offsets = astmodels.Shift(-offset1, name="ref_pixel1") & astmodels.Shift(
+        -offset2, name="ref_pixel2"
     )
 
     wnew.insert_transform("detector", offsets, after=True)
