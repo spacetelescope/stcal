@@ -596,8 +596,8 @@ def wcs_from_footprints(
     pscale=None,
     rotation=None,
     shape=None,
-    crpix=None,
-    crval=None,
+    ref_pixel=None,
+    ref_coord=None,
 ):
     """
     Create a WCS from a list of input datamodels.
