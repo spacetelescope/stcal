@@ -66,9 +66,15 @@ def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
         fiducial_world=fiducial_world, shape=shape, pscale=pscale
     )
     ra_ref, dec_ref = fiducial_world[0].value, fiducial_world[1].value
-    datamodel = DataModel(ra_ref=ra_ref, dec_ref=dec_ref, roll_ref=0,
-                          v2_ref=0, v3_ref=0, v3yangle=0, wcs=wcs)
-    return datamodel
+    return DataModel(
+        ra_ref=ra_ref,
+        dec_ref=dec_ref,
+        roll_ref=0,
+        v2_ref=0,
+        v3_ref=0,
+        v3yangle=0,
+        wcs=wcs,
+    )
 
 
 class WcsInfo:
@@ -91,15 +97,23 @@ class Coordinates:
 
 
 class MetaData:
-    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
-        self.wcsinfo = WcsInfo(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle)
+    def __init__(
+        self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None
+    ):
+        self.wcsinfo = WcsInfo(
+            ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle
+        )
         self.wcs = wcs
-        self.coordinates=Coordinates()
+        self.coordinates = Coordinates()
 
 
 class DataModel:
-    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
-        self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
+    def __init__(
+        self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None
+    ):
+        self.meta = MetaData(
+            ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs
+        )
 
 
 def test_compute_fiducial():
