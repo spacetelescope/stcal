@@ -15,7 +15,6 @@ from astropy.modeling import models as astmodels
 
 from asdf import AsdfFile
 from gwcs import WCS
-from gwcs import utils as gwutils
 from gwcs.wcstools import wcs_from_fiducial
 
 
@@ -237,7 +236,6 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 def _generate_tranform_from_datamodel(
     refmodel, pscale_ratio, pscale, rotation, ref_fiducial
 ):
-    wcsinfo = refmodel.meta.wcsinfo
     sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
 
     # Need to put the rotation matrix (List[float, float, float, float])
@@ -352,8 +350,6 @@ def wcs_from_footprints(
 
     if refmodel is None:
         refmodel = dmodels[0]
-    elif not isinstance(refmodel, (JwstDataModel, RstDataModel)):
-        raise TypeError("Expected refmodel to be an instance of DataModel.")
 
     fiducial = compute_fiducial(wcslist, bb)
     if crval is not None:
