@@ -172,7 +172,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
         # compute 'ratio' for each group. this is the value that will be
         # compared to 'threshold' to classify jumps. subtract the median of
-        # first_diffs from first_diffs, take the abs. value and divide by sigma.
+        # first_diffs from first_diffs, take the absolute value and divide by sigma.
         e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
         ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
