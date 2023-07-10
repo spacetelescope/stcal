@@ -6,8 +6,8 @@ import numpy as np
 Options.docstrings = True
 Options.annotate = False
 
-extensions = [Extension('stcal.ramp_fitting.ols_cas21',
-                        ['src/stcal/ramp_fitting/ols_cas21.pyx'],
+extensions = [Extension('stcal.ramp_fitting.ols_cas22',
+                        ['src/stcal/ramp_fitting/ols_cas22.pyx'],
                         include_dirs=[np.get_include()])]
 
 setup(ext_modules=cythonize(extensions))

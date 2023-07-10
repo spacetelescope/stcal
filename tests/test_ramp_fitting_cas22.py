@@ -19,8 +19,8 @@ import pytest
 
 import numpy as np
 
-from stcal.ramp_fitting import ols_cas21_fit as ramp
-from stcal.ramp_fitting.ols_cas21_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
+from stcal.ramp_fitting import ols_cas22_fit as ramp
+from stcal.ramp_fitting.ols_cas22_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
 
 
 def test_hard_ramps():

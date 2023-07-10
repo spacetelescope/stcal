@@ -32,8 +32,8 @@ them, and interpolate between them for different different fluxes and ratios.
 from astropy import units as u
 import numpy as np
 
-from . import ols_cas21
-from .ols_cas21_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
+from . import ols_cas22
+from .ols_cas22_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
 
 
 def construct_covar(read_noise, flux, ma_table):
@@ -268,7 +268,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table=None, read_pattern=
         dq = dq.reshape(origshape + (1,))
         read_noise = read_noise.reshape(origshape[1:] + (1,))
 
-    rampfitdict = ols_cas21.fit_ramps(
+    rampfitdict = ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
