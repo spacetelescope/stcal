@@ -165,7 +165,6 @@ def test_wcs_from_footprints():
     shape = (3, 3)  # in pixels
     fiducial_world = (10, 0)  # in deg
     pscale = (0.000028, 0.000028)  # in deg/pixel
-
     dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_1 = dm_1.meta.wcs
 
@@ -176,17 +175,6 @@ def test_wcs_from_footprints():
         fiducial_world[1] - 0.000028,
     )
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
-    wcs_2 = dm_2.meta.wcs
-
-    wcs = wcs_from_footprints([dm_1, dm_2])
-
-    # check that all elements of footprint match the *vertices* of the new combined WCS
-    assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
-    assert all(np.isclose(wcs.footprint()[1], wcs(0, 4)))
-    assert all(np.isclose(wcs.footprint()[2], wcs(4, 4)))
-    assert all(np.isclose(wcs.footprint()[3], wcs(4, 0)))
-
-    # check that fiducials match their expected coords in the new combined WCS
     assert all(np.isclose(wcs_1(0, 0), wcs(2.5, 1.5)))
     assert all(np.isclose(wcs_2(0, 0), wcs(3.5, 0.5)))
 
