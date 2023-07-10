@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - '*x'
-      - use-protocols
+      - stcal-alignment
     tags:
       - '*'
   pull_request:

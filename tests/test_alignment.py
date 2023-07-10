@@ -1,13 +1,14 @@
+import numpy as np
+
 from astropy.modeling import models
 from astropy import coordinates as coord
 from astropy import units as u
+
 from gwcs import WCS
 from gwcs import coordinate_frames as cf
-import numpy as np
+
 import pytest
-from stdatamodels.jwst.datamodels import ImageModel
-from roman_datamodels import datamodels as rdm
-from roman_datamodels import maker_utils as utils
+
 from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
@@ -16,9 +17,9 @@ from stcal.alignment.util import (
 
 
 def _create_wcs_object_without_distortion(
-    fiducial_world=(None, None),
-    pscale=None,
-    shape=None,
+    fiducial_world,
+    pscale,
+    shape,
 ):
     fiducial_detector = tuple(shape.value)
 
@@ -60,57 +61,45 @@ def _create_wcs_object_without_distortion(
     return wcs_obj
 
 
-def _create_wcs_and_datamodel(datamodel_type, fiducial_world, shape, pscale):
+def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
     wcs = _create_wcs_object_without_distortion(
         fiducial_world=fiducial_world, shape=shape, pscale=pscale
     )
-    if datamodel_type == "jwst":
-        datamodel = _create_jwst_meta(shape, fiducial_world, wcs)
-    elif datamodel_type == "roman":
-        datamodel = _create_roman_meta(shape, fiducial_world, wcs)
-
+    ra_ref, dec_ref = fiducial_world[0].value, fiducial_world[1].value
+    datamodel = DataModel(ra_ref=ra_ref, dec_ref=dec_ref, roll_ref=0,
+                          v2_ref=0, v3_ref=0, v3yangle=0, wcs=wcs)
     return datamodel
 
 
-def _create_jwst_meta(shape, fiducial_world, wcs):
-    result = ImageModel(np.zeros(tuple(shape.value.astype(int))))
-
-    result.meta.wcsinfo.ra_ref = fiducial_world[0].value
-    result.meta.wcsinfo.dec_ref = fiducial_world[1].value
-    result.meta.wcsinfo.ctype1 = "RA---TAN"
-    result.meta.wcsinfo.ctype2 = "DEC--TAN"
-    result.meta.wcsinfo.v2_ref = 0
-    result.meta.wcsinfo.v3_ref = 0
-    result.meta.wcsinfo.roll_ref = 0
-    result.meta.wcsinfo.v3yangle = 0
-    result.meta.wcsinfo.vparity = -1
-    result.meta.wcsinfo.wcsaxes = 2
-
-    result.meta.coordinates.reference_frame = "ICRS"
-
-    result.meta.wcs = wcs
-
-    return result
+class WcsInfo:
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle):
+        self.ra_ref = ra_ref
+        self.dec_ref = dec_ref
+        self.ctype1 = "RA---TAN"
+        self.ctype2 = "DEC--TAN"
+        self.v2_ref = v2_ref
+        self.v3_ref = v3_ref
+        self.v3yangle = v3yangle
+        self.roll_ref = roll_ref
+        self.vparity = -1
+        self.wcsaxes = 2
 
 
-def _create_roman_meta(shape, fiducial_world, wcs):
-    result = utils.mk_level2_image(shape=tuple(shape.value.astype(int)))
+class Coordinates:
+    def __init__(self):
+        self.reference_frame = "ICRS"
 
-    result.meta.wcsinfo.ra_ref = fiducial_world[0].value
-    result.meta.wcsinfo.dec_ref = fiducial_world[1].value
-    result.meta.wcsinfo.v2_ref = 0
-    result.meta.wcsinfo.v3_ref = 0
-    result.meta.wcsinfo.roll_ref = 0
-    result.meta.wcsinfo.v3yangle = 0
-    result.meta.wcsinfo.vparity = -1
 
-    result.meta.coordinates.reference_frame = "ICRS"
+class MetaData:
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
+        self.wcsinfo = WcsInfo(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle)
+        self.wcs = wcs
+        self.coordinates=Coordinates()
 
-    result.meta["wcs"] = wcs
 
-    result = rdm.ImageModel(result)
-
-    return result
+class DataModel:
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
+        self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
 
 def test_compute_fiducial():
@@ -150,22 +139,17 @@ def test_compute_scale(pscales):
     assert np.isclose(expected_scale, computed_scale)
 
 
-@pytest.mark.parametrize("datamodel_type", ["jwst", "roman"])
-def test_wcs_from_footprints(datamodel_type):
+def test_wcs_from_footprints():
     shape = (3, 3) * u.pix
     fiducial_world = (10, 0) * u.deg
     pscale = (0.1, 0.1) * u.arcsec
 
-    dm_1 = _create_wcs_and_datamodel(
-        datamodel_type, fiducial_world, shape, pscale
-    )
+    dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_1 = dm_1.meta.wcs
 
     # new fiducial will be shifted by one pixel in both directions
     fiducial_world -= pscale
-    dm_2 = _create_wcs_and_datamodel(
-        datamodel_type, fiducial_world, shape, pscale
-    )
+    dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
 
     # check overlapping pixels have approximate the same world coordinate

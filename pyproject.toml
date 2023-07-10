@@ -18,8 +18,6 @@ dependencies = [
     'opencv-python-headless >=4.6.0.66',
     'asdf',
     'gwcs',
-    'stdatamodels',
-    'roman_datamodels',
 ]
 dynamic = ['version']
 
