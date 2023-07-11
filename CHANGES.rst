@@ -1,4 +1,15 @@
-1.4.2 (unreleased)
+1.4.3 (unreleased)
+==================
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- 
+
+1.4.2 (2023-07-11)
 ==================
 
 Bug Fixes
@@ -11,6 +22,7 @@ jump
   mode. This is the value that is put into the header keyword EXTNCRS. [#178]
 
 1.4.1 (2023-06-29)
+==================
 
 Bug Fixes
 ---------
