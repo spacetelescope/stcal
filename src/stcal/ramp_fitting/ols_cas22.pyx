@@ -149,6 +149,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         The last resultant in this ramp.
     """
     cdef int nresultant = len(ma_table)
+    if nresultant != resultants.shape[0]:
+        raise RuntimeError(f'MA table length {nresultant} does not match number of resultants {resultants.shape[0]}')
+
     cdef np.ndarray[int] nn = np.array([x[1] for x in ma_table]).astype('i4')
     # number of reads in each resultant
     cdef np.ndarray[float] tbar = ma_table_to_tbar(
