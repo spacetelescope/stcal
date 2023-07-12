@@ -4,11 +4,12 @@ from datetime import datetime
 from pathlib import Path
 
 import stsci_rtd_theme
+
 if sys.version_info < (3, 11):
     import tomli as tomllib
 else:
     import tomllib
-    
+
 
 def setup(app):
     try:
@@ -27,7 +28,7 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "stcal"))
 # values here:
 with open(REPO_ROOT / "pyproject.toml", "rb") as configuration_file:
     conf = tomllib.load(configuration_file)
-setup_metadata = conf['project']
+setup_metadata = conf["project"]
 
 project = setup_metadata["name"]
 primary_author = setup_metadata["authors"][0]
@@ -38,8 +39,17 @@ package = importlib.import_module(project)
 version = package.__version__.split("-", 1)[0]
 release = package.__version__
 
+# Configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/devdocs", None),
+    "scipy": ("http://scipy.github.io/devdocs", None),
+    "matplotlib": ("http://matplotlib.org/", None),
+}
+
 extensions = [
     "sphinx_automodapi.automodapi",
+    "sphinx.ext.intersphinx",
     "numpydoc",
 ]
 
@@ -48,9 +58,7 @@ numpydoc_show_class_members = False
 autoclass_content = "both"
 
 html_theme = "stsci_rtd_theme"
-html_theme_options = {
-    "collapse_navigation": True
-}
+html_theme_options = {"collapse_navigation": True}
 html_theme_path = [stsci_rtd_theme.get_html_theme_path()]
 html_domain_indices = True
 html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
