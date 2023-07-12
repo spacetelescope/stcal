@@ -310,10 +310,6 @@ def _generate_tranform_from_datamodel(
         world coordinates.
     """
     sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
-
-    # Need to put the rotation matrix (List[float, float, float, float])
-    # returned from calc_rotation_matrix into the correct shape for
-    # constructing the transformation
     v3yangle = np.deg2rad(refmodel.meta.wcsinfo.v3yangle)
     vparity = refmodel.meta.wcsinfo.vparity
     if rotation is None:
@@ -321,6 +317,8 @@ def _generate_tranform_from_datamodel(
     else:
         roll_ref = np.deg2rad(rotation) + (vparity * v3yangle)
 
+    # reshape the rotation matrix returned from calc_rotation_matrix
+    # into the correct shape for constructing the transformation
     pc = np.reshape(
         calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2)
     )
