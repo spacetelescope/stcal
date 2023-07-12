@@ -21,22 +21,16 @@ def _create_wcs_object_without_distortion(
     pscale,
     shape,
 ):
-    fiducial_detector = tuple(shape.value)
-
     # subtract 1 to account for pixel indexing starting at 0
-    shift = models.Shift(-(fiducial_detector[0] - 1)) & models.Shift(
-        -(fiducial_detector[1] - 1)
-    )
+    shift = models.Shift(-(shape[0] - 1)) & models.Shift(-(shape[1] - 1))
 
-    scale = models.Scale(pscale[0].to("deg")) & models.Scale(
-        pscale[1].to("deg")
-    )
+    scale = models.Scale(pscale[0]) & models.Scale(pscale[1])
 
     tan = models.Pix2Sky_TAN()
     celestial_rotation = models.RotateNative2Celestial(
         fiducial_world[0],
         fiducial_world[1],
-        180 * u.deg,
+        180,
     )
 
     det2sky = shift | scale | tan | celestial_rotation
@@ -54,8 +48,8 @@ def _create_wcs_object_without_distortion(
     wcs_obj = WCS(pipeline)
 
     wcs_obj.bounding_box = (
-        (-0.5, fiducial_detector[0] - 0.5),
-        (-0.5, fiducial_detector[0] - 0.5),
+        (-0.5, shape[0] - 0.5),
+        (-0.5, shape[0] - 0.5),
     )
 
     return wcs_obj
@@ -65,7 +59,7 @@ def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
     wcs = _create_wcs_object_without_distortion(
         fiducial_world=fiducial_world, shape=shape, pscale=pscale
     )
-    ra_ref, dec_ref = fiducial_world[0].value, fiducial_world[1].value
+    ra_ref, dec_ref = fiducial_world[0], fiducial_world[1]
     return DataModel(
         ra_ref=ra_ref,
         dec_ref=dec_ref,
@@ -121,9 +115,9 @@ def test_compute_fiducial():
     WCS's footprint.
     """
 
-    shape = (3, 3) * u.pix
-    fiducial_world = (0, 0) * u.deg
-    pscale = (0.05, 0.05) * u.arcsec
+    shape = (3, 3)  # in pixels
+    fiducial_world = (0, 0)  # in deg
+    pscale = (0.000014, 0.000014)  # in deg/pixel
 
     wcs = _create_wcs_object_without_distortion(
         fiducial_world=fiducial_world, shape=shape, pscale=pscale
@@ -134,35 +128,40 @@ def test_compute_fiducial():
     assert all(np.isclose(wcs(1, 1), computed_fiducial))
 
 
-@pytest.mark.parametrize("pscales", [(0.05, 0.05), (0.1, 0.05)])
+@pytest.mark.parametrize(
+    "pscales", [(0.000014, 0.000014), (0.000028, 0.000014)]
+)
 def test_compute_scale(pscales):
     """Test that util.compute_scale can properly determine the pixel scale of a
     WCS object.
     """
-    shape = (3, 3) * u.pix
-    fiducial_world = (0, 0) * u.deg
-    pscale = (pscales[0], pscales[1]) * u.arcsec
+    shape = (3, 3)  # in pixels
+    fiducial_world = (0, 0)  # in deg
+    pscale = (pscales[0], pscales[1])  # in deg/pixel
 
     wcs = _create_wcs_object_without_distortion(
         fiducial_world=fiducial_world, shape=shape, pscale=pscale
     )
-    expected_scale = np.sqrt(pscale[0].to("deg") * pscale[1].to("deg")).value
+    expected_scale = np.sqrt(pscale[0] * pscale[1])
 
-    computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world.value)
+    computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world)
 
     assert np.isclose(expected_scale, computed_scale)
 
 
 def test_wcs_from_footprints():
-    shape = (3, 3) * u.pix
-    fiducial_world = (10, 0) * u.deg
-    pscale = (0.1, 0.1) * u.arcsec
+    shape = (3, 3)  # in pixels
+    fiducial_world = (10, 0)  # in deg
+    pscale = (0.000028, 0.000028)  # in deg/pixel
 
     dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_1 = dm_1.meta.wcs
 
-    # new fiducial will be shifted by one pixel in both directions
-    fiducial_world -= pscale
+    # shift fiducial by one pixel in both directions and create a new WCS
+    fiducial_world = (
+        fiducial_world[0] - 0.000028,
+        fiducial_world[1] - 0.000028,
+    )
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
 
