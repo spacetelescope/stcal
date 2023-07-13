@@ -17,7 +17,7 @@ dependencies = [
     'numpy >=1.20',
     'opencv-python-headless >=4.6.0.66',
     'asdf >=2.15.0',
-    'gwcs',
+    'gwcs >=0.18.3',
 ]
 dynamic = ['version']
 
