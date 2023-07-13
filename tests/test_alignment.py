@@ -13,6 +13,7 @@ from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
     wcs_from_footprints,
+    _validate_wcs_list,
 )
 
 
@@ -177,3 +178,43 @@ def test_wcs_from_footprints():
     # expected position onto wcs_1 and wcs_2
     assert all(np.isclose(wcs(2, 2), wcs_1(0.5, 0.5)))
     assert all(np.isclose(wcs(2, 2), wcs_2(1.5, 1.5)))
+
+
+def test_validate_wcs_list():
+    shape = (3, 3)  # in pixels
+    fiducial_world = (10, 0)  # in deg
+    pscale = (0.000028, 0.000028)  # in deg/pixel
+
+    dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
+    wcs_1 = dm_1.meta.wcs
+
+    # shift fiducial by one pixel in both directions and create a new WCS
+    fiducial_world = (
+        fiducial_world[0] - 0.000028,
+        fiducial_world[1] - 0.000028,
+    )
+    dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
+    wcs_2 = dm_2.meta.wcs
+
+    wcs_list = [wcs_1, wcs_2]
+
+    assert _validate_wcs_list(wcs_list) == True
+
+
+@pytest.mark.parametrize(
+    "wcs_list, expected_error",
+    [
+        ([], TypeError),
+        ([1, 2, 3], TypeError),
+        (["1", "2", "3"], TypeError),
+        (["1", None, []], TypeError),
+        ("1", TypeError),
+        (1, ValueError),
+        (None, ValueError),
+    ],
+)
+def test_validate_wcs_list_invalid(wcs_list, expected_error):
+    with pytest.raises(Exception) as exec_info:
+        result = _validate_wcs_list(wcs_list)
+
+    assert type(exec_info.value) == expected_error
