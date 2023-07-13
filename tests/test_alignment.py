@@ -198,7 +198,7 @@ def test_validate_wcs_list():
 
     wcs_list = [wcs_1, wcs_2]
 
-    assert _validate_wcs_list(wcs_list) == True
+    assert _validate_wcs_list(wcs_list)
 
 
 @pytest.mark.parametrize(
@@ -215,6 +215,6 @@ def test_validate_wcs_list():
 )
 def test_validate_wcs_list_invalid(wcs_list, expected_error):
     with pytest.raises(Exception) as exec_info:
-        result = _validate_wcs_list(wcs_list)
+        _validate_wcs_list(wcs_list)
 
     assert type(exec_info.value) == expected_error
