@@ -593,21 +593,21 @@ def _get_axis_min_and_bounding_box(ref_model, wcs_list, ref_wcs):
 
     Parameters
     ----------
-    ref_model : a valid datamodel
+    ref_model :
         The reference datamodel for which to determine the minimum axis values and
         bounding box.
 
     wcs_list : list
         The list of WCS objects.
 
-    ref_wcs : `~gwcs.wcs.WCS`
+    ref_wcs : ~gwcs.wcs.WCS
         The reference WCS object.
 
     Returns
     -------
     tuple
         A tuple containing two elements:
-            1 - a `numpy.array` with the minimum value in each axis;
+            1 - a :py:class:`numpy.ndarray` with the minimum value in each axis;
             2 - a tuple containing the bounding box region in the format
             ((x0_lower, x0_upper), (x1_lower, x1_upper)).
     """
@@ -651,11 +651,11 @@ def _calculate_fiducial(wcs_list, bounding_box, crval=None):
     crval : list, optional
         A reference world coordinate associated with the reference pixel. If not `None`,
         then the fiducial coordinates of the spatial axes will be updated with the
-        values from `crval`.
+        values from ``crval``.
 
     Returns
     -------
-    fiducial : `~numpy.ndarray`
+    fiducial : numpy.ndarray
         A two-elements array containing the world coordinate of the fiducial point.
     """
     fiducial = compute_fiducial(wcs_list, bounding_box=bounding_box)
@@ -675,13 +675,13 @@ def _calculate_offsets(fiducial, wcs, axis_min_values, crpix):
 
     Parameters
     ----------
-    fiducial : `~numpy.ndarray`
+    fiducial : numpy.ndarray
         A two-elements containing the world coordinates of the fiducial point.
 
-    wcs : `~gwcs.wcs.WCS`
+    wcs : ~gwcs.wcs.WCS
         A WCS object. It will be used to determine the
 
-    axis_min_values : `~numpy.ndarray`
+    axis_min_values : numpy.ndarray
         A two-elements array containing the minimum pixel value for each axis.
 
     crpix : list or tuple
@@ -689,15 +689,15 @@ def _calculate_offsets(fiducial, wcs, axis_min_values, crpix):
 
     Returns
     -------
-    `~astropy.modeling.Model`
+    ~astropy.modeling.Model
         A model with the offsets to be added to the WCS's transform.
 
     Notes
     -----
-    If `crpix=None`, then `fiducial`, `wcs`, and `axis_min_values` must be provided.
-    The reason being that, in this case, the offsets will be calculated using the
-    WCS object to find the pixel coordinates of the fiducial point and then correct it
-    by the minimum pixel value for each axis.
+    If ``crpix=None``, then ``fiducial``, ``wcs``, and ``axis_min_values`` must be
+    provided, in which case, the offsets will be calculated using the WCS object to
+    find the pixel coordinates of the fiducial point and then correct it by the minimum
+    pixel value for each axis.
     """
     if (
         crpix is None
@@ -724,7 +724,7 @@ def _calculate_new_wcs(
 
     Parameters
     ----------
-    ref_model : a valid datamodel
+    ref_model :
         The reference model to be used when extracting metadata.
 
     shape : list
@@ -734,21 +734,21 @@ def _calculate_new_wcs(
     wcs_list : list
         A list containing WCS objects.
 
-    fiducial : `~numpy.ndarray`
+    fiducial : numpy.ndarray
         A two-elements array containing the location on the sky in some standard
         coordinate system.
 
     crpix : tuple, optional
         The coordinates of the reference pixel.
 
-    transform : `~astropy.modeling.Model`, optional
+    transform : ~astropy.modeling.Model
         An optional tranform to be prepended to the transform constructed by the
         fiducial point. The number of outputs of this transform must equal the number
         of axes in the coordinate frame.
 
     Returns
     -------
-    `~gwcs.wcs.WCS`
+    wcs_new : ~gwcs.wcs.WCS
         The new WCS object that corresponds to the combined WCS objects in `wcs_list`.
     """
     wcs_new = wcs_from_fiducial(
@@ -810,12 +810,216 @@ def _validate_wcs_list(wcs_list):
     elif len(wcs_list):
         if not all(isinstance(w, WCS) for w in wcs_list):
             raise TypeError(
-                "All items in 'wcs_list' are to be instances of gwcs.WCS."
+                "All items in 'wcs_list' are to be instances of gwcs.wcs.WCS."
             )
     else:
         raise TypeError("'wcs_list' should not be empty.")
 
     return True
+
+
+def wcsinfo_from_model(input_model: SupportsDataWithWcs):
+    """
+    Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
+
+    Parameters
+    ----------
+    input_model : ~stdatamodels.jwst.datamodels.JwstDataModel
+        The input datamodel.
+
+    Returns
+    -------
+    wcsinfo : dict
+        A dict containing the WCS FITS keywords and corresponding values.
+
+    """
+    defaults = {
+        "CRPIX": 0,
+        "CRVAL": 0,
+        "CDELT": 1.0,
+        "CTYPE": "",
+        "CUNIT": u.Unit(""),
+    }
+    wcsaxes = input_model.meta.wcsinfo.wcsaxes
+    wcsinfo = {"WCSAXES": wcsaxes}
+    for key in ["CRPIX", "CRVAL", "CDELT", "CTYPE", "CUNIT"]:
+        val = []
+        for ax in range(1, wcsaxes + 1):
+            k = (key + "{0}".format(ax)).lower()
+            v = getattr(input_model.meta.wcsinfo, k, defaults[key])
+            val.append(v)
+        wcsinfo[key] = np.array(val)
+
+    pc = np.zeros((wcsaxes, wcsaxes), dtype=np.float32)
+    for i in range(1, wcsaxes + 1):
+        for j in range(1, wcsaxes + 1):
+            pc[i - 1, j - 1] = getattr(
+                input_model.meta.wcsinfo, "pc{0}_{1}".format(i, j), 1
+            )
+    wcsinfo["PC"] = pc
+    wcsinfo["RADESYS"] = input_model.meta.coordinates.reference_frame
+    wcsinfo["has_cd"] = False
+    return wcsinfo
+
+
+def compute_scale(
+    wcs: WCS,
+    fiducial: Union[tuple, np.ndarray],
+    disp_axis: int = None,
+    pscale_ratio: float = None,
+) -> float:
+    """Compute scaling transform.
+
+    Parameters
+    ----------
+    wcs : ~gwcs.wcs.WCS
+        Reference WCS object from which to compute a scaling factor.
+
+    fiducial : tuple
+        Input fiducial of (RA, DEC) or (RA, DEC, Wavelength) used in calculating
+        reference points.
+
+    disp_axis : int
+        Dispersion axis integer. Assumes the same convention as
+        ``wcsinfo.dispersion_direction``
+
+    pscale_ratio : int
+        Ratio of input to output pixel scale
+
+    Returns
+    -------
+    scale : float
+        Scaling factor for x and y or cross-dispersion direction.
+
+    """
+    spectral = "SPECTRAL" in wcs.output_frame.axes_type
+
+    if spectral and disp_axis is None:
+        raise ValueError("If input WCS is spectral, a disp_axis must be given")
+
+    crpix = np.array(wcs.invert(*fiducial))
+
+    delta = np.zeros_like(crpix)
+    spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
+    delta[spatial_idx[0]] = 1
+
+    crpix_with_offsets = np.vstack(
+        (crpix, crpix + delta, crpix + np.roll(delta, 1))
+    ).T
+    crval_with_offsets = wcs(*crpix_with_offsets, with_bounding_box=False)
+
+    coords = SkyCoord(
+        ra=crval_with_offsets[spatial_idx[0]],
+        dec=crval_with_offsets[spatial_idx[1]],
+        unit="deg",
+    )
+    xscale = np.abs(coords[0].separation(coords[1]).value)
+    yscale = np.abs(coords[0].separation(coords[2]).value)
+
+    if pscale_ratio is not None:
+        xscale *= pscale_ratio
+        yscale *= pscale_ratio
+
+    if spectral:
+        # Assuming scale doesn't change with wavelength
+        # Assuming disp_axis is consistent with DataModel.meta.wcsinfo.dispersion.direction
+        return yscale if disp_axis == 1 else xscale
+
+    return np.sqrt(xscale * yscale)
+
+
+def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
+    """
+    Calculates the world coordinates of the fiducial point of a list of WCS objects.
+    For a celestial footprint this is the center. For a spectral footprint, it is the
+    beginning of its range.
+
+    Parameters
+    ----------
+    wcslist : list
+        A list containing all the WCS objects for which the fiducial is to be
+        calculated.
+
+    bounding_box : tuple, list, None
+        The bounding box over which the WCS is valid. It can be a either tuple of tuples
+        or a list of lists of size 2 where each element represents a range of
+        (low, high) values. The bounding_box is in the order of the axes, axes_order.
+        For two inputs and axes_order(0, 1) the bounding box can be either
+        ((xlow, xhigh), (ylow, yhigh)) or [[xlow, xhigh], [ylow, yhigh]].
+
+    Returns
+    -------
+    fiducial : numpy.ndarray
+        A two-elements array containing the world coordinates of the fiducial point
+        in the combined output coordinate frame.
+
+    Notes
+    -----
+    This function assumes all WCSs have the same output coordinate frame.
+    """
+
+    axes_types = wcslist[0].output_frame.axes_type
+    spatial_axes = np.array(axes_types) == "SPATIAL"
+    spectral_axes = np.array(axes_types) == "SPECTRAL"
+    footprints = np.hstack(
+        [w.footprint(bounding_box=bounding_box).T for w in wcslist]
+    )
+    spatial_footprint = footprints[spatial_axes]
+    spectral_footprint = footprints[spectral_axes]
+
+    fiducial = np.empty(len(axes_types))
+    if spatial_footprint.any():
+        fiducial[spatial_axes] = _calculate_fiducial_from_spatial_footprint(
+            spatial_footprint
+        )
+    if spectral_footprint.any():
+        fiducial[spectral_axes] = spectral_footprint.min()
+    return fiducial
+
+
+def calc_rotation_matrix(
+    roll_ref: float, v3i_yangle: float, vparity: int = 1
+) -> List[float]:
+    """Calculate the rotation matrix.
+
+    Parameters
+    ----------
+    roll_ref : float
+        Telescope roll angle of V3 North over East at the ref. point in radians
+
+    v3i_yangle : float
+        The angle between ideal Y-axis and V3 in radians.
+
+    vparity : int
+        The x-axis parity, usually taken from the JWST SIAF parameter VIdlParity.
+        Value should be "1" or "-1".
+
+    Returns
+    -------
+    matrix: list
+        A list containing the rotation matrix elements in column order.
+
+    Notes
+    -----
+    The rotation matrix is
+    
+    .. math::
+        PC = \\begin{bmatrix}
+                pc_{1,1} & pc_{2,1} \\\\
+                pc_{1,2} & pc_{2,2}
+            \\end{bmatrix}
+    """
+    if vparity not in (1, -1):
+        raise ValueError(f"vparity should be 1 or -1. Input was: {vparity}")
+
+    rel_angle = roll_ref - (vparity * v3i_yangle)
+
+    pc1_1 = vparity * np.cos(rel_angle)
+    pc1_2 = np.sin(rel_angle)
+    pc2_1 = vparity * -np.sin(rel_angle)
+    pc2_2 = np.cos(rel_angle)
+
+    return [pc1_1, pc1_2, pc2_1, pc2_2]
 
 
 def wcs_from_footprints(
