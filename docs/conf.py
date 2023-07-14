@@ -45,12 +45,27 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/devdocs", None),
     "scipy": ("http://scipy.github.io/devdocs", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
+    "gwcs": ("https://gwcs.readthedocs.io/en/latest/", None),
+    "astropy": ("https://docs.astropy.org/en/stable/", None),
+    "stdatamodels": ("https://stdatamodels.readthedocs.io/en/latest/", None),
 }
 
 extensions = [
-    "sphinx_automodapi.automodapi",
+    "pytest_doctestplus.sphinx.doctestplus",
+    "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
-    "numpydoc",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx_automodapi.automodapi",
+    "sphinx_automodapi.automodsumm",
+    "sphinx_automodapi.autodoc_enhancements",
+    "sphinx_automodapi.smart_resolver",
+    "sphinx_asdf",
+    "sphinx.ext.mathjax",
 ]
 
 autosummary_generate = True
