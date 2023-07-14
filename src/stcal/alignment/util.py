@@ -567,7 +567,7 @@ def calc_rotation_matrix(
     Notes
     -----
     The rotation matrix is
-    
+
     .. math::
         PC = \\begin{bmatrix}
                 pc_{1,1} & pc_{2,1} \\\\
