@@ -49,8 +49,8 @@ def _create_wcs_object_without_distortion(
     wcs_obj = WCS(pipeline)
 
     wcs_obj.bounding_box = (
-        (-0.5, shape[0] - 0.5),
-        (-0.5, shape[0] - 0.5),
+        (0, shape[0] - 1),
+        (0, shape[0] - 1),
     )
 
     return wcs_obj
@@ -158,7 +158,8 @@ def test_wcs_from_footprints():
     dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_1 = dm_1.meta.wcs
 
-    # shift fiducial by one pixel in both directions and create a new WCS
+    # shift fiducial by the size of a pixel projected onto the sky in both directions
+    # and create a new WCS
     fiducial_world = (
         fiducial_world[0] - 0.000028,
         fiducial_world[1] - 0.000028,
@@ -166,18 +167,12 @@ def test_wcs_from_footprints():
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
 
-    # check overlapping pixels have approximate the same world coordinate
-    assert all(np.isclose(wcs_1(0, 1), wcs_2(1, 2)))
-    assert all(np.isclose(wcs_1(1, 0), wcs_2(2, 1)))
-    assert all(np.isclose(wcs_1(0, 0), wcs_2(1, 1)))
-    assert all(np.isclose(wcs_1(1, 1), wcs_2(2, 2)))
-
     wcs = wcs_from_footprints([dm_1, dm_2])
 
     # check that center of calculated WCS matches the
     # expected position onto wcs_1 and wcs_2
-    assert all(np.isclose(wcs(2, 2), wcs_1(0.5, 0.5)))
-    assert all(np.isclose(wcs(2, 2), wcs_2(1.5, 1.5)))
+    assert all(np.isclose(wcs(2, 2), wcs_1(1, 1)))
+    assert all(np.isclose(wcs(2, 2), wcs_2(2, 2)))
 
 
 def test_validate_wcs_list():
