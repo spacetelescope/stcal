@@ -3,7 +3,7 @@ import pytest
 from astropy.io import fits
 
 from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
-    point_inside_ellipse, find_faint_extended
+    point_inside_ellipse, find_faint_extended, calc_num_slices
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
 
@@ -286,3 +286,27 @@ def test_inputjump_sat_star2():
                       expand_factor=2.0, use_ellipses=False,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     fits.writeto("outgdq_satstar.fits", testcube, overwrite=True)
+
+def test_calc_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert(calc_num_slices(n_rows, 'none', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, 'half', max_available_cores) == 5)
+    assert (calc_num_slices(n_rows, '3', max_available_cores) == 3)
+    assert (calc_num_slices(n_rows, '7', max_available_cores) == 7)
+    assert (calc_num_slices(n_rows, '21', max_available_cores) == 10)
+    assert (calc_num_slices(n_rows, 'quarter', max_available_cores) == 2)
+    assert (calc_num_slices(n_rows, '7.5', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, 'one', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, '-5', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, 'all', max_available_cores) == 10)
+    assert (calc_num_slices(n_rows, '3/4', max_available_cores) == 1)
+    n_rows = 9
+    assert (calc_num_slices(n_rows, '21', max_available_cores) == 9)
+
+
+
+
+
+
+

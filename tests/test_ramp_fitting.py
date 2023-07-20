@@ -1,7 +1,7 @@
 import numpy as np
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
-
+from stcal.ramp_fitting.utils import compute_num_slices
 
 DELIM = "-" * 70
 
@@ -1567,3 +1567,20 @@ def print_all_info(slopes, cube, optional):
     print_slopes(slopes)
     print_integ(cube)
     print_optional(optional)
+
+def test_compute_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert(compute_num_slices('none', n_rows, max_available_cores) == 1)
+    assert (compute_num_slices('half', n_rows, max_available_cores) == 5)
+    assert (compute_num_slices('3', n_rows, max_available_cores) == 3)
+    assert (compute_num_slices('7', n_rows, max_available_cores) == 7)
+    assert (compute_num_slices('21', n_rows, max_available_cores) == 10)
+    assert (compute_num_slices('quarter', n_rows,max_available_cores) == 2)
+    assert (compute_num_slices('7.5', n_rows, max_available_cores) == 1)
+    assert (compute_num_slices('one', n_rows, max_available_cores) == 1)
+    assert (compute_num_slices('-5', n_rows, max_available_cores) == 1)
+    assert (compute_num_slices('all', n_rows, max_available_cores) == 10)
+    assert (compute_num_slices('3/4', n_rows, max_available_cores) == 1)
+    n_rows = 9
+    assert (compute_num_slices('21', n_rows, max_available_cores) == 9)
