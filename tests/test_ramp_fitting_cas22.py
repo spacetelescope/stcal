@@ -20,7 +20,13 @@ import pytest
 import numpy as np
 
 from stcal.ramp_fitting import ols_cas22_fit as ramp
-from stcal.ramp_fitting.ols_cas22_util import READ_TIME, matable_to_readpattern, readpattern_to_matable
+from stcal.ramp_fitting.ols_cas22_util import matable_to_readpattern, readpattern_to_matable
+
+# Read Time in seconds
+#   For Roman, the read time of the detectors is a fixed value and is currently
+#   backed into code. Will need to refactor to consider the more general case.
+#   Used to deconstruct the MultiAccum tables into integration times.
+ROMAN_READ_TIME = 3.04
 
 
 def test_matable_to_readpattern():
@@ -50,7 +56,7 @@ def test_simulated_ramps():
         ntrial=ntrial)
 
     par, var = ramp.fit_ramps_casertano(
-        resultants, resultants * 0, read_noise, ma_table=ma_table)
+        resultants, resultants * 0, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
     chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2, 1, 1]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
 
@@ -58,7 +64,7 @@ def test_simulated_ramps():
     bad = np.random.uniform(size=resultants.shape) > 0.7
     dq = resultants * 0 + bad
     par, var = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ma_table=ma_table)
+        resultants, dq, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
     # only use okay ramps
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.

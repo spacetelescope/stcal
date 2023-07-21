@@ -2,12 +2,6 @@
 """
 import numpy as np
 
-# Read Time in seconds
-#   For Roman, the read time of the detectors is a fixed value and is currently
-#   backed into code. Will need to refactor to consider the more general case.
-#   Used to deconstruct the MultiAccum tables into integration times.
-READ_TIME = 3.04
-
 __all__ = ['ma_table_to_tau', 'ma_table_to_tbar']
 
 
@@ -52,7 +46,7 @@ def matable_to_readpattern(ma_table):
     return read_pattern
 
 
-def ma_table_to_tau(ma_table, read_time=READ_TIME):
+def ma_table_to_tau(ma_table, read_time):
     """Construct the tau for each resultant from an ma_table.
 
     .. math:: \\tau = \\overline{t} - (n - 1)(n + 1)\\delta t / 6n
@@ -65,18 +59,21 @@ def ma_table_to_tau(ma_table, read_time=READ_TIME):
         List of lists specifying the first read and the number of reads in each
         resultant.
 
+    read_time : float
+        Time to perform a read out. For Roman data, this is FRAME_TIME.
+
     Returns
     -------
     :math:`\\tau`
         A time scale appropriate for computing variances.
     """
 
-    meantimes = ma_table_to_tbar(ma_table)
+    meantimes = ma_table_to_tbar(ma_table, read_time)
     nreads = np.array([x[1] for x in ma_table])
     return meantimes - (nreads - 1) * (nreads + 1) * read_time / 6 / nreads
 
 
-def ma_table_to_tbar(ma_table, read_time=READ_TIME):
+def ma_table_to_tbar(ma_table, read_time):
     """Construct the mean times for each resultant from an ma_table.
 
     Parameters

@@ -36,7 +36,7 @@ from . import ols_cas22
 from .ols_cas22_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
 
 
-def fit_ramps_casertano(resultants, dq, read_noise, ma_table=None, read_pattern=None):
+def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, read_pattern=None):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
     Ramps are broken where dq != 0, and fits are performed on each sub-ramp.
@@ -50,8 +50,10 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table=None, read_pattern=
         the resultants in electrons
     dq : np.ndarry[nresultants, ...]
         the dq array.  dq != 0 implies bad pixel / CR.
-    read noise: float
+    read_noise : float
         the read noise in electrons
+    read_time : float
+        Read time. For Roman data this is the FRAME_TIME keyword.
     ma_table : list[list[int]] or None
         The MA table prescription. If None, use `read_pattern`.
         One of `ma_table` or `read_pattern` must be defined.
@@ -98,6 +100,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, ma_table=None, read_pattern=
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
+        read_time,
         ma_table)
 
     par = np.zeros(resultants.shape[1:] + (2,), dtype='f4')

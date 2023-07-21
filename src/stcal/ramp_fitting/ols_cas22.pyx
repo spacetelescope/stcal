@@ -109,8 +109,9 @@ cdef inline (float, float, float) fit_one_ramp(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def fit_ramps(np.ndarray[float, ndim=2] resultants,
-                np.ndarray[int, ndim=2] dq,
-                np.ndarray[float, ndim=1] read_noise, ma_table):
+              np.ndarray[int, ndim=2] dq,
+              np.ndarray[float, ndim=1] read_noise, read_time,
+              ma_table):
     """Fit ramps using the Casertano+22 algorithm.
 
     This implementation fits all ramp segments between bad pixels
@@ -125,8 +126,10 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         the resultants in electrons
     dq : np.ndarry[nresultants, npixel]
         the dq array.  dq != 0 implies bad pixel / CR.
-    read noise: float
+    read noise : float
         the read noise in electrons
+    read_time : float
+        Time to perform a readout. For Roman data, this is FRAME_TIME.
     ma_table : list[list[int]]
         the ma table prescription
 
@@ -154,10 +157,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     cdef np.ndarray[int] nn = np.array([x[1] for x in ma_table]).astype('i4')
     # number of reads in each resultant
-    cdef np.ndarray[float] tbar = ma_table_to_tbar(
-        ma_table).astype('f4')
-    cdef np.ndarray[float] tau = ma_table_to_tau(
-        ma_table).astype('f4')
+    cdef np.ndarray[float] tbar = ma_table_to_tbar(ma_table, read_time).astype('f4')
+    cdef np.ndarray[float] tau = ma_table_to_tau(ma_table, read_time).astype('f4')
     cdef int npixel = resultants.shape[1]
     cdef int nramp = (np.sum(dq[0, :] == 0) +
                       np.sum((dq[:-1, :] != 0) & (dq[1:, :] == 0)))
