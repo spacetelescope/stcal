@@ -1052,9 +1052,10 @@ def test_multi_more_cores_than_rows():
     var = rnval, gval
     tm = frame_time, nframes, groupgap
 
-    from stcal.ramp_fitting.utils import compute_slices
-    requested_slices = 8
-    requested_slices = compute_slices(requested_slices, nrows)
+    from stcal.ramp_fitting.utils import compute_num_slices
+    requested_slices = '8'
+    max_available_cores = 10
+    requested_slices = compute_num_slices(requested_slices, nrows, max_available_cores)
     assert requested_slices == 1
 
     """
