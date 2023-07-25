@@ -6,6 +6,13 @@ Bug Fixes
 
 jump
 ~~~~
+Added more allowable selections for the number of cores to use for
+multiprocessing [#183].
+
+Ramp Fitting
+~~~~~~~~~~~~
+Added more allowable selections for the number of cores to use for
+multiprocessing [#183].
 
 - 
 
