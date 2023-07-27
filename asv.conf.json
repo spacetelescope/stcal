@@ -2,7 +2,7 @@
   "version": 1,
   "project": "stcal",
   "project_url": "https://github.com/spacetelescope/stcal",
-  "repo": ".",
+  "repo": "https://github.com/spacetelescope/stcal.git",
   "branches": [
     "main"
   ],
