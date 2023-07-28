@@ -1,20 +1,21 @@
 1.4.3 (unreleased)
 ==================
 
-Bug Fixes
----------
+Other
+-----
 
 jump
 ~~~~
-Added more allowable selections for the number of cores to use for
-multiprocessing [#183].
 
-Ramp Fitting
+- Added more allowable selections for the number of cores to use for
+  multiprocessing [#183].
+
+ramp_fitting
 ~~~~~~~~~~~~
-Added more allowable selections for the number of cores to use for
-multiprocessing [#183].
 
-- 
+- Added more allowable selections for the number of cores to use for
+  multiprocessing [#183].
+
 
 1.4.2 (2023-07-11)
 ==================
