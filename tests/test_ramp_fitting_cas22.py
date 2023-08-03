@@ -40,7 +40,7 @@ def test_simulated_ramps():
 
     par, var = ramp.fit_ramps_casertano(
         resultants, resultants * 0, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
-    chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2, 1, 1]) / ntrial
+    chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
 
     # now let's mark a bunch of the ramps as compromised.
@@ -52,7 +52,7 @@ def test_simulated_ramps():
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.
     m = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
-    chi2dof_slope = np.sum((par[m, 1] - flux)**2 / var[m, 2, 1, 1]) / np.sum(m)
+    chi2dof_slope = np.sum((par[m, 1] - flux)**2 / var[m, 2]) / np.sum(m)
     assert np.abs(chi2dof_slope - 1) < 0.03
     assert np.all(par[~m, 1] == 0)
     assert np.all(var[~m, 1] == 0)

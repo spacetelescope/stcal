@@ -104,7 +104,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
         ma_table)
 
     par = np.zeros(resultants.shape[1:] + (2,), dtype='f4')
-    var = np.zeros(resultants.shape[1:] + (3, 2, 2), dtype='f4')
+    var = np.zeros(resultants.shape[1:] + (3,), dtype='f4')
 
     npix = resultants.reshape(resultants.shape[0], -1).shape[1]
     # we need to do some averaging to merge the results in each ramp.
@@ -123,19 +123,19 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
     totval = np.bincount(
         rampfitdict['pix'], weights=weight ** 2 * rampfitdict['slopereadvar'],
         minlength=npix)
-    var.reshape(npix, 3, 2, 2)[:, 0, 1, 1] = (
+    var.reshape(npix, 3,)[:, 0] = (
         totval / (totweight ** 2 + (totweight == 0)))
 
     # poisson noise variances
     totval = np.bincount(
         rampfitdict['pix'],
         weights=weight ** 2 * rampfitdict['slopepoissonvar'], minlength=npix)
-    var.reshape(npix, 3, 2, 2)[..., 1, 1, 1] = (
+    var.reshape(npix, 3)[..., 1] = (
         totval / (totweight ** 2 + (totweight == 0)))
 
     # multiply Poisson term by flux.  Clip at zero; no negative Poisson variances.
-    var[..., 1, 1, 1] *= np.clip(par[..., 1], 0, np.inf)
-    var[..., 2, 1, 1] = var[..., 0, 1, 1] + var[..., 1, 1, 1]
+    var[..., 1] *= np.clip(par[..., 1], 0, np.inf)
+    var[..., 2] = var[..., 0] + var[..., 1]
 
     if resultants.shape != origshape:
         par = par[0]
