@@ -77,15 +77,16 @@ cdef inline (float, float, float) fit_one_ramp(
     if tscale == 0:
         tscale = 1
     cdef float f0 = 0, f1 = 0, f2 = 0
-    for i in range(nres):
-        # Casertano+22, Eq. 45
-        ww[i] = ((((1 + weight_power) * nn[start + i]) /
-            (1 + weight_power * nn[start + i])) *
-            fabs((tbar[start + i] - tbarmid) / tscale) ** weight_power)
-        # Casertano+22 Eq. 35
-        f0 += ww[i]
-        f1 += ww[i] * tbar[start + i]
-        f2 += ww[i] * tbar[start + i]**2
+    with cython.cpow(True):  # Issue when tbar[] == tbarmid causes exception otherwise
+        for i in range(nres):
+            # Casertano+22, Eq. 45
+            ww[i] = ((((1 + weight_power) * nn[start + i]) /
+                (1 + weight_power * nn[start + i])) *
+                fabs((tbar[start + i] - tbarmid) / tscale) ** weight_power)
+            # Casertano+22 Eq. 35
+            f0 += ww[i]
+            f1 += ww[i] * tbar[start + i]
+            f2 += ww[i] * tbar[start + i]**2
     # Casertano+22 Eq. 36
     cdef float dd = f2 * f0 - f1 ** 2
     if dd == 0:

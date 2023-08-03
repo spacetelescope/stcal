@@ -1,26 +1,11 @@
 
 """
-Unit tests for ramp-fitting functions.  Tested routines:
-* ma_table_to_tbar
-* ma_table_to_tau
-* construct_covar
-* construct_ramp_fitting_matrices
-* construct_ki_and_variances
-* ki_and_variance_grid
-* RampFitInterpolator
-  * __init__
-  * ki
-  * variances
-  * fit_ramps
-* resultants_to_differences
-* simulate_many_ramps
+Unit tests for ramp-fitting functions.
 """
-import pytest
-
 import numpy as np
 
 from stcal.ramp_fitting import ols_cas22_fit as ramp
-from stcal.ramp_fitting.ols_cas22_util import matable_to_readpattern, readpattern_to_matable
+from stcal.ramp_fitting import ols_cas22_util
 
 # Read Time in seconds
 #   For Roman, the read time of the detectors is a fixed value and is currently
@@ -34,7 +19,7 @@ def test_matable_to_readpattern():
     ma_table = [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
     expected = [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
 
-    result = matable_to_readpattern(ma_table)
+    result = ols_cas22_util.matable_to_readpattern(ma_table)
 
     assert result == expected
 
@@ -44,16 +29,14 @@ def test_readpattern_to_matable():
     pattern = [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
     expected = [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
 
-    result = readpattern_to_matable(pattern)
+    result = ols_cas22_util.readpattern_to_matable(pattern)
 
     assert result == expected
 
 
 def test_simulated_ramps():
-    romanisim_ramp = pytest.importorskip('romanisim.ramp')
     ntrial = 100000
-    ma_table, flux, read_noise, resultants = romanisim_ramp.simulate_many_ramps(
-        ntrial=ntrial)
+    ma_table, flux, read_noise, resultants = simulate_many_ramps(ntrial=ntrial)
 
     par, var = ramp.fit_ramps_casertano(
         resultants, resultants * 0, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
@@ -73,3 +56,52 @@ def test_simulated_ramps():
     assert np.abs(chi2dof_slope - 1) < 0.03
     assert np.all(par[~m, 1] == 0)
     assert np.all(var[~m, 1] == 0)
+
+
+# #########
+# Utilities
+# #########
+def simulate_many_ramps(ntrial=100, flux=100, readnoise=5, ma_table=None):
+    """Simulate many ramps with a particular flux, read noise, and ma_table.
+
+    To test ramp fitting, it's useful to be able to simulate a large number
+    of ramps that are identical up to noise.  This function does that.
+
+    Parameters
+    ----------
+    ntrial : int
+        number of ramps to simulate
+    flux : float
+        flux in electrons / s
+    read_noise : float
+        read noise in electrons
+    ma_table : list[list] (int)
+        list of lists indicating first read and number of reads in each
+        resultant
+
+    Returns
+    -------
+    ma_table : list[list] (int)
+        ma_table used
+    flux : float
+        flux used
+    readnoise : float
+        read noise used
+    resultants : np.ndarray[n_resultant, ntrial] (float)
+        simulated resultants
+"""
+    if ma_table is None:
+        ma_table = [[1, 4], [5, 1], [6, 3], [9, 10], [19, 3], [22, 15]]
+    nread = np.array([x[1] for x in ma_table])
+    tij = ols_cas22_util.ma_table_to_tij(ma_table, ROMAN_READ_TIME)
+    resultants = np.zeros((len(ma_table), ntrial), dtype='f4')
+    buf = np.zeros(ntrial, dtype='i4')
+    for i, ti in enumerate(tij):
+        subbuf = np.zeros(ntrial, dtype='i4')
+        for t0 in ti:
+            buf += np.random.poisson(ROMAN_READ_TIME * flux, ntrial)
+            subbuf += buf
+        resultants[i] = (subbuf / len(ti)).astype('f4')
+    resultants += np.random.randn(len(ma_table), ntrial) * (
+        readnoise / np.sqrt(nread)).reshape(len(ma_table), 1)
+    return (ma_table, flux, readnoise, resultants)

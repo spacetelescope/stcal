@@ -73,6 +73,33 @@ def ma_table_to_tau(ma_table, read_time):
     return meantimes - (nreads - 1) * (nreads + 1) * read_time / 6 / nreads
 
 
+def ma_table_to_tij(ma_table, read_time):
+    """Get the times of each read going into resultants for a MA table.
+
+    Currently only ma_table_number = 1 is supported, corresponding to a simple
+    fiducial high latitude imaging MA table.
+
+    This presently uses a hard-coded, somewhat inflexible MA table description
+    in the parameters file.  But that seems like an okay option given that the
+    current 'official' file is slated for redesign when the format is relaxed.
+
+    Parameters
+    ----------
+    ma_table : list[list]
+        A list of (first_read, n_reads) tuples going into resultants.
+
+    read_time : float
+        The time taken for a read-out. For Roman, this is FRAME_TIME.
+
+    Returns
+    -------
+    list[list[float]]
+        list of list of readout times for each read entering a resultant
+    """
+    tij = [read_time * np.arange(f, f + n) for (f, n) in ma_table]
+    return tij
+
+
 def ma_table_to_tbar(ma_table, read_time):
     """Construct the mean times for each resultant from an ma_table.
 
