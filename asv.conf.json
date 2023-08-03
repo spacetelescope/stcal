@@ -7,7 +7,7 @@
     "main"
   ],
   "show_commit_url": "http://github.com/spacetelescope/stcal/commit/",
-  "environment_type": "conda",
+  "environment_type": "mamba",
   "install_command": [
     "pip install ."
   ],
