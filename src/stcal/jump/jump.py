@@ -628,7 +628,10 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
                 if point_inside_ellipse(sat[0], jump):
                     # center of jump should be saturated
                     jump_center = jump[0]
+                    # The next group is tested to deal with grouped frames
                     if gdq[integration, group, round(jump_center[1]),
+                           round(jump_center[0])] == sat_flag or \
+                       gdq[integration, group+1, round(jump_center[1]),
                            round(jump_center[0])] == sat_flag:
                         if jump not in snowballs:
                             snowballs.append(jump)
@@ -638,6 +641,7 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
                                                   min_sat_radius,
                                                   expansion=expansion,
                                                   max_extended_radius=max_extended_radius)
+
     return gdq, snowballs
 
 
