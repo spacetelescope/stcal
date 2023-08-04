@@ -635,7 +635,7 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
                     # The next group is tested to deal with grouped frames
                     if gdq[integration, group, round(jump_center[1]),
                            round(jump_center[0])] == sat_flag or \
-                           group < num_groups and \
+                           group < (num_groups - 1) and \
                            gdq[integration, group+1, round(jump_center[1]),
                            round(jump_center[0])] == sat_flag:
                         if jump not in snowballs:
