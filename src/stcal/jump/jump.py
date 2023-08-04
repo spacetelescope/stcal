@@ -481,7 +481,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             current_gdq = gdq[integration, group, :, :]
             current_sat = np.bitwise_and(current_gdq, sat_flag)
             prev_gdq = gdq[integration, group - 1, :, :]
-            not_prev_sat = np.bitwise_not(np.logical_and(prev_gdq, sat_flag))
+            prev_sat = np.bitwise_and(prev_gdq, sat_flag)
+            not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
 #            diff_gdq[diff_gdq != sat_flag] = 0
 #            new_sat = diff_gdq.astype('uint8')
