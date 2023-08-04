@@ -251,7 +251,7 @@ def test_inside_ellipes5():
     assert result
 
 
-@pytest.mark.skip("Fails in CI")
+#@pytest.mark.skip("Fails in CI")
 def test_inputjumpall():
     testcube = fits.getdata('data/large_event_input_dq_cube2.fits')
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
@@ -259,6 +259,7 @@ def test_inputjumpall():
                       expand_factor=2.0,
                       sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
     snowball_1 = testcube[0, 1,  1900:1934, 1710:1746]
+    fits.writeto("test_snowball.fits", snowball_1, overwrite=True)
     correct_snowball_1 = fits.getdata('data/snowball1.fits')
     snowball_diff = snowball_1 - correct_snowball_1
     assert (np.all(snowball_diff == 0))

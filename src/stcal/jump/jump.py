@@ -478,12 +478,15 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
     ngrps = gdq.shape[1]
     for integration in range(nints):
         for group in range(1, ngrps):
-            current_gdq = 1.0 * gdq[integration, group, :, :]
-            prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-            diff_gdq = 1.0 * current_gdq - prev_gdq
-            diff_gdq[diff_gdq != sat_flag] = 0
-            new_sat = diff_gdq.astype('uint8')
+            current_gdq = gdq[integration, group, :, :]
+            current_sat = np.bitwise_and(current_gdq, sat_flag)
+            prev_gdq = gdq[integration, group - 1, :, :]
+            not_prev_sat = np.bitwise_not(np.logical_and(prev_gdq, sat_flag))
+            new_sat = current_sat * not_prev_sat
+#            diff_gdq[diff_gdq != sat_flag] = 0
+#            new_sat = diff_gdq.astype('uint8')
             # find the ellipse parameters for newly saturated pixels
+#            in_sat = (new_sat * sat_flag).astype('uint8')
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
 
             # find the ellipse parameters for jump regions
