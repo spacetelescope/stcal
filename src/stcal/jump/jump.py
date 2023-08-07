@@ -625,7 +625,11 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
     snowballs = []
     num_groups = gdq.shape[1]
     for jump in jump_ellipses:
-        if near_edge(jump, low_threshold, high_threshold):
+        if group < (num_groups - 1) and \
+           gdq[integration, group+1, round(jump_center[1]),
+           round(jump_center[0])] == sat_flag:
+            snowballs.append(jump)
+        elif near_edge(jump, low_threshold, high_threshold):
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
@@ -635,9 +639,6 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
                     jump_center = jump[0]
                     # The next group is tested to deal with grouped frames
                     if gdq[integration, group, round(jump_center[1]),
-                           round(jump_center[0])] == sat_flag or \
-                           group < (num_groups - 1) and \
-                           gdq[integration, group+1, round(jump_center[1]),
                            round(jump_center[0])] == sat_flag:
                         if jump not in snowballs:
                             snowballs.append(jump)
