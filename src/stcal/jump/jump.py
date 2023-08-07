@@ -625,6 +625,8 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
     snowballs = []
     num_groups = gdq.shape[1]
     for jump in jump_ellipses:
+        # center of jump should be saturated
+        jump_center = jump[0]
         if group < (num_groups - 1) and \
            gdq[integration, group+1, round(jump_center[1]),
            round(jump_center[0])] == sat_flag:
@@ -635,8 +637,6 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
             for sat in sat_ellipses:
                 # center of saturation is within the enclosing jump rectangle
                 if point_inside_ellipse(sat[0], jump):
-                    # center of jump should be saturated
-                    jump_center = jump[0]
                     # The next group is tested to deal with grouped frames
                     if gdq[integration, group, round(jump_center[1]),
                            round(jump_center[0])] == sat_flag:
