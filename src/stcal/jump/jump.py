@@ -629,7 +629,9 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
         jump_center = jump[0]
         if group < (num_groups - 1) and \
            gdq[integration, group+1, round(jump_center[1]),
-           round(jump_center[0])] == sat_flag:
+           round(jump_center[0])] == sat_flag and \
+           gdq[integration, group, round(jump_center[1]),
+           round(jump_center[0])] != sat_flag:
             snowballs.append(jump)
         elif near_edge(jump, low_threshold, high_threshold):
             snowballs.append(jump)
