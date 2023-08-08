@@ -484,10 +484,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             prev_sat = np.bitwise_and(prev_gdq, sat_flag)
             not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
-#            diff_gdq[diff_gdq != sat_flag] = 0
-#            new_sat = diff_gdq.astype('uint8')
-            # find the ellipse parameters for newly saturated pixels
-#            in_sat = (new_sat * sat_flag).astype('uint8')
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
 
             # find the ellipse parameters for jump regions
@@ -638,18 +634,17 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
         else:
             for sat in sat_ellipses:
                 # center of saturation is within the enclosing jump rectangle
-                if point_inside_ellipse(sat[0], jump):
-                    # The next group is tested to deal with grouped frames
-                    if gdq[integration, group, round(jump_center[1]),
-                           round(jump_center[0])] == sat_flag:
-                        if jump not in snowballs:
-                            snowballs.append(jump)
-                            gdq[integration, :, :, :] = \
-                                extend_saturation(gdq[integration, :, :, :],
-                                                  group, [sat], sat_flag,
-                                                  min_sat_radius,
-                                                  expansion=expansion,
-                                                  max_extended_radius=max_extended_radius)
+#                if point_inside_ellipse(sat[0], jump):
+                if gdq[integration, group, round(jump_center[1]),
+                       round(jump_center[0])] == sat_flag:
+                    if jump not in snowballs:
+                        snowballs.append(jump)
+                        gdq[integration, :, :, :] = \
+                            extend_saturation(gdq[integration, :, :, :],
+                                              group, [sat], sat_flag,
+                                              min_sat_radius,
+                                              expansion=expansion,
+                                              max_extended_radius=max_extended_radius)
 
     return gdq, snowballs
 
