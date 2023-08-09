@@ -485,7 +485,6 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-            print("num sat ellipses", len(sat_ellipses))
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(gdq[integration, group, :, :],
                                           jump_flag, min_jump_area)
@@ -618,7 +617,6 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
     # Ths routine will create a list of snowballs (ellipses) that have the
     # center
     # of the saturation circle within the enclosing jump rectangle.
-    print("make snowball grp", group)
     snowballs = []
     num_groups = gdq.shape[1]
     for jump in jump_ellipses:
