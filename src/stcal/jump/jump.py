@@ -4,7 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
-from astropy.io import fits
+
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
@@ -382,15 +382,14 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             k += 1
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-            fits.writeto("input_gdq_bignrs.fits", gdq, overwrite=True)
             total_snowballs = flag_large_events(gdq, jump_flag, sat_flag,
-                              min_sat_area=min_sat_area,
-                              min_jump_area=min_jump_area,
-                              expand_factor=expand_factor,
-                              sat_required_snowball=sat_required_snowball,
-                              min_sat_radius_extend=min_sat_radius_extend,
-                              edge_size=edge_size, sat_expand=sat_expand,
-                              max_extended_radius=max_extended_radius)
+                                                min_sat_area=min_sat_area,
+                                                min_jump_area=min_jump_area,
+                                                expand_factor=expand_factor,
+                                                sat_required_snowball=sat_required_snowball,
+                                                min_sat_radius_extend=min_sat_radius_extend,
+                                                edge_size=edge_size, sat_expand=sat_expand,
+                                                max_extended_radius=max_extended_radius)
             log.info('Total snowballs = %i' % total_snowballs)
             number_extended_events = total_snowballs
         if find_showers:
