@@ -251,42 +251,6 @@ def test_inside_ellipes5():
     assert result
 
 
-@pytest.mark.skip("Fails in CI")
-def test_inputjumpall():
-    testcube = fits.getdata('data/large_event_input_dq_cube2.fits')
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=6,
-                      expand_factor=2.0,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    snowball_1 = testcube[0, 1,  1900:1934, 1710:1746]
-    correct_snowball_1 = fits.getdata('data/snowball1.fits')
-    snowball_diff = snowball_1 - correct_snowball_1
-    assert (np.all(snowball_diff == 0))
-
-
-@pytest.mark.skip("Used for local testing")
-def test_inputjump_sat_star():
-    testcube = fits.getdata('data/input_gdq_flarge.fits')
-    num_extended_events = flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'],
-                                            min_sat_area=1,
-                                            min_jump_area=6,
-                                            expand_factor=2.0,
-                                            sat_required_snowball=True,
-                                            min_sat_radius_extend=2.5,
-                                            sat_expand=2)
-    assert(num_extended_events == 312)
-    fits.writeto("outgdq2.fits", testcube, overwrite=True)
-
-
-@pytest.mark.skip("Used for local testing")
-def test_inputjump_sat_star2():
-    testcube = fits.getdata('input_gdq_satstar.fits')
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=6,
-                      expand_factor=2.0, use_ellipses=False,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("outgdq_satstar.fits", testcube, overwrite=True)
-
 def test_calc_num_slices():
     n_rows = 20
     max_available_cores = 10
