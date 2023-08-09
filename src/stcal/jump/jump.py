@@ -639,12 +639,13 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
                            round(jump_center[0])] == sat_flag:
                         if jump not in snowballs:
                             snowballs.append(jump)
-                gdq[integration, :, :, :] = \
-                    extend_saturation(gdq[integration, :, :, :],
-                    group, [sat], sat_flag,
-                    min_sat_radius,
-                    expansion=expansion,
-                    max_extended_radius=max_extended_radius)
+    for sat in sat_ellipses:
+        gdq[integration, :, :, :] = \
+            extend_saturation(gdq[integration, :, :, :],
+            group, [sat], sat_flag,
+            min_sat_radius,
+            expansion=expansion,
+            max_extended_radius=max_extended_radius)
 
     return gdq, snowballs
 
