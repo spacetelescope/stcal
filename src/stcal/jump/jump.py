@@ -618,6 +618,7 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
     # Ths routine will create a list of snowballs (ellipses) that have the
     # center
     # of the saturation circle within the enclosing jump rectangle.
+    print("make snowball grp", group)
     snowballs = []
     num_groups = gdq.shape[1]
     for jump in jump_ellipses:
