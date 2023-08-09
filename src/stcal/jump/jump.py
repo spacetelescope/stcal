@@ -4,7 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
-
+from astropy.io import fits
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
@@ -260,7 +260,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_n2=after_jump_flag_n2, copy_arrs=False,
                            minimum_groups=3, minimum_sigclip_groups=minimum_sigclip_groups,
                            only_use_ints=only_use_ints)
-        #  This is the flag that controls the flagging of either snowballs.
+        #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
@@ -380,9 +380,9 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-        #  This is the flag that controls the flagging of either
-        #  snowballs or showers.
+        #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
+            fits.writeto("input_gdq_bignrs.fits", gdq, overwrite=True)
             total_snowballs = flag_large_events(gdq, jump_flag, sat_flag,
                               min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
@@ -485,7 +485,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
             not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-
+            print("num sat ellipses", len(sat_ellipses))
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(gdq[integration, group, :, :],
                                           jump_flag, min_jump_area)

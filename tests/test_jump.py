@@ -288,7 +288,7 @@ def test_inputjumpall():
     assert (np.all(snowball_diff == 0))
 
 
-@pytest.mark.skip("Used for local testing")
+#@pytest.mark.skip("Used for local testing")
 def test_inputjump_sat_star():
     testcube = fits.getdata('data/input_gdq_flarge.fits')
     num_extended_events = flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'],
@@ -302,7 +302,7 @@ def test_inputjump_sat_star():
     fits.writeto("outgdq2.fits", testcube, overwrite=True)
 
 
-@pytest.mark.skip("Used for local testing")
+#@pytest.mark.skip("Used for local testing")
 def test_inputjump_sat_star2():
     testcube = fits.getdata('input_gdq_satstar.fits')
     flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
