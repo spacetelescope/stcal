@@ -14,7 +14,7 @@ STScI Calibration algorithms and tools.
 
 **Linux and MacOS platforms are tested and supported.  Windows is not currently supported.**
 
-**If installing on MacOS Mojave 10.14, you must install 
+**If installing on MacOS Mojave 10.14, you must install
   into an environment with python 3.9. Installation will fail on python 3.10 due
   to lack of a stable build for dependency ``opencv-python``.**
 

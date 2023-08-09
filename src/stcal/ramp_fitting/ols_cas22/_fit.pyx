@@ -230,6 +230,6 @@ def fit_ramps(float[:, :] resultants,
 
     # Cast memory views into numpy arrays for ease of use in python.
     return RampFitOutputs(np.array(parameters, dtype=np.float32),
-                          np.array(variances, dtype=np.float32), 
+                          np.array(variances, dtype=np.float32),
                           dq,
                           ramp_fits if include_diagnostic else None)

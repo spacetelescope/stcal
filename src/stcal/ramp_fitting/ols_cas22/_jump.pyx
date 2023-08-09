@@ -231,7 +231,7 @@ cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
     Compute the correction factor for the variance used by a statistic
 
         - slope / (t_bar[end] - t_bar[start])
-    
+
     Parameters
     ----------
     t_bar : float[:]
@@ -268,7 +268,7 @@ cdef inline float _statstic(float local_slope,
             var_read_noise = read_noise ** 2 * (1/n_reads[i + j] + 1/n_reads[i])
             var_slope_coeff = tau[i + j] + tau[i] - 2 * min(t_bar[i + j], t_bar[i])
             t_bar_diff_sqr = (t_bar[i + j] - t_bar[i]) ** 2
-    
+
     Parameters
     ----------
     local_slope : float
@@ -290,7 +290,7 @@ cdef inline float _statstic(float local_slope,
     """
 
     cdef float delta = local_slope - slope
-    cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr 
+    cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
 
     return delta / sqrt(var + correct)
 
@@ -385,7 +385,7 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
             argmax = stat_index
 
     return argmax, max_stat
-    
+
 
 @boundscheck(False)
 @wraparound(False)
@@ -429,7 +429,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
     fixed : float[:, :]
         The jump detection pre-computed values for a given read_pattern
     pixel : float[:, :]
-        A pre-allocated array for the jump detection fixed values for the 
+        A pre-allocated array for the jump detection fixed values for the
         given pixel. This will be modified in place, it is passed in to avoid
         re-allocating it for each pixel.
     thresh : Thresh
