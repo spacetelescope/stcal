@@ -700,3 +700,64 @@ def wcs_from_footprints(
         fiducial=fiducial,
         transform=transform,
     )
+
+
+def update_s_region_imaging(model):
+    """
+    Update the ``S_REGION`` keyword using ``WCS.footprint``.
+    """
+
+    bbox = model.meta.wcs.bounding_box
+
+    if bbox is None:
+        bbox = wcs_bbox_from_shape(model.data.shape)
+
+    # footprint is an array of shape (2, 4) as we
+    # are interested only in the footprint on the sky
+    footprint = model.meta.wcs.footprint(
+        bbox, center=True, axis_type="spatial"
+    ).T
+    # take only imaging footprint
+    footprint = footprint[:2, :]
+
+    # Make sure RA values are all positive
+    negative_ind = footprint[0] < 0
+    if negative_ind.any():
+        footprint[0][negative_ind] = 360 + footprint[0][negative_ind]
+
+    footprint = footprint.T
+    update_s_region_keyword(model, footprint)
+
+
+def wcs_bbox_from_shape(shape):
+    """Create a bounding box from the shape of the data.
+
+    This is appropriate to attach to a wcs object
+    Parameters
+    ----------
+    shape : tuple
+        The shape attribute from a `numpy.ndarray` array
+
+    Returns
+    -------
+    bbox : tuple
+        Bounding box in x, y order.
+    """
+    return (-0.5, shape[-1] - 0.5), (-0.5, shape[-2] - 0.5)
+
+
+def update_s_region_keyword(model, footprint):
+    """Update the S_REGION keyword."""
+    s_region = (
+        "POLYGON ICRS "
+        " {0:.9f} {1:.9f}"
+        " {2:.9f} {3:.9f}"
+        " {4:.9f} {5:.9f}"
+        " {6:.9f} {7:.9f}".format(*footprint.flatten())
+    )
+    if "nan" in s_region:
+        # do not update s_region if there are NaNs.
+        log.info("There are NaNs in s_region, S_REGION not updated.")
+    else:
+        model.meta.wcsinfo.s_region = s_region
+        log.info(f"Update S_REGION to {model.meta.wcsinfo.s_region}")
