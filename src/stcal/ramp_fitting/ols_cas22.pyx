@@ -77,6 +77,12 @@ cdef inline (float, float, float) fit_one_ramp(
     if tscale == 0:
         tscale = 1
     cdef float f0 = 0, f1 = 0, f2 = 0
+
+    # Special case where there is no or one resultant, there is no fit.
+    if nres <= 1:
+        return 0, 0, 0
+
+    # Else, do the fitting.
     with cython.cpow(True):  # Issue when tbar[] == tbarmid causes exception otherwise
         for i in range(nres):
             # Casertano+22, Eq. 45
