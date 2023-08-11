@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from astropy.io import fits
 
 from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
     point_inside_ellipse, find_faint_extended, calc_num_slices
