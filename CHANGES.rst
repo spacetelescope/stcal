@@ -20,6 +20,11 @@ ramp_fitting
 1.4.2 (2023-07-11)
 ==================
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Implement the Casertano, et.al, 2022 uneven ramp fitting [#175]
+
 Bug Fixes
 ---------
 
