@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from astropy.io import fits
 
 from stcal.jump.twopoint_difference import find_crs, calc_med_first_diffs
 
