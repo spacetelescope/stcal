@@ -6,8 +6,8 @@ import numpy as np
 Options.docstrings = True
 Options.annotate = False
 
-extensions = [Extension('stcal.ramp_fitting.ols_cas22',
-                        ['src/stcal/ramp_fitting/ols_cas22.pyx'],
+extensions = [Extension('stcal.ramp_fitting.ols_cas22._ols_cas22',
+                        ['src/stcal/ramp_fitting/ols_cas22/_ols_cas22.pyx'],
                         include_dirs=[np.get_include()],
                         extra_compile_args=['-std=c99'])]
 
