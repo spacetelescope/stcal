@@ -25,7 +25,7 @@ cdef inline float get_weight_power(float s):
 @cython.cdivision(True)
 cdef inline (float, float, float) fit_one_ramp(
         float [:] resultants, int start, int end, float read_noise,
-        float [:] tbar, float [:] tau, int [:] nn):
+        float [:] t_bar, float [:] tau, int [:] nn):
     """Fit a portion of single ramp using the Casertano+22 algorithm.
 
     Parameters
@@ -38,7 +38,7 @@ cdef inline (float, float, float) fit_one_ramp(
         ending point of portion to fit within this pixel
     read_noise : float
         read noise for this pixel
-    tbar : float [:]
+    t_bar : float [:]
         mean times of resultants
     tau : float [:]
         variance weighted mean times of resultants
@@ -49,18 +49,24 @@ cdef inline (float, float, float) fit_one_ramp(
     -------
     slope : float
         fit slope
-    slopereadvar : float
+    slope_read_var : float
         read noise induced variance in slope
-    slopepoissonvar : float
+    slope_poisson_var : float
         coefficient of Poisson-noise induced variance in slope
         multiply by true flux to get actual Poisson variance.
     """
+    cdef int n_res = end - start + 1
+
+    # Special case where there is no or one resultant, there is no fit.
+    if n_res <= 1:
+        return 0, 0, 0
+
+    # Else, do the fitting.
     cdef int i = 0, j = 0
-    cdef int nres = end - start + 1
-    cdef float ww[2048]
-    cdef float kk[2048]
-    cdef float slope = 0, slopereadvar = 0, slopepoissonvar = 0
-    cdef float tbarmid = (tbar[start] + tbar[end]) / 2
+    cdef float wfi_weight[2048]
+    cdef float coeffs[2048]
+    cdef float slope = 0, slope_read_var = 0, slope_poisson_var = 0
+    cdef float tbarmid = (t_bar[start] + t_bar[end]) / 2
 
     # Casertano+2022 Eq. 44
     # Note we've departed from Casertano+22 slightly;
@@ -73,44 +79,39 @@ cdef inline (float, float, float) fit_one_ramp(
 
     # It's easy to use up a lot of dynamic range on something like
     # (tbar - tbarmid) ** 10.  Rescale these.
-    cdef float tscale = (tbar[end] - tbar[start]) / 2
-    if tscale == 0:
-        tscale = 1
+    cdef float t_scale = (t_bar[end] - t_bar[start]) / 2
+    t_scale = 1 if t_scale == 0 else t_scale
+
     cdef float f0 = 0, f1 = 0, f2 = 0
 
-    # Special case where there is no or one resultant, there is no fit.
-    if nres <= 1:
-        return 0, 0, 0
-
-    # Else, do the fitting.
     with cython.cpow(True):  # Issue when tbar[] == tbarmid causes exception otherwise
-        for i in range(nres):
+        for i in range(n_res):
             # Casertano+22, Eq. 45
-            ww[i] = ((((1 + weight_power) * nn[start + i]) /
+            wfi_weight[i] = ((((1 + weight_power) * nn[start + i]) /
                 (1 + weight_power * nn[start + i])) *
-                fabs((tbar[start + i] - tbarmid) / tscale) ** weight_power)
+                fabs((t_bar[start + i] - tbarmid) / t_scale) ** weight_power)
             # Casertano+22 Eq. 35
-            f0 += ww[i]
-            f1 += ww[i] * tbar[start + i]
-            f2 += ww[i] * tbar[start + i]**2
+            f0 += wfi_weight[i]
+            f1 += wfi_weight[i] * t_bar[start + i]
+            f2 += wfi_weight[i] * t_bar[start + i]**2
     # Casertano+22 Eq. 36
-    cdef float dd = f2 * f0 - f1 ** 2
-    if dd == 0:
+    cdef float det = f2 * f0 - f1 ** 2
+    if det == 0:
         return (0.0, 0.0, 0.0)
-    for i in range(nres):
+    for i in range(n_res):
         # Casertano+22 Eq. 37
-        kk[i] = (f0 * tbar[start + i] - f1) * ww[i] / dd
-    for i in range(nres):
+        coeffs[i] = (f0 * t_bar[start + i] - f1) * wfi_weight[i] / det
+    for i in range(n_res):
         # Casertano+22 Eq. 38
-        slope += kk[i] * resultants[start + i]
+        slope += coeffs[i] * resultants[start + i]
         # Casertano+22 Eq. 39
-        slopereadvar += kk[i] ** 2 * read_noise ** 2 / nn[start + i]
+        slope_read_var += coeffs[i] ** 2 * read_noise ** 2 / nn[start + i]
         # Casertano+22 Eq 40
-        slopepoissonvar += kk[i] ** 2 * tau[start + i]
-        for j in range(i + 1, nres):
-            slopepoissonvar += 2 * kk[i] * kk[j] * tbar[start + i]
+        slope_poisson_var += coeffs[i] ** 2 * tau[start + i]
+        for j in range(i + 1, n_res):
+            slope_poisson_var += 2 * coeffs[i] * coeffs[j] * t_bar[start + i]
 
-    return (slope, slopereadvar, slopepoissonvar)
+    return (slope, slope_read_var, slope_poisson_var)
 
 
 @cython.boundscheck(False)
