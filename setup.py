@@ -6,9 +6,19 @@ import numpy as np
 Options.docstrings = True
 Options.annotate = False
 
-extensions = [Extension('stcal.ramp_fitting.ols_cas22._ols_cas22',
-                        ['src/stcal/ramp_fitting/ols_cas22/_ols_cas22.pyx'],
-                        include_dirs=[np.get_include()],
-                        extra_compile_args=['-std=c99'])]
+extensions = [
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._fit_one_ramp',
+        ['src/stcal/ramp_fitting/ols_cas22/_fit_one_ramp.pyx'],
+        include_dirs=[np.get_include()],
+        extra_compile_args=['-std=c99']
+    ),
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._ols_cas22',
+        ['src/stcal/ramp_fitting/ols_cas22/_ols_cas22.pyx'],
+        include_dirs=[np.get_include()],
+        extra_compile_args=['-std=c99']
+    ),
+]
 
 setup(ext_modules=cythonize(extensions))
