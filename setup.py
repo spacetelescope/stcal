@@ -8,6 +8,12 @@ Options.annotate = False
 
 extensions = [
     Extension(
+        'stcal.ramp_fitting.ols_cas22._core',
+        ['src/stcal/ramp_fitting/ols_cas22/_core.pyx'],
+        include_dirs=[np.get_include()],
+        extra_compile_args=['-std=c99']
+    ),
+    Extension(
         'stcal.ramp_fitting.ols_cas22._fit_one_ramp',
         ['src/stcal/ramp_fitting/ols_cas22/_fit_one_ramp.pyx'],
         include_dirs=[np.get_include()],

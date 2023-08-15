@@ -3,6 +3,8 @@ cimport numpy as np
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22_util import ma_table_to_tau, ma_table_to_tbar
+
+from stcal.ramp_fitting.ols_cas22._core cimport Ramp, Fit, make_ramp
 from stcal.ramp_fitting.ols_cas22._fit_one_ramp cimport fit_one_ramp
 
 
@@ -94,19 +96,17 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     # we should have just filled out the starting and stopping locations
     # of each ramp.
 
-    cdef float slope0, slopereadvar0, slopepoissonvar0
-    cdef float [:, :] resview = resultants
-    cdef float [:] rnview = read_noise
-    cdef float [:] tbarview = tbar
-    cdef float [:] tauview = tau
-    cdef int [:] nnview = nn
+    cdef Ramp ramp
+    cdef Fit fit
     for i in range(nramp):
-        slope0, slopereadvar0, slopepoissonvar0 = fit_one_ramp(
-            resview[:, pix[i]], resstart[i], resend[i], rnview[pix[i]],
-            tbarview, tauview, nnview)
-        slope[i] = slope0
-        slopereadvar[i] = slopereadvar0
-        slopepoissonvar[i] = slopepoissonvar0
+        ramp = make_ramp(resultants[:, pix[i]], resstart[i], resend[i],
+                         read_noise[pix[i]], tbar, tau, nn)
+
+        fit = fit_one_ramp(ramp)
+
+        slope[i] = fit.slope
+        slopereadvar[i] = fit.slope_read_var
+        slopepoissonvar[i] = fit.slope_poisson_var
 
     return dict(slope=slope, slopereadvar=slopereadvar,
                 slopepoissonvar=slopepoissonvar,
