@@ -14,12 +14,6 @@ extensions = [
         extra_compile_args=['-std=c99']
     ),
     Extension(
-        'stcal.ramp_fitting.ols_cas22._fit_one_ramp',
-        ['src/stcal/ramp_fitting/ols_cas22/_fit_one_ramp.pyx'],
-        include_dirs=[np.get_include()],
-        extra_compile_args=['-std=c99']
-    ),
-    Extension(
         'stcal.ramp_fitting.ols_cas22._jump_detection',
         ['src/stcal/ramp_fitting/ols_cas22/_jump_detection.pyx'],
         include_dirs=[np.get_include()],

@@ -4,8 +4,7 @@ cimport cython
 
 from stcal.ramp_fitting.ols_cas22_util import ma_table_to_tau, ma_table_to_tbar
 
-from stcal.ramp_fitting.ols_cas22._core cimport Ramp, make_ramp
-from stcal.ramp_fitting.ols_cas22._fit_one_ramp cimport fit_one_ramp
+from stcal.ramp_fitting.ols_cas22._core cimport make_ramp
 
 
 @cython.boundscheck(False)
@@ -55,7 +54,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     """
     cdef int nresultant = len(ma_table)
     if nresultant != resultants.shape[0]:
-        raise RuntimeError(f'MA table length {nresultant} does not match number of resultants {resultants.shape[0]}')
+        raise RuntimeError(f'MA table length {nresultant} does not '
+                           f'match number of resultants {resultants.shape[0]}')
 
     cdef np.ndarray[int] nn = np.array([x[1] for x in ma_table]).astype('i4')
     # number of reads in each resultant
@@ -96,12 +96,11 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     # we should have just filled out the starting and stopping locations
     # of each ramp.
 
-    cdef Ramp ramp
     for i in range(nramp):
-        ramp = make_ramp(resultants[:, pix[i]], resstart[i], resend[i],
-                         read_noise[pix[i]], tbar, tau, nn)
-
-        slope[i], slopereadvar[i], slopepoissonvar[i] = fit_one_ramp(ramp)
+        slope[i], slopereadvar[i], slopepoissonvar[i] = make_ramp(
+            resultants[:, pix[i]],
+            resstart[i], resend[i],
+            read_noise[pix[i]], tbar, tau, nn).fit()
 
     return dict(slope=slope, slopereadvar=slopereadvar,
                 slopepoissonvar=slopepoissonvar,
