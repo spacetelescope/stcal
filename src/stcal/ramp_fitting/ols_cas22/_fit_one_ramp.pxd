@@ -1,3 +1,3 @@
-from stcal.ramp_fitting.ols_cas22._core cimport Ramp, Fit
+from stcal.ramp_fitting.ols_cas22._core cimport Ramp
 
-cdef Fit fit_one_ramp(Ramp ramp)
+cdef (float, float, float) fit_one_ramp(Ramp ramp)

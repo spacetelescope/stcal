@@ -5,7 +5,7 @@ cimport numpy as np
 
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport Ramp, Fit
+from stcal.ramp_fitting.ols_cas22._core cimport Ramp
 
 # Casertano+2022, Table 2
 cdef float[2][6] PTABLE = [
@@ -24,7 +24,7 @@ cdef inline float get_weight_power(float s):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline Fit fit_one_ramp(Ramp ramp):
+cdef inline (float, float, float) fit_one_ramp(Ramp ramp):
     """Fit a portion of single ramp using the Casertano+22 algorithm.
     Parameters
     ----------
@@ -33,20 +33,25 @@ cdef inline Fit fit_one_ramp(Ramp ramp):
 
     Returns
     -------
-    fit : Fit
-        fit struct
+    slope : float
+        fit slope
+    slope_read_var : float
+        read noise induced variance in slope
+    slope_poisson_var : float
+        coefficient of Poisson-noise induced variance in slope
+        multiply by true flux to get actual Poisson variance.
     """
-    cdef Fit fit = Fit(0, 0, 0)
     cdef int n_resultants = ramp.end - ramp.start + 1
 
     # Special case where there is no or one resultant, there is no fit.
     if n_resultants <= 1:
-        return fit
+        return 0, 0, 0
 
     # Else, do the fitting.
     cdef int i = 0, j = 0
     cdef float weights[2048]
     cdef float coeffs[2048]
+    cdef float slope = 0, slope_read_var = 0, slope_poisson_var = 0
     cdef float t_bar_mid = (ramp.t_bar[ramp.start] + ramp.t_bar[ramp.end]) / 2
 
     # Casertano+2022 Eq. 44
@@ -80,7 +85,7 @@ cdef inline Fit fit_one_ramp(Ramp ramp):
     # Casertano+22 Eq. 36
     cdef float det = f2 * f0 - f1 ** 2
     if det == 0:
-        return fit
+        return (0.0, 0.0, 0.0)
 
     for i in range(n_resultants):
         # Casertano+22 Eq. 37
@@ -88,14 +93,14 @@ cdef inline Fit fit_one_ramp(Ramp ramp):
 
     for i in range(n_resultants):
         # Casertano+22 Eq. 38
-        fit.slope += coeffs[i] * ramp.resultants[ramp.start + i]
+        slope += coeffs[i] * ramp.resultants[ramp.start + i]
 
         # Casertano+22 Eq. 39
-        fit.slope_read_var += coeffs[i] ** 2 * ramp.read_noise ** 2 / ramp.n_reads[ramp.start + i]
+        slope_read_var += coeffs[i] ** 2 * ramp.read_noise ** 2 / ramp.n_reads[ramp.start + i]
 
         # Casertano+22 Eq 40
-        fit.slope_poisson_var += coeffs[i] ** 2 * ramp.tau[ramp.start + i]
+        slope_poisson_var += coeffs[i] ** 2 * ramp.tau[ramp.start + i]
         for j in range(i + 1, n_resultants):
-            fit.slope_poisson_var += 2 * coeffs[i] * coeffs[j] * ramp.t_bar[ramp.start + i]
+            slope_poisson_var += 2 * coeffs[i] * coeffs[j] * ramp.t_bar[ramp.start + i]
 
-    return fit
+    return (slope, slope_read_var, slope_poisson_var)

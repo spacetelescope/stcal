@@ -1,4 +1,28 @@
-from stcal.ramp_fitting.ols_cas22._core cimport Ramp, Fit
+from stcal.ramp_fitting.ols_cas22._core cimport Ramp
+
+cdef class Ramp:
+    """
+    Class to contain the data for a single pixel ramp to be fit
+
+    This has to be a class rather than a struct in order to contain memory views
+
+    Parameters
+    ----------
+    resultants : float [:]
+        array of resultants for single pixel
+    start : int
+        starting point of portion to fit within this pixel
+    end : int
+        ending point of portion to fit within this pixel
+    read_noise : float
+        read noise for this pixel
+    t_bar : float [:]
+        mean times of resultants
+    tau : float [:]
+        variance weighted mean times of resultants
+    n_reads : int [:]
+        number of reads contributing to reach resultant
+    """
 
 
 cdef inline Ramp make_ramp(
