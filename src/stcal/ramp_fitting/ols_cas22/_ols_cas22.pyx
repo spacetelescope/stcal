@@ -52,56 +52,59 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     resend : np.ndarray[nramp]
         The last resultant in this ramp.
     """
-    cdef int nresultant = len(ma_table)
-    if nresultant != resultants.shape[0]:
-        raise RuntimeError(f'MA table length {nresultant} does not '
+    cdef int n_resultants = len(ma_table)
+    if n_resultants != resultants.shape[0]:
+        raise RuntimeError(f'MA table length {n_resultants} does not '
                            f'match number of resultants {resultants.shape[0]}')
 
-    cdef np.ndarray[int] nn = np.array([x[1] for x in ma_table]).astype('i4')
+    cdef np.ndarray[int] n_reads = np.array([x[1] for x in ma_table]).astype('i4')
     # number of reads in each resultant
-    cdef np.ndarray[float] tbar = ma_table_to_tbar(ma_table, read_time).astype('f4')
+
+    cdef np.ndarray[float] t_bar = ma_table_to_tbar(ma_table, read_time).astype('f4')
     cdef np.ndarray[float] tau = ma_table_to_tau(ma_table, read_time).astype('f4')
-    cdef int npixel = resultants.shape[1]
-    cdef int nramp = (np.sum(dq[0, :] == 0) +
-                      np.sum((dq[:-1, :] != 0) & (dq[1:, :] == 0)))
-    cdef np.ndarray[float] slope = np.zeros(nramp, dtype='f4')
-    cdef np.ndarray[float] slopereadvar = np.zeros(nramp, dtype='f4')
-    cdef np.ndarray[float] slopepoissonvar = np.zeros(nramp, dtype='f4')
-    cdef np.ndarray[int] resstart = np.zeros(nramp, dtype='i4') - 1
-    cdef np.ndarray[int] resend = np.zeros(nramp, dtype='i4') - 1
-    cdef np.ndarray[int] pix = np.zeros(nramp, dtype='i4') - 1
+    cdef int n_pixel = resultants.shape[1]
+    cdef int n_ramp = (np.sum(dq[0, :] == 0) +
+                       np.sum((dq[:-1, :] != 0) & (dq[1:, :] == 0)))
+
+    cdef np.ndarray[float] slope = np.zeros(n_ramp, dtype='f4')
+    cdef np.ndarray[float] slope_read_var = np.zeros(n_ramp, dtype='f4')
+    cdef np.ndarray[float] slope_poisson_var = np.zeros(n_ramp, dtype='f4')
+
+    cdef np.ndarray[int] start = np.zeros(n_ramp, dtype='i4') - 1
+    cdef np.ndarray[int] end = np.zeros(n_ramp, dtype='i4') - 1
+    cdef np.ndarray[int] pix = np.zeros(n_ramp, dtype='i4') - 1
     cdef int i, j
-    cdef int inramp = -1
-    cdef int rampnum = 0
-    for i in range(npixel):
-        inramp = 0
-        for j in range(nresultant):
-            if (not inramp) and (dq[j, i] == 0):
-                inramp = 1
-                pix[rampnum] = i
-                resstart[rampnum] = j
-            elif (not inramp) and (dq[j, i] != 0):
+    cdef int in_ramp = -1
+    cdef int ramp_num = 0
+    for i in range(n_pixel):
+        in_ramp = 0
+        for j in range(n_resultants):
+            if (not in_ramp) and (dq[j, i] == 0):
+                in_ramp = 1
+                pix[ramp_num] = i
+                start[ramp_num] = j
+            elif (not in_ramp) and (dq[j, i] != 0):
                 continue
-            elif inramp and (dq[j, i] == 0):
+            elif in_ramp and (dq[j, i] == 0):
                 continue
-            elif inramp and (dq[j, i] != 0):
-                inramp = 0
-                resend[rampnum] = j - 1
-                rampnum += 1
+            elif in_ramp and (dq[j, i] != 0):
+                in_ramp = 0
+                end[ramp_num] = j - 1
+                ramp_num += 1
             else:
                 raise ValueError('unhandled case')
-        if inramp:
-            resend[rampnum] = j
-            rampnum += 1
+        if in_ramp:
+            end[ramp_num] = j
+            ramp_num += 1
     # we should have just filled out the starting and stopping locations
     # of each ramp.
 
-    for i in range(nramp):
-        slope[i], slopereadvar[i], slopepoissonvar[i] = make_ramp(
+    for i in range(n_ramp):
+        slope[i], slope_read_var[i], slope_poisson_var[i] = make_ramp(
             resultants[:, pix[i]],
-            resstart[i], resend[i],
-            read_noise[pix[i]], tbar, tau, nn).fit()
+            start[i], end[i],
+            read_noise[pix[i]], t_bar, tau, n_reads).fit()
 
-    return dict(slope=slope, slopereadvar=slopereadvar,
-                slopepoissonvar=slopepoissonvar,
-                pix=pix, resstart=resstart, resend=resend)
+    return dict(slope=slope, slopereadvar=slope_read_var,
+                slopepoissonvar=slope_poisson_var,
+                pix=pix, resstart=start, resend=end)
