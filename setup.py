@@ -23,7 +23,7 @@ extensions = [
         'stcal.ramp_fitting.ols_cas22._ols_cas22',
         ['src/stcal/ramp_fitting/ols_cas22/_ols_cas22.pyx'],
         include_dirs=[np.get_include()],
-        extra_compile_args=['-std=c99']
+        language='c++'
     ),
 ]
 

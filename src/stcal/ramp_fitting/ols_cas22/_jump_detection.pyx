@@ -69,11 +69,10 @@ cdef inline float statistic(
         stat_1 = stat(i, i + 1, resultants, t_bar, tau, n_reads, read_noise, slope)
         stat_2 = stat(i, i + 2, resultants, t_bar, tau, n_reads, read_noise, slope)
 
-        stats.insert(stats.begin() + i, max(stat_1, stat_2))
+        stats[i] = max(stat_1, stat_2)
 
     return max(stats)
 
 
 cdef float threshold(float intercept, float constant, float slope):
     return intercept - constant * log10(slope)
-
