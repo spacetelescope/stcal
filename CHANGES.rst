@@ -16,6 +16,13 @@ ramp_fitting
 - Added more allowable selections for the number of cores to use for
   multiprocessing [#183].
 
+saturation
+~~~~~~~~~~
+
+- Added read_pattern argument to flag_saturated_pixels.  When used,
+  this argument adjusts the saturation group-by-group to handle
+  different numbers of frames entering different groups for Roman.
+  When not set, the original behavior is preserved.
 
 1.4.2 (2023-07-11)
 ==================
