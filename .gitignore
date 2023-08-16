@@ -140,6 +140,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 src/stcal/ramp_fitting/ols_cas22/*.c
+src/stcal/ramp_fitting/ols_cas22/*.cpp
 
 # setuptools-scm generated module
 src/stcal/_version.py
