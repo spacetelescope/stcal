@@ -290,7 +290,7 @@ def _calculate_new_wcs(
     Parameters
     ----------
     ref_model :
-        The reference model to be used when extracting metadata.
+        The reference datamodel to be used when extracting metadata.
 
     shape : list
         The shape of the new WCS's pixel grid. If `None`, then the output bounding box
@@ -389,7 +389,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
     Parameters
     ----------
-    input_model : ~stdatamodels.jwst.datamodels.JwstDataModel
+    input_model :
         The input datamodel.
 
     Returns
@@ -702,9 +702,17 @@ def wcs_from_footprints(
     )
 
 
-def update_s_region_imaging(model):
+def update_s_region_imaging(model, center=True):
     """
     Update the ``S_REGION`` keyword using ``WCS.footprint``.
+
+    Parameters
+    ----------
+    model :
+        The input datamodel.
+    center : bool, optional
+        Whether or not to use the center of the pixel as reference for the
+        coordinates, by default True
     """
 
     bbox = model.meta.wcs.bounding_box
@@ -714,8 +722,13 @@ def update_s_region_imaging(model):
 
     # footprint is an array of shape (2, 4) as we
     # are interested only in the footprint on the sky
+    ### TODO: we shouldn't use center=True in the call below because we want to
+    ### calculate the coordinates of the footprint based on the *bounding box*,
+    ### which means we are interested in each pixel's vertice, not its center.
+    ### By using center=True, a difference of 0.5 pixel should be accounted for
+    ### when comparing the world coordinates of the bounding box and the footprint.
     footprint = model.meta.wcs.footprint(
-        bbox, center=True, axis_type="spatial"
+        bbox, center=center, axis_type="spatial"
     ).T
     # take only imaging footprint
     footprint = footprint[:2, :]
@@ -747,7 +760,20 @@ def wcs_bbox_from_shape(shape):
 
 
 def update_s_region_keyword(model, footprint):
-    """Update the S_REGION keyword."""
+    """Update the S_REGION keyword.
+
+    Parameters
+    ----------
+    model :
+        The input model
+    footprint : numpy.array
+        A 4x2 numpy array containing the coordinates of the vertices of the footprint.
+
+    Returns
+    -------
+    s_region : str
+        String containing the S_REGION object.
+    """
     s_region = (
         "POLYGON ICRS "
         " {0:.9f} {1:.9f}"
