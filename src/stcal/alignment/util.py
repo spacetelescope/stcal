@@ -824,7 +824,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
     Parameters
     ----------
-    input_model : ~stdatamodels.jwst.datamodels.JwstDataModel
+    input_model :
         The input datamodel.
 
     Returns
