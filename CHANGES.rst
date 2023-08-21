@@ -1,6 +1,11 @@
 1.4.3 (unreleased)
 ==================
 
+allignment
+----------
+
+- Added reproject function with several unit tests [#191].
+
 Other
 -----
 
