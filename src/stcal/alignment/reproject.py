@@ -1,14 +1,15 @@
-from astropy import wcs as fitswcs
-from astropy.modeling import Model
 import gwcs
 import numpy as np
+from astropy import wcs as fitswcs
+from astropy.modeling import Model
+from typing import Union
 
 
 def reproject_coords(wcs1, wcs2):
     """
     Given two WCSs or transforms return a function which takes pixel
-    coordinates in the first WCS or transform and computes them in the second
-    one. It performs the forward transformation of ``wcs1`` followed by the
+    coordinates in the first WCS or transform and computes them in pixel coordinates
+    in the second one. It performs the forward transformation of ``wcs1`` followed by the
     inverse of ``wcs2``.
 
     Parameters
@@ -24,8 +25,8 @@ def reproject_coords(wcs1, wcs2):
     """
 
     def _get_forward_transform_func(wcs1):
-        """Get the forward transform function from the input WCS. If the wcs is a 
-        fitswcs.WCS object all_pix2world requres three inputs, the x (str, ndarrray), 
+        """Get the forward transform function from the input WCS. If the wcs is a
+        fitswcs.WCS object all_pix2world requres three inputs, the x (str, ndarrray),
         y (str, ndarray), and origin (int). The origin should be between 0, and 1, representing an origin pixel at t
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         )
@@ -57,7 +58,7 @@ def reproject_coords(wcs1, wcs2):
             )
         return backward_transform
 
-    def _reproject(x: np.ndarray, y: np.ndarray) -> tuple:
+    def _reproject(x: Union[str, np.ndarray], y: Union[str, np.ndarray]) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 
@@ -74,6 +75,13 @@ def reproject_coords(wcs1, wcs2):
             Tuple of reprojected x and y coordinates.
         """
         # example inputs to resulting function (12, 13, 0) # third number is origin
+        if not isinstance(x, list):
+            x = [x]
+        if not isinstance(y, list):
+            y = [y]
+        print(x)
+        if len(x) != len(y):
+            raise ValueError("x and y must be the same length")
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
         sky_back = np.array(_get_backward_transform_func(wcs2)(sky[0], sky[1], 0))
         new_sky = tuple(sky_back[:, :1].flatten())
