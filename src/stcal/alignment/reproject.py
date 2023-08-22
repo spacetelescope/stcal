@@ -79,7 +79,6 @@ def reproject_coords(wcs1, wcs2):
             x = [x]
         if not isinstance(y, list):
             y = [y]
-        print(x)
         if len(x) != len(y):
             raise ValueError("x and y must be the same length")
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
