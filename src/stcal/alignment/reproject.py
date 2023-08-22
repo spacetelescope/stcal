@@ -27,7 +27,7 @@ def reproject_coords(wcs1, wcs2):
     def _get_forward_transform_func(wcs1):
         """Get the forward transform function from the input WCS. If the wcs is a
         fitswcs.WCS object all_pix2world requres three inputs, the x (str, ndarrray),
-        y (str, ndarray), and origin (int). The origin should be between 0, and 1, representing an origin pixel at t
+        y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         )
         """
