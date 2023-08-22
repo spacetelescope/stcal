@@ -30,7 +30,7 @@ def reproject_coords(wcs1, wcs2):
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         )
-        """
+        """ # noqa : E501
         if isinstance(wcs1, fitswcs.WCS):
             forward_transform = wcs1.all_pix2world
         elif isinstance(wcs1, gwcs.WCS):
