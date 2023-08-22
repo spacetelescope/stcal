@@ -290,7 +290,7 @@ def _calculate_new_wcs(
     Parameters
     ----------
     ref_model :
-        The reference model to be used when extracting metadata.
+        The reference datamodel to be used when extracting metadata.
 
     shape : list
         The shape of the new WCS's pixel grid. If `None`, then the output bounding box
@@ -389,7 +389,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
     Parameters
     ----------
-    input_model : ~stdatamodels.jwst.datamodels.JwstDataModel
+    input_model :
         The input datamodel.
 
     Returns
@@ -700,3 +700,90 @@ def wcs_from_footprints(
         fiducial=fiducial,
         transform=transform,
     )
+
+
+def update_s_region_imaging(model, center=True):
+    """
+    Update the ``S_REGION`` keyword using ``WCS.footprint``.
+
+    Parameters
+    ----------
+    model :
+        The input datamodel.
+    center : bool, optional
+        Whether or not to use the center of the pixel as reference for the
+        coordinates, by default True
+    """
+
+    bbox = model.meta.wcs.bounding_box
+
+    if bbox is None:
+        bbox = wcs_bbox_from_shape(model.data.shape)
+
+    # footprint is an array of shape (2, 4) as we
+    # are interested only in the footprint on the sky
+    ### TODO: we shouldn't use center=True in the call below because we want to
+    ### calculate the coordinates of the footprint based on the *bounding box*,
+    ### which means we are interested in each pixel's vertice, not its center.
+    ### By using center=True, a difference of 0.5 pixel should be accounted for
+    ### when comparing the world coordinates of the bounding box and the footprint.
+    footprint = model.meta.wcs.footprint(
+        bbox, center=center, axis_type="spatial"
+    ).T
+    # take only imaging footprint
+    footprint = footprint[:2, :]
+
+    # Make sure RA values are all positive
+    negative_ind = footprint[0] < 0
+    if negative_ind.any():
+        footprint[0][negative_ind] = 360 + footprint[0][negative_ind]
+
+    footprint = footprint.T
+    update_s_region_keyword(model, footprint)
+
+
+def wcs_bbox_from_shape(shape):
+    """Create a bounding box from the shape of the data.
+
+    This is appropriate to attach to a wcs object
+    Parameters
+    ----------
+    shape : tuple
+        The shape attribute from a `numpy.ndarray` array
+
+    Returns
+    -------
+    bbox : tuple
+        Bounding box in x, y order.
+    """
+    return (-0.5, shape[-1] - 0.5), (-0.5, shape[-2] - 0.5)
+
+
+def update_s_region_keyword(model, footprint):
+    """Update the S_REGION keyword.
+
+    Parameters
+    ----------
+    model :
+        The input model
+    footprint : numpy.array
+        A 4x2 numpy array containing the coordinates of the vertices of the footprint.
+
+    Returns
+    -------
+    s_region : str
+        String containing the S_REGION object.
+    """
+    s_region = (
+        "POLYGON ICRS "
+        " {0:.9f} {1:.9f}"
+        " {2:.9f} {3:.9f}"
+        " {4:.9f} {5:.9f}"
+        " {6:.9f} {7:.9f}".format(*footprint.flatten())
+    )
+    if "nan" in s_region:
+        # do not update s_region if there are NaNs.
+        log.info("There are NaNs in s_region, S_REGION not updated.")
+    else:
+        model.meta.wcsinfo.s_region = s_region
+        log.info(f"Update S_REGION to {model.meta.wcsinfo.s_region}")
