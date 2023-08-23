@@ -8,7 +8,6 @@ from gwcs import WCS
 from gwcs import coordinate_frames as cf
 
 import pytest
-
 from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
@@ -166,7 +165,6 @@ def test_wcs_from_footprints():
     shape = (3, 3)  # in pixels
     fiducial_world = (10, 0)  # in deg
     pscale = (0.000028, 0.000028)  # in deg/pixel
-
     dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_1 = dm_1.meta.wcs
 

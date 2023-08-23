@@ -290,7 +290,7 @@ def _calculate_new_wcs(
     Parameters
     ----------
     ref_model :
-        The reference datamodel to be used when extracting metadata.
+        The reference model to be used when extracting metadata.
 
     shape : list
         The shape of the new WCS's pixel grid. If `None`, then the output bounding box
