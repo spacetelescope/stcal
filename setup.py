@@ -11,7 +11,7 @@ extensions = [
         'stcal.ramp_fitting.ols_cas22._core',
         ['src/stcal/ramp_fitting/ols_cas22/_core.pyx'],
         include_dirs=[np.get_include()],
-        extra_compile_args=['-std=c99']
+        language='c++'
     ),
     Extension(
         'stcal.ramp_fitting.ols_cas22._jump_detection',

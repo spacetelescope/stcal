@@ -3,11 +3,28 @@ cimport numpy as np
 from libcpp.vector cimport vector
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22_util import ma_table_to_tau, ma_table_to_tbar
-
 from stcal.ramp_fitting.ols_cas22._core cimport make_ramp
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline (vector[int], vector[float], vector[float]) read_ma_table(list[list[int]] ma_table, float read_time):
+
+    cdef vector[int] n_reads = vector[int](len(ma_table))
+    cdef vector[float] t_bar = vector[float](len(ma_table))
+    cdef vector[float] tau = vector[float](len(ma_table))
+
+    for index, entry in enumerate(ma_table):
+        n_reads[index] = entry[1]
+        t_bar[index] = read_time *(entry[0] + (entry[1] - 1) / 2.0)
+        tau[index] = t_bar[index] - (entry[1] - 1) * (entry[1] + 1) * read_time / (6 * entry[1])
+
+    return n_reads, t_bar, tau
+
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline (vector[int], vector[int], vector[int]) end_points(int n_ramp,
                                                                int n_pixel,
                                                                int n_resultants,
@@ -94,11 +111,10 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         raise RuntimeError(f'MA table length {n_resultants} does not '
                            f'match number of resultants {resultants.shape[0]}')
 
-    cdef np.ndarray[int] n_reads = np.array([x[1] for x in ma_table]).astype('i4')
-    # number of reads in each resultant
+    cdef vector[int] n_reads
+    cdef vector[float] t_bar, tau
+    n_reads, t_bar, tau = read_ma_table(ma_table, read_time)
 
-    cdef np.ndarray[float] t_bar = ma_table_to_tbar(ma_table, read_time).astype('f4')
-    cdef np.ndarray[float] tau = ma_table_to_tau(ma_table, read_time).astype('f4')
     cdef int n_pixel = resultants.shape[1]
     cdef int n_ramp = (np.sum(dq[0, :] == 0) +
                        np.sum((dq[:-1, :] != 0) & (dq[1:, :] == 0)))

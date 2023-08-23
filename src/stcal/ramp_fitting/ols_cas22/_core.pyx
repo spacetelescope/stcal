@@ -1,4 +1,5 @@
 from libc.math cimport sqrt, fabs
+from libcpp.vector cimport vector
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -28,17 +29,18 @@ cdef class Ramp:
     ----------
     resultants : float [:]
         array of resultants for single pixel
+            - memoryview of a numpy array to avoid passing through Python
     start : int
         starting point of portion to fit within this pixel
     end : int
         ending point of portion to fit within this pixel
     read_noise : float
         read noise for this pixel
-    t_bar : float [:]
+    t_bar : vector[float]
         mean times of resultants
-    tau : float [:]
+    tau : vector[float]
         variance weighted mean times of resultants
-    n_reads : int [:]
+    n_reads : vector[int]
         number of reads contributing to reach resultant
     """
 
@@ -63,8 +65,8 @@ cdef class Ramp:
 
         # Else, do the fitting.
         cdef int i = 0, j = 0
-        cdef float weights[2048]
-        cdef float coeffs[2048]
+        cdef vector[float] weights = vector[float](n_resultants)
+        cdef vector[float] coeffs = vector[float](n_resultants)
         cdef float slope = 0, slope_read_var = 0, slope_poisson_var = 0
         cdef float t_bar_mid = (self.t_bar[self.start] + self.t_bar[self.end]) / 2
 
@@ -126,7 +128,7 @@ cdef class Ramp:
 
 cdef inline Ramp make_ramp(
         float [:] resultants, int start, int end, float read_noise,
-        float [:] t_bar, float [:] tau, int [:] n_reads):
+        vector[float] t_bar, vector[float] tau, vector[int] n_reads):
     """
     Fast constructor for the Ramp C class.
 
@@ -138,17 +140,18 @@ cdef inline Ramp make_ramp(
     ----------
     resultants : float [:]
         array of resultants for single pixel
+            - memoryview of a numpy array to avoid passing through Python
     start : int
         starting point of portion to fit within this pixel
     end : int
         ending point of portion to fit within this pixel
     read_noise : float
         read noise for this pixel
-    t_bar : float [:]
+    t_bar : vector[float]
         mean times of resultants
-    tau : float [:]
+    tau : vector[float]
         variance weighted mean times of resultants
-    n_reads : int [:]
+    n_reads : vector[int]
         number of reads contributing to reach resultant
 
     Return
