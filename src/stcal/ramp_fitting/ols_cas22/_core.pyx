@@ -44,6 +44,9 @@ cdef class Ramp:
         number of reads contributing to reach resultant
     """
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef inline (float, float, float) fit(Ramp self):
         """Fit a portion of single ramp using the Casertano+22 algorithm.
 
