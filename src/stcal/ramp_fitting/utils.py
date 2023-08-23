@@ -2,7 +2,6 @@
 #
 # utils.py: utility functions
 import logging
-import multiprocessing
 import numpy as np
 import warnings
 
@@ -1270,7 +1269,7 @@ def log_stats(c_rates):
               % (c_rates.min(), c_rates.mean(), c_rates.max(), c_rates.std()))
 
 
-def compute_slices(max_cores, nrows):
+def compute_num_slices(max_cores, nrows, max_available):
     """
     Computes the number of slices to be created for multiprocessing.
 
@@ -1279,35 +1278,34 @@ def compute_slices(max_cores, nrows):
     max_cores : str
         Number of cores to use for multiprocessing. If set to 'none' (the default),
         then no multiprocessing will be done. The other allowable values are 'quarter',
-        'half', and 'all'. This is the fraction of cores to use for multi-proc. The
-        total number of cores includes the SMT cores (Hyper Threading for Intel).
+        'half', and 'all' and string integers. This is the fraction of cores
+        to use for multi-proc.
+    nrows : int
+        The number of rows that will be used across all process. This is the
+        maximum number of slices to make sure that each process has some data.
+    max_available: int
+        This is the total number of cores available. The total number of cores
+        includes the SMT cores (Hyper Threading for Intel).
 
     Returns
     -------
     number_slices : int
         The number of slices for multiprocessing.
     """
-    if max_cores == 'none':
+
+    number_slices = 1
+    if max_cores.isnumeric():
+        number_slices = int(max_cores)
+    elif max_cores.lower() == "none" or max_cores.lower() == 'one':
         number_slices = 1
-    else:
-        num_cores = multiprocessing.cpu_count()
-        log.debug(f'Found {num_cores} possible cores to use for ramp fitting')
-        if max_cores == 'quarter':
-            number_slices = num_cores // 4 or 1
-        elif max_cores == 'half':
-            number_slices = num_cores // 2 or 1
-        elif max_cores == 'all':
-            number_slices = num_cores
-        else:
-            number_slices = 1
-
-        # Make sure the number of slices created isn't more than the available
-        # number of rows.  If so, this would cause empty datasets to be run
-        # through ramp fitting with dimensions (nints, ngroups, 0, ncols),
-        # which would cause a crash.
-        if number_slices > nrows:
-            number_slices = nrows
-
+    elif max_cores == 'quarter':
+        number_slices = max_available // 4 or 1
+    elif max_cores == 'half':
+        number_slices = max_available // 2 or 1
+    elif max_cores == 'all':
+        number_slices = max_available
+    # Make sure we don't have more slices than rows or available cores.
+    number_slices = min([nrows, number_slices, max_available])
     return number_slices
 
 

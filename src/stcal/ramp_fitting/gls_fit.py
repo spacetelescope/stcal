@@ -12,6 +12,7 @@
 
 import logging
 from multiprocessing.pool import Pool as Pool
+from multiprocessing import cpu_count as cpu_count
 import numpy as np
 import numpy.linalg as la
 import time
@@ -101,7 +102,8 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
         Tuple of optional product ndarrays computed for GLS ramp fitting.
     """
     nrows = ramp_data.data.shape[2]
-    number_slices = utils.compute_slices(max_cores, nrows)
+    num_available_cores = cpu_count()
+    number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
 
     log.info(f"Number of data slices: {number_slices}")
 

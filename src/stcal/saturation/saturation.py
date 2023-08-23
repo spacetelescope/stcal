@@ -10,7 +10,7 @@ log.setLevel(logging.DEBUG)
 
 def flag_saturated_pixels(
         data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags,
-        n_pix_grow_sat=1, zframe=None):
+        n_pix_grow_sat=1, zframe=None, read_pattern=None):
     """
     Short Summary
     -------------
@@ -50,6 +50,9 @@ def flag_saturated_pixels(
     zframe : float, 3D array
         The ZEROFRAME.
 
+    read_pattern : List[List[float or int]] or None
+        The times or indices of the frames composing each group.
+
 
     Returns
     -------
@@ -65,20 +68,33 @@ def flag_saturated_pixels(
     ad_floor = dqflags['AD_FLOOR']
     no_sat_check = dqflags['NO_SAT_CHECK']
 
-    # For pixels flagged in reference file as NO_SAT_CHECK,
-    # set the saturation check threshold above the A-to-D converter limit,
-    # so that they don't get flagged as saturated.
-    sat_thresh[np.bitwise_and(sat_dq, no_sat_check) == no_sat_check] = atod_limit + 1
+    # Identify pixels flagged in reference file as NO_SAT_CHECK,
+    no_sat_check_mask = np.bitwise_and(sat_dq, no_sat_check) == no_sat_check
 
-    # Also reset NaN values in the saturation threshold array above the
-    # A-to-D limit and flag them with NO_SAT_CHECK
+    # Flag pixels in the saturation threshold array with NO_SAT_CHECK,
+    # and add them to to no_sat_check_mask.
     sat_dq[np.isnan(sat_thresh)] |= no_sat_check
-    sat_thresh[np.isnan(sat_thresh)] = atod_limit + 1
+    no_sat_check_mask |= np.isnan(sat_thresh)
+
+    # Set the saturation check threshold above the A-to-D
+    # converter limit so that they don't get flagged as saturated, for
+    # pixels in the no_sat_check_mask.
+    sat_thresh[no_sat_check_mask] = atod_limit + 1
 
     for ints in range(nints):
         for group in range(ngroups):
             plane = data[ints, group, :, :]
-            flagarray, flaglowarray = plane_saturation(plane, sat_thresh, dqflags)
+
+            if read_pattern is not None:
+                dilution_factor = (np.mean(read_pattern[group])
+                                   / read_pattern[group][-1])
+                dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
+            else:
+                dilution_factor = 1
+
+
+            flagarray, flaglowarray = plane_saturation(
+                plane, sat_thresh * dilution_factor, dqflags)
 
             # for saturation, the flag is set in the current plane
             # and all following planes.
@@ -164,6 +180,7 @@ def plane_saturation(plane, sat_thresh, dqflags):
     donotuse = dqflags['DO_NOT_USE']
     saturated = dqflags['SATURATED']
     ad_floor = dqflags['AD_FLOOR']
+
 
     flagarray = np.zeros(plane.shape, dtype=np.uint32)
     flaglowarray = np.zeros(plane.shape, dtype=np.uint32)
