@@ -3,6 +3,7 @@ import numpy as np
 from astropy.modeling import models
 from astropy import coordinates as coord
 from astropy import units as u
+from astropy.io import fits
 
 from gwcs import WCS
 from gwcs import coordinate_frames as cf
