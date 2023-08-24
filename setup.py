@@ -14,8 +14,8 @@ extensions = [
         language='c++'
     ),
     Extension(
-        'stcal.ramp_fitting.ols_cas22._jump_detection',
-        ['src/stcal/ramp_fitting/ols_cas22/_jump_detection.pyx'],
+        'stcal.ramp_fitting.ols_cas22._fixed',
+        ['src/stcal/ramp_fitting/ols_cas22/_fixed.pyx'],
         include_dirs=[np.get_include()],
         language='c++'
     ),
