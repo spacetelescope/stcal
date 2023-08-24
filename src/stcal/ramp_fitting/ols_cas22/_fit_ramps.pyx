@@ -3,7 +3,7 @@ cimport numpy as np
 from libcpp.vector cimport vector
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport Fit, RampIndex
+from stcal.ramp_fitting.ols_cas22._core cimport Fit, RampIndex, make_threshold
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
 from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp
 
@@ -122,6 +122,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         <float [:t_bar.size()]> t_bar.data(),
         <float [:tau.size()]> tau.data(),
         <int [:n_reads.size()]> n_reads.data(),
+        make_threshold(5.5, 1/3.0),
         use_jumps)
 
     cdef int n_pixel = resultants.shape[1]

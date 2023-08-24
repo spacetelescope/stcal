@@ -15,6 +15,7 @@ make_fixed : function
 import numpy as np
 cimport numpy as np
 
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Fixed:
@@ -172,7 +173,7 @@ cdef class Fixed:
         return slope_var_val
 
 
-cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool use_jump):
+cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, Thresh threshold, bool use_jump):
     """
     Fast constructor for Fixed class
         Use this instead of an __init__ because it does not incure the overhead of
@@ -186,6 +187,8 @@ cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool 
         variance weighted mean times of resultants (data input)
     n_reads : float[:]
         number of reads contributing to reach resultant (data input)
+    threshold : Thresh
+        threshold object (user input)
     use_jump : bool
         flag to indicate whether to use jump detection (user input)
 
@@ -197,6 +200,8 @@ cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool 
 
     # Fill in input information for all pixels
     fixed.use_jump = use_jump
+    fixed.threshold = threshold
+
     fixed.t_bar = t_bar
     fixed.tau = tau
     fixed.n_reads = n_reads

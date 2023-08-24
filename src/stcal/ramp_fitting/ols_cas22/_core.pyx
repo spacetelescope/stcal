@@ -6,9 +6,6 @@ Structs:
     RampIndex
         int start: starting index of the ramp in the resultants
         int end: ending index of the ramp in the resultants
-    Thresh
-        float intercept: intercept of the threshold
-        float constant: constant of the threshold
     Fit
         float slope: slope of a single ramp
         float read_var: read noise variance of a single ramp
@@ -17,6 +14,11 @@ Structs:
         vector[float] slope: slopes of the ramps for a single pixel
         vector[float] read_var: read noise variances of the ramps for a single pixel
         vector[float] poisson_var: poisson noise variances of the ramps for a single pixel
+
+Objects
+-------
+    Thresh : class
+        Hold the threshold parameters and compute the threshold
 
 Functions:
 ----------
@@ -31,7 +33,7 @@ from libc.math cimport log10
 import numpy as np
 cimport numpy as np
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, Thresh, Fit, Fits, get_power, threshold, reverse_fits
+from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, Thresh, Fit, Fits, get_power, reverse_fits, make_threshold
 
 
 # Casertano+2022, Table 2
@@ -61,24 +63,6 @@ cdef inline float get_power(float s):
     return PTABLE[1][i]
 
 
-cdef inline float threshold(Thresh thresh, float slope):
-    """
-    Compute jump threshold
-
-    Parameters
-    ----------
-    thresh : Thresh
-        threshold parameters struct:
-    slope : float
-        slope of the ramp in question
-
-    Returns
-    -------
-        intercept - constant * log10(slope)
-    """
-    return thresh.intercept - thresh.constant * log10(slope)
-
-
 cdef inline Fits reverse_fits(Fits fits):
     """
     Reverse a Fits struct
@@ -96,3 +80,43 @@ cdef inline Fits reverse_fits(Fits fits):
     reversed fits struct
     """
     return Fits(fits.slope[::-1], fits.read_var[::-1], fits.poisson_var[::-1])
+
+
+cdef class Thresh:
+    cdef inline float run(Thresh self, float slope):
+        """
+        Compute jump threshold
+
+        Parameters
+        ----------
+        slope : float
+            slope of the ramp in question
+
+        Returns
+        -------
+            intercept - constant * log10(slope)
+        """
+        return self.intercept - self.constant * log10(slope)
+
+
+cdef Thresh make_threshold(float intercept, float constant):
+    """
+    Create a Thresh object
+
+    Parameters
+    ----------
+    intercept : float
+        intercept of the threshold
+    constant : float
+        constant of the threshold
+
+    Returns
+    -------
+    Thresh object
+    """
+
+    thresh = Thresh()
+    thresh.intercept = intercept
+    thresh.constant = constant
+
+    return thresh

@@ -1,9 +1,15 @@
 from libcpp cimport bool
 
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh
+
+
 cdef class Fixed:
     cdef public bool use_jump
+
     cdef public float[:] t_bar, tau
     cdef public int[:] n_reads
+
+    cdef Thresh threshold
 
     cdef public float[:] t_bar_1, t_bar_2
     cdef public float[:] t_bar_1_sq, t_bar_2_sq
@@ -18,4 +24,4 @@ cdef class Fixed:
     cdef float correction(Fixed self, int i, int j)
 
 
-cdef Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool use_jump)
+cdef Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, Thresh threshold, bool use_jump)

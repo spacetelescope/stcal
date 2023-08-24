@@ -15,7 +15,7 @@ cdef class Ramp:
     cdef Fit fit(Ramp self, RampIndex ramp)
 
     cdef float[:] stats(Ramp self, float slope, RampIndex ramp)
-    cdef Fits fits(Ramp self, stack[RampIndex] ramps, Thresh thresh)
+    cdef Fits fits(Ramp self, stack[RampIndex] ramps)
 
 
 cdef Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants)

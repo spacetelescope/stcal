@@ -11,11 +11,6 @@ cdef struct RampIndex:
     int end
 
 
-cdef struct Thresh:
-    float intercept
-    float constant
-
-
 cdef struct Fit:
     float slope
     float read_var
@@ -27,6 +22,13 @@ cdef struct Fits:
     vector[float] read_var
     vector[float] poisson_var
 
+
+cdef class Thresh:
+    cdef float intercept
+    cdef float constant
+
+    cdef float run(Thresh self, float slope)
+
+cdef Thresh make_threshold(float intercept, float constant)
 cdef float get_power(float s)
-cdef float threshold(Thresh thresh, float slope)
 cdef Fits reverse_fits(Fits fits)

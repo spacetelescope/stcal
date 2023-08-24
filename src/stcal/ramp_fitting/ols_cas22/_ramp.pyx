@@ -21,7 +21,7 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_power, reverse_fits, threshold, Fit, Fits, RampIndex, Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, reverse_fits, Fit, Fits, RampIndex
 from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp, Ramp
 
 
@@ -219,7 +219,7 @@ cdef class Ramp:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline Fits fits(Ramp self, stack[RampIndex] ramps, Thresh thresh):
+    cdef inline Fits fits(Ramp self, stack[RampIndex] ramps):
         """
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
@@ -235,8 +235,6 @@ cdef class Ramp:
         ramps : stack[RampIndex]
             Stack of initial ramps to fit for a single pixel
             multiple ramps are possible due to dq flags
-        thresh : Thresh
-            Thresholds struct passed in for jump detection
         
         Returns
         -------
@@ -261,7 +259,7 @@ cdef class Ramp:
             if self.fixed.use_jump:
                 stats = self.stats(fit.slope, ramp)
             
-                if max(stats) > threshold(thresh, fit.slope):
+                if max(stats) > self.threshold.run(fit.slope):
                     # Compute split point to create two new ramps
                     split = np.argmax(stats)
 
