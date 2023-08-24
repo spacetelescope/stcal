@@ -3,8 +3,9 @@ cimport numpy as np
 from libcpp.vector cimport vector
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport make_ramp, Fit, RampIndex
+from stcal.ramp_fitting.ols_cas22._core cimport Fit, RampIndex
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
+from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp
 
 
 @cython.boundscheck(False)
