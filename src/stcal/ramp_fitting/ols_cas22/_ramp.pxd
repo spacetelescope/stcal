@@ -8,16 +8,7 @@ cdef class Ramp:
     cdef public float read_noise
     cdef public float [:] resultants
 
-    # Computed and cached values for jump detection
-    #    single -> j = i + 1
-    #    double -> j = i + 2
-
-    # single and double delta + slope
-    #    (resultants[j] - resultants[i]/(t_bar[j] - t_bar[i])
     cdef public float[:] delta_1, delta_2 
-
-    # single and double sigma terms
-    #    read_noise * recip[i]
     cdef public float[:] sigma_1, sigma_2
 
     cdef float[:] resultants_diff(Ramp self, int offset)

@@ -67,7 +67,7 @@ cdef class Fixed:
       for reuse by all pixels.
     - The computations are done using vectorized operations for some performance
       increases. However, this is marginal compaired with the performance increase
-      from precomputing the values and reusing them.
+      from pre-computing the values and reusing them.
     """
 
     cdef inline float[:] t_bar_diff(Fixed self, int offset):
@@ -191,16 +191,17 @@ cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool 
 
     Returns
     -------
-    Fixed parameters object (with precomputed values if use_jump is True)
+    Fixed parameters object (with pre-computed values if use_jump is True)
     """
     cdef Fixed fixed = Fixed()
 
+    # Fill in input information for all pixels
     fixed.use_jump = use_jump
     fixed.t_bar = t_bar
     fixed.tau = tau
     fixed.n_reads = n_reads
 
-    # Precompute jump detection computations shared by all pixels
+    # Pre-compute jump detection computations shared by all pixels
     if use_jump:
         fixed.t_bar_1 = fixed.t_bar_diff(1)
         fixed.t_bar_2 = fixed.t_bar_diff(2)
