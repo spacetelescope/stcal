@@ -4,17 +4,15 @@ from stcal.ramp_fitting.ols_cas22._core cimport Thresh
 
 
 cdef class Fixed:
-    cdef public bool use_jump
-
-    cdef public float[:] t_bar, tau
-    cdef public int[:] n_reads
-
+    cdef bool use_jump
+    cdef float[:] t_bar, tau
+    cdef int[:] n_reads
     cdef Thresh threshold
 
-    cdef public float[:] t_bar_1, t_bar_2
-    cdef public float[:] t_bar_1_sq, t_bar_2_sq
-    cdef public float[:] recip_1, recip_2
-    cdef public float[:] slope_var_1, slope_var_2
+    cdef float[:] t_bar_1, t_bar_2
+    cdef float[:] t_bar_1_sq, t_bar_2_sq
+    cdef float[:] recip_1, recip_2
+    cdef float[:] slope_var_1, slope_var_2
 
     cdef float[:] t_bar_diff(Fixed self, int offset)
     cdef float[:] t_bar_diff_sq(Fixed self, int offset)

@@ -5,11 +5,11 @@ from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Ramp:
     cdef Fixed fixed
-    cdef public float read_noise
-    cdef public float [:] resultants
+    cdef float read_noise
+    cdef float [:] resultants
 
-    cdef public float[:] delta_1, delta_2 
-    cdef public float[:] sigma_1, sigma_2
+    cdef float[:] delta_1, delta_2 
+    cdef float[:] sigma_1, sigma_2
 
     cdef float[:] resultants_diff(Ramp self, int offset)
     cdef Fit fit(Ramp self, RampIndex ramp)
