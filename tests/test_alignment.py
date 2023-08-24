@@ -281,8 +281,6 @@ def test__reproject(x_inp, y_inp, x_expected, y_expected):
     f = reproject.reproject_coords(wcs1, wcs2)
     x_out, y_out = f(x_inp, y_inp)
     assert np.allclose(x_out, x_expected, rtol=1e-05)
-    assert np.allclose(y_out, y_expected, rtol=1e-05)
-=======
 
 @pytest.mark.parametrize(
     "model, footprint, expected_s_region, expected_log_info",
