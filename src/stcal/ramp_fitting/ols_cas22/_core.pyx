@@ -1,11 +1,12 @@
-from libc.math cimport sqrt, fabs
+from libc.math cimport sqrt, fabs, log10
 from libcpp.vector cimport vector
+from libcpp.stack cimport stack
 from libcpp cimport bool
 import numpy as np
 cimport numpy as np
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport Ramp
+from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, Thresh, Fit, Fixed, Ramp
 
 
 cdef class Fixed:
@@ -286,6 +287,57 @@ cdef class Ramp:
 
         return (slope, read_var, poisson_var)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef inline float[:] stats(Ramp self, float slope, int start, int end):
+        cdef np.ndarray[float] delta_1 = np.array(self.delta_1[start:end-1]) - slope
+        cdef np.ndarray[float] delta_2 = np.array(self.delta_2[start:end-1]) - slope
+
+        cdef np.ndarray[float] var_1 = ((np.array(self.sigma_1[start:end-1]) +
+                                         slope * np.array(self.slope_var_1[start:end-1])) /
+                                        self.fixed.t_bar_1_sq[start:end-1]).astype(np.float32)
+        cdef np.ndarray[float] var_2 = ((np.array(self.sigma_2[start:end-1]) +
+                                         slope * np.array(self.slope_var_2[start:end-1])) /
+                                        self.fixed.t_bar_2_sq[start:end-1]).astype(np.float32)
+
+        cdef np.ndarray[float] stats_1 = delta_1 / sqrt(var_1)
+        cdef np.ndarray[float] stats_2 = delta_2 / sqrt(var_2)
+
+        return np.maximum(stats_1, stats_2)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef inline (stack[float], stack[float], stack[float]) fits(Ramp self, stack[RampIndex] ramps, Thresh thresh):
+        cdef stack[float] slopes, read_vars, poisson_vars
+        cdef RampIndex ramp
+        cdef float slope = 0, read_var = 0, poisson_var = 0
+        cdef float [:] stats
+        cdef int split
+
+        while not ramps.empty():
+            ramp = ramps.top()
+            ramps.pop()
+            slope, read_var, poisson_var = self.fit(ramp.start, ramp.end)
+            stats = self.stats(slope, ramp.start, ramp.end)
+            
+            if max(stats) > threshold(thresh, slope):
+                split = np.argmax(stats)
+
+                ramps.push(RampIndex(ramp.start, ramp.start + split))
+                ramps.push(RampIndex(ramp.start + split + 2, ramp.end))
+            else:
+                slopes.push(slope)
+                read_vars.push(read_var)
+                poisson_vars.push(poisson_var)
+
+        return slopes, read_vars, poisson_vars
+    
+
+cdef float threshold(Thresh thresh, float slope):
+    return thresh.intercept - thresh.constant * log10(slope)
+
 
 cdef inline Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants):
     """
@@ -316,8 +368,8 @@ cdef inline Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants):
     ramp.resultants = resultants
 
     if fixed.use_jump:
-        ramp.resultants_1 = ramp.resultants_diff(1)
-        ramp.resultants_2 = ramp.resultants_diff(2)
+        ramp.delta_1 = (np.array(ramp.resultants_diff(1)) / np.array(fixed.t_bar_1)).astype(np.float32)
+        ramp.delta_2 = (np.array(ramp.resultants_diff(2)) / np.array(fixed.t_bar_2)).astype(np.float32)
 
         ramp.sigma_1 = read_noise * np.array(fixed.recip_1)
         ramp.sigma_2 = read_noise * np.array(fixed.recip_2)

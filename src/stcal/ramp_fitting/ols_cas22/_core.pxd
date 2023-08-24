@@ -1,7 +1,24 @@
 import numpy as np
 cimport numpy as np
 from libcpp.vector cimport vector
+from libcpp.stack cimport stack
 from libcpp cimport bool
+
+
+cdef struct RampIndex:
+    int start
+    int end
+
+
+cdef struct Thresh:
+    float intercept
+    float constant
+
+
+cdef struct Fit:
+    float slope
+    float read_var
+    float poisson_var
 
 cdef class Fixed:
     # Fixed parameters for all pixels input
@@ -49,9 +66,9 @@ cdef class Ramp:
     #    single -> j = i + 1
     #    double -> j = i + 2
 
-    # single and double differences of resultants
-    #    resultants[j] - resultants[i]
-    cdef public float[:] resultants_1, resultants_2
+    # single and double delta + slope
+    #    (resultants[j] - resultants[i]/(t_bar[j] - t_bar[i])
+    cdef public float[:] delta_1, delta_2 
 
     # single and double sigma terms
     #    read_noise * recip[i]
@@ -59,6 +76,9 @@ cdef class Ramp:
 
     cdef float[:] resultants_diff(Ramp self, int offset)
     cdef (float, float, float) fit(Ramp self, int start, int end)
+
+    cdef float[:] stats(Ramp self, float slope, int start, int end)
+    cdef (stack[float], stack[float], stack[float]) fits(Ramp self, stack[RampIndex] ramps, Thresh thresh)
 
 
 cdef Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants)
