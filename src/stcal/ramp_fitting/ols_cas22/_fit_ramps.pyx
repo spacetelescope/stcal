@@ -3,7 +3,7 @@ cimport numpy as np
 from libcpp.vector cimport vector
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport make_ramp, make_fixed, Fixed
+from stcal.ramp_fitting.ols_cas22._core cimport make_ramp, make_fixed, Fixed, Fit, RampIndex
 
 
 @cython.boundscheck(False)
@@ -130,13 +130,18 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef np.ndarray[float] slope = np.zeros(n_ramp, dtype=np.float32)
     cdef np.ndarray[float] slope_read_var = np.zeros(n_ramp, dtype=np.float32)
     cdef np.ndarray[float] slope_poisson_var = np.zeros(n_ramp, dtype=np.float32)
+    cdef Fit fit
 
     cdef vector[int] start, end, pix
     start, end, pix = end_points(n_ramp, n_pixel, n_resultants, dq)
 
     for i in range(n_ramp):
-        slope[i], slope_read_var[i], slope_poisson_var[i] = make_ramp(
-            fixed, read_noise[pix[i]], resultants[:, pix[i]]).fit(start[i], end[i])
+        fit = make_ramp(
+            fixed, read_noise[pix[i]], resultants[:, pix[i]]).fit(RampIndex(start[i], end[i]))
+        
+        slope[i] = fit.slope
+        slope_read_var[i] = fit.read_var
+        slope_poisson_var[i] = fit.poisson_var
 
     return dict(slope=slope, slopereadvar=slope_read_var,
                 slopepoissonvar=slope_poisson_var,

@@ -20,6 +20,12 @@ cdef struct Fit:
     float read_var
     float poisson_var
 
+
+cdef struct Fits:
+    vector[float] slope
+    vector[float] read_var
+    vector[float] poisson_var
+
 cdef class Fixed:
     # Fixed parameters for all pixels input
     cdef public bool use_jump
@@ -75,10 +81,10 @@ cdef class Ramp:
     cdef public float[:] sigma_1, sigma_2
 
     cdef float[:] resultants_diff(Ramp self, int offset)
-    cdef (float, float, float) fit(Ramp self, int start, int end)
+    cdef Fit fit(Ramp self, RampIndex ramp)
 
-    cdef float[:] stats(Ramp self, float slope, int start, int end)
-    cdef (stack[float], stack[float], stack[float]) fits(Ramp self, stack[RampIndex] ramps, Thresh thresh)
+    cdef float[:] stats(Ramp self, float slope, RampIndex ramp)
+    cdef Fits fits(Ramp self, stack[RampIndex] ramps, Thresh thresh)
 
 
 cdef Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants)
