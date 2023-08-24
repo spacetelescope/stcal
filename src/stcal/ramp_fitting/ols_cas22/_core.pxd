@@ -4,9 +4,8 @@ from libcpp.vector cimport vector
 from libcpp cimport bool
 
 cdef class Fixed:
-    # Fixed parameters for all pixels inpu  t
+    # Fixed parameters for all pixels input
     cdef public bool use_jump
-    cdef public float read_noise
     cdef public float[:] t_bar, tau
     cdef public int[:] n_reads
 
@@ -22,9 +21,9 @@ cdef class Fixed:
     #     (t_bar[j] - t_bar[i])**2
     cdef public float[:] t_bar_1_sq, t_bar_2_sq
 
-    # single and double sigma values
-    #    read_noise * ((1/n_reads[i]) + (1/n_reads[j]))
-    cdef public float[:] sigma_1, sigma_2
+    # single and double reciprical sum values
+    #    ((1/n_reads[i]) + (1/n_reads[j]))
+    cdef public float[:] recip_1, recip_2
 
     # single and double slope var terms
     #    (tau[i] + tau[j] - min(t_bar[i], t_bar[j])) * correction(i, j)
@@ -32,26 +31,34 @@ cdef class Fixed:
 
     cdef float[:] t_bar_diff(Fixed self, int offset)
     cdef float[:] t_bar_diff_sq(Fixed self, int offset)
-    cdef float[:] sigma_val(Fixed self, int offset)
+    cdef float[:] recip_val(Fixed self, int offset)
     cdef float[:] slope_var_val(Fixed self, int offset)
 
     cdef float correction(Fixed self, int i, int j)
 
 
-cdef Fixed make_fixed(
-    float read_noise, float[:] t_bar, float[:] tau, int[:] n_reads, bool use_jump)
+cdef Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool use_jump)
 
 
 cdef class Ramp:
-    cdef public int start, end
+    cdef Fixed fixed
     cdef public float read_noise
-    cdef public float [:] resultants,
-    cdef public vector[float] t_bar, tau
-    cdef public vector[int] n_reads
+    cdef public float [:] resultants
 
-    cdef (float, float, float) fit(Ramp self)
+    # Computed and cached values for jump detection
+    #    single -> j = i + 1
+    #    double -> j = i + 2
+
+    # single and double differences of resultants
+    #    resultants[j] - resultants[i]
+    cdef public float[:] resultants_1, resultants_2
+
+    # single and double sigma terms
+    #    read_noise * recip[i]
+    cdef public float[:] sigma_1, sigma_2
+
+    cdef float[:] resultants_diff(Ramp self, int offset)
+    cdef (float, float, float) fit(Ramp self, int start, int end)
 
 
-cdef Ramp make_ramp(
-    float [:] resultants, int start, int end, float read_noise,
-    vector[float] t_bar, vector[float] tau, vector[int] n_reads)
+cdef Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants)

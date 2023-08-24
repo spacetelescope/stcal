@@ -75,7 +75,7 @@ cdef class Jump(Ramp):
     @cython.cdivision(True)
     cdef inline (float, float, float, vector[float]) jump(Jump self):
         cdef float slope, read_var, poisson_var 
-        slope, read_var, poisson_var = self.fit()
+        # slope, read_var, poisson_var = self.fit()
 
         cdef vector[float] stats = self.statistic(slope)
 

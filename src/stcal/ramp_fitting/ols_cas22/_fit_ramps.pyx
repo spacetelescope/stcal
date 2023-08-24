@@ -3,7 +3,7 @@ cimport numpy as np
 from libcpp.vector cimport vector
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport make_ramp
+from stcal.ramp_fitting.ols_cas22._core cimport make_ramp, make_fixed, Fixed
 
 
 @cython.boundscheck(False)
@@ -66,7 +66,8 @@ cdef inline (vector[int], vector[int], vector[int]) end_points(int n_ramp,
 def fit_ramps(np.ndarray[float, ndim=2] resultants,
               np.ndarray[int, ndim=2] dq,
               np.ndarray[float, ndim=1] read_noise, read_time,
-              ma_table):
+              ma_table,
+              int use_jumps=False):
     """Fit ramps using the Casertano+22 algorithm.
 
     This implementation fits all ramp segments between bad pixels
@@ -115,6 +116,12 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef vector[float] t_bar, tau
     n_reads, t_bar, tau = read_ma_table(ma_table, read_time)
 
+    cdef Fixed fixed = make_fixed(
+        <float [:t_bar.size()]> t_bar.data(),
+        <float [:tau.size()]> tau.data(),
+        <int [:n_reads.size()]> n_reads.data(),
+        use_jumps)
+
     cdef int n_pixel = resultants.shape[1]
     cdef int n_ramp = (np.sum(dq[0, :] == 0) +
                        np.sum((dq[:-1, :] != 0) & (dq[1:, :] == 0)))
@@ -129,9 +136,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     for i in range(n_ramp):
         slope[i], slope_read_var[i], slope_poisson_var[i] = make_ramp(
-            resultants[:, pix[i]],
-            start[i], end[i],
-            read_noise[pix[i]], t_bar, tau, n_reads).fit()
+            fixed, read_noise[pix[i]], resultants[:, pix[i]]).fit(start[i], end[i])
 
     return dict(slope=slope, slopereadvar=slope_read_var,
                 slopepoissonvar=slope_poisson_var,

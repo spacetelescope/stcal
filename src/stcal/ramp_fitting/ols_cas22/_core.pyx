@@ -15,8 +15,6 @@ cdef class Fixed:
 
     Parameters
     ----------
-    read_noise : float
-        read noise for this pixel
     t_bar : vector[float]
         mean times of resultants
     tau : vector[float]
@@ -72,10 +70,10 @@ cdef class Fixed:
 
         return diff
 
-    cdef inline float[:] sigma_val(Fixed self, int offset):
+    cdef inline float[:] recip_val(Fixed self, int offset):
         """
-        Compute the sigma values
-            read_noise * (1/n_reads[i+offset] + 1/n_reads[i])
+        Compute the recip values
+            (1/n_reads[i+offset] + 1/n_reads[i])
 
         Parameters
         ----------
@@ -83,13 +81,11 @@ cdef class Fixed:
             index offset to compute difference
         """
         cdef int n_diff = len(self.t_bar) - offset
-
-        # cdef float[:] sig = self.read_noise * (
-        #     (1 / np.roll(self.n_reads, -offset) + 1 / np.array(self.n_reads))[:n_diff]).astype(float)
         
-        cdef float[:] sig = (1 / np.roll(self.n_reads, -offset)).astype(np.float32)
+        cdef float[:] recip = ((1 / np.roll(self.n_reads, -offset)).astype(np.float32) +
+                               (1 / np.array(self.n_reads)).astype(np.float32))[:n_diff]
 
-        return sig
+        return recip
 
     cdef inline float correction(Fixed self, int i, int j):
         """Compute the correction factor
@@ -129,13 +125,11 @@ cdef class Fixed:
         return slope_var_val
 
 
-cdef inline Fixed make_fixed(
-        float read_noise, float[:] t_bar, float[:] tau, int[:] n_reads, bool use_jump):
+cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, bool use_jump):
 
     cdef Fixed fixed = Fixed()
 
     fixed.use_jump = use_jump
-    fixed.read_noise = read_noise
     fixed.t_bar = t_bar
     fixed.tau = tau
     fixed.n_reads = n_reads
@@ -147,67 +141,14 @@ cdef inline Fixed make_fixed(
         fixed.t_bar_1_sq = fixed.t_bar_diff_sq(1)
         fixed.t_bar_2_sq = fixed.t_bar_diff_sq(2)
 
-        fixed.sigma_1 = fixed.sigma_val(1)
-        fixed.sigma_2 = fixed.sigma_val(2)
+        fixed.recip_1 = fixed.recip_val(1)
+        fixed.recip_2 = fixed.recip_val(2)
 
         fixed.slope_var_1 = fixed.slope_var_val(1)
         fixed.slope_var_2 = fixed.slope_var_val(2)
 
     return fixed
 
-
-    # cdef inline vector[float] t_bar_diff_sq(Fixed self, int offset):
-    #     """
-    #     Compute the square difference offset of t_bar
-
-    #     Parameters
-    #     ----------
-    #     offset : int
-    #         index offset to compute difference
-    #     """
-    #     cdef int n_diff = len(self.t_bar) - offset
-    #     cdef vector[float] diff = vector[float](n_diff)
-
-    #     for i in range(n_diff):
-    #         diff[i] = (self.t_bar[i + offset] - self.t_bar[i])**2
-
-    #     return diff
-
-    # cdef inline vector[float] sigma(Fixed, self, int offset):
-    #     """
-    #     Compute
-    #         read_noise * (1/n_reads[i+offset] + 1/n_reads[i])
-
-    #     Parameters
-    #     ----------
-    #     offset : int
-    #         index offset to compute difference
-    #     """
-    #     cdef int n_diff = len(self.t_bar) - offset
-    #     cdef vector[float] sig = vector[float](n_diff)
-
-    #     for i in range(n_diff):
-    #         sig[i] = read_noise * (1 / self.n_reads[i + offset] + 1 / self.n_reads[i])
-
-    #     return sig
-
-    # cdef inline vector[float] slope_var(Fixed, self, int offset):
-    #     """
-    #     Compute
-    #         read_noise * (1/n_reads[i+offset] + 1/n_reads[i])
-
-    #     Parameters
-    #     ----------
-    #     offset : int
-    #         index offset to compute difference
-    #     """
-    #     cdef int n_diff = len(self.t_bar) - offset
-    #     cdef vector[float] sig = vector[float](n_diff)
-
-    #     for i in range(n_diff):
-    #         sig[i] = read_noise * (1 / self.n_reads[i + offset] + 1 / self.n_reads[i])
-
-    #     return sig
 
 # Casertano+2022, Table 2
 cdef float[2][6] PTABLE = [
@@ -233,61 +174,79 @@ cdef class Ramp:
     resultants : float [:]
         array of resultants for single pixel
             - memoryview of a numpy array to avoid passing through Python
-    start : int
-        starting point of portion to fit within this pixel
-    end : int
-        ending point of portion to fit within this pixel
-    read_noise : float
-        read noise for this pixel
-    t_bar : vector[float]
-        mean times of resultants
-    tau : vector[float]
-        variance weighted mean times of resultants
-    n_reads : vector[int]
-        number of reads contributing to reach resultant
     """
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    cdef inline float[:] resultants_diff(Ramp self, int offset):
+        """
+        Compute the difference offset of resultants
+
+        Parameters
+        ----------
+        offset : int
+            index offset to compute difference
+        """
+        cdef int n_diff = len(self.resultants) - offset
+        cdef float[:] diff = (np.roll(self.resultants, -offset) - self.t_bar)[:n_diff]
+
+        return diff
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline (float, float, float) fit(Ramp self):
+    cdef inline (float, float, float) fit(Ramp self, int start, int end):
         """Fit a portion of single ramp using the Casertano+22 algorithm.
+        Parameters
+        ----------
+        start : int
+            Start of range to fit ramp
+        end : int
+            End of range to fit ramp
+        fixed : Fixed
+            Fixed values for all pixels
 
         Returns
         -------
         slope : float
             fit slope
-        slope_read_var : float
+        read_var : float
             read noise induced variance in slope
-        slope_poisson_var : float
+        poisson_var : float
             coefficient of Poisson-noise induced variance in slope
             multiply by true flux to get actual Poisson variance.
         """
-        cdef int n_resultants = self.end - self.start + 1
+        cdef int n_resultants = end - start + 1
 
         # Special case where there is no or one resultant, there is no fit.
         if n_resultants <= 1:
             return 0, 0, 0
 
+        # Setup data for fitting (work over subset of data)
+        cdef float[:] resultants = self.fixed.resultants[start:end + 1]
+        cdef float[:] t_bar = self.fixed.t_bar[start:end + 1]
+        cdef float[:] tau = self.fixed.tau[start:end + 1]
+        cdef int[:] n_reads = self.fixed.n_reads[start:end + 1]
+
         # Else, do the fitting.
         cdef int i = 0, j = 0
         cdef vector[float] weights = vector[float](n_resultants)
         cdef vector[float] coeffs = vector[float](n_resultants)
-        cdef float slope = 0, slope_read_var = 0, slope_poisson_var = 0
-        cdef float t_bar_mid = (self.t_bar[self.start] + self.t_bar[self.end]) / 2
+        cdef float slope = 0, read_var = 0, poisson_var = 0
+        cdef float t_bar_mid = (t_bar[0] + t_bar[- 1]) / 2
 
         # Casertano+2022 Eq. 44
         # Note we've departed from Casertano+22 slightly;
         # there s is just resultants[end].  But that doesn't seem good if, e.g.,
         # a CR in the first resultant has boosted the whole ramp high but there
         # is no actual signal.
-        cdef float s = max(self.resultants[self.end] - self.resultants[self.start], 0)
-        s = s / sqrt(self.read_noise**2 + s)
+        cdef float s = max(resultants[-1] - resultants[0], 0)
+        s = s / sqrt(self.fixed.read_noise**2 + s)
         cdef float power = get_weight_power(s)
 
         # It's easy to use up a lot of dynamic range on something like
         # (tbar - tbarmid) ** 10.  Rescale these.
-        cdef float t_scale = (self.t_bar[self.end] - self.t_bar[self.start]) / 2
+        cdef float t_scale = (t_bar[-1] - t_bar[0]) / 2
         t_scale = 1 if t_scale == 0 else t_scale
 
         cdef float f0 = 0, f1 = 0, f2 = 0
@@ -296,15 +255,13 @@ cdef class Ramp:
         with cython.cpow(True):
             for i in range(n_resultants):
                 # Casertano+22, Eq. 45
-                weights[i] = ((((1 + power) * self.n_reads[self.start + i]) /
-                              (1 + power * self.n_reads[self.start + i])) *
-                              fabs((self.t_bar[self.start + i] - t_bar_mid) /
-                              t_scale) ** power)
+                weights[i] = ((((1 + power) * n_reads[i]) / (1 + power * n_reads[i])) *
+                              fabs((t_bar[i] - t_bar_mid) / t_scale) ** power)
 
                 # Casertano+22 Eq. 35
                 f0 += weights[i]
-                f1 += weights[i] * self.t_bar[self.start + i]
-                f2 += weights[i] * self.t_bar[self.start + i]**2
+                f1 += weights[i] * t_bar[i]
+                f2 += weights[i] * t_bar[i]**2
 
         # Casertano+22 Eq. 36
         cdef float det = f2 * f0 - f1 ** 2
@@ -313,28 +270,24 @@ cdef class Ramp:
 
         for i in range(n_resultants):
             # Casertano+22 Eq. 37
-            coeffs[i] = (f0 * self.t_bar[self.start + i] - f1) * weights[i] / det
+            coeffs[i] = (f0 * t_bar[i] - f1) * weights[i] / det
 
         for i in range(n_resultants):
             # Casertano+22 Eq. 38
-            slope += coeffs[i] * self.resultants[self.start + i]
+            slope += coeffs[i] * resultants[i]
 
             # Casertano+22 Eq. 39
-            slope_read_var += (coeffs[i] ** 2 * self.read_noise ** 2 /
-                               self.n_reads[self.start + i])
+            read_var += (coeffs[i] ** 2 * self.fixed.read_noise ** 2 / n_reads[i])
 
             # Casertano+22 Eq 40
-            slope_poisson_var += coeffs[i] ** 2 * self.tau[self.start + i]
+            poisson_var += coeffs[i] ** 2 * tau[i]
             for j in range(i + 1, n_resultants):
-                slope_poisson_var += (2 * coeffs[i] * coeffs[j] *
-                                      self.t_bar[self.start + i])
+                poisson_var += (2 * coeffs[i] * coeffs[j] * t_bar[i])
 
-        return (slope, slope_read_var, slope_poisson_var)
+        return (slope, read_var, poisson_var)
 
 
-cdef inline Ramp make_ramp(
-        float [:] resultants, int start, int end, float read_noise,
-        vector[float] t_bar, vector[float] tau, vector[int] n_reads):
+cdef inline Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants):
     """
     Fast constructor for the Ramp C class.
 
@@ -344,21 +297,11 @@ cdef inline Ramp make_ramp(
 
     Parameters
     ----------
+    fixed : Fixed
+        Fixed values for all pixels
     resultants : float [:]
         array of resultants for single pixel
             - memoryview of a numpy array to avoid passing through Python
-    start : int
-        starting point of portion to fit within this pixel
-    end : int
-        ending point of portion to fit within this pixel
-    read_noise : float
-        read noise for this pixel
-    t_bar : vector[float]
-        mean times of resultants
-    tau : vector[float]
-        variance weighted mean times of resultants
-    n_reads : vector[int]
-        number of reads contributing to reach resultant
 
     Return
     ------
@@ -368,15 +311,15 @@ cdef inline Ramp make_ramp(
 
     cdef Ramp ramp = Ramp()
 
-    ramp.start = start
-    ramp.end = end
-
-    ramp.resultants = resultants
-    ramp.t_bar = t_bar
-    ramp.tau = tau
-
+    ramp.fixed = fixed
     ramp.read_noise = read_noise
+    ramp.resultants = resultants
 
-    ramp.n_reads = n_reads
+    if fixed.use_jump:
+        ramp.resultants_1 = ramp.resultants_diff(1)
+        ramp.resultants_2 = ramp.resultants_diff(2)
+
+        ramp.sigma_1 = read_noise * np.array(fixed.recip_1)
+        ramp.sigma_2 = read_noise * np.array(fixed.recip_2)
 
     return ramp
