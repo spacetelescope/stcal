@@ -27,6 +27,7 @@ cdef struct Fits:
     vector[float] read_var
     vector[float] poisson_var
 
-cdef Fits reverse_fits(Fits fits)
+cdef float get_power(float s)
 cdef float threshold(Thresh thresh, float slope)
-cdef float get_weight_power(float s)
+cdef Thresh make_thresh(float intercept, float constant)
+cdef Fits reverse_fits(Fits fits)

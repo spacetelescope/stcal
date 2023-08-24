@@ -7,7 +7,7 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_weight_power, reverse_fits, threshold, Fit, Fits, RampIndex, Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, reverse_fits, threshold, Fit, Fits, RampIndex, Thresh
 from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp, Ramp
 
 
@@ -85,7 +85,7 @@ cdef class Ramp:
         # is no actual signal.
         cdef float s = max(resultants[-1] - resultants[0], 0)
         s = s / sqrt(self.fixed.read_noise**2 + s)
-        cdef float power = get_weight_power(s)
+        cdef float power = get_power(s)
 
         # It's easy to use up a lot of dynamic range on something like
         # (tbar - tbarmid) ** 10.  Rescale these.
