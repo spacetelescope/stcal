@@ -8,7 +8,7 @@ cdef class Ramp:
     cdef float read_noise
     cdef float [:] resultants
 
-    cdef float[:] delta_1, delta_2 
+    cdef float[:] delta_1, delta_2
     cdef float[:] sigma_1, sigma_2
 
     cdef float[:] resultants_diff(Ramp self, int offset)

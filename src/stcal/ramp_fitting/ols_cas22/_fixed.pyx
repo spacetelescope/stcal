@@ -1,5 +1,6 @@
 """
-Define the data which is fixed for all pixels to compute the CAS22 algorithm with jump detection
+Define the data which is fixed for all pixels to compute the CAS22 algorithm with
+    jump detection
 
 Objects
 -------
@@ -119,7 +120,6 @@ cdef class Fixed:
         (1/n_reads[i+offset] + 1/n_reads[i])
         """
         cdef int n_diff = len(self.t_bar) - offset
-        
         cdef float[:] recip = ((1 / np.roll(self.n_reads, -offset)).astype(np.float32) +
                                (1 / np.array(self.n_reads)).astype(np.float32))[:n_diff]
 
@@ -157,7 +157,8 @@ cdef class Fixed:
 
         Returns
         -------
-        (tau[i] + tau[i+offset] - min(t_bar[i], t_bar[i+offset])) * correction(i, i+offset)
+        (tau[i] + tau[i+offset] - min(t_bar[i], t_bar[i+offset])) *
+            correction(i, i+offset)
         """
         cdef int n_diff = len(self.t_bar) - offset
 
@@ -167,13 +168,20 @@ cdef class Fixed:
         for i in range(n_diff):
             f_corr[i] = self.correction(i, i + offset)
 
-        cdef float[:] slope_var_val = ((self.tau + np.roll(self.tau, -offset) - 
-                                        np.minimum(self.t_bar, np.roll(self.t_bar, -offset)))[:n_diff]) * f_corr
+        # Compute rolls to the correct shapes
+        cdef t_bar_1 = np.array(self.t_bar, dtype=np.float32)[:n_diff]
+        cdef t_bar_2 = np.array(np.roll(self.t_bar, -offset), dtype=np.float32)[:n_diff]
+        cdef tau_1 = np.array(self.tau, dtype=np.float32)[:n_diff]
+        cdef tau_2 = np.array(np.roll(self.tau, -offset), dtype=np.float32)[:n_diff]
+
+        cdef float[:] slope_var_val = (tau_1 + tau_2 - np.minimum(t_bar_1, t_bar_2)
+                                       ) * f_corr
 
         return slope_var_val
 
 
-cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads, Thresh threshold, bool use_jump):
+cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads,
+                             Thresh threshold, bool use_jump):
     """
     Fast constructor for Fixed class
         Use this instead of an __init__ because it does not incure the overhead of

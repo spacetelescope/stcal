@@ -12,7 +12,7 @@ Functions
 make_ramp : function
     Fast constructor for the Ramp class
 """
-from libc.math cimport sqrt, fabs, log10
+from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
 from libcpp.stack cimport stack
 
@@ -21,8 +21,9 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_power, reverse_fits, Fit, Fits, RampIndex
-from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp, Ramp
+from stcal.ramp_fitting.ols_cas22._core cimport (
+    get_power, reverse_fits, Fit, Fits, RampIndex)
+from stcal.ramp_fitting.ols_cas22._ramp cimport Ramp
 
 
 cdef class Ramp:
@@ -31,7 +32,7 @@ cdef class Ramp:
         This data is drawn from for all ramps for a single pixel.
         This class pre-computes jump detection values shared by all ramps
         for a given pixel.
-    
+
     Parameters
     ----------
     fixed : Fixed
@@ -198,21 +199,28 @@ cdef class Ramp:
 
         Returns
         -------
-        list of statistics for each resultant 
+        list of statistics for each resultant
             except for the last 2 due to single/double difference due to indexing
         """
-        cdef np.ndarray[float] delta_1 = np.array(self.delta_1[ramp.start:ramp.end-1]) - slope
-        cdef np.ndarray[float] delta_2 = np.array(self.delta_2[ramp.start:ramp.end-1]) - slope
+        cdef int start = ramp.start
+        cdef int end = ramp.end - 1
 
-        cdef np.ndarray[float] var_1 = ((np.array(self.sigma_1[ramp.start:ramp.end-1]) +
-                                         slope * np.array(self.slope_var_1[ramp.start:ramp.end-1])) /
-                                        self.fixed.t_bar_1_sq[ramp.start:ramp.end-1]).astype(np.float32)
-        cdef np.ndarray[float] var_2 = ((np.array(self.sigma_2[ramp.start:ramp.end-1]) +
-                                         slope * np.array(self.slope_var_2[ramp.start:ramp.end-1])) /
-                                        self.fixed.t_bar_2_sq[ramp.start:ramp.end-1]).astype(np.float32)
+        cdef np.ndarray[float] delta_1 = np.array(self.delta_1[start:end]) - slope
+        cdef np.ndarray[float] delta_2 = np.array(self.delta_2[start:end]) - slope
 
-        cdef np.ndarray[float] stats_1 = (delta_1 / np.sqrt(var_1, dtype=np.float32)).astype(np.float32)
-        cdef np.ndarray[float] stats_2 = (delta_2 / np.sqrt(var_2, dtype=np.float32)).astype(np.float32)
+        cdef np.ndarray[float] var_1 = ((np.array(self.sigma_1[start:end]) + slope *
+                                         np.array(self.slope_var_1[start:end])) /
+                                        self.fixed.t_bar_1_sq[start:end]
+                                        ).astype(np.float32)
+        cdef np.ndarray[float] var_2 = ((np.array(self.sigma_2[start:end]) + slope *
+                                         np.array(self.slope_var_2[start:end])) /
+                                        self.fixed.t_bar_2_sq[start:end]
+                                        ).astype(np.float32)
+
+        cdef np.ndarray[float] stats_1 = (delta_1 / np.sqrt(var_1, dtype=np.float32)
+                                          ).astype(np.float32)
+        cdef np.ndarray[float] stats_2 = (delta_2 / np.sqrt(var_2, dtype=np.float32)
+                                          ).astype(np.float32)
 
         return np.maximum(stats_1, stats_2)
 
@@ -235,7 +243,7 @@ cdef class Ramp:
         ramps : stack[RampIndex]
             Stack of initial ramps to fit for a single pixel
             multiple ramps are possible due to dq flags
-        
+
         Returns
         -------
         Fits struct of all the fits for a single pixel
@@ -258,7 +266,7 @@ cdef class Ramp:
 
             if self.fixed.use_jump:
                 stats = self.stats(fit.slope, ramp)
-            
+
                 if max(stats) > self.threshold.run(fit.slope):
                     # Compute split point to create two new ramps
                     split = np.argmax(stats)
@@ -308,8 +316,10 @@ cdef inline Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants):
 
     # Pre-compute values for jump detection shared by all ramps for this pixel
     if fixed.use_jump:
-        ramp.delta_1 = (np.array(ramp.resultants_diff(1)) / np.array(fixed.t_bar_1)).astype(np.float32)
-        ramp.delta_2 = (np.array(ramp.resultants_diff(2)) / np.array(fixed.t_bar_2)).astype(np.float32)
+        ramp.delta_1 = (np.array(ramp.resultants_diff(1)) /
+                        np.array(fixed.t_bar_1)).astype(np.float32)
+        ramp.delta_2 = (np.array(ramp.resultants_diff(2)) /
+                        np.array(fixed.t_bar_2)).astype(np.float32)
 
         ramp.sigma_1 = read_noise * np.array(fixed.recip_1)
         ramp.sigma_2 = read_noise * np.array(fixed.recip_2)

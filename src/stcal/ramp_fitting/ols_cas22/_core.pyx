@@ -12,8 +12,10 @@ Structs:
         float poisson_var: poisson noise variance of single ramp
     Fits
         vector[float] slope: slopes of the ramps for a single pixel
-        vector[float] read_var: read noise variances of the ramps for a single pixel
-        vector[float] poisson_var: poisson noise variances of the ramps for a single pixel
+        vector[float] read_var: read noise variances of the ramps for a single
+                                pixel
+        vector[float] poisson_var: poisson noise variances of the ramps for a
+                                   single pixel
 
 Objects
 -------
@@ -33,7 +35,7 @@ from libc.math cimport log10
 import numpy as np
 cimport numpy as np
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, Thresh, Fit, Fits, get_power, reverse_fits, make_threshold
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, Fits
 
 
 # Casertano+2022, Table 2

@@ -10,7 +10,9 @@ from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline (vector[int], vector[float], vector[float]) read_ma_table(list[list[int]] ma_table, float read_time):
+cdef inline (vector[int], vector[float], vector[float]) read_ma_table(list[list[int]]
+                                                                      ma_table,
+                                                                      float read_time):
 
     cdef vector[int] n_reads = vector[int](len(ma_table))
     cdef vector[float] t_bar = vector[float](len(ma_table))
@@ -19,10 +21,10 @@ cdef inline (vector[int], vector[float], vector[float]) read_ma_table(list[list[
     for index, entry in enumerate(ma_table):
         n_reads[index] = entry[1]
         t_bar[index] = read_time *(entry[0] + (entry[1] - 1) / 2.0)
-        tau[index] = t_bar[index] - (entry[1] - 1) * (entry[1] + 1) * read_time / (6 * entry[1])
+        tau[index] = t_bar[index] - (entry[1] - 1) * ((entry[1] + 1) * read_time /
+                                                      (6 * entry[1]))
 
     return n_reads, t_bar, tau
-
 
 
 @cython.boundscheck(False)
@@ -139,9 +141,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     start, end, pix = end_points(n_ramp, n_pixel, n_resultants, dq)
 
     for i in range(n_ramp):
-        fit = make_ramp(
-            fixed, read_noise[pix[i]], resultants[:, pix[i]]).fit(RampIndex(start[i], end[i]))
-        
+        fit = make_ramp(fixed, read_noise[pix[i]], resultants[:, pix[i]]
+                        ).fit(RampIndex(start[i], end[i]))
+
         slope[i] = fit.slope
         slope_read_var[i] = fit.read_var
         slope_poisson_var[i] = fit.poisson_var
