@@ -2,6 +2,7 @@
 
 import logging
 from multiprocessing.pool import Pool as Pool
+from multiprocessing import cpu_count as cpu_count
 import numpy as np
 import time
 
@@ -73,7 +74,8 @@ def ols_ramp_fit_multi(
 
     # Determine number of slices to use for multi-processor computations
     nrows = ramp_data.data.shape[2]
-    number_slices = utils.compute_slices(max_cores, nrows)
+    num_available_cores = cpu_count()
+    number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the

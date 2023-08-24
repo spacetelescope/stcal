@@ -25,7 +25,7 @@ dynamic = ['version']
 docs = [
     'numpydoc',
     'packaging >=17',
-    'sphinx',
+    'sphinx<7.0.0',
     'sphinx-asdf',
     'sphinx-astropy',
     'sphinx-rtd-theme',
@@ -48,6 +48,8 @@ requires = [
     'setuptools >=61',
     'setuptools_scm[toml] >=3.4',
     'wheel',
+    'Cython >=0.29.21',
+    'numpy >=1.18',
 ]
 build-backend = 'setuptools.build_meta'
 
