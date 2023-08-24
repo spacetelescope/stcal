@@ -29,5 +29,4 @@ cdef struct Fits:
 
 cdef float get_power(float s)
 cdef float threshold(Thresh thresh, float slope)
-cdef Thresh make_thresh(float intercept, float constant)
 cdef Fits reverse_fits(Fits fits)

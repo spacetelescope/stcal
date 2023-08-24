@@ -17,14 +17,19 @@ Structs:
         vector[float] slope: slopes of the ramps for a single pixel
         vector[float] read_var: read noise variances of the ramps for a single pixel
         vector[float] poisson_var: poisson noise variances of the ramps for a single pixel
+
+Functions:
+----------
+    get_power
+        Return the power from Casertano+22, Table 2
+    threshold
+        Compute jump threshold
+    reverse_fits
+        Reverse a Fits struct
 """
-from libc.math cimport sqrt, fabs, log10
-from libcpp.vector cimport vector
-from libcpp.stack cimport stack
-from libcpp cimport bool
+from libc.math cimport log10
 import numpy as np
 cimport numpy as np
-cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, Thresh, Fit, Fits, get_power, threshold, reverse_fits
 
@@ -72,25 +77,6 @@ cdef inline float threshold(Thresh thresh, float slope):
         intercept - constant * log10(slope)
     """
     return thresh.intercept - thresh.constant * log10(slope)
-
-
-cdef inline Thresh make_thresh(float intercept, float constant):
-    """
-    Make a threshold parameters struct:
-        intercept - constant * log10(slope)
-
-    Parameters
-    ----------
-    intercept : float
-        intercept of the threshold
-    constant : float
-        constant of the threshold
-
-    Returns
-    -------
-    threshold parameters struct
-    """
-    return Thresh(intercept, constant)
 
 
 cdef inline Fits reverse_fits(Fits fits):
