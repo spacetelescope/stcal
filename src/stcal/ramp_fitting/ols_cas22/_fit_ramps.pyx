@@ -7,7 +7,7 @@ cimport cython
 from stcal.ramp_fitting.ols_cas22._core cimport (
     Fits, RampIndex, make_threshold, read_data, init_ramps)
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
-from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp
+from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
 
 @cython.boundscheck(False)
@@ -82,8 +82,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef int index
     for index in range(n_resultants):
         # Fit all the ramps for the given pixel
-        fits = make_ramp(fixed, read_noise,
-                         resultants[:, index]).fits(pixel_ramps[index])
+        fits = make_pixel(fixed, read_noise,
+                          resultants[:, index]).fits(pixel_ramps[index])
 
         # Cast into numpy arrays for output
         slopes.append(np.array(<float [:fits.slope.size()]> fits.slope.data()))

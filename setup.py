@@ -20,8 +20,8 @@ extensions = [
         language='c++'
     ),
     Extension(
-        'stcal.ramp_fitting.ols_cas22._ramp',
-        ['src/stcal/ramp_fitting/ols_cas22/_ramp.pyx'],
+        'stcal.ramp_fitting.ols_cas22._pixel',
+        ['src/stcal/ramp_fitting/ols_cas22/_pixel.pyx'],
         include_dirs=[np.get_include()],
         language='c++'
     ),

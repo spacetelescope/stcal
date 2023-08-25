@@ -3,14 +3,14 @@ Define the C class for the CAS22 algorithm for fitting ramps with jump detection
 
 Objects
 -------
-Ramp : class
+Pixel : class
     Class to handle ramp fit with jump detection for a single pixel
     Provides fits method which fits all the ramps for a single pixel
 
 Functions
 ---------
 make_ramp : function
-    Fast constructor for the Ramp class
+    Fast constructor for the Pixel class
 """
 from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
@@ -23,10 +23,10 @@ cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
     get_power, reverse_fits, Fit, Fits, RampIndex)
-from stcal.ramp_fitting.ols_cas22._ramp cimport Ramp
+from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
-cdef class Ramp:
+cdef class Pixel:
     """
     Class to contain the data to fit ramps for a single pixel.
         This data is drawn from for all ramps for a single pixel.
@@ -74,7 +74,7 @@ cdef class Ramp:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:] resultants_diff(Ramp self, int offset):
+    cdef inline float[:] resultants_diff(Pixel self, int offset):
         """
         Compute the difference offset of resultants
 
@@ -94,7 +94,7 @@ cdef class Ramp:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline Fit fit(Ramp self, RampIndex ramp):
+    cdef inline Fit fit(Pixel self, RampIndex ramp):
         """
         Fit a single ramp using Casertano+22 algorithm.
 
@@ -180,7 +180,7 @@ cdef class Ramp:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline float[:] stats(Ramp self, float slope, RampIndex ramp):
+    cdef inline float[:] stats(Pixel self, float slope, RampIndex ramp):
         """
         Compute fit statistics for jump detection on a single ramp
         Computed using:
@@ -227,7 +227,7 @@ cdef class Ramp:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline Fits fits(Ramp self, stack[RampIndex] ramps):
+    cdef inline Fits fits(Pixel self, stack[RampIndex] ramps):
         """
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
@@ -287,9 +287,9 @@ cdef class Ramp:
         return reverse_fits(fits)
 
 
-cdef inline Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants):
+cdef inline Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants):
     """
-    Fast constructor for the Ramp C class.
+    Fast constructor for the Pixel C class.
 
     This is signifantly faster than using the `__init__` or `__cinit__`
         this is because this does not have to pass through the Python as part
@@ -305,23 +305,23 @@ cdef inline Ramp make_ramp(Fixed fixed, float read_noise, float [:] resultants):
 
     Return
     ------
-    Ramp C-class object (with pre-computed values if use_jump is True)
+    Pixel C-class object (with pre-computed values if use_jump is True)
     """
-    cdef Ramp ramp = Ramp()
+    cdef Pixel pixel = Pixel()
 
     # Fill in input information for pixel
-    ramp.fixed = fixed
-    ramp.read_noise = read_noise
-    ramp.resultants = resultants
+    pixel.fixed = fixed
+    pixel.read_noise = read_noise
+    pixel.resultants = resultants
 
-    # Pre-compute values for jump detection shared by all ramps for this pixel
+    # Pre-compute values for jump detection shared by all pixels for this pixel
     if fixed.use_jump:
-        ramp.delta_1 = (np.array(ramp.resultants_diff(1)) /
-                        np.array(fixed.t_bar_1)).astype(np.float32)
-        ramp.delta_2 = (np.array(ramp.resultants_diff(2)) /
-                        np.array(fixed.t_bar_2)).astype(np.float32)
+        pixel.delta_1 = (np.array(pixel.resultants_diff(1)) /
+                         np.array(fixed.t_bar_1)).astype(np.float32)
+        pixel.delta_2 = (np.array(pixel.resultants_diff(2)) /
+                         np.array(fixed.t_bar_2)).astype(np.float32)
 
-        ramp.sigma_1 = read_noise * np.array(fixed.recip_1)
-        ramp.sigma_2 = read_noise * np.array(fixed.recip_2)
+        pixel.sigma_1 = read_noise * np.array(fixed.recip_1)
+        pixel.sigma_2 = read_noise * np.array(fixed.recip_2)
 
-    return ramp
+    return pixel
