@@ -85,10 +85,9 @@ cdef class Fixed:
         -------
         t_bar[i+offset] - t_bar[i]
         """
-        cdef int n_diff = len(self.t_bar) - offset
-        cdef float[:] diff = (np.roll(self.t_bar, -offset) - self.t_bar)[:n_diff]
+        cdef float[:] t_bar = self.t_bar
 
-        return diff
+        return np.subtract(t_bar[offset:], t_bar[:-offset])
 
     cdef inline float[:] t_bar_diff_sq(Fixed self, int offset):
         """
@@ -119,11 +118,10 @@ cdef class Fixed:
         -------
         (1/n_reads[i+offset] + 1/n_reads[i])
         """
-        cdef int n_diff = len(self.t_bar) - offset
-        cdef float[:] recip = ((1 / np.roll(self.n_reads, -offset)).astype(np.float32) +
-                               (1 / np.array(self.n_reads)).astype(np.float32))[:n_diff]
+        cdef int[:] n_reads = self.n_reads
 
-        return recip
+        return (np.divide(1.0, n_reads[offset:], dtype=np.float32) +
+                np.divide(1.0, n_reads[:-offset], dtype=np.float32))
 
     cdef inline float correction(Fixed self, int i, int j):
         """Compute the correction factor
@@ -139,12 +137,15 @@ cdef class Fixed:
         -------
         the correction factor f_corr for a single term
         """
-        cdef float denom = self.t_bar[self.n_reads[i] - 1] - self.t_bar[0]
+        cdef float[:] t_bar = self.t_bar
+        cdef int[:] n_reads = self.n_reads
+
+        cdef float denom = t_bar[n_reads[i] - 1] - t_bar[0]
 
         if i - j == 1:
-            return (1 - (self.t_bar[i + 1] - self.t_bar[i]) / denom) ** 2
+            return (1.0 - (t_bar[i + 1] - t_bar[i]) / denom) ** 2
         else:
-            return (1 - 0.75 * (self.t_bar[i + 2] - self.t_bar[i]) / denom) ** 2
+            return (1.0 - 0.75 * (t_bar[i + 2] - t_bar[i]) / denom) ** 2
 
     cdef inline float[:] slope_var_val(Fixed self, int offset):
         """
@@ -160,7 +161,10 @@ cdef class Fixed:
         (tau[i] + tau[i+offset] - min(t_bar[i], t_bar[i+offset])) *
             correction(i, i+offset)
         """
-        cdef int n_diff = len(self.t_bar) - offset
+        cdef float[:] t_bar = self.t_bar
+        cdef float[:] tau = self.tau
+
+        cdef int n_diff = t_bar.size - offset
 
         # Comput correction factor vector
         cdef int i
@@ -168,16 +172,8 @@ cdef class Fixed:
         for i in range(n_diff):
             f_corr[i] = self.correction(i, i + offset)
 
-        # Compute rolls to the correct shapes
-        cdef t_bar_1 = np.array(self.t_bar, dtype=np.float32)[:n_diff]
-        cdef t_bar_2 = np.array(np.roll(self.t_bar, -offset), dtype=np.float32)[:n_diff]
-        cdef tau_1 = np.array(self.tau, dtype=np.float32)[:n_diff]
-        cdef tau_2 = np.array(np.roll(self.tau, -offset), dtype=np.float32)[:n_diff]
-
-        cdef float[:] slope_var_val = (tau_1 + tau_2 - np.minimum(t_bar_1, t_bar_2)
-                                       ) * f_corr
-
-        return slope_var_val
+        return (np.add(tau[offset:], tau[:-offset]) -
+                np.minimum(t_bar[offset:], t_bar[:-offset])) * f_corr
 
 
 cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
@@ -205,6 +201,7 @@ cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
     fixed.use_jump = use_jump
     fixed.threshold = threshold
 
+    # Cast vector to a c array
     fixed.t_bar = <float [:data.t_bar.size()]> data.t_bar.data()
     fixed.tau = <float [:data.tau.size()]> data.tau.data()
     fixed.n_reads = <int [:data.n_reads.size()]> data.n_reads.data()

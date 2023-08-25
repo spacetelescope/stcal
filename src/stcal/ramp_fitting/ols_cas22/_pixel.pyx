@@ -85,10 +85,9 @@ cdef class Pixel:
         -------
         (resultants[i+offset] - resultants[i])
         """
-        cdef int n_diff = len(self.resultants) - offset
-        cdef float[:] diff = (np.roll(self.resultants, -offset) - self.t_bar)[:n_diff]
+        cdef float[:] resultants = self.resultants
 
-        return diff
+        return np.subtract(resultants[offset:], resultants[:-offset])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -119,6 +118,7 @@ cdef class Pixel:
         cdef float[:] t_bar = self.fixed.t_bar[ramp.start:ramp.end + 1]
         cdef float[:] tau = self.fixed.tau[ramp.start:ramp.end + 1]
         cdef int[:] n_reads = self.fixed.n_reads[ramp.start:ramp.end + 1]
+        cdef float read_noise = self.fixed.read_noise
 
         # initalize fit
         cdef int i = 0, j = 0
@@ -132,7 +132,7 @@ cdef class Pixel:
         # a CR in the first resultant has boosted the whole ramp high but there
         # is no actual signal.
         cdef float s = max(resultants[-1] - resultants[0], 0)
-        s = s / sqrt(self.fixed.read_noise**2 + s)
+        s = s / sqrt(read_noise**2 + s)
         cdef float power = get_power(s)
 
         # It's easy to use up a lot of dynamic range on something like
@@ -167,8 +167,7 @@ cdef class Pixel:
             ramp_fit.slope += coeffs[i] * resultants[i]
 
             # Casertano+22 Eq. 39
-            ramp_fit.read_var += (coeffs[i] ** 2 * self.fixed.read_noise ** 2 /
-                                  n_reads[i])
+            ramp_fit.read_var += (coeffs[i] ** 2 * read_noise ** 2 / n_reads[i])
 
             # Casertano+22 Eq 40
             ramp_fit.poisson_var += coeffs[i] ** 2 * tau[i]
@@ -205,24 +204,20 @@ cdef class Pixel:
         cdef int start = ramp.start
         cdef int end = ramp.end - 1
 
-        cdef np.ndarray[float] delta_1 = np.array(self.delta_1[start:end]) - slope
-        cdef np.ndarray[float] delta_2 = np.array(self.delta_2[start:end]) - slope
+        cdef float[:] delta_1 = np.subtract(self.delta_1[start:end], slope)
+        cdef float[:] delta_2 = np.subtract(self.delta_2[start:end], slope)
 
-        cdef np.ndarray[float] var_1 = ((np.array(self.sigma_1[start:end]) + slope *
-                                         np.array(self.slope_var_1[start:end])) /
-                                        self.fixed.t_bar_1_sq[start:end]
-                                        ).astype(np.float32)
-        cdef np.ndarray[float] var_2 = ((np.array(self.sigma_2[start:end]) + slope *
-                                         np.array(self.slope_var_2[start:end])) /
-                                        self.fixed.t_bar_2_sq[start:end]
-                                        ).astype(np.float32)
+        cdef float[:] var_1 = np.divide(np.add(self.sigma_1[start:end],
+                                        np.multiply(slope, self.slope_var_1[start:end])),
+                                        self.fixed.t_bar_1_sq[start:end])
+        cdef float[:] var_2 = np.divide(np.add(self.sigma_2[start:end],
+                                        np.multiply(slope, self.slope_var_2[start:end])),
+                                        self.fixed.t_bar_2_sq[start:end])
 
-        cdef np.ndarray[float] stats_1 = (delta_1 / np.sqrt(var_1, dtype=np.float32)
-                                          ).astype(np.float32)
-        cdef np.ndarray[float] stats_2 = (delta_2 / np.sqrt(var_2, dtype=np.float32)
-                                          ).astype(np.float32)
+        cdef float[:] stats_1 = np.divide(delta_1, np.sqrt(var_1))
+        cdef float[:] stats_2 = np.divide(delta_2, np.sqrt(var_2))
 
-        return np.maximum(stats_1, stats_2)
+        return np.maximum(stats_1, stats_2, dtype=np.float32)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
