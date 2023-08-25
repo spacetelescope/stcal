@@ -282,6 +282,8 @@ cdef class Pixel:
             ramp_fits.slope.push_front(ramp_fit.slope)
             ramp_fits.read_var.push_front(ramp_fit.read_var)
             ramp_fits.poisson_var.push_front(ramp_fit.poisson_var)
+            ramp_fits.start.push_front(ramp.start)
+            ramp_fits.end.push_front(ramp.end)
 
         return ramp_fits
 

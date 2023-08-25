@@ -72,6 +72,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)
 
     cdef cpp_list[cpp_list[float]] slopes, read_vars, poisson_vars
+    cdef cpp_list[cpp_list[int]] starts, ends
 
     # Perform all of the fits
     cdef RampFits ramp_fits
@@ -82,9 +83,11 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
                                resultants[:, index]).fit_ramps(pixel_ramps[index])
 
         # Build the output arrays
-        slopes.push_back(ramp_fits.slopes)
-        read_vars.push_back(ramp_fits.read_vars)
-        poisson_vars.push_back(ramp_fits.poisson_vars)
+        slopes.push_back(ramp_fits.slope)
+        read_vars.push_back(ramp_fits.read_var)
+        poisson_vars.push_back(ramp_fits.poisson_var)
+        starts.push_back(ramp_fits.start)
+        ends.push_back(ramp_fits.end)
 
-    return dict(slope=slopes, slopereadvar=read_vars,
-                slopepoissonvar=poisson_vars)
+    return dict(slope=slopes, read_var=read_vars,
+                poisson_var=poisson_vars, start=starts, end=ends)

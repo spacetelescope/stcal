@@ -23,6 +23,8 @@ cdef struct RampFits:
     cpp_list[float] slope
     cpp_list[float] read_var
     cpp_list[float] poisson_var
+    cpp_list[int] start
+    cpp_list[int] end
 
 
 cdef struct DerivedData:
