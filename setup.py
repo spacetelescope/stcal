@@ -10,4 +10,4 @@ extensions = [Extension('stcal.ramp_fitting.ols_cas22',
                         ['src/stcal/ramp_fitting/ols_cas22.pyx'],
                         include_dirs=[np.get_include()])]
 
-setup(ext_modules=cythonize(extensions))
+setup(ext_modules=cythonize(extensions), extra_compile_args=['-std=c99'])
