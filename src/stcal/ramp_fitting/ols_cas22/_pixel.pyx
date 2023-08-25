@@ -22,7 +22,7 @@ cimport cython
 
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
-    get_power, reverse_fits, Fit, Fits, RampIndex)
+    get_power, reverse_fits, RampFit, RampFits, RampIndex)
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
@@ -94,7 +94,7 @@ cdef class Pixel:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline Fit fit(Pixel self, RampIndex ramp):
+    cdef inline RampFit fit_ramp(Pixel self, RampIndex ramp):
         """
         Fit a single ramp using Casertano+22 algorithm.
 
@@ -105,14 +105,14 @@ cdef class Pixel:
 
         Returns
         -------
-        Fit struct of slope, read_var, poisson_var
+        RampFit struct of slope, read_var, poisson_var
         """
         cdef int n_resultants = ramp.end - ramp.start + 1
-        cdef Fit fit = Fit(0, 0, 0)
+        cdef RampFit ramp_fit = RampFit(0, 0, 0)
 
         # Special case where there is no or one resultant, there is no fit.
         if n_resultants <= 1:
-            return fit
+            return ramp_fit
         # Else, do the fitting.
 
         # Setup data for fitting (work over subset of data)
@@ -157,7 +157,7 @@ cdef class Pixel:
         # Casertano+22 Eq. 36
         cdef float det = f2 * f0 - f1 ** 2
         if det == 0:
-            return fit
+            return ramp_fit
 
         for i in range(n_resultants):
             # Casertano+22 Eq. 37
@@ -165,17 +165,18 @@ cdef class Pixel:
 
         for i in range(n_resultants):
             # Casertano+22 Eq. 38
-            fit.slope += coeffs[i] * resultants[i]
+            ramp_fit.slope += coeffs[i] * resultants[i]
 
             # Casertano+22 Eq. 39
-            fit.read_var += (coeffs[i] ** 2 * self.fixed.read_noise ** 2 / n_reads[i])
+            ramp_fit.read_var += (coeffs[i] ** 2 * self.fixed.read_noise ** 2 /
+                                  n_reads[i])
 
             # Casertano+22 Eq 40
-            fit.poisson_var += coeffs[i] ** 2 * tau[i]
+            ramp_fit.poisson_var += coeffs[i] ** 2 * tau[i]
             for j in range(i + 1, n_resultants):
-                fit.poisson_var += (2 * coeffs[i] * coeffs[j] * t_bar[i])
+                ramp_fit.poisson_var += (2 * coeffs[i] * coeffs[j] * t_bar[i])
 
-        return fit
+        return ramp_fit
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -227,7 +228,7 @@ cdef class Pixel:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline Fits fits(Pixel self, stack[RampIndex] ramps):
+    cdef inline RampFits fit_ramps(Pixel self, stack[RampIndex] ramps):
         """
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
@@ -246,12 +247,12 @@ cdef class Pixel:
 
         Returns
         -------
-        Fits struct of all the fits for a single pixel
+        RampFits struct of all the fits for a single pixel
         """
         # Setup algorithm
-        cdef Fits fits
+        cdef RampFits ramp_fits
         cdef RampIndex ramp
-        cdef Fit fit
+        cdef RampFit ramp_fit
         cdef float [:] stats
         cdef int split
 
@@ -262,12 +263,12 @@ cdef class Pixel:
             ramps.pop()
 
             # Compute fit
-            fit = self.fit(ramp)
+            ramp_fit = self.ramp_fit(ramp)
 
             if self.fixed.use_jump:
-                stats = self.stats(fit.slope, ramp)
+                stats = self.stats(ramp_fit.slope, ramp)
 
-                if max(stats) > self.threshold.run(fit.slope):
+                if max(stats) > self.threshold.run(ramp_fit.slope):
                     # Compute split point to create two new ramps
                     split = np.argmax(stats)
 
@@ -279,12 +280,12 @@ cdef class Pixel:
                     continue
 
             # Add fit to fits if no jump detection or stats are less than threshold
-            fits.slope.push_back(fit.slope)
-            fits.read_var.push_back(fit.read_var)
-            fits.poisson_var.push_back(fit.poisson_var)
+            ramp_fits.slope.push_back(ramp_fit.slope)
+            ramp_fits.read_var.push_back(ramp_fit.read_var)
+            ramp_fits.poisson_var.push_back(ramp_fit.poisson_var)
 
         # Reverse the slope data
-        return reverse_fits(fits)
+        return reverse_fits(ramp_fits)
 
 
 cdef inline Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants):

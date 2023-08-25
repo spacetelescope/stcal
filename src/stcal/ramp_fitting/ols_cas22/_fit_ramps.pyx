@@ -5,7 +5,7 @@ from libcpp.stack cimport stack
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
-    Fits, RampIndex, make_threshold, read_data, init_ramps)
+    RampFits, RampIndex, make_threshold, read_data, init_ramps)
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
@@ -78,18 +78,20 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     poisson_vars = []
 
     # Perform all of the fits
-    cdef Fits fits
+    cdef RampFits ramp_fits
     cdef int index
     for index in range(n_resultants):
         # Fit all the ramps for the given pixel
-        fits = make_pixel(fixed, read_noise,
-                          resultants[:, index]).fits(pixel_ramps[index])
+        ramp_fits = make_pixel(fixed, read_noise,
+                               resultants[:, index]).fit_ramps(pixel_ramps[index])
 
         # Cast into numpy arrays for output
-        slopes.append(np.array(<float [:fits.slope.size()]> fits.slope.data()))
-        read_vars.append(np.array(<float [:fits.read_var.size()]> fits.read_var.data()))
-        poisson_vars.append(np.array(<float [:fits.poisson_var.size()]>
-                                     fits.poisson_var.data()))
+        slopes.append(np.array(<float [:ramp_fits.slope.size()]>
+                      ramp_fits.slope.data()))
+        read_vars.append(np.array(<float [:ramp_fits.read_var.size()]>
+                         ramp_fits.read_var.data()))
+        poisson_vars.append(np.array(<float [:ramp_fits.poisson_var.size()]>
+                                     ramp_fits.poisson_var.data()))
 
     return dict(slope=slopes, slopereadvar=read_vars,
                 slopepoissonvar=poisson_vars)

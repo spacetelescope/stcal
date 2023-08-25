@@ -6,11 +6,11 @@ Structs:
     RampIndex
         int start: starting index of the ramp in the resultants
         int end: ending index of the ramp in the resultants
-    Fit
+    RampFit
         float slope: slope of a single ramp
         float read_var: read noise variance of a single ramp
         float poisson_var: poisson noise variance of single ramp
-    Fits
+    RampFits
         vector[float] slope: slopes of the ramps for a single pixel
         vector[float] read_var: read noise variances of the ramps for a single
                                 pixel
@@ -43,7 +43,7 @@ from libc.math cimport log10
 import numpy as np
 cimport numpy as np
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, Fits, DerivedData
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, RampFits, DerivedData
 
 
 # Casertano+2022, Table 2
@@ -73,23 +73,25 @@ cdef inline float get_power(float s):
     return PTABLE[1][i]
 
 
-cdef inline Fits reverse_fits(Fits fits):
+cdef inline RampFits reverse_fits(RampFits ramp_fits):
     """
-    Reverse a Fits struct
+    Reverse a RampFits struct
         The jump detection step computes the ramps in reverse time order for each pixel.
         This reverses the results of the fit to match the original time order, which is
         much faster than prepending to a C++ vector.
 
     Parameters
     ----------
-    fits : Fits
+    ramp_fits : RampFits
         fits struct to reverse
 
     Returns
     -------
     reversed fits struct
     """
-    return Fits(fits.slope[::-1], fits.read_var[::-1], fits.poisson_var[::-1])
+    return RampFits(ramp_fits.slope[::-1],
+                    ramp_fits.read_var[::-1],
+                    ramp_fits.poisson_var[::-1])
 
 
 cdef class Thresh:

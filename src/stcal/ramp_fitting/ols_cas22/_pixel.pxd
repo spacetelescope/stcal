@@ -1,6 +1,6 @@
 from libcpp.stack cimport stack
 
-from stcal.ramp_fitting.ols_cas22._core cimport Fit, Fits, RampIndex, Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport RampFit, RampFits, RampIndex, Thresh
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Pixel:
@@ -12,10 +12,10 @@ cdef class Pixel:
     cdef float[:] sigma_1, sigma_2
 
     cdef float[:] resultants_diff(Pixel self, int offset)
-    cdef Fit fit(Pixel self, RampIndex ramp)
+    cdef RampFit fit_ramp(Pixel self, RampIndex ramp)
 
     cdef float[:] stats(Pixel self, float slope, RampIndex ramp)
-    cdef Fits fits(Pixel self, stack[RampIndex] ramps)
+    cdef RampFits fit_ramps(Pixel self, stack[RampIndex] ramps)
 
 
 cdef Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants)
