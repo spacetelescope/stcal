@@ -1,13 +1,12 @@
-from setuptools import setup, Extension
-from Cython.Build import cythonize
-from Cython.Compiler import Options
-import numpy as np
+from setuptools import setup
+from extension_helpers import get_extensions
 
-Options.docstrings = True
-Options.annotate = False
+ext_modules = get_extensions()
 
-extensions = [Extension('stcal.ramp_fitting.ols_cas22',
-                        ['src/stcal/ramp_fitting/ols_cas22.pyx'],
-                        include_dirs=[np.get_include()])]
+# Specify the minimum version for the Numpy C-API
+for ext in ext_modules:
+    if ext.include_dirs and "numpy" in ext.include_dirs[0]:
+        ext.define_macros.append(("NPY_TARGET_VERSION", "NPY_1_21_API_VERSION"))
+        ext.extra_compile_args.append("-std=c99")
 
-setup(ext_modules=cythonize(extensions), extra_compile_args=['-std=c99'])
+setup(ext_modules=ext_modules)
