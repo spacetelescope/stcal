@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 from libcpp.vector cimport vector
 from libcpp.stack cimport stack
+from libcpp.list cimport list as cpp_list
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
@@ -69,13 +70,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     # Compute all the initial sets of ramps
     cdef vector[stack[RampIndex]] pixel_ramps = init_ramps(dq)
 
-    # Set up the output lists
-    #    Thes are python lists because cython does not support templating
-    #    types baised on Python types like what numpy arrays are.
-    #    This is an annoying limitation.
-    slopes = []
-    read_vars = []
-    poisson_vars = []
+    cdef cpp_list[vector[float]] slopes, read_vars, poisson_vars
 
     # Perform all of the fits
     cdef RampFits ramp_fits
@@ -85,13 +80,10 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         ramp_fits = make_pixel(fixed, read_noise,
                                resultants[:, index]).fit_ramps(pixel_ramps[index])
 
-        # Cast into numpy arrays for output
-        slopes.append(np.array(<float [:ramp_fits.slope.size()]>
-                      ramp_fits.slope.data()))
-        read_vars.append(np.array(<float [:ramp_fits.read_var.size()]>
-                         ramp_fits.read_var.data()))
-        poisson_vars.append(np.array(<float [:ramp_fits.poisson_var.size()]>
-                                     ramp_fits.poisson_var.data()))
+        # Build the output arrays
+        slopes.push_back(ramp_fits.slopes)
+        read_vars.push_back(ramp_fits.read_vars)
+        poisson_vars.push_back(ramp_fits.poisson_vars)
 
     return dict(slope=slopes, slopereadvar=read_vars,
                 slopepoissonvar=poisson_vars)

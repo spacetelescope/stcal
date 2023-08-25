@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 from libcpp.vector cimport vector
 from libcpp.stack cimport stack
+from libcpp.list cimport list as cpp_list
 from libcpp cimport bool
 
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
@@ -18,9 +19,9 @@ cdef struct RampFit:
 
 
 cdef struct RampFits:
-    vector[float] slope
-    vector[float] read_var
-    vector[float] poisson_var
+    cpp_list[float] slope
+    cpp_list[float] read_var
+    cpp_list[float] poisson_var
 
 
 cdef struct DerivedData:
@@ -37,6 +38,5 @@ cdef class Thresh:
 
 cdef Thresh make_threshold(float intercept, float constant)
 cdef float get_power(float s)
-cdef RampFits reverse_fits(RampFits ramp_fits)
 cdef vector[stack[RampIndex]] init_ramps(int[:, :] dq)
 cdef DerivedData read_data(list[list[int]] ma_table, float read_time)

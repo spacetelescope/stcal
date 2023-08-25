@@ -21,8 +21,7 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport (
-    get_power, reverse_fits, RampFit, RampFits, RampIndex)
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, RampFit, RampFits, RampIndex
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
@@ -233,12 +232,6 @@ cdef class Pixel:
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
 
-        Note: This algorithm computes the ramps for the pixel in reverse time order
-            so that the last uncomputed ramp in time is always on top of the stack.
-            This means we compute the slopes in reverse time order, so we have to
-            reverse the order of the output data to be consistent with user
-            expectations.
-
         Parameters
         ----------
         ramps : stack[RampIndex]
@@ -280,12 +273,11 @@ cdef class Pixel:
                     continue
 
             # Add fit to fits if no jump detection or stats are less than threshold
-            ramp_fits.slope.push_back(ramp_fit.slope)
-            ramp_fits.read_var.push_back(ramp_fit.read_var)
-            ramp_fits.poisson_var.push_back(ramp_fit.poisson_var)
+            ramp_fits.slope.push_front(ramp_fit.slope)
+            ramp_fits.read_var.push_front(ramp_fit.read_var)
+            ramp_fits.poisson_var.push_front(ramp_fit.poisson_var)
 
-        # Reverse the slope data
-        return reverse_fits(ramp_fits)
+        return ramp_fits
 
 
 cdef inline Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants):

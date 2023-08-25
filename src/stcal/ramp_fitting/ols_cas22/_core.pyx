@@ -11,11 +11,11 @@ Structs:
         float read_var: read noise variance of a single ramp
         float poisson_var: poisson noise variance of single ramp
     RampFits
-        vector[float] slope: slopes of the ramps for a single pixel
-        vector[float] read_var: read noise variances of the ramps for a single
-                                pixel
-        vector[float] poisson_var: poisson noise variances of the ramps for a
-                                   single pixel
+        cpp_list[float] slope: slopes of the ramps for a single pixel
+        cpp_list[float] read_var: read noise variances of the ramps for a single
+                                  pixel
+        cpp_list[float] poisson_var: poisson noise variances of the ramps for a
+                                     single pixel
     DerivedData
         vector[float] t_bar: mean time of each resultant
         vector[float] tau: variance time of each resultant
@@ -32,8 +32,6 @@ Functions:
         Return the power from Casertano+22, Table 2
     threshold
         Compute jump threshold
-    reverse_fits
-        Reverse a Fits struct
     init_ramps
         Find initial ramps for each pixel
     read_ma_table
@@ -43,7 +41,7 @@ from libc.math cimport log10
 import numpy as np
 cimport numpy as np
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, RampFits, DerivedData
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
 
 
 # Casertano+2022, Table 2
@@ -71,27 +69,6 @@ cdef inline float get_power(float s):
             return PTABLE[1][i - 1]
 
     return PTABLE[1][i]
-
-
-cdef inline RampFits reverse_fits(RampFits ramp_fits):
-    """
-    Reverse a RampFits struct
-        The jump detection step computes the ramps in reverse time order for each pixel.
-        This reverses the results of the fit to match the original time order, which is
-        much faster than prepending to a C++ vector.
-
-    Parameters
-    ----------
-    ramp_fits : RampFits
-        fits struct to reverse
-
-    Returns
-    -------
-    reversed fits struct
-    """
-    return RampFits(ramp_fits.slope[::-1],
-                    ramp_fits.read_var[::-1],
-                    ramp_fits.poisson_var[::-1])
 
 
 cdef class Thresh:
