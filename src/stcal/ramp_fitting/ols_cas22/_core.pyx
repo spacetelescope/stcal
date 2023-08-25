@@ -37,6 +37,8 @@ Functions:
     read_ma_table
         Read the MA table and Derive the necessary data from it
 """
+from libcpp.stack cimport stack
+from libcpp.deque cimport deque
 from libc.math cimport log10
 import numpy as np
 cimport numpy as np
@@ -111,7 +113,7 @@ cdef Thresh make_threshold(float intercept, float constant):
     return thresh
 
 
-cdef inline vector[stack[RampIndex]] init_ramps(int[:, :] dq):
+cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
     """
     Create the initial ramp stack for each pixel
         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
@@ -124,15 +126,16 @@ cdef inline vector[stack[RampIndex]] init_ramps(int[:, :] dq):
 
     Returns
     -------
-    Vector of stacks of RampIndex objects
-        - Vector with entry for each pixel
-        - Stack with entry for each ramp found (top of stack is last ramp found)
+    deque of stacks of RampIndex objects
+        - deque with entry for each pixel
+            Chosen to be deque because need element access to loop
+        - stack with entry for each ramp found (top of stack is last ramp found)
         - RampIndex with start and end indices of the ramp in the resultants
     """
     cdef int n_pixel, n_resultants
 
     n_resultants, n_pixel = np.array(dq).shape
-    cdef vector[stack[RampIndex]] pixel_ramps = vector[stack[RampIndex]](n_pixel)
+    cdef deque[stack[RampIndex]] pixel_ramps
 
     cdef int index_resultant, index_pixel
     cdef stack[RampIndex] ramps
@@ -174,7 +177,7 @@ cdef inline vector[stack[RampIndex]] init_ramps(int[:, :] dq):
             ramp.end = n_resultants - 1
             ramps.push(ramp)
 
-        # Add ramp stack for pixel to vector
+        # Add ramp stack for pixel to list
         pixel_ramps.push_back(ramps)
 
     return pixel_ramps

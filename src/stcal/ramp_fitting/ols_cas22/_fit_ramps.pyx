@@ -3,6 +3,7 @@ cimport numpy as np
 from libcpp.vector cimport vector
 from libcpp.stack cimport stack
 from libcpp.list cimport list as cpp_list
+from libcpp.deque cimport deque
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
@@ -68,9 +69,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
                                   use_jumps)
 
     # Compute all the initial sets of ramps
-    cdef vector[stack[RampIndex]] pixel_ramps = init_ramps(dq)
+    cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)
 
-    cdef cpp_list[vector[float]] slopes, read_vars, poisson_vars
+    cdef cpp_list[cpp_list[float]] slopes, read_vars, poisson_vars
 
     # Perform all of the fits
     cdef RampFits ramp_fits

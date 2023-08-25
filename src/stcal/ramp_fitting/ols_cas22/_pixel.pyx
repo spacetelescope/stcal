@@ -272,7 +272,13 @@ cdef class Pixel:
                     # Return to top of loop to fit new ramps (without adding to fits)
                     continue
 
-            # Add fit to fits if no jump detection or stats are less than threshold
+            # Add ramp_fit to ramp_fits if no jump detection or stats are less
+            #    than threshold
+            # Note push_front and use of cpp_list are because ramps are computed
+            #    backward in time meaning we need to add to the front of the list
+            #    cpp_list over vector because need to append to the front which
+            #    is slow for vector. Additionally, we don't need random access
+            #    and cpp_list is closer to python lists then deque.
             ramp_fits.slope.push_front(ramp_fit.slope)
             ramp_fits.read_var.push_front(ramp_fit.read_var)
             ramp_fits.poisson_var.push_front(ramp_fit.poisson_var)
