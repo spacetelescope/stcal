@@ -1,50 +1,13 @@
 import numpy as np
 cimport numpy as np
 from libcpp.vector cimport vector
+from libcpp.stack cimport stack
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
-    Fit, RampIndex, make_threshold, read_data)
+    Fits, RampIndex, make_threshold, read_data, init_ramps)
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
 from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline (vector[int], vector[int], vector[int]) end_points(int n_ramp,
-                                                               int n_pixel,
-                                                               int n_resultants,
-                                                               int[:, :] dq):
-
-    cdef vector[int] start = vector[int](n_ramp, -1)
-    cdef vector[int] end = vector[int](n_ramp, -1)
-    cdef vector[int] pix = vector[int](n_ramp, -1)
-
-    cdef int i, j
-    cdef int in_ramp = -1
-    cdef int ramp_num = 0
-    for i in range(n_pixel):
-        in_ramp = 0
-        for j in range(n_resultants):
-            if (not in_ramp) and (dq[j, i] == 0):
-                in_ramp = 1
-                pix[ramp_num] = i
-                start[ramp_num] = j
-            elif (not in_ramp) and (dq[j, i] != 0):
-                continue
-            elif in_ramp and (dq[j, i] == 0):
-                continue
-            elif in_ramp and (dq[j, i] != 0):
-                in_ramp = 0
-                end[ramp_num] = j - 1
-                ramp_num += 1
-            else:
-                raise ValueError('unhandled case')
-        if in_ramp:
-            end[ramp_num] = j
-            ramp_num += 1
-
-    return start, end, pix
 
 
 @cython.boundscheck(False)
@@ -98,31 +61,35 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         raise RuntimeError(f'MA table length {n_resultants} does not '
                            f'match number of resultants {resultants.shape[0]}')
 
+    # Pre-compute data for all pixels
     cdef Fixed fixed = make_fixed(read_data(ma_table, read_time),
                                   make_threshold(5.5, 1/3.0),
                                   use_jumps)
 
-    cdef int n_pixel = resultants.shape[1]
-    cdef int n_ramp = (np.sum(dq[0, :] == 0) +
-                       np.sum((dq[:-1, :] != 0) & (dq[1:, :] == 0)))
+    # Compute all the initial sets of ramps
+    cdef vector[stack[RampIndex]] pixel_ramps = init_ramps(dq)
 
-    # numpy arrays so that we get numpy arrays out
-    cdef np.ndarray[float] slope = np.zeros(n_ramp, dtype=np.float32)
-    cdef np.ndarray[float] slope_read_var = np.zeros(n_ramp, dtype=np.float32)
-    cdef np.ndarray[float] slope_poisson_var = np.zeros(n_ramp, dtype=np.float32)
-    cdef Fit fit
+    # Set up the output lists
+    #    Thes are python lists because cython does not support templating
+    #    types baised on Python types like what numpy arrays are.
+    #    This is an annoying limitation.
+    slopes = []
+    read_vars = []
+    poisson_vars = []
 
-    cdef vector[int] start, end, pix
-    start, end, pix = end_points(n_ramp, n_pixel, n_resultants, dq)
+    # Perform all of the fits
+    cdef Fits fits
+    cdef int index
+    for index in range(n_resultants):
+        # Fit all the ramps for the given pixel
+        fits = make_ramp(fixed, read_noise,
+                         resultants[:, index]).fits(pixel_ramps[index])
 
-    for i in range(n_ramp):
-        fit = make_ramp(fixed, read_noise[pix[i]], resultants[:, pix[i]]
-                        ).fit(RampIndex(start[i], end[i]))
+        # Cast into numpy arrays for output
+        slopes.append(np.array(<float [:fits.slope.size()]> fits.slope.data()))
+        read_vars.append(np.array(<float [:fits.read_var.size()]> fits.read_var.data()))
+        poisson_vars.append(np.array(<float [:fits.poisson_var.size()]>
+                                     fits.poisson_var.data()))
 
-        slope[i] = fit.slope
-        slope_read_var[i] = fit.read_var
-        slope_poisson_var[i] = fit.poisson_var
-
-    return dict(slope=slope, slopereadvar=slope_read_var,
-                slopepoissonvar=slope_poisson_var,
-                pix=pix, resstart=start, resend=end)
+    return dict(slope=slopes, slopereadvar=read_vars,
+                slopepoissonvar=poisson_vars)
