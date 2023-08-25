@@ -3,28 +3,10 @@ cimport numpy as np
 from libcpp.vector cimport vector
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport Fit, RampIndex, make_threshold
+from stcal.ramp_fitting.ols_cas22._core cimport (
+    Fit, RampIndex, make_threshold, read_data)
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
 from stcal.ramp_fitting.ols_cas22._ramp cimport make_ramp
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline (vector[int], vector[float], vector[float]) read_ma_table(list[list[int]]
-                                                                      ma_table,
-                                                                      float read_time):
-
-    cdef vector[int] n_reads = vector[int](len(ma_table))
-    cdef vector[float] t_bar = vector[float](len(ma_table))
-    cdef vector[float] tau = vector[float](len(ma_table))
-
-    for index, entry in enumerate(ma_table):
-        n_reads[index] = entry[1]
-        t_bar[index] = read_time *(entry[0] + (entry[1] - 1) / 2.0)
-        tau[index] = t_bar[index] - (entry[1] - 1) * ((entry[1] + 1) * read_time /
-                                                      (6 * entry[1]))
-
-    return n_reads, t_bar, tau
 
 
 @cython.boundscheck(False)
@@ -116,16 +98,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         raise RuntimeError(f'MA table length {n_resultants} does not '
                            f'match number of resultants {resultants.shape[0]}')
 
-    cdef vector[int] n_reads
-    cdef vector[float] t_bar, tau
-    n_reads, t_bar, tau = read_ma_table(ma_table, read_time)
-
-    cdef Fixed fixed = make_fixed(
-        <float [:t_bar.size()]> t_bar.data(),
-        <float [:tau.size()]> tau.data(),
-        <int [:n_reads.size()]> n_reads.data(),
-        make_threshold(5.5, 1/3.0),
-        use_jumps)
+    cdef Fixed fixed = make_fixed(read_data(ma_table, read_time),
+                                  make_threshold(5.5, 1/3.0),
+                                  use_jumps)
 
     cdef int n_pixel = resultants.shape[1]
     cdef int n_ramp = (np.sum(dq[0, :] == 0) +

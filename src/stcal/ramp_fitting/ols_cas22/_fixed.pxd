@@ -1,6 +1,6 @@
 from libcpp cimport bool
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
 
 
 cdef class Fixed:
@@ -22,5 +22,4 @@ cdef class Fixed:
     cdef float correction(Fixed self, int i, int j)
 
 
-cdef Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads,
-                      Thresh threshold, bool use_jump)
+cdef Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump)

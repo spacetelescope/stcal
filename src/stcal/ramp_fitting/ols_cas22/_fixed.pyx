@@ -16,7 +16,7 @@ make_fixed : function
 import numpy as np
 cimport numpy as np
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Fixed:
@@ -180,8 +180,7 @@ cdef class Fixed:
         return slope_var_val
 
 
-cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads,
-                             Thresh threshold, bool use_jump):
+cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
     """
     Fast constructor for Fixed class
         Use this instead of an __init__ because it does not incure the overhead of
@@ -189,12 +188,8 @@ cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads,
 
     Parameters
     ----------
-    t_bar : float[:]
-        mean times of resultants (data input)
-    tau : float[:]
-        variance weighted mean times of resultants (data input)
-    n_reads : float[:]
-        number of reads contributing to reach resultant (data input)
+    data : DerivedData
+        derived data object created from MA table (input data)
     threshold : Thresh
         threshold object (user input)
     use_jump : bool
@@ -210,9 +205,9 @@ cdef inline Fixed make_fixed(float[:] t_bar, float[:] tau, int[:] n_reads,
     fixed.use_jump = use_jump
     fixed.threshold = threshold
 
-    fixed.t_bar = t_bar
-    fixed.tau = tau
-    fixed.n_reads = n_reads
+    fixed.t_bar = <float [:data.t_bar.size()]> data.t_bar.data()
+    fixed.tau = <float [:data.tau.size()]> data.tau.data()
+    fixed.n_reads = <int [:data.n_reads.size()]> data.n_reads.data()
 
     # Pre-compute jump detection computations shared by all pixels
     if use_jump:
