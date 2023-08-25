@@ -82,9 +82,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     Parameters
     ----------
-    resultants : np.ndarry[nresultants, npixel]
+    resultants : np.ndarry[n_resultants, n_pixel]
         the resultants in electrons
-    dq : np.ndarry[nresultants, npixel]
+    dq : np.ndarry[n_resultants, n_pixel]
         the dq array.  dq != 0 implies bad pixel / CR.
     read noise : float
         the read noise in electrons

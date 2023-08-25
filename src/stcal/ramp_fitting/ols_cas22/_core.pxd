@@ -32,3 +32,4 @@ cdef class Thresh:
 cdef Thresh make_threshold(float intercept, float constant)
 cdef float get_power(float s)
 cdef Fits reverse_fits(Fits fits)
+cdef vector[stack[RampIndex]] init_ramps(int[:, :] dq)
