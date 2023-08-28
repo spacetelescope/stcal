@@ -5,6 +5,13 @@ import logging
 import numpy as np
 import warnings
 
+################## DEBUG ################## 
+#                  HELP!!
+import sys
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from general_funcs import *
+################## DEBUG ################## 
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -1489,7 +1496,9 @@ def compute_median_rates(ramp_data):
         gdq_sect = ramp_data.groupdq[integ, :, :, :]
 
         # Reset all saturated groups in the input data array to NaN
-        data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
+        # data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
+        invalid_flags = ramp_data.flags_saturated | ramp_data.flags_do_not_use
+        data_sect[np.bitwise_and(gdq_sect, invalid_flags).astype(bool)] = np.NaN
 
         data_sect = data_sect / group_time
 
@@ -1557,6 +1566,8 @@ def compute_median_rates(ramp_data):
     median_rates = median_diffs_2d / nints
     del median_diffs_2d
     del data_sect
+
+    dbg_print(f"median_rates = \n{median_rates}")
 
     return median_rates
 
