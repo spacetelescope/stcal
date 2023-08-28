@@ -6,12 +6,13 @@ from gwcs.wcstools import grid_from_bounding_box
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+
 def calc_pixmap(in_wcs, out_wcs, shape=None):
     """Return a pixel grid map from input frame to output frame
 
     Parameters
     ----------
-    in_wcs: `~astropy.wcs.WCS` 
+    in_wcs: `~astropy.wcs.WCS`
         Input WCS objects or transforms.
     in_wcs: `~astropy.wcs.WCS`
         output WCS objects or transforms.
@@ -22,7 +23,7 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
     -------
     pixmap
         reprojected pixel grid map
-    """    
+    """
     if shape:
         bb = wcs_bbox_from_shape(shape)
         log.debug("Bounding box from data shape: {}".format(bb))

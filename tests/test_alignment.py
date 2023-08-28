@@ -5,10 +5,9 @@ from astropy import coordinates as coord
 from astropy import units as u
 from astropy.io import fits
 
-from astropy.wcs import WCS as highlevelWCS
+from astropy import wcs as fitswcs
 from gwcs import WCS
 from gwcs import coordinate_frames as cf
-from stdatamodels.jwst import datamodels
 
 import pytest
 from stcal.alignment import reproject
@@ -100,20 +99,14 @@ class Coordinates:
 
 
 class MetaData:
-    def __init__(
-        self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None
-    ):
-        self.wcsinfo = WcsInfo(
-            ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle
-        )
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
+        self.wcsinfo = WcsInfo(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle)
         self.wcs = wcs
         self.coordinates = Coordinates()
 
 
 class DataModel:
-    def __init__(
-        self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None
-    ):
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
         self.meta = MetaData(
             ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs
         )
@@ -137,9 +130,7 @@ def test_compute_fiducial():
     assert all(np.isclose(wcs(1, 1), computed_fiducial))
 
 
-@pytest.mark.parametrize(
-    "pscales", [(0.000014, 0.000014), (0.000028, 0.000014)]
-)
+@pytest.mark.parametrize("pscales", [(0.000014, 0.000014), (0.000028, 0.000014)])
 def test_compute_scale(pscales):
     """Test that util.compute_scale can properly determine the pixel scale of a
     WCS object.
@@ -234,8 +225,9 @@ def test_validate_wcs_list_invalid(wcs_list, expected_error):
 
     assert type(exec_info.value) == expected_error
 
+
 def get_fake_wcs():
-    fake_wcs1 = highlevelWCS(
+    fake_wcs1 = fitswcs.WCS(
         fits.Header(
             {
                 "NAXIS": 2,
@@ -252,7 +244,7 @@ def get_fake_wcs():
             }
         )
     )
-    fake_wcs2 = highlevelWCS(
+    fake_wcs2 = fitswcs.WCS(
         fits.Header(
             {
                 "NAXIS": 2,
@@ -285,10 +277,13 @@ def test_reproject(x_inp, y_inp, x_expected, y_expected):
     f = reproject(wcs1, wcs2)
     x_out, y_out = f(x_inp, y_inp)
     assert np.allclose(x_out, x_expected, rtol=1e-05)
+    assert np.allclose(y_out, y_expected, rtol=1e-05)
+
 
 def test_wcs_bbox_from_shape_2d():
     bb = wcs_bbox_from_shape((512, 2048))
     assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
+
 
 @pytest.mark.parametrize(
     "model, footprint, expected_s_region, expected_log_info",
