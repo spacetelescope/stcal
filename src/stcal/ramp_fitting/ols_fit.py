@@ -1298,6 +1298,11 @@ def ramp_fit_overall(
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
     wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
     s_inv_var_both3[wh_invalid] = 0.
+
+    # XXX
+    # var_p3[wh_invalid] = 0.
+    # var_r3[wh_invalid] = 0.
+
     s_inv_var_both2 = s_inv_var_both3.sum(axis=0)
 
     # Compute the 'dataset-averaged' slope
