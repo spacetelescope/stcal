@@ -8,6 +8,7 @@ from astropy.io import fits
 from astropy.wcs import WCS as highlevelWCS
 from gwcs import WCS
 from gwcs import coordinate_frames as cf
+from stdatamodels.jwst import datamodels
 
 import pytest
 from stcal.alignment import reproject
@@ -19,6 +20,7 @@ from stcal.alignment.util import (
     update_s_region_keyword,
     wcs_bbox_from_shape,
     update_s_region_imaging,
+    reproject,
 )
 
 
@@ -280,9 +282,13 @@ def get_fake_wcs():
 )
 def test_reproject(x_inp, y_inp, x_expected, y_expected):
     wcs1, wcs2 = get_fake_wcs()
-    f = reproject.reproject_coords(wcs1, wcs2)
+    f = reproject(wcs1, wcs2)
     x_out, y_out = f(x_inp, y_inp)
     assert np.allclose(x_out, x_expected, rtol=1e-05)
+
+def test_wcs_bbox_from_shape_2d():
+    bb = wcs_bbox_from_shape((512, 2048))
+    assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
 
 @pytest.mark.parametrize(
     "model, footprint, expected_s_region, expected_log_info",
