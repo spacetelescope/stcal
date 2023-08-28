@@ -5,6 +5,7 @@ from astropy import coordinates as coord
 from astropy import units as u
 from astropy.io import fits
 
+from astropy.wcs import WCS as highlevelWCS
 from gwcs import WCS
 from gwcs import coordinate_frames as cf
 
@@ -232,7 +233,7 @@ def test_validate_wcs_list_invalid(wcs_list, expected_error):
     assert type(exec_info.value) == expected_error
 
 def get_fake_wcs():
-    fake_wcs1 = WCS(
+    fake_wcs1 = highlevelWCS(
         fits.Header(
             {
                 "NAXIS": 2,
@@ -249,7 +250,7 @@ def get_fake_wcs():
             }
         )
     )
-    fake_wcs2 = WCS(
+    fake_wcs2 = highlevelWCS(
         fits.Header(
             {
                 "NAXIS": 2,
