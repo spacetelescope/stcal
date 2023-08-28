@@ -28,8 +28,8 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         bb = wcs_bbox_from_shape(shape)
         log.debug("Bounding box from data shape: {}".format(bb))
     else:
-        bb = in_wcs.bounding_box
-        log.debug("Bounding box from WCS: {}".format(in_wcs.bounding_box))
+        bb = in_wcs.pixel_shape
+        log.debug("Bounding box from WCS: {}".format(bb))
 
     grid = grid_from_bounding_box(bb)
     pixmap = np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
