@@ -12,11 +12,11 @@ from astropy.coordinates import SkyCoord
 from astropy.utils.misc import isiterable
 from astropy import units as u
 from astropy.modeling import models as astmodels
+from astropy import wcs as fitswcs
 
 from asdf import AsdfFile
 from gwcs import WCS
-from astropy import wcs as fitswcs
-from gwcs.wcstools import wcs_from_fiducial, grid_from_bounding_box
+from gwcs.wcstools import wcs_from_fiducial
 
 
 log = logging.getLogger(__name__)
