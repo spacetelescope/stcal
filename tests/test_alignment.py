@@ -278,7 +278,7 @@ def get_fake_wcs():
         pytest.param(1, 2, 3, 4, marks=pytest.mark.xfail),  # expected failure test
     ],
 )
-def test__reproject(x_inp, y_inp, x_expected, y_expected):
+def test_reproject(x_inp, y_inp, x_expected, y_expected):
     wcs1, wcs2 = get_fake_wcs()
     f = reproject.reproject_coords(wcs1, wcs2)
     x_out, y_out = f(x_inp, y_inp)
