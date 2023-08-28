@@ -76,11 +76,11 @@ def test_extend_saturation_simple():
 def test_flag_large_events_nosnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
     # cross of saturation with no jump
-    cube[0, 1, 3, 3] = DQFLAGS['SATURATED']
-    cube[0, 1, 2, 3] = DQFLAGS['SATURATED']
-    cube[0, 1, 3, 4] = DQFLAGS['SATURATED']
-    cube[0, 1, 4, 3] = DQFLAGS['SATURATED']
-    cube[0, 1, 3, 2] = DQFLAGS['SATURATED']
+    cube[0, 0:2, 3, 3] = DQFLAGS['SATURATED']
+    cube[0, 0:2, 2, 3] = DQFLAGS['SATURATED']
+    cube[0, 0:2, 3, 4] = DQFLAGS['SATURATED']
+    cube[0, 0:2, 4, 3] = DQFLAGS['SATURATED']
+    cube[0, 0:2, 3, 2] = DQFLAGS['SATURATED']
     # cross of saturation surrounding by jump -> snowball but sat core is not new
     # should have no snowball trigger
     cube[0, 2, 3, 3] = DQFLAGS['SATURATED']
@@ -94,10 +94,10 @@ def test_flag_large_events_nosnowball():
     cube[0, 2, 1:6, 5] = DQFLAGS['JUMP_DET']
     flag_large_events(cube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
                       min_jump_area=6,
-                      expand_factor=1.9,
+                      expand_factor=1.9, edge_size=1,
                       sat_required_snowball=True, min_sat_radius_extend=1, sat_expand=1.1)
-    assert cube[0, 1, 2, 2] == 0
-    assert cube[0, 1, 3, 5] == 0
+    assert cube[0, 2, 2, 2] == 0
+    assert cube[0, 2, 3, 6] == 0
 
 
 def test_flag_large_events_withsnowball():
@@ -121,6 +121,8 @@ def test_flag_large_events_withsnowball():
     assert cube[0, 2, 0, 0] == 0
     assert cube[0, 2, 1, 0] == DQFLAGS['JUMP_DET']  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS['SATURATED']  # Saturation was extended
+    assert cube[0, 2, 3, 6] == DQFLAGS['JUMP_DET']
+
 
 def test_flag_large_events_groupedsnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
@@ -298,15 +300,5 @@ def test_inputjump_sat_star():
                                             sat_required_snowball=True,
                                             min_sat_radius_extend=2.5,
                                             sat_expand=2)
-    assert(num_extended_events == 312)
+    assert(num_extended_events == 327)
     fits.writeto("outgdq2.fits", testcube, overwrite=True)
-
-
-#@pytest.mark.skip("Used for local testing")
-def test_inputjump_sat_star2():
-    testcube = fits.getdata('input_gdq_bignrs.fits')
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=6,
-                      expand_factor=2.0,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    fits.writeto("outgdq_satstar.fits", testcube, overwrite=True)
