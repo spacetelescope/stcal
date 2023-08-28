@@ -784,9 +784,9 @@ def reproject(wcs1, wcs2):
 
     Parameters
     ----------
-    wcs1: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS` or `~astropy.modeling.Model`
+    wcs1: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         Input WCS objects or transforms.
-    wcs2: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS` or `~astropy.modeling.Model`
+    wcs2: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         output WCS objects or transforms.
 
     Returns
@@ -810,7 +810,7 @@ def reproject(wcs1, wcs2):
         else:
             raise TypeError(
                 "Expected input to be astropy.wcs.WCS or gwcs.WCS "
-                "object or astropy.modeling.Model subclass"
+                "object"
             )
         return forward_transform
 
@@ -822,7 +822,7 @@ def reproject(wcs1, wcs2):
         else:
             raise TypeError(
                 "Expected input to be astropy.wcs.WCS or gwcs.WCS "
-                "object or astropy.modeling.Model subclass"
+                "object"
             )
         return backward_transform
 
