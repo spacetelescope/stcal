@@ -14,7 +14,7 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
     ----------
     in_wcs: `~astropy.wcs.WCS`
         Input WCS objects or transforms.
-    in_wcs: `~astropy.wcs.WCS`
+    out_wcs: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         output WCS objects or transforms.
     shape : tuple, optional
         Shape of grid in pixels. The default is None.
