@@ -1298,12 +1298,14 @@ def ramp_fit_overall(
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
     wh_invalid = np.where(np.bitwise_and(dq_int, invalid_data))
     s_inv_var_both3[wh_invalid] = 0.
-
-    # XXX
-    # var_p3[wh_invalid] = 0.
-    # var_r3[wh_invalid] = 0.
-
     s_inv_var_both2 = s_inv_var_both3.sum(axis=0)
+
+    var_p3[wh_invalid] = 0.
+    var_r3[wh_invalid] = 0.
+    var_both3[wh_invalid] = 0.
+    s_inv_var_p3[wh_invalid] = 0.
+    s_inv_var_r3[wh_invalid] = 0.
+    s_inv_var_both3[wh_invalid] = 0.
 
     # Compute the 'dataset-averaged' slope
     # Suppress, then re-enable harmless arithmetic warnings
@@ -1440,8 +1442,10 @@ def ramp_fit_overall(
     log.debug('The execution time in seconds: %f', tstop - tstart)
 
     # Compute the 2D variances due to Poisson and read noise
-    var_p2 = 1 / (s_inv_var_p3.sum(axis=0))
-    var_r2 = 1 / (s_inv_var_r3.sum(axis=0))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+        var_p2 = 1 / (s_inv_var_p3.sum(axis=0))
+        var_r2 = 1 / (s_inv_var_r3.sum(axis=0))
 
     # Huge variances correspond to non-existing segments, so are reset to 0
     #  to nullify their contribution.
