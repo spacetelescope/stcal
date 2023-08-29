@@ -6,11 +6,12 @@ from astropy import units as u
 from astropy.io import fits
 
 from astropy import wcs as fitswcs
-from gwcs import WCS
+import gwcs
 from gwcs import coordinate_frames as cf
 
 import pytest
 from stcal.alignment import reproject
+from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
@@ -52,7 +53,7 @@ def _create_wcs_object_without_distortion(
 
     pipeline = [(detector_frame, det2sky), (sky_frame, None)]
 
-    wcs_obj = WCS(pipeline)
+    wcs_obj = gwcs.WCS(pipeline)
 
     wcs_obj.bounding_box = (
         (-0.5, shape[-1] - 0.5),
@@ -283,6 +284,20 @@ def test_reproject(x_inp, y_inp, x_expected, y_expected):
 def test_wcs_bbox_from_shape_2d():
     bb = wcs_bbox_from_shape((512, 2048))
     assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
+
+
+@pytest.mark.parametrize(
+    "shape, pixmap_expected_shape",
+    [
+        (None,(1,1,32)),
+        ((100, 200), (100,200)),
+        pytest.param((1), marks=pytest.mark.xfail),  # expected failure test
+    ],
+)
+def test_calc_pixmap(shape, pixmap_expected_shape):
+    wcs1, wcs2 = get_fake_wcs()
+    pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
+    assert pixmap.shape==pixmap_expected_shape
 
 
 @pytest.mark.parametrize(
