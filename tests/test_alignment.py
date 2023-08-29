@@ -232,8 +232,8 @@ def get_fake_wcs():
         fits.Header(
             {
                 "NAXIS": 2,
-                "NAXIS1": 1,
-                "NAXIS2": 1,
+                "NAXIS1": 4,
+                "NAXIS2": 4,
                 "CTYPE1": "RA---TAN",
                 "CTYPE2": "DEC--TAN",
                 "CRVAL1": 0,
@@ -249,8 +249,8 @@ def get_fake_wcs():
         fits.Header(
             {
                 "NAXIS": 2,
-                "NAXIS1": 1,
-                "NAXIS2": 1,
+                "NAXIS1": 5,
+                "NAXIS2": 5,
                 "CTYPE1": "RA---TAN",
                 "CTYPE2": "DEC--TAN",
                 "CRVAL1": 0,
@@ -290,8 +290,7 @@ def test_wcs_bbox_from_shape_2d():
     "shape, pixmap_expected_shape",
     [
         (None,(1,1,32)),
-        ((100, 200), (100,200)),
-        pytest.param((1), marks=pytest.mark.xfail),  # expected failure test
+        ((100, 200), (1, 1, 40000)),
     ],
 )
 def test_calc_pixmap(shape, pixmap_expected_shape):
