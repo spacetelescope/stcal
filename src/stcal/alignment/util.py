@@ -787,7 +787,7 @@ def reproject(wcs1, wcs2):
     wcs1: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         Input WCS objects or transforms.
     wcs2: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
-        output WCS objects or transforms.
+        Output WCS objects or transforms.
 
     Returns
     -------
