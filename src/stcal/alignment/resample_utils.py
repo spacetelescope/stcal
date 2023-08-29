@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from util import wcs_bbox_from_shape, reproject
+from . import util
 from gwcs.wcstools import grid_from_bounding_box
 
 log = logging.getLogger(__name__)
@@ -25,12 +25,12 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         reprojected pixel grid map
     """
     if shape:
-        bb = wcs_bbox_from_shape(shape)
+        bb = util.wcs_bbox_from_shape(shape)
         log.debug("Bounding box from data shape: {}".format(bb))
     else:
-        bb = wcs_bbox_from_shape(in_wcs.pixel_shape)
+        bb = util.wcs_bbox_from_shape(in_wcs.pixel_shape)
         log.debug("Bounding box from WCS: {}".format(bb))
 
     grid = grid_from_bounding_box(bb)
-    pixmap = np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
+    pixmap = np.dstack(util.reproject(in_wcs, out_wcs)(grid[0], grid[1]))
     return pixmap
