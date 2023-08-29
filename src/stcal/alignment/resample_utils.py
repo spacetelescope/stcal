@@ -28,7 +28,7 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         bb = wcs_bbox_from_shape(shape)
         log.debug("Bounding box from data shape: {}".format(bb))
     else:
-        bb = in_wcs.pixel_shape
+        bb = wcs_bbox_from_shape(in_wcs.pixel_shape)
         log.debug("Bounding box from WCS: {}".format(bb))
 
     grid = grid_from_bounding_box(bb)

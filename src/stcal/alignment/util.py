@@ -15,7 +15,7 @@ from astropy.modeling import models as astmodels
 from astropy import wcs as fitswcs
 
 from asdf import AsdfFile
-from gwcs import WCS
+import gwcs
 from gwcs.wcstools import wcs_from_fiducial
 
 
@@ -365,7 +365,7 @@ def _validate_wcs_list(wcs_list):
     if not isiterable(wcs_list):
         raise ValueError("Expected 'wcs_list' to be an iterable of WCS objects.")
     elif len(wcs_list):
-        if not all(isinstance(w, WCS) for w in wcs_list):
+        if not all(isinstance(w, gwcs.WCS) for w in wcs_list):
             raise TypeError(
                 "All items in 'wcs_list' are to be instances of gwcs.wcs.WCS."
             )
@@ -420,7 +420,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
 
 def compute_scale(
-    wcs: WCS,
+    wcs: gwcs.WCS,
     fiducial: Union[tuple, np.ndarray],
     disp_axis: int = None,
     pscale_ratio: float = None,
@@ -805,7 +805,7 @@ def reproject(wcs1, wcs2):
         """  # noqa : E501
         if isinstance(wcs1, fitswcs.WCS):
             forward_transform = wcs1.all_pix2world
-        elif isinstance(wcs1, WCS):
+        elif isinstance(wcs1, gwcs.WCS):
             forward_transform = wcs1.forward_transform
         else:
             raise TypeError(
@@ -817,7 +817,7 @@ def reproject(wcs1, wcs2):
     def _get_backward_transform_func(wcs2):
         if isinstance(wcs2, fitswcs.WCS):
             backward_transform = wcs2.all_world2pix
-        elif isinstance(wcs2, WCS):
+        elif isinstance(wcs2, gwcs.WCS):
             backward_transform = wcs2.backward_transform
         else:
             raise TypeError(
