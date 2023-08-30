@@ -623,12 +623,10 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
         jump_center = jump[0]
         # if center of the jump ellipse is not saturated in this group and is saturated in
         # the next group add the jump ellipse to the snowball lisr
-        if group < (num_groups - 1) and \
-           gdq[integration, group+1, round(jump_center[1]),
-           round(jump_center[0])] == sat_flag and \
-           gdq[integration, group, round(jump_center[1]),
-           round(jump_center[0])] != sat_flag:
-            snowballs.append(jump)
+        if (group < (num_groups - 1) and
+            gdq[integration, group+1, round(jump_center[1]), round(jump_center[0])] == sat_flag and
+            gdq[integration, group, round(jump_center[1]), round(jump_center[0])] != sat_flag):
+              snowballs.append(jump)
         # if the jump ellipse is near the edge, do not require saturation in the
         # center of the jump ellipse
         elif near_edge(jump, low_threshold, high_threshold):
@@ -644,10 +642,8 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
     # extend the saturated ellipses that are larger than the min_sat_radius
     gdq[integration, :, :, :] = \
         extend_saturation(gdq[integration, :, :, :],
-        group, sat_ellipses, sat_flag,
-        min_sat_radius,
-        expansion=expansion,
-        max_extended_radius=max_extended_radius)
+                          group, sat_ellipses, sat_flag, min_sat_radius,
+                          expansion=expansion, max_extended_radius=max_extended_radius)
 
     return gdq, snowballs
 
