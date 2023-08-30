@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
-from astropy.io import fits
 
 from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
-    point_inside_ellipse, find_faint_extended
+    point_inside_ellipse, find_faint_extended, calc_num_slices
 
 DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1, 'GOOD': 0, 'NO_GAIN_VALUE': 8}
 
@@ -276,29 +275,19 @@ def test_inside_ellipes5():
     assert result
 
 
-#@pytest.mark.skip("Fails in CI")
-def test_inputjumpall():
-    testcube = fits.getdata('data/large_event_input_dq_cube2.fits')
-    flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], min_sat_area=1,
-                      min_jump_area=6,
-                      expand_factor=2.0,
-                      sat_required_snowball=True, min_sat_radius_extend=2.5, sat_expand=2)
-    snowball_1 = testcube[0, 1,  1900:1934, 1710:1746]
-    fits.writeto("test_snowball.fits", snowball_1, overwrite=True)
-    correct_snowball_1 = fits.getdata('data/snowball1.fits')
-    snowball_diff = snowball_1 - correct_snowball_1
-    assert (np.all(snowball_diff == 0))
-
-
-#@pytest.mark.skip("Used for local testing")
-def test_inputjump_sat_star():
-    testcube = fits.getdata('data/input_gdq_flarge.fits')
-    num_extended_events = flag_large_events(testcube, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'],
-                                            min_sat_area=1,
-                                            min_jump_area=6,
-                                            expand_factor=2.0,
-                                            sat_required_snowball=True,
-                                            min_sat_radius_extend=2.5,
-                                            sat_expand=2)
-    assert(num_extended_events == 327)
-    fits.writeto("outgdq2.fits", testcube, overwrite=True)
+def test_calc_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert(calc_num_slices(n_rows, 'none', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, 'half', max_available_cores) == 5)
+    assert (calc_num_slices(n_rows, '3', max_available_cores) == 3)
+    assert (calc_num_slices(n_rows, '7', max_available_cores) == 7)
+    assert (calc_num_slices(n_rows, '21', max_available_cores) == 10)
+    assert (calc_num_slices(n_rows, 'quarter', max_available_cores) == 2)
+    assert (calc_num_slices(n_rows, '7.5', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, 'one', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, '-5', max_available_cores) == 1)
+    assert (calc_num_slices(n_rows, 'all', max_available_cores) == 10)
+    assert (calc_num_slices(n_rows, '3/4', max_available_cores) == 1)
+    n_rows = 9
+    assert (calc_num_slices(n_rows, '21', max_available_cores) == 9)
