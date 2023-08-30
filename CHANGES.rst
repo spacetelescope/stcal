@@ -6,7 +6,8 @@ Bug Fixes
 
 jump
 ~~~~
-
+- enable the detection of snowballs that occur in frames that are
+  within a group. [#207]
 - 
 
 1.4.2 (2023-07-11)
