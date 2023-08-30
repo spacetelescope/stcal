@@ -183,17 +183,17 @@ cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
     return pixel_ramps
 
 
-cdef inline DerivedData read_data(list[list[int]] ma_table, float read_time):
+cdef DerivedData read_data(list[list[int]] read_pattern, float read_time):
     """
-    Derive the input data from the MA table
+    Derive the input data from the the read pattern
 
-    Note the MA table is a list of pairs of ints for each resultant:
-        (first read index, number of reads in resultant)
+        read pattern is a list of resultant lists, where each resultant list is
+        a list of the reads in that resultant.
 
     Parameters
     ----------
-    ma_table : list[list[int]]
-        MA table
+    read pattern: list[list[int]]
+        read pattern for the image
     read_time : float
         Time to perform a readout.
 
@@ -204,18 +204,18 @@ cdef inline DerivedData read_data(list[list[int]] ma_table, float read_time):
         vector[float] tau: variance time of each resultant
         vector[int] n_reads: number of reads in each resultant
     """
-    cdef int n_resultants = len(ma_table)
+    cdef int n_resultants = len(read_pattern)
     cdef DerivedData data = DerivedData(vector[float](n_resultants),
                                         vector[float](n_resultants),
                                         vector[int](n_resultants))
 
-    cdef int index
-    cdef list[int] entry
-    for index, entry in enumerate(ma_table):
-        data.n_reads[index] = entry[1]
-        data.t_bar[index] = read_time *(entry[0] + (entry[1] - 1) / 2.0)
-        data.tau[index] = data.t_bar[index] - (entry[1] - 1) * ((entry[1] + 1) *
-                                                                read_time /
-                                                                (6 * entry[1]))
+    cdef int index, n_reads
+    cdef list[int] resultant
+    for index, resultant in enumerate(read_pattern):
+            n_reads = len(resultant)
+
+            data.n_reads[index] = n_reads
+            data.t_bar[index] = read_time * np.mean(resultant)
+            data.tau[index] = np.sum((2 * (n_reads - np.arange(n_reads)) - 1) * resultant) * read_time / n_reads**2
 
     return data

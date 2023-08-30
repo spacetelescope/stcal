@@ -17,7 +17,7 @@ from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 def fit_ramps(np.ndarray[float, ndim=2] resultants,
               np.ndarray[int, ndim=2] dq,
               np.ndarray[float, ndim=1] read_noise, read_time,
-              ma_table,
+              list[list[int]] read_pattern,
               int use_jumps=False):
     """Fit ramps using the Casertano+22 algorithm.
 
@@ -37,8 +37,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         the read noise in electrons
     read_time : float
         Time to perform a readout. For Roman data, this is FRAME_TIME.
-    ma_table : list[list[int]]
-        the ma table prescription
+    read_pattern : list[list[int]]
+        the read pattern for the image
 
     Returns
     -------
@@ -58,13 +58,13 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     resend : np.ndarray[nramp]
         The last resultant in this ramp.
     """
-    cdef int n_resultants = len(ma_table)
+    cdef int n_resultants = len(read_pattern)
     if n_resultants != resultants.shape[0]:
         raise RuntimeError(f'MA table length {n_resultants} does not '
                            f'match number of resultants {resultants.shape[0]}')
 
     # Pre-compute data for all pixels
-    cdef Fixed fixed = make_fixed(read_data(ma_table, read_time),
+    cdef Fixed fixed = make_fixed(read_data(read_pattern, read_time),
                                   make_threshold(5.5, 1/3.0),
                                   use_jumps)
 
