@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import read_data
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold, make_fixed
+from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold, make_fixed, make_pixel
 
 def test_read_data():
     """Test turning read_pattern into the time data"""
@@ -119,3 +119,43 @@ def test_make_fixed(use_jump):
         assert fixed['recip_2'] == np.zeros(1, np.float32)
         assert fixed['slope_var_1'] == np.zeros(1, np.float32)
         assert fixed['slope_var_2'] == np.zeros(1, np.float32)
+
+
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_make_pixel(use_jump):
+    pattern = [[1, 2], [4, 5, 6], [7], [8, 9, 10, 11]]
+    data = read_data(pattern, 3.0)
+
+    resultants = np.random.random(4).astype(np.float32)
+    read_noise = np.float32(1.4)
+    t_bar = np.array(data['t_bar'], dtype=np.float32)
+    tau = np.array(data['tau'], dtype=np.float32)
+    n_reads = np.array(data['n_reads'], dtype=np.int32)
+    intercept = np.float32(5.5)
+    constant = np.float32(1/3)
+
+    pixel = make_pixel(resultants, t_bar, tau, n_reads, read_noise, intercept, constant, use_jump)
+
+    assert (pixel['resultants'] == resultants).all()
+    assert read_noise == pixel['read_noise']
+
+    if use_jump:
+        single_gen = zip(pixel['delta_1'], pixel['sigma_1'])
+        double_gen = zip(pixel['delta_2'], pixel['sigma_2'])
+
+        for index, (delta_1, sigma_1) in enumerate(single_gen):
+            assert delta_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
+            assert sigma_1 == read_noise * (
+                np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
+            )
+
+        for index, (delta_2, sigma_2) in enumerate(double_gen):
+            assert delta_2 == (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
+            assert sigma_2 == read_noise * (
+                np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
+            )
+    else:
+        assert pixel['delta_1'] == np.zeros(1, np.float32)
+        assert pixel['delta_2'] == np.zeros(1, np.float32)
+        assert pixel['sigma_1'] == np.zeros(1, np.float32)
+        assert pixel['sigma_2'] == np.zeros(1, np.float32)

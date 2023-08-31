@@ -187,6 +187,17 @@ cdef class Pixel:
 
         return ramp_fit
 
+    cdef inline float correction(Pixel self, int i, int offset, RampIndex ramp):
+        cdef float comp = ((self.fixed.data.t_bar[i + offset] - self.fixed.data.t_bar[i]) /
+                           (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start]))
+
+        if offset == 1:
+            return (1 - comp)**2
+        elif offset == 2:
+            return (1 - 0.75 * comp)**2
+        else:
+            raise ValueError("offset must be 1 or 2")
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -194,9 +205,11 @@ cdef class Pixel:
         """
         Compute fit statistics for jump detection on a single ramp
         Computed using:
+            corr_1[i] = correction(i, 1, ramp)
+            corr_2[i] = correction(i, 2, ramp)
 
-            var_1[i] = ((sigma_1[i] + slope * slope_var_1[i]) / t_bar_1_sq[i])
-            var_2[i] = ((sigma_2[i] + slope * slope_var_2[i]) / t_bar_2_sq[i])
+            var_1[i] = ((sigma_1[i] + slope * slope_var_1[i] * corr_1[i]) / t_bar_1_sq[i])
+            var_2[i] = ((sigma_2[i] + slope * slope_var_2[i] * corr_2[i]) / t_bar_2_sq[i])
 
             s_1[i] = (delta_1[i] - slope) / sqrt(var_1[i])
             s_2[i] = (delta_2[i] - slope) / sqrt(var_2[i])
@@ -215,14 +228,19 @@ cdef class Pixel:
         cdef int start = ramp.start
         cdef int end = ramp.end - 1
 
+        cdef float[:] slope_var_1 = np.zeros(end - start + 1, dtype=np.float32)
+        cdef float[:] slope_var_2 = np.zeros(end - start + 1, dtype=np.float32)
+        cdef int i
+        for i in range(end - start + 1):
+            slope_var_1[i] = slope * self.fixed.slope_var_1[start + i] * self.correction(start + i, 1, ramp)
+            slope_var_2[i] = slope * self.fixed.slope_var_2[start + i] * self.correction(start + i, 2, ramp)
+
         cdef float[:] delta_1 = np.subtract(self.delta_1[start:end], slope)
         cdef float[:] delta_2 = np.subtract(self.delta_2[start:end], slope)
 
-        cdef float[:] var_1 = np.divide(np.add(self.sigma_1[start:end],
-                                        np.multiply(slope, self.slope_var_1[start:end])),
+        cdef float[:] var_1 = np.divide(np.add(self.sigma_1[start:end], slope_var_1),
                                         self.fixed.t_bar_1_sq[start:end])
-        cdef float[:] var_2 = np.divide(np.add(self.sigma_2[start:end],
-                                        np.multiply(slope, self.slope_var_2[start:end])),
+        cdef float[:] var_2 = np.divide(np.add(self.sigma_2[start:end], slope_var_2),
                                         self.fixed.t_bar_2_sq[start:end])
 
         cdef float[:] stats_1 = np.divide(delta_1, np.sqrt(var_1))
