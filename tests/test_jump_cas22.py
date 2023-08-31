@@ -1,5 +1,5 @@
-from calendar import c
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import read_data
@@ -74,7 +74,8 @@ def test_threshold():
     assert np.float32(intercept - constant) == run_threshold(thresh, 10.0) # check constant
 
 
-def test_make_fixed():
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_make_fixed(use_jump):
     pattern = [[1, 2], [4, 5, 6], [7], [8, 9, 10, 11]]
     data = read_data(pattern, 3.0)
 
@@ -84,8 +85,37 @@ def test_make_fixed():
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
-    fixed = make_fixed(t_bar, tau, n_reads, intercept, constant, True)
+    fixed = make_fixed(t_bar, tau, n_reads, intercept, constant, use_jump)
 
+    # Basic sanity checks that data passed in survives
     assert (fixed['data']['t_bar'] == t_bar).all()
+    assert (fixed['data']['tau'] == tau).all()
+    assert (fixed['data']['n_reads'] == n_reads).all()
     assert fixed["intercept"] == intercept
     assert fixed["constant"] == constant
+
+    # Check the computed data
+    if use_jump:
+        single_gen = zip(fixed['t_bar_1'], fixed['t_bar_1_sq'], fixed['recip_1'], fixed['slope_var_1'])
+        double_gen = zip(fixed['t_bar_2'], fixed['t_bar_2_sq'], fixed['recip_2'], fixed['slope_var_2'])
+
+        for index, (t_bar_1, t_bar_1_sq, recip_1, slope_var_1) in enumerate(single_gen):
+            assert t_bar_1 == t_bar[index + 1] - t_bar[index]
+            assert t_bar_1_sq == (t_bar[index + 1] - t_bar[index])**2
+            assert recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
+            assert slope_var_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
+
+        for index, (t_bar_2, t_bar_2_sq, recip_2, slope_var_2) in enumerate(double_gen):
+            assert t_bar_2 == t_bar[index + 2] - t_bar[index]
+            assert t_bar_2_sq == (t_bar[index + 2] - t_bar[index])**2
+            assert recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
+            assert slope_var_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
+    else:
+        assert fixed['t_bar_1'] == np.zeros(1, np.float32)
+        assert fixed['t_bar_2'] == np.zeros(1, np.float32)
+        assert fixed['t_bar_1_sq'] == np.zeros(1, np.float32)
+        assert fixed['t_bar_2_sq'] == np.zeros(1, np.float32)
+        assert fixed['recip_1'] == np.zeros(1, np.float32)
+        assert fixed['recip_2'] == np.zeros(1, np.float32)
+        assert fixed['slope_var_1'] == np.zeros(1, np.float32)
+        assert fixed['slope_var_2'] == np.zeros(1, np.float32)

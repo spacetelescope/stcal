@@ -61,16 +61,79 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
     cdef float intercept_ = fixed.threshold.intercept
     cdef float constant_ = fixed.threshold.constant
 
-    cdef np.ndarray[float, ndim=1] t_bar_1 = np.array(fixed.t_bar_1, dtype=np.float32)
-    cdef np.ndarray[float, ndim=1] t_bar_2 = np.array(fixed.t_bar_2, dtype=np.float32)
-    cdef np.ndarray[float, ndim=1] t_bar_1_sq = np.array(fixed.t_bar_1_sq, dtype=np.float32)
-    cdef np.ndarray[float, ndim=1] t_bar_2_sq = np.array(fixed.t_bar_2_sq, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] t_bar_1, t_bar_2
+    cdef np.ndarray[float, ndim=1] t_bar_1_sq, t_bar_2_sq
+    cdef np.ndarray[float, ndim=1] recip_1, recip_2
+    cdef np.ndarray[float, ndim=1] slope_var_1, slope_var_2
 
-    cdef np.ndarray[float, ndim=1] recip_1 = np.array(fixed.recip_1, dtype=np.float32)
-    cdef np.ndarray[float, ndim=1] recip_2 = np.array(fixed.recip_2, dtype=np.float32)
+    if use_jump:
+        t_bar_1 = np.array(fixed.t_bar_1, dtype=np.float32)
+        t_bar_2 = np.array(fixed.t_bar_2, dtype=np.float32)
+        t_bar_1_sq = np.array(fixed.t_bar_1_sq, dtype=np.float32)
+        t_bar_2_sq = np.array(fixed.t_bar_2_sq, dtype=np.float32)
 
-    cdef np.ndarray[float, ndim=1] slope_var_1 = np.array(fixed.slope_var_1, dtype=np.float32)
-    cdef np.ndarray[float, ndim=1] slope_var_2 = np.array(fixed.slope_var_2, dtype=np.float32)
+        recip_1 = np.array(fixed.recip_1, dtype=np.float32)
+        recip_2 = np.array(fixed.recip_2, dtype=np.float32)
+
+        slope_var_1 = np.array(fixed.slope_var_1, dtype=np.float32)
+        slope_var_2 = np.array(fixed.slope_var_2, dtype=np.float32)
+    else:
+        try:
+            fixed.t_bar_1
+        except AttributeError:
+            t_bar_1 = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("t_bar_1 should not exist")
+
+        try:
+            fixed.t_bar_2
+        except AttributeError:
+            t_bar_2 = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("t_bar_2 should not exist")
+
+        try:
+            fixed.t_bar_1_sq
+        except AttributeError:
+            t_bar_1_sq = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("t_bar_1_sq should not exist")
+
+        try:
+            fixed.t_bar_2_sq
+        except AttributeError:
+            t_bar_2_sq = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("t_bar_2_sq should not exist")
+
+        try:
+            fixed.recip_1
+        except AttributeError:
+            recip_1 = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("recip_1 should not exist")
+
+        try:
+            fixed.recip_2
+        except AttributeError:
+            recip_2 = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("recip_2 should not exist")
+
+        try:
+            fixed.slope_var_1
+        except AttributeError:
+            slope_var_1 = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("slope_var_1 should not exist")
+
+        try:
+            fixed.slope_var_2
+        except AttributeError:
+            slope_var_2 = np.zeros(1, np.float32)
+        else:
+            raise AttributeError("slope_var_2 should not exist")
+
 
     return dict(data=data,
                 intercept=intercept_,
