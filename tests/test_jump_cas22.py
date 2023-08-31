@@ -86,6 +86,6 @@ def test_make_fixed():
 
     fixed = make_fixed(t_bar, tau, n_reads, intercept, constant, True)
 
-    assert (fixed['t_bar'] == t_bar).all()
+    assert (fixed['data']['t_bar'] == t_bar).all()
     assert fixed["intercept"] == intercept
     assert fixed["constant"] == constant

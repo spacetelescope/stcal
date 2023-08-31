@@ -85,7 +85,13 @@ cdef class Fixed:
         -------
         t_bar[i+offset] - t_bar[i]
         """
-        cdef float[:] t_bar = self.t_bar
+        # Cast vector to memory view
+        #    This way of doing it is potentially memory unsafe because the memory
+        #    can outlive the vector. However, this is much faster (no copies) and
+        #    much simpler than creating an intermediate wrapper which can pretend
+        #    to be a memory view. In this case, I make sure that the memory view
+        #    stays local to the function (numpy operations create brand new objects)
+        cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
 
         return np.subtract(t_bar[offset:], t_bar[:-offset])
 
@@ -118,7 +124,13 @@ cdef class Fixed:
         -------
         (1/n_reads[i+offset] + 1/n_reads[i])
         """
-        cdef int[:] n_reads = self.n_reads
+        # Cast vector to memory view
+        #    This way of doing it is potentially memory unsafe because the memory
+        #    can outlive the vector. However, this is much faster (no copies) and
+        #    much simpler than creating an intermediate wrapper which can pretend
+        #    to be a memory view. In this case, I make sure that the memory view
+        #    stays local to the function (numpy operations create brand new objects)
+        cdef int[:] n_reads = <int [:self.data.n_reads.size()]> self.data.n_reads.data()
 
         return (np.divide(1.0, n_reads[offset:], dtype=np.float32) +
                 np.divide(1.0, n_reads[:-offset], dtype=np.float32))
@@ -138,8 +150,14 @@ cdef class Fixed:
         (tau[i] + tau[i+offset] - min(t_bar[i], t_bar[i+offset])) *
             correction(i, i+offset)
         """
-        cdef float[:] t_bar = self.t_bar
-        cdef float[:] tau = self.tau
+        # Cast vectors to memory views
+        #    This way of doing it is potentially memory unsafe because the memory
+        #    can outlive the vector. However, this is much faster (no copies) and
+        #    much simpler than creating an intermediate wrapper which can pretend
+        #    to be a memory view. In this case, I make sure that the memory view
+        #    stays local to the function (numpy operations create brand new objects)
+        cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
+        cdef float[:] tau = <float [:self.data.tau.size()]> self.data.tau.data()
 
         return (np.add(tau[offset:], tau[:-offset]) -
                 np.minimum(t_bar[offset:], t_bar[:-offset]))
@@ -171,9 +189,7 @@ cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
     fixed.threshold = threshold
 
     # Cast vector to a c array
-    fixed.t_bar = <float [:data.t_bar.size()]> data.t_bar.data()
-    fixed.tau = <float [:data.tau.size()]> data.tau.data()
-    fixed.n_reads = <int [:data.n_reads.size()]> data.n_reads.data()
+    fixed.data = data
 
     # Pre-compute jump detection computations shared by all pixels
     if use_jump:

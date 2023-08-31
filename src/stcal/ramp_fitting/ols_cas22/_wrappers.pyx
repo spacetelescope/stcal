@@ -58,10 +58,6 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
 
     cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
 
-    cdef np.ndarray[float, ndim=1] t_bar_ = np.array(fixed.t_bar, dtype=np.float32)
-    cdef np.ndarray[float, ndim=1] tau_ = np.array(fixed.tau, dtype=np.float32)
-    cdef np.ndarray[int, ndim=1] n_reads_ = np.array(fixed.n_reads, dtype=np.int32)
-
     cdef float intercept_ = fixed.threshold.intercept
     cdef float constant_ = fixed.threshold.constant
 
@@ -76,9 +72,7 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
     cdef np.ndarray[float, ndim=1] slope_var_1 = np.array(fixed.slope_var_1, dtype=np.float32)
     cdef np.ndarray[float, ndim=1] slope_var_2 = np.array(fixed.slope_var_2, dtype=np.float32)
 
-    return dict(t_bar=t_bar_,
-                tau=tau_,
-                n_reads=n_reads_,
+    return dict(data=data,
                 intercept=intercept_,
                 constant=constant_,
                 t_bar_1=t_bar_1,

@@ -5,8 +5,7 @@ from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
 
 cdef class Fixed:
     cdef bool use_jump
-    cdef float[:] t_bar, tau
-    cdef int[:] n_reads
+    cdef DerivedData data
     cdef Thresh threshold
 
     cdef float[:] t_bar_1, t_bar_2
