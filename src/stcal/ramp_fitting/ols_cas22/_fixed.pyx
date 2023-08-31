@@ -56,10 +56,10 @@ cdef class Fixed:
             ((1/n_reads[i+2]) + (1/n_reads[i]))
     slope_var_1 : vector[float]
         single of slope variance term:
-            ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1])) * correction(i, i+1)
+            ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1]))
     slope_var_2 : vector[float]
         double of slope variance term:
-            ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2])) * correction(i, i+2)
+            ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2]))
 
     Notes
     -----
@@ -123,29 +123,6 @@ cdef class Fixed:
         return (np.divide(1.0, n_reads[offset:], dtype=np.float32) +
                 np.divide(1.0, n_reads[:-offset], dtype=np.float32))
 
-    cdef inline float correction(Fixed self, int i, int j):
-        """Compute the correction factor
-
-        Parameters
-        ----------
-        i : int
-            The index of the first read in the segment
-        j : int
-            The index of the last read in the segment
-
-        Returns
-        -------
-        the correction factor f_corr for a single term
-        """
-        cdef float[:] t_bar = self.t_bar
-        cdef int[:] n_reads = self.n_reads
-
-        cdef float denom = t_bar[n_reads[i] - 1] - t_bar[0]
-
-        if i - j == 1:
-            return (1.0 - (t_bar[i + 1] - t_bar[i]) / denom) ** 2
-        else:
-            return (1.0 - 0.75 * (t_bar[i + 2] - t_bar[i]) / denom) ** 2
 
     cdef inline float[:] slope_var_val(Fixed self, int offset):
         """
@@ -164,16 +141,8 @@ cdef class Fixed:
         cdef float[:] t_bar = self.t_bar
         cdef float[:] tau = self.tau
 
-        cdef int n_diff = t_bar.size - offset
-
-        # Comput correction factor vector
-        cdef int i
-        cdef np.ndarray[float] f_corr = np.zeros(n_diff, dtype=np.float32)
-        for i in range(n_diff):
-            f_corr[i] = self.correction(i, i + offset)
-
         return (np.add(tau[offset:], tau[:-offset]) -
-                np.minimum(t_bar[offset:], t_bar[:-offset])) * f_corr
+                np.minimum(t_bar[offset:], t_bar[:-offset]))
 
 
 cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):

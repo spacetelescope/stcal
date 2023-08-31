@@ -1,9 +1,10 @@
+from calendar import c
 import numpy as np
 from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import read_data
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold
+from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold, make_fixed
 
 def test_read_data():
     """Test turning read_pattern into the time data"""
@@ -63,15 +64,28 @@ def test_init_ramps():
 
 
 def test_threshold():
-    intercept = 5.5
-    constant = 1/3
+    intercept = np.float32(5.5)
+    constant = np.float32(1/3)
 
     thresh = make_threshold(intercept, constant)
 
     # Parameters are not directly accessible
     assert intercept == run_threshold(thresh, 1.0) # check intercept
-    assert_allclose(intercept - constant, run_threshold(thresh, 10.0)) # check constant
+    assert np.float32(intercept - constant) == run_threshold(thresh, 10.0) # check constant
 
 
 def test_make_fixed():
-    pass
+    pattern = [[1, 2], [4, 5, 6], [7], [8, 9, 10, 11]]
+    data = read_data(pattern, 3.0)
+
+    t_bar = np.array(data['t_bar'], dtype=np.float32)
+    tau = np.array(data['tau'], dtype=np.float32)
+    n_reads = np.array(data['n_reads'], dtype=np.int32)
+    intercept = np.float32(5.5)
+    constant = np.float32(1/3)
+
+    fixed = make_fixed(t_bar, tau, n_reads, intercept, constant, True)
+
+    assert (fixed['t_bar'] == t_bar).all()
+    assert fixed["intercept"] == intercept
+    assert fixed["constant"] == constant

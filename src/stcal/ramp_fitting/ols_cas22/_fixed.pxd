@@ -19,7 +19,5 @@ cdef class Fixed:
     cdef float[:] recip_val(Fixed self, int offset)
     cdef float[:] slope_var_val(Fixed self, int offset)
 
-    cdef float correction(Fixed self, int i, int j)
-
 
 cdef Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump)

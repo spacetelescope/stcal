@@ -10,6 +10,7 @@ from stcal.ramp_fitting.ols_cas22._core cimport read_data as c_read_data
 from stcal.ramp_fitting.ols_cas22._core cimport init_ramps as c_init_ramps
 from stcal.ramp_fitting.ols_cas22._core cimport make_threshold as c_make_threshold
 
+from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed as c_make_fixed
 
 def read_data(list[list[int]] read_pattern, float read_time):
@@ -55,4 +56,36 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
     cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
     cdef Thresh threshold = c_make_threshold(intercept, constant)
 
-    return c_make_fixed(data, threshold, use_jump)
+    cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
+
+    cdef np.ndarray[float, ndim=1] t_bar_ = np.array(fixed.t_bar, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] tau_ = np.array(fixed.tau, dtype=np.float32)
+    cdef np.ndarray[int, ndim=1] n_reads_ = np.array(fixed.n_reads, dtype=np.int32)
+
+    cdef float intercept_ = fixed.threshold.intercept
+    cdef float constant_ = fixed.threshold.constant
+
+    cdef np.ndarray[float, ndim=1] t_bar_1 = np.array(fixed.t_bar_1, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] t_bar_2 = np.array(fixed.t_bar_2, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] t_bar_1_sq = np.array(fixed.t_bar_1_sq, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] t_bar_2_sq = np.array(fixed.t_bar_2_sq, dtype=np.float32)
+
+    cdef np.ndarray[float, ndim=1] recip_1 = np.array(fixed.recip_1, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] recip_2 = np.array(fixed.recip_2, dtype=np.float32)
+
+    cdef np.ndarray[float, ndim=1] slope_var_1 = np.array(fixed.slope_var_1, dtype=np.float32)
+    cdef np.ndarray[float, ndim=1] slope_var_2 = np.array(fixed.slope_var_2, dtype=np.float32)
+
+    return dict(t_bar=t_bar_,
+                tau=tau_,
+                n_reads=n_reads_,
+                intercept=intercept_,
+                constant=constant_,
+                t_bar_1=t_bar_1,
+                t_bar_2=t_bar_2,
+                t_bar_1_sq=t_bar_1_sq,
+                t_bar_2_sq=t_bar_2_sq,
+                recip_1=recip_1,
+                recip_2=recip_2,
+                slope_var_1=slope_var_1,
+                slope_var_2=slope_var_2)
