@@ -125,11 +125,11 @@ cdef class Pixel:
         cdef int[:] n_reads_ = <int [:self.fixed.data.n_reads.size()]> self.fixed.data.n_reads.data()
 
         # Setup data for fitting (work over subset of data)
-        cdef float[:] resultants = self.fixed.resultants[ramp.start:ramp.end + 1]
+        cdef float[:] resultants = self.resultants[ramp.start:ramp.end + 1]
         cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
         cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
         cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
-        cdef float read_noise = self.fixed.read_noise
+        cdef float read_noise = self.read_noise
 
         # initalize fit
         cdef int i = 0, j = 0
@@ -280,7 +280,7 @@ cdef class Pixel:
             ramps.pop()
 
             # Compute fit
-            ramp_fit = self.ramp_fit(ramp)
+            ramp_fit = self.fit_ramp(ramp)
 
             if self.fixed.use_jump:
                 stats = self.stats(ramp_fit.slope, ramp)

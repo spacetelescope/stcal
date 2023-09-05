@@ -5,7 +5,7 @@ from libcpp cimport bool
 from libcpp.stack cimport stack
 from libcpp.deque cimport deque
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, DerivedData, Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, DerivedData, Thresh, RampFit
 from stcal.ramp_fitting.ols_cas22._core cimport read_data as c_read_data
 from stcal.ramp_fitting.ols_cas22._core cimport init_ramps as c_init_ramps
 from stcal.ramp_fitting.ols_cas22._core cimport make_threshold as c_make_threshold
@@ -214,3 +214,23 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
                 delta_2=delta_2,
                 sigma_1=sigma_1,
                 sigma_2=sigma_2)
+
+
+def fit_ramp(np.ndarray[float, ndim=1] resultants,
+             np.ndarray[float, ndim=1] t_bar,
+             np.ndarray[float, ndim=1] tau,
+             np.ndarray[int, ndim=1] n_reads,
+             float read_noise,
+             int start,
+             int end):
+
+    cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
+    cdef Thresh threshold = c_make_threshold(0, 1)
+    cdef Fixed fixed = c_make_fixed(data, threshold, False)
+
+    cdef Pixel pixel = c_make_pixel(fixed, read_noise, resultants)
+    cdef RampIndex ramp_index = RampIndex(start, end)
+
+    cdef RampFit ramp_fit = pixel.fit_ramp(ramp_index)
+
+    return ramp_fit

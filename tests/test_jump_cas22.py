@@ -4,12 +4,33 @@ from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import read_data
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold, make_fixed, make_pixel
+from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold, make_fixed, make_pixel, fit_ramp
 
-def test_read_data():
+from stcal.ramp_fitting.ols_cas22 import fit_ramps
+
+
+RNG = np.random.default_rng(619)
+ROMAN_READ_TIME = 3.04
+
+
+@pytest.fixture(scope="module")
+def base_ramp_data():
+    """Basic data for simulating ramps for testing (not unpacked)"""
+    read_pattern = [
+        [1, 2, 3, 4],
+        [5],
+        [6, 7, 8],
+        [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        [19, 20, 21],
+        [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+    ]
+
+    yield read_pattern, read_data(read_pattern, ROMAN_READ_TIME)
+
+
+def test_read_data(base_ramp_data):
     """Test turning read_pattern into the time data"""
-    pattern = [[1, 2], [4, 5, 6], [7], [8, 9, 10, 11]]
-    data = read_data(pattern, 3.0)
+    _, data = base_ramp_data
 
     # Basic sanity checks (structs become dicts)
     assert isinstance(data, dict)
@@ -19,9 +40,9 @@ def test_read_data():
     assert len(data) == 3
 
     # Check that the data is correct
-    assert_allclose(data['t_bar'], [4.5, 15, 21, 28.5])
-    assert_allclose(data['tau'], [3.75, 13.666667, 21, 26.625])
-    assert data['n_reads'] == [2, 3, 1, 4]
+    assert_allclose(data['t_bar'], [7.6, 15.2, 21.279999, 41.040001, 60.799999, 88.159996])
+    assert_allclose(data['tau'], [5.7, 15.2, 19.928888, 36.023998, 59.448887, 80.593781])
+    assert data['n_reads'] == [4, 1, 3, 10, 3, 15]
 
 
 def test_init_ramps():
@@ -64,6 +85,7 @@ def test_init_ramps():
 
 
 def test_threshold():
+    """Test the threshold object/fucnction)"""
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
@@ -74,14 +96,21 @@ def test_threshold():
     assert np.float32(intercept - constant) == run_threshold(thresh, 10.0) # check constant
 
 
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_make_fixed(use_jump):
-    pattern = [[1, 2], [4, 5, 6], [7], [8, 9, 10, 11]]
-    data = read_data(pattern, 3.0)
+@pytest.fixture(scope="module")
+def ramp_data(base_ramp_data):
+    """Upacked data for simulating ramps for testing"""
+    t_bar = np.array(base_ramp_data[1]['t_bar'], dtype=np.float32)
+    tau = np.array(base_ramp_data[1]['tau'], dtype=np.float32)
+    n_reads = np.array(base_ramp_data[1]['n_reads'], dtype=np.int32)
 
-    t_bar = np.array(data['t_bar'], dtype=np.float32)
-    tau = np.array(data['tau'], dtype=np.float32)
-    n_reads = np.array(data['n_reads'], dtype=np.int32)
+    yield base_ramp_data[0], t_bar, tau, n_reads
+
+
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_make_fixed(ramp_data, use_jump):
+    """Test computing the fixed data for all pixels"""
+    _, t_bar, tau, n_reads = ramp_data
+
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
@@ -101,13 +130,13 @@ def test_make_fixed(use_jump):
 
         for index, (t_bar_1, t_bar_1_sq, recip_1, slope_var_1) in enumerate(single_gen):
             assert t_bar_1 == t_bar[index + 1] - t_bar[index]
-            assert t_bar_1_sq == (t_bar[index + 1] - t_bar[index])**2
+            assert t_bar_1_sq == np.float32((t_bar[index + 1] - t_bar[index])**2)
             assert recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             assert slope_var_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
 
         for index, (t_bar_2, t_bar_2_sq, recip_2, slope_var_2) in enumerate(double_gen):
             assert t_bar_2 == t_bar[index + 2] - t_bar[index]
-            assert t_bar_2_sq == (t_bar[index + 2] - t_bar[index])**2
+            assert t_bar_2_sq == np.float32((t_bar[index + 2] - t_bar[index])**2)
             assert recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
             assert slope_var_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
     else:
@@ -121,16 +150,44 @@ def test_make_fixed(use_jump):
         assert fixed['slope_var_2'] == np.zeros(1, np.float32)
 
 
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_make_pixel(use_jump):
-    pattern = [[1, 2], [4, 5, 6], [7], [8, 9, 10, 11]]
-    data = read_data(pattern, 3.0)
+def _generate_resultants(read_pattern, flux, read_noise):
+    """Generate a set of resultants for a pixel"""
+    resultants = np.zeros(len(read_pattern), dtype=np.float32)
 
-    resultants = np.random.random(4).astype(np.float32)
-    read_noise = np.float32(1.4)
-    t_bar = np.array(data['t_bar'], dtype=np.float32)
-    tau = np.array(data['tau'], dtype=np.float32)
-    n_reads = np.array(data['n_reads'], dtype=np.int32)
+    # Use Poisson process to simulate the accumulation of the ramp
+    ramp_value = 0  # Last value of ramp
+    for index, reads in enumerate(read_pattern):
+        resultant_total = 0  # Total of all reads in this resultant
+        for _ in reads:
+            # Compute the next value of the ramp
+            ramp_value += RNG.poisson(flux * ROMAN_READ_TIME) # generate value to accumulate
+            ramp_value += RNG.standard_normal() * read_noise  # include read noise
+
+            # Add to running total for the resultant
+            resultant_total += ramp_value
+
+        # Record the average value for resultant (i.e., the average of the reads)
+        resultants[index] = np.float32(resultant_total / len(reads))
+
+    return resultants
+
+
+@pytest.fixture(scope="module")
+def pixel_data(ramp_data):
+    read_noise = np.float32(5)
+    flux = 100
+
+    read_pattern, t_bar, tau, n_reads = ramp_data
+    resultants = _generate_resultants(read_pattern, flux, read_noise)
+
+    yield resultants, t_bar, tau, n_reads, read_noise, flux
+
+
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_make_pixel(pixel_data, use_jump):
+    """Test computing the pixel data"""
+    resultants, t_bar, tau, n_reads, read_noise, _ = pixel_data
+
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
@@ -159,3 +216,61 @@ def test_make_pixel(use_jump):
         assert pixel['delta_2'] == np.zeros(1, np.float32)
         assert pixel['sigma_1'] == np.zeros(1, np.float32)
         assert pixel['sigma_2'] == np.zeros(1, np.float32)
+
+
+def test_fit_ramp_slope(pixel_data):
+    """
+    Test fitting the slope of a ramp
+
+    Note that this only tests the slope, not the variances. Those require us do a more
+    statistical test, which can be done by fitting multiple ramps
+    """
+    resultants, t_bar, tau, n_reads, read_noise, flux = pixel_data
+
+    fit = fit_ramp(resultants, t_bar, tau, n_reads, read_noise, 0, len(resultants) - 1)
+    assert_allclose(fit['slope'], flux, atol=1, rtol=1e-3)
+
+
+@pytest.fixture(scope="module")
+def detector_data(ramp_data):
+    read_pattern, *_ = ramp_data
+
+    n_pixels = 100_000
+    read_noise = RNG.lognormal(5, size=n_pixels).astype(np.float32)
+    flux = 100
+
+    resultants = np.zeros((len(read_pattern), n_pixels), dtype=np.float32)
+    for index in range(n_pixels):
+        resultants[:, index] = _generate_resultants(read_pattern, flux, read_noise[index])
+
+    return resultants, read_noise, read_pattern
+
+
+def _compute_averages(slope, read_var, poisson_var):
+    weights = (read_var != 0) / (read_var + (read_var == 0)) # Avoid divide by zero and map those to 0
+    total_weight = np.sum(weights)
+
+    average_slope = np.sum(weights * slope) / (total_weight + (total_weight == 0))
+    average_read_var = np.sum(weights**2 * read_var) / (total_weight**2 + (total_weight == 0))
+    average_poisson_var = np.sum(weights**2 * poisson_var) / (total_weight**2 + (total_weight == 0)) * average_slope
+
+    return average_slope, average_read_var, average_poisson_var
+
+
+def test_fit_ramps(detector_data):
+    """
+    Test fitting ramps without jump detection
+    """
+    resultants, read_noise, read_pattern = detector_data
+    dq = np.zeros(resultants.shape, dtype=np.int32)
+
+    fit = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
+
+    slope = np.array(fit['slope'], dtype=np.float32)
+    read_var = np.array(fit['read_var'], dtype=np.float32)
+    poisson_var = np.array(fit['poisson_var'], dtype=np.float32)
+
+    # Only one slope per pixel
+    assert slope.shape == (resultants.shape[1], 1)
+    assert read_var.shape == (resultants.shape[1], 1)
+    assert poisson_var.shape == (resultants.shape[1], 1)

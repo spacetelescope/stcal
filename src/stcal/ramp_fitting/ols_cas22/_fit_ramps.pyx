@@ -1,3 +1,4 @@
+import re
 import numpy as np
 cimport numpy as np
 from libcpp.vector cimport vector
@@ -58,10 +59,13 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     resend : np.ndarray[nramp]
         The last resultant in this ramp.
     """
-    cdef int n_resultants = len(read_pattern)
-    if n_resultants != resultants.shape[0]:
-        raise RuntimeError(f'MA table length {n_resultants} does not '
-                           f'match number of resultants {resultants.shape[0]}')
+    cdef int n_pixels, n_resultants
+    n_resultants = resultants.shape[0]
+    n_pixels = resultants.shape[1]
+
+    if n_resultants != len(read_pattern):
+        raise RuntimeError(f'The read pattern length {len(read_pattern)} does not '
+                           f'match number of resultants {n_resultants}')
 
     # Pre-compute data for all pixels
     cdef Fixed fixed = make_fixed(read_data(read_pattern, read_time),
@@ -77,9 +81,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     # Perform all of the fits
     cdef RampFits ramp_fits
     cdef int index
-    for index in range(n_resultants):
+    for index in range(n_pixels):
         # Fit all the ramps for the given pixel
-        ramp_fits = make_pixel(fixed, read_noise,
+        ramp_fits = make_pixel(fixed, read_noise[index],
                                resultants[:, index]).fit_ramps(pixel_ramps[index])
 
         # Build the output arrays
