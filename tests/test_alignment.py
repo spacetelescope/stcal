@@ -10,7 +10,6 @@ import gwcs
 from gwcs import coordinate_frames as cf
 
 import pytest
-from stcal.alignment import reproject
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     compute_fiducial,
