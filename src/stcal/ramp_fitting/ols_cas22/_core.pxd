@@ -1,6 +1,5 @@
 from libcpp.vector cimport vector
 from libcpp.stack cimport stack
-from libcpp.list cimport list as cpp_list
 from libcpp.deque cimport deque
 
 
@@ -15,12 +14,16 @@ cdef struct RampFit:
     float poisson_var
 
 
+cdef struct AverageRampFit:
+    float slope
+    float read_var
+    float poisson_var
+
+
 cdef struct RampFits:
-    cpp_list[float] slope
-    cpp_list[float] read_var
-    cpp_list[float] poisson_var
-    cpp_list[int] start
-    cpp_list[int] end
+    vector[RampFit] fits
+    vector[RampIndex] index
+    AverageRampFit average
 
 
 cdef struct DerivedData:

@@ -236,7 +236,7 @@ def test_fit_ramp_slope(pixel_data):
 
     # check that the variances and slope are correct relative to each other
     total_var = fit['read_var'] + fit['poisson_var'] * fit['slope']
-    chi2 = (fit['slope'] - flux)**2 / total_var**2
+    chi2 = (fit["slope"] - flux)**2 / total_var**2
     assert np.abs(chi2 - 1) < 0.03
 
 
@@ -245,39 +245,28 @@ def detector_data(ramp_data):
     read_pattern, *_ = ramp_data
 
     n_pixels = 100_000
-    read_noise = RNG.lognormal(5, size=n_pixels).astype(np.float32)
+    read_noise = np.ones(n_pixels, dtype=np.float32) * 5
     flux = 100
 
     resultants = _generate_resultants(read_pattern, flux, read_noise, n_pixels=n_pixels)
 
-    return resultants, read_noise, read_pattern
-
-
-# def _compute_averages(slope, read_var, poisson_var):
-#     weights = (read_var != 0) / (read_var + (read_var == 0)) # Avoid divide by zero and map those to 0
-#     total_weight = np.sum(weights)
-
-#     average_slope = np.sum(weights * slope) / (total_weight + (total_weight == 0))
-#     average_read_var = np.sum(weights**2 * read_var) / (total_weight**2 + (total_weight == 0))
-#     average_poisson_var = np.sum(weights**2 * poisson_var) / (total_weight**2 + (total_weight == 0)) * average_slope
-
-#     return average_slope, average_read_var, average_poisson_var
+    return resultants, read_noise, read_pattern, n_pixels, flux
 
 
 def test_fit_ramps(detector_data):
     """
     Test fitting ramps without jump detection
     """
-    resultants, read_noise, read_pattern = detector_data
+    resultants, read_noise, read_pattern, n_pixels, flux = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fit = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
+    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
 
-#     slope = np.array(fit['slope'], dtype=np.float32)
-#     read_var = np.array(fit['read_var'], dtype=np.float32)
-#     poisson_var = np.array(fit['poisson_var'], dtype=np.float32)
+    chi2 = 0
+    for fit in fits:
+        total_var = fit['average']['read_var'] + fit['average']['poisson_var']
+        chi2 += (fit['average']['slope'] - flux)**2 / total_var**2
 
-#     # Only one slope per pixel
-#     assert slope.shape == (resultants.shape[1], 1)
-#     assert read_var.shape == (resultants.shape[1], 1)
-#     assert poisson_var.shape == (resultants.shape[1], 1)
+    chi2 /= n_pixels
+
+    assert np.abs(chi2 - 1) < 0.03

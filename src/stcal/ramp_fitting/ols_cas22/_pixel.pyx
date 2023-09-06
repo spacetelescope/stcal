@@ -275,6 +275,7 @@ cdef class Pixel:
         cdef RampFit ramp_fit
         cdef float [:] stats
         cdef int split
+        cdef float weight, total_weight = 0
 
         # Run while the stack is non-empty
         while not ramps.empty():
@@ -301,16 +302,30 @@ cdef class Pixel:
 
             # Add ramp_fit to ramp_fits if no jump detection or stats are less
             #    than threshold
-            # Note push_front and use of cpp_list are because ramps are computed
-            #    backward in time meaning we need to add to the front of the list
-            #    cpp_list over vector because need to append to the front which
-            #    is slow for vector. Additionally, we don't need random access
-            #    and cpp_list is closer to python lists then deque.
-            ramp_fits.slope.push_front(ramp_fit.slope)
-            ramp_fits.read_var.push_front(ramp_fit.read_var)
-            ramp_fits.poisson_var.push_front(ramp_fit.poisson_var)
-            ramp_fits.start.push_front(ramp.start)
-            ramp_fits.end.push_front(ramp.end)
+            # Note that ramps are computed backward in time meaning we need to
+            #  reverse the order of the fits at the end
+            ramp_fits.fits.push_back(ramp_fit)
+            ramp_fits.index.push_back(ramp)
+
+            # Start computing the averages
+            weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
+            total_weight += weight
+
+            ramp_fits.average.slope += weight * ramp_fit.slope
+            ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
+            ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
+
+        # Reverse to order in time
+        ramp_fits.fits = ramp_fits.fits[::-1]
+        ramp_fits.index = ramp_fits.index[::-1]
+
+        # Finish computing averages
+        ramp_fits.average.slope /= total_weight if total_weight != 0 else 1
+        ramp_fits.average.read_var /= total_weight**2 if total_weight != 0 else 1
+        ramp_fits.average.poisson_var /= total_weight**2 if total_weight != 0 else 1
+
+        # Multiply poisson term by flux, (no negative fluxes)
+        ramp_fits.average.poisson_var *= max(ramp_fits.average.slope, 0)
 
         return ramp_fits
 

@@ -75,23 +75,16 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     # Compute all the initial sets of ramps
     cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)
 
-    cdef cpp_list[cpp_list[float]] slopes, read_vars, poisson_vars
-    cdef cpp_list[cpp_list[int]] starts, ends
+    # Use list because this might grow very large which would require constant
+    #    reallocation. We don't need random access, and this gets cast to a python
+    #    list in the end.
+    cdef cpp_list[RampFits] ramp_fits
 
     # Perform all of the fits
-    cdef RampFits ramp_fits
     cdef int index
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
-        ramp_fits = make_pixel(fixed, read_noise[index],
-                               resultants[:, index]).fit_ramps(pixel_ramps[index])
+        ramp_fits.push_back(make_pixel(fixed, read_noise[index],
+                            resultants[:, index]).fit_ramps(pixel_ramps[index]))
 
-        # Build the output arrays
-        slopes.push_back(ramp_fits.slope)
-        read_vars.push_back(ramp_fits.read_var)
-        poisson_vars.push_back(ramp_fits.poisson_var)
-        starts.push_back(ramp_fits.start)
-        ends.push_back(ramp_fits.end)
-
-    return dict(slope=slopes, read_var=read_vars,
-                poisson_var=poisson_vars, start=starts, end=ends)
+    return ramp_fits

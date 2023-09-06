@@ -1,6 +1,6 @@
 from libcpp.stack cimport stack
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampFit, RampFits, RampIndex, Thresh
+from stcal.ramp_fitting.ols_cas22._core cimport RampFit, RampFits, RampIndex
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Pixel:
