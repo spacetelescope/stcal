@@ -73,44 +73,22 @@ cdef inline float get_power(float s):
     return PTABLE[1][i]
 
 
-cdef class Thresh:
-    cdef inline float run(Thresh self, float slope):
-        """
-        Compute jump threshold
-
-        Parameters
-        ----------
-        slope : float
-            slope of the ramp in question
-
-        Returns
-        -------
-            intercept - constant * log10(slope)
-        """
-        return self.intercept - self.constant * log10(slope)
-
-
-cdef Thresh make_threshold(float intercept, float constant):
+cdef inline float threshold(Thresh thresh, float slope):
     """
-    Create a Thresh object
+    Compute jump threshold
 
     Parameters
     ----------
-    intercept : float
-        intercept of the threshold
-    constant : float
-        constant of the threshold
+    thresh : Thresh
+        threshold parameters struct
+    slope : float
+        slope of the ramp in question
 
     Returns
     -------
-    Thresh object
+        intercept - constant * log10(slope)
     """
-
-    thresh = Thresh()
-    thresh.intercept = intercept
-    thresh.constant = constant
-
-    return thresh
+    return thresh.intercept - thresh.constant * log10(slope)
 
 
 cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):

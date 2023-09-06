@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import read_data
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import make_threshold, run_threshold, make_fixed, make_pixel, fit_ramp
+from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, make_fixed, make_pixel, fit_ramp
 
 from stcal.ramp_fitting.ols_cas22 import fit_ramps
 
@@ -89,11 +89,9 @@ def test_threshold():
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
-    thresh = make_threshold(intercept, constant)
-
     # Parameters are not directly accessible
-    assert intercept == run_threshold(thresh, 1.0) # check intercept
-    assert np.float32(intercept - constant) == run_threshold(thresh, 10.0) # check constant
+    assert intercept == run_threshold(intercept, constant, 1.0) # check intercept
+    assert np.float32(intercept - constant) == run_threshold(intercept, constant, 10.0) # check constant
 
 
 @pytest.fixture(scope="module")

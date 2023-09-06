@@ -21,7 +21,7 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_power, RampFit, RampFits, RampIndex
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, RampIndex
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
@@ -289,7 +289,7 @@ cdef class Pixel:
             if self.fixed.use_jump:
                 stats = self.stats(ramp_fit.slope, ramp)
 
-                if max(stats) > self.threshold.run(ramp_fit.slope):
+                if max(stats) > threshold(self.threshold, ramp_fit.slope):
                     # Compute split point to create two new ramps
                     split = np.argmax(stats)
 

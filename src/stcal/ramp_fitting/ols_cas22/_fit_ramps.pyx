@@ -8,7 +8,7 @@ from libcpp.deque cimport deque
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
-    RampFits, RampIndex, make_threshold, read_data, init_ramps)
+    RampFits, RampIndex, Thresh, read_data, init_ramps)
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
@@ -69,7 +69,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     # Pre-compute data for all pixels
     cdef Fixed fixed = make_fixed(read_data(read_pattern, read_time),
-                                  make_threshold(5.5, 1/3.0),
+                                  Thresh(5.5, 1/3.0),
                                   use_jumps)
 
     # Compute all the initial sets of ramps

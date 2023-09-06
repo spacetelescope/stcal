@@ -5,10 +5,9 @@ from libcpp cimport bool
 from libcpp.stack cimport stack
 from libcpp.deque cimport deque
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, DerivedData, Thresh, RampFit
+from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, DerivedData, Thresh, RampFit, threshold
 from stcal.ramp_fitting.ols_cas22._core cimport read_data as c_read_data
 from stcal.ramp_fitting.ols_cas22._core cimport init_ramps as c_init_ramps
-from stcal.ramp_fitting.ols_cas22._core cimport make_threshold as c_make_threshold
 
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed as c_make_fixed
@@ -42,12 +41,9 @@ def init_ramps(np.ndarray[int, ndim=2] dq):
     return out
 
 
-def make_threshold(float intercept, float constant):
-    return c_make_threshold(intercept, constant)
-
-
-def run_threshold(Thresh threshold, float slope):
-    return threshold.run(slope)
+def run_threshold(float intercept, float constant, float slope):
+    cdef Thresh thresh = Thresh(intercept, constant)
+    return threshold(thresh, slope)
 
 
 def make_fixed(np.ndarray[float, ndim=1] t_bar,
@@ -58,7 +54,7 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
                bool use_jump):
 
     cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
-    cdef Thresh threshold = c_make_threshold(intercept, constant)
+    cdef Thresh threshold = Thresh(intercept, constant)
 
     cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
 
@@ -162,7 +158,7 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
                bool use_jump):
 
     cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
-    cdef Thresh threshold = c_make_threshold(intercept, constant)
+    cdef Thresh threshold = Thresh(intercept, constant)
 
     cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
 
@@ -225,7 +221,7 @@ def fit_ramp(np.ndarray[float, ndim=1] resultants,
              int end):
 
     cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
-    cdef Thresh threshold = c_make_threshold(0, 1)
+    cdef Thresh threshold = Thresh(0, 1)
     cdef Fixed fixed = c_make_fixed(data, threshold, False)
 
     cdef Pixel pixel = c_make_pixel(fixed, read_noise, resultants)

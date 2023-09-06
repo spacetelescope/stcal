@@ -32,13 +32,11 @@ cdef struct DerivedData:
     vector[int] n_reads
 
 
-cdef class Thresh:
-    cdef float intercept
-    cdef float constant
+cdef struct Thresh:
+    float intercept
+    float constant
 
-    cdef float run(Thresh self, float slope)
-
-cdef Thresh make_threshold(float intercept, float constant)
+cdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
 cdef deque[stack[RampIndex]] init_ramps(int[:, :] dq)
 cdef DerivedData read_data(list[list[int]] read_pattern, float read_time)
