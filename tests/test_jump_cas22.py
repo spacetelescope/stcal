@@ -150,24 +150,29 @@ def test_make_fixed(ramp_data, use_jump):
         assert fixed['slope_var_2'] == np.zeros(1, np.float32)
 
 
-def _generate_resultants(read_pattern, flux, read_noise):
+def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
     """Generate a set of resultants for a pixel"""
-    resultants = np.zeros(len(read_pattern), dtype=np.float32)
+    resultants = np.zeros((len(read_pattern), n_pixels), dtype=np.float32)
 
     # Use Poisson process to simulate the accumulation of the ramp
-    ramp_value = 0  # Last value of ramp
+    ramp_value = np.zeros(n_pixels, dtype=np.float32)  # Last value of ramp
     for index, reads in enumerate(read_pattern):
-        resultant_total = 0  # Total of all reads in this resultant
+        resultant_total = np.zeros(n_pixels, dtype=np.float32)  # Total of all reads in this resultant
         for _ in reads:
             # Compute the next value of the ramp
-            ramp_value += RNG.poisson(flux * ROMAN_READ_TIME) # generate value to accumulate
-            ramp_value += RNG.standard_normal() * read_noise  # include read noise
+            #   - Poisson process for the flux
+            #   - Gaussian process for the read noise
+            ramp_value += RNG.poisson(flux * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
+            ramp_value += RNG.standard_normal(size=n_pixels, dtype=np.float32) * read_noise
 
             # Add to running total for the resultant
             resultant_total += ramp_value
 
         # Record the average value for resultant (i.e., the average of the reads)
-        resultants[index] = np.float32(resultant_total / len(reads))
+        resultants[index] = (resultant_total / len(reads)).astype(np.float32)
+
+    if n_pixels == 1:
+        resultants = resultants[:, 0]
 
     return resultants
 
@@ -221,14 +226,17 @@ def test_make_pixel(pixel_data, use_jump):
 def test_fit_ramp_slope(pixel_data):
     """
     Test fitting the slope of a ramp
-
-    Note that this only tests the slope, not the variances. Those require us do a more
-    statistical test, which can be done by fitting multiple ramps
     """
     resultants, t_bar, tau, n_reads, read_noise, flux = pixel_data
 
     fit = fit_ramp(resultants, t_bar, tau, n_reads, read_noise, 0, len(resultants) - 1)
-    assert_allclose(fit['slope'], flux, atol=1, rtol=1e-3)
+    assert_allclose(fit['slope'], flux, atol=1, rtol=1e-7)
+
+    # total_var = fit['read_var'] + fit['poisson_var'] * fit['slope']
+    # assert False, total_var
+    # # chi2 = (fit['slope'] - flux)**2 / total_var**2
+
+    # assert np.abs(chi2 - 1) < 0.03
 
 
 @pytest.fixture(scope="module")
@@ -239,9 +247,7 @@ def detector_data(ramp_data):
     read_noise = RNG.lognormal(5, size=n_pixels).astype(np.float32)
     flux = 100
 
-    resultants = np.zeros((len(read_pattern), n_pixels), dtype=np.float32)
-    for index in range(n_pixels):
-        resultants[:, index] = _generate_resultants(read_pattern, flux, read_noise[index])
+    resultants = _generate_resultants(read_pattern, flux, read_noise, n_pixels=n_pixels)
 
     return resultants, read_noise, read_pattern
 

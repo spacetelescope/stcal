@@ -86,8 +86,9 @@ cdef class Pixel:
         (resultants[i+offset] - resultants[i])
         """
         cdef float[:] resultants = self.resultants
+        cdef int end = len(resultants)
 
-        return np.subtract(resultants[offset:], resultants[:-offset])
+        return np.subtract(resultants[offset:], resultants[:end - offset])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -131,24 +132,26 @@ cdef class Pixel:
         cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
         cdef float read_noise = self.read_noise
 
+        cdef int end = ramp.end + 1 - ramp.start
+
         # initalize fit
         cdef int i = 0, j = 0
         cdef vector[float] weights = vector[float](n_resultants)
         cdef vector[float] coeffs = vector[float](n_resultants)
-        cdef float t_bar_mid = (t_bar[0] + t_bar[- 1]) / 2
+        cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
 
         # Casertano+2022 Eq. 44
         # Note we've departed from Casertano+22 slightly;
         # there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
         # a CR in the first resultant has boosted the whole ramp high but there
         # is no actual signal.
-        cdef float s = max(resultants[-1] - resultants[0], 0)
+        cdef float s = max(resultants[end] - resultants[0], 0)
         s = s / sqrt(read_noise**2 + s)
         cdef float power = get_power(s)
 
         # It's easy to use up a lot of dynamic range on something like
         # (tbar - tbarmid) ** 10.  Rescale these.
-        cdef float t_scale = (t_bar[-1] - t_bar[0]) / 2
+        cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
         t_scale = 1 if t_scale == 0 else t_scale
 
         cdef float f0 = 0, f1 = 0, f2 = 0
