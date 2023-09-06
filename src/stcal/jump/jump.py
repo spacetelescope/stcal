@@ -236,18 +236,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
     row_below_gdq = np.zeros((n_ints, n_groups, n_cols), dtype=np.uint8)
 
     # figure out how many slices to make based on 'max_cores'
-
     max_available = multiprocessing.cpu_count()
-    if max_cores.lower() == 'none':
-        n_slices = 1
-    elif max_cores == 'quarter':
-        n_slices = max_available // 4 or 1
-    elif max_cores == 'half':
-        n_slices = max_available // 2 or 1
-    elif max_cores == 'all':
-        n_slices = max_available
-    # Make sure we don't have more slices than rows.
-    n_slices = min(n_rows, n_slices)
+    n_slices = calc_num_slices(n_rows, max_cores, max_available)
     if n_slices == 1:
         gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = \
             twopt.find_crs(data, gdq, readnoise_2d, rejection_thresh,
@@ -262,13 +252,15 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            only_use_ints=only_use_ints)
         #  This is the flag that controls the flagging of either snowballs.
         if expand_large_events:
-            flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
+            total_snowballs = flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
                               expand_factor=expand_factor,
                               sat_required_snowball=sat_required_snowball,
                               min_sat_radius_extend=min_sat_radius_extend,
                               edge_size=edge_size, sat_expand=sat_expand,
                               max_extended_radius=max_extended_radius)
+            log.info('Total snowballs = %i' % total_snowballs)
+            number_extended_events = total_snowballs
         if find_showers:
             gdq, num_showers = find_faint_extended(data, gdq, readnoise_2d,
                                                    frames_per_group, minimum_sigclip_groups,
@@ -280,6 +272,8 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                                                    ellipse_expand=extend_ellipse_expand_ratio,
                                                    num_grps_masked=grps_masked_after_shower,
                                                    max_extended_radius=max_extended_radius)
+            log.info('Total showers= %i' % num_showers)
+            number_extended_events = num_showers
     else:
         yinc = int(n_rows / n_slices)
         slices = []
@@ -816,3 +810,20 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
                                        num_grps_masked=num_grps_masked,
                                        max_extended_radius=max_extended_radius)
     return gdq, len(all_ellipses)
+
+
+def calc_num_slices(n_rows, max_cores, max_available):
+    n_slices = 1
+    if max_cores.isnumeric():
+        n_slices = int(max_cores)
+    elif max_cores.lower() == "none" or max_cores.lower() == 'one':
+        n_slices = 1
+    elif max_cores == 'quarter':
+        n_slices = max_available // 4 or 1
+    elif max_cores == 'half':
+        n_slices = max_available // 2 or 1
+    elif max_cores == 'all':
+        n_slices = max_available
+    # Make sure we don't have more slices than rows or available cores.
+    n_slices = min([n_rows, n_slices, max_available])
+    return n_slices

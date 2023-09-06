@@ -1,3 +1,46 @@
+1.4.3 (unreleased)
+==================
+
+Other
+-----
+
+jump
+~~~~
+
+- Added more allowable selections for the number of cores to use for
+  multiprocessing [#183].
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Added more allowable selections for the number of cores to use for
+  multiprocessing [#183].
+
+saturation
+~~~~~~~~~~
+
+- Added read_pattern argument to flag_saturated_pixels.  When used,
+  this argument adjusts the saturation group-by-group to handle
+  different numbers of frames entering different groups for Roman.
+  When not set, the original behavior is preserved. [#188]
+
+1.4.2 (2023-07-11)
+==================
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Implement the Casertano, et.al, 2022 uneven ramp fitting [#175]
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Added setting of number_extended_events for non-multiprocessing
+  mode. This is the value that is put into the header keyword EXTNCRS. [#178]
+
 1.4.1 (2023-06-29)
 ==================
 
