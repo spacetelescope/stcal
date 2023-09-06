@@ -132,7 +132,7 @@ cdef class Pixel:
         cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
         cdef float read_noise = self.read_noise
 
-        cdef int end = ramp.end + 1 - ramp.start
+        cdef int end = len(resultants) - 1
 
         # initalize fit
         cdef int i = 0, j = 0
