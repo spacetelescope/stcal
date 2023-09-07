@@ -267,8 +267,8 @@ def get_fake_wcs():
 @pytest.mark.parametrize(
     "x_inp, y_inp, x_expected, y_expected",
     [
-        (1000, 2000, 2000, 4000),  # string input test
-        ([1000], [2000], 2000, 4000),  # array input test
+        (1000, 2000, np.array(2000), np.array(4000)),  # string input test
+        ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
         pytest.param(1, 2, 3, 4, marks=pytest.mark.xfail),  # expected failure test
     ],
 )
@@ -288,8 +288,8 @@ def test_wcs_bbox_from_shape_2d():
 @pytest.mark.parametrize(
     "shape, pixmap_expected_shape",
     [
-        (None,(1,1,32)),
-        ((100, 200), (1, 1, 40000)),
+        (None,(4,4,2)),
+        ((100, 200), (100, 200, 2)),
     ],
 )
 def test_calc_pixmap(shape, pixmap_expected_shape):

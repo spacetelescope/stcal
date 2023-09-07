@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from . import util
+from stcal.alignment import util
 from gwcs.wcstools import grid_from_bounding_box
 
 log = logging.getLogger(__name__)
@@ -31,6 +31,9 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         bb = util.wcs_bbox_from_shape(in_wcs.pixel_shape)
         log.debug("Bounding box from WCS: {}".format(bb))
 
+    # creates 2 grids, one with rows of all x values * len(y) rows, 
+    # and the reverse for all y columns 
     grid = grid_from_bounding_box(bb)
-    pixmap = np.dstack(util.reproject(in_wcs, out_wcs)(grid[0], grid[1]))
+    transform_function = util.reproject(in_wcs, out_wcs)
+    pixmap = np.dstack(transform_function(grid[0], grid[1]))
     return pixmap

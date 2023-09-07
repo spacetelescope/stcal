@@ -826,32 +826,39 @@ def reproject(wcs1, wcs2):
             )
         return backward_transform
 
-    def _reproject(x: Union[str, np.ndarray], y: Union[str, np.ndarray]) -> tuple:
+    def _reproject(x: Union[float, np.ndarray], y: Union[float, np.ndarray]) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 
         Parameters:
         -----------
-        x : str or np.ndarray
-            Array of x-coordinates to be reprojected.
-        y : str or np.ndarray
-            Array of y-coordinates to be reprojected.
+        x : float or np.ndarray
+            x-coordinate(s) to be reprojected.
+        y : float or np.ndarray
+            y-coordinate(s) to be reprojected.
 
         Returns:
         --------
         tuple
-            Tuple of reprojected x and y coordinates.
+            Tuple of np.ndarrays including reprojected x and y coordinates.
         """
         # example inputs to resulting function (12, 13, 0) # third number is origin
-        if not isinstance(x, list):
-            x = [x]
-        if not isinstance(y, list):
-            y = [y]
-        if len(x) != len(y):
+        # uses np.arrays for shape functionality
+        if not isinstance(x, (np.ndarray)):
+            x = np.array(x)
+        if not isinstance(y, (np.ndarray)):
+            y = np.array(y)
+        if x.shape != y.shape:
             raise ValueError("x and y must be the same length")
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
-        sky_back = np.array(_get_backward_transform_func(wcs2)(sky[0], sky[1], 0))
-        new_sky = tuple(sky_back[:, :1].flatten())
-        return tuple(new_sky)
-
+        
+        # rearrange into array including flattened x and y vaues
+        flat_sky = []
+        for axis in sky:
+            flat_sky.append(axis.flatten())
+        det = np.array(_get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0))
+        det_reshaped = []
+        for axis in det:
+            det_reshaped.append(axis.reshape(x.shape))
+        return tuple(det_reshaped)
     return _reproject
