@@ -612,7 +612,7 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
         # center of jump should be saturated
         jump_center = jump[0]
         # if center of the jump ellipse is not saturated in this group and is saturated in
-        # the next group add the jump ellipse to the snowball lisr
+        # the next group add the jump ellipse to the snowball list
         if (group < (num_groups - 1) and
             gdq[integration, group+1, round(jump_center[1]), round(jump_center[0])] == sat_flag and
             gdq[integration, group, round(jump_center[1]), round(jump_center[0])] != sat_flag):
