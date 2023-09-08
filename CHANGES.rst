@@ -16,6 +16,10 @@ ramp_fitting
 - Added more allowable selections for the number of cores to use for
   multiprocessing [#183].
 
+- Updating variance computation for invalid integrations, as well as
+  updating the median rate computation by excluding groups marked as
+  DO_NOT_USE. [#208]
+
 saturation
 ~~~~~~~~~~
 
