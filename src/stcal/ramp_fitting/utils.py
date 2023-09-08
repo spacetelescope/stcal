@@ -5,14 +5,6 @@ import logging
 import numpy as np
 import warnings
 
-################## DEBUG ################## 
-#                  HELP!!
-import sys
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import *
-################## DEBUG ################## 
-
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -1566,8 +1558,6 @@ def compute_median_rates(ramp_data):
     median_rates = median_diffs_2d / nints
     del median_diffs_2d
     del data_sect
-
-    dbg_print(f"median_rates = \n{median_rates}")
 
     return median_rates
 

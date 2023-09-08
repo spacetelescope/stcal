@@ -3,15 +3,6 @@ from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 from stcal.ramp_fitting.utils import compute_num_slices
 
-################## DEBUG ################## 
-#                  HELP!!
-import sys
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import dbg_print, \
-                          print_ramp_dq, \
-                          print_ramp_data, \
-                          dbg_float_arr_str
-################## DEBUG ################## 
 
 DELIM = "=" * 70
 
@@ -464,7 +455,6 @@ def test_2_group_cases():
     np.testing.assert_allclose(dq, check, tol)
 
     check = np.array([[38.945766, 0., 0., 0., 0., 0., 0.]])
-    print_real_check(var_poisson, check, "var_poisson")
     np.testing.assert_allclose(var_poisson, check, tol)
 
     check = np.array([[0.420046, 0., 0., 0., 0.420046, 0.420046, 0.420046]])
