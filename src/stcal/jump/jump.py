@@ -4,7 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
-
+from astropy.io import fits
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
@@ -703,6 +703,8 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
     Total number of showers detected.
 
     """
+    fits.writeto("indata.fits", indata, overwrite=True)
+    fits.writeto("ingdq.fits", gdq, overwrite=True)
     read_noise_2 = readnoise_2d**2
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
@@ -737,6 +739,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
             print("grp ",grp,"med e_jump",np.median(e_jump))
+            print("median diffs", np.median(median_diffs[np.newaxis, :, :]))
             masked_ratio = ratio[grp-1].copy()
             jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
             #  mask pix. that are already flagged as jump
