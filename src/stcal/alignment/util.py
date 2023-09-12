@@ -851,7 +851,7 @@ def reproject(wcs1, wcs2):
         if x.shape != y.shape:
             raise ValueError("x and y must be the same length")
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
-        
+
         # rearrange into array including flattened x and y vaues
         flat_sky = []
         for axis in sky:

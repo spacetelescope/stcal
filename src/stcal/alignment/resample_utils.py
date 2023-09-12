@@ -31,8 +31,8 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         bb = util.wcs_bbox_from_shape(in_wcs.pixel_shape)
         log.debug("Bounding box from WCS: {}".format(bb))
 
-    # creates 2 grids, one with rows of all x values * len(y) rows, 
-    # and the reverse for all y columns 
+    # creates 2 grids, one with rows of all x values * len(y) rows,
+    # and the reverse for all y columns
     grid = grid_from_bounding_box(bb)
     transform_function = util.reproject(in_wcs, out_wcs)
     pixmap = np.dstack(transform_function(grid[0], grid[1]))
