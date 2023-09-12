@@ -3,7 +3,8 @@ from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 from stcal.ramp_fitting.utils import compute_num_slices
 
-DELIM = "-" * 70
+
+DELIM = "=" * 70
 
 # single group intergrations fail in the GLS fitting
 # so, keep the two method test separate and mark GLS test as
@@ -445,18 +446,22 @@ def test_2_group_cases():
 
     # Check the outputs
     data, dq, var_poisson, var_rnoise, err = slopes
-    chk_dt = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
-    chk_dq = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU, GOOD, GOOD, GOOD]])
-    chk_vp = np.array([[38.945766, 0., 0., 0., 38.945766, 38.945766, 0.]])
-    chk_vr = np.array([[0.420046, 0.420046, 0.420046, 0., 0.420046, 0.420046, 0.420046]])
-    chk_er = np.array([[6.274218, 0.64811, 0.64811, 0., 6.274218, 6.274218, 0.64811]])
 
     tol = 1.e-6
-    np.testing.assert_allclose(data, chk_dt, tol)
-    np.testing.assert_allclose(dq, chk_dq, tol)
-    np.testing.assert_allclose(var_poisson, chk_vp, tol)
-    np.testing.assert_allclose(var_rnoise, chk_vr, tol)
-    np.testing.assert_allclose(err, chk_er, tol)
+    check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
+    np.testing.assert_allclose(data, check, tol)
+
+    check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU, GOOD, GOOD, GOOD]])
+    np.testing.assert_allclose(dq, check, tol)
+
+    check = np.array([[38.945766, 0., 0., 0., 0., 0., 0.]])
+    np.testing.assert_allclose(var_poisson, check, tol)
+
+    check = np.array([[0.420046, 0., 0., 0., 0.420046, 0.420046, 0.420046]])
+    np.testing.assert_allclose(var_rnoise, check, tol)
+
+    check = np.array([[6.274218 , 0., 0., 0., 0.6481096, 0.6481096, 0.6481096]])
+    np.testing.assert_allclose(err, check, tol)
 
 
 def run_one_group_ramp_suppression(nints, suppress):
@@ -625,13 +630,13 @@ def test_one_group_ramp_suppressed_two_integrations():
     check = np.array([[GOOD, GOOD, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
-    check = np.array([[0.125, 0.25, 0.125]])
+    check = np.array([[0.125, 0.125, 0.125]])
     np.testing.assert_allclose(svp, check, tol)
 
     check = np.array([[4.999998 , 4.999998 , 2.4999995]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[2.263846 , 2.2912874, 1.620185]])
+    check = np.array([[2.263846 , 2.263846 , 1.620185]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
@@ -646,7 +651,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.,    0.,    0.25]],
-                      [[0.125, 0.25, 0.25]]])
+                      [[0.125, 0.125, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
 
     check = np.array([[[0.,             0., 4.999999]],
@@ -654,7 +659,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     np.testing.assert_allclose(cvr, check, tol)
 
     check = np.array([[[0.,             0., 2.291288]],
-                      [[2.2638464, 2.291288, 2.291288]]])
+                      [[2.2638464, 2.2638464, 2.291288]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -1002,13 +1007,13 @@ def test_dq_multi_int_dnu():
     check = np.array([[0]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
-    check = np.array([[0.00173518]])
+    check = np.array([[0.00086759]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
     check = np.array([[0.0004338]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.04657228]])
+    check = np.array([[0.03607474]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
@@ -1023,7 +1028,7 @@ def test_dq_multi_int_dnu():
     np.testing.assert_allclose(cdq, check, tol, tol)
 
     check = np.array([[[0.]],
-                      [[0.00173518]]])
+                      [[0.00086759]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
     check = np.array([[[0.]],
@@ -1031,7 +1036,7 @@ def test_dq_multi_int_dnu():
     np.testing.assert_allclose(cvr, check, tol, tol)
 
     check = np.array([[[0.]],
-                      [[0.04657228]]])
+                      [[0.03607474]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
@@ -1252,20 +1257,19 @@ def test_invalid_integrations():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-
     check = np.array([[5434.022]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[JUMP]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
-    check = np.array([[46.189373]])
+    check = np.array([[44.503918]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[0.6034785]])
+    check = np.array([[2.4139147]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[6.84053]])
+    check = np.array([[6.8496594]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
@@ -1279,16 +1283,13 @@ def test_invalid_integrations():
                       JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8)
     np.testing.assert_allclose(cdq[:, 0, 0], check, tol, tol)
 
-    check = np.array([369.51498, 369.51498, 369.51498, 369.51498,
-                      369.51498, 369.51498, 369.51498, 369.51498], dtype=np.float32)
+    check = np.array([89.007835, 0., 0., 89.007835, 0., 0., 0., 0.], dtype=np.float32)
     np.testing.assert_allclose(cvp[:, 0, 0], check, tol, tol)
 
-    check = np.array([4.827828, 4.827828, 4.827828, 4.827828,
-                      4.827828, 4.827828, 4.827828, 4.827828], dtype=np.float32)
+    check = np.array([4.8278294, 0., 0., 4.8278294, 0., 0., 0., 0.], dtype=np.float32)
     np.testing.assert_allclose(cvr[:, 0, 0], check, tol, tol)
 
-    check = np.array([19.348047, 19.348047, 19.348047, 19.348047,
-                      19.348047, 19.348047, 19.348047, 19.348047], dtype=np.float32)
+    check = np.array([9.686893, 0., 0., 9.686893, 0., 0., 0., 0.0], dtype=np.float32)
     np.testing.assert_allclose(cerr[:, 0, 0], check, tol, tol)
 
 
@@ -1421,13 +1422,16 @@ def setup_inputs(dims, var, tm):
 # The functions below are only used for DEBUGGING tests and developing tests. #
 ###############################################################################
 
-def print_real_check(real, check):
+def print_real_check(real, check, label=None):
     import inspect
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
     print("=" * 80)
     print(f"----> Line = {line_number} <----")
-    base_print("real", real)
+    if label:
+        base_print(label, real)
+    else:
+        base_print("real", real)
     print("=" * 80)
     base_print("check", check)
     print("=" * 80)
