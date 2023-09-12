@@ -2,7 +2,9 @@
 ==================
 
 Other
------
+~~~~~
+
+- Fixed failures with Numpy 2.0. [#210]
 
 jump
 ~~~~
@@ -85,12 +87,12 @@ ramp_fitting
 Changes to API
 --------------
 
-- 
+-
 
 Other
 -----
 
-- 
+-
 
 1.3.8 (2023-05-31)
 ==================
@@ -148,7 +150,7 @@ ramp_fitting
 Changes to API
 --------------
 
-- 
+-
 
 Other
 -----
@@ -227,7 +229,7 @@ dark
 
 Bug Fixes
 ---------
-  
+
 ramp_fitting
 ~~~~~~~~~~~~
 

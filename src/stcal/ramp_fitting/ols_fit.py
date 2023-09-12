@@ -938,7 +938,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
             gain_sect = gain_2d[rlo:rhi, :]
 
             # Reset all saturated groups in the input data array to NaN
-            data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
+            data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.nan
 
             # Calculate the slope of each segment
             # note that the name "opt_res", which stands for "optional results",

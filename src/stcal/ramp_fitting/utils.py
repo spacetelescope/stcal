@@ -1491,7 +1491,6 @@ def compute_median_rates(ramp_data):
         # data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.NaN
         invalid_flags = ramp_data.flags_saturated | ramp_data.flags_do_not_use
         data_sect[np.bitwise_and(gdq_sect, invalid_flags).astype(bool)] = np.NaN
-
         data_sect = data_sect / group_time
 
         if one_groups_time_adjustment is not None:
@@ -1529,7 +1528,7 @@ def compute_median_rates(ramp_data):
             #   indices in first_diffs.
             i_group, i_yy, i_xx, = np.where(np.bitwise_and(
                 gdq_sect[1:, :, :], ramp_data.flags_jump_det))
-            first_diffs_sect[i_group, i_yy, i_xx] = np.NaN
+            first_diffs_sect[i_group, i_yy, i_xx] = np.nan
 
             del i_group, i_yy, i_xx
 
