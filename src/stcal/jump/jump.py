@@ -725,7 +725,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
-        #  The convolution kernal creation
+        #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
         for grp in range(1, ngrps):
@@ -736,8 +736,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
                 e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-            print("grp ",grp,"med e_jump",np.median(e_jump))
-            print("median diffs", np.median(median_diffs[np.newaxis, :, :]))
             masked_ratio = ratio[grp-1].copy()
             jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
             #  mask pix. that are already flagged as jump
@@ -747,7 +745,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
 
             #  mask pix. that are already flagged as sat.
             masked_ratio[saty, satx] = np.nan
-
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]

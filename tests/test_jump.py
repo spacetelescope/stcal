@@ -218,6 +218,7 @@ def test_find_faint_extended():
     #  Check that the flags are not applied in the 3rd group after the event
     assert (np.all(gdq[0, 4, 12:22, 14:23]) == 0)
 
+    
 # No shower is found because the event is identical in all ints
 def test_find_faint_extended_sigclip():
     nint, ngrps, ncols, nrows = 101, 6, 30, 30
