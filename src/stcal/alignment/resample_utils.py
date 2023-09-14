@@ -12,17 +12,18 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
 
     Parameters
     ----------
-    in_wcs: `~astropy.wcs.WCS`
+    in_wcs : `~astropy.wcs.WCS`
         Input WCS objects or transforms.
-    out_wcs: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
+    out_wcs : `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         output WCS objects or transforms.
     shape : tuple, optional
         Shape of grid in pixels. The default is None.
 
     Returns
     -------
-    pixmap
-        reprojected pixel grid map
+    pixmap : ndarray of shape (xdim, ydim, 2)
+        Reprojected pixel grid map. `pixmap[xin, yin]` returns `xout,
+        yout` indices in the output image.
     """
     if shape:
         bb = util.wcs_bbox_from_shape(shape)

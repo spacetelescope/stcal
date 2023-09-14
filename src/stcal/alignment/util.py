@@ -425,7 +425,7 @@ def compute_scale(
     disp_axis: int = None,
     pscale_ratio: float = None,
 ) -> float:
-    """Compute scaling transform.
+    """Compute the scale at the fiducial point on the detector..
 
     Parameters
     ----------
@@ -784,9 +784,9 @@ def reproject(wcs1, wcs2):
 
     Parameters
     ----------
-    wcs1: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
+    wcs1 : `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         Input WCS objects or transforms.
-    wcs2: `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
+    wcs2 : `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
         Output WCS objects or transforms.
 
     Returns

@@ -288,11 +288,12 @@ def test_wcs_bbox_from_shape_2d():
 @pytest.mark.parametrize(
     "shape, pixmap_expected_shape",
     [
-        (None,(4,4,2)),
+        (None,(4, 4, 2)),
         ((100, 200), (100, 200, 2)),
     ],
 )
-def test_calc_pixmap(shape, pixmap_expected_shape):
+def test_calc_pixmap_shape(shape, pixmap_expected_shape):
+    # TODO: add test for gwcs.WCS
     wcs1, wcs2 = get_fake_wcs()
     pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
     assert pixmap.shape==pixmap_expected_shape
