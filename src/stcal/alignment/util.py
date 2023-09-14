@@ -12,9 +12,10 @@ from astropy.coordinates import SkyCoord
 from astropy.utils.misc import isiterable
 from astropy import units as u
 from astropy.modeling import models as astmodels
+from astropy import wcs as fitswcs
 
 from asdf import AsdfFile
-from gwcs import WCS
+import gwcs
 from gwcs.wcstools import wcs_from_fiducial
 
 
@@ -27,6 +28,7 @@ __all__ = [
     "compute_fiducial",
     "calc_rotation_matrix",
     "wcs_from_footprints",
+    "reproject",
 ]
 
 
@@ -64,9 +66,7 @@ def _calculate_fiducial_from_spatial_footprint(
     y_mid = (np.max(y) + np.min(y)) / 2.0
     z_mid = (np.max(z) + np.min(z)) / 2.0
     lon_fiducial = np.rad2deg(np.arctan2(y_mid, x_mid)) % 360.0
-    lat_fiducial = np.rad2deg(
-        np.arctan2(z_mid, np.sqrt(x_mid**2 + y_mid**2))
-    )
+    lat_fiducial = np.rad2deg(np.arctan2(z_mid, np.sqrt(x_mid**2 + y_mid**2)))
     return lon_fiducial, lat_fiducial
 
 
@@ -132,9 +132,7 @@ def _generate_tranform(
             calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2)
         )
 
-        rotation = astmodels.AffineTransformation2D(
-            pc, name="pc_rotation_matrix"
-        )
+        rotation = astmodels.AffineTransformation2D(pc, name="pc_rotation_matrix")
         transform = [rotation]
         if sky_axes:
             if not pscale:
@@ -177,9 +175,7 @@ def _get_axis_min_and_bounding_box(ref_model, wcs_list, ref_wcs):
             ((x0_lower, x0_upper), (x1_lower, x1_upper)).
     """
     footprints = [w.footprint().T for w in wcs_list]
-    domain_bounds = np.hstack(
-        [ref_wcs.backward_transform(*f) for f in footprints]
-    )
+    domain_bounds = np.hstack([ref_wcs.backward_transform(*f) for f in footprints])
     axis_min_values = np.min(domain_bounds, axis=1)
     domain_bounds = (domain_bounds.T - axis_min_values).T
 
@@ -337,9 +333,7 @@ def _calculate_new_wcs(
     wcs_new.bounding_box = output_bounding_box
 
     if shape is None:
-        shape = [
-            int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]
-        ]
+        shape = [int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]]
 
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
@@ -369,11 +363,9 @@ def _validate_wcs_list(wcs_list):
         instance of WCS.
     """
     if not isiterable(wcs_list):
-        raise ValueError(
-            "Expected 'wcs_list' to be an iterable of WCS objects."
-        )
+        raise ValueError("Expected 'wcs_list' to be an iterable of WCS objects.")
     elif len(wcs_list):
-        if not all(isinstance(w, WCS) for w in wcs_list):
+        if not all(isinstance(w, gwcs.WCS) for w in wcs_list):
             raise TypeError(
                 "All items in 'wcs_list' are to be instances of gwcs.wcs.WCS."
             )
@@ -428,12 +420,12 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
 
 def compute_scale(
-    wcs: WCS,
+    wcs: gwcs.WCS,
     fiducial: Union[tuple, np.ndarray],
     disp_axis: int = None,
     pscale_ratio: float = None,
 ) -> float:
-    """Compute scaling transform.
+    """Compute the scale at the fiducial point on the detector..
 
     Parameters
     ----------
@@ -468,9 +460,7 @@ def compute_scale(
     spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
     delta[spatial_idx[0]] = 1
 
-    crpix_with_offsets = np.vstack(
-        (crpix, crpix + delta, crpix + np.roll(delta, 1))
-    ).T
+    crpix_with_offsets = np.vstack((crpix, crpix + delta, crpix + np.roll(delta, 1))).T
     crval_with_offsets = wcs(*crpix_with_offsets, with_bounding_box=False)
 
     coords = SkyCoord(
@@ -526,9 +516,7 @@ def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
     axes_types = wcslist[0].output_frame.axes_type
     spatial_axes = np.array(axes_types) == "SPATIAL"
     spectral_axes = np.array(axes_types) == "SPECTRAL"
-    footprints = np.hstack(
-        [w.footprint(bounding_box=bounding_box).T for w in wcslist]
-    )
+    footprints = np.hstack([w.footprint(bounding_box=bounding_box).T for w in wcslist])
     spatial_footprint = footprints[spatial_axes]
     spectral_footprint = footprints[spectral_axes]
 
@@ -727,9 +715,7 @@ def update_s_region_imaging(model, center=True):
     ### which means we are interested in each pixel's vertice, not its center.
     ### By using center=True, a difference of 0.5 pixel should be accounted for
     ### when comparing the world coordinates of the bounding box and the footprint.
-    footprint = model.meta.wcs.footprint(
-        bbox, center=center, axis_type="spatial"
-    ).T
+    footprint = model.meta.wcs.footprint(bbox, center=center, axis_type="spatial").T
     # take only imaging footprint
     footprint = footprint[:2, :]
 
@@ -787,3 +773,92 @@ def update_s_region_keyword(model, footprint):
     else:
         model.meta.wcsinfo.s_region = s_region
         log.info(f"Update S_REGION to {model.meta.wcsinfo.s_region}")
+
+
+def reproject(wcs1, wcs2):
+    """
+    Given two WCSs or transforms return a function which takes pixel
+    coordinates in the first WCS or transform and computes them in pixel coordinates
+    in the second one. It performs the forward transformation of ``wcs1`` followed by the
+    inverse of ``wcs2``.
+
+    Parameters
+    ----------
+    wcs1 : `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
+        Input WCS objects or transforms.
+    wcs2 : `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
+        Output WCS objects or transforms.
+
+    Returns
+    -------
+    _reproject : func
+        Function to compute the transformations.  It takes x, y
+        positions in ``wcs1`` and returns x, y positions in ``wcs2``.
+    """
+
+    def _get_forward_transform_func(wcs1):
+        """Get the forward transform function from the input WCS. If the wcs is a
+        fitswcs.WCS object all_pix2world requres three inputs, the x (str, ndarrray),
+        y (str, ndarray), and origin (int). The origin should be between 0, and 1
+        https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
+        )
+        """  # noqa : E501
+        if isinstance(wcs1, fitswcs.WCS):
+            forward_transform = wcs1.all_pix2world
+        elif isinstance(wcs1, gwcs.WCS):
+            forward_transform = wcs1.forward_transform
+        else:
+            raise TypeError(
+                "Expected input to be astropy.wcs.WCS or gwcs.WCS "
+                "object"
+            )
+        return forward_transform
+
+    def _get_backward_transform_func(wcs2):
+        if isinstance(wcs2, fitswcs.WCS):
+            backward_transform = wcs2.all_world2pix
+        elif isinstance(wcs2, gwcs.WCS):
+            backward_transform = wcs2.backward_transform
+        else:
+            raise TypeError(
+                "Expected input to be astropy.wcs.WCS or gwcs.WCS "
+                "object"
+            )
+        return backward_transform
+
+    def _reproject(x: Union[float, np.ndarray], y: Union[float, np.ndarray]) -> tuple:
+        """
+        Reprojects the input coordinates from one WCS to another.
+
+        Parameters:
+        -----------
+        x : float or np.ndarray
+            x-coordinate(s) to be reprojected.
+        y : float or np.ndarray
+            y-coordinate(s) to be reprojected.
+
+        Returns:
+        --------
+        tuple
+            Tuple of np.ndarrays including reprojected x and y coordinates.
+        """
+        # example inputs to resulting function (12, 13, 0) # third number is origin
+        # uses np.arrays for shape functionality
+        if not isinstance(x, (np.ndarray)):
+            x = np.array(x)
+        if not isinstance(y, (np.ndarray)):
+            y = np.array(y)
+        if x.shape != y.shape:
+            raise ValueError("x and y must be the same length")
+        sky = _get_forward_transform_func(wcs1)(x, y, 0)
+
+        # rearrange into array including flattened x and y vaues
+        flat_sky = []
+        for axis in sky:
+            flat_sky.append(axis.flatten())
+        det = np.array(_get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0))
+        det_reshaped = []
+        for axis in det:
+            det_reshaped.append(axis.reshape(x.shape))
+        return tuple(det_reshaped)
+    return _reproject

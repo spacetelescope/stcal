@@ -3,11 +3,14 @@ import numpy as np
 from astropy.modeling import models
 from astropy import coordinates as coord
 from astropy import units as u
+from astropy.io import fits
 
-from gwcs import WCS
+from astropy import wcs as fitswcs
+import gwcs
 from gwcs import coordinate_frames as cf
 
 import pytest
+from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     compute_fiducial,
     compute_scale,
@@ -16,6 +19,7 @@ from stcal.alignment.util import (
     update_s_region_keyword,
     wcs_bbox_from_shape,
     update_s_region_imaging,
+    reproject,
 )
 
 
@@ -48,7 +52,7 @@ def _create_wcs_object_without_distortion(
 
     pipeline = [(detector_frame, det2sky), (sky_frame, None)]
 
-    wcs_obj = WCS(pipeline)
+    wcs_obj = gwcs.WCS(pipeline)
 
     wcs_obj.bounding_box = (
         (-0.5, shape[-1] - 0.5),
@@ -95,20 +99,14 @@ class Coordinates:
 
 
 class MetaData:
-    def __init__(
-        self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None
-    ):
-        self.wcsinfo = WcsInfo(
-            ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle
-        )
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
+        self.wcsinfo = WcsInfo(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle)
         self.wcs = wcs
         self.coordinates = Coordinates()
 
 
 class DataModel:
-    def __init__(
-        self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None
-    ):
+    def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
         self.meta = MetaData(
             ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs
         )
@@ -132,9 +130,7 @@ def test_compute_fiducial():
     assert all(np.isclose(wcs(1, 1), computed_fiducial))
 
 
-@pytest.mark.parametrize(
-    "pscales", [(0.000014, 0.000014), (0.000028, 0.000014)]
-)
+@pytest.mark.parametrize("pscales", [(0.000014, 0.000014), (0.000028, 0.000014)])
 def test_compute_scale(pscales):
     """Test that util.compute_scale can properly determine the pixel scale of a
     WCS object.
@@ -228,6 +224,79 @@ def test_validate_wcs_list_invalid(wcs_list, expected_error):
         _validate_wcs_list(wcs_list)
 
     assert type(exec_info.value) == expected_error
+
+
+def get_fake_wcs():
+    fake_wcs1 = fitswcs.WCS(
+        fits.Header(
+            {
+                "NAXIS": 2,
+                "NAXIS1": 4,
+                "NAXIS2": 4,
+                "CTYPE1": "RA---TAN",
+                "CTYPE2": "DEC--TAN",
+                "CRVAL1": 0,
+                "CRVAL2": 0,
+                "CRPIX1": 1,
+                "CRPIX2": 1,
+                "CDELT1": -0.1,
+                "CDELT2": 0.1,
+            }
+        )
+    )
+    fake_wcs2 = fitswcs.WCS(
+        fits.Header(
+            {
+                "NAXIS": 2,
+                "NAXIS1": 5,
+                "NAXIS2": 5,
+                "CTYPE1": "RA---TAN",
+                "CTYPE2": "DEC--TAN",
+                "CRVAL1": 0,
+                "CRVAL2": 0,
+                "CRPIX1": 1,
+                "CRPIX2": 1,
+                "CDELT1": -0.05,
+                "CDELT2": 0.05,
+            }
+        )
+    )
+    return fake_wcs1, fake_wcs2
+
+
+@pytest.mark.parametrize(
+    "x_inp, y_inp, x_expected, y_expected",
+    [
+        (1000, 2000, np.array(2000), np.array(4000)),  # string input test
+        ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
+        pytest.param(1, 2, 3, 4, marks=pytest.mark.xfail),  # expected failure test
+    ],
+)
+def test_reproject(x_inp, y_inp, x_expected, y_expected):
+    wcs1, wcs2 = get_fake_wcs()
+    f = reproject(wcs1, wcs2)
+    x_out, y_out = f(x_inp, y_inp)
+    assert np.allclose(x_out, x_expected, rtol=1e-05)
+    assert np.allclose(y_out, y_expected, rtol=1e-05)
+
+
+def test_wcs_bbox_from_shape_2d():
+    bb = wcs_bbox_from_shape((512, 2048))
+    assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
+
+
+@pytest.mark.parametrize(
+    "shape, pixmap_expected_shape",
+    [
+        (None,(4, 4, 2)),
+        ((100, 200), (100, 200, 2)),
+    ],
+)
+def test_calc_pixmap_shape(shape, pixmap_expected_shape):
+    # TODO: add test for gwcs.WCS
+    wcs1, wcs2 = get_fake_wcs()
+    pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
+    assert pixmap.shape==pixmap_expected_shape
 
 
 @pytest.mark.parametrize(
