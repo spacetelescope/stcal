@@ -33,7 +33,7 @@ saturation
 Bug Fixes
 ---------
 
-- Fixed failures with Numpy 2.0. [#210]
+- Fixed failures with Numpy 2.0. [#210, #211]
 
 Other
 -----
