@@ -1,4 +1,4 @@
-1.4.4 (unreleased)
+1.4.5 (unreleased)
 ==================
 
 Changes to API
@@ -14,7 +14,15 @@ Bug Fixes
 Other
 -----
 
--
+- 
+
+1.4.4 (2023-09-15)
+==================
+
+Other
+-----
+
+- small hotfix for Numpy 2.0 deprecations [#211]
 
 1.4.3 (2023-09-13)
 ==================
