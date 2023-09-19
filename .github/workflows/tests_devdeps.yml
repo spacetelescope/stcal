@@ -20,12 +20,13 @@ concurrency:
 
 jobs:
   test:
-    if: (github.repository == 'spacetelescope/stdatamodels' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
+    if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       envs: |
         - linux: py3-devdeps-xdist
   test_downstream:
+    if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       setenv: |
