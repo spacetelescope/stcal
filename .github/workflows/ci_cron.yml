@@ -2,7 +2,7 @@ name: test on schedule
 
 on:
   schedule:
-    # Weekly Monday 6AM build
+    # Weekly Monday midnight build
     - cron: "0 0 * * 1"
   workflow_dispatch:
 
