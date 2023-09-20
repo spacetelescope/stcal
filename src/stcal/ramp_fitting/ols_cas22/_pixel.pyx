@@ -273,6 +273,11 @@ cdef class Pixel:
         cdef RampFits ramp_fits
         cdef RampIndex ramp
         cdef RampFit ramp_fit
+
+        ramp_fits.average.slope = 0
+        ramp_fits.average.read_var = 0
+        ramp_fits.average.poisson_var = 0
+
         cdef float [:] stats
         cdef int split
         cdef float weight, total_weight = 0

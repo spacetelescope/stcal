@@ -161,7 +161,7 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
             #   - Poisson process for the flux
             #   - Gaussian process for the read noise
             ramp_value += RNG.poisson(flux * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
-            ramp_value += RNG.standard_normal(size=n_pixels, dtype=np.float32) * read_noise
+            ramp_value += RNG.standard_normal(size=n_pixels, dtype=np.float32) * read_noise / np.sqrt(len(reads))
 
             # Add to running total for the resultant
             resultant_total += ramp_value
@@ -221,23 +221,6 @@ def test_make_pixel(pixel_data, use_jump):
         assert pixel['sigma_2'] == np.zeros(1, np.float32)
 
 
-def test_fit_ramp_slope(pixel_data):
-    """
-    Test fitting the slope of a ramp
-    """
-    resultants, t_bar, tau, n_reads, read_noise, flux = pixel_data
-
-    fit = fit_ramp(resultants, t_bar, tau, n_reads, read_noise, 0, len(resultants) - 1)
-
-    # check that the fit is correct is enough
-    assert_allclose(fit['slope'], flux, atol=1, rtol=1e-2)
-
-    # check that the variances and slope are correct relative to each other
-    total_var = fit['read_var'] + fit['poisson_var'] * fit['slope']
-    chi2 = (fit["slope"] - flux)**2 / total_var**2
-    assert np.abs(chi2 - 1) < 0.03
-
-
 @pytest.fixture(scope="module")
 def detector_data(ramp_data):
     read_pattern, *_ = ramp_data
@@ -251,20 +234,54 @@ def detector_data(ramp_data):
     return resultants, read_noise, read_pattern, n_pixels, flux
 
 
-def test_fit_ramps(detector_data):
+def test_fit_ramps_no_dq(detector_data):
     """
-    Test fitting ramps without jump detection
+    Test fitting ramps without jump detection and no dq flags set
     """
     resultants, read_noise, read_pattern, n_pixels, flux = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
+    assert len(fits) == n_pixels
 
     chi2 = 0
     for fit in fits:
+        assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump
+
         total_var = fit['average']['read_var'] + fit['average']['poisson_var']
-        chi2 += (fit['average']['slope'] - flux)**2 / total_var**2
+        chi2 += (fit['average']['slope'] - flux)**2 / total_var
 
     chi2 /= n_pixels
 
+    assert np.abs(chi2 - 1) < 0.03
+
+
+def test_fit_ramps_dq(detector_data):
+    """
+    Test fitting ramps without jump detection, but with dq flags set
+    """
+    resultants, read_noise, read_pattern, n_pixels, flux = detector_data
+    dq = np.zeros(resultants.shape, dtype=np.int32) + (RNG.uniform(size=resultants.shape) > 1).astype(np.int32)
+
+    # only use okay ramps
+    #   ramps passing the below criterion have at least two adjacent valid reads
+    #   i.e., we can make a measurement from them.
+    okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
+
+    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
+
+
+    chi2 = 0
+    for fit, use in zip(fits, okay):
+        if use:
+            # Add okay ramps to chi2
+            total_var = fit['average']['read_var'] + fit['average']['poisson_var']
+            chi2 += (fit['average']['slope'] - flux)**2 / total_var
+        else:
+            # Check no slope fit for bad ramps
+            assert fit['average']['slope'] == 0
+            assert fit['average']['read_var'] == 0
+            assert fit['average']['poisson_var'] == 0
+
+    chi2 /= np.sum(okay)
     assert np.abs(chi2 - 1) < 0.03
