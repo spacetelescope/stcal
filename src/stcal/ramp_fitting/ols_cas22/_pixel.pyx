@@ -231,10 +231,10 @@ cdef class Pixel:
         cdef int start = ramp.start
         cdef int end = ramp.end - 1
 
-        cdef float[:] slope_var_1 = np.zeros(end - start + 1, dtype=np.float32)
-        cdef float[:] slope_var_2 = np.zeros(end - start + 1, dtype=np.float32)
+        cdef float[:] slope_var_1 = np.zeros(end - start, dtype=np.float32)
+        cdef float[:] slope_var_2 = np.zeros(end - start, dtype=np.float32)
         cdef int i
-        for i in range(end - start + 1):
+        for i in range(end - start):
             slope_var_1[i] = slope * self.fixed.slope_var_1[start + i] * self.correction(start + i, 1, ramp)
             slope_var_2[i] = slope * self.fixed.slope_var_2[start + i] * self.correction(start + i, 2, ramp)
 
@@ -294,7 +294,7 @@ cdef class Pixel:
             if self.fixed.use_jump:
                 stats = self.stats(ramp_fit.slope, ramp)
 
-                if max(stats) > threshold(self.threshold, ramp_fit.slope):
+                if max(stats) > threshold(self.fixed.threshold, ramp_fit.slope):
                     # Compute split point to create two new ramps
                     split = np.argmax(stats)
 

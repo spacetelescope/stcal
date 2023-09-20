@@ -234,14 +234,17 @@ def detector_data(ramp_data):
     return resultants, read_noise, read_pattern, n_pixels, flux
 
 
-def test_fit_ramps_no_dq(detector_data):
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_fit_ramps_no_dq(detector_data, use_jump):
     """
-    Test fitting ramps without jump detection and no dq flags set
+    Test fitting ramps with no dq flags set on data which has no jumps
+        Since no jumps are simulated in the data, jump detection shouldn't pick
+        up any jumps.
     """
     resultants, read_noise, read_pattern, n_pixels, flux = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
+    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
     assert len(fits) == n_pixels
 
     chi2 = 0
@@ -256,9 +259,12 @@ def test_fit_ramps_no_dq(detector_data):
     assert np.abs(chi2 - 1) < 0.03
 
 
-def test_fit_ramps_dq(detector_data):
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_fit_ramps_dq(detector_data, use_jump):
     """
-    Test fitting ramps without jump detection, but with dq flags set
+    Test fitting ramps with dq flags set
+        Since no jumps are simulated in the data, jump detection shouldn't pick
+        up any jumps.
     """
     resultants, read_noise, read_pattern, n_pixels, flux = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32) + (RNG.uniform(size=resultants.shape) > 1).astype(np.int32)
@@ -268,8 +274,7 @@ def test_fit_ramps_dq(detector_data):
     #   i.e., we can make a measurement from them.
     okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
 
-    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, False)
-
+    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
 
     chi2 = 0
     for fit, use in zip(fits, okay):

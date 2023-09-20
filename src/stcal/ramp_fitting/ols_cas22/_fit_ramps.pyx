@@ -1,7 +1,6 @@
-import re
 import numpy as np
 cimport numpy as np
-from libcpp.vector cimport vector
+from libcpp cimport bool
 from libcpp.stack cimport stack
 from libcpp.list cimport list as cpp_list
 from libcpp.deque cimport deque
@@ -17,9 +16,10 @@ from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 @cython.wraparound(False)
 def fit_ramps(np.ndarray[float, ndim=2] resultants,
               np.ndarray[int, ndim=2] dq,
-              np.ndarray[float, ndim=1] read_noise, read_time,
+              np.ndarray[float, ndim=1] read_noise,
+              float read_time,
               list[list[int]] read_pattern,
-              int use_jumps=False):
+              bool use_jump=False):
     """Fit ramps using the Casertano+22 algorithm.
 
     This implementation fits all ramp segments between bad pixels
@@ -40,6 +40,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         Time to perform a readout. For Roman data, this is FRAME_TIME.
     read_pattern : list[list[int]]
         the read pattern for the image
+    use_jump : bool
+        If True, use the jump detection algorithm to identify CRs.
+        If False, use the DQ array to identify CRs.
 
     Returns
     -------
@@ -70,7 +73,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     # Pre-compute data for all pixels
     cdef Fixed fixed = make_fixed(read_data(read_pattern, read_time),
                                   Thresh(5.5, 1/3.0),
-                                  use_jumps)
+                                  use_jump)
 
     # Compute all the initial sets of ramps
     cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)
