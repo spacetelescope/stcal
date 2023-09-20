@@ -11,6 +11,9 @@ from stcal.ramp_fitting.ols_cas22 import fit_ramps
 
 RNG = np.random.default_rng(619)
 ROMAN_READ_TIME = 3.04
+N_PIXELS = 100_000
+FLUX = 100
+JUMP_VALUE = 10_000
 
 
 @pytest.fixture(scope="module")
@@ -148,20 +151,30 @@ def test_make_fixed(ramp_data, use_jump):
         assert fixed['slope_var_2'] == np.zeros(1, np.float32)
 
 
-def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
+def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1, add_jumps=False):
     """Generate a set of resultants for a pixel"""
     resultants = np.zeros((len(read_pattern), n_pixels), dtype=np.float32)
+    jumps = []
 
     # Use Poisson process to simulate the accumulation of the ramp
     ramp_value = np.zeros(n_pixels, dtype=np.float32)  # Last value of ramp
     for index, reads in enumerate(read_pattern):
         resultant_total = np.zeros(n_pixels, dtype=np.float32)  # Total of all reads in this resultant
+        read_jumps = []
         for _ in reads:
             # Compute the next value of the ramp
             #   - Poisson process for the flux
             #   - Gaussian process for the read noise
             ramp_value += RNG.poisson(flux * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
             ramp_value += RNG.standard_normal(size=n_pixels, dtype=np.float32) * read_noise / np.sqrt(len(reads))
+            if add_jumps:
+                # Add jumps only to ~1% of the pixels for any given read
+                jump_points = RNG.standard_normal(size=n_pixels, dtype=np.float32) > 0.99
+                read_jumps.append(jump_points)
+
+                # Add a large value to the ramp
+                ramp_value += (JUMP_VALUE * jump_points).astype(np.float32)
+
 
             # Add to running total for the resultant
             resultant_total += ramp_value
@@ -169,21 +182,23 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
         # Record the average value for resultant (i.e., the average of the reads)
         resultants[index] = (resultant_total / len(reads)).astype(np.float32)
 
+        # Record all the jumps for this resultant
+        jumps.append(read_jumps)
+
     if n_pixels == 1:
         resultants = resultants[:, 0]
 
-    return resultants
+    return resultants, jumps
 
 
 @pytest.fixture(scope="module")
 def pixel_data(ramp_data):
     read_noise = np.float32(5)
-    flux = 100
 
     read_pattern, t_bar, tau, n_reads = ramp_data
-    resultants = _generate_resultants(read_pattern, flux, read_noise)
+    resultants, _ = _generate_resultants(read_pattern, FLUX, read_noise)
 
-    yield resultants, t_bar, tau, n_reads, read_noise, flux
+    yield resultants, t_bar, tau, n_reads, read_noise, FLUX
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
@@ -224,14 +239,11 @@ def test_make_pixel(pixel_data, use_jump):
 @pytest.fixture(scope="module")
 def detector_data(ramp_data):
     read_pattern, *_ = ramp_data
+    read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
 
-    n_pixels = 100_000
-    read_noise = np.ones(n_pixels, dtype=np.float32) * 5
-    flux = 100
+    resultants, _ = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS)
 
-    resultants = _generate_resultants(read_pattern, flux, read_noise, n_pixels=n_pixels)
-
-    return resultants, read_noise, read_pattern, n_pixels, flux
+    return resultants, read_noise, read_pattern, N_PIXELS, FLUX
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
@@ -290,3 +302,21 @@ def test_fit_ramps_dq(detector_data, use_jump):
 
     chi2 /= np.sum(okay)
     assert np.abs(chi2 - 1) < 0.03
+
+
+@pytest.fixture(scope="module")
+def jump_data(ramp_data):
+    read_pattern, *_ = ramp_data
+    read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
+
+    resultants, _ = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS, add_jumps=True)
+
+    return resultants, read_noise, read_pattern, N_PIXELS, FLUX
+
+
+def test_fit_ramps_with_jumps_no_dq(jump_data):
+    resultants, read_noise, read_pattern, n_pixels, flux = jump_data
+    dq = np.zeros(resultants.shape, dtype=np.int32)
+
+    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    assert len(fits) == n_pixels
