@@ -61,91 +61,42 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
     cdef float intercept_ = fixed.threshold.intercept
     cdef float constant_ = fixed.threshold.constant
 
-    cdef np.ndarray[float, ndim=1] t_bar_1, t_bar_2
-    cdef np.ndarray[float, ndim=1] t_bar_1_sq, t_bar_2_sq
-    cdef np.ndarray[float, ndim=1] recip_1, recip_2
-    cdef np.ndarray[float, ndim=1] slope_var_1, slope_var_2
+    cdef np.ndarray[float, ndim=2] t_bar_diff
+    cdef np.ndarray[float, ndim=2] recip
+    cdef np.ndarray[float, ndim=2] slope_var
 
     if use_jump:
-        t_bar_1 = np.array(fixed.t_bar_1, dtype=np.float32)
-        t_bar_2 = np.array(fixed.t_bar_2, dtype=np.float32)
-        t_bar_1_sq = np.array(fixed.t_bar_1_sq, dtype=np.float32)
-        t_bar_2_sq = np.array(fixed.t_bar_2_sq, dtype=np.float32)
-
-        recip_1 = np.array(fixed.recip_1, dtype=np.float32)
-        recip_2 = np.array(fixed.recip_2, dtype=np.float32)
-
-        slope_var_1 = np.array(fixed.slope_var_1, dtype=np.float32)
-        slope_var_2 = np.array(fixed.slope_var_2, dtype=np.float32)
+        t_bar_diff = np.array(fixed.t_bar_diff, dtype=np.float32)
+        recip = np.array(fixed.recip, dtype=np.float32)
+        slope_var = np.array(fixed.slope_var, dtype=np.float32)
     else:
         try:
-            fixed.t_bar_1
+            fixed.t_bar_diff
         except AttributeError:
-            t_bar_1 = np.zeros(1, np.float32)
+            t_bar_diff = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("t_bar_1 should not exist")
 
         try:
-            fixed.t_bar_2
+            fixed.recip
         except AttributeError:
-            t_bar_2 = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("t_bar_2 should not exist")
-
-        try:
-            fixed.t_bar_1_sq
-        except AttributeError:
-            t_bar_1_sq = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("t_bar_1_sq should not exist")
-
-        try:
-            fixed.t_bar_2_sq
-        except AttributeError:
-            t_bar_2_sq = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("t_bar_2_sq should not exist")
-
-        try:
-            fixed.recip_1
-        except AttributeError:
-            recip_1 = np.zeros(1, np.float32)
+            recip = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("recip_1 should not exist")
 
         try:
-            fixed.recip_2
+            fixed.slope_var
         except AttributeError:
-            recip_2 = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("recip_2 should not exist")
-
-        try:
-            fixed.slope_var_1
-        except AttributeError:
-            slope_var_1 = np.zeros(1, np.float32)
+            slope_var = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("slope_var_1 should not exist")
-
-        try:
-            fixed.slope_var_2
-        except AttributeError:
-            slope_var_2 = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("slope_var_2 should not exist")
-
 
     return dict(data=fixed.data,
                 intercept=intercept_,
                 constant=constant_,
-                t_bar_1=t_bar_1,
-                t_bar_2=t_bar_2,
-                t_bar_1_sq=t_bar_1_sq,
-                t_bar_2_sq=t_bar_2_sq,
-                recip_1=recip_1,
-                recip_2=recip_2,
-                slope_var_1=slope_var_1,
-                slope_var_2=slope_var_2)
+                t_bar_diff=t_bar_diff,
+                recip=recip,
+                slope_var=slope_var)
 
 
 def make_pixel(np.ndarray[float, ndim=1] resultants,
@@ -166,50 +117,32 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
 
     cdef np.ndarray[float, ndim=1] resultants_ = np.array(pixel.resultants, dtype=np.float32)
 
-    cdef np.ndarray[float, ndim=1] delta_1, delta_2
-    cdef np.ndarray[float, ndim=1] sigma_1, sigma_2
+    cdef np.ndarray[float, ndim=2] delta
+    cdef np.ndarray[float, ndim=2] sigma
 
     if use_jump:
-        delta_1 = np.array(pixel.delta_1, dtype=np.float32)
-        delta_2 = np.array(pixel.delta_2, dtype=np.float32)
-        sigma_1 = np.array(pixel.sigma_1, dtype=np.float32)
-        sigma_2 = np.array(pixel.sigma_2, dtype=np.float32)
+        delta = np.array(pixel.delta, dtype=np.float32)
+        sigma = np.array(pixel.sigma, dtype=np.float32)
     else:
         try:
-            pixel.delta_1
+            pixel.delta
         except AttributeError:
-            delta_1 = np.zeros(1, np.float32)
+            delta = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("delta_1 should not exist")
 
         try:
-            pixel.delta_2
+            pixel.sigma
         except AttributeError:
-            delta_2 = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("delta_2 should not exist")
-
-        try:
-            pixel.sigma_1
-        except AttributeError:
-            sigma_1 = np.zeros(1, np.float32)
+            sigma = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("sigma_1 should not exist")
-
-        try:
-            pixel.sigma_2
-        except AttributeError:
-            sigma_2 = np.zeros(1, np.float32)
-        else:
-            raise AttributeError("sigma_2 should not exist")
 
     # only return computed values (assume fixed is correct)
     return dict(resultants=resultants_,
                 read_noise=pixel.read_noise,
-                delta_1=delta_1,
-                delta_2=delta_2,
-                sigma_1=sigma_1,
-                sigma_2=sigma_2)
+                delta=delta,
+                sigma=sigma)
 
 
 def fit_ramp(np.ndarray[float, ndim=1] resultants,

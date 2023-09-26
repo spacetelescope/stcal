@@ -126,29 +126,28 @@ def test_make_fixed(ramp_data, use_jump):
 
     # Check the computed data
     if use_jump:
-        single_gen = zip(fixed['t_bar_1'], fixed['t_bar_1_sq'], fixed['recip_1'], fixed['slope_var_1'])
-        double_gen = zip(fixed['t_bar_2'], fixed['t_bar_2_sq'], fixed['recip_2'], fixed['slope_var_2'])
+        single_gen = zip(fixed['t_bar_diff'][0], fixed['recip'][0], fixed['slope_var'][0])
+        double_gen = zip(fixed['t_bar_diff'][1], fixed['recip'][1], fixed['slope_var'][1])
 
-        for index, (t_bar_1, t_bar_1_sq, recip_1, slope_var_1) in enumerate(single_gen):
+        for index, (t_bar_1, recip_1, slope_var_1) in enumerate(single_gen):
             assert t_bar_1 == t_bar[index + 1] - t_bar[index]
-            assert t_bar_1_sq == np.float32((t_bar[index + 1] - t_bar[index])**2)
             assert recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             assert slope_var_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
 
-        for index, (t_bar_2, t_bar_2_sq, recip_2, slope_var_2) in enumerate(double_gen):
-            assert t_bar_2 == t_bar[index + 2] - t_bar[index]
-            assert t_bar_2_sq == np.float32((t_bar[index + 2] - t_bar[index])**2)
-            assert recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
-            assert slope_var_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
+        for index, (t_bar_2, recip_2, slope_var_2) in enumerate(double_gen):
+            if index == len(fixed['t_bar_diff'][1]) - 1:
+                # Last value must be NaN
+                assert np.isnan(t_bar_2)
+                assert np.isnan(recip_2)
+                assert np.isnan(slope_var_2)
+            else:
+                assert t_bar_2 == t_bar[index + 2] - t_bar[index]
+                assert recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
+                assert slope_var_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
     else:
-        assert fixed['t_bar_1'] == np.zeros(1, np.float32)
-        assert fixed['t_bar_2'] == np.zeros(1, np.float32)
-        assert fixed['t_bar_1_sq'] == np.zeros(1, np.float32)
-        assert fixed['t_bar_2_sq'] == np.zeros(1, np.float32)
-        assert fixed['recip_1'] == np.zeros(1, np.float32)
-        assert fixed['recip_2'] == np.zeros(1, np.float32)
-        assert fixed['slope_var_1'] == np.zeros(1, np.float32)
-        assert fixed['slope_var_2'] == np.zeros(1, np.float32)
+        assert np.isnan(fixed['t_bar_diff']).all()
+        assert np.isnan(fixed['recip']).all()
+        assert np.isnan(fixed['slope_var']).all()
 
 
 def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1, add_jumps=False):
@@ -215,8 +214,8 @@ def test_make_pixel(pixel_data, use_jump):
     assert read_noise == pixel['read_noise']
 
     if use_jump:
-        single_gen = zip(pixel['delta_1'], pixel['sigma_1'])
-        double_gen = zip(pixel['delta_2'], pixel['sigma_2'])
+        single_gen = zip(pixel['delta'][0], pixel['sigma'][0])
+        double_gen = zip(pixel['delta'][1], pixel['sigma'][1])
 
         for index, (delta_1, sigma_1) in enumerate(single_gen):
             assert delta_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
@@ -225,15 +224,18 @@ def test_make_pixel(pixel_data, use_jump):
             )
 
         for index, (delta_2, sigma_2) in enumerate(double_gen):
-            assert delta_2 == (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
-            assert sigma_2 == read_noise * (
-                np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
-            )
+            if index == len(pixel['delta'][1]) - 1:
+                # Last value must be NaN
+                assert np.isnan(delta_2)
+                assert np.isnan(sigma_2)
+            else:
+                assert delta_2 == (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
+                assert sigma_2 == read_noise * (
+                    np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
+                )
     else:
-        assert pixel['delta_1'] == np.zeros(1, np.float32)
-        assert pixel['delta_2'] == np.zeros(1, np.float32)
-        assert pixel['sigma_1'] == np.zeros(1, np.float32)
-        assert pixel['sigma_2'] == np.zeros(1, np.float32)
+        assert np.isnan(pixel['delta']).all()
+        assert np.isnan(pixel['sigma']).all()
 
 
 @pytest.fixture(scope="module")

@@ -8,15 +8,13 @@ cdef class Fixed:
     cdef DerivedData data
     cdef Thresh threshold
 
-    cdef float[:] t_bar_1, t_bar_2
-    cdef float[:] t_bar_1_sq, t_bar_2_sq
-    cdef float[:] recip_1, recip_2
-    cdef float[:] slope_var_1, slope_var_2
+    cdef float[:, :] t_bar_diff
+    cdef float[:, :] recip
+    cdef float[:, :] slope_var
 
-    cdef float[:] t_bar_diff(Fixed self, int offset)
-    cdef float[:] t_bar_diff_sq(Fixed self, int offset)
-    cdef float[:] recip_val(Fixed self, int offset)
-    cdef float[:] slope_var_val(Fixed self, int offset)
+    cdef float[:, :] t_bar_diff_val(Fixed self)
+    cdef float[:, :] recip_val(Fixed self)
+    cdef float[:, :] slope_var_val(Fixed self)
 
 
 cdef Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump)

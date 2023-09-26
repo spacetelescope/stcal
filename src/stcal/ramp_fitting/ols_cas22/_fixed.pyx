@@ -72,18 +72,15 @@ cdef class Fixed:
       from pre-computing the values and reusing them.
     """
 
-    cdef inline float[:] t_bar_diff(Fixed self, int offset):
+    cdef inline float[:, :] t_bar_diff_val(Fixed self):
         """
         Compute the difference offset of t_bar
 
-        Parameters
-        ----------
-        offset : int
-            index offset to compute difference
-
         Returns
         -------
-        t_bar[i+offset] - t_bar[i]
+           [
+            <t_bar[i+1] - t_bar[i]>,
+            <t_bar[i+2] - t_bar[i]>,
         """
         # Cast vector to memory view
         #    This way of doing it is potentially memory unsafe because the memory
@@ -93,36 +90,28 @@ cdef class Fixed:
         #    stays local to the function (numpy operations create brand new objects)
         cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
 
-        return np.subtract(t_bar[offset:], t_bar[:-offset])
+        cdef np.ndarray[float, ndim=2] t_bar_diff = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
 
-    cdef inline float[:] t_bar_diff_sq(Fixed self, int offset):
-        """
-        Compute the square difference offset of t_bar
+        t_bar_diff[0, :] = np.subtract(t_bar[1:], t_bar[:-1]) 
+        t_bar_diff[1, :-1] = np.subtract(t_bar[2:], t_bar[:-2])
+        t_bar_diff[1, -1] = np.nan  # last double difference is undefined
 
-        Parameters
-        ----------
-        offset : int
-            index offset
+        return t_bar_diff
 
-        Returns
-        -------
-        (t_bar[i+offset] - t_bar[i])**2
-        """
-        return np.array(self.t_bar_diff(offset)) ** 2
-
-    cdef inline float[:] recip_val(Fixed self, int offset):
+    cdef inline float[:, :] recip_val(Fixed self):
         """
         Compute the recip values
-            (1/n_reads[i+offset] + 1/n_reads[i])
-
-        Parameters
-        ----------
-        offset : int
-            index offset
+            (1/n_reads[i+1] + 1/n_reads[i])
+        and
+            (1/n_reads[i+2] + 1/n_reads[i])
 
         Returns
         -------
-        (1/n_reads[i+offset] + 1/n_reads[i])
+        [
+            <(1/n_reads[i+1] + 1/n_reads[i])>,
+            <(1/n_reads[i+2] + 1/n_reads[i])>
+        ]
+
         """
         # Cast vector to memory view
         #    This way of doing it is potentially memory unsafe because the memory
@@ -132,23 +121,27 @@ cdef class Fixed:
         #    stays local to the function (numpy operations create brand new objects)
         cdef int[:] n_reads = <int [:self.data.n_reads.size()]> self.data.n_reads.data()
 
-        return (np.divide(1.0, n_reads[offset:], dtype=np.float32) +
-                np.divide(1.0, n_reads[:-offset], dtype=np.float32))
+        cdef np.ndarray[float, ndim=2] recip = np.zeros((2, self.data.n_reads.size() - 1), dtype=np.float32)
+
+        recip[0, :] = (np.divide(1.0, n_reads[1:], dtype=np.float32) +
+                       np.divide(1.0, n_reads[:-1], dtype=np.float32))
+        recip[1, :-1] = (np.divide(1.0, n_reads[2:], dtype=np.float32) +
+                         np.divide(1.0, n_reads[:-2], dtype=np.float32))
+        recip[1, -1] = np.nan  # last double difference is undefined
+
+        return recip
 
 
-    cdef inline float[:] slope_var_val(Fixed self, int offset):
+    cdef inline float[:, :] slope_var_val(Fixed self):
         """
-        Compute the sigma values
-
-        Parameters
-        ----------
-        offset : int
-            index offset
+        Compute slope part of the variance
 
         Returns
         -------
-        (tau[i] + tau[i+offset] - min(t_bar[i], t_bar[i+offset])) *
-            correction(i, i+offset)
+        [
+            <(tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1])) * correction(i, i+1)>,
+            <(tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2])) * correction(i, i+2)>,
+        ]
         """
         # Cast vectors to memory views
         #    This way of doing it is potentially memory unsafe because the memory
@@ -159,8 +152,13 @@ cdef class Fixed:
         cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
         cdef float[:] tau = <float [:self.data.tau.size()]> self.data.tau.data()
 
-        return (np.add(tau[offset:], tau[:-offset]) -
-                np.minimum(t_bar[offset:], t_bar[:-offset]))
+        cdef np.ndarray[float, ndim=2] slope_var = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
+
+        slope_var[0, :] = (np.add(tau[1:], tau[:-1]) - np.minimum(t_bar[1:], t_bar[:-1]))
+        slope_var[1, :-1] = (np.add(tau[2:], tau[:-2]) - np.minimum(t_bar[2:], t_bar[:-2]))
+        slope_var[1, -1] = np.nan  # last double difference is undefined
+
+        return slope_var
 
 
 cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
@@ -193,16 +191,8 @@ cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
 
     # Pre-compute jump detection computations shared by all pixels
     if use_jump:
-        fixed.t_bar_1 = fixed.t_bar_diff(1)
-        fixed.t_bar_2 = fixed.t_bar_diff(2)
-
-        fixed.t_bar_1_sq = fixed.t_bar_diff_sq(1)
-        fixed.t_bar_2_sq = fixed.t_bar_diff_sq(2)
-
-        fixed.recip_1 = fixed.recip_val(1)
-        fixed.recip_2 = fixed.recip_val(2)
-
-        fixed.slope_var_1 = fixed.slope_var_val(1)
-        fixed.slope_var_2 = fixed.slope_var_val(2)
+        fixed.t_bar_diff = fixed.t_bar_diff_val()
+        fixed.recip = fixed.recip_val()
+        fixed.slope_var = fixed.slope_var_val()
 
     return fixed

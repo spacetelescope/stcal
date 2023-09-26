@@ -73,14 +73,10 @@ cdef class Pixel:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:] resultants_diff(Pixel self, int offset):
+    cdef inline float[:, :] delta_val(Pixel self):
         """
         Compute the difference offset of resultants
 
-        Parameters
-        ----------
-        offset : int
-            index offset to compute difference
         Returns
         -------
         (resultants[i+offset] - resultants[i])
@@ -88,7 +84,14 @@ cdef class Pixel:
         cdef float[:] resultants = self.resultants
         cdef int end = len(resultants)
 
-        return np.subtract(resultants[offset:], resultants[:end - offset])
+        cdef np.ndarray[float, ndim=2] t_bar_diff = np.array(self.fixed.t_bar_diff, dtype=np.float32)
+        cdef np.ndarray[float, ndim=2] delta = np.zeros((2, end - 1), dtype=np.float32)
+
+        delta[0, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diff[0, :]).astype(np.float32)
+        delta[1, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diff[1, :end-2]).astype(np.float32)
+        delta[1, end-2] = np.nan  # last double difference is undefined
+
+        return delta
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -190,16 +193,30 @@ cdef class Pixel:
 
         return ramp_fit
 
-    cdef inline float correction(Pixel self, int i, int offset, RampIndex ramp):
-        cdef float comp = ((self.fixed.data.t_bar[i + offset] - self.fixed.data.t_bar[i]) /
+    cdef inline float correction(Pixel self, RampIndex ramp, int index, int diff):
+        cdef float comp = (self.fixed.t_bar_diff[diff, index] /
                            (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start]))
 
-        if offset == 1:
+        if diff == 0:
             return (1 - comp)**2
-        elif offset == 2:
+        elif diff == 1:
             return (1 - 0.75 * comp)**2
         else:
             raise ValueError("offset must be 1 or 2")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef inline float stat(Pixel self, float slope, RampIndex ramp, int index, int diff):
+
+        cdef float delta = ((self.delta[diff, index] - slope) *
+                            fabs(self.fixed.t_bar_diff[diff, index]))
+        cdef float var = (self.sigma[diff, index] +
+                          slope * self.fixed.slope_var[diff, index] *
+                                  self.correction(ramp, index, diff))
+
+        return delta / sqrt(var)
+
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -228,28 +245,30 @@ cdef class Pixel:
         list of statistics for each resultant
             except for the last 2 due to single/double difference due to indexing
         """
-        cdef int start = ramp.start
-        cdef int end = ramp.end - 1
+        cdef int start = ramp.start  # index of first resultant for ramp
+        cdef int end = ramp.end      # index of last resultant for ramp
 
-        cdef float[:] slope_var_1 = np.zeros(end - start, dtype=np.float32)
-        cdef float[:] slope_var_2 = np.zeros(end - start, dtype=np.float32)
-        cdef int i
-        for i in range(end - start):
-            slope_var_1[i] = slope * self.fixed.slope_var_1[start + i] * self.correction(start + i, 1, ramp)
-            slope_var_2[i] = slope * self.fixed.slope_var_2[start + i] * self.correction(start + i, 2, ramp)
+        # Observe that the length of the ramp's sub array of the resultant would
+        # be `end - start + 1`. However, we are computing single and double
+        # "differences" which means we need to reference at least two points in
+        # this subarray at a time. For the single case, the maximum index allowed
+        # would be `end - 1`. Observe that `range(start, end)` will iterate over
+        #    `start, start+1, start+1, ..., end-2, end-1`
+        # as the second argument to the `range` is the first index outside of the
+        # range
 
-        cdef float[:] delta_1 = np.subtract(self.delta_1[start:end], slope)
-        cdef float[:] delta_2 = np.subtract(self.delta_2[start:end], slope)
+        cdef np.ndarray[float, ndim=1] stats = np.zeros(end - start, dtype=np.float32)
 
-        cdef float[:] var_1 = np.divide(np.add(self.sigma_1[start:end], slope_var_1),
-                                        self.fixed.t_bar_1_sq[start:end])
-        cdef float[:] var_2 = np.divide(np.add(self.sigma_2[start:end], slope_var_2),
-                                        self.fixed.t_bar_2_sq[start:end])
+        cdef int index, stat
+        for stat, index in enumerate(range(start, end)):
+            if index == end - 1:
+                stats[stat] = self.stat(slope, ramp, index, 0)
+            else:
+                stats[stat] = max(self.stat(slope, ramp, index, 0),
+                                  self.stat(slope, ramp, index, 1))
 
-        cdef float[:] stats_1 = np.divide(delta_1, np.sqrt(var_1))
-        cdef float[:] stats_2 = np.divide(delta_2, np.sqrt(var_2))
-
-        return np.maximum(stats_1, stats_2, dtype=np.float32)
+        return stats
+        
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -364,12 +383,7 @@ cdef inline Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants
 
     # Pre-compute values for jump detection shared by all pixels for this pixel
     if fixed.use_jump:
-        pixel.delta_1 = (np.array(pixel.resultants_diff(1)) /
-                         np.array(fixed.t_bar_1)).astype(np.float32)
-        pixel.delta_2 = (np.array(pixel.resultants_diff(2)) /
-                         np.array(fixed.t_bar_2)).astype(np.float32)
-
-        pixel.sigma_1 = read_noise * np.array(fixed.recip_1)
-        pixel.sigma_2 = read_noise * np.array(fixed.recip_2)
+        pixel.delta = pixel.delta_val()
+        pixel.sigma = read_noise * np.array(fixed.recip)
 
     return pixel

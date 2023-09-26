@@ -8,13 +8,14 @@ cdef class Pixel:
     cdef float read_noise
     cdef float [:] resultants
 
-    cdef float[:] delta_1, delta_2
-    cdef float[:] sigma_1, sigma_2
+    cdef float[:, :] delta
+    cdef float[:, :] sigma
 
-    cdef float[:] resultants_diff(Pixel self, int offset)
+    cdef float[:, :] delta_val(Pixel self)
     cdef RampFit fit_ramp(Pixel self, RampIndex ramp)
 
-    cdef float correction(Pixel self, int i, int offset, RampIndex ramp)
+    cdef float correction(Pixel self, RampIndex ramp, int index, int diff)
+    cdef float stat(Pixel self, float slope, RampIndex ramp, int index, int diff)
     cdef float[:] stats(Pixel self, float slope, RampIndex ramp)
     cdef RampFits fit_ramps(Pixel self, stack[RampIndex] ramps)
 
