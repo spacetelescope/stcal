@@ -129,6 +129,10 @@ cdef class Pixel:
         cdef int[:] n_reads_ = <int [:self.fixed.data.n_reads.size()]> self.fixed.data.n_reads.data()
 
         # Setup data for fitting (work over subset of data)
+        #    Recall that the RampIndex contains the index of the first and last
+        #    index of the ramp. Therefore, the Python slice needed to get all the
+        #    data within the ramp is:
+        #         ramp.start:ramp.end + 1
         cdef float[:] resultants = self.resultants[ramp.start:ramp.end + 1]
         cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
         cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
@@ -310,16 +314,55 @@ cdef class Pixel:
             # Compute fit
             ramp_fit = self.fit_ramp(ramp)
 
+            # Run jump detection if enabled
             if self.fixed.use_jump:
                 stats = self.stats(ramp_fit.slope, ramp)
 
-                if max(stats) > threshold(self.fixed.threshold, ramp_fit.slope):
+                # We have to protect against the case where the passed "ramp" is only
+                # a single point. In that case, stats will be empty. This will create
+                # an error in the max() call. 
+                if len(stats) > 0 and max(stats) > threshold(self.fixed.threshold, ramp_fit.slope):
                     # Compute split point to create two new ramps
+                    #   The split will map to the index of the resultant with the detected jump
+                    #       resultant_jump_index = ramp.start + split
+                    #   This resultant index needs to be removed, therefore the two possible new
+                    #   ramps are:
+                    #       RampIndex(ramp.start, ramp.start + split - 1)
+                    #       RampIndex(ramp.start + split + 1, ramp.end)
+                    #   This is because the RampIndex contains the index of the first and last
+                    #   resulants in the sub-ramp it describes.
                     split = np.argmax(stats)
 
-                    # add ramps so last ramp in time is on top of stack
-                    ramps.push(RampIndex(ramp.start, ramp.start + split))
-                    ramps.push(RampIndex(ramp.start + split + 2, ramp.end))
+                    # The algorithm works via working over the sub-ramps backward
+                    #    in time. Therefore, since we are using a stack, we need to
+                    #    add the ramps in the time order they were observed in. This
+                    #    results in the last observation ramp being the top of the
+                    #    stack; meaning that, it will be the next ramp handeled.
+
+                    if split > 0:
+                        # When split == 0, the jump has been detected in the resultant
+                        # corresponding to the first resultant in the ramp, i.e
+                        #    ramp.start
+                        # So the "split" is just excluding the first resultant in the
+                        # ramp currently being considered. Therefore, there is no need
+                        # to handle a ramp in this case.
+                        ramps.push(RampIndex(ramp.start, ramp.start + split - 1))
+
+                    # Note that because the stats can only be calculated for ramp
+                    # length - 1 # positions due to the need to compute at least
+                    # single differences.  # Therefore the maximum value for
+                    # argmax(stats) is ramp length - 2, as the index of the last
+                    # element of stats is length of stats - 1. Thus
+                    #     max(argmax(stats)) = len(stats) - 1
+                    #                        = len(ramp) - 2
+                    #                        = ramp.end - ramp.start - 1
+                    # So we have that the maximium value for the lower index of
+                    # this sub-ramp is
+                    #     ramp.start + split + 1 = ramp.start + ramp.end 
+                    #                                         - ramp.start - 1 + 1
+                    #                            = ramp.end
+                    # This is always a valid ramp.
+                    ramps.push(RampIndex(ramp.start + split + 1, ramp.end))
 
                     # Return to top of loop to fit new ramps (without adding to fits)
                     continue
