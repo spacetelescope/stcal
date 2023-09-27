@@ -110,12 +110,16 @@ cdef class Pixel:
         RampFit struct of slope, read_var, poisson_var
         """
         cdef int n_resultants = ramp.end - ramp.start + 1
-        cdef RampFit ramp_fit = RampFit(0, 0, 0)
 
-        # Special case where there is no or one resultant, there is no fit.
+        # Special case where there is no or one resultant, there is no fit and
+        # we bail out before any computations.
+        #    Note that in this case, we cannot compute the slope or the variances
+        #    because these computations require at least two resultants. Therefore,
+        #    this case is degernate and we return NaNs for the values.
         if n_resultants <= 1:
-            return ramp_fit
-        # Else, do the fitting.
+            return RampFit(np.nan, np.nan, np.nan)
+
+        # Start computing the fit
 
         # Cast vectors to memory views for faster access
         #    This way of doing it is potentially memory unsafe because the memory
@@ -137,14 +141,13 @@ cdef class Pixel:
         cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
         cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
         cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
+
+        # Reference read_noise as a local variable to avoid calling through Python
+        # every time it is accessed.
         cdef float read_noise = self.read_noise
 
+        # Compute mid point time
         cdef int end = len(resultants) - 1
-
-        # initalize fit
-        cdef int i = 0, j = 0
-        cdef vector[float] weights = vector[float](n_resultants)
-        cdef vector[float] coeffs = vector[float](n_resultants)
         cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
 
         # Casertano+2022 Eq. 44
@@ -161,7 +164,13 @@ cdef class Pixel:
         cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
         t_scale = 1 if t_scale == 0 else t_scale
 
+        # Initalize the fit loop
+        cdef int i = 0, j = 0
+        cdef vector[float] weights = vector[float](n_resultants)
+        cdef vector[float] coeffs = vector[float](n_resultants)
+        cdef RampFit ramp_fit = RampFit(0, 0, 0)
         cdef float f0 = 0, f1 = 0, f2 = 0
+
         # Issue when tbar[] == tbarmid causes exception otherwise
         with cython.cpow(True):
             for i in range(n_resultants):
@@ -375,12 +384,13 @@ cdef class Pixel:
             ramp_fits.index.push_back(ramp)
 
             # Start computing the averages
-            weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
-            total_weight += weight
+            if not np.isnan(ramp_fit.slope):
+                weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
+                total_weight += weight
 
-            ramp_fits.average.slope += weight * ramp_fit.slope
-            ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
-            ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
+                ramp_fits.average.slope += weight * ramp_fit.slope
+                ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
+                ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
 
         # Reverse to order in time
         ramp_fits.fits = ramp_fits.fits[::-1]
