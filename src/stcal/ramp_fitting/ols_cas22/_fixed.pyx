@@ -36,37 +36,28 @@ cdef class Fixed:
     use_jump : bool
         flag to indicate whether to use jump detection (user input)
 
-    t_bar_1 : float[:]
+    t_bar_diff : float[:, :]
         single differences of t_bar:
-            (t_bar[i+1] - t_bar[i])
-    t_bar_1_sq : float[:]
-        squared single differences of t_bar:
-            (t_bar[i+1] - t_bar[i])**2
-    t_bar_2 : float[:]
+            t_bar_diff[0, :] = (t_bar[i+1] - t_bar[i])
         double differences of t_bar:
-            (t_bar[i+2] - t_bar[i])
-    t_bar_2_sq: float[:]
-        squared double differences of t_bar:
-            (t_bar[i+2] - t_bar[i])**2
-    recip_1 : vector[float]
+            t_bar_diff[1, :] = (t_bar[i+2] - t_bar[i])
+    recip : float[:, :]
         single sum of reciprocal n_reads:
-            ((1/n_reads[i+1]) + (1/n_reads[i]))
-    recip_2 : vector[float]
+            recip[0, :] = ((1/n_reads[i+1]) + (1/n_reads[i]))
         double sum of reciprocal n_reads:
-            ((1/n_reads[i+2]) + (1/n_reads[i]))
-    slope_var_1 : vector[float]
+            recip[1, :] = ((1/n_reads[i+2]) + (1/n_reads[i]))
+    slope_var : float[:, :]
         single of slope variance term:
-            ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1]))
-    slope_var_2 : vector[float]
+            slope_var[0, :] = ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1]))
         double of slope variance term:
-            ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2]))
+            slope_var[1, :] = ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2]))
 
     Notes
     -----
-    - t_bar_*, t_bar_*_sq, recip_*, slope_var_* are only computed if use_jump is True.
-      These values represent reused computations for jump detection which are used by
-      every pixel for jump detection.  They are computed once and stored in the Fixed
-      for reuse by all pixels.
+    - t_bar_diff, recip, slope_var are only computed if use_jump is True.  These
+      values represent reused computations for jump detection which are used by
+      every pixel for jump detection.  They are computed once and stored in the
+      Fixed for reuse by all pixels.
     - The computations are done using vectorized operations for some performance
       increases. However, this is marginal compaired with the performance increase
       from pre-computing the values and reusing them.
@@ -78,9 +69,10 @@ cdef class Fixed:
 
         Returns
         -------
-           [
+        [
             <t_bar[i+1] - t_bar[i]>,
             <t_bar[i+2] - t_bar[i]>,
+        ]
         """
         # Cast vector to memory view
         #    This way of doing it is potentially memory unsafe because the memory
@@ -100,16 +92,13 @@ cdef class Fixed:
 
     cdef inline float[:, :] recip_val(Fixed self):
         """
-        Compute the recip values
-            (1/n_reads[i+1] + 1/n_reads[i])
-        and
-            (1/n_reads[i+2] + 1/n_reads[i])
+        Compute the reciprical sum values
 
         Returns
         -------
         [
             <(1/n_reads[i+1] + 1/n_reads[i])>,
-            <(1/n_reads[i+2] + 1/n_reads[i])>
+            <(1/n_reads[i+2] + 1/n_reads[i])>,
         ]
 
         """

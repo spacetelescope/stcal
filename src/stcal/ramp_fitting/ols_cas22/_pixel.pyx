@@ -41,25 +41,23 @@ cdef class Pixel:
     resultants : float [:]
         array of resultants for single pixel (data input)
 
-    delta_1 : float [:]
+    delta : float [:, :]
         single difference delta+slope:
-            (resultants[i+1] - resultants[i]) / (t_bar[i+1] - t_bar[i])
-    delta_2 : float [:]
+            delta[0, :] = (resultants[i+1] - resultants[i]) / (t_bar[i+1] - t_bar[i])
         double difference delta+slope:
-            (resultants[i+2] - resultants[i]) / (t_bar[i+2] - t_bar[i])
-    sigma_1 : float [:]
+            delta[1, :] = (resultants[i+2] - resultants[i]) / (t_bar[i+2] - t_bar[i])
+    sigma : float [:, :]
         single difference "sigma":
-            read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
-    sigma_2 : float [:]
+            sigma[0, :] = read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
         double difference "sigma":
-            read_noise * ((1/n_reads[i+2]) + (1/n_reads[i]))
+            sigma[1, :] = read_noise * ((1/n_reads[i+2]) + (1/n_reads[i]))
 
     Notes
     -----
-    - delta_*, sigma_* are only computed if use_jump is True.  These values
-      represent reused computations for jump detection which are used by every
-      ramp for the given pixel for jump detection. They are computed once and
-      stored for reuse by all ramp computations for the pixel.
+    - delta, sigma are only computed if use_jump is True.  These values represent
+      reused computations for jump detection which are used by every ramp for
+      the given pixel for jump detection. They are computed once and stored for
+      reuse by all ramp computations for the pixel.
     - The computations are done using vectorized operations for some performance
       increases. However, this is marginal compaired with the performance increase
       from pre-computing the values and reusing them.
@@ -79,7 +77,10 @@ cdef class Pixel:
 
         Returns
         -------
-        (resultants[i+offset] - resultants[i])
+        [
+            <(resultants[i+1] - resultants[i])>,
+            <(resultants[i+2] - resultants[i])>,
+        ]
         """
         cdef float[:] resultants = self.resultants
         cdef int end = len(resultants)
@@ -221,7 +222,33 @@ cdef class Pixel:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef inline float stat(Pixel self, float slope, RampIndex ramp, int index, int diff):
+        """
+        Compute a single set of fit statistics
+            delta / sqrt(var)
+        where
+            delta = ((R[j] - R[i]) / (t_bar[j] - t_bar[i]) - slope)
+                    * (t_bar[j] - t_bar[i])
+            var   = sigma * (1/N[j] + 1/N[i]) 
+                    + slope * (tau[j] + tau[i] - min(t_bar[j], t_bar[i]))
+                    * correction(offset)
+        
+        Parameters
+        ----------
+        slope : float
+            The computed slope for the ramp
+        ramp : RampIndex
+            Struct for start and end indices resultants for the ramp
+        index : int
+            The main index for the resultant to compute the statistic for
+        diff : int
+            The offset to use for the delta and sigma values
+                0 : single difference
+                1 : double difference
 
+        Returns
+        -------
+            Create a single instance of the stastic for the given parameters
+        """
         cdef float delta = ((self.delta[diff, index] - slope) *
                             fabs(self.fixed.t_bar_diff[diff, index]))
         cdef float var = (self.sigma[diff, index] +
@@ -237,26 +264,19 @@ cdef class Pixel:
     cdef inline float[:] stats(Pixel self, float slope, RampIndex ramp):
         """
         Compute fit statistics for jump detection on a single ramp
-        Computed using:
-            corr_1[i] = correction(i, 1, ramp)
-            corr_2[i] = correction(i, 2, ramp)
+            stats[i] = max(stat(i, 0), stat(i, 1))
+        Note for i == end - 1, no stat(i, 1) exists, so its just stat(i, 0)
 
-            var_1[i] = ((sigma_1[i] + slope * slope_var_1[i] * corr_1[i]) / t_bar_1_sq[i])
-            var_2[i] = ((sigma_2[i] + slope * slope_var_2[i] * corr_2[i]) / t_bar_2_sq[i])
-
-            s_1[i] = (delta_1[i] - slope) / sqrt(var_1[i])
-            s_2[i] = (delta_2[i] - slope) / sqrt(var_2[i])
-
-            stats[i] = max(s_1[i], s_2[i])
         Parameters
         ----------
+        slope : float
+            The computed slope for the ramp
         ramp : RampIndex
             Struct for start and end of ramp to fit
 
         Returns
         -------
         list of statistics for each resultant
-            except for the last 2 due to single/double difference due to indexing
         """
         cdef int start = ramp.start  # index of first resultant for ramp
         cdef int end = ramp.end      # index of last resultant for ramp
@@ -275,6 +295,9 @@ cdef class Pixel:
         cdef int index, stat
         for stat, index in enumerate(range(start, end)):
             if index == end - 1:
+                # It is not possible to compute double differences for the second
+                # to last resultant in the ramp. Therefore, we just compute the
+                # single difference for this resultant.
                 stats[stat] = self.stat(slope, ramp, index, 0)
             else:
                 stats[stat] = max(self.stat(slope, ramp, index, 0),
