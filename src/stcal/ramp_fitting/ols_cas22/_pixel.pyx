@@ -348,7 +348,7 @@ cdef class Pixel:
         ramp_fits.average.poisson_var = 0
 
         cdef float [:] stats
-        cdef int split
+        cdef int jump
         cdef float weight, total_weight = 0
 
         # Run while the stack is non-empty
@@ -368,17 +368,20 @@ cdef class Pixel:
                 # only a single point. In that case, stats will be empty. This
                 # will create an error in the max() call. 
                 if len(stats) > 0 and max(stats) > threshold(self.fixed.threshold, ramp_fit.slope):
-                    # Compute split point to create two new ramps
-                    #   The split will map to the index of the resultant with the
-                    #   detected jump:
-                    #       resultant_jump_index = ramp.start + split
-                    split = np.argmax(stats)
-                    ramp_fits.jumps.push_back(ramp.start + split)
+                    # Compute jump point to create two new ramps
+                    #    This jump point corresponds to the index of the largest
+                    #    statistic:
+                    #        argmax(stats)
+                    #    These statistics are indexed relative to the
+                    #    ramp's range. Therefore, we need to add the start index
+                    #    of the ramp to the result.
+                    jump = np.argmax(stats) + ramp.start
+                    ramp_fits.jumps.push_back(jump)
 
                     # This resultant index needs to be removed, therefore the two
                     # possible new ramps are:
-                    #     RampIndex(ramp.start, ramp.start + split - 1)
-                    #     RampIndex(ramp.start + split + 1, ramp.end)
+                    #     RampIndex(ramp.start, jump - 1)
+                    #     RampIndex(jump + 1, ramp.end)
                     # This is because the RampIndex contains the index of the
                     # first and last resulants in the sub-ramp it describes.
                     #    Note: The algorithm works via working over the sub-ramps
@@ -388,30 +391,36 @@ cdef class Pixel:
                     #    being the top of the stack; meaning that,
                     #    it will be the next ramp handeled.
 
-                    if split > 0:
-                        # When split == 0, the jump has been detected in the resultant
-                        # corresponding to the first resultant in the ramp, i.e
-                        #    ramp.start
-                        # So the "split" is just excluding the first resultant in
+                    if jump > ramp.start:
+                        # When jump == ramp.start, the jump has been detected in
+                        # the resultant in the first resultant of the ramp. So
+                        # the "split" is just excluding the first resultant in
                         # the ramp currently being considered. Therefore, there
                         # is no need to handle a ramp in this case.
-                        ramps.push(RampIndex(ramp.start, ramp.start + split - 1))
+                        #   Note that by construction jump >= ramp.start. So
+                        #   something has seriously gone wrong if jump < ramp.start
+                        ramps.push(RampIndex(ramp.start, jump - 1))
 
                     # Note that because the stats can only be calculated for ramp
-                    # length - 1 # positions due to the need to compute at least
-                    # single differences.  # Therefore the maximum value for
+                    # length - 1 positions due to the need to compute at least
+                    # single differences. Therefore the maximum value for
                     # argmax(stats) is ramp length - 2, as the index of the last
                     # element of stats is length of stats - 1. Thus
                     #     max(argmax(stats)) = len(stats) - 1
                     #                        = len(ramp) - 2
                     #                        = ramp.end - ramp.start - 1
+                    # Thus we have
+                    #     max(jump) = ramp.start + max(argmax(stats))
+                    #               = ramp.start + ramp.end - ramp.start - 1
+                    #               = ramp.end - 1
                     # So we have that the maximium value for the lower index of
                     # this sub-ramp is
-                    #     ramp.start + split + 1 = ramp.start + ramp.end 
-                    #                                         - ramp.start - 1 + 1
-                    #                            = ramp.end
-                    # This is always a valid ramp.
-                    ramps.push(RampIndex(ramp.start + split + 1, ramp.end))
+                    #     max(jump) + 1 = ramp.end - 1 + 1
+                    #                   = ramp.end
+                    # (ramp.end, ramp.end) is technically a valid ramp, which
+                    # will immediately get thrown out in the next iteration of
+                    # because stats will be empty.
+                    ramps.push(RampIndex(jump + 1, ramp.end))
 
                     # Return to top of loop to fit new ramps without recording
                     continue
@@ -426,6 +435,8 @@ cdef class Pixel:
             # Start computing the averages
             #    Note we do not do anything in the NaN case for degenerate ramps
             if not np.isnan(ramp_fit.slope):
+                # protect weight against the extremely unlikely case of a zero
+                # variance
                 weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
                 total_weight += weight
 
