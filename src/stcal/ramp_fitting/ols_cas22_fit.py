@@ -36,7 +36,7 @@ from . import ols_cas22
 from .ols_cas22_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
 
 
-def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, read_pattern=None):
+def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, read_pattern=None, use_jump=False):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
     Ramps are broken where dq != 0, and fits are performed on each sub-ramp.
@@ -60,6 +60,9 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
     read_pattern : list[list[int]] or None
         The read pattern prescription. If None, use `ma_table`.
         One of `ma_table` or `read_pattern` must be defined.
+    use_jump : bool
+        If True, use the jump detection algorithm to identify CRs.
+        If False, use the DQ array to identify CRs.
 
     Returns
     -------
@@ -71,80 +74,59 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
     """
 
     # Get the Multi-accum table, either as given or from the read pattern
-    if ma_table is None:
-        if read_pattern is not None:
-            ma_table = readpattern_to_matable(read_pattern)
-    if ma_table is None:
+    if read_pattern is None:
+        if ma_table is not None:
+            read_pattern = ma_table_to_readpattern(ma_table)
+    if read_pattern is None:
         raise RuntimeError('One of `ma_table` or `read_pattern` must be given.')
 
     resultants_unit = getattr(resultants, 'unit', None)
     if resultants_unit is not None:
         resultants = resultants.to(u.electron).value
 
-    resultants = np.array(resultants).astype('f4')
+    resultants = np.array(resultants).astype(np.float32)
 
-    dq = np.array(dq).astype('i4')
+    dq = np.array(dq).astype(np.float32)
 
     if np.ndim(read_noise) <= 1:
         read_noise = read_noise * np.ones(resultants.shape[1:])
-    read_noise = np.array(read_noise).astype('f4')
+    read_noise = np.array(read_noise).astype(np.float32)
 
-    origshape = resultants.shape
+    orig_shape = resultants.shape
     if len(resultants.shape) == 1:
         # single ramp.
         resultants = resultants.reshape(origshape + (1,))
         dq = dq.reshape(origshape + (1,))
         read_noise = read_noise.reshape(origshape[1:] + (1,))
 
-    rampfitdict = ols_cas22.fit_ramps(
+    ramp_fits = ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
         read_time,
-        ma_table)
+        read_pattern,
+        use_jump)
 
-    par = np.zeros(resultants.shape[1:] + (2,), dtype='f4')
-    var = np.zeros(resultants.shape[1:] + (3,), dtype='f4')
+    parameters = np.zeros((len(ramp_fits), 2), dtype=np.float32)
+    variances = np.zeros((len(ramp_fits), 3), dtype=np.float32)
 
-    npix = resultants.reshape(resultants.shape[0], -1).shape[1]
-    # we need to do some averaging to merge the results in each ramp.
-    # inverse variance weights based on slopereadvar
-    weight = ((rampfitdict['slopereadvar'] != 0) / (
-        rampfitdict['slopereadvar'] + (rampfitdict['slopereadvar'] == 0)))
-    totweight = np.bincount(rampfitdict['pix'], weights=weight, minlength=npix)
-    totval = np.bincount(rampfitdict['pix'],
-                         weights=weight * rampfitdict['slope'],
-                         minlength=npix)
-    # fill in the averaged slopes
-    par.reshape(npix, 2)[:, 1] = (
-        totval / (totweight + (totweight == 0)))
+    # Extract the data request from the ramp fits
+    for index, ramp_fit in enumerate(ramp_fits):
+        parameters[1, :] = ramp_fit['average']['slope']
 
-    # read noise variances
-    totval = np.bincount(
-        rampfitdict['pix'], weights=weight ** 2 * rampfitdict['slopereadvar'],
-        minlength=npix)
-    var.reshape(npix, 3,)[:, 0] = (
-        totval / (totweight ** 2 + (totweight == 0)))
+        variances[0, :] = ramp_fit['average']['read_var']
+        variances[1, :] = ramp_fit['average']['poisson_var']
 
-    # poisson noise variances
-    totval = np.bincount(
-        rampfitdict['pix'],
-        weights=weight ** 2 * rampfitdict['slopepoissonvar'], minlength=npix)
-    var.reshape(npix, 3)[..., 1] = (
-        totval / (totweight ** 2 + (totweight == 0)))
+    variances[2, :] = variances[0, :] + variances[1, :]
 
-    # multiply Poisson term by flux.  Clip at zero; no negative Poisson variances.
-    var[..., 1] *= np.clip(par[..., 1], 0, np.inf)
-    var[..., 2] = var[..., 0] + var[..., 1]
-
-    if resultants.shape != origshape:
-        par = par[0]
-        var = var[0]
+    if resultants.shape != orig_shape:
+        parameters = parameters[0]
+        variances = variances[0]
 
     if resultants_unit is not None:
-        par = par * resultants_unit
+        parameters = parameters * resultants_unit
 
-    return par, var
+    return parameters, variances
 
 
 def fit_ramps_casertano_no_dq(resultants, read_noise, ma_table):
