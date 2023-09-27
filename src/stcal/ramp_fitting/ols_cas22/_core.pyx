@@ -1,7 +1,7 @@
 """
 Define the basic types and functions for the CAS22 algorithm with jump detection
 
-Structs:
+Structs
 -------
     RampIndex
         int start: starting index of the ramp in the resultants
@@ -11,31 +11,36 @@ Structs:
         float read_var: read noise variance of a single ramp
         float poisson_var: poisson noise variance of single ramp
     RampFits
-        cpp_list[float] slope: slopes of the ramps for a single pixel
-        cpp_list[float] read_var: read noise variances of the ramps for a single
-                                  pixel
-        cpp_list[float] poisson_var: poisson noise variances of the ramps for a
-                                     single pixel
+        vector[RampFit] fits: ramp fits (in time order) for a single pixel
+        vector[RampIndex] index: ramp indices (in time order) for a single pixel
+        RampFit average: average ramp fit for a single pixel
     DerivedData
         vector[float] t_bar: mean time of each resultant
         vector[float] tau: variance time of each resultant
         vector[int] n_reads: number of reads in each resultant
+    Thresh
+        float intercept: intercept of the threshold
+        float constant: constant of the threshold
 
-Objects
--------
-    Thresh : class
-        Hold the threshold parameters and compute the threshold
+Enums
+-----
+    Diff
+        This is the enum to track the index for single vs double difference related
+        computations.
 
-Functions:
-----------
+        single: single difference
+        double: double difference
+
+Functions
+---------
     get_power
         Return the power from Casertano+22, Table 2
     threshold
         Compute jump threshold
     init_ramps
-        Find initial ramps for each pixel
-    read_ma_table
-        Read the MA table and Derive the necessary data from it
+        Find initial ramps for each pixel, accounts for DQ flags
+    read_data
+        Read the read pattern and derive the baseline data parameters needed
 """
 from libcpp.stack cimport stack
 from libcpp.deque cimport deque

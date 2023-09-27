@@ -64,9 +64,11 @@ cdef class Pixel:
 
     Methods
     -------
-    fits (ramp_stack) : method
+    fit_ramp (ramp_index) : method
+        Compute the ramp fit for a single ramp defined by an inputed RampIndex
+    fit_ramps (ramp_stack) : method
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
-            with jump detection.
+        with jump detection.
     """
 
     @cython.boundscheck(False)
@@ -208,6 +210,19 @@ cdef class Pixel:
         return ramp_fit
 
     cdef inline float correction(Pixel self, RampIndex ramp, int index, int diff):
+        """
+        Compute the correction factor for the variance used by a statistic
+        
+        Parameters
+        ----------
+        ramp : RampIndex
+            Struct for start and end indices resultants for the ramp
+        index : int
+            The main index for the resultant to compute the statistic for
+        diff : int
+            The offset to use for the delta and sigma values, this should be
+            a value from the Diff enum.
+        """
         cdef float comp = (self.fixed.t_bar_diff[diff, index] /
                            (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start]))
 
@@ -241,9 +256,8 @@ cdef class Pixel:
         index : int
             The main index for the resultant to compute the statistic for
         diff : int
-            The offset to use for the delta and sigma values
-                0 : single difference
-                1 : double difference
+            The offset to use for the delta and sigma values, this should be
+            a value from the Diff enum.
 
         Returns
         -------

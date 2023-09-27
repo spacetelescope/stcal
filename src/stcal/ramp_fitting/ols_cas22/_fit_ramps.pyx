@@ -46,21 +46,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     Returns
     -------
-    dictionary containing the following keywords:
-    slope : np.ndarray[nramp]
-        slopes fit for each ramp
-    slopereadvar : np.ndarray[nramp]
-        variance in slope due to read noise
-    slopepoissonvar : np.ndarray[nramp]
-        variance in slope due to Poisson noise, divided by the slope
-        i.e., the slope poisson variance is coefficient * flux; this term
-        is the coefficient.
-    pix : np.ndarray[nramp]
-        the pixel each ramp is in
-    resstart : np.ndarray[nramp]
-        The first resultant in this ramp
-    resend : np.ndarray[nramp]
-        The last resultant in this ramp.
+    A list of RampFits objects, one for each pixel.
     """
     cdef int n_pixels, n_resultants
     n_resultants = resultants.shape[0]

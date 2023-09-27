@@ -14,16 +14,10 @@ cdef struct RampFit:
     float poisson_var
 
 
-cdef struct AverageRampFit:
-    float slope
-    float read_var
-    float poisson_var
-
-
 cdef struct RampFits:
     vector[RampFit] fits
     vector[RampIndex] index
-    AverageRampFit average
+    RampFit average
 
 
 cdef struct DerivedData:
