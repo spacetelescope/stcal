@@ -14,6 +14,7 @@ ROMAN_READ_TIME = 3.04
 N_PIXELS = 100_000
 FLUX = 100
 JUMP_VALUE = 10_000
+CHI2_TOL = 0.03
 
 
 @pytest.fixture(scope="module")
@@ -92,14 +93,13 @@ def test_threshold():
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
-    # Parameters are not directly accessible
     assert intercept == run_threshold(intercept, constant, 1.0) # check intercept
     assert np.float32(intercept - constant) == run_threshold(intercept, constant, 10.0) # check constant
 
 
 @pytest.fixture(scope="module")
 def ramp_data(base_ramp_data):
-    """Upacked data for simulating ramps for testing"""
+    """Unpacked data for simulating ramps for testing"""
     t_bar = np.array(base_ramp_data[1]['t_bar'], dtype=np.float32)
     tau = np.array(base_ramp_data[1]['tau'], dtype=np.float32)
     n_reads = np.array(base_ramp_data[1]['n_reads'], dtype=np.int32)
@@ -125,6 +125,8 @@ def test_make_fixed(ramp_data, use_jump):
     assert fixed["constant"] == constant
 
     # Check the computed data
+    # These are computed via vectorized operations in the main code, here we
+    #    check using item-by-item operations
     if use_jump:
         single_gen = zip(fixed['t_bar_diff'][0], fixed['recip'][0], fixed['slope_var'][0])
         double_gen = zip(fixed['t_bar_diff'][1], fixed['recip'][1], fixed['slope_var'][1])
@@ -145,6 +147,8 @@ def test_make_fixed(ramp_data, use_jump):
                 assert recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 assert slope_var_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
     else:
+        # If not using jumps, these values should not even exist. However, for wrapping
+        #    purposes, they are checked to be non-existent and then set to NaN
         assert np.isnan(fixed['t_bar_diff']).all()
         assert np.isnan(fixed['recip']).all()
         assert np.isnan(fixed['slope_var']).all()
@@ -174,7 +178,6 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1, add_jumps=F
                 # Add a large value to the ramp
                 ramp_value += (JUMP_VALUE * jump_points).astype(np.float32)
 
-
             # Add to running total for the resultant
             resultant_total += ramp_value
 
@@ -182,16 +185,17 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1, add_jumps=F
         resultants[index] = (resultant_total / len(reads)).astype(np.float32)
 
         # Record all the jumps for this resultant
-        jumps.append(read_jumps)
+        jumps.append(np.any(read_jumps, axis=0))
 
     if n_pixels == 1:
         resultants = resultants[:, 0]
 
-    return resultants, jumps
+    return resultants, np.array(jumps)
 
 
 @pytest.fixture(scope="module")
 def pixel_data(ramp_data):
+    """Create data for a single pixel"""
     read_noise = np.float32(5)
 
     read_pattern, t_bar, tau, n_reads = ramp_data
@@ -202,7 +206,7 @@ def pixel_data(ramp_data):
 
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_make_pixel(pixel_data, use_jump):
-    """Test computing the pixel data"""
+    """Test computing the initial pixel data"""
     resultants, t_bar, tau, n_reads, read_noise, _ = pixel_data
 
     intercept = np.float32(5.5)
@@ -210,9 +214,13 @@ def test_make_pixel(pixel_data, use_jump):
 
     pixel = make_pixel(resultants, t_bar, tau, n_reads, read_noise, intercept, constant, use_jump)
 
+    # Basic sanity checks that data passed in survives
     assert (pixel['resultants'] == resultants).all()
     assert read_noise == pixel['read_noise']
 
+    # Check the computed data
+    # These are computed via vectorized operations in the main code, here we
+    #    check using item-by-item operations
     if use_jump:
         single_gen = zip(pixel['delta'][0], pixel['sigma'][0])
         double_gen = zip(pixel['delta'][1], pixel['sigma'][1])
@@ -234,12 +242,18 @@ def test_make_pixel(pixel_data, use_jump):
                     np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 )
     else:
+        # If not using jumps, these values should not even exist. However, for wrapping
+        #    purposes, they are checked to be non-existent and then set to NaN
         assert np.isnan(pixel['delta']).all()
         assert np.isnan(pixel['sigma']).all()
 
 
 @pytest.fixture(scope="module")
 def detector_data(ramp_data):
+    """
+    Generate a set of with no jumps data as if for a single detector as it
+        would be passed in by the supporting code.
+    """
     read_pattern, *_ = ramp_data
     read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
 
@@ -259,8 +273,9 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
-    assert len(fits) == n_pixels
+    assert len(fits) == n_pixels  # sanity check that a fit is output for each pixel
 
+    # Check that the chi2 for the resulting fit relative to the assumed flux is ~1
     chi2 = 0
     for fit in fits:
         assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump
@@ -270,7 +285,7 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
 
     chi2 /= n_pixels
 
-    assert np.abs(chi2 - 1) < 0.03
+    assert np.abs(chi2 - 1) < CHI2_TOL
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
@@ -289,6 +304,7 @@ def test_fit_ramps_dq(detector_data, use_jump):
     okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
 
     fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    assert len(fits) == n_pixels  # sanity check that a fit is output for each pixel
 
     chi2 = 0
     for fit, use in zip(fits, okay):
@@ -303,22 +319,31 @@ def test_fit_ramps_dq(detector_data, use_jump):
             assert fit['average']['poisson_var'] == 0
 
     chi2 /= np.sum(okay)
-    assert np.abs(chi2 - 1) < 0.03
+    assert np.abs(chi2 - 1) < CHI2_TOL
 
 
 @pytest.fixture(scope="module")
 def jump_data(ramp_data):
+    """
+    Generate a set of with jumps data as if for a single detector as it
+        would be passed in by the supporting code.
+    """
     read_pattern, *_ = ramp_data
     read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
 
-    resultants, _ = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS, add_jumps=True)
+    resultants, jumps = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS, add_jumps=True)
 
-    return resultants, read_noise, read_pattern, N_PIXELS, FLUX
+    return resultants, read_noise, read_pattern, N_PIXELS, FLUX, jumps
 
 
 def test_fit_ramps_with_jumps_no_dq(jump_data):
-    resultants, read_noise, read_pattern, n_pixels, flux = jump_data
+    resultants, read_noise, read_pattern, n_pixels, flux, jumps = jump_data
+    assert resultants.shape == jumps.shape  # sanity check that we have a jump result for each resultant
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
-    assert len(fits) == n_pixels
+    assert len(fits) == n_pixels  # sanity check that a fit is output for each pixel
+
+    for fit, jump in zip(fits, np.transpose(jumps)):
+        for jump_index in fit['jumps']:
+            assert jump[jump_index], f"{jump=} {fit['jumps']=}"  # check the identified jump is recorded as a jump

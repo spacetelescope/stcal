@@ -364,34 +364,37 @@ cdef class Pixel:
             if self.fixed.use_jump:
                 stats = self.stats(ramp_fit.slope, ramp)
 
-                # We have to protect against the case where the passed "ramp" is only
-                # a single point. In that case, stats will be empty. This will create
-                # an error in the max() call. 
+                # We have to protect against the case where the passed "ramp" is
+                # only a single point. In that case, stats will be empty. This
+                # will create an error in the max() call. 
                 if len(stats) > 0 and max(stats) > threshold(self.fixed.threshold, ramp_fit.slope):
                     # Compute split point to create two new ramps
-                    #   The split will map to the index of the resultant with the detected jump
+                    #   The split will map to the index of the resultant with the
+                    #   detected jump:
                     #       resultant_jump_index = ramp.start + split
-                    #   This resultant index needs to be removed, therefore the two possible new
-                    #   ramps are:
-                    #       RampIndex(ramp.start, ramp.start + split - 1)
-                    #       RampIndex(ramp.start + split + 1, ramp.end)
-                    #   This is because the RampIndex contains the index of the first and last
-                    #   resulants in the sub-ramp it describes.
                     split = np.argmax(stats)
+                    ramp_fits.jumps.push_back(ramp.start + split)
 
-                    # The algorithm works via working over the sub-ramps backward
-                    #    in time. Therefore, since we are using a stack, we need to
-                    #    add the ramps in the time order they were observed in. This
-                    #    results in the last observation ramp being the top of the
-                    #    stack; meaning that, it will be the next ramp handeled.
+                    # This resultant index needs to be removed, therefore the two
+                    # possible new ramps are:
+                    #     RampIndex(ramp.start, ramp.start + split - 1)
+                    #     RampIndex(ramp.start + split + 1, ramp.end)
+                    # This is because the RampIndex contains the index of the
+                    # first and last resulants in the sub-ramp it describes.
+                    #    Note: The algorithm works via working over the sub-ramps
+                    #    backward in time. Therefore, since we are using a stack,
+                    #    we need to add the ramps in the time order they were
+                    #    observed in. This results in the last observation ramp
+                    #    being the top of the stack; meaning that,
+                    #    it will be the next ramp handeled.
 
                     if split > 0:
                         # When split == 0, the jump has been detected in the resultant
                         # corresponding to the first resultant in the ramp, i.e
                         #    ramp.start
-                        # So the "split" is just excluding the first resultant in the
-                        # ramp currently being considered. Therefore, there is no need
-                        # to handle a ramp in this case.
+                        # So the "split" is just excluding the first resultant in
+                        # the ramp currently being considered. Therefore, there
+                        # is no need to handle a ramp in this case.
                         ramps.push(RampIndex(ramp.start, ramp.start + split - 1))
 
                     # Note that because the stats can only be calculated for ramp
@@ -410,7 +413,7 @@ cdef class Pixel:
                     # This is always a valid ramp.
                     ramps.push(RampIndex(ramp.start + split + 1, ramp.end))
 
-                    # Return to top of loop to fit new ramps (without adding to fits)
+                    # Return to top of loop to fit new ramps without recording
                     continue
 
             # Add ramp_fit to ramp_fits if no jump detection or stats are less
