@@ -51,7 +51,7 @@ def test_coeff_dq():
     L3 = -6.16E-11
     L4 = 7.23E-16
 
-    coeffs = np.asfarray([L0, L1, L2, L3, L4])
+    coeffs = np.asarray([L0, L1, L2, L3, L4], dtype='float')
 
     # pixels we are testing using above coefficients
     lin_coeffs[:, 30, 50] = coeffs
@@ -61,7 +61,7 @@ def test_coeff_dq():
     lin_dq = np.zeros((ysize, xsize), dtype=np.uint32)
 
     # check behavior with NaN coefficients: should not alter pixel values
-    coeffs2 = np.asfarray([L0, np.nan, L2, L3, L4])
+    coeffs2 = np.asarray([L0, np.nan, L2, L3, L4], dtype='float')
 
     lin_coeffs[:, 20, 50] = coeffs2
     data[0, 50, 20, 50] = 500.0

@@ -250,7 +250,7 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
                            after_jump_flag_n2=after_jump_flag_n2, copy_arrs=False,
                            minimum_groups=3, minimum_sigclip_groups=minimum_sigclip_groups,
                            only_use_ints=only_use_ints)
-        #  This is the flag that controls the flagging of either snowballs.
+        #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=min_sat_area,
                               min_jump_area=min_jump_area,
@@ -370,17 +370,16 @@ def detect_jumps(frames_per_group, data, gdq, pdq, err,
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-        #  This is the flag that controls the flagging of either
-        #  snowballs or showers.
+        #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(gdq, jump_flag, sat_flag,
-                              min_sat_area=min_sat_area,
-                              min_jump_area=min_jump_area,
-                              expand_factor=expand_factor,
-                              sat_required_snowball=sat_required_snowball,
-                              min_sat_radius_extend=min_sat_radius_extend,
-                              edge_size=edge_size, sat_expand=sat_expand,
-                              max_extended_radius=max_extended_radius)
+                                                min_sat_area=min_sat_area,
+                                                min_jump_area=min_jump_area,
+                                                expand_factor=expand_factor,
+                                                sat_required_snowball=sat_required_snowball,
+                                                min_sat_radius_extend=min_sat_radius_extend,
+                                                edge_size=edge_size, sat_expand=sat_expand,
+                                                max_extended_radius=max_extended_radius)
             log.info('Total snowballs = %i' % total_snowballs)
             number_extended_events = total_snowballs
         if find_showers:
@@ -468,14 +467,13 @@ def flag_large_events(gdq, jump_flag, sat_flag, min_sat_area=1,
     ngrps = gdq.shape[1]
     for integration in range(nints):
         for group in range(1, ngrps):
-            current_gdq = 1.0 * gdq[integration, group, :, :]
-            prev_gdq = 1.0 * gdq[integration, group - 1, :, :]
-            diff_gdq = 1.0 * current_gdq - prev_gdq
-            diff_gdq[diff_gdq != sat_flag] = 0
-            new_sat = diff_gdq.astype('uint8')
-            # find the ellipse parameters for newly saturated pixels
+            current_gdq = gdq[integration, group, :, :]
+            current_sat = np.bitwise_and(current_gdq, sat_flag)
+            prev_gdq = gdq[integration, group - 1, :, :]
+            prev_sat = np.bitwise_and(prev_gdq, sat_flag)
+            not_prev_sat = np.logical_not(prev_sat)
+            new_sat = current_sat * not_prev_sat
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
-
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(gdq[integration, group, :, :],
                                           jump_flag, min_jump_area)
@@ -609,25 +607,34 @@ def make_snowballs(gdq, integration, group, jump_ellipses, sat_ellipses,
     # center
     # of the saturation circle within the enclosing jump rectangle.
     snowballs = []
+    num_groups = gdq.shape[1]
     for jump in jump_ellipses:
-        if near_edge(jump, low_threshold, high_threshold):
+        # center of jump should be saturated
+        jump_center = jump[0]
+        # if center of the jump ellipse is not saturated in this group and is saturated in
+        # the next group add the jump ellipse to the snowball list
+        if (group < (num_groups - 1) and
+            gdq[integration, group+1, round(jump_center[1]), round(jump_center[0])] == sat_flag and
+            gdq[integration, group, round(jump_center[1]), round(jump_center[0])] != sat_flag):
+              snowballs.append(jump)
+        # if the jump ellipse is near the edge, do not require saturation in the
+        # center of the jump ellipse
+        elif near_edge(jump, low_threshold, high_threshold):
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
                 # center of saturation is within the enclosing jump rectangle
                 if point_inside_ellipse(sat[0], jump):
-                    # center of jump should be saturated
-                    jump_center = jump[0]
                     if gdq[integration, group, round(jump_center[1]),
                            round(jump_center[0])] == sat_flag:
                         if jump not in snowballs:
                             snowballs.append(jump)
-                            gdq[integration, :, :, :] = \
-                                extend_saturation(gdq[integration, :, :, :],
-                                                  group, [sat], sat_flag,
-                                                  min_sat_radius,
-                                                  expansion=expansion,
-                                                  max_extended_radius=max_extended_radius)
+    # extend the saturated ellipses that are larger than the min_sat_radius
+    gdq[integration, :, :, :] = \
+        extend_saturation(gdq[integration, :, :, :],
+                          group, sat_ellipses, sat_flag, min_sat_radius,
+                          expansion=expansion, max_extended_radius=max_extended_radius)
+
     return gdq, snowballs
 
 
@@ -718,7 +725,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
-        #  The convolution kernal creation
+        #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
         for grp in range(1, ngrps):
@@ -738,7 +745,6 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
 
             #  mask pix. that are already flagged as sat.
             masked_ratio[saty, satx] = np.nan
-
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
