@@ -21,7 +21,7 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, RampIndex
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, RampIndex, Diff
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
@@ -88,9 +88,9 @@ cdef class Pixel:
         cdef np.ndarray[float, ndim=2] t_bar_diff = np.array(self.fixed.t_bar_diff, dtype=np.float32)
         cdef np.ndarray[float, ndim=2] delta = np.zeros((2, end - 1), dtype=np.float32)
 
-        delta[0, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diff[0, :]).astype(np.float32)
-        delta[1, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diff[1, :end-2]).astype(np.float32)
-        delta[1, end-2] = np.nan  # last double difference is undefined
+        delta[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diff[0, :]).astype(np.float32)
+        delta[Diff.double, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diff[1, :end-2]).astype(np.float32)
+        delta[Diff.double, end-2] = np.nan  # last double difference is undefined
 
         return delta
 
@@ -298,10 +298,10 @@ cdef class Pixel:
                 # It is not possible to compute double differences for the second
                 # to last resultant in the ramp. Therefore, we just compute the
                 # single difference for this resultant.
-                stats[stat] = self.stat(slope, ramp, index, 0)
+                stats[stat] = self.stat(slope, ramp, index, Diff.single)
             else:
-                stats[stat] = max(self.stat(slope, ramp, index, 0),
-                                  self.stat(slope, ramp, index, 1))
+                stats[stat] = max(self.stat(slope, ramp, index, Diff.double),
+                                  self.stat(slope, ramp, index, Diff.double))
 
         return stats
         
@@ -407,6 +407,7 @@ cdef class Pixel:
             ramp_fits.index.push_back(ramp)
 
             # Start computing the averages
+            #    Note we do not do anything in the NaN case for degenerate ramps
             if not np.isnan(ramp_fit.slope):
                 weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
                 total_weight += weight

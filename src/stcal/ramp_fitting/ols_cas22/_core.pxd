@@ -36,6 +36,12 @@ cdef struct Thresh:
     float intercept
     float constant
 
+
+cdef enum Diff:
+    single = 0
+    double = 1
+
+
 cdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
 cdef deque[stack[RampIndex]] init_ramps(int[:, :] dq)

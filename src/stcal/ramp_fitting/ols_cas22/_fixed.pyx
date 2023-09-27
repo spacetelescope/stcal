@@ -16,7 +16,7 @@ make_fixed : function
 import numpy as np
 cimport numpy as np
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData, Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Fixed:
@@ -84,9 +84,9 @@ cdef class Fixed:
 
         cdef np.ndarray[float, ndim=2] t_bar_diff = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
 
-        t_bar_diff[0, :] = np.subtract(t_bar[1:], t_bar[:-1]) 
-        t_bar_diff[1, :-1] = np.subtract(t_bar[2:], t_bar[:-2])
-        t_bar_diff[1, -1] = np.nan  # last double difference is undefined
+        t_bar_diff[Diff.single, :] = np.subtract(t_bar[1:], t_bar[:-1]) 
+        t_bar_diff[Diff.double, :-1] = np.subtract(t_bar[2:], t_bar[:-2])
+        t_bar_diff[Diff.double, -1] = np.nan  # last double difference is undefined
 
         return t_bar_diff
 
@@ -112,11 +112,11 @@ cdef class Fixed:
 
         cdef np.ndarray[float, ndim=2] recip = np.zeros((2, self.data.n_reads.size() - 1), dtype=np.float32)
 
-        recip[0, :] = (np.divide(1.0, n_reads[1:], dtype=np.float32) +
-                       np.divide(1.0, n_reads[:-1], dtype=np.float32))
-        recip[1, :-1] = (np.divide(1.0, n_reads[2:], dtype=np.float32) +
-                         np.divide(1.0, n_reads[:-2], dtype=np.float32))
-        recip[1, -1] = np.nan  # last double difference is undefined
+        recip[Diff.single, :] = (np.divide(1.0, n_reads[1:], dtype=np.float32) +
+                                 np.divide(1.0, n_reads[:-1], dtype=np.float32))
+        recip[Diff.double, :-1] = (np.divide(1.0, n_reads[2:], dtype=np.float32) +
+                                   np.divide(1.0, n_reads[:-2], dtype=np.float32))
+        recip[Diff.double, -1] = np.nan  # last double difference is undefined
 
         return recip
 
@@ -143,9 +143,9 @@ cdef class Fixed:
 
         cdef np.ndarray[float, ndim=2] slope_var = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
 
-        slope_var[0, :] = (np.add(tau[1:], tau[:-1]) - np.minimum(t_bar[1:], t_bar[:-1]))
-        slope_var[1, :-1] = (np.add(tau[2:], tau[:-2]) - np.minimum(t_bar[2:], t_bar[:-2]))
-        slope_var[1, -1] = np.nan  # last double difference is undefined
+        slope_var[Diff.single, :] = (np.add(tau[1:], tau[:-1]) - np.minimum(t_bar[1:], t_bar[:-1]))
+        slope_var[Diff.double, :-1] = (np.add(tau[2:], tau[:-2]) - np.minimum(t_bar[2:], t_bar[:-2]))
+        slope_var[Diff.double, -1] = np.nan  # last double difference is undefined
 
         return slope_var
 
