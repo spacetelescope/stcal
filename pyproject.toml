@@ -93,3 +93,9 @@ exclude = [
     '.tox',
     '.eggs',
 ]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["auto", "aarch64"]
