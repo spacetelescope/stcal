@@ -12,8 +12,22 @@ jobs:
     with:
       upload_to_pypi: ${{ (github.event_name == 'release') && (github.event.action == 'released') }}
       targets: |
-        - cp3?-manylinux_x86_64
-        - cp3?-macosx_x86_64
+        # Linux wheels
+        - cp39-manylinux_x86_64
+        - cp310-manylinux_x86_64
+        - cp311-manylinux_x86_64
+        - cp312-manylinux_x86_64
+
+        # MacOS wheels
+        - cp39*macosx_x86_64
+        - cp310*macosx_x86_64
+        - cp311*macosx_x86_64
+        - cp312*macosx_x86_64
+        # Until we have arm64 runners, we can't automatically test arm64 wheels
+        - cp39*macosx_arm64
+        - cp310*macosx_arm64
+        - cp311*macosx_arm64
+        - cp312*macosx_arm64
       sdist: true
     secrets:
       pypi_token: ${{ secrets.PYPI_PASSWORD_STSCI_MAINTAINER }}
