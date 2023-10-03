@@ -314,7 +314,7 @@ cdef class Pixel:
                 # single difference for this resultant.
                 stats[stat] = self.stat(slope, ramp, index, Diff.single)
             else:
-                stats[stat] = max(self.stat(slope, ramp, index, Diff.double),
+                stats[stat] = max(self.stat(slope, ramp, index, Diff.single),
                                   self.stat(slope, ramp, index, Diff.double))
 
         return stats
@@ -348,7 +348,7 @@ cdef class Pixel:
         ramp_fits.average.poisson_var = 0
 
         cdef float [:] stats
-        cdef int jump
+        cdef int jump0, jump1
         cdef float weight, total_weight = 0
 
         # Run while the stack is non-empty
@@ -375,13 +375,30 @@ cdef class Pixel:
                     #    These statistics are indexed relative to the
                     #    ramp's range. Therefore, we need to add the start index
                     #    of the ramp to the result.
-                    jump = np.argmax(stats) + ramp.start
-                    ramp_fits.jumps.push_back(jump)
+                    #
+                    # Note that because the resultants are averages of reads, but
+                    # jumps occur in individual reads, it is possible that the
+                    # jump is averaged down by the resultant with the actual jump
+                    # causing the computed jump to be off by one index.
+                    #     In the idealized case this is when the jump occurs near
+                    #     the start of the resultant with the jump. In this case,
+                    #     the statistic for the resultant will be maximized at
+                    #     index - 1 rather than index. This means that we have to
+                    #     remove argmax(stats) + 1 as it is also a possible jump.
+                    #     This case is difficult to distinguish from the case where
+                    #     argmax(stats) does correspond to the jump resultant.
+                    #     Therefore, we just remove both possible resultants from
+                    #     consideration.
+                    jump0 = np.argmax(stats) + ramp.start
+                    jump1 = jump0 + 1
+                    ramp_fits.jumps.push_back(jump0)
+                    ramp_fits.jumps.push_back(jump1)
 
-                    # This resultant index needs to be removed, therefore the two
+                    # The two resultant indicies need to be skipped, therefore
+                    # the two
                     # possible new ramps are:
-                    #     RampIndex(ramp.start, jump - 1)
-                    #     RampIndex(jump + 1, ramp.end)
+                    #     RampIndex(ramp.start, jump0 - 1)
+                    #     RampIndex(jump1 + 1, ramp.end)
                     # This is because the RampIndex contains the index of the
                     # first and last resulants in the sub-ramp it describes.
                     #    Note: The algorithm works via working over the sub-ramps
@@ -391,38 +408,31 @@ cdef class Pixel:
                     #    being the top of the stack; meaning that,
                     #    it will be the next ramp handeled.
 
-                    if jump > ramp.start:
-                        # When jump == ramp.start, the jump has been detected in
-                        # the resultant in the first resultant of the ramp. So
-                        # the "split" is just excluding the first resultant in
-                        # the ramp currently being considered. Therefore, there
-                        # is no need to handle a ramp in this case.
-                        #   Note that by construction jump >= ramp.start. So
-                        #   something has seriously gone wrong if jump < ramp.start
-                        ramps.push(RampIndex(ramp.start, jump - 1))
+                    if jump0 > ramp.start:
+                        # Note that when jump0 == ramp.start, we have detected a
+                        # jump in the first resultant of the ramp. This means
+                        # there is no sub-ramp before jump0.
+                        #    Also, note that this will produce bad results as
+                        #    the ramp indexing will go out of bounds. So it is
+                        #    important that we exclude it.
+                        # Note that jump0 < ramp.start is not possible because
+                        # the argmax is always >= 0
+                        ramps.push(RampIndex(ramp.start, jump0 - 1))
 
-                    # Note that because the stats can only be calculated for ramp
-                    # length - 1 positions due to the need to compute at least
-                    # single differences. Therefore the maximum value for
-                    # argmax(stats) is ramp length - 2, as the index of the last
-                    # element of stats is length of stats - 1. Thus
-                    #     max(argmax(stats)) = len(stats) - 1
-                    #                        = len(ramp) - 2
-                    #                        = ramp.end - ramp.start - 1
-                    # Thus we have
-                    #     max(jump) = ramp.start + max(argmax(stats))
-                    #               = ramp.start + ramp.end - ramp.start - 1
-                    #               = ramp.end - 1
-                    # So we have that the maximium value for the lower index of
-                    # this sub-ramp is
-                    #     max(jump) + 1 = ramp.end - 1 + 1
-                    #                   = ramp.end
-                    # (ramp.end, ramp.end) is technically a valid ramp, which
-                    # will immediately get thrown out in the next iteration of
-                    # because stats will be empty.
-                    ramps.push(RampIndex(jump + 1, ramp.end))
+                    if jump1 < ramp.end:
+                        # Note that if jump1 == ramp.end, we have detected a
+                        # jump in the last resultant of the ramp. This means
+                        # there is no sub-ramp after jump1.
+                        #    Also, note that this will produce bad results as
+                        #    the ramp indexing will go out of bounds. So it is
+                        #    important that we exclude it.
+                        # Note that jump1 > ramp.end is technically possible
+                        # however in those potential cases it will draw on
+                        # resultants which are not considered part of the ramp
+                        # under consideration. Therefore, we have to exlude all
+                        # of those values.
+                        ramps.push(RampIndex(jump1 + 1, ramp.end))
 
-                    # Return to top of loop to fit new ramps without recording
                     continue
 
             # Add ramp_fit to ramp_fits if no jump detection or stats are less

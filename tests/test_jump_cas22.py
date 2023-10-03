@@ -154,29 +154,20 @@ def test_make_fixed(ramp_data, use_jump):
         assert np.isnan(fixed['slope_var']).all()
 
 
-def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1, add_jumps=False):
+def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
     """Generate a set of resultants for a pixel"""
     resultants = np.zeros((len(read_pattern), n_pixels), dtype=np.float32)
-    jumps = []
 
     # Use Poisson process to simulate the accumulation of the ramp
     ramp_value = np.zeros(n_pixels, dtype=np.float32)  # Last value of ramp
     for index, reads in enumerate(read_pattern):
         resultant_total = np.zeros(n_pixels, dtype=np.float32)  # Total of all reads in this resultant
-        read_jumps = []
         for _ in reads:
             # Compute the next value of the ramp
             #   - Poisson process for the flux
             #   - Gaussian process for the read noise
             ramp_value += RNG.poisson(flux * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
             ramp_value += RNG.standard_normal(size=n_pixels, dtype=np.float32) * read_noise / np.sqrt(len(reads))
-            if add_jumps:
-                # Add jumps only to ~1% of the pixels for any given read
-                jump_points = RNG.standard_normal(size=n_pixels, dtype=np.float32) > 0.99
-                read_jumps.append(jump_points)
-
-                # Add a large value to the ramp
-                ramp_value += (JUMP_VALUE * jump_points).astype(np.float32)
 
             # Add to running total for the resultant
             resultant_total += ramp_value
@@ -184,13 +175,10 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1, add_jumps=F
         # Record the average value for resultant (i.e., the average of the reads)
         resultants[index] = (resultant_total / len(reads)).astype(np.float32)
 
-        # Record all the jumps for this resultant
-        jumps.append(np.any(read_jumps, axis=0))
-
     if n_pixels == 1:
         resultants = resultants[:, 0]
 
-    return resultants, np.array(jumps)
+    return resultants
 
 
 @pytest.fixture(scope="module")
@@ -199,7 +187,7 @@ def pixel_data(ramp_data):
     read_noise = np.float32(5)
 
     read_pattern, t_bar, tau, n_reads = ramp_data
-    resultants, _ = _generate_resultants(read_pattern, FLUX, read_noise)
+    resultants = _generate_resultants(read_pattern, FLUX, read_noise)
 
     yield resultants, t_bar, tau, n_reads, read_noise, FLUX
 
@@ -257,7 +245,7 @@ def detector_data(ramp_data):
     read_pattern, *_ = ramp_data
     read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
 
-    resultants, _ = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS)
+    resultants = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS)
 
     return resultants, read_noise, read_pattern, N_PIXELS, FLUX
 
@@ -323,27 +311,101 @@ def test_fit_ramps_dq(detector_data, use_jump):
 
 
 @pytest.fixture(scope="module")
-def jump_data(ramp_data):
+def jump_data():
     """
-    Generate a set of with jumps data as if for a single detector as it
-        would be passed in by the supporting code.
+    Generate a set of data were jumps are simulated in each possible read.
+        - jumps should occur in read of same index as the pixel index.
     """
-    read_pattern, *_ = ramp_data
-    read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
 
-    resultants, jumps = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS, add_jumps=True)
+    # Generate a read pattern with 8 reads per resultant
+    shape = (8, 8)
+    read_pattern = np.arange(np.prod(shape)).reshape(shape).tolist()
 
-    return resultants, read_noise, read_pattern, N_PIXELS, FLUX, jumps
+    resultants = np.zeros((len(read_pattern), np.prod(shape)), dtype=np.float32)
+    jumps = np.zeros((len(read_pattern), np.prod(shape)), dtype=bool)
+    jump_res = -1
+    for jump_index in range(np.prod(shape)):
+        read_values = np.zeros(np.prod(shape), dtype=np.float32)
+        for index in range(np.prod(shape)):
+            if index >= jump_index:
+                read_values[index] = JUMP_VALUE
+
+        if jump_index % shape[1] == 0:
+            # Start indicating a new resultant
+            jump_res += 1
+        jumps[jump_res, jump_index] = True
+        
+        resultants[:, jump_index] = np.mean(read_values.reshape(shape), axis=1).astype(np.float32)
+
+    n_pixels = np.prod(shape)
+    read_noise = np.ones(n_pixels, dtype=np.float32) * 5
+
+    # Add actual ramp data in addition to the jump data
+    resultants += _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=n_pixels)
+
+    return resultants, read_noise, read_pattern, n_pixels, jumps.transpose()
 
 
-def test_fit_ramps_with_jumps_no_dq(jump_data):
-    resultants, read_noise, read_pattern, n_pixels, flux, jumps = jump_data
-    assert resultants.shape == jumps.shape  # sanity check that we have a jump result for each resultant
+def test_find_jumps(jump_data):
+    """
+    Check that we can locate all the jumps in a given ramp
+    """
+    resultants, read_noise, read_pattern, n_pixels, jumps = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
-    assert len(fits) == n_pixels  # sanity check that a fit is output for each pixel
 
-    for fit, jump in zip(fits, np.transpose(jumps)):
-        for jump_index in fit['jumps']:
-            assert jump[jump_index], f"{jump=} {fit['jumps']=}"  # check the identified jump is recorded as a jump
+    # Check that all the jumps have been located per the algorithm's constraints
+    for index, (fit, jump) in enumerate(zip(fits, jumps)):
+        # sanity check that only one jump should have been added
+        assert np.where(jump)[0].shape == (1,)
+        if index == 0:
+            # There is no way to detect a jump if it is in the very first read
+            # The very first pixel in this case has a jump in the first read
+            assert len(fit['jumps']) == 0
+            assert jump[0]
+            assert not np.all(jump[1:])
+
+            # Test that the correct index was recorded
+            assert len(fit['index']) == 1
+            assert fit['index'][0]['start'] == 0
+            assert fit['index'][0]['end'] == len(read_pattern) - 1
+        else:
+            # Select the single jump and check that it is recorded as a jump
+            assert np.where(jump)[0][0] in fit['jumps']
+
+            # In all cases here we have to exclude two resultants
+            assert len(fit['jumps']) == 2
+
+            # Test that all the jumps recorded are +/- 1 of the real jump
+            #    This is due to the need to exclude two resultants
+            for jump_index in fit['jumps']:
+                assert jump[jump_index] or jump[jump_index + 1] or jump[jump_index - 1]
+
+            # Test that the correct indexes are recorded
+            ramp_indicies = []
+            for ramp_index in fit["index"]:
+                # Note start/end of a ramp_index are inclusive meaning that end
+                #    is an index included in the ramp_index so the range is to end + 1
+                new_indicies = list(range(ramp_index["start"], ramp_index["end"] + 1))
+
+                # check that all the ramps are non-overlapping
+                assert set(ramp_indicies).isdisjoint(new_indicies)
+
+                ramp_indicies.extend(new_indicies)
+
+            # check that no ramp_index is a jump
+            assert set(ramp_indicies).isdisjoint(fit['jumps'])
+
+            # check that all resultant indicies are either in a ramp or listed as a jump
+            assert set(ramp_indicies).union(fit['jumps']) == set(range(len(read_pattern)))
+
+    # Check that the slopes have been estimated reasonably well
+    #   There are not that many pixels to test this against and many resultants
+    #   have been thrown out due to the jumps. Thus we only check the slope is
+    #   "fairly close" to the expected value. This is purposely a loose check
+    #   because the main purpose of this test is to verify that the jumps are
+    #   being detected correctly, above.
+    chi2 = 0
+    for fit in fits:
+        assert_allclose(fit['average']['slope'], FLUX, rtol=3)
