@@ -110,7 +110,7 @@ def fit_ramps_casertano(
         dq = dq.reshape(orig_shape + (1,))
         read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
-    ramp_fits, parameters, variances = ols_cas22.fit_ramps(
+    _, parameters, variances = ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
