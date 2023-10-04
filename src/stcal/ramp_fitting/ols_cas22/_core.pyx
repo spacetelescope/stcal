@@ -45,8 +45,10 @@ Functions
 from libcpp.stack cimport stack
 from libcpp.deque cimport deque
 from libc.math cimport log10
+
 import numpy as np
 cimport numpy as np
+cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
 
@@ -57,6 +59,8 @@ cdef float[2][6] PTABLE = [
     [0,     0.4,  1,  3,  6,  10]]
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline float get_power(float s):
     """
     Return the power from Casertano+22, Table 2
@@ -96,6 +100,8 @@ cdef inline float threshold(Thresh thresh, float slope):
     return thresh.intercept - thresh.constant * log10(slope)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
     """
     Create the initial ramp stack for each pixel
@@ -166,6 +172,8 @@ cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
     return pixel_ramps
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef DerivedData read_data(list[list[int]] read_pattern, float read_time):
     """
     Derive the input data from the the read pattern

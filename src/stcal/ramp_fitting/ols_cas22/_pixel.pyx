@@ -209,6 +209,8 @@ cdef class Pixel:
 
         return ramp_fit
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef inline float correction(Pixel self, RampIndex ramp, int index, int diff):
         """
         Compute the correction factor for the variance used by a statistic
@@ -274,7 +276,6 @@ cdef class Pixel:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef inline float[:] stats(Pixel self, float slope, RampIndex ramp):
         """
         Compute fit statistics for jump detection on a single ramp
@@ -469,6 +470,8 @@ cdef class Pixel:
         return ramp_fits
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants):
     """
     Fast constructor for the Pixel C class.
