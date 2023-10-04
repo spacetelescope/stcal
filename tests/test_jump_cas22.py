@@ -6,7 +6,7 @@ from stcal.ramp_fitting.ols_cas22._wrappers import read_data
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
 from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, make_fixed, make_pixel, fit_ramp
 
-from stcal.ramp_fitting.ols_cas22 import fit_ramps
+from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff
 
 
 RNG = np.random.default_rng(619)
@@ -128,8 +128,8 @@ def test_make_fixed(ramp_data, use_jump):
     # These are computed via vectorized operations in the main code, here we
     #    check using item-by-item operations
     if use_jump:
-        single_gen = zip(fixed['t_bar_diff'][0], fixed['recip'][0], fixed['slope_var'][0])
-        double_gen = zip(fixed['t_bar_diff'][1], fixed['recip'][1], fixed['slope_var'][1])
+        single_gen = zip(fixed['t_bar_diff'][Diff.single], fixed['recip'][Diff.single], fixed['slope_var'][Diff.single])
+        double_gen = zip(fixed['t_bar_diff'][Diff.double], fixed['recip'][Diff.double], fixed['slope_var'][Diff.double])
 
         for index, (t_bar_1, recip_1, slope_var_1) in enumerate(single_gen):
             assert t_bar_1 == t_bar[index + 1] - t_bar[index]
@@ -210,8 +210,8 @@ def test_make_pixel(pixel_data, use_jump):
     # These are computed via vectorized operations in the main code, here we
     #    check using item-by-item operations
     if use_jump:
-        single_gen = zip(pixel['delta'][0], pixel['sigma'][0])
-        double_gen = zip(pixel['delta'][1], pixel['sigma'][1])
+        single_gen = zip(pixel['delta'][Diff.single], pixel['sigma'][Diff.single])
+        double_gen = zip(pixel['delta'][Diff.double], pixel['sigma'][Diff.double])
 
         for index, (delta_1, sigma_1) in enumerate(single_gen):
             assert delta_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
@@ -260,12 +260,12 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     fits, parameters, variances = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
 
     for fit, par, var in zip(fits, parameters, variances):
-        assert par[0] == 0
-        assert par[1] == fit['average']['slope']
+        assert par[Parameter.intercept] == 0
+        assert par[Parameter.slope] == fit['average']['slope']
 
-        assert var[0] == fit['average']['read_var']
-        assert var[1] == fit['average']['poisson_var']
-        assert var[2] == np.float32(fit['average']['read_var'] + fit['average']['poisson_var'])
+        assert var[Variance.read_var] == fit['average']['read_var']
+        assert var[Variance.poisson_var] == fit['average']['poisson_var']
+        assert var[Variance.total_var] == np.float32(fit['average']['read_var'] + fit['average']['poisson_var'])
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
@@ -381,7 +381,7 @@ def test_find_jumps(jump_data):
             # There is no way to detect a jump if it is in the very first read
             # The very first pixel in this case has a jump in the first read
             assert len(fit['jumps']) == 0
-            assert jump[0]
+            assert jump[0]  # sanity check that the jump is in the first resultant still
             assert not np.all(jump[1:])
 
             # Test that the correct index was recorded

@@ -7,7 +7,7 @@ from libcpp.deque cimport deque
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
-    RampFits, RampIndex, Thresh, read_data, init_ramps)
+    RampFits, RampIndex, Thresh, read_data, init_ramps, Parameter, Variance)
 from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
@@ -80,11 +80,11 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         fit = make_pixel(fixed, read_noise[index],
                          resultants[:, index]).fit_ramps(pixel_ramps[index])
 
-        parameters[index, 1] = fit.average.slope
+        parameters[index, Parameter.slope] = fit.average.slope
 
-        variances[index, 0] = fit.average.read_var
-        variances[index, 1] = fit.average.poisson_var
-        variances[index, 2] = fit.average.read_var + fit.average.poisson_var
+        variances[index, Variance.read_var] = fit.average.read_var
+        variances[index, Variance.poisson_var] = fit.average.poisson_var
+        variances[index, Variance.total_var] = fit.average.read_var + fit.average.poisson_var
 
         ramp_fits.push_back(fit)
 
