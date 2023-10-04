@@ -98,25 +98,13 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
         dq = dq.reshape(origshape + (1,))
         read_noise = read_noise.reshape(origshape[1:] + (1,))
 
-    ramp_fits = ols_cas22.fit_ramps(
+    ramp_fits, parameters, variances = ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
         read_time,
         read_pattern,
         use_jump)
-
-    parameters = np.zeros((len(ramp_fits), 2), dtype=np.float32)
-    variances = np.zeros((len(ramp_fits), 3), dtype=np.float32)
-
-    # Extract the data request from the ramp fits
-    for index, ramp_fit in enumerate(ramp_fits):
-        parameters[index, 1] = ramp_fit['average']['slope']
-
-        variances[index, 0] = ramp_fit['average']['read_var']
-        variances[index, 1] = ramp_fit['average']['poisson_var']
-
-    variances[:, 2] = (variances[:, 0] + variances[:, 1]).astype(np.float32)
 
     if resultants.shape != orig_shape:
         parameters = parameters[0]

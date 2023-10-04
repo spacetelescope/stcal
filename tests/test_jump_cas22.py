@@ -249,6 +249,24 @@ def detector_data(ramp_data):
 
     return resultants, read_noise, read_pattern, N_PIXELS, FLUX
 
+@pytest.mark.parametrize("use_jump", [True, False])
+def test_fit_ramps_array_outputs(detector_data, use_jump):
+    """
+    Test that the array outputs line up with the dictionary output
+    """
+    resultants, read_noise, read_pattern, n_pixels, flux = detector_data
+    dq = np.zeros(resultants.shape, dtype=np.int32)
+
+    fits, parameters, variances = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+
+    for fit, par, var in zip(fits, parameters, variances):
+        assert par[0] == 0
+        assert par[1] == fit['average']['slope']
+
+        assert var[0] == fit['average']['read_var']
+        assert var[1] == fit['average']['poisson_var']
+        assert var[2] == np.float32(fit['average']['read_var'] + fit['average']['poisson_var'])
+
 
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_fit_ramps_no_dq(detector_data, use_jump):
@@ -260,7 +278,7 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
     resultants, read_noise, read_pattern, n_pixels, flux = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
     assert len(fits) == n_pixels  # sanity check that a fit is output for each pixel
 
     # Check that the chi2 for the resulting fit relative to the assumed flux is ~1
@@ -291,7 +309,7 @@ def test_fit_ramps_dq(detector_data, use_jump):
     #   i.e., we can make a measurement from them.
     okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
 
-    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
     assert len(fits) == n_pixels  # sanity check that a fit is output for each pixel
 
     chi2 = 0
@@ -353,7 +371,7 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, n_pixels, jumps = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
 
     # Check that all the jumps have been located per the algorithm's constraints
     for index, (fit, jump) in enumerate(zip(fits, jumps)):

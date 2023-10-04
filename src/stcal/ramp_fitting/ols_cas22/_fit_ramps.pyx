@@ -69,11 +69,23 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     #    list in the end.
     cdef cpp_list[RampFits] ramp_fits
 
+    cdef np.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
+    cdef np.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
+
     # Perform all of the fits
+    cdef RampFits fit
     cdef int index
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
-        ramp_fits.push_back(make_pixel(fixed, read_noise[index],
-                            resultants[:, index]).fit_ramps(pixel_ramps[index]))
+        fit = make_pixel(fixed, read_noise[index],
+                         resultants[:, index]).fit_ramps(pixel_ramps[index])
 
-    return ramp_fits
+        parameters[index, 1] = fit.average.slope
+
+        variances[index, 0] = fit.average.read_var
+        variances[index, 1] = fit.average.poisson_var
+        variances[index, 2] = fit.average.read_var + fit.average.poisson_var
+
+        ramp_fits.push_back(fit)
+
+    return ramp_fits, parameters, variances
