@@ -34,8 +34,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         the resultants in electrons
     dq : np.ndarry[n_resultants, n_pixel]
         the dq array.  dq != 0 implies bad pixel / CR.
-    read noise : float
-        the read noise in electrons
+    read_noise : np.ndarray[n_pixel]
+        the read noise in electrons for each pixel
     read_time : float
         Time to perform a readout. For Roman data, this is FRAME_TIME.
     read_pattern : list[list[int]]

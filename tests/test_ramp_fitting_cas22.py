@@ -14,22 +14,22 @@ from stcal.ramp_fitting import ols_cas22_util
 ROMAN_READ_TIME = 3.04
 
 
-def test_matable_to_readpattern():
+def test_ma_table_to_read_pattern():
     """Test conversion from read pattern to multi-accum table"""
     ma_table = [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
     expected = [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
 
-    result = ols_cas22_util.matable_to_readpattern(ma_table)
+    result = ols_cas22_util.ma_table_to_read_pattern(ma_table)
 
     assert result == expected
 
 
-def test_readpattern_to_matable():
+def test_read_pattern_to_ma_table():
     """Test conversion from read pattern to multi-accum table"""
     pattern = [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
     expected = [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
 
-    result = ols_cas22_util.readpattern_to_matable(pattern)
+    result = ols_cas22_util.read_pattern_to_ma_table(pattern)
 
     assert result == expected
 
@@ -38,14 +38,18 @@ def test_simulated_ramps():
     ntrial = 100000
     ma_table, flux, read_noise, resultants = simulate_many_ramps(ntrial=ntrial)
 
+    dq = np.zeros(resultants.shape, dtype=np.int32)
+    read_noise = np.ones(resultants.shape[1], dtype=np.float32) * read_noise
+
     par, var = ramp.fit_ramps_casertano(
-        resultants, resultants * 0, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
+        resultants, dq, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
+
     chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
 
     # now let's mark a bunch of the ramps as compromised.
     bad = np.random.uniform(size=resultants.shape) > 0.7
-    dq = resultants * 0 + bad
+    dq += bad
     par, var = ramp.fit_ramps_casertano(
         resultants, dq, read_noise, ROMAN_READ_TIME, ma_table=ma_table)
     # only use okay ramps

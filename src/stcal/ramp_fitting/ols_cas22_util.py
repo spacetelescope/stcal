@@ -2,10 +2,14 @@
 """
 import numpy as np
 
-__all__ = ['ma_table_to_tau', 'ma_table_to_tbar']
+__all__ = [
+    'ma_table_to_read_pattern',
+    'ma_table_to_tau',
+    'ma_table_to_tbar',
+    'read_pattern_to_ma_table']
 
 
-def matable_to_readpattern(ma_table):
+def ma_table_to_read_pattern(ma_table):
     """Convert read patterns to multi-accum lists
 
     Using Roman terminology, a "read pattern" is a list of resultants. Each element of this list
@@ -26,7 +30,7 @@ def matable_to_readpattern(ma_table):
     [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
 
     The example above, using this function, should perform as follows:
-    >>> matable_to_readpattern([[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]])
+    >>> ma_table_to_read_pattern([[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]])
     [[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]]
 
     Parameters
@@ -123,7 +127,7 @@ def ma_table_to_tbar(ma_table, read_time):
     return meantimes
 
 
-def readpattern_to_matable(read_pattern):
+def read_pattern_to_ma_table(read_pattern):
     """Convert read patterns to multi-accum lists
 
     Using Roman terminology, a "read pattern" is a list of resultants. Each element of this list
@@ -144,7 +148,7 @@ def readpattern_to_matable(read_pattern):
     [[1, 1], [2, 2], [4, 1], [5, 4], [9,2], [11,1]]
 
     The example above, using this function, should perform as follows:
-    >>> readpattern_to_matable([[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]])
+    >>> read_pattern_to_ma_table([[1], [2, 3], [4], [5, 6, 7, 8], [9, 10], [11]])
     [[1, 1], [2, 2], [4, 1], [5, 4], [9, 2], [11, 1]]
 
     Parameters

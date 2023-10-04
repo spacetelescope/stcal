@@ -33,7 +33,7 @@ from astropy import units as u
 import numpy as np
 
 from . import ols_cas22
-from .ols_cas22_util import ma_table_to_tau, ma_table_to_tbar, readpattern_to_matable
+from .ols_cas22_util import ma_table_to_tau, ma_table_to_tbar, read_pattern_to_ma_table, ma_table_to_read_pattern
 
 
 def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, read_pattern=None, use_jump=False):
@@ -76,7 +76,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
     # Get the Multi-accum table, either as given or from the read pattern
     if read_pattern is None:
         if ma_table is not None:
-            read_pattern = ma_table_to_readpattern(ma_table)
+            read_pattern = ma_table_to_read_pattern(ma_table)
     if read_pattern is None:
         raise RuntimeError('One of `ma_table` or `read_pattern` must be given.')
 
@@ -86,8 +86,7 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
 
     resultants = np.array(resultants).astype(np.float32)
 
-    dq = np.array(dq).astype(np.float32)
-
+    dq = np.array(dq).astype(np.int32)
     if np.ndim(read_noise) <= 1:
         read_noise = read_noise * np.ones(resultants.shape[1:])
     read_noise = np.array(read_noise).astype(np.float32)
@@ -112,12 +111,12 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
 
     # Extract the data request from the ramp fits
     for index, ramp_fit in enumerate(ramp_fits):
-        parameters[1, :] = ramp_fit['average']['slope']
+        parameters[index, 1] = ramp_fit['average']['slope']
 
-        variances[0, :] = ramp_fit['average']['read_var']
-        variances[1, :] = ramp_fit['average']['poisson_var']
+        variances[index, 0] = ramp_fit['average']['read_var']
+        variances[index, 1] = ramp_fit['average']['poisson_var']
 
-    variances[2, :] = variances[0, :] + variances[1, :]
+    variances[:, 2] = (variances[:, 0] + variances[:, 1]).astype(np.float32)
 
     if resultants.shape != orig_shape:
         parameters = parameters[0]
