@@ -143,23 +143,3 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
                 read_noise=pixel.read_noise,
                 delta=delta,
                 sigma=sigma)
-
-
-def fit_ramp(np.ndarray[float, ndim=1] resultants,
-             np.ndarray[float, ndim=1] t_bar,
-             np.ndarray[float, ndim=1] tau,
-             np.ndarray[int, ndim=1] n_reads,
-             float read_noise,
-             int start,
-             int end):
-
-    cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
-    cdef Thresh threshold = Thresh(0, 1)
-    cdef Fixed fixed = c_make_fixed(data, threshold, False)
-
-    cdef Pixel pixel = c_make_pixel(fixed, read_noise, resultants)
-    cdef RampIndex ramp_index = RampIndex(start, end)
-
-    cdef RampFit ramp_fit = pixel.fit_ramp(ramp_index)
-
-    return ramp_fit

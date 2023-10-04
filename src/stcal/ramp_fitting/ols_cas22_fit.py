@@ -33,10 +33,22 @@ from astropy import units as u
 import numpy as np
 
 from . import ols_cas22
-from .ols_cas22_util import ma_table_to_tau, ma_table_to_tbar, read_pattern_to_ma_table, ma_table_to_read_pattern
+from .ols_cas22_util import (
+    ma_table_to_tau,
+    ma_table_to_tbar,
+    ma_table_to_read_pattern
+)
 
 
-def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, read_pattern=None, use_jump=False):
+def fit_ramps_casertano(
+    resultants,
+    dq,
+    read_noise,
+    read_time,
+    ma_table=None,
+    read_pattern=None,
+    use_jump=False
+):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
     Ramps are broken where dq != 0, and fits are performed on each sub-ramp.
@@ -94,9 +106,9 @@ def fit_ramps_casertano(resultants, dq, read_noise, read_time, ma_table=None, re
     orig_shape = resultants.shape
     if len(resultants.shape) == 1:
         # single ramp.
-        resultants = resultants.reshape(origshape + (1,))
-        dq = dq.reshape(origshape + (1,))
-        read_noise = read_noise.reshape(origshape[1:] + (1,))
+        resultants = resultants.reshape(orig_shape + (1,))
+        dq = dq.reshape(orig_shape + (1,))
+        read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
     ramp_fits, parameters, variances = ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),

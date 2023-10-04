@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import read_data
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, make_fixed, make_pixel, fit_ramp
+from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, make_fixed, make_pixel
 
 from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff
 
@@ -128,8 +128,16 @@ def test_make_fixed(ramp_data, use_jump):
     # These are computed via vectorized operations in the main code, here we
     #    check using item-by-item operations
     if use_jump:
-        single_gen = zip(fixed['t_bar_diff'][Diff.single], fixed['recip'][Diff.single], fixed['slope_var'][Diff.single])
-        double_gen = zip(fixed['t_bar_diff'][Diff.double], fixed['recip'][Diff.double], fixed['slope_var'][Diff.double])
+        single_gen = zip(
+            fixed['t_bar_diff'][Diff.single],
+            fixed['recip'][Diff.single],
+            fixed['slope_var'][Diff.single]
+        )
+        double_gen = zip(
+            fixed['t_bar_diff'][Diff.double],
+            fixed['recip'][Diff.double],
+            fixed['slope_var'][Diff.double]
+        )
 
         for index, (t_bar_1, recip_1, slope_var_1) in enumerate(single_gen):
             assert t_bar_1 == t_bar[index + 1] - t_bar[index]
@@ -167,7 +175,9 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
             #   - Poisson process for the flux
             #   - Gaussian process for the read noise
             ramp_value += RNG.poisson(flux * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
-            ramp_value += RNG.standard_normal(size=n_pixels, dtype=np.float32) * read_noise / np.sqrt(len(reads))
+            ramp_value += (
+                RNG.standard_normal(size=n_pixels, dtype=np.float32)* read_noise / np.sqrt(len(reads))
+            )
 
             # Add to running total for the resultant
             resultant_total += ramp_value
@@ -225,7 +235,9 @@ def test_make_pixel(pixel_data, use_jump):
                 assert np.isnan(delta_2)
                 assert np.isnan(sigma_2)
             else:
-                assert delta_2 == (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
+                assert delta_2 == (
+                    (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
+                )
                 assert sigma_2 == read_noise * (
                     np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 )
@@ -257,7 +269,9 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     resultants, read_noise, read_pattern, n_pixels, flux = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, parameters, variances = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    fits, parameters, variances = fit_ramps(
+        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump
+    )
 
     for fit, par, var in zip(fits, parameters, variances):
         assert par[Parameter.intercept] == 0
@@ -265,7 +279,9 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
 
         assert var[Variance.read_var] == fit['average']['read_var']
         assert var[Variance.poisson_var] == fit['average']['poisson_var']
-        assert var[Variance.total_var] == np.float32(fit['average']['read_var'] + fit['average']['poisson_var'])
+        assert var[Variance.total_var] == np.float32(
+            fit['average']['read_var'] + fit['average']['poisson_var']
+        )
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
@@ -302,7 +318,7 @@ def test_fit_ramps_dq(detector_data, use_jump):
         up any jumps.
     """
     resultants, read_noise, read_pattern, n_pixels, flux = detector_data
-    dq = np.zeros(resultants.shape, dtype=np.int32) + (RNG.uniform(size=resultants.shape) > 1).astype(np.int32)
+    dq = (RNG.uniform(size=resultants.shape) > 1).astype(np.int32)
 
     # only use okay ramps
     #   ramps passing the below criterion have at least two adjacent valid reads
@@ -352,7 +368,7 @@ def jump_data():
             # Start indicating a new resultant
             jump_res += 1
         jumps[jump_res, jump_index] = True
-        
+
         resultants[:, jump_index] = np.mean(read_values.reshape(shape), axis=1).astype(np.float32)
 
     n_pixels = np.prod(shape)
@@ -424,6 +440,5 @@ def test_find_jumps(jump_data):
     #   "fairly close" to the expected value. This is purposely a loose check
     #   because the main purpose of this test is to verify that the jumps are
     #   being detected correctly, above.
-    chi2 = 0
     for fit in fits:
         assert_allclose(fit['average']['slope'], FLUX, rtol=3)
