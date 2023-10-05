@@ -14,7 +14,7 @@ cdef class Pixel:
     cdef float[:, :] local_slope_vals(Pixel self)
     cdef RampFit fit_ramp(Pixel self, RampIndex ramp)
 
-    cdef float correction(Pixel self, RampIndex ramp, int index, int diff)
+    cdef float correction(Pixel self, RampIndex ramp, float slope)
     cdef float stat(Pixel self, float slope, RampIndex ramp, int index, int diff)
     cdef float[:] stats(Pixel self, float slope, RampIndex ramp)
     cdef RampFits fit_ramps(Pixel self, stack[RampIndex] ramps)

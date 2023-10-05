@@ -396,6 +396,7 @@ def test_find_jumps(jump_data):
 
     # Check that all the jumps have been located per the algorithm's constraints
     for index, (fit, jump) in enumerate(zip(fits, jumps)):
+        print(f"{index=}, {fit['jumps']=}, {jump=}")
         # sanity check that only one jump should have been added
         assert np.where(jump)[0].shape == (1,)
         if index == 0:
@@ -419,25 +420,25 @@ def test_find_jumps(jump_data):
             # Test that all the jumps recorded are +/- 1 of the real jump
             #    This is due to the need to exclude two resultants
             for jump_index in fit['jumps']:
-                assert jump[jump_index] or jump[jump_index + 1] or jump[jump_index - 1]
+                assert jump[jump_index] or jump[jump_index - 1] or jump[jump_index + 1]
 
             # Test that the correct indexes are recorded
-            ramp_indicies = []
+            ramp_indices = []
             for ramp_index in fit["index"]:
                 # Note start/end of a ramp_index are inclusive meaning that end
                 #    is an index included in the ramp_index so the range is to end + 1
-                new_indicies = list(range(ramp_index["start"], ramp_index["end"] + 1))
+                new_indices = list(range(ramp_index["start"], ramp_index["end"] + 1))
 
                 # check that all the ramps are non-overlapping
-                assert set(ramp_indicies).isdisjoint(new_indicies)
+                assert set(ramp_indices).isdisjoint(new_indices)
 
-                ramp_indicies.extend(new_indicies)
+                ramp_indices.extend(new_indices)
 
             # check that no ramp_index is a jump
-            assert set(ramp_indicies).isdisjoint(fit['jumps'])
+            assert set(ramp_indices).isdisjoint(fit['jumps'])
 
             # check that all resultant indicies are either in a ramp or listed as a jump
-            assert set(ramp_indicies).union(fit['jumps']) == set(range(len(read_pattern)))
+            assert set(ramp_indices).union(fit['jumps']) == set(range(len(read_pattern)))
 
     # Check that the slopes have been estimated reasonably well
     #   There are not that many pixels to test this against and many resultants

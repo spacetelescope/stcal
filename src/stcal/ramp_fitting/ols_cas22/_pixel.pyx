@@ -220,29 +220,23 @@ cdef class Pixel:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float correction(Pixel self, RampIndex ramp, int index, int diff):
+    cdef inline float correction(Pixel self, RampIndex ramp, float slope):
         """
         Compute the correction factor for the variance used by a statistic
+
+            - slope / (t_bar[end] - t_bar[start])
         
         Parameters
         ----------
         ramp : RampIndex
             Struct for start and end indices resultants for the ramp
-        index : int
-            The main index for the resultant to compute the statistic for
-        diff : int
-            The offset to use for the delta and sigma values, this should be
-            a value from the Diff enum.
+        slope : float
+            The computed slope for the ramp
         """
-        cdef float comp = (self.fixed.t_bar_diffs[diff, index] /
-                           (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start]))
 
-        if diff == Diff.single:
-            return (1 - comp)**2
-        elif diff == Diff.double:
-            return (1 - 0.75 * comp)**2
-        else:
-            raise ValueError("diff must be Diff.single or Diff.double")
+        cdef float diff = (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start])
+
+        return - slope / diff
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -250,13 +244,12 @@ cdef class Pixel:
     cdef inline float stat(Pixel self, float slope, RampIndex ramp, int index, int diff):
         """
         Compute a single set of fit statistics
-            delta / sqrt(var)
+            (delta / sqrt(var)) + correction
         where
             delta = ((R[j] - R[i]) / (t_bar[j] - t_bar[i]) - slope)
                     * (t_bar[j] - t_bar[i])
             var   = sigma * (1/N[j] + 1/N[i]) 
                     + slope * (tau[j] + tau[i] - min(t_bar[j], t_bar[i]))
-                    * correction(diff)
         
         Parameters
         ----------
@@ -274,13 +267,13 @@ cdef class Pixel:
         -------
             Create a single instance of the stastic for the given parameters
         """
-        cdef float delta = ((self.local_slopes[diff, index] - slope) *
-                            fabs(self.fixed.t_bar_diffs[diff, index]))
-        cdef float var = (self.var_read_noise[diff, index] +
-                          slope * self.fixed.var_slope_coeffs[diff, index] *
-                                  self.correction(ramp, index, diff))
+        cdef float delta = (self.local_slopes[diff, index] - slope)
+        cdef float var = ((self.var_read_noise[diff, index] +
+                           slope * self.fixed.var_slope_coeffs[diff, index])
+                          / self.fixed.t_bar_diff_sqrs[diff, index]) 
+        cdef float correct = self.correction(ramp, slope)
 
-        return delta / sqrt(var)
+        return (delta / sqrt(var)) + correct
 
 
     @cython.boundscheck(False)
