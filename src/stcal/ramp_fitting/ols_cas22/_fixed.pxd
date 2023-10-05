@@ -9,6 +9,7 @@ cdef class FixedValues:
     cdef Thresh threshold
 
     cdef float[:, :] t_bar_diffs
+    cdef float[:, :] t_bar_diff_sqrs
     cdef float[:, :] read_recip_coeffs
     cdef float[:, :] var_slope_coeffs
 

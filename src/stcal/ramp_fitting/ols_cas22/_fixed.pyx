@@ -44,6 +44,12 @@ cdef class FixedValues:
                 t_bar_diffs[Diff.single, :] = (t_bar[i+1] - t_bar[i])
             double differences of t_bar:
                 t_bar_diffs[Diff.double, :] = (t_bar[i+2] - t_bar[i])
+    t_bar_diff_sqrs : float[:, :]
+        These are the squared differnences of t_bar used for jump detection.
+            single differences of t_bar:
+                t_bar_diff_sqrs[Diff.single, :] = (t_bar[i+1] - t_bar[i])**2
+            double differences of t_bar:
+                t_bar_diff_sqrs[Diff.double, :] = (t_bar[i+2] - t_bar[i])**2
     read_recip_coeffs : float[:, :]
         Coefficients for the read noise portion of the variance used to compute
         the jump detection statistics. These are formed from the reciprocal sum
@@ -200,6 +206,7 @@ cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thr
     # Pre-compute jump detection computations shared by all pixels
     if use_jump:
         fixed.t_bar_diffs = fixed.t_bar_diff_vals()
+        fixed.t_bar_diff_sqrs = np.square(fixed.t_bar_diffs, dtype=np.float32)
         fixed.read_recip_coeffs = fixed.read_recip_vals()
         fixed.var_slope_coeffs = fixed.var_slope_vals()
 

@@ -62,11 +62,13 @@ def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,
     cdef float constant_ = fixed.threshold.constant
 
     cdef np.ndarray[float, ndim=2] t_bar_diffs
+    cdef np.ndarray[float, ndim=2] t_bar_diff_sqrs
     cdef np.ndarray[float, ndim=2] read_recip_coeffs
     cdef np.ndarray[float, ndim=2] var_slope_coeffs
 
     if use_jump:
         t_bar_diffs = np.array(fixed.t_bar_diffs, dtype=np.float32)
+        t_bar_diff_sqrs = np.array(fixed.t_bar_diff_sqrs, dtype=np.float32)
         read_recip_coeffs = np.array(fixed.read_recip_coeffs, dtype=np.float32)
         var_slope_coeffs = np.array(fixed.var_slope_coeffs, dtype=np.float32)
     else:
@@ -76,6 +78,13 @@ def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,
             t_bar_diffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("t_bar_diffs should not exist")
+
+        try:
+            fixed.t_bar_diff_sqrs
+        except AttributeError:
+            t_bar_diff_sqrs = np.array([[np.nan],[np.nan]], dtype=np.float32)
+        else:
+            raise AttributeError("t_bar_diff_sqrs should not exist")
 
         try:
             fixed.read_recip_coeffs
@@ -95,6 +104,7 @@ def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,
                 intercept=intercept_,
                 constant=constant_,
                 t_bar_diffs=t_bar_diffs,
+                t_bar_diff_sqrs=t_bar_diff_sqrs,
                 read_recip_coeffs=read_recip_coeffs,
                 var_slope_coeffs=var_slope_coeffs)
 

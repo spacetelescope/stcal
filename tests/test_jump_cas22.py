@@ -130,21 +130,24 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
     if use_jump:
         single_gen = zip(
             fixed['t_bar_diffs'][Diff.single],
+            fixed['t_bar_diff_sqrs'][Diff.single],
             fixed['read_recip_coeffs'][Diff.single],
             fixed['var_slope_coeffs'][Diff.single]
         )
         double_gen = zip(
             fixed['t_bar_diffs'][Diff.double],
+            fixed['t_bar_diff_sqrs'][Diff.double],
             fixed['read_recip_coeffs'][Diff.double],
             fixed['var_slope_coeffs'][Diff.double]
         )
 
-        for index, (t_bar_diff_1, read_recip_1, var_slope_1) in enumerate(single_gen):
+        for index, (t_bar_diff_1, t_bar_diff_sqr_1, read_recip_1, var_slope_1) in enumerate(single_gen):
             assert t_bar_diff_1 == t_bar[index + 1] - t_bar[index]
+            assert t_bar_diff_sqr_1 == np.float32((t_bar[index + 1] - t_bar[index]) ** 2)
             assert read_recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             assert var_slope_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
 
-        for index, (t_bar_diff_2, read_recip_2, var_slope_2) in enumerate(double_gen):
+        for index, (t_bar_diff_2, t_bar_diff_sqr_2, read_recip_2, var_slope_2) in enumerate(double_gen):
             if index == len(fixed['t_bar_diffs'][1]) - 1:
                 # Last value must be NaN
                 assert np.isnan(t_bar_diff_2)
@@ -152,12 +155,14 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
                 assert np.isnan(var_slope_2)
             else:
                 assert t_bar_diff_2 == t_bar[index + 2] - t_bar[index]
+                assert t_bar_diff_sqr_2 == np.float32((t_bar[index + 2] - t_bar[index])**2)
                 assert read_recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 assert var_slope_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
     else:
         # If not using jumps, these values should not even exist. However, for wrapping
         #    purposes, they are checked to be non-existent and then set to NaN
         assert np.isnan(fixed['t_bar_diffs']).all()
+        assert np.isnan(fixed['t_bar_diff_sqrs']).all()
         assert np.isnan(fixed['read_recip_coeffs']).all()
         assert np.isnan(fixed['var_slope_coeffs']).all()
 
