@@ -118,7 +118,7 @@ def ramp_data(base_ramp_data):
             The read pattern used for testing
         t_bar:
             The t_bar values for the read pattern
-        tau: 
+        tau:
             The tau values for the read pattern
         n_reads:
             The number of reads for the read pattern
@@ -243,7 +243,7 @@ def pixel_data(ramp_data):
             Resultants for a single pixel
         t_bar:
             The t_bar values for the read pattern used for the resultants
-        tau: 
+        tau:
             The tau values for the read pattern used for the resultants
         n_reads:
             The number of reads for the read pattern used for the resultants
@@ -277,7 +277,8 @@ def test_make_pixel(pixel_data, use_jump):
         double_gen = zip(pixel['local_slopes'][Diff.double], pixel['var_read_noise'][Diff.double])
 
         for index, (local_slope_1, var_read_noise_1) in enumerate(single_gen):
-            assert local_slope_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
+            assert local_slope_1 == (
+                (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index]))
             assert var_read_noise_1 == READ_NOISE * (
                 np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             )
@@ -314,7 +315,6 @@ def detector_data(ramp_data):
             The read noise vector for those pixels
         read_pattern:
             The read pattern used for the resultants
-
     """
     read_pattern, *_ = ramp_data
     read_noise = np.ones(N_PIXELS, dtype=np.float32) * READ_NOISE
@@ -367,7 +367,7 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
         total_var = fit['average']['read_var'] + fit['average']['poisson_var']
         chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
 
-    chi2 /= N_PIXELS 
+    chi2 /= N_PIXELS
 
     assert np.abs(chi2 - 1) < CHI2_TOL
 
@@ -413,6 +413,18 @@ def jump_data(detector_data):
         Note this specifically checks that we can detect jumps in any read, meaning
         it has an insurance check that a jump has been placed in every single
         read position.
+
+    Returns:
+        resultants
+            The resultants for a large number of pixels
+        read_noise:
+            The read noise vector for those pixels
+        read_pattern:
+            The read pattern used for the resultants
+        jump_reads:
+            Index of read where a jump occurs for each pixel
+        jump_resultants:
+            Index of resultant where a jump occurs for each pixel
     """
     resultants, read_noise, read_pattern = detector_data
 
