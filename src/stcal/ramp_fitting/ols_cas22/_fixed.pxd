@@ -8,13 +8,13 @@ cdef class FixedValues:
     cdef ReadPatternMetadata data
     cdef Thresh threshold
 
-    cdef float[:, :] t_bar_diff
-    cdef float[:, :] recip
-    cdef float[:, :] slope_var
+    cdef float[:, :] t_bar_diffs
+    cdef float[:, :] read_recip_coeffs
+    cdef float[:, :] var_slope_coeffs
 
-    cdef float[:, :] t_bar_diff_val(FixedValues self)
-    cdef float[:, :] recip_val(FixedValues self)
-    cdef float[:, :] slope_var_val(FixedValues self)
+    cdef float[:, :] t_bar_diff_vals(FixedValues self)
+    cdef float[:, :] read_recip_vals(FixedValues self)
+    cdef float[:, :] var_slope_vals(FixedValues self)
 
 
 cdef FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump)

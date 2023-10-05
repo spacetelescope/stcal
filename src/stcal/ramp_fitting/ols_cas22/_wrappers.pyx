@@ -61,42 +61,42 @@ def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,
     cdef float intercept_ = fixed.threshold.intercept
     cdef float constant_ = fixed.threshold.constant
 
-    cdef np.ndarray[float, ndim=2] t_bar_diff
-    cdef np.ndarray[float, ndim=2] recip
-    cdef np.ndarray[float, ndim=2] slope_var
+    cdef np.ndarray[float, ndim=2] t_bar_diffs
+    cdef np.ndarray[float, ndim=2] read_recip_coeffs
+    cdef np.ndarray[float, ndim=2] var_slope_coeffs
 
     if use_jump:
-        t_bar_diff = np.array(fixed.t_bar_diff, dtype=np.float32)
-        recip = np.array(fixed.recip, dtype=np.float32)
-        slope_var = np.array(fixed.slope_var, dtype=np.float32)
+        t_bar_diffs = np.array(fixed.t_bar_diffs, dtype=np.float32)
+        read_recip_coeffs = np.array(fixed.read_recip_coeffs, dtype=np.float32)
+        var_slope_coeffs = np.array(fixed.var_slope_coeffs, dtype=np.float32)
     else:
         try:
-            fixed.t_bar_diff
+            fixed.t_bar_diffs
         except AttributeError:
-            t_bar_diff = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            t_bar_diffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("t_bar_1 should not exist")
 
         try:
-            fixed.recip
+            fixed.read_recip_coeffs
         except AttributeError:
-            recip = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            read_recip_coeffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("recip_1 should not exist")
 
         try:
-            fixed.slope_var
+            fixed.var_slope_coeffs
         except AttributeError:
-            slope_var = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            var_slope_coeffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
             raise AttributeError("slope_var_1 should not exist")
 
     return dict(data=fixed.data,
                 intercept=intercept_,
                 constant=constant_,
-                t_bar_diff=t_bar_diff,
-                recip=recip,
-                slope_var=slope_var)
+                t_bar_diffs=t_bar_diffs,
+                read_recip_coeffs=read_recip_coeffs,
+                var_slope_coeffs=var_slope_coeffs)
 
 
 def make_pixel(np.ndarray[float, ndim=1] resultants,

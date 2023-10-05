@@ -66,7 +66,7 @@ cdef class FixedValues:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] t_bar_diff_val(FixedValues self):
+    cdef inline float[:, :] t_bar_diff_vals(FixedValues self):
         """
         Compute the difference offset of t_bar
 
@@ -86,17 +86,17 @@ cdef class FixedValues:
         cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
         cdef int end = len(t_bar)
 
-        cdef np.ndarray[float, ndim=2] t_bar_diff = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
+        cdef np.ndarray[float, ndim=2] t_bar_diff_vals = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
 
-        t_bar_diff[Diff.single, :] = np.subtract(t_bar[1:], t_bar[:end - 1]) 
-        t_bar_diff[Diff.double, :end - 2] = np.subtract(t_bar[2:], t_bar[:end - 2])
-        t_bar_diff[Diff.double, end - 2] = np.nan  # last double difference is undefined
+        t_bar_diff_vals[Diff.single, :] = np.subtract(t_bar[1:], t_bar[:end - 1]) 
+        t_bar_diff_vals[Diff.double, :end - 2] = np.subtract(t_bar[2:], t_bar[:end - 2])
+        t_bar_diff_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
 
-        return t_bar_diff
+        return t_bar_diff_vals
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] recip_val(FixedValues self):
+    cdef inline float[:, :] read_recip_vals(FixedValues self):
         """
         Compute the reciprical sum values
 
@@ -117,20 +117,20 @@ cdef class FixedValues:
         cdef int[:] n_reads = <int [:self.data.n_reads.size()]> self.data.n_reads.data()
         cdef int end = len(n_reads)
 
-        cdef np.ndarray[float, ndim=2] recip = np.zeros((2, self.data.n_reads.size() - 1), dtype=np.float32)
+        cdef np.ndarray[float, ndim=2] read_recip_vals = np.zeros((2, self.data.n_reads.size() - 1), dtype=np.float32)
 
-        recip[Diff.single, :] = (np.divide(1.0, n_reads[1:], dtype=np.float32) +
-                                 np.divide(1.0, n_reads[:end - 1], dtype=np.float32))
-        recip[Diff.double, :end - 2] = (np.divide(1.0, n_reads[2:], dtype=np.float32) +
-                                        np.divide(1.0, n_reads[:end - 2], dtype=np.float32))
-        recip[Diff.double, end - 2] = np.nan  # last double difference is undefined
+        read_recip_vals[Diff.single, :] = (np.divide(1.0, n_reads[1:], dtype=np.float32) +
+                                           np.divide(1.0, n_reads[:end - 1], dtype=np.float32))
+        read_recip_vals[Diff.double, :end - 2] = (np.divide(1.0, n_reads[2:], dtype=np.float32) +
+                                                  np.divide(1.0, n_reads[:end - 2], dtype=np.float32))
+        read_recip_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
 
-        return recip
+        return read_recip_vals
 
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] slope_var_val(FixedValues self):
+    cdef inline float[:, :] var_slope_vals(FixedValues self):
         """
         Compute slope part of the variance
 
@@ -151,13 +151,13 @@ cdef class FixedValues:
         cdef float[:] tau = <float [:self.data.tau.size()]> self.data.tau.data()
         cdef int end = len(t_bar)
 
-        cdef np.ndarray[float, ndim=2] slope_var = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
+        cdef np.ndarray[float, ndim=2] var_slope_vals = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
 
-        slope_var[Diff.single, :] = (np.add(tau[1:], tau[:end - 1]) - np.minimum(t_bar[1:], t_bar[:end - 1]))
-        slope_var[Diff.double, :end - 2] = (np.add(tau[2:], tau[:end - 2]) - np.minimum(t_bar[2:], t_bar[:end - 2]))
-        slope_var[Diff.double, end - 2] = np.nan  # last double difference is undefined
+        var_slope_vals[Diff.single, :] = (np.add(tau[1:], tau[:end - 1]) - np.minimum(t_bar[1:], t_bar[:end - 1]))
+        var_slope_vals[Diff.double, :end - 2] = (np.add(tau[2:], tau[:end - 2]) - np.minimum(t_bar[2:], t_bar[:end - 2]))
+        var_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
 
-        return slope_var
+        return var_slope_vals
 
 
 cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump):
@@ -190,8 +190,8 @@ cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thr
 
     # Pre-compute jump detection computations shared by all pixels
     if use_jump:
-        fixed.t_bar_diff = fixed.t_bar_diff_val()
-        fixed.recip = fixed.recip_val()
-        fixed.slope_var = fixed.slope_var_val()
+        fixed.t_bar_diffs = fixed.t_bar_diff_vals()
+        fixed.read_recip_coeffs = fixed.read_recip_vals()
+        fixed.var_slope_coeffs = fixed.var_slope_vals()
 
     return fixed

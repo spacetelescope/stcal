@@ -88,11 +88,11 @@ cdef class Pixel:
         cdef float[:] resultants = self.resultants
         cdef int end = len(resultants)
 
-        cdef np.ndarray[float, ndim=2] t_bar_diff = np.array(self.fixed.t_bar_diff, dtype=np.float32)
+        cdef np.ndarray[float, ndim=2] t_bar_diffs = np.array(self.fixed.t_bar_diffs, dtype=np.float32)
         cdef np.ndarray[float, ndim=2] delta = np.zeros((2, end - 1), dtype=np.float32)
 
-        delta[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diff[0, :]).astype(np.float32)
-        delta[Diff.double, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diff[1, :end-2]).astype(np.float32)
+        delta[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diffs[0, :]).astype(np.float32)
+        delta[Diff.double, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diffs[1, :end-2]).astype(np.float32)
         delta[Diff.double, end-2] = np.nan  # last double difference is undefined
 
         return delta
@@ -226,7 +226,7 @@ cdef class Pixel:
             The offset to use for the delta and sigma values, this should be
             a value from the Diff enum.
         """
-        cdef float comp = (self.fixed.t_bar_diff[diff, index] /
+        cdef float comp = (self.fixed.t_bar_diffs[diff, index] /
                            (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start]))
 
         if diff == 0:
@@ -267,9 +267,9 @@ cdef class Pixel:
             Create a single instance of the stastic for the given parameters
         """
         cdef float delta = ((self.delta[diff, index] - slope) *
-                            fabs(self.fixed.t_bar_diff[diff, index]))
+                            fabs(self.fixed.t_bar_diffs[diff, index]))
         cdef float var = (self.sigma[diff, index] +
-                          slope * self.fixed.slope_var[diff, index] *
+                          slope * self.fixed.var_slope_coeffs[diff, index] *
                                   self.correction(ramp, index, diff))
 
         return delta / sqrt(var)
@@ -503,6 +503,6 @@ cdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resu
     # Pre-compute values for jump detection shared by all pixels for this pixel
     if fixed.use_jump:
         pixel.delta = pixel.delta_val()
-        pixel.sigma = read_noise * np.array(fixed.recip)
+        pixel.sigma = read_noise * np.array(fixed.read_recip_coeffs)
 
     return pixel

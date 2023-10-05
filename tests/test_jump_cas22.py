@@ -129,14 +129,14 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
     #    check using item-by-item operations
     if use_jump:
         single_gen = zip(
-            fixed['t_bar_diff'][Diff.single],
-            fixed['recip'][Diff.single],
-            fixed['slope_var'][Diff.single]
+            fixed['t_bar_diffs'][Diff.single],
+            fixed['read_recip_coeffs'][Diff.single],
+            fixed['var_slope_coeffs'][Diff.single]
         )
         double_gen = zip(
-            fixed['t_bar_diff'][Diff.double],
-            fixed['recip'][Diff.double],
-            fixed['slope_var'][Diff.double]
+            fixed['t_bar_diffs'][Diff.double],
+            fixed['read_recip_coeffs'][Diff.double],
+            fixed['var_slope_coeffs'][Diff.double]
         )
 
         for index, (t_bar_1, recip_1, slope_var_1) in enumerate(single_gen):
@@ -145,7 +145,7 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
             assert slope_var_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
 
         for index, (t_bar_2, recip_2, slope_var_2) in enumerate(double_gen):
-            if index == len(fixed['t_bar_diff'][1]) - 1:
+            if index == len(fixed['t_bar_diffs'][1]) - 1:
                 # Last value must be NaN
                 assert np.isnan(t_bar_2)
                 assert np.isnan(recip_2)
@@ -157,9 +157,9 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
     else:
         # If not using jumps, these values should not even exist. However, for wrapping
         #    purposes, they are checked to be non-existent and then set to NaN
-        assert np.isnan(fixed['t_bar_diff']).all()
-        assert np.isnan(fixed['recip']).all()
-        assert np.isnan(fixed['slope_var']).all()
+        assert np.isnan(fixed['t_bar_diffs']).all()
+        assert np.isnan(fixed['read_recip_coeffs']).all()
+        assert np.isnan(fixed['var_slope_coeffs']).all()
 
 
 def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
