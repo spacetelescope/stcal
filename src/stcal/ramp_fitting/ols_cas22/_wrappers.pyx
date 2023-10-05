@@ -5,8 +5,8 @@ from libcpp cimport bool
 from libcpp.stack cimport stack
 from libcpp.deque cimport deque
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, DerivedData, Thresh, RampFit, threshold
-from stcal.ramp_fitting.ols_cas22._core cimport read_data as c_read_data
+from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, ReadPatternMetadata, Thresh, threshold
+from stcal.ramp_fitting.ols_cas22._core cimport metadata_from_read_pattern as c_metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._core cimport init_ramps as c_init_ramps
 
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
@@ -16,8 +16,8 @@ from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel as c_make_pixel
 
 
-def read_data(list[list[int]] read_pattern, float read_time):
-    return c_read_data(read_pattern, read_time)
+def metadata_from_read_pattern(list[list[int]] read_pattern, float read_time):
+    return c_metadata_from_read_pattern(read_pattern, read_time)
 
 
 def init_ramps(np.ndarray[int, ndim=2] dq):
@@ -53,7 +53,7 @@ def make_fixed(np.ndarray[float, ndim=1] t_bar,
                float constant,
                bool use_jump):
 
-    cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
+    cdef ReadPatternMetadata data = ReadPatternMetadata(t_bar, tau, n_reads)
     cdef Thresh threshold = Thresh(intercept, constant)
 
     cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
@@ -108,7 +108,7 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
                float constant,
                bool use_jump):
 
-    cdef DerivedData data = DerivedData(t_bar, tau, n_reads)
+    cdef ReadPatternMetadata data = ReadPatternMetadata(t_bar, tau, n_reads)
     cdef Thresh threshold = Thresh(intercept, constant)
 
     cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)

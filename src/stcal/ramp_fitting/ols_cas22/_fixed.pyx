@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData, Diff
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, ReadPatternMetadata, Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
 
 cdef class Fixed:
@@ -160,7 +160,7 @@ cdef class Fixed:
         return slope_var
 
 
-cdef inline Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump):
+cdef inline Fixed make_fixed(ReadPatternMetadata data, Thresh threshold, bool use_jump):
     """
     Fast constructor for Fixed class
         Use this instead of an __init__ because it does not incure the overhead of

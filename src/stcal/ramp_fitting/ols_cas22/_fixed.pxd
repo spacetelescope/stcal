@@ -1,11 +1,11 @@
 from libcpp cimport bool
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, DerivedData
+from stcal.ramp_fitting.ols_cas22._core cimport Thresh, ReadPatternMetadata
 
 
 cdef class Fixed:
     cdef bool use_jump
-    cdef DerivedData data
+    cdef ReadPatternMetadata data
     cdef Thresh threshold
 
     cdef float[:, :] t_bar_diff
@@ -17,4 +17,4 @@ cdef class Fixed:
     cdef float[:, :] slope_var_val(Fixed self)
 
 
-cdef Fixed make_fixed(DerivedData data, Thresh threshold, bool use_jump)
+cdef Fixed make_fixed(ReadPatternMetadata data, Thresh threshold, bool use_jump)

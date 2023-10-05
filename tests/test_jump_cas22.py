@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._wrappers import read_data
+from stcal.ramp_fitting.ols_cas22._wrappers import metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
 from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, make_fixed, make_pixel
 
@@ -29,10 +29,10 @@ def base_ramp_data():
         [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
     ]
 
-    yield read_pattern, read_data(read_pattern, ROMAN_READ_TIME)
+    yield read_pattern, metadata_from_read_pattern(read_pattern, ROMAN_READ_TIME)
 
 
-def test_read_data(base_ramp_data):
+def test_metadata_from_read_pattern(base_ramp_data):
     """Test turning read_pattern into the time data"""
     _, data = base_ramp_data
 

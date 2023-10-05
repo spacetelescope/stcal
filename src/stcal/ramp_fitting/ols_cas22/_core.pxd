@@ -21,7 +21,7 @@ cdef struct RampFits:
     RampFit average
 
 
-cdef struct DerivedData:
+cdef struct ReadPatternMetadata:
     vector[float] t_bar
     vector[float] tau
     vector[int] n_reads
@@ -51,4 +51,4 @@ cpdef enum Variance:
 cdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
 cdef deque[stack[RampIndex]] init_ramps(int[:, :] dq)
-cdef DerivedData read_data(list[list[int]] read_pattern, float read_time)
+cdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time)
