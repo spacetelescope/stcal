@@ -18,9 +18,9 @@ cimport numpy as np
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport Thresh, ReadPatternMetadata, Diff
-from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 
-cdef class Fixed:
+cdef class FixedValues:
     """
     Class to contain the data fixed for all pixels and commonly referenced
     universal values for jump detection
@@ -66,7 +66,7 @@ cdef class Fixed:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] t_bar_diff_val(Fixed self):
+    cdef inline float[:, :] t_bar_diff_val(FixedValues self):
         """
         Compute the difference offset of t_bar
 
@@ -96,7 +96,7 @@ cdef class Fixed:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] recip_val(Fixed self):
+    cdef inline float[:, :] recip_val(FixedValues self):
         """
         Compute the reciprical sum values
 
@@ -130,7 +130,7 @@ cdef class Fixed:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] slope_var_val(Fixed self):
+    cdef inline float[:, :] slope_var_val(FixedValues self):
         """
         Compute slope part of the variance
 
@@ -160,7 +160,7 @@ cdef class Fixed:
         return slope_var
 
 
-cdef inline Fixed make_fixed(ReadPatternMetadata data, Thresh threshold, bool use_jump):
+cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump):
     """
     Fast constructor for Fixed class
         Use this instead of an __init__ because it does not incure the overhead of
@@ -179,7 +179,7 @@ cdef inline Fixed make_fixed(ReadPatternMetadata data, Thresh threshold, bool us
     -------
     Fixed parameters object (with pre-computed values if use_jump is True)
     """
-    cdef Fixed fixed = Fixed()
+    cdef FixedValues fixed = FixedValues()
 
     # Fill in input information for all pixels
     fixed.use_jump = use_jump

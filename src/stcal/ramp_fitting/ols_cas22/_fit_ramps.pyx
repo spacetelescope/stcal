@@ -8,7 +8,7 @@ cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (
     RampFits, RampIndex, Thresh, metadata_from_read_pattern, init_ramps, Parameter, Variance)
-from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed, Fixed
+from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
 
@@ -57,9 +57,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
                            f'match number of resultants {n_resultants}')
 
     # Pre-compute data for all pixels
-    cdef Fixed fixed = make_fixed(metadata_from_read_pattern(read_pattern, read_time),
-                                  Thresh(5.5, 1/3.0),
-                                  use_jump)
+    cdef FixedValues fixed = fixed_values_from_metadata(metadata_from_read_pattern(read_pattern, read_time),
+                                                        Thresh(5.5, 1/3.0),
+                                                        use_jump)
 
     # Compute all the initial sets of ramps
     cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)

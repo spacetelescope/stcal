@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._wrappers import metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, make_fixed, make_pixel
+from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, fixed_values_from_metadata, make_pixel
 
 from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff
 
@@ -108,14 +108,14 @@ def ramp_data(base_ramp_data):
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
-def test_make_fixed(ramp_data, use_jump):
+def test_fixed_values_from_metadata(ramp_data, use_jump):
     """Test computing the fixed data for all pixels"""
     _, t_bar, tau, n_reads = ramp_data
 
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
-    fixed = make_fixed(t_bar, tau, n_reads, intercept, constant, use_jump)
+    fixed = fixed_values_from_metadata(t_bar, tau, n_reads, intercept, constant, use_jump)
 
     # Basic sanity checks that data passed in survives
     assert (fixed['data']['t_bar'] == t_bar).all()

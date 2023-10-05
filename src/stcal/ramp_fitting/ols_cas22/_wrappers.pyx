@@ -9,8 +9,8 @@ from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, ReadPatternMetadata, 
 from stcal.ramp_fitting.ols_cas22._core cimport metadata_from_read_pattern as c_metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._core cimport init_ramps as c_init_ramps
 
-from stcal.ramp_fitting.ols_cas22._fixed cimport Fixed
-from stcal.ramp_fitting.ols_cas22._fixed cimport make_fixed as c_make_fixed
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
+from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata as c_fixed_values_from_metadata
 
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel as c_make_pixel
@@ -46,17 +46,17 @@ def run_threshold(float intercept, float constant, float slope):
     return threshold(thresh, slope)
 
 
-def make_fixed(np.ndarray[float, ndim=1] t_bar,
-               np.ndarray[float, ndim=1] tau,
-               np.ndarray[int, ndim=1] n_reads,
-               float intercept,
-               float constant,
-               bool use_jump):
+def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,
+                               np.ndarray[float, ndim=1] tau,
+                               np.ndarray[int, ndim=1] n_reads,
+                               float intercept,
+                               float constant,
+                               bool use_jump):
 
     cdef ReadPatternMetadata data = ReadPatternMetadata(t_bar, tau, n_reads)
     cdef Thresh threshold = Thresh(intercept, constant)
 
-    cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
+    cdef FixedValues fixed = c_fixed_values_from_metadata(data, threshold, use_jump)
 
     cdef float intercept_ = fixed.threshold.intercept
     cdef float constant_ = fixed.threshold.constant
@@ -111,7 +111,7 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
     cdef ReadPatternMetadata data = ReadPatternMetadata(t_bar, tau, n_reads)
     cdef Thresh threshold = Thresh(intercept, constant)
 
-    cdef Fixed fixed = c_make_fixed(data, threshold, use_jump)
+    cdef FixedValues fixed = c_fixed_values_from_metadata(data, threshold, use_jump)
 
     cdef Pixel pixel = c_make_pixel(fixed, read_noise, resultants)
 

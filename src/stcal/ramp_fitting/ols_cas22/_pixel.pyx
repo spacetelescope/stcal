@@ -22,6 +22,7 @@ cimport cython
 
 
 from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, RampIndex, Diff
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
@@ -472,7 +473,7 @@ cdef class Pixel:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline Pixel make_pixel(Fixed fixed, float read_noise, float [:] resultants):
+cdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants):
     """
     Fast constructor for the Pixel C class.
 
