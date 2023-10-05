@@ -11,6 +11,7 @@ from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff
 
 RNG = np.random.default_rng(619)
 ROMAN_READ_TIME = 3.04
+READ_NOISE = np.float32(5)
 N_PIXELS = 100_000
 FLUX = 100
 JUMP_VALUE = 10_000
@@ -167,7 +168,7 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
         assert np.isnan(fixed['var_slope_coeffs']).all()
 
 
-def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
+def _generate_resultants(read_pattern, n_pixels=1):
     """Generate a set of resultants for a pixel"""
     resultants = np.zeros((len(read_pattern), n_pixels), dtype=np.float32)
 
@@ -179,9 +180,9 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
             # Compute the next value of the ramp
             #   - Poisson process for the flux
             #   - Gaussian process for the read noise
-            ramp_value += RNG.poisson(flux * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
+            ramp_value += RNG.poisson(FLUX * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
             ramp_value += (
-                RNG.standard_normal(size=n_pixels, dtype=np.float32)* read_noise / np.sqrt(len(reads))
+                RNG.standard_normal(size=n_pixels, dtype=np.float32) * READ_NOISE / np.sqrt(len(reads))
             )
 
             # Add to running total for the resultant
@@ -199,27 +200,26 @@ def _generate_resultants(read_pattern, flux, read_noise, n_pixels=1):
 @pytest.fixture(scope="module")
 def pixel_data(ramp_data):
     """Create data for a single pixel"""
-    read_noise = np.float32(5)
 
     read_pattern, t_bar, tau, n_reads = ramp_data
-    resultants = _generate_resultants(read_pattern, FLUX, read_noise)
+    resultants = _generate_resultants(read_pattern)
 
-    yield resultants, t_bar, tau, n_reads, read_noise, FLUX
+    yield resultants, t_bar, tau, n_reads
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_make_pixel(pixel_data, use_jump):
     """Test computing the initial pixel data"""
-    resultants, t_bar, tau, n_reads, read_noise, _ = pixel_data
+    resultants, t_bar, tau, n_reads = pixel_data
 
     intercept = np.float32(5.5)
     constant = np.float32(1/3)
 
-    pixel = make_pixel(resultants, t_bar, tau, n_reads, read_noise, intercept, constant, use_jump)
+    pixel = make_pixel(resultants, t_bar, tau, n_reads, READ_NOISE, intercept, constant, use_jump)
 
     # Basic sanity checks that data passed in survives
     assert (pixel['resultants'] == resultants).all()
-    assert read_noise == pixel['read_noise']
+    assert READ_NOISE == pixel['read_noise']
 
     # Check the computed data
     # These are computed via vectorized operations in the main code, here we
@@ -230,7 +230,7 @@ def test_make_pixel(pixel_data, use_jump):
 
         for index, (local_slope_1, var_read_noise_1) in enumerate(single_gen):
             assert local_slope_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
-            assert var_read_noise_1 == read_noise * (
+            assert var_read_noise_1 == READ_NOISE * (
                 np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             )
 
@@ -243,7 +243,7 @@ def test_make_pixel(pixel_data, use_jump):
                 assert local_slope_2 == (
                     (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
                 )
-                assert var_read_noise_2 == read_noise * (
+                assert var_read_noise_2 == READ_NOISE * (
                     np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 )
     else:
@@ -260,18 +260,18 @@ def detector_data(ramp_data):
         would be passed in by the supporting code.
     """
     read_pattern, *_ = ramp_data
-    read_noise = np.ones(N_PIXELS, dtype=np.float32) * 5
+    read_noise = np.ones(N_PIXELS, dtype=np.float32) * READ_NOISE
 
-    resultants = _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=N_PIXELS)
+    resultants = _generate_resultants(read_pattern, n_pixels=N_PIXELS)
 
-    return resultants, read_noise, read_pattern, N_PIXELS, FLUX
+    return resultants, read_noise, read_pattern, N_PIXELS
 
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_fit_ramps_array_outputs(detector_data, use_jump):
     """
     Test that the array outputs line up with the dictionary output
     """
-    resultants, read_noise, read_pattern, n_pixels, flux = detector_data
+    resultants, read_noise, read_pattern, n_pixels = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     fits, parameters, variances = fit_ramps(
@@ -296,7 +296,7 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
         Since no jumps are simulated in the data, jump detection shouldn't pick
         up any jumps.
     """
-    resultants, read_noise, read_pattern, n_pixels, flux = detector_data
+    resultants, read_noise, read_pattern, n_pixels  = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
@@ -308,7 +308,7 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
         assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump
 
         total_var = fit['average']['read_var'] + fit['average']['poisson_var']
-        chi2 += (fit['average']['slope'] - flux)**2 / total_var
+        chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
 
     chi2 /= n_pixels
 
@@ -322,7 +322,7 @@ def test_fit_ramps_dq(detector_data, use_jump):
         Since no jumps are simulated in the data, jump detection shouldn't pick
         up any jumps.
     """
-    resultants, read_noise, read_pattern, n_pixels, flux = detector_data
+    resultants, read_noise, read_pattern, n_pixels = detector_data
     dq = (RNG.uniform(size=resultants.shape) > 1).astype(np.int32)
 
     # only use okay ramps
@@ -338,7 +338,7 @@ def test_fit_ramps_dq(detector_data, use_jump):
         if use:
             # Add okay ramps to chi2
             total_var = fit['average']['read_var'] + fit['average']['poisson_var']
-            chi2 += (fit['average']['slope'] - flux)**2 / total_var
+            chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
         else:
             # Check no slope fit for bad ramps
             assert fit['average']['slope'] == 0
@@ -377,10 +377,10 @@ def jump_data():
         resultants[:, jump_index] = np.mean(read_values.reshape(shape), axis=1).astype(np.float32)
 
     n_pixels = np.prod(shape)
-    read_noise = np.ones(n_pixels, dtype=np.float32) * 5
+    read_noise = np.ones(n_pixels, dtype=np.float32) * READ_NOISE
 
     # Add actual ramp data in addition to the jump data
-    resultants += _generate_resultants(read_pattern, FLUX, read_noise, n_pixels=n_pixels)
+    resultants += _generate_resultants(read_pattern, n_pixels=n_pixels)
 
     return resultants, read_noise, read_pattern, n_pixels, jumps.transpose()
 
