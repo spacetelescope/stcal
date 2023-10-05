@@ -4,14 +4,14 @@ Define the data which is fixed for all pixels to compute the CAS22 algorithm wit
 
 Objects
 -------
-Fixed : class
+FixedValues : class
     Class to contain the data fixed for all pixels and commonly referenced
     universal values for jump detection
 
 Functions
 ---------
-make_fixed : function
-    Fast constructor for Fixed class
+fixed_values_from_metadata : function
+    Fast constructor for FixedValues from the read pattern metadata
 """
 import numpy as np
 cimport numpy as np
@@ -22,43 +22,51 @@ from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 
 cdef class FixedValues:
     """
-    Class to contain the data fixed for all pixels and commonly referenced
-    universal values for jump detection
+    Class to contain all the values which are fixed for all pixels for a given
+    read pattern.
+        This class is used to pre-compute these values once so that they maybe
+        reused for all pixels.  This is done for performance reasons.
 
     Parameters
     ----------
-    t_bar : float[:]
-        mean times of resultants (data input)
-    tau : float[:]
-        variance weighted mean times of resultants (data input)
-    n_reads : float[:]
-        number of reads contributing to reach resultant (data input)
-
     use_jump : bool
         flag to indicate whether to use jump detection (user input)
 
-    t_bar_diff : float[:, :]
-        single differences of t_bar:
-            t_bar_diff[0, :] = (t_bar[i+1] - t_bar[i])
-        double differences of t_bar:
-            t_bar_diff[1, :] = (t_bar[i+2] - t_bar[i])
-    recip : float[:, :]
-        single sum of reciprocal n_reads:
-            recip[0, :] = ((1/n_reads[i+1]) + (1/n_reads[i]))
-        double sum of reciprocal n_reads:
-            recip[1, :] = ((1/n_reads[i+2]) + (1/n_reads[i]))
-    slope_var : float[:, :]
-        single of slope variance term:
-            slope_var[0, :] = ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1]))
-        double of slope variance term:
-            slope_var[1, :] = ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2]))
+    data : ReadPatternMetadata
+        Metadata struct created from a read pattern
+
+    threshold : Thresh
+        Parameterization struct for threshold function
+
+    t_bar_diffs : float[:, :]
+        These are the differences of t_bar used for jump detection.
+            single differences of t_bar:
+                t_bar_diffs[Diff.single, :] = (t_bar[i+1] - t_bar[i])
+            double differences of t_bar:
+                t_bar_diffs[Diff.double, :] = (t_bar[i+2] - t_bar[i])
+    read_recip_coeffs : float[:, :]
+        Coefficients for the read noise portion of the variance used to compute
+        the jump detection statistics. These are formed from the reciprocal sum
+        of the number of reads.
+            single sum of reciprocal n_reads:
+                recip[Diff.single, :] = ((1/n_reads[i+1]) + (1/n_reads[i]))
+            double sum of reciprocal n_reads:
+                recip[Diff.double, :] = ((1/n_reads[i+2]) + (1/n_reads[i]))
+    var_slope_coeffs : float[:, :]
+        Coefficients for the slope portion of the variance used to compute the
+        jump detection statistics, which happend to be fixed for any given ramp
+        fit.
+            single of slope variance term:
+                slope_var[Diff.single, :] = ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1]))
+            double of slope variance term:
+                slope_var[Diff.double, :] = ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2]))
 
     Notes
     -----
-    - t_bar_diff, recip, slope_var are only computed if use_jump is True.  These
-      values represent reused computations for jump detection which are used by
-      every pixel for jump detection.  They are computed once and stored in the
-      Fixed for reuse by all pixels.
+    - t_bar_diffs, read_recip_coeffs, var_slope_coeffs are only computed if
+      use_jump is True.  These values represent reused computations for jump
+      detection which are used by every pixel for jump detection. They are
+      computed once and stored in the FixedValues for reuse by all pixels.
     - The computations are done using vectorized operations for some performance
       increases. However, this is marginal compaired with the performance increase
       from pre-computing the values and reusing them.
@@ -98,7 +106,7 @@ cdef class FixedValues:
     @cython.wraparound(False)
     cdef inline float[:, :] read_recip_vals(FixedValues self):
         """
-        Compute the reciprical sum values
+        Compute the reciprical sum of the number of reads
 
         Returns
         -------
@@ -132,7 +140,7 @@ cdef class FixedValues:
     @cython.wraparound(False)
     cdef inline float[:, :] var_slope_vals(FixedValues self):
         """
-        Compute slope part of the variance
+        Compute slope part of the jump statistic variances
 
         Returns
         -------
@@ -162,14 +170,14 @@ cdef class FixedValues:
 
 cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump):
     """
-    Fast constructor for Fixed class
-        Use this instead of an __init__ because it does not incure the overhead of
-        switching back and forth to python
+    Fast constructor for FixedValues class
+        Use this instead of an __init__ because it does not incure the overhead
+        of switching back and forth to python
 
     Parameters
     ----------
-    data : DerivedData
-        derived data object created from MA table (input data)
+    data : ReadPatternMetadata
+        metadata object created from the read pattern (user input)
     threshold : Thresh
         threshold object (user input)
     use_jump : bool
@@ -177,7 +185,8 @@ cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thr
 
     Returns
     -------
-    Fixed parameters object (with pre-computed values if use_jump is True)
+    FixedValues object (with pre-computed values for jump detection if use_jump
+    is True)
     """
     cdef FixedValues fixed = FixedValues()
 

@@ -1,5 +1,5 @@
 """
-Define the C class for the CAS22 algorithm for fitting ramps with jump detection
+Define the C class for the Cassertano22 algorithm for fitting ramps with jump detection
 
 Objects
 -------
@@ -9,8 +9,8 @@ Pixel : class
 
 Functions
 ---------
-make_ramp : function
-    Fast constructor for the Pixel class
+make_pixel : function
+    Fast constructor for a Pixel class from input data.
 """
 from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
@@ -35,30 +35,33 @@ cdef class Pixel:
 
     Parameters
     ----------
-    fixed : Fixed
-        Fixed values for all pixels (pre-computed data)
+    fixed : FixedValues
+        The object containing all the values and metadata which is fixed for a
+        given read pattern>
     read_noise : float
-        The read noise for the given pixel (data input)
+        The read noise for the given pixel
     resultants : float [:]
-        array of resultants for single pixel (data input)
+        Resultants input for the given pixel
 
     local_slopes : float [:, :]
-        single difference delta+slope:
-            delta[0, :] = (resultants[i+1] - resultants[i]) / (t_bar[i+1] - t_bar[i])
-        double difference delta+slope:
-            delta[1, :] = (resultants[i+2] - resultants[i]) / (t_bar[i+2] - t_bar[i])
+        These are the local slopes between the resultants for the pixel.
+            single difference local slope:
+                delta[Diff.single, :] = (resultants[i+1] - resultants[i]) / (t_bar[i+1] - t_bar[i])
+            double difference local slope:
+                delta[Diff.double, :] = (resultants[i+2] - resultants[i]) / (t_bar[i+2] - t_bar[i])
     var_read_noise : float [:, :]
-        single difference "sigma":
-            sigma[0, :] = read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
-        double difference "sigma":
-            sigma[1, :] = read_noise * ((1/n_reads[i+2]) + (1/n_reads[i]))
+        The read noise variance term of the jump statistics
+            single difference read noise variance:
+                sigma[Diff.single, :] = read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
+            double difference read_noise variance:
+                sigma[Diff.doule, :] = read_noise * ((1/n_reads[i+2]) + (1/n_reads[i]))
 
     Notes
     -----
-    - delta, sigma are only computed if use_jump is True.  These values represent
-      reused computations for jump detection which are used by every ramp for
-      the given pixel for jump detection. They are computed once and stored for
-      reuse by all ramp computations for the pixel.
+    - local_slopes and var_read_noise are only computed if use_jump is True. 
+      These values represent reused computations for jump detection which are
+      used by every ramp for the given pixel for jump detection. They are
+      computed once and stored for reuse by all ramp computations for the pixel.
     - The computations are done using vectorized operations for some performance
       increases. However, this is marginal compaired with the performance increase
       from pre-computing the values and reusing them.
@@ -76,24 +79,29 @@ cdef class Pixel:
     @cython.wraparound(False)
     cdef inline float[:, :] local_slope_vals(Pixel self):
         """
-        Compute the difference offset of resultants
+        Compute the local slopes between resultants for the pixel
 
         Returns
         -------
         [
-            <(resultants[i+1] - resultants[i])>,
-            <(resultants[i+2] - resultants[i])>,
+            <(resultants[i+1] - resultants[i])> / <(t_bar[i+1] - t_bar[i])>,
+            <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
         ]
         """
         cdef float[:] resultants = self.resultants
         cdef int end = len(resultants)
 
+        # Read the t_bar_diffs into a local variable to avoid calling through Python
+        #    multiple times
         cdef np.ndarray[float, ndim=2] t_bar_diffs = np.array(self.fixed.t_bar_diffs, dtype=np.float32)
+
         cdef np.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
 
-        local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diffs[0, :]).astype(np.float32)
-        local_slope_vals[Diff.double, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diffs[1, :end-2]).astype(np.float32)
-        local_slope_vals[Diff.double, end-2] = np.nan  # last double difference is undefined
+        local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1])
+                                            / t_bar_diffs[Diff.single, :]).astype(np.float32)
+        local_slope_vals[Diff.double, :end - 2] = (np.subtract(resultants[2:], resultants[:end - 2])
+                                                   / t_bar_diffs[Diff.double, :end-2]).astype(np.float32)
+        local_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
 
         return local_slope_vals
 
@@ -229,12 +237,12 @@ cdef class Pixel:
         cdef float comp = (self.fixed.t_bar_diffs[diff, index] /
                            (self.fixed.data.t_bar[ramp.end] - self.fixed.data.t_bar[ramp.start]))
 
-        if diff == 0:
+        if diff == Diff.single:
             return (1 - comp)**2
-        elif diff == 1:
+        elif diff == Diff.double:
             return (1 - 0.75 * comp)**2
         else:
-            raise ValueError("offset must be 1 or 2")
+            raise ValueError("diff must be Diff.single or Diff.double")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -248,7 +256,7 @@ cdef class Pixel:
                     * (t_bar[j] - t_bar[i])
             var   = sigma * (1/N[j] + 1/N[i]) 
                     + slope * (tau[j] + tau[i] - min(t_bar[j], t_bar[i]))
-                    * correction(offset)
+                    * correction(diff)
         
         Parameters
         ----------
@@ -476,6 +484,7 @@ cdef class Pixel:
 cdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants):
     """
     Fast constructor for the Pixel C class.
+        This creates a Pixel object for a single pixel from the input data.
 
     This is signifantly faster than using the `__init__` or `__cinit__`
         this is because this does not have to pass through the Python as part
@@ -483,10 +492,12 @@ cdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resu
 
     Parameters
     ----------
-    fixed : Fixed
+    fixed : FixedValues
         Fixed values for all pixels
+    read_noise : float
+        read noise for the single pixel
     resultants : float [:]
-        array of resultants for single pixel
+        array of resultants for the single pixel
             - memoryview of a numpy array to avoid passing through Python
 
     Return
