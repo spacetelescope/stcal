@@ -33,11 +33,6 @@ from astropy import units as u
 import numpy as np
 
 from . import ols_cas22
-from .ols_cas22_util import (
-    ma_table_to_tau,
-    ma_table_to_tbar,
-    ma_table_to_read_pattern
-)
 
 
 def fit_ramps_casertano(
@@ -45,8 +40,7 @@ def fit_ramps_casertano(
     dq,
     read_noise,
     read_time,
-    ma_table=None,
-    read_pattern=None,
+    read_pattern,
     use_jump=False
 ):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
@@ -66,10 +60,7 @@ def fit_ramps_casertano(
         the read noise in electrons
     read_time : float
         Read time. For Roman data this is the FRAME_TIME keyword.
-    ma_table : list[list[int]] or None
-        The MA table prescription. If None, use `read_pattern`.
-        One of `ma_table` or `read_pattern` must be defined.
-    read_pattern : list[list[int]] or None
+    read_pattern : list[list[int]]
         The read pattern prescription. If None, use `ma_table`.
         One of `ma_table` or `read_pattern` must be defined.
     use_jump : bool
@@ -84,13 +75,6 @@ def fit_ramps_casertano(
         the covariance matrix of par, for each of three noise terms:
         the read noise, Poisson source noise, and total noise.
     """
-
-    # Get the Multi-accum table, either as given or from the read pattern
-    if read_pattern is None:
-        if ma_table is not None:
-            read_pattern = ma_table_to_read_pattern(ma_table)
-    if read_pattern is None:
-        raise RuntimeError('One of `ma_table` or `read_pattern` must be given.')
 
     resultants_unit = getattr(resultants, 'unit', None)
     if resultants_unit is not None:
