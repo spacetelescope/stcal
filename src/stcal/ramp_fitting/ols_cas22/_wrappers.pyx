@@ -75,21 +75,21 @@ def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,
         except AttributeError:
             t_bar_diffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
-            raise AttributeError("t_bar_1 should not exist")
+            raise AttributeError("t_bar_diffs should not exist")
 
         try:
             fixed.read_recip_coeffs
         except AttributeError:
             read_recip_coeffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
-            raise AttributeError("recip_1 should not exist")
+            raise AttributeError("read_recip_coeffs should not exist")
 
         try:
             fixed.var_slope_coeffs
         except AttributeError:
             var_slope_coeffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
-            raise AttributeError("slope_var_1 should not exist")
+            raise AttributeError("var_slope_coeffs should not exist")
 
     return dict(data=fixed.data,
                 intercept=intercept_,
@@ -117,29 +117,29 @@ def make_pixel(np.ndarray[float, ndim=1] resultants,
 
     cdef np.ndarray[float, ndim=1] resultants_ = np.array(pixel.resultants, dtype=np.float32)
 
-    cdef np.ndarray[float, ndim=2] delta
-    cdef np.ndarray[float, ndim=2] sigma
+    cdef np.ndarray[float, ndim=2] local_slopes
+    cdef np.ndarray[float, ndim=2] var_read_noise
 
     if use_jump:
-        delta = np.array(pixel.delta, dtype=np.float32)
-        sigma = np.array(pixel.sigma, dtype=np.float32)
+        local_slopes = np.array(pixel.local_slopes, dtype=np.float32)
+        var_read_noise = np.array(pixel.var_read_noise, dtype=np.float32)
     else:
         try:
-            pixel.delta
+            pixel.local_slopes
         except AttributeError:
-            delta = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            local_slopes = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
-            raise AttributeError("delta_1 should not exist")
+            raise AttributeError("local_slopes should not exist")
 
         try:
-            pixel.sigma
+            pixel.var_read_noise
         except AttributeError:
-            sigma = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            var_read_noise = np.array([[np.nan],[np.nan]], dtype=np.float32)
         else:
-            raise AttributeError("sigma_1 should not exist")
+            raise AttributeError("var_read_noise should not exist")
 
     # only return computed values (assume fixed is correct)
     return dict(resultants=resultants_,
                 read_noise=pixel.read_noise,
-                delta=delta,
-                sigma=sigma)
+                local_slopes=local_slopes,
+                var_read_noise=var_read_noise)

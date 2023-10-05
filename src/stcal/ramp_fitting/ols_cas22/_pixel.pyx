@@ -42,12 +42,12 @@ cdef class Pixel:
     resultants : float [:]
         array of resultants for single pixel (data input)
 
-    delta : float [:, :]
+    local_slopes : float [:, :]
         single difference delta+slope:
             delta[0, :] = (resultants[i+1] - resultants[i]) / (t_bar[i+1] - t_bar[i])
         double difference delta+slope:
             delta[1, :] = (resultants[i+2] - resultants[i]) / (t_bar[i+2] - t_bar[i])
-    sigma : float [:, :]
+    var_read_noise : float [:, :]
         single difference "sigma":
             sigma[0, :] = read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
         double difference "sigma":
@@ -74,7 +74,7 @@ cdef class Pixel:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef inline float[:, :] delta_val(Pixel self):
+    cdef inline float[:, :] local_slope_vals(Pixel self):
         """
         Compute the difference offset of resultants
 
@@ -89,13 +89,13 @@ cdef class Pixel:
         cdef int end = len(resultants)
 
         cdef np.ndarray[float, ndim=2] t_bar_diffs = np.array(self.fixed.t_bar_diffs, dtype=np.float32)
-        cdef np.ndarray[float, ndim=2] delta = np.zeros((2, end - 1), dtype=np.float32)
+        cdef np.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
 
-        delta[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diffs[0, :]).astype(np.float32)
-        delta[Diff.double, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diffs[1, :end-2]).astype(np.float32)
-        delta[Diff.double, end-2] = np.nan  # last double difference is undefined
+        local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1]) / t_bar_diffs[0, :]).astype(np.float32)
+        local_slope_vals[Diff.double, :end-2] = (np.subtract(resultants[2:], resultants[:end - 2]) / t_bar_diffs[1, :end-2]).astype(np.float32)
+        local_slope_vals[Diff.double, end-2] = np.nan  # last double difference is undefined
 
-        return delta
+        return local_slope_vals
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -266,9 +266,9 @@ cdef class Pixel:
         -------
             Create a single instance of the stastic for the given parameters
         """
-        cdef float delta = ((self.delta[diff, index] - slope) *
+        cdef float delta = ((self.local_slopes[diff, index] - slope) *
                             fabs(self.fixed.t_bar_diffs[diff, index]))
-        cdef float var = (self.sigma[diff, index] +
+        cdef float var = (self.var_read_noise[diff, index] +
                           slope * self.fixed.var_slope_coeffs[diff, index] *
                                   self.correction(ramp, index, diff))
 
@@ -502,7 +502,7 @@ cdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resu
 
     # Pre-compute values for jump detection shared by all pixels for this pixel
     if fixed.use_jump:
-        pixel.delta = pixel.delta_val()
-        pixel.sigma = read_noise * np.array(fixed.read_recip_coeffs)
+        pixel.local_slopes = pixel.local_slope_vals()
+        pixel.var_read_noise = read_noise * np.array(fixed.read_recip_coeffs)
 
     return pixel

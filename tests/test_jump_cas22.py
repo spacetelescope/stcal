@@ -139,21 +139,21 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
             fixed['var_slope_coeffs'][Diff.double]
         )
 
-        for index, (t_bar_1, recip_1, slope_var_1) in enumerate(single_gen):
-            assert t_bar_1 == t_bar[index + 1] - t_bar[index]
-            assert recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
-            assert slope_var_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
+        for index, (t_bar_diff_1, read_recip_1, var_slope_1) in enumerate(single_gen):
+            assert t_bar_diff_1 == t_bar[index + 1] - t_bar[index]
+            assert read_recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
+            assert var_slope_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
 
-        for index, (t_bar_2, recip_2, slope_var_2) in enumerate(double_gen):
+        for index, (t_bar_diff_2, read_recip_2, var_slope_2) in enumerate(double_gen):
             if index == len(fixed['t_bar_diffs'][1]) - 1:
                 # Last value must be NaN
-                assert np.isnan(t_bar_2)
-                assert np.isnan(recip_2)
-                assert np.isnan(slope_var_2)
+                assert np.isnan(t_bar_diff_2)
+                assert np.isnan(read_recip_2)
+                assert np.isnan(var_slope_2)
             else:
-                assert t_bar_2 == t_bar[index + 2] - t_bar[index]
-                assert recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
-                assert slope_var_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
+                assert t_bar_diff_2 == t_bar[index + 2] - t_bar[index]
+                assert read_recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
+                assert var_slope_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
     else:
         # If not using jumps, these values should not even exist. However, for wrapping
         #    purposes, they are checked to be non-existent and then set to NaN
@@ -220,32 +220,32 @@ def test_make_pixel(pixel_data, use_jump):
     # These are computed via vectorized operations in the main code, here we
     #    check using item-by-item operations
     if use_jump:
-        single_gen = zip(pixel['delta'][Diff.single], pixel['sigma'][Diff.single])
-        double_gen = zip(pixel['delta'][Diff.double], pixel['sigma'][Diff.double])
+        single_gen = zip(pixel['local_slopes'][Diff.single], pixel['var_read_noise'][Diff.single])
+        double_gen = zip(pixel['local_slopes'][Diff.double], pixel['var_read_noise'][Diff.double])
 
-        for index, (delta_1, sigma_1) in enumerate(single_gen):
-            assert delta_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
-            assert sigma_1 == read_noise * (
+        for index, (local_slope_1, var_read_noise_1) in enumerate(single_gen):
+            assert local_slope_1 == (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index])
+            assert var_read_noise_1 == read_noise * (
                 np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             )
 
-        for index, (delta_2, sigma_2) in enumerate(double_gen):
-            if index == len(pixel['delta'][1]) - 1:
+        for index, (local_slope_2, var_read_noise_2) in enumerate(double_gen):
+            if index == len(pixel['local_slopes'][1]) - 1:
                 # Last value must be NaN
-                assert np.isnan(delta_2)
-                assert np.isnan(sigma_2)
+                assert np.isnan(local_slope_2)
+                assert np.isnan(var_read_noise_2)
             else:
-                assert delta_2 == (
+                assert local_slope_2 == (
                     (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
                 )
-                assert sigma_2 == read_noise * (
+                assert var_read_noise_2 == read_noise * (
                     np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 )
     else:
         # If not using jumps, these values should not even exist. However, for wrapping
         #    purposes, they are checked to be non-existent and then set to NaN
-        assert np.isnan(pixel['delta']).all()
-        assert np.isnan(pixel['sigma']).all()
+        assert np.isnan(pixel['local_slopes']).all()
+        assert np.isnan(pixel['var_read_noise']).all()
 
 
 @pytest.fixture(scope="module")
