@@ -5,13 +5,11 @@ on:
     branches:
       - main
       - '*x'
-      - stcal-alignment
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - stcal-alignment
   schedule:
     # Weekly Monday 9AM build
     - cron: "0 9 * * 1"
