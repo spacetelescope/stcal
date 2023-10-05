@@ -178,15 +178,16 @@ def _generate_resultants(read_pattern, n_pixels=1):
         resultant_total = np.zeros(n_pixels, dtype=np.float32)  # Total of all reads in this resultant
         for _ in reads:
             # Compute the next value of the ramp
-            #   - Poisson process for the flux
-            #   - Gaussian process for the read noise
+            #   Using a Poisson process for the flux
             ramp_value += RNG.poisson(FLUX * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
-            ramp_value += (
-                RNG.standard_normal(size=n_pixels, dtype=np.float32) * READ_NOISE / np.sqrt(len(reads))
-            )
 
             # Add to running total for the resultant
             resultant_total += ramp_value
+
+        # Add read noise to the resultant
+        resultant_total += (
+            RNG.standard_normal(size=n_pixels, dtype=np.float32) * READ_NOISE / np.sqrt(len(reads))
+        )
 
         # Record the average value for resultant (i.e., the average of the reads)
         resultants[index] = (resultant_total / len(reads)).astype(np.float32)
