@@ -52,6 +52,11 @@ Enums
         poisson_var: poisson variance computed
         total_var: total variance computed (read_var + poisson_var)
 
+    RampJumpDQ
+        This enum is to specify the DQ flags for Ramp/Jump detection
+
+        JUMP_DET: jump detected
+
 Functions
 ---------
     get_power

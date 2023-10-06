@@ -25,17 +25,27 @@ class RampFitOutputs(NamedTuple):
     Simple tuple wrapper for outputs from the ramp fitting algorithm
         This clarifies the meaning of the outputs via naming them something
         descriptive.
-    """
 
+    Attributes
+    ----------
+        fits: list of RampFits
+            the raw ramp fit outputs, these are all structs which will get mapped to
+            python dictionaries.
+        parameters: np.ndarray[n_pixel, 2]
+            the slope and intercept for each pixel's ramp fit. see Parameter enum
+            for indexing indicating slope/intercept in the second dimension.
+        variances: np.ndarray[n_pixel, 3]
+            the read, poisson, and total variances for each pixel's ramp fit.
+            see Variance enum for indexing indicating read/poisson/total in the
+            second dimension.
+        dq: np.ndarray[n_resultants, n_pixel]
+            the dq array, with additional flags set for jumps detected by the
+            jump detection algorithm.
+    """
     fits: list
     parameters: np.ndarray
     variances: np.ndarray
     dq: np.ndarray
-    # def __init__(self, fits, parameters, variances, dq):
-    #     self.fits = fits
-    #     self.parameters = parameters
-    #     self.variances = variances
-    #     self.dq = dq
 
 
 @cython.boundscheck(False)
@@ -49,12 +59,11 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
               float intercept=DefaultIntercept,
               float constant=DefaultConstant):
     """Fit ramps using the Casertano+22 algorithm.
-
-    This implementation fits all ramp segments between bad pixels
-    marked in the dq image with values not equal to zero.  So the
-    number of fit ramps can be larger than the number of pixels.
-    The derived slopes, corresponding variances, and the locations of
-    the ramps in each pixel are given in the returned dictionary.
+        This implementation uses the Cas22 algorithm to fit ramps, where
+        ramps are fit between bad resultants marked by dq flags for each pixel
+        which are not equal to zero. If use_jump is True, it additionally uses
+        jump detection to mark additional resultants for each pixel as bad if
+        a jump is suspected in them.
 
     Parameters
     ----------
@@ -78,7 +87,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     Returns
     -------
-    A list of RampFits objects, one for each pixel.
+    A RampFitOutputs tuple
     """
     cdef int n_pixels, n_resultants
     n_resultants = resultants.shape[0]
