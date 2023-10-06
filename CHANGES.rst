@@ -1,6 +1,8 @@
 1.4.5 (unreleased)
 ==================
 
+- Added ``alignment`` sub-package. [#179]
+
 Changes to API
 --------------
 
@@ -18,8 +20,6 @@ Other
 
 1.4.4 (2023-09-15)
 ==================
-
-- Added ``alignment`` sub-package. [#179]
 
 Other
 -----
