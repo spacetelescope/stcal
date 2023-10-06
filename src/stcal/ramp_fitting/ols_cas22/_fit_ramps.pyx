@@ -113,9 +113,6 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef np.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
     cdef np.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
 
-    # Copy the dq array so we can modify it without fear
-    cdef np.ndarray[int, ndim=2] fit_dq = dq.copy()
-
     # Perform all of the fits
     cdef RampFits fit
     cdef int index
@@ -131,8 +128,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         variances[index, Variance.total_var] = fit.average.read_var + fit.average.poisson_var
 
         for jump in fit.jumps:
-            fit_dq[jump, index] = RampJumpDQ.JUMP_DET
+            dq[jump, index] = RampJumpDQ.JUMP_DET
 
         ramp_fits.push_back(fit)
 
-    return RampFitOutputs(ramp_fits, parameters, variances, fit_dq)
+    return RampFitOutputs(ramp_fits, parameters, variances, dq)
