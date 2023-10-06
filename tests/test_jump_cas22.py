@@ -16,6 +16,7 @@ N_PIXELS = 100_000
 FLUX = 100
 JUMP_VALUE = 10_000
 CHI2_TOL = 0.03
+GOOD_PROB = 0.7
 
 
 @pytest.fixture(scope="module")
@@ -334,7 +335,7 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     """
     resultants, read_noise, read_pattern = detector_data
     dq = (
-        (RNG.uniform(size=resultants.shape) > 1).astype(np.int32) if use_dq else
+        (RNG.uniform(size=resultants.shape) > GOOD_PROB).astype(np.int32) if use_dq else
         np.zeros(resultants.shape, dtype=np.int32)
     )
 
