@@ -46,15 +46,17 @@ cdef class Pixel:
     local_slopes : float [:, :]
         These are the local slopes between the resultants for the pixel.
             single difference local slope:
-                delta[Diff.single, :] = (resultants[i+1] - resultants[i]) / (t_bar[i+1] - t_bar[i])
+                local_slopes[Diff.single, :] = (resultants[i+1] - resultants[i])
+                                                / (t_bar[i+1] - t_bar[i])
             double difference local slope:
-                delta[Diff.double, :] = (resultants[i+2] - resultants[i]) / (t_bar[i+2] - t_bar[i])
+                local_slopes[Diff.double, :] = (resultants[i+2] - resultants[i])
+                                                / (t_bar[i+2] - t_bar[i])
     var_read_noise : float [:, :]
         The read noise variance term of the jump statistics
             single difference read noise variance:
-                sigma[Diff.single, :] = read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
+                var_read_noise[Diff.single, :] = read_noise * ((1/n_reads[i+1]) + (1/n_reads[i]))
             double difference read_noise variance:
-                sigma[Diff.doule, :] = read_noise * ((1/n_reads[i+2]) + (1/n_reads[i]))
+                var_read_noise[Diff.doule, :] = read_noise * ((1/n_reads[i+2]) + (1/n_reads[i]))
 
     Notes
     -----

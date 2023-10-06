@@ -55,24 +55,26 @@ cdef class FixedValues:
         the jump detection statistics. These are formed from the reciprocal sum
         of the number of reads.
             single sum of reciprocal n_reads:
-                recip[Diff.single, :] = ((1/n_reads[i+1]) + (1/n_reads[i]))
+                read_recip_coeffs[Diff.single, :] = ((1/n_reads[i+1]) + (1/n_reads[i]))
             double sum of reciprocal n_reads:
-                recip[Diff.double, :] = ((1/n_reads[i+2]) + (1/n_reads[i]))
+                read_recip_coeffs[Diff.double, :] = ((1/n_reads[i+2]) + (1/n_reads[i]))
     var_slope_coeffs : float[:, :]
         Coefficients for the slope portion of the variance used to compute the
         jump detection statistics, which happend to be fixed for any given ramp
         fit.
             single of slope variance term:
-                slope_var[Diff.single, :] = ([tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1]))
+                var_slope_coeffs[Diff.single, :] = (tau[i] + tau[i+1]
+                                                    - min(t_bar[i], t_bar[i+1]))
             double of slope variance term:
-                slope_var[Diff.double, :] = ([tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2]))
+                var_slope_coeffs[Diff.double, :] = (tau[i] + tau[i+2]
+                                                    - min(t_bar[i], t_bar[i+2]))
 
     Notes
     -----
-    - t_bar_diffs, read_recip_coeffs, var_slope_coeffs are only computed if
-      use_jump is True.  These values represent reused computations for jump
-      detection which are used by every pixel for jump detection. They are
-      computed once and stored in the FixedValues for reuse by all pixels.
+    - t_bar_diffs, t_bar_diff_sqrs, read_recip_coeffs, var_slope_coeffs are only
+      computed if use_jump is True.  These values represent reused computations
+      for jump detection which are used by every pixel for jump detection. They
+      are computed once and stored in the FixedValues for reuse by all pixels.
     - The computations are done using vectorized operations for some performance
       increases. However, this is marginal compaired with the performance increase
       from pre-computing the values and reusing them.

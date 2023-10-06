@@ -9,12 +9,27 @@ from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, fixed_values_f
 from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
 
 
+# Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)
-ROMAN_READ_TIME = 3.04
-READ_NOISE = np.float32(5)
-N_PIXELS = 100_000
+
+# The read time is constant for the given telescope/instrument so we set it here
+#    to be the one for Roman as it is known to be a reasonable value
+READ_TIME = 3.04
+
+# Choose small read noise relative to the flux to make it extremely unlikely
+#    that the random process will "accidentally" generate a set of data, which
+#    can trigger jump detection. This makes it easier to cleanly test jump
+#    detection is doing what we expect.
 FLUX = 100
+READ_NOISE = np.float32(5)
+
+# Set a value for jumps which makes them obvious relative to the normal flux
 JUMP_VALUE = 10_000
+
+# Choose reasonable values for arbitrary test parameters, these are kept the same
+#    across all tests to make it easier to isolate the effects of something using
+#    multiple tests.
+N_PIXELS = 100_000
 CHI2_TOL = 0.03
 GOOD_PROB = 0.7
 
@@ -40,7 +55,7 @@ def base_ramp_data():
         [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
     ]
 
-    yield read_pattern, metadata_from_read_pattern(read_pattern, ROMAN_READ_TIME)
+    yield read_pattern, metadata_from_read_pattern(read_pattern, READ_TIME)
 
 
 def test_metadata_from_read_pattern(base_ramp_data):
@@ -215,7 +230,7 @@ def _generate_resultants(read_pattern, n_pixels=1):
         for _ in reads:
             # Compute the next value of the ramp
             #   Using a Poisson process for the flux
-            ramp_value += RNG.poisson(FLUX * ROMAN_READ_TIME, size=n_pixels).astype(np.float32)
+            ramp_value += RNG.poisson(FLUX * READ_TIME, size=n_pixels).astype(np.float32)
 
             # Add to running total for the resultant
             resultant_total += ramp_value
@@ -350,13 +365,19 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     if not use_dq:
         assert okay.all()
 
-    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump)
     assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
     for fit, use in zip(output.fits, okay):
         if not use_dq:
-            assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump in this case
+            # Check that the data generated does not generate any false positives
+            #   for jumps as this data is reused for `test_find_jumps` below.
+            #   This guarantees that all jumps detected in that test are the
+            #   purposefully placed ones which we know about. So the `test_find_jumps`
+            #   can focus on checking that the jumps found are the correct ones,
+            #   and that all jumps introduced are detected properly.
+            assert len(fit['fits']) == 1
 
         if use:
             # Add okay ramps to chi2
@@ -382,7 +403,7 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     resultants, read_noise, read_pattern = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump)
 
     for fit, par, var in zip(output.fits, output.parameters, output.variances):
         assert par[Parameter.intercept] == 0
@@ -454,7 +475,7 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True)
     assert len(output.fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
     chi2 = 0
@@ -513,8 +534,8 @@ def test_override_default_threshold(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    standard = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
-    override = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True,
+    standard = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True)
+    override = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True,
                          intercept=0, constant=0)
 
     # All this is intended to do is show that with all other things being equal passing non-default
@@ -529,7 +550,7 @@ def test_jump_dq_set(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True)
 
     for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
         # Check that all jumps found get marked
