@@ -21,7 +21,7 @@ def test_simulated_ramps():
     read_noise = np.ones(resultants.shape[1], dtype=np.float32) * read_noise
 
     par, var = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern=read_pattern)
+        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern)
 
     chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
@@ -30,7 +30,14 @@ def test_simulated_ramps():
     bad = np.random.uniform(size=resultants.shape) > 0.7
     dq |= bad
     par, var = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern=read_pattern)
+        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern,
+        threshold_constant=0, threshold_intercept=0)  # set the threshold parameters
+                                                      #   to demo the interface. This
+                                                      #   will raise an error if
+                                                      #   the interface changes, but
+                                                      #   does not effect the computation
+                                                      #   since jump detection is off in
+                                                      #   this case.
     # only use okay ramps
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.

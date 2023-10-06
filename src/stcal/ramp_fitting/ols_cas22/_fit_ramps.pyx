@@ -6,10 +6,17 @@ from libcpp.list cimport list as cpp_list
 from libcpp.deque cimport deque
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport (
-    RampFits, RampIndex, Thresh, metadata_from_read_pattern, init_ramps, Parameter, Variance)
+from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, RampIndex, Thresh,
+                                                 metadata_from_read_pattern, init_ramps,
+                                                 Parameter, Variance)
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
+
+
+# Fix the default Threshold values at compile time these values cannot be overridden
+#   dynamically at runtime.
+DEF DefaultIntercept = 5.5
+DEF DefaultConstant = 1/3.0
 
 
 @cython.boundscheck(False)
@@ -19,7 +26,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
               np.ndarray[float, ndim=1] read_noise,
               float read_time,
               list[list[int]] read_pattern,
-              bool use_jump=False):
+              bool use_jump=False,
+              float intercept=DefaultIntercept,
+              float constant=DefaultConstant):
     """Fit ramps using the Casertano+22 algorithm.
 
     This implementation fits all ramp segments between bad pixels
@@ -43,6 +52,10 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     use_jump : bool
         If True, use the jump detection algorithm to identify CRs.
         If False, use the DQ array to identify CRs.
+    intercept : float
+        The intercept value for the threshold function. Default=5.5
+    constant : float
+        The constant value for the threshold function. Default=1/3.0
 
     Returns
     -------
@@ -58,7 +71,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     # Pre-compute data for all pixels
     cdef FixedValues fixed = fixed_values_from_metadata(metadata_from_read_pattern(read_pattern, read_time),
-                                                        Thresh(5.5, 1/3.0),
+                                                        Thresh(intercept, constant),
                                                         use_jump)
 
     # Compute all the initial sets of ramps

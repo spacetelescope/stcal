@@ -517,3 +517,18 @@ def test_find_jumps(jump_data):
     # Check that the average chi2 is ~1.
     chi2 /= N_PIXELS
     assert np.abs(chi2 - 1) < CHI2_TOL
+
+
+def test_override_default_threshold(jump_data):
+    """This tests that we can override the default jump detection threshold constants"""
+    resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
+    dq = np.zeros(resultants.shape, dtype=np.int32)
+
+    _, standard, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    _, override, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True,
+                                    intercept=0, constant=0)
+
+    # All this is intended to do is show that with all other things being equal passing non-default
+    #    threshold parameters changes the results.
+    assert (standard != override).any()
+    

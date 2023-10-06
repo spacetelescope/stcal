@@ -41,7 +41,10 @@ def fit_ramps_casertano(
     read_noise,
     read_time,
     read_pattern,
-    use_jump=False
+    use_jump=False,
+    *,
+    threshold_intercept=None,
+    threshold_constant=None,
 ):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
@@ -66,6 +69,12 @@ def fit_ramps_casertano(
     use_jump : bool
         If True, use the jump detection algorithm to identify CRs.
         If False, use the DQ array to identify CRs.
+    threshold_intercept : float (optional, keyword-only)
+        Override the intercept parameter for threshold for the jump detection
+        algorithm.
+    theshold_constant : float (optional, keyword-only)
+        Override the constant parameter for threshold for the jump detection
+        algorithm.
 
     Returns
     -------
@@ -75,6 +84,14 @@ def fit_ramps_casertano(
         the covariance matrix of par, for each of three noise terms:
         the read noise, Poisson source noise, and total noise.
     """
+
+    # Trickery to avoid having to specify the defaults for the threshold
+    #   parameters outside the cython code.
+    kwargs = {}
+    if threshold_intercept is not None:
+        kwargs['intercept'] = threshold_intercept
+    if threshold_constant is not None:
+        kwargs['constant'] = threshold_constant
 
     resultants_unit = getattr(resultants, 'unit', None)
     if resultants_unit is not None:
@@ -100,7 +117,8 @@ def fit_ramps_casertano(
         read_noise.reshape(-1),
         read_time,
         read_pattern,
-        use_jump)
+        use_jump,
+        **kwargs)
 
     if resultants.shape != orig_shape:
         parameters = parameters[0]
