@@ -349,11 +349,11 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     if not use_dq:
         assert okay.all()
 
-    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
-    assert len(fits) == N_PIXELS  # sanity check that a fit is output for each pixel
+    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
-    for fit, use in zip(fits, okay):
+    for fit, use in zip(output.fits, okay):
         if not use_dq:
             assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump in this case
 
@@ -381,11 +381,9 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     resultants, read_noise, read_pattern = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, parameters, variances, _ = fit_ramps(
-        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump
-    )
+    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
 
-    for fit, par, var in zip(fits, parameters, variances):
+    for fit, par, var in zip(output.fits, output.parameters, output.variances):
         assert par[Parameter.intercept] == 0
         assert par[Parameter.slope] == fit['average']['slope']
 
@@ -455,11 +453,11 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
-    assert len(fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
+    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    assert len(output.fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
     chi2 = 0
-    for fit, jump_index, resultant_index in zip(fits, jump_reads, jump_resultants):
+    for fit, jump_index, resultant_index in zip(output.fits, jump_reads, jump_resultants):
 
         # Check that the jumps are detected correctly
         if jump_index == 0:
@@ -514,13 +512,13 @@ def test_override_default_threshold(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    _, standard, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
-    _, override, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True,
-                                    intercept=0, constant=0)
+    standard = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    override = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True,
+                         intercept=0, constant=0)
 
     # All this is intended to do is show that with all other things being equal passing non-default
     #    threshold parameters changes the results.
-    assert (standard != override).any()
+    assert (standard.parameters != override.parameters).any()
 
 
 def test_jump_dq_set(jump_data):
@@ -530,12 +528,11 @@ def test_jump_dq_set(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, *_, fit_dq = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    output = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
 
-    for fit, pixel_dq in zip(fits, fit_dq.transpose()):
+    for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
         # Check that all jumps found get marked
         assert (pixel_dq[fit['jumps']] == RampJumpDQ.JUMP_DET).all()
 
         # Check that dq flags for jumps are only set if the jump is marked
         assert set(np.where(pixel_dq == RampJumpDQ.JUMP_DET)[0]) == set(fit['jumps'])
-    

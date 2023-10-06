@@ -2,7 +2,9 @@
 """
 Unit tests for ramp-fitting functions.
 """
+import astropy.units as u
 import numpy as np
+import pytest
 
 from stcal.ramp_fitting import ols_cas22_fit as ramp
 
@@ -13,23 +15,33 @@ from stcal.ramp_fitting import ols_cas22_fit as ramp
 ROMAN_READ_TIME = 3.04
 
 
-def test_simulated_ramps():
+@pytest.mark.parametrize("use_unit", [True, False])
+def test_simulated_ramps(use_unit):
     ntrial = 100000
     read_pattern, flux, read_noise, resultants = simulate_many_ramps(ntrial=ntrial)
+
+    if use_unit:
+        resultants = resultants * u.electron
 
     dq = np.zeros(resultants.shape, dtype=np.int32)
     read_noise = np.ones(resultants.shape[1], dtype=np.float32) * read_noise
 
-    par, var = ramp.fit_ramps_casertano(
+    output = ramp.fit_ramps_casertano(
         resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern)
 
-    chi2dof_slope = np.sum((par[:, 1] - flux)**2 / var[:, 2]) / ntrial
+    if use_unit:
+        assert output.parameters.unit == u.electron
+        parameters = output.parameters.value
+    else:
+        parameters = output.parameters
+
+    chi2dof_slope = np.sum((parameters[:, 1] - flux)**2 / output.variances[:, 2]) / ntrial
     assert np.abs(chi2dof_slope - 1) < 0.03
 
     # now let's mark a bunch of the ramps as compromised.
     bad = np.random.uniform(size=resultants.shape) > 0.7
     dq |= bad
-    par, var = ramp.fit_ramps_casertano(
+    output = ramp.fit_ramps_casertano(
         resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern,
         threshold_constant=0, threshold_intercept=0)  # set the threshold parameters
                                                       #   to demo the interface. This
@@ -42,10 +54,17 @@ def test_simulated_ramps():
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.
     m = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
-    chi2dof_slope = np.sum((par[m, 1] - flux)**2 / var[m, 2]) / np.sum(m)
+
+    if use_unit:
+        assert output.parameters.unit == u.electron
+        parameters = output.parameters.value
+    else:
+        parameters = output.parameters
+
+    chi2dof_slope = np.sum((parameters[m, 1] - flux)**2 / output.variances[m, 2]) / np.sum(m)
     assert np.abs(chi2dof_slope - 1) < 0.03
-    assert np.all(par[~m, 1] == 0)
-    assert np.all(var[~m, 1] == 0)
+    assert np.all(parameters[~m, 1] == 0)
+    assert np.all(output.variances[~m, 1] == 0)
 
 
 # #########

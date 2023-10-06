@@ -111,7 +111,7 @@ def fit_ramps_casertano(
         dq = dq.reshape(orig_shape + (1,))
         read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
-    _, parameters, variances, _ = ols_cas22.fit_ramps(
+    output = ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
@@ -120,11 +120,13 @@ def fit_ramps_casertano(
         use_jump,
         **kwargs)
 
+    parameters = output.parameters
+    variances = output.variances
     if resultants.shape != orig_shape:
-        parameters = parameters[0]
-        variances = variances[0]
+        parameters = output.parameters[0]
+        variances = output.variances[0]
 
     if resultants_unit is not None:
-        parameters = parameters * resultants_unit
+        parameters = output.parameters * resultants_unit
 
-    return parameters, variances
+    return ols_cas22.RampFitOutputs(output.fits, parameters, variances, output.dq)

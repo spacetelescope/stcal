@@ -12,11 +12,30 @@ from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, RampIndex, Thresh,
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
+from typing import NamedTuple
+
 
 # Fix the default Threshold values at compile time these values cannot be overridden
 #   dynamically at runtime.
 DEF DefaultIntercept = 5.5
 DEF DefaultConstant = 1/3.0
+
+class RampFitOutputs(NamedTuple):
+    """
+    Simple tuple wrapper for outputs from the ramp fitting algorithm
+        This clarifies the meaning of the outputs via naming them something
+        descriptive.
+    """
+
+    fits: list
+    parameters: np.ndarray
+    variances: np.ndarray
+    dq: np.ndarray
+    # def __init__(self, fits, parameters, variances, dq):
+    #     self.fits = fits
+    #     self.parameters = parameters
+    #     self.variances = variances
+    #     self.dq = dq
 
 
 @cython.boundscheck(False)
@@ -107,4 +126,4 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
         ramp_fits.push_back(fit)
 
-    return ramp_fits, parameters, variances, fit_dq
+    return RampFitOutputs(ramp_fits, parameters, variances, fit_dq)
