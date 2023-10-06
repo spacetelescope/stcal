@@ -6,7 +6,7 @@ from stcal.ramp_fitting.ols_cas22._wrappers import metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
 from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, fixed_values_from_metadata, make_pixel
 
-from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff
+from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
 
 
 RNG = np.random.default_rng(619)
@@ -331,7 +331,7 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     resultants, read_noise, read_pattern = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, parameters, variances = fit_ramps(
+    fits, parameters, variances, _ = fit_ramps(
         resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump
     )
 
@@ -356,7 +356,7 @@ def test_fit_ramps_no_dq(detector_data, use_jump):
     resultants, read_noise, read_pattern  = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
     assert len(fits) == N_PIXELS # sanity check that a fit is output for each pixel
 
     # Check that the chi2 for the resulting fit relative to the assumed flux is ~1
@@ -387,7 +387,7 @@ def test_fit_ramps_dq(detector_data, use_jump):
     #   i.e., we can make a measurement from them.
     okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
 
-    fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
     assert len(fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
@@ -465,7 +465,7 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    fits, _, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
     assert len(fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
     chi2 = 0
@@ -524,11 +524,28 @@ def test_override_default_threshold(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    _, standard, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
-    _, override, _ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True,
+    _, standard, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+    _, override, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True,
                                     intercept=0, constant=0)
 
     # All this is intended to do is show that with all other things being equal passing non-default
     #    threshold parameters changes the results.
     assert (standard != override).any()
+
+
+def test_jump_dq_set(jump_data):
+    # Check the DQ flag value to start
+    assert RampJumpDQ.JUMP_DET == 2**2
+
+    resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
+    dq = np.zeros(resultants.shape, dtype=np.int32)
+
+    fits, *_, fit_dq = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=True)
+
+    for fit, pixel_dq in zip(fits, fit_dq.transpose()):
+        # Check that all jumps found get marked
+        assert (pixel_dq[fit['jumps']] == RampJumpDQ.JUMP_DET).all()
+
+        # Check that dq flags for jumps are only set if the jump is marked
+        assert set(np.where(pixel_dq == RampJumpDQ.JUMP_DET)[0]) == set(fit['jumps'])
     

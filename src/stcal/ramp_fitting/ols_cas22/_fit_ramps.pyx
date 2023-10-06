@@ -8,7 +8,7 @@ cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, RampIndex, Thresh,
                                                  metadata_from_read_pattern, init_ramps,
-                                                 Parameter, Variance)
+                                                 Parameter, Variance, RampJumpDQ)
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
@@ -85,6 +85,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef np.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
     cdef np.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
 
+    # Copy the dq array so we can modify it without fear
+    cdef np.ndarray[int, ndim=2] fit_dq = dq.copy()
+
     # Perform all of the fits
     cdef RampFits fit
     cdef int index
@@ -99,6 +102,9 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         variances[index, Variance.poisson_var] = fit.average.poisson_var
         variances[index, Variance.total_var] = fit.average.read_var + fit.average.poisson_var
 
+        for jump in fit.jumps:
+            fit_dq[jump, index] = RampJumpDQ.JUMP_DET
+
         ramp_fits.push_back(fit)
 
-    return ramp_fits, parameters, variances
+    return ramp_fits, parameters, variances, fit_dq

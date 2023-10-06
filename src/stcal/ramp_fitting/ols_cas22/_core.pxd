@@ -48,6 +48,10 @@ cpdef enum Variance:
     total_var = 2
 
 
+cpdef enum RampJumpDQ:
+    JUMP_DET = 4
+
+
 cdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
 cdef deque[stack[RampIndex]] init_ramps(int[:, :] dq)
