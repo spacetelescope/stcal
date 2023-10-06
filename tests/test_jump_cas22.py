@@ -323,6 +323,56 @@ def detector_data(ramp_data):
 
     return resultants, read_noise, read_pattern
 
+
+@pytest.mark.parametrize("use_jump", [True, False])
+@pytest.mark.parametrize("use_dq", [True, False])
+def test_fit_ramps(detector_data, use_jump, use_dq):
+    """
+    Test fitting ramps
+        Since no jumps are simulated in the data, jump detection shouldn't pick
+        up any jumps.
+    """
+    resultants, read_noise, read_pattern = detector_data
+    dq = (
+        (RNG.uniform(size=resultants.shape) > 1).astype(np.int32) if use_dq else
+        np.zeros(resultants.shape, dtype=np.int32)
+    )
+
+    # only use okay ramps
+    #   ramps passing the below criterion have at least two adjacent valid reads
+    #   i.e., we can make a measurement from them.
+    okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
+    assert okay.dtype == bool
+
+    # Note that for use_dq = False, okay == True for all ramps, so we perform
+    #    a sanity check that the above criterion is correct
+    if not use_dq:
+        assert okay.all()
+
+    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
+    assert len(fits) == N_PIXELS  # sanity check that a fit is output for each pixel
+
+    chi2 = 0
+    for fit, use in zip(fits, okay):
+        if not use_dq:
+            assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump in this case
+
+        if use:
+            # Add okay ramps to chi2
+            total_var = fit['average']['read_var'] + fit['average']['poisson_var']
+            chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
+        else:
+            # Check no slope fit for bad ramps
+            assert fit['average']['slope'] == 0
+            assert fit['average']['read_var'] == 0
+            assert fit['average']['poisson_var'] == 0
+
+            assert use_dq # sanity check that this branch is only encountered when use_dq = True
+
+    chi2 /= np.sum(okay)
+    assert np.abs(chi2 - 1) < CHI2_TOL
+
+
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_fit_ramps_array_outputs(detector_data, use_jump):
     """
@@ -344,66 +394,6 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
         assert var[Variance.total_var] == np.float32(
             fit['average']['read_var'] + fit['average']['poisson_var']
         )
-
-
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_fit_ramps_no_dq(detector_data, use_jump):
-    """
-    Test fitting ramps with no dq flags set on data which has no jumps
-        Since no jumps are simulated in the data, jump detection shouldn't pick
-        up any jumps.
-    """
-    resultants, read_noise, read_pattern  = detector_data
-    dq = np.zeros(resultants.shape, dtype=np.int32)
-
-    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
-    assert len(fits) == N_PIXELS # sanity check that a fit is output for each pixel
-
-    # Check that the chi2 for the resulting fit relative to the assumed flux is ~1
-    chi2 = 0
-    for fit in fits:
-        assert len(fit['fits']) == 1  # only one fit per pixel since no dq/jump
-
-        total_var = fit['average']['read_var'] + fit['average']['poisson_var']
-        chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
-
-    chi2 /= N_PIXELS
-
-    assert np.abs(chi2 - 1) < CHI2_TOL
-
-
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_fit_ramps_dq(detector_data, use_jump):
-    """
-    Test fitting ramps with dq flags set
-        Since no jumps are simulated in the data, jump detection shouldn't pick
-        up any jumps.
-    """
-    resultants, read_noise, read_pattern = detector_data
-    dq = (RNG.uniform(size=resultants.shape) > 1).astype(np.int32)
-
-    # only use okay ramps
-    #   ramps passing the below criterion have at least two adjacent valid reads
-    #   i.e., we can make a measurement from them.
-    okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
-
-    fits, *_ = fit_ramps(resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, use_jump=use_jump)
-    assert len(fits) == N_PIXELS  # sanity check that a fit is output for each pixel
-
-    chi2 = 0
-    for fit, use in zip(fits, okay):
-        if use:
-            # Add okay ramps to chi2
-            total_var = fit['average']['read_var'] + fit['average']['poisson_var']
-            chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
-        else:
-            # Check no slope fit for bad ramps
-            assert fit['average']['slope'] == 0
-            assert fit['average']['read_var'] == 0
-            assert fit['average']['poisson_var'] == 0
-
-    chi2 /= np.sum(okay)
-    assert np.abs(chi2 - 1) < CHI2_TOL
 
 
 @pytest.fixture(scope="module")
