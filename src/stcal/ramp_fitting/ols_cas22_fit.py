@@ -120,13 +120,15 @@ def fit_ramps_casertano(
         use_jump,
         **kwargs)
 
-    parameters = output.parameters
-    variances = output.variances
+    parameters = output.parameters.reshape(orig_shape[1:] + (2,))
+    variances = output.variances.reshape(orig_shape[1:] + (3,))
+    dq = output.dq.reshape(orig_shape)
+
     if resultants.shape != orig_shape:
-        parameters = output.parameters[0]
-        variances = output.variances[0]
+        parameters = parameters[0]
+        variances = variances[0]
 
     if resultants_unit is not None:
-        parameters = output.parameters * resultants_unit
+        parameters = parameters * resultants_unit
 
-    return ols_cas22.RampFitOutputs(output.fits, parameters, variances, output.dq)
+    return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)

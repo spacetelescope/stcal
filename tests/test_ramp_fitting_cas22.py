@@ -16,31 +16,28 @@ ROMAN_READ_TIME = 3.04
 
 
 @pytest.mark.parametrize("use_unit", [True, False])
-def test_simulated_ramps(use_unit):
-    ntrial = 100000
+@pytest.mark.parametrize("use_dq", [True, False])
+def test_simulated_ramps(use_unit, use_dq):
+    # Perfect square like the detector, this is so we can test that the code
+    #   reshapes the data correctly for the computation and then reshapes it back
+    #   to the original shape.
+    ntrial = 320 * 320
     read_pattern, flux, read_noise, resultants = simulate_many_ramps(ntrial=ntrial)
+
+    # So we get a detector-like input shape
+    resultants = resultants.reshape((len(read_pattern), 320, 320))
 
     if use_unit:
         resultants = resultants * u.electron
 
     dq = np.zeros(resultants.shape, dtype=np.int32)
-    read_noise = np.ones(resultants.shape[1], dtype=np.float32) * read_noise
+    read_noise = np.ones(resultants.shape[1:], dtype=np.float32) * read_noise
 
-    output = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern)
+    # now let's mark a bunch of the ramps as compromised. When using dq flags
+    if use_dq:
+        bad = np.random.uniform(size=resultants.shape) > 0.7
+        dq |= bad
 
-    if use_unit:
-        assert output.parameters.unit == u.electron
-        parameters = output.parameters.value
-    else:
-        parameters = output.parameters
-
-    chi2dof_slope = np.sum((parameters[:, 1] - flux)**2 / output.variances[:, 2]) / ntrial
-    assert np.abs(chi2dof_slope - 1) < 0.03
-
-    # now let's mark a bunch of the ramps as compromised.
-    bad = np.random.uniform(size=resultants.shape) > 0.7
-    dq |= bad
     output = ramp.fit_ramps_casertano(
         resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern,
         threshold_constant=0, threshold_intercept=0)  # set the threshold parameters
@@ -50,21 +47,37 @@ def test_simulated_ramps(use_unit):
                                                       #   does not effect the computation
                                                       #   since jump detection is off in
                                                       #   this case.
-    # only use okay ramps
-    # ramps passing the below criterion have at least two adjacent valid reads
-    # i.e., we can make a measurement from them.
-    m = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
 
+    # Check that the output shapes are correct
+    assert output.parameters.shape == (320, 320, 2) == resultants.shape[1:] + (2,)
+    assert output.variances.shape == (320, 320, 3) == resultants.shape[1:] + (3,)
+    assert output.dq.shape == dq.shape
+
+    # check the unit
     if use_unit:
         assert output.parameters.unit == u.electron
         parameters = output.parameters.value
     else:
         parameters = output.parameters
 
-    chi2dof_slope = np.sum((parameters[m, 1] - flux)**2 / output.variances[m, 2]) / np.sum(m)
+    # Turn into single dimension arrays to make the indexing for the math easier
+    parameters = parameters.reshape((320 * 320, 2))
+    variances = output.variances.reshape((320 * 320, 3))
+
+    # only use okay ramps
+    # ramps passing the below criterion have at least two adjacent valid reads
+    # i.e., we can make a measurement from them.
+    okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
+    okay = okay.reshape((320 * 320))
+
+    # Sanity check that when no dq is used, all ramps are used
+    if not use_dq:
+        assert np.all(okay)
+
+    chi2dof_slope = np.sum((parameters[okay, 1] - flux)**2 / variances[okay, 2]) / np.sum(okay)
     assert np.abs(chi2dof_slope - 1) < 0.03
-    assert np.all(parameters[~m, 1] == 0)
-    assert np.all(output.variances[~m, 1] == 0)
+    assert np.all(parameters[~okay, 1] == 0)
+    assert np.all(variances[~okay, 1] == 0)
 
 
 # #########
