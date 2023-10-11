@@ -87,13 +87,13 @@ cdef float[2][6] PTABLE = [
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline float get_power(float s):
+cdef inline float get_power(float signal):
     """
     Return the power from Casertano+22, Table 2
 
     Parameters
     ----------
-    s: float
+    signal: float
         signal from the resultants
 
     Returns
@@ -102,7 +102,7 @@ cdef inline float get_power(float s):
     """
     cdef int i
     for i in range(6):
-        if s < PTABLE[0][i]:
+        if signal < PTABLE[0][i]:
             return PTABLE[1][i - 1]
 
     return PTABLE[1][i]
