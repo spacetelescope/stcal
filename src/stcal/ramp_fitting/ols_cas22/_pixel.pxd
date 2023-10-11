@@ -20,4 +20,4 @@ cdef class Pixel:
     cdef RampFits fit_ramps(Pixel self, stack[RampIndex] ramps)
 
 
-cdef Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants)
+cpdef Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants)

@@ -9,8 +9,10 @@ Pixel : class
 
 Functions
 ---------
-make_pixel : function
-    Fast constructor for a Pixel class from input data.
+    make_pixel : function
+        Fast constructor for a Pixel class from input data.
+            - cpdef gives a python wrapper, but the python version of this method
+              is considered private, only to be used for testing
 """
 from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
@@ -473,10 +475,50 @@ cdef class Pixel:
 
         return ramp_fits
 
+    def _to_dict(Pixel self):
+        """
+        This is a private method to convert the Pixel object to a dictionary, so
+            that attributes can be directly accessed in python. Note that this is
+            needed because class attributes cannot be accessed on cython classes
+            directly in python. Instead they need to be accessed or set using a
+            python compatible method. This method is a pure puthon method bound
+            to to the cython class and should not be used by any cython code, and
+            only exists for testing purposes.
+        """
+
+        cdef np.ndarray[float, ndim=1] resultants_ = np.array(self.resultants, dtype=np.float32)
+
+        cdef np.ndarray[float, ndim=2] local_slopes
+        cdef np.ndarray[float, ndim=2] var_read_noise
+
+        if self.fixed.use_jump:
+            local_slopes = np.array(self.local_slopes, dtype=np.float32)
+            var_read_noise = np.array(self.var_read_noise, dtype=np.float32)
+        else:
+            try:
+                self.local_slopes
+            except AttributeError:
+                local_slopes = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            else:
+                raise AttributeError("local_slopes should not exist")
+
+            try:
+                self.var_read_noise
+            except AttributeError:
+                var_read_noise = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            else:
+                raise AttributeError("var_read_noise should not exist")
+
+        return dict(fixed=self.fixed._to_dict(),
+                    resultants=resultants_,
+                    read_noise=self.read_noise,
+                    local_slopes=local_slopes,
+                    var_read_noise=var_read_noise)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants):
+cpdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants):
     """
     Fast constructor for the Pixel C class.
         This creates a Pixel object for a single pixel from the input data.

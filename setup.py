@@ -31,12 +31,6 @@ extensions = [
         include_dirs=[np.get_include()],
         language='c++'
     ),
-    Extension(
-        'stcal.ramp_fitting.ols_cas22._wrappers',
-        ['src/stcal/ramp_fitting/ols_cas22/_wrappers.pyx'],
-        include_dirs=[np.get_include()],
-        language='c++'
-    ),
 ]
 
 setup(ext_modules=cythonize(extensions))

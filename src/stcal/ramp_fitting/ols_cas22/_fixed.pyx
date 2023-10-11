@@ -10,8 +10,10 @@ FixedValues : class
 
 Functions
 ---------
-fixed_values_from_metadata : function
-    Fast constructor for FixedValues from the read pattern metadata
+    fixed_values_from_metadata : function
+        Fast constructor for FixedValues from the read pattern metadata
+            - cpdef gives a python wrapper, but the python version of this method
+              is considered private, only to be used for testing
 """
 import numpy as np
 cimport numpy as np
@@ -175,8 +177,64 @@ cdef class FixedValues:
 
         return var_slope_vals
 
+    def _to_dict(FixedValues self):
+        """
+        This is a private method to convert the FixedValues object to a dictionary,
+            so that attributes can be directly accessed in python. Note that this
+            is needed because class attributes cannot be accessed on cython classes
+            directly in python. Instead they need to be accessed or set using a
+            python compatible method. This method is a pure puthon method bound
+            to to the cython class and should not be used by any cython code, and
+            only exists for testing purposes.
+        """
+        cdef np.ndarray[float, ndim=2] t_bar_diffs
+        cdef np.ndarray[float, ndim=2] t_bar_diff_sqrs
+        cdef np.ndarray[float, ndim=2] read_recip_coeffs
+        cdef np.ndarray[float, ndim=2] var_slope_coeffs
 
-cdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump):
+        if self.use_jump:
+            t_bar_diffs = np.array(self.t_bar_diffs, dtype=np.float32)
+            t_bar_diff_sqrs = np.array(self.t_bar_diff_sqrs, dtype=np.float32)
+            read_recip_coeffs = np.array(self.read_recip_coeffs, dtype=np.float32)
+            var_slope_coeffs = np.array(self.var_slope_coeffs, dtype=np.float32)
+        else:
+            try:
+                self.t_bar_diffs
+            except AttributeError:
+                t_bar_diffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            else:
+                raise AttributeError("t_bar_diffs should not exist")
+
+            try:
+                self.t_bar_diff_sqrs
+            except AttributeError:
+                t_bar_diff_sqrs = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            else:
+                raise AttributeError("t_bar_diff_sqrs should not exist")
+
+            try:
+                self.read_recip_coeffs
+            except AttributeError:
+                read_recip_coeffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            else:
+                raise AttributeError("read_recip_coeffs should not exist")
+
+            try:
+                self.var_slope_coeffs
+            except AttributeError:
+                var_slope_coeffs = np.array([[np.nan],[np.nan]], dtype=np.float32)
+            else:
+                raise AttributeError("var_slope_coeffs should not exist")
+
+        return dict(data=self.data,
+                    threshold=self.threshold,
+                    t_bar_diffs=t_bar_diffs,
+                    t_bar_diff_sqrs=t_bar_diff_sqrs,
+                    read_recip_coeffs=read_recip_coeffs,
+                    var_slope_coeffs=var_slope_coeffs)
+
+
+cpdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump):
     """
     Fast constructor for FixedValues class
         Use this instead of an __init__ because it does not incure the overhead

@@ -18,4 +18,4 @@ cdef class FixedValues:
     cdef float[:, :] var_slope_vals(FixedValues self)
 
 
-cdef FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump)
+cpdef FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump)

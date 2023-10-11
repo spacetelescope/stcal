@@ -3,7 +3,8 @@ import pytest
 from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern, threshold
-from stcal.ramp_fitting.ols_cas22._wrappers import fixed_values_from_metadata, make_pixel
+from stcal.ramp_fitting.ols_cas22._fixed import fixed_values_from_metadata
+from stcal.ramp_fitting.ols_cas22._pixel import make_pixel
 
 from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
 
@@ -126,7 +127,7 @@ def test_threshold():
         intercept - constant * log10(slope) = threshold
     """
 
-    # Create the python analog of the threshold struct
+    # Create the python analog of the Threshold struct
     #    Note that structs get mapped to/from python as dictionary objects with
     #    the keys being the struct members.
     thresh = {
@@ -174,17 +175,33 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
     """Test computing the fixed data for all pixels"""
     _, t_bar, tau, n_reads = ramp_data
 
-    intercept = np.float32(5.5)
-    constant = np.float32(1/3)
+    # Create the python analog of the ReadPatternMetadata struct
+    #    Note that structs get mapped to/from python as dictionary objects with
+    #    the keys being the struct members.
+    data = {
+        "t_bar": t_bar,
+        "tau": tau,
+        "n_reads": n_reads,
+    }
 
-    fixed = fixed_values_from_metadata(t_bar, tau, n_reads, intercept, constant, use_jump)
+    # Create the python analog of the Threshold struct
+    #    Note that structs get mapped to/from python as dictionary objects with
+    #    the keys being the struct members.
+    thresh = {
+        'intercept': np.float32(5.5),
+        'constant': np.float32(1/3)
+    }
+
+    # Note this is converted to a dictionary so we can directly interrogate the
+    #   variables in question
+    fixed = fixed_values_from_metadata(data, thresh, use_jump)._to_dict()
 
     # Basic sanity checks that data passed in survives
     assert (fixed['data']['t_bar'] == t_bar).all()
     assert (fixed['data']['tau'] == tau).all()
     assert (fixed['data']['n_reads'] == n_reads).all()
-    assert fixed["intercept"] == intercept
-    assert fixed["constant"] == constant
+    assert fixed['threshold']["intercept"] == thresh['intercept']
+    assert fixed['threshold']["constant"] == thresh['constant']
 
     # Check the computed data
     # These are computed via vectorized operations in the main code, here we
@@ -298,14 +315,28 @@ def test_make_pixel(pixel_data, use_jump):
     """Test computing the initial pixel data"""
     resultants, t_bar, tau, n_reads = pixel_data
 
-    intercept = np.float32(5.5)
-    constant = np.float32(1/3)
+    # Create a fixed object to pass into the constructor
+    #    This requires setting up some structs as dictionaries
+    data = {
+        "t_bar": t_bar,
+        "tau": tau,
+        "n_reads": n_reads,
+    }
+    thresh = {
+        'intercept': np.float32(5.5),
+        'constant': np.float32(1/3)
+    }
+    fixed = fixed_values_from_metadata(data, thresh, use_jump)
 
-    pixel = make_pixel(resultants, t_bar, tau, n_reads, READ_NOISE, intercept, constant, use_jump)
+    # Note this is converted to a dictionary so we can directly interrogate the
+    #   variables in question
+    pixel = make_pixel(fixed, READ_NOISE, resultants)._to_dict()
 
     # Basic sanity checks that data passed in survives
     assert (pixel['resultants'] == resultants).all()
     assert READ_NOISE == pixel['read_noise']
+
+    # the "fixed" data is not checked as this is already done above
 
     # Check the computed data
     # These are computed via vectorized operations in the main code, here we
