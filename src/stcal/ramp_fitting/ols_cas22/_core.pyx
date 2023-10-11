@@ -63,10 +63,16 @@ Functions
         Return the power from Casertano+22, Table 2
     threshold
         Compute jump threshold
+        - cpdef gives a python wrapper, but the python version of this method
+          is considered private, only to be used for testing
     init_ramps
         Find initial ramps for each pixel, accounts for DQ flags
+        - A python wrapper, _init_ramps_list, that adjusts types so they can
+          be directly inspected in python exists for testing purposes only.
     metadata_from_read_pattern
         Read the read pattern and derive the baseline metadata parameters needed
+        - cpdef gives a python wrapper, but the python version of this method
+          is considered private, only to be used for testing
 """
 from libcpp.stack cimport stack
 from libcpp.deque cimport deque
@@ -108,7 +114,7 @@ cdef inline float get_power(float signal):
     return PTABLE[1][i]
 
 
-cdef inline float threshold(Thresh thresh, float slope):
+cpdef inline float threshold(Thresh thresh, float slope):
     """
     Compute jump threshold
 
@@ -198,9 +204,39 @@ cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
     return pixel_ramps
 
 
+def _init_ramps_list(np.ndarray[int, ndim=2] dq):
+    """
+    This is a wrapper for init_ramps so that it can be fully inspected from pure
+    python. A cpdef cannot be used in that case becase a stack has no direct python
+    analog. Instead this function turns that stack into a list ordered in the same
+    order as the stack; meaning that, the first element of the list is the top of
+    the stack.
+        Note this function is for testing purposes only and so is marked as private
+        within this private module
+    """
+    cdef deque[stack[RampIndex]] raw = init_ramps(dq)
+
+    # Have to turn deque and stack into python compatible objects
+    cdef RampIndex index
+    cdef stack[RampIndex] ramp
+    cdef list out = []
+    cdef list stack_out
+    for ramp in raw:
+        stack_out = []
+        while not ramp.empty():
+            index = ramp.top()
+            ramp.pop()
+            # So top of stack is first item of list
+            stack_out = [index] + stack_out
+
+        out.append(stack_out)
+
+    return out
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time):
+cpdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time):
     """
     Derive the input data from the the read pattern
 

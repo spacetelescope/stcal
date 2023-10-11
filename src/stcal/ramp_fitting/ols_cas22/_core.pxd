@@ -52,7 +52,7 @@ cpdef enum RampJumpDQ:
     JUMP_DET = 4
 
 
-cdef float threshold(Thresh thresh, float slope)
+cpdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
 cdef deque[stack[RampIndex]] init_ramps(int[:, :] dq)
-cdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time)
+cpdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time)

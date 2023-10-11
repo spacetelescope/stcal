@@ -2,48 +2,14 @@ import numpy as np
 cimport numpy as np
 
 from libcpp cimport bool
-from libcpp.stack cimport stack
-from libcpp.deque cimport deque
 
-from stcal.ramp_fitting.ols_cas22._core cimport RampIndex, ReadPatternMetadata, Thresh, threshold
-from stcal.ramp_fitting.ols_cas22._core cimport metadata_from_read_pattern as c_metadata_from_read_pattern
-from stcal.ramp_fitting.ols_cas22._core cimport init_ramps as c_init_ramps
+from stcal.ramp_fitting.ols_cas22._core cimport ReadPatternMetadata, Thresh
 
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata as c_fixed_values_from_metadata
 
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel as c_make_pixel
-
-
-def metadata_from_read_pattern(list[list[int]] read_pattern, float read_time):
-    return c_metadata_from_read_pattern(read_pattern, read_time)
-
-
-def init_ramps(np.ndarray[int, ndim=2] dq):
-    cdef deque[stack[RampIndex]] raw = c_init_ramps(dq)
-
-    # Have to turn deque and stack into python compatible objects
-    cdef RampIndex index
-    cdef stack[RampIndex] ramp
-    cdef list out = []
-    cdef list stack_out
-    for ramp in raw:
-        stack_out = []
-        while not ramp.empty():
-            index = ramp.top()
-            ramp.pop()
-            # So top of stack is first item of list
-            stack_out = [index] + stack_out
-
-        out.append(stack_out)
-
-    return out
-
-
-def run_threshold(float intercept, float constant, float slope):
-    cdef Thresh thresh = Thresh(intercept, constant)
-    return threshold(thresh, slope)
 
 
 def fixed_values_from_metadata(np.ndarray[float, ndim=1] t_bar,

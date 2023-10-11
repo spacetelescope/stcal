@@ -2,9 +2,8 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._wrappers import metadata_from_read_pattern
-from stcal.ramp_fitting.ols_cas22._wrappers import init_ramps
-from stcal.ramp_fitting.ols_cas22._wrappers import run_threshold, fixed_values_from_metadata, make_pixel
+from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern, threshold
+from stcal.ramp_fitting.ols_cas22._wrappers import fixed_values_from_metadata, make_pixel
 
 from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
 
@@ -76,13 +75,20 @@ def test_metadata_from_read_pattern(base_ramp_data):
 
 
 def test_init_ramps():
-    """Test turning dq flags into initial ramp splits"""
+    """
+    Test turning dq flags into initial ramp splits
+        Note that because `init_ramps` itself returns a stack, which does not have
+        a direct python equivalent, we call the wrapper for `init_ramps` which
+        converts that stack into a list ordered in the same fashion as the stack
+    """
+    from stcal.ramp_fitting.ols_cas22._core import _init_ramps_list
+
     dq = np.array([[0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1],
                    [0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1],
                    [0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1]], dtype=np.int32)
 
-    ramps = init_ramps(dq)
+    ramps = _init_ramps_list(dq)
     assert len(ramps) == dq.shape[1] == 16
 
     # Check that the ramps are correct
@@ -115,12 +121,28 @@ def test_init_ramps():
 
 
 def test_threshold():
-    """Test the threshold object/fucnction)"""
-    intercept = np.float32(5.5)
-    constant = np.float32(1/3)
+    """
+    Test the threshold object/fucnction
+        intercept - constant * log10(slope) = threshold
+    """
 
-    assert intercept == run_threshold(intercept, constant, 1.0) # check intercept
-    assert np.float32(intercept - constant) == run_threshold(intercept, constant, 10.0) # check constant
+    # Create the python analog of the threshold struct
+    #    Note that structs get mapped to/from python as dictionary objects with
+    #    the keys being the struct members.
+    thresh = {
+        'intercept': np.float32(5.5),
+        'constant': np.float32(1/3)
+    }
+
+    # Check the 'intercept' is correctly interpreted.
+    #    Since the log of the input slope is taken, log10(1) = 0, meaning that
+    #    we should directly recover the intercept value in that case.
+    assert thresh['intercept'] == threshold(thresh, 1.0)
+
+    # Check the 'constant' is correctly interpreted.
+    #    Since we know that the intercept is correctly identified and that `log10(10) = 1`,
+    #    we can use that to check that the constant is correctly interpreted.
+    assert np.float32(thresh['intercept'] - thresh['constant']) == threshold(thresh, 10.0)
 
 
 @pytest.fixture(scope="module")
