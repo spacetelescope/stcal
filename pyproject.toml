@@ -16,6 +16,8 @@ dependencies = [
     'scipy >=1.6.0',
     'numpy >=1.20',
     'opencv-python-headless >=4.6.0.66',
+    'asdf >=2.15.0',
+    'gwcs >= 0.18.1',
 ]
 dynamic = ['version']
 
@@ -23,11 +25,12 @@ dynamic = ['version']
 docs = [
     'numpydoc',
     'packaging >=17',
-    'sphinx',
+    'sphinx<7.0.0',
+    'sphinx-asdf',
     'sphinx-astropy',
     'sphinx-rtd-theme',
     'stsci-rtd-theme',
-    'tomli; python_version <"3.11"',
+    'tomli; python_version <="3.11"',
 ]
 test = [
     'psutil',
@@ -90,3 +93,9 @@ exclude = [
     '.tox',
     '.eggs',
 ]
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["auto", "aarch64"]
