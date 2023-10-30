@@ -23,7 +23,9 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       envs: |
+        - linux: check-style
         - linux: check-security
+        - linux: check-build
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
@@ -35,19 +37,13 @@ jobs:
         - macos: py311-xdist
         - linux: py3-cov-xdist
           coverage: 'codecov'
-  data:
-    uses: ./.github/workflows/data.yml
   test_downstream:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@main
-    needs: [ data ]
     with:
       setenv: |
-        WEBBPSF_PATH: ${{ needs.data.outputs.webbpsf_path }}
-        CRDS_PATH: ${{ needs.data.outputs.path }}/crds_cache
+        CRDS_PATH: /tmp/crds_cache
         CRDS_CLIENT_RETRY_COUNT: 3
-        CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
-      cache-path: ${{ needs.data.outputs.webbpsf_path }}
-      cache-key: webbpsf-${{ needs.data.outputs.webbpsf_hash }}
+        CRDS_CLIENT_RETRY_DELAY_SECONDS: 20 
       envs: |
         - linux: py311-jwst-cov-xdist
         - linux: py311-romancal-cov-xdist
