@@ -1,9 +1,7 @@
 import numpy as np
 cimport numpy as np
 from libcpp cimport bool
-from libcpp.stack cimport stack
 from libcpp.list cimport list as cpp_list
-from libcpp.deque cimport deque
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, RampIndex, Thresh,
@@ -42,7 +40,7 @@ class RampFitOutputs(NamedTuple):
             the dq array, with additional flags set for jumps detected by the
             jump detection algorithm.
     """
-    fits: list
+    # fits: list
     parameters: np.ndarray
     variances: np.ndarray
     dq: np.ndarray
@@ -102,13 +100,10 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
                                                         Thresh(intercept, constant),
                                                         use_jump)
 
-    # Compute all the initial sets of ramps
-    cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)
-
     # Use list because this might grow very large which would require constant
     #    reallocation. We don't need random access, and this gets cast to a python
     #    list in the end.
-    cdef cpp_list[RampFits] ramp_fits
+    # cdef cpp_list[RampFits] ramp_fits
 
     cdef np.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
     cdef np.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
@@ -119,7 +114,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
         fit = make_pixel(fixed, read_noise[index],
-                         resultants[:, index]).fit_ramps(pixel_ramps[index])
+                         resultants[:, index]).fit_ramps(init_ramps(dq, n_resultants, index))
 
         parameters[index, Parameter.slope] = fit.average.slope
 
@@ -130,6 +125,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         for jump in fit.jumps:
             dq[jump, index] = RampJumpDQ.JUMP_DET
 
-        ramp_fits.push_back(fit)
+        # ramp_fits.push_back(fit)
 
-    return RampFitOutputs(ramp_fits, parameters, variances, dq)
+    # return RampFitOutputs(ramp_fits, parameters, variances, dq)
+    return RampFitOutputs(parameters, variances, dq)

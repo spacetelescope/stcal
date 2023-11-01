@@ -446,8 +446,8 @@ cdef class Pixel:
             #    than threshold
             # Note that ramps are computed backward in time meaning we need to
             #  reverse the order of the fits at the end
-            ramp_fits.fits.push_back(ramp_fit)
-            ramp_fits.index.push_back(ramp)
+            # ramp_fits.fits.push_back(ramp_fit)
+            # ramp_fits.index.push_back(ramp)
 
             # Start computing the averages
             #    Note we do not do anything in the NaN case for degenerate ramps
@@ -462,8 +462,8 @@ cdef class Pixel:
                 ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
 
         # Reverse to order in time
-        ramp_fits.fits = ramp_fits.fits[::-1]
-        ramp_fits.index = ramp_fits.index[::-1]
+        # ramp_fits.fits = ramp_fits.fits[::-1]
+        # ramp_fits.index = ramp_fits.index[::-1]
 
         # Finish computing averages
         ramp_fits.average.slope /= total_weight if total_weight != 0 else 1

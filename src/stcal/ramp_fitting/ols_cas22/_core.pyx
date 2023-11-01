@@ -134,7 +134,7 @@ cpdef inline float threshold(Thresh thresh, float slope):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
+cdef inline stack[RampIndex] init_ramps(int[:, :] dq, int n_resultants, int index_pixel):
     """
     Create the initial ramp stack for each pixel
         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
@@ -144,94 +144,118 @@ cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
     ----------
     dq : int[n_resultants, n_pixel]
         DQ array
+    n_resultants : int
+        Number of resultants
+    index_pixel : int
+        The index of the pixel to find ramps for
 
     Returns
     -------
-    deque of stacks of RampIndex objects
-        - deque with entry for each pixel
-            Chosen to be deque because need element access to loop
+    stack of RampIndex objects
         - stack with entry for each ramp found (top of stack is last ramp found)
         - RampIndex with start and end indices of the ramp in the resultants
     """
-    cdef int n_pixel, n_resultants
+    cdef stack[RampIndex] ramps = stack[RampIndex]()
 
-    n_resultants, n_pixel = np.array(dq).shape
-    cdef deque[stack[RampIndex]] pixel_ramps
-
-    cdef int index_resultant, index_pixel
-    cdef stack[RampIndex] ramps
-    cdef RampIndex ramp
-
-    for index_pixel in range(n_pixel):
-        ramps = stack[RampIndex]()
-
-        # Note: if start/end are -1, then no value has been assigned
-        # ramp.start == -1 means we have not started a ramp
-        # dq[index_resultant, index_pixel] == 0 means resultant is in ramp
-        ramp = RampIndex(-1, -1)
-        for index_resultant in range(n_resultants):
-            if ramp.start == -1:
-                # Looking for the start of a ramp
-                if dq[index_resultant, index_pixel] == 0:
-                    # We have found the start of a ramp!
-                    ramp.start = index_resultant
-                else:
-                    # This is not the start of the ramp yet
-                    continue
+    # Note: if start/end are -1, then no value has been assigned
+    # ramp.start == -1 means we have not started a ramp
+    # dq[index_resultant, index_pixel] == 0 means resultant is in ramp
+    cdef RampIndex ramp = RampIndex(-1, -1)
+    for index_resultant in range(n_resultants):
+        if ramp.start == -1:
+            # Looking for the start of a ramp
+            if dq[index_resultant, index_pixel] == 0:
+                # We have found the start of a ramp!
+                ramp.start = index_resultant
             else:
-                # Looking for the end of a ramp
-                if dq[index_resultant, index_pixel] == 0:
-                    # This pixel is in the ramp do nothing
-                    continue
-                else:
-                    # This pixel is not in the ramp
-                    # => index_resultant - 1 is the end of the ramp
-                    ramp.end = index_resultant - 1
+                # This is not the start of the ramp yet
+                continue
+        else:
+            # Looking for the end of a ramp
+            if dq[index_resultant, index_pixel] == 0:
+                # This pixel is in the ramp do nothing
+                continue
+            else:
+                # This pixel is not in the ramp
+                # => index_resultant - 1 is the end of the ramp
+                ramp.end = index_resultant - 1
 
-                    # Add completed ramp to stack and reset ramp
-                    ramps.push(ramp)
-                    ramp = RampIndex(-1, -1)
+                # Add completed ramp to stack and reset ramp
+                ramps.push(ramp)
+                ramp = RampIndex(-1, -1)
 
-        # Handle case where last resultant is in ramp (so no end has been set)
-        if ramp.start != -1 and ramp.end == -1:
-            # Last resultant is end of the ramp => set then add to stack
-            ramp.end = n_resultants - 1
-            ramps.push(ramp)
+    # Handle case where last resultant is in ramp (so no end has been set)
+    if ramp.start != -1 and ramp.end == -1:
+        # Last resultant is end of the ramp => set then add to stack
+        ramp.end = n_resultants - 1
+        ramps.push(ramp)
 
-        # Add ramp stack for pixel to list
-        pixel_ramps.push_back(ramps)
-
-    return pixel_ramps
+    return ramps
 
 
-def _init_ramps_list(np.ndarray[int, ndim=2] dq):
-    """
-    This is a wrapper for init_ramps so that it can be fully inspected from pure
-    python. A cpdef cannot be used in that case becase a stack has no direct python
-    analog. Instead this function turns that stack into a list ordered in the same
-    order as the stack; meaning that, the first element of the list is the top of
-    the stack.
-        Note this function is for testing purposes only and so is marked as private
-        within this private module
-    """
-    cdef deque[stack[RampIndex]] raw = init_ramps(dq)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+# cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
+#     """
+#     Create the initial ramp stack for each pixel
+#         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
+#         otherwise, the resultant is not in a ramp
 
-    # Have to turn deque and stack into python compatible objects
-    cdef RampIndex index
-    cdef stack[RampIndex] ramp
-    cdef list out = []
-    cdef list stack_out
-    for ramp in raw:
-        stack_out = []
-        while not ramp.empty():
-            index = ramp.top()
-            ramp.pop()
-            # So top of stack is first item of list
-            stack_out = [index] + stack_out
+#     Parameters
+#     ----------
+#     dq : int[n_resultants, n_pixel]
+#         DQ array
 
-        out.append(stack_out)
+#     Returns
+#     -------
+#     deque of stacks of RampIndex objects
+#         - deque with entry for each pixel
+#             Chosen to be deque because need element access to loop
+#         - stack with entry for each ramp found (top of stack is last ramp found)
+#         - RampIndex with start and end indices of the ramp in the resultants
+#     """
+#     cdef int n_pixel, n_resultants
 
-    return out
+#     n_resultants, n_pixel = np.array(dq).shape
+#     cdef deque[stack[RampIndex]] pixel_ramps
+
+#     cdef int index_pixel
+
+#     for index_pixel in range(n_pixel):
+#         # Add ramp stack for pixel to list
+#         pixel_ramps.push_back(_init_ramps_pixel(dq, n_resultants, index_pixel))
+
+#     return pixel_ramps
+
+
+# def _init_ramps_list(np.ndarray[int, ndim=2] dq):
+#     """
+#     This is a wrapper for init_ramps so that it can be fully inspected from pure
+#     python. A cpdef cannot be used in that case becase a stack has no direct python
+#     analog. Instead this function turns that stack into a list ordered in the same
+#     order as the stack; meaning that, the first element of the list is the top of
+#     the stack.
+#         Note this function is for testing purposes only and so is marked as private
+#         within this private module
+#     """
+#     cdef deque[stack[RampIndex]] raw = init_ramps(dq)
+
+#     # Have to turn deque and stack into python compatible objects
+#     cdef RampIndex index
+#     cdef stack[RampIndex] ramp
+#     cdef list out = []
+#     cdef list stack_out
+#     for ramp in raw:
+#         stack_out = []
+#         while not ramp.empty():
+#             index = ramp.top()
+#             ramp.pop()
+#             # So top of stack is first item of list
+#             stack_out = [index] + stack_out
+
+#         out.append(stack_out)
+
+#     return out
 
 
 @cython.boundscheck(False)

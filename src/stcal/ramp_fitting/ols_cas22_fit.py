@@ -131,4 +131,5 @@ def fit_ramps_casertano(
     if resultants_unit is not None:
         parameters = parameters * resultants_unit
 
-    return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
+    # return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
+    return ols_cas22.RampFitOutputs(parameters, variances, dq)
