@@ -80,7 +80,7 @@ def ols_ramp_fit_multi(
     nrows = ramp_data.data.shape[2]
     num_available_cores = cpu_count()
     number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
-
+    print("avg_dark_current", avg_dark_current)
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
     #   final group.  Similarly, if leading groups 1 though N have all pixels
@@ -152,7 +152,7 @@ def ols_ramp_fit_multiprocessing(
 
     number_slices: int
         The number of slices to partition the data into for multiprocessing.
-        
+
     avg_dark_current: float
         The average dark current in electrons
     Return
