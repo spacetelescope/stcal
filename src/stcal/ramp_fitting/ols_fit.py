@@ -152,7 +152,9 @@ def ols_ramp_fit_multiprocessing(
 
     number_slices: int
         The number of slices to partition the data into for multiprocessing.
-
+        
+    avg_dark_current: float
+        The average dark current in electrons
     Return
     ------
     image_info: tuple
