@@ -193,69 +193,30 @@ cdef inline stack[RampIndex] init_ramps(int[:, :] dq, int n_resultants, int inde
     return ramps
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef inline deque[stack[RampIndex]] init_ramps(int[:, :] dq):
-#     """
-#     Create the initial ramp stack for each pixel
-#         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
-#         otherwise, the resultant is not in a ramp
+def _init_ramps_list(np.ndarray[int, ndim=2] dq, int n_resultants, int index_pixel):
+    """
+    This is a wrapper for init_ramps so that it can be fully inspected from pure
+    python. A cpdef cannot be used in that case becase a stack has no direct python
+    analog. Instead this function turns that stack into a list ordered in the same
+    order as the stack; meaning that, the first element of the list is the top of
+    the stack.
+        Note this function is for testing purposes only and so is marked as private
+        within this private module
+    """
+    cdef stack[RampIndex] ramp = init_ramps(dq, n_resultants, index_pixel)
 
-#     Parameters
-#     ----------
-#     dq : int[n_resultants, n_pixel]
-#         DQ array
+    # Have to turn deque and stack into python compatible objects
+    cdef RampIndex index
+    cdef list out = []
 
-#     Returns
-#     -------
-#     deque of stacks of RampIndex objects
-#         - deque with entry for each pixel
-#             Chosen to be deque because need element access to loop
-#         - stack with entry for each ramp found (top of stack is last ramp found)
-#         - RampIndex with start and end indices of the ramp in the resultants
-#     """
-#     cdef int n_pixel, n_resultants
+    out = []
+    while not ramp.empty():
+        index = ramp.top()
+        ramp.pop()
+        # So top of stack is first item of list
+        out = [index] + out
 
-#     n_resultants, n_pixel = np.array(dq).shape
-#     cdef deque[stack[RampIndex]] pixel_ramps
-
-#     cdef int index_pixel
-
-#     for index_pixel in range(n_pixel):
-#         # Add ramp stack for pixel to list
-#         pixel_ramps.push_back(_init_ramps_pixel(dq, n_resultants, index_pixel))
-
-#     return pixel_ramps
-
-
-# def _init_ramps_list(np.ndarray[int, ndim=2] dq):
-#     """
-#     This is a wrapper for init_ramps so that it can be fully inspected from pure
-#     python. A cpdef cannot be used in that case becase a stack has no direct python
-#     analog. Instead this function turns that stack into a list ordered in the same
-#     order as the stack; meaning that, the first element of the list is the top of
-#     the stack.
-#         Note this function is for testing purposes only and so is marked as private
-#         within this private module
-#     """
-#     cdef deque[stack[RampIndex]] raw = init_ramps(dq)
-
-#     # Have to turn deque and stack into python compatible objects
-#     cdef RampIndex index
-#     cdef stack[RampIndex] ramp
-#     cdef list out = []
-#     cdef list stack_out
-#     for ramp in raw:
-#         stack_out = []
-#         while not ramp.empty():
-#             index = ramp.top()
-#             ramp.pop()
-#             # So top of stack is first item of list
-#             stack_out = [index] + stack_out
-
-#         out.append(stack_out)
-
-#     return out
+    return out
 
 
 @cython.boundscheck(False)

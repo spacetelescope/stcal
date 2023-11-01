@@ -14,6 +14,7 @@ Functions
             - cpdef gives a python wrapper, but the python version of this method
               is considered private, only to be used for testing
 """
+from libcpp cimport bool
 from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
 from libcpp.stack cimport stack
@@ -330,7 +331,7 @@ cdef class Pixel:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline RampFits fit_ramps(Pixel self, stack[RampIndex] ramps):
+    cdef inline RampFits fit_ramps(Pixel self, stack[RampIndex] ramps, bool include_diagnostic):
         """
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
@@ -398,8 +399,9 @@ cdef class Pixel:
                     #     consideration.
                     jump0 = np.argmax(stats) + ramp.start
                     jump1 = jump0 + 1
-                    ramp_fits.jumps.push_back(jump0)
-                    ramp_fits.jumps.push_back(jump1)
+                    if include_diagnostic:
+                        ramp_fits.jumps.push_back(jump0)
+                        ramp_fits.jumps.push_back(jump1)
 
                     # The two resultant indicies need to be skipped, therefore
                     # the two
@@ -446,8 +448,9 @@ cdef class Pixel:
             #    than threshold
             # Note that ramps are computed backward in time meaning we need to
             #  reverse the order of the fits at the end
-            # ramp_fits.fits.push_back(ramp_fit)
-            # ramp_fits.index.push_back(ramp)
+            if include_diagnostic:
+                ramp_fits.fits.push_back(ramp_fit)
+                ramp_fits.index.push_back(ramp)
 
             # Start computing the averages
             #    Note we do not do anything in the NaN case for degenerate ramps
@@ -462,8 +465,9 @@ cdef class Pixel:
                 ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
 
         # Reverse to order in time
-        # ramp_fits.fits = ramp_fits.fits[::-1]
-        # ramp_fits.index = ramp_fits.index[::-1]
+        if include_diagnostic:
+            ramp_fits.fits = ramp_fits.fits[::-1]
+            ramp_fits.index = ramp_fits.index[::-1]
 
         # Finish computing averages
         ramp_fits.average.slope /= total_weight if total_weight != 0 else 1

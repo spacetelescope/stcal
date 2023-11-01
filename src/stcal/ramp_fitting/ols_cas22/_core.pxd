@@ -14,10 +14,10 @@ cdef struct RampFit:
 
 
 cdef struct RampFits:
-    # vector[RampFit] fits
-    # vector[RampIndex] index
-    vector[int] jumps
     RampFit average
+    vector[int] jumps
+    vector[RampFit] fits
+    vector[RampIndex] index
 
 
 cdef struct ReadPatternMetadata:
