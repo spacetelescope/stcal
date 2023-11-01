@@ -6,9 +6,31 @@ import numpy as np
 Options.docstrings = True
 Options.annotate = False
 
-extensions = [Extension('stcal.ramp_fitting.ols_cas22',
-                        ['src/stcal/ramp_fitting/ols_cas22.pyx'],
-                        include_dirs=[np.get_include()],
-                        extra_compile_args=['-std=c99'])]
+extensions = [
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._core',
+        ['src/stcal/ramp_fitting/ols_cas22/_core.pyx'],
+        include_dirs=[np.get_include()],
+        language='c++'
+    ),
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._fixed',
+        ['src/stcal/ramp_fitting/ols_cas22/_fixed.pyx'],
+        include_dirs=[np.get_include()],
+        language='c++'
+    ),
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._pixel',
+        ['src/stcal/ramp_fitting/ols_cas22/_pixel.pyx'],
+        include_dirs=[np.get_include()],
+        language='c++'
+    ),
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._fit_ramps',
+        ['src/stcal/ramp_fitting/ols_cas22/_fit_ramps.pyx'],
+        include_dirs=[np.get_include()],
+        language='c++'
+    ),
+]
 
 setup(ext_modules=cythonize(extensions))

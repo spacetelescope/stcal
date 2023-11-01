@@ -22,4 +22,3 @@ jobs:
         - windows: py310-xdist
         - windows: py311-xdist
         - windows: py3-xdist
-
