@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern, threshold
+from stcal.ramp_fitting.ols_cas22._core import init_ramps, metadata_from_read_pattern, threshold
 from stcal.ramp_fitting.ols_cas22._fixed import fixed_values_from_metadata
 from stcal.ramp_fitting.ols_cas22._pixel import make_pixel
 
@@ -82,7 +82,7 @@ def test_init_ramps():
         a direct python equivalent, we call the wrapper for `init_ramps` which
         converts that stack into a list ordered in the same fashion as the stack
     """
-    from stcal.ramp_fitting.ols_cas22._core import _init_ramps_list
+    # from stcal.ramp_fitting.ols_cas22._core import _init_ramps_list
 
     dq = np.array([[0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1],
                    [0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1],
@@ -90,7 +90,7 @@ def test_init_ramps():
                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1]], dtype=np.int32)
 
     n_resultants, n_pixels = dq.shape
-    ramps = [_init_ramps_list(dq, n_resultants, index_pixel) for index_pixel in range(n_pixels)]
+    ramps = [init_ramps(dq, n_resultants, index_pixel) for index_pixel in range(n_pixels)]
 
     assert len(ramps) == dq.shape[1] == 16
 

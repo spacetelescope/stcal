@@ -17,7 +17,6 @@ Functions
 from libcpp cimport bool
 from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
-from libcpp.stack cimport stack
 
 import numpy as np
 cimport numpy as np
@@ -331,15 +330,15 @@ cdef class Pixel:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline RampFits fit_ramps(Pixel self, stack[RampIndex] ramps, bool include_diagnostic):
+    cdef inline RampFits fit_ramps(Pixel self, vector[RampIndex] ramps, bool include_diagnostic):
         """
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
 
         Parameters
         ----------
-        ramps : stack[RampIndex]
-            Stack of initial ramps to fit for a single pixel
+        ramps : vector[RampIndex]
+            Vector of initial ramps to fit for a single pixel
             multiple ramps are possible due to dq flags
 
         Returns
@@ -362,8 +361,8 @@ cdef class Pixel:
         # Run while the stack is non-empty
         while not ramps.empty():
             # Remove top ramp of the stack to use
-            ramp = ramps.top()
-            ramps.pop()
+            ramp = ramps.back()
+            ramps.pop_back()
 
             # Compute fit
             ramp_fit = self.fit_ramp(ramp)
@@ -426,7 +425,7 @@ cdef class Pixel:
                         #    important that we exclude it.
                         # Note that jump0 < ramp.start is not possible because
                         # the argmax is always >= 0
-                        ramps.push(RampIndex(ramp.start, jump0 - 1))
+                        ramps.push_back(RampIndex(ramp.start, jump0 - 1))
 
                     if jump1 < ramp.end:
                         # Note that if jump1 == ramp.end, we have detected a
@@ -440,7 +439,7 @@ cdef class Pixel:
                         # resultants which are not considered part of the ramp
                         # under consideration. Therefore, we have to exlude all
                         # of those values.
-                        ramps.push(RampIndex(jump1 + 1, ramp.end))
+                        ramps.push_back(RampIndex(jump1 + 1, ramp.end))
 
                     continue
 

@@ -1,5 +1,4 @@
 from libcpp.vector cimport vector
-from libcpp.stack cimport stack
 
 
 cdef struct RampIndex:
@@ -53,5 +52,5 @@ cpdef enum RampJumpDQ:
 
 cpdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
-cdef stack[RampIndex] init_ramps(int[:, :] dq, int n_resultants, int index_pixel)
+cpdef vector[RampIndex] init_ramps(int[:, :] dq, int n_resultants, int index_pixel)
 cpdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time)
