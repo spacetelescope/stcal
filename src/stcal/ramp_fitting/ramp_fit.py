@@ -83,7 +83,7 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
 
 
 def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
-             weighting, max_cores, dqflags, avg_dark_current,
+             weighting, max_cores, dqflags, avg_dark_current=0.0,
              suppress_one_group=False):
     """
     Calculate the count rate for each pixel in all data cube sections and all
