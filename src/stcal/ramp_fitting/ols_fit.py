@@ -115,14 +115,14 @@ def ols_ramp_fit_multi(
     else:
         image_info, integ_info, opt_info = ols_ramp_fit_multiprocessing(
             ramp_data, buffsize, save_opt,
-            readnoise_2d, gain_2d, weighting, number_slices)
+            readnoise_2d, gain_2d, weighting, avg_dark_current, number_slices)
 
         return image_info, integ_info, opt_info
 
 
 def ols_ramp_fit_multiprocessing(
         ramp_data, buffsize, save_opt,
-        readnoise_2d, gain_2d, weighting, number_slices):
+        readnoise_2d, gain_2d, weighting, avg_dark_current, number_slices):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -167,7 +167,7 @@ def ols_ramp_fit_multiprocessing(
     log.info(f"Number of processors used for multiprocessing: {number_slices}")
     slices, rows_per_slice = compute_slices_for_starmap(
         ramp_data, buffsize, save_opt,
-        readnoise_2d, gain_2d, weighting, number_slices)
+        readnoise_2d, gain_2d, weighting, avg_dark_current, number_slices)
 
     pool = Pool(processes=number_slices)
     pool_results = pool.starmap(ols_ramp_fit_single, slices)
@@ -435,7 +435,7 @@ def get_max_segs_crs(pool_results):
 
 def compute_slices_for_starmap(
         ramp_data, buffsize, save_opt,
-        readnoise_2d, gain_2d, weighting, number_slices):
+        readnoise_2d, gain_2d, weighting, avg_dark_current, number_slices):
     """
     Creates the slices needed for each process for multiprocessing.  The slices
     for the arguments needed for ols_ramp_fit_single.
@@ -480,7 +480,7 @@ def compute_slices_for_starmap(
         slices.insert(
             k,
             (ramp_slice, buffsize, save_opt,
-             rnoise_slice, gain_slice, weighting))
+             rnoise_slice, gain_slice, weighting, avg_dark_current))
         start_row = start_row + rslices[k]
 
     return slices, rslices
