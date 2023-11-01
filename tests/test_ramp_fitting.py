@@ -1074,6 +1074,7 @@ def test_multi_more_cores_than_rows():
     bramp = np.array([ 150.4896,  299.7697,  449.0971,  600.6752,  749.6968,
                        900.9771, 1050.1395, 1199.9658, 1349.9163, 1499.8358])
     factor = 1.05
+    avg_dark_current = 0.0
     for integ in range(nints):
         for row in range(nrows):
             for col in range(ncols):
@@ -1350,7 +1351,7 @@ def create_blank_ramp_data(dims, var, tm):
     ramp_data.set_meta(
         name="NIRSpec", frame_time=frame_time, group_time=group_time,
         groupgap=groupgap, nframes=nframes, drop_frames1=None)
-    ramp_data.set_dqflags(dqflags, avg_dark_current)
+    ramp_data.set_dqflags(dqflags)
 
     gain = np.ones(shape=(nrows, ncols), dtype=np.float64) * gval
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float64) * rnval
