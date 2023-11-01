@@ -83,7 +83,8 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
 
 
 def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
-             weighting, max_cores, dqflags, suppress_one_group=False):
+             weighting, max_cores, dqflags, avg_dark_current,
+             suppress_one_group=False):
     """
     Calculate the count rate for each pixel in all data cube sections and all
     integrations, equal to the slope for all sections (intervals between
@@ -159,11 +160,11 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
 
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
-        algorithm, weighting, max_cores, dqflags)
+        algorithm, weighting, max_cores, dqflags, avg_dark_current)
 
 
 def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
-                  algorithm, weighting, max_cores, dqflags):
+                  algorithm, weighting, max_cores, dqflags, avg_dark_current):
     """
     This function begins the ramp fit computation after the creation of the
     RampData class.  It determines the proper path for computation to take
@@ -205,6 +206,8 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
+    avg_dark_current : float (electrons)
+        The average dark current for this detector
     Returns
     -------
     image_info : tuple
@@ -236,7 +239,8 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores,
+            avg_dark_current)
         gls_opt_info = None
 
     return image_info, integ_info, opt_info, gls_opt_info

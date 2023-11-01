@@ -22,7 +22,8 @@ log.setLevel(logging.DEBUG)
 
 
 def ols_ramp_fit_multi(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores,
+        avg_dark_current):
     """
     Setup the inputs to ols_ramp_fit with and without multiprocessing. The
     inputs will be sliced into the number of cores that are being used for
@@ -59,6 +60,9 @@ def ols_ramp_fit_multi(
         then no multiprocessing will be done. The other allowable values are 'quarter',
         'half', and 'all'. This is the fraction of cores to use for multi-proc. The
         total number of cores includes the SMT cores (Hyper Threading for Intel).
+
+    avg_dark_current: float (electrons)
+        The average dark current for this detector
 
     Returns
     -------
@@ -100,7 +104,8 @@ def ols_ramp_fit_multi(
     if number_slices == 1:
         # Single threaded computation
         image_info, integ_info, opt_info = ols_ramp_fit_single(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting,
+            avg_dark_current)
         if image_info is None or integ_info is None:
             return None, None, None
 
@@ -619,7 +624,8 @@ def find_0th_one_good_group(ramp_data):
 
 
 def ols_ramp_fit_single(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting,
+        avg_dark_current):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -645,6 +651,8 @@ def ols_ramp_fit_single(
 
     weighting : str
         'optimal' is the only valid value
+    avg_dark_current : float (electrons)
+        The average dark current for this detector
 
     Return
     ------
@@ -700,7 +708,7 @@ def ols_ramp_fit_single(
     #   read noise. The integration-specific variances are 3D arrays, and the
     #   segment-specific variances are 4D arrays.
     variances_ans = ramp_fit_compute_variances(
-        ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
+        ramp_data, gain_2d, readnoise_2d, fit_slopes_ans, avg_dark_current)
 
     # Now that the segment-specific and integration-specific variances have
     #   been calculated, the segment-specific, integration-specific, and
@@ -999,7 +1007,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
         sat_0th_group_int, opt_res, pixeldq, inv_var, med_rates
 
 
-def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans):
+def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
+                               avg_dark_current):
     """
     In this 'Second Pass' over the data, loop over integrations and data
     sections to calculate the variances of the slope using the estimated
@@ -1030,7 +1039,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
     fit_slopes_ans : tuple
         Contains intermediate values computed in the first pass over the data.
-
+    avg_dark_current : float (electrons)
+        The average dark current for this detector
     Return
     ------
     var_p3 : ndarray
@@ -1110,7 +1120,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
             # Suppress harmless arithmetic warnings for now
             warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-            var_p4[num_int, :, rlo:rhi, :] = den_p3 * (med_rates[rlo:rhi, :] + 0.0)
+            var_p4[num_int, :, rlo:rhi, :] = den_p3 * (med_rates[rlo:rhi, :] +
+                                                       avg_dark_current)
 
             # Find the segment variance due to read noise and convert back to DN
             var_r4[num_int, :, rlo:rhi, :] = num_r3 * den_r3 / gain_sect**2
