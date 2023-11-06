@@ -80,7 +80,7 @@ def ols_ramp_fit_multi(
     nrows = ramp_data.data.shape[2]
     num_available_cores = cpu_count()
     number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
-    print("avg_dark_current", avg_dark_current)
+    
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
     #   final group.  Similarly, if leading groups 1 though N have all pixels
@@ -3658,7 +3658,6 @@ def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, 
 
     # Make array of number of good groups, and exponents for each pixel
     power_wt_r = calc_power(snr)  # Get the interpolated power for this SNR
-    print("max power", np.max(power_wt_r))
     num_nz = c_mask_2d.sum(0)  # number of groups in segment
     nrd_prime = (num_nz - 1) / 2.
     num_nz = 0
