@@ -425,7 +425,6 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
-    excess = 0  # counts the number of jumps erroneously detected
     for fit, use in zip(output.fits, okay):
         if not use_dq and not use_jump:
             ##### The not use_jump makes this NOT test for false positives #####
@@ -440,9 +439,7 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
         if use:
             # Add okay ramps to chi2
             total_var = fit['average']['read_var'] + fit['average']['poisson_var']
-            if total_var == 0:
-                excess += 1
-            else:
+            if total_var != 0:
                 chi2 += (fit['average']['slope'] - FLUX)**2 / total_var
         else:
             # Check no slope fit for bad ramps
@@ -452,7 +449,7 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
 
             assert use_dq # sanity check that this branch is only encountered when use_dq = True
 
-    chi2 /= (np.sum(okay) + excess)
+    chi2 /= np.sum(okay)
     assert np.abs(chi2 - 1) < CHI2_TOL
 
 
@@ -575,7 +572,9 @@ def test_find_jumps(jump_data):
             # The two resultants excluded should be adjacent
             jump_correct = []
             for jump in fit['jumps']:
-                jump_correct.append(jump == resultant_index or jump == resultant_index - 1 or jump == resultant_index + 1)
+                jump_correct.append(jump == resultant_index or
+                                    jump == resultant_index - 1 or
+                                    jump == resultant_index + 1)
             if not all(jump_correct):
                 incorrect_other += 1
                 continue
