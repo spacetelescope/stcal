@@ -350,7 +350,7 @@ def test_make_pixel(pixel_data, use_jump):
         for index, (local_slope_1, var_read_noise_1) in enumerate(single_gen):
             assert local_slope_1 == (
                 (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index]))
-            assert var_read_noise_1 == READ_NOISE * (
+            assert var_read_noise_1 == np.float32(READ_NOISE ** 2)* (
                 np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
             )
 
@@ -363,7 +363,7 @@ def test_make_pixel(pixel_data, use_jump):
                 assert local_slope_2 == (
                     (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
                 )
-                assert var_read_noise_2 == READ_NOISE * (
+                assert var_read_noise_2 == np.float32(READ_NOISE ** 2) * (
                     np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
                 )
     else:
