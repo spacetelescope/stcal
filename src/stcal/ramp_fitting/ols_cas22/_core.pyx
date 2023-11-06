@@ -128,6 +128,9 @@ cpdef inline float threshold(Thresh thresh, float slope):
     -------
         intercept - constant * log10(slope)
     """
+    # clip slope in 1, 1e4
+    slope = slope if slope > 1 else 1
+    slope = slope if slope < 1e4 else 1e4
     return thresh.intercept - thresh.constant * log10(slope)
 
 
