@@ -67,10 +67,10 @@ cdef class FixedValues:
         fit.
             single of slope variance term:
                 var_slope_coeffs[Diff.single, :] = (tau[i] + tau[i+1]
-                                                    - min(t_bar[i], t_bar[i+1]))
+                                                    - 2 * min(t_bar[i], t_bar[i+1]))
             double of slope variance term:
                 var_slope_coeffs[Diff.double, :] = (tau[i] + tau[i+2]
-                                                    - min(t_bar[i], t_bar[i+2]))
+                                                    - 2 * min(t_bar[i], t_bar[i+2]))
 
     Notes
     -----
@@ -172,8 +172,8 @@ cdef class FixedValues:
 
         cdef np.ndarray[float, ndim=2] var_slope_vals = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
 
-        var_slope_vals[Diff.single, :] = (np.add(tau[1:], tau[:end - 1]) - np.minimum(t_bar[1:], t_bar[:end - 1]))
-        var_slope_vals[Diff.double, :end - 2] = (np.add(tau[2:], tau[:end - 2]) - np.minimum(t_bar[2:], t_bar[:end - 2]))
+        var_slope_vals[Diff.single, :] = (np.add(tau[1:], tau[:end - 1]) - 2 * np.minimum(t_bar[1:], t_bar[:end - 1]))
+        var_slope_vals[Diff.double, :end - 2] = (np.add(tau[2:], tau[:end - 2]) - 2 * np.minimum(t_bar[2:], t_bar[:end - 2]))
         var_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
 
         return var_slope_vals

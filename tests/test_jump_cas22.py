@@ -226,7 +226,7 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
             assert t_bar_diff_1 == t_bar[index + 1] - t_bar[index]
             assert t_bar_diff_sqr_1 == np.float32((t_bar[index + 1] - t_bar[index]) ** 2)
             assert read_recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
-            assert var_slope_1 == (tau[index + 1] + tau[index] - min(t_bar[index], t_bar[index + 1]))
+            assert var_slope_1 == (tau[index + 1] + tau[index] - 2 * min(t_bar[index], t_bar[index + 1]))
 
         for index, (t_bar_diff_2, t_bar_diff_sqr_2, read_recip_2, var_slope_2) in enumerate(double_gen):
             if index == len(fixed['t_bar_diffs'][1]) - 1:
@@ -238,7 +238,7 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
                 assert t_bar_diff_2 == t_bar[index + 2] - t_bar[index]
                 assert t_bar_diff_sqr_2 == np.float32((t_bar[index + 2] - t_bar[index])**2)
                 assert read_recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
-                assert var_slope_2 == (tau[index + 2] + tau[index] - min(t_bar[index], t_bar[index + 2]))
+                assert var_slope_2 == (tau[index + 2] + tau[index] - 2 * min(t_bar[index], t_bar[index + 2]))
     else:
         # If not using jumps, these values should not even exist. However, for wrapping
         #    purposes, they are checked to be non-existent and then set to NaN
