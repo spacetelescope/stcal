@@ -274,10 +274,10 @@ cdef class Pixel:
         cdef float delta = (self.local_slopes[diff, index] - slope)
         cdef float var = ((self.var_read_noise[diff, index] +
                            slope * self.fixed.var_slope_coeffs[diff, index])
-                          / self.fixed.t_bar_diff_sqrs[diff, index])
+                          / self.fixed.t_bar_diff_sqrs[diff, index]) 
         cdef float correct = self.correction(ramp, slope)
 
-        return (delta / sqrt(var)) + correct
+        return (delta / sqrt(var + correct))
 
 
     @cython.boundscheck(False)
@@ -554,6 +554,6 @@ cpdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] res
     # Pre-compute values for jump detection shared by all pixels for this pixel
     if fixed.use_jump:
         pixel.local_slopes = pixel.local_slope_vals()
-        pixel.var_read_noise = read_noise**2 * np.array(fixed.read_recip_coeffs)
+        pixel.var_read_noise = (read_noise ** 2) * np.array(fixed.read_recip_coeffs)
 
     return pixel
