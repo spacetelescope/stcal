@@ -78,11 +78,19 @@ def fit_ramps_casertano(
 
     Returns
     -------
-    par : np.ndarray[..., 2] (float)
-        the best fit pedestal and slope for each pixel
-    var : np.ndarray[..., 3, 2, 2] (float)
-        the covariance matrix of par, for each of three noise terms:
-        the read noise, Poisson source noise, and total noise.
+    RampFitOutputs
+        parameters: np.ndarray[n_pixel, 2]
+            the slope and intercept for each pixel's ramp fit. see Parameter enum
+            for indexing indicating slope/intercept in the second dimension.
+        variances: np.ndarray[n_pixel, 3]
+            the read, poisson, and total variances for each pixel's ramp fit.
+            see Variance enum for indexing indicating read/poisson/total in the
+            second dimension.
+        dq: np.ndarray[n_resultants, n_pixel]
+            the dq array, with additional flags set for jumps detected by the
+            jump detection algorithm.
+        fits: always None, this is a hold over which can contain the diagnostic
+            fit information from the jump detection algorithm.
     """
 
     # Trickery to avoid having to specify the defaults for the threshold
@@ -131,4 +139,5 @@ def fit_ramps_casertano(
     if resultants_unit is not None:
         parameters = parameters * resultants_unit
 
-    return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
+    # return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
+    return ols_cas22.RampFitOutputs(parameters, variances, dq)

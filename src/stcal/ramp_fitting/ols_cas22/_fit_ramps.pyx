@@ -1,9 +1,7 @@
 import numpy as np
 cimport numpy as np
 from libcpp cimport bool
-from libcpp.stack cimport stack
 from libcpp.list cimport list as cpp_list
-from libcpp.deque cimport deque
 cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, RampIndex, Thresh,
@@ -12,7 +10,7 @@ from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, RampIndex, Thresh,
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 
 # Fix the default Threshold values at compile time these values cannot be overridden
@@ -28,9 +26,6 @@ class RampFitOutputs(NamedTuple):
 
     Attributes
     ----------
-        fits: list of RampFits
-            the raw ramp fit outputs, these are all structs which will get mapped to
-            python dictionaries.
         parameters: np.ndarray[n_pixel, 2]
             the slope and intercept for each pixel's ramp fit. see Parameter enum
             for indexing indicating slope/intercept in the second dimension.
@@ -41,11 +36,14 @@ class RampFitOutputs(NamedTuple):
         dq: np.ndarray[n_resultants, n_pixel]
             the dq array, with additional flags set for jumps detected by the
             jump detection algorithm.
+        fits: list of RampFits
+            the raw ramp fit outputs, these are all structs which will get mapped to
+            python dictionaries.
     """
-    fits: list
     parameters: np.ndarray
     variances: np.ndarray
     dq: np.ndarray
+    fits: Optional[list] = None
 
 
 @cython.boundscheck(False)
@@ -57,7 +55,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
               list[list[int]] read_pattern,
               bool use_jump=False,
               float intercept=DefaultIntercept,
-              float constant=DefaultConstant):
+              float constant=DefaultConstant,
+              bool include_diagnostic=False):
     """Fit ramps using the Casertano+22 algorithm.
         This implementation uses the Cas22 algorithm to fit ramps, where
         ramps are fit between bad resultants marked by dq flags for each pixel
@@ -84,6 +83,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         The intercept value for the threshold function. Default=5.5
     constant : float
         The constant value for the threshold function. Default=1/3.0
+    include_diagnostic : bool
+        If True, include the raw ramp fits in the output. Default=False
 
     Returns
     -------
@@ -102,9 +103,6 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
                                                         Thresh(intercept, constant),
                                                         use_jump)
 
-    # Compute all the initial sets of ramps
-    cdef deque[stack[RampIndex]] pixel_ramps = init_ramps(dq)
-
     # Use list because this might grow very large which would require constant
     #    reallocation. We don't need random access, and this gets cast to a python
     #    list in the end.
@@ -119,7 +117,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
         fit = make_pixel(fixed, read_noise[index],
-                         resultants[:, index]).fit_ramps(pixel_ramps[index])
+                         resultants[:, index]).fit_ramps(init_ramps(dq, n_resultants, index), include_diagnostic)
 
         parameters[index, Parameter.slope] = fit.average.slope
 
@@ -130,6 +128,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
         for jump in fit.jumps:
             dq[jump, index] = RampJumpDQ.JUMP_DET
 
-        ramp_fits.push_back(fit)
+        if include_diagnostic:
+            ramp_fits.push_back(fit)
 
-    return RampFitOutputs(ramp_fits, parameters, variances, dq)
+    # return RampFitOutputs(ramp_fits, parameters, variances, dq)
+    return RampFitOutputs(parameters, variances, dq, ramp_fits if include_diagnostic else None)

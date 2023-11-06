@@ -1,4 +1,5 @@
-from libcpp.stack cimport stack
+from libcpp cimport bool
+from libcpp.vector cimport vector
 
 from stcal.ramp_fitting.ols_cas22._core cimport RampFit, RampFits, RampIndex
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
@@ -17,7 +18,7 @@ cdef class Pixel:
     cdef float correction(Pixel self, RampIndex ramp, float slope)
     cdef float stat(Pixel self, float slope, RampIndex ramp, int index, int diff)
     cdef float[:] stats(Pixel self, float slope, RampIndex ramp)
-    cdef RampFits fit_ramps(Pixel self, stack[RampIndex] ramps)
+    cdef RampFits fit_ramps(Pixel self, vector[RampIndex] ramps, bool include_diagnostic)
 
 
 cpdef Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants)

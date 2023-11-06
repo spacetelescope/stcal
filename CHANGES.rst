@@ -8,6 +8,7 @@ ramp_fitting
 
 - Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
   jump detection algorithm into it. [#215]
+- Fix memory issue with uneven ramp fitting [#226]
 
 Changes to API
 --------------

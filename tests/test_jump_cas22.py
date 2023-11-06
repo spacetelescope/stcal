@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern, threshold
+from stcal.ramp_fitting.ols_cas22._core import init_ramps, metadata_from_read_pattern, threshold
 from stcal.ramp_fitting.ols_cas22._fixed import fixed_values_from_metadata
 from stcal.ramp_fitting.ols_cas22._pixel import make_pixel
 
@@ -82,14 +82,16 @@ def test_init_ramps():
         a direct python equivalent, we call the wrapper for `init_ramps` which
         converts that stack into a list ordered in the same fashion as the stack
     """
-    from stcal.ramp_fitting.ols_cas22._core import _init_ramps_list
+    # from stcal.ramp_fitting.ols_cas22._core import _init_ramps_list
 
     dq = np.array([[0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1],
                    [0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1],
                    [0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1]], dtype=np.int32)
 
-    ramps = _init_ramps_list(dq)
+    n_resultants, n_pixels = dq.shape
+    ramps = [init_ramps(dq, n_resultants, index_pixel) for index_pixel in range(n_pixels)]
+
     assert len(ramps) == dq.shape[1] == 16
 
     # Check that the ramps are correct
@@ -418,7 +420,8 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     if not use_dq:
         assert okay.all()
 
-    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump,
+                       include_diagnostic=True)
     assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
@@ -456,7 +459,8 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     resultants, read_noise, read_pattern = detector_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump,
+                       include_diagnostic=True)
 
     for fit, par, var in zip(output.fits, output.parameters, output.variances):
         assert par[Parameter.intercept] == 0
@@ -528,7 +532,8 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True,
+                       include_diagnostic=True)
     assert len(output.fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
     chi2 = 0
@@ -603,7 +608,8 @@ def test_jump_dq_set(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True)
+    output = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True,
+                       include_diagnostic=True)
 
     for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
         # Check that all jumps found get marked
