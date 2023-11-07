@@ -4,7 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
-
+from astropy.io import fits
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
@@ -703,6 +703,9 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
     Total number of showers detected.
 
     """
+    log.info('Flagging Showers')
+    fits.writeto("shower_input_data.fits", indata, overwrite=True)
+    fits.writeto("shower_input_gdq.fits", gdq, overwrite=True)
     read_noise_2 = readnoise_2d**2
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
