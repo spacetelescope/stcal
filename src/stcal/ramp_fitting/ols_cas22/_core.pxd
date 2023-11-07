@@ -1,9 +1,5 @@
 from libcpp.vector cimport vector
-
-
-cdef struct RampIndex:
-    int start
-    int end
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampQueue
 
 
 cdef struct RampFit:
@@ -16,7 +12,7 @@ cdef struct RampFits:
     RampFit average
     vector[int] jumps
     vector[RampFit] fits
-    vector[RampIndex] index
+    RampQueue index
 
 
 cdef struct ReadPatternMetadata:
@@ -52,5 +48,4 @@ cpdef enum RampJumpDQ:
 
 cpdef float threshold(Thresh thresh, float slope)
 cdef float get_power(float s)
-cpdef vector[RampIndex] init_ramps(int[:, :] dq, int n_resultants, int index_pixel)
 cpdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time)

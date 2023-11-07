@@ -23,9 +23,10 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, RampIndex, Diff
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue
 
 
 cdef class Pixel:
@@ -330,7 +331,7 @@ cdef class Pixel:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline RampFits fit_ramps(Pixel self, vector[RampIndex] ramps, bool include_diagnostic):
+    cdef inline RampFits fit_ramps(Pixel self, RampQueue ramps, bool include_diagnostic):
         """
         Compute all the ramps for a single pixel using the Casertano+22 algorithm
             with jump detection.
