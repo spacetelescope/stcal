@@ -23,8 +23,9 @@ cimport numpy as np
 cimport cython
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport get_power, threshold, RampFit, RampFits, Diff
+from stcal.ramp_fitting.ols_cas22._core cimport get_power, RampFit, RampFits, Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
+from stcal.ramp_fitting.ols_cas22._jump cimport threshold
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue
 

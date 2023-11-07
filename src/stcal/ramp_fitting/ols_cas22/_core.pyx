@@ -81,7 +81,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, ReadPatternMetadata
+from stcal.ramp_fitting.ols_cas22._core cimport ReadPatternMetadata
 
 
 # Casertano+2022, Table 2
@@ -111,27 +111,6 @@ cdef inline float get_power(float signal):
             return PTABLE[1][i - 1]
 
     return PTABLE[1][i]
-
-
-cpdef inline float threshold(Thresh thresh, float slope):
-    """
-    Compute jump threshold
-
-    Parameters
-    ----------
-    thresh : Thresh
-        threshold parameters struct
-    slope : float
-        slope of the ramp in question
-
-    Returns
-    -------
-        intercept - constant * log10(slope)
-    """
-    # clip slope in 1, 1e4
-    slope = slope if slope > 1 else 1
-    slope = slope if slope < 1e4 else 1e4
-    return thresh.intercept - thresh.constant * log10(slope)
 
 
 @cython.boundscheck(False)

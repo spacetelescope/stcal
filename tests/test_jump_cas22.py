@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern, threshold
+from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._fixed import fixed_values_from_metadata
+from stcal.ramp_fitting.ols_cas22._jump import threshold
 from stcal.ramp_fitting.ols_cas22._pixel import make_pixel
 from stcal.ramp_fitting.ols_cas22._ramp import init_ramps
 

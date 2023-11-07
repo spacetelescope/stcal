@@ -20,8 +20,9 @@ cimport numpy as np
 cimport cython
 from libcpp cimport bool
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, ReadPatternMetadata, Diff
+from stcal.ramp_fitting.ols_cas22._core cimport ReadPatternMetadata, Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
+from stcal.ramp_fitting.ols_cas22._jump cimport Thresh
 
 cdef class FixedValues:
     """

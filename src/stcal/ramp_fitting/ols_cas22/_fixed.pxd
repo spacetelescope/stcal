@@ -1,6 +1,7 @@
 from libcpp cimport bool
 
-from stcal.ramp_fitting.ols_cas22._core cimport Thresh, ReadPatternMetadata
+from stcal.ramp_fitting.ols_cas22._core cimport ReadPatternMetadata
+from stcal.ramp_fitting.ols_cas22._jump cimport Thresh
 
 
 cdef class FixedValues:

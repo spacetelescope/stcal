@@ -4,12 +4,13 @@ from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport (RampFits, Thresh,
+from stcal.ramp_fitting.ols_cas22._core cimport (RampFits,
                                                  metadata_from_read_pattern,
                                                  Parameter, Variance, RampJumpDQ)
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
+from stcal.ramp_fitting.ols_cas22._jump cimport Thresh
 from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
 
 from typing import NamedTuple, Optional
@@ -102,7 +103,7 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
 
     # Pre-compute data for all pixels
     cdef FixedValues fixed = fixed_values_from_metadata(metadata_from_read_pattern(read_pattern, read_time),
-                                                        Thresh(intercept, constant),
+                                                        Thresh(np.float32(intercept), np.float32(constant)),
                                                         use_jump)
 
     # Use list because this might grow very large which would require constant
