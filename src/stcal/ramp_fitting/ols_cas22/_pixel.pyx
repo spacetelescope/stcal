@@ -19,7 +19,7 @@ from libc.math cimport sqrt, fabs
 from libcpp.vector cimport vector
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 cimport cython
 
 
@@ -99,9 +99,9 @@ cdef class Pixel:
 
         # Read the t_bar_diffs into a local variable to avoid calling through Python
         #    multiple times
-        cdef np.ndarray[float, ndim=2] t_bar_diffs = np.array(self.fixed.t_bar_diffs, dtype=np.float32)
+        cdef cnp.ndarray[float, ndim=2] t_bar_diffs = np.array(self.fixed.t_bar_diffs, dtype=np.float32)
 
-        cdef np.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
+        cdef cnp.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
 
         local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1])
                                             / t_bar_diffs[Diff.single, :]).astype(np.float32)
@@ -139,26 +139,15 @@ cdef class Pixel:
 
         # Start computing the fit
 
-        # Cast vectors to memory views for faster access
-        #    This way of doing it is potentially memory unsafe because the memory
-        #    can outlive the vector. However, this is much faster (no copies) and
-        #    much simpler than creating an intermediate wrapper which can pretend
-        #    to be a memory view. In this case, I make sure that the memory view
-        #    stays local to the function t_bar, tau, n_reads are used only for
-        #    computations whose results are stored in new objects, so they are local
-        cdef float[:] t_bar_ = <float [:self.fixed.data.t_bar.size()]> self.fixed.data.t_bar.data()
-        cdef float[:] tau_ = <float [:self.fixed.data.tau.size()]> self.fixed.data.tau.data()
-        cdef int[:] n_reads_ = <int [:self.fixed.data.n_reads.size()]> self.fixed.data.n_reads.data()
-
         # Setup data for fitting (work over subset of data)
         #    Recall that the RampIndex contains the index of the first and last
         #    index of the ramp. Therefore, the Python slice needed to get all the
         #    data within the ramp is:
         #         ramp.start:ramp.end + 1
         cdef float[:] resultants = self.resultants[ramp.start:ramp.end + 1]
-        cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
-        cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
-        cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
+        cdef float[:] t_bar = self.fixed.data.t_bar[ramp.start:ramp.end + 1]
+        cdef float[:] tau = self.fixed.data.tau[ramp.start:ramp.end + 1]
+        cdef int[:] n_reads = self.fixed.data.n_reads[ramp.start:ramp.end + 1]
 
         # Reference read_noise as a local variable to avoid calling through Python
         # every time it is accessed.
@@ -313,7 +302,7 @@ cdef class Pixel:
         # as the second argument to the `range` is the first index outside of the
         # range
 
-        cdef np.ndarray[float, ndim=1] stats = np.zeros(end - start, dtype=np.float32)
+        cdef cnp.ndarray[float, ndim=1] stats = np.zeros(end - start, dtype=np.float32)
 
         cdef int index, stat
         for stat, index in enumerate(range(start, end)):
@@ -491,10 +480,10 @@ cdef class Pixel:
             only exists for testing purposes.
         """
 
-        cdef np.ndarray[float, ndim=1] resultants_ = np.array(self.resultants, dtype=np.float32)
+        cdef cnp.ndarray[float, ndim=1] resultants_ = np.array(self.resultants, dtype=np.float32)
 
-        cdef np.ndarray[float, ndim=2] local_slopes
-        cdef np.ndarray[float, ndim=2] var_read_noise
+        cdef cnp.ndarray[float, ndim=2] local_slopes
+        cdef cnp.ndarray[float, ndim=2] var_read_noise
 
         if self.fixed.use_jump:
             local_slopes = np.array(self.local_slopes, dtype=np.float32)

@@ -74,14 +74,9 @@ Functions
         - cpdef gives a python wrapper, but the python version of this method
           is considered private, only to be used for testing
 """
-from libcpp.vector cimport vector
-from libc.math cimport log10
-
 import numpy as np
 cimport numpy as np
 cimport cython
-
-from stcal.ramp_fitting.ols_cas22._core cimport ReadPatternMetadata
 
 
 # Casertano+2022, Table 2
@@ -111,43 +106,3 @@ cdef inline float get_power(float signal):
             return PTABLE[1][i - 1]
 
     return PTABLE[1][i]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time):
-    """
-    Derive the input data from the the read pattern
-
-        read pattern is a list of resultant lists, where each resultant list is
-        a list of the reads in that resultant.
-
-    Parameters
-    ----------
-    read pattern: list[list[int]]
-        read pattern for the image
-    read_time : float
-        Time to perform a readout.
-
-    Returns
-    -------
-    ReadPatternMetadata struct:
-        vector[float] t_bar: mean time of each resultant
-        vector[float] tau: variance time of each resultant
-        vector[int] n_reads: number of reads in each resultant
-    """
-    cdef int n_resultants = len(read_pattern)
-    cdef ReadPatternMetadata data = ReadPatternMetadata(vector[float](n_resultants),
-                                                        vector[float](n_resultants),
-                                                        vector[int](n_resultants))
-
-    cdef int index, n_reads
-    cdef list[int] resultant
-    for index, resultant in enumerate(read_pattern):
-            n_reads = len(resultant)
-
-            data.n_reads[index] = n_reads
-            data.t_bar[index] = read_time * np.mean(resultant)
-            data.tau[index] = np.sum((2 * (n_reads - np.arange(n_reads)) - 1) * resultant) * read_time / n_reads**2
-
-    return data

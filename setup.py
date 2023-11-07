@@ -38,6 +38,12 @@ extensions = [
         language='c++'
     ),
     Extension(
+        'stcal.ramp_fitting.ols_cas22._read_pattern',
+        ['src/stcal/ramp_fitting/ols_cas22/_read_pattern.pyx'],
+        include_dirs=[np.get_include()],
+        language='c++'
+    ),
+    Extension(
         'stcal.ramp_fitting.ols_cas22._fit_ramps',
         ['src/stcal/ramp_fitting/ols_cas22/_fit_ramps.pyx'],
         include_dirs=[np.get_include()],

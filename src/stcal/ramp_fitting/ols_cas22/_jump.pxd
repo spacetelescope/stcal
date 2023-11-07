@@ -1,9 +1,6 @@
-cimport numpy as cnp
-
-
 cdef struct Thresh:
-    cnp.float32_t intercept
-    cnp.float32_t constant
+    float intercept
+    float constant
 
 
-cpdef cnp.float32_t threshold(Thresh thresh, cnp.float32_t slope)
+cpdef float threshold(Thresh thresh, float slope)

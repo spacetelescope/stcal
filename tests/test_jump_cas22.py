@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._core import metadata_from_read_pattern
 from stcal.ramp_fitting.ols_cas22._fixed import fixed_values_from_metadata
 from stcal.ramp_fitting.ols_cas22._jump import threshold
 from stcal.ramp_fitting.ols_cas22._pixel import make_pixel
 from stcal.ramp_fitting.ols_cas22._ramp import init_ramps
+from stcal.ramp_fitting.ols_cas22._read_pattern import from_read_pattern
 
 from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
 
@@ -37,7 +37,7 @@ GOOD_PROB = 0.7
 
 
 @pytest.fixture(scope="module")
-def base_ramp_data():
+def ramp_data():
     """
     Basic data for simulating ramps for testing (not unpacked)
 
@@ -57,24 +57,31 @@ def base_ramp_data():
         [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
     ]
 
-    yield read_pattern, metadata_from_read_pattern(read_pattern, READ_TIME)
+    yield read_pattern, from_read_pattern(read_pattern, READ_TIME)
 
 
-def test_metadata_from_read_pattern(base_ramp_data):
+def test_from_read_pattern(ramp_data):
     """Test turning read_pattern into the time data"""
-    _, data = base_ramp_data
+    read_pattern, data_object = ramp_data
+    data = data_object._to_dict()
 
     # Basic sanity checks (structs become dicts)
     assert isinstance(data, dict)
     assert 't_bar' in data
     assert 'tau' in data
     assert 'n_reads' in data
-    assert len(data) == 3
+    assert len(data) == 4
 
     # Check that the data is correct
+    assert data['n_resultants'] == len(read_pattern)
     assert_allclose(data['t_bar'], [7.6, 15.2, 21.279999, 41.040001, 60.799999, 88.159996])
     assert_allclose(data['tau'], [5.7, 15.2, 19.928888, 36.023998, 59.448887, 80.593781])
-    assert data['n_reads'] == [4, 1, 3, 10, 3, 15]
+    assert np.all(data['n_reads'] == [4, 1, 3, 10, 3, 15])
+
+    # Check datatypes
+    assert data['t_bar'].dtype == np.float32
+    assert data['tau'].dtype == np.float32
+    assert data['n_reads'].dtype == np.int32
 
 
 def test_init_ramps():
@@ -150,43 +157,15 @@ def test_threshold():
     assert np.float32(thresh['intercept'] - thresh['constant']) == threshold(thresh, 10.0)
 
 
-@pytest.fixture(scope="module")
-def ramp_data(base_ramp_data):
-    """
-    Unpacked metadata for simulating ramps for testing
-
-    Returns
-    -------
-        read_pattern:
-            The read pattern used for testing
-        t_bar:
-            The t_bar values for the read pattern
-        tau:
-            The tau values for the read pattern
-        n_reads:
-            The number of reads for the read pattern
-    """
-    read_pattern, read_pattern_metadata = base_ramp_data
-    t_bar = np.array(read_pattern_metadata['t_bar'], dtype=np.float32)
-    tau = np.array(read_pattern_metadata['tau'], dtype=np.float32)
-    n_reads = np.array(read_pattern_metadata['n_reads'], dtype=np.int32)
-
-    yield read_pattern, t_bar, tau, n_reads
-
-
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_fixed_values_from_metadata(ramp_data, use_jump):
     """Test computing the fixed data for all pixels"""
-    _, t_bar, tau, n_reads = ramp_data
+    _, data = ramp_data
 
-    # Create the python analog of the ReadPatternMetadata struct
-    #    Note that structs get mapped to/from python as dictionary objects with
-    #    the keys being the struct members.
-    data = {
-        "t_bar": t_bar,
-        "tau": tau,
-        "n_reads": n_reads,
-    }
+    data_dict = data._to_dict()
+    t_bar = data_dict['t_bar']
+    tau = data_dict['tau']
+    n_reads = data_dict['n_reads']
 
     # Create the python analog of the Threshold struct
     #    Note that structs get mapped to/from python as dictionary objects with
@@ -308,29 +287,27 @@ def pixel_data(ramp_data):
             The number of reads for the read pattern used for the resultants
     """
 
-    read_pattern, t_bar, tau, n_reads = ramp_data
+    read_pattern, metadata = ramp_data
     resultants = _generate_resultants(read_pattern)
 
-    yield resultants, t_bar, tau, n_reads
+    yield resultants, metadata
 
 
 @pytest.mark.parametrize("use_jump", [True, False])
 def test_make_pixel(pixel_data, use_jump):
     """Test computing the initial pixel data"""
-    resultants, t_bar, tau, n_reads = pixel_data
+    resultants, metadata = pixel_data
 
-    # Create a fixed object to pass into the constructor
-    #    This requires setting up some structs as dictionaries
-    data = {
-        "t_bar": t_bar,
-        "tau": tau,
-        "n_reads": n_reads,
-    }
+    data = metadata._to_dict()
+    t_bar = data['t_bar']
+    tau = data['tau']
+    n_reads = data['n_reads']
+
     thresh = {
         'intercept': np.float32(5.5),
         'constant': np.float32(1/3)
     }
-    fixed = fixed_values_from_metadata(data, thresh, use_jump)
+    fixed = fixed_values_from_metadata(metadata, thresh, use_jump)
 
     # Note this is converted to a dictionary so we can directly interrogate the
     #   variables in question
@@ -389,7 +366,7 @@ def detector_data(ramp_data):
         read_pattern:
             The read pattern used for the resultants
     """
-    read_pattern, *_ = ramp_data
+    read_pattern, _ = ramp_data
     read_noise = np.ones(N_PIXELS, dtype=np.float32) * READ_NOISE
 
     resultants = _generate_resultants(read_pattern, n_pixels=N_PIXELS)

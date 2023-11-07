@@ -20,9 +20,10 @@ cimport numpy as np
 cimport cython
 from libcpp cimport bool
 
-from stcal.ramp_fitting.ols_cas22._core cimport ReadPatternMetadata, Diff
+from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh
+from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
 
 cdef class FixedValues:
     """
@@ -84,101 +85,6 @@ cdef class FixedValues:
       from pre-computing the values and reusing them.
     """
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef inline float[:, :] t_bar_diff_vals(FixedValues self):
-        """
-        Compute the difference offset of t_bar
-
-        Returns
-        -------
-        [
-            <t_bar[i+1] - t_bar[i]>,
-            <t_bar[i+2] - t_bar[i]>,
-        ]
-        """
-        # Cast vector to memory view
-        #    This way of doing it is potentially memory unsafe because the memory
-        #    can outlive the vector. However, this is much faster (no copies) and
-        #    much simpler than creating an intermediate wrapper which can pretend
-        #    to be a memory view. In this case, I make sure that the memory view
-        #    stays local to the function (numpy operations create brand new objects)
-        cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
-        cdef int end = len(t_bar)
-
-        cdef np.ndarray[float, ndim=2] t_bar_diff_vals = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
-
-        t_bar_diff_vals[Diff.single, :] = np.subtract(t_bar[1:], t_bar[:end - 1]) 
-        t_bar_diff_vals[Diff.double, :end - 2] = np.subtract(t_bar[2:], t_bar[:end - 2])
-        t_bar_diff_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
-
-        return t_bar_diff_vals
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef inline float[:, :] read_recip_vals(FixedValues self):
-        """
-        Compute the reciprical sum of the number of reads
-
-        Returns
-        -------
-        [
-            <(1/n_reads[i+1] + 1/n_reads[i])>,
-            <(1/n_reads[i+2] + 1/n_reads[i])>,
-        ]
-
-        """
-        # Cast vector to memory view
-        #    This way of doing it is potentially memory unsafe because the memory
-        #    can outlive the vector. However, this is much faster (no copies) and
-        #    much simpler than creating an intermediate wrapper which can pretend
-        #    to be a memory view. In this case, I make sure that the memory view
-        #    stays local to the function (numpy operations create brand new objects)
-        cdef int[:] n_reads = <int [:self.data.n_reads.size()]> self.data.n_reads.data()
-        cdef int end = len(n_reads)
-
-        cdef np.ndarray[float, ndim=2] read_recip_vals = np.zeros((2, self.data.n_reads.size() - 1), dtype=np.float32)
-
-        read_recip_vals[Diff.single, :] = (np.divide(1.0, n_reads[1:], dtype=np.float32) +
-                                           np.divide(1.0, n_reads[:end - 1], dtype=np.float32))
-        read_recip_vals[Diff.double, :end - 2] = (np.divide(1.0, n_reads[2:], dtype=np.float32) +
-                                                  np.divide(1.0, n_reads[:end - 2], dtype=np.float32))
-        read_recip_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
-
-        return read_recip_vals
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef inline float[:, :] var_slope_vals(FixedValues self):
-        """
-        Compute slope part of the jump statistic variances
-
-        Returns
-        -------
-        [
-            <(tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1])) * correction(i, i+1)>,
-            <(tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2])) * correction(i, i+2)>,
-        ]
-        """
-        # Cast vectors to memory views
-        #    This way of doing it is potentially memory unsafe because the memory
-        #    can outlive the vector. However, this is much faster (no copies) and
-        #    much simpler than creating an intermediate wrapper which can pretend
-        #    to be a memory view. In this case, I make sure that the memory view
-        #    stays local to the function (numpy operations create brand new objects)
-        cdef float[:] t_bar = <float [:self.data.t_bar.size()]> self.data.t_bar.data()
-        cdef float[:] tau = <float [:self.data.tau.size()]> self.data.tau.data()
-        cdef int end = len(t_bar)
-
-        cdef np.ndarray[float, ndim=2] var_slope_vals = np.zeros((2, self.data.t_bar.size() - 1), dtype=np.float32)
-
-        var_slope_vals[Diff.single, :] = (np.add(tau[1:], tau[:end - 1]) - 2 * np.minimum(t_bar[1:], t_bar[:end - 1]))
-        var_slope_vals[Diff.double, :end - 2] = (np.add(tau[2:], tau[:end - 2]) - 2 * np.minimum(t_bar[2:], t_bar[:end - 2]))
-        var_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
-
-        return var_slope_vals
-
     def _to_dict(FixedValues self):
         """
         This is a private method to convert the FixedValues object to a dictionary,
@@ -228,7 +134,7 @@ cdef class FixedValues:
             else:
                 raise AttributeError("var_slope_coeffs should not exist")
 
-        return dict(data=self.data,
+        return dict(data=self.data._to_dict(),
                     threshold=self.threshold,
                     t_bar_diffs=t_bar_diffs,
                     t_bar_diff_sqrs=t_bar_diff_sqrs,
@@ -236,7 +142,81 @@ cdef class FixedValues:
                     var_slope_coeffs=var_slope_coeffs)
 
 
-cpdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Thresh threshold, bool use_jump):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline float[:, :] t_bar_diff_vals(ReadPattern data):
+    """
+    Compute the difference offset of t_bar
+
+    Returns
+    -------
+    [
+        <t_bar[i+1] - t_bar[i]>,
+        <t_bar[i+2] - t_bar[i]>,
+    ]
+    """
+    cdef int end = len(data.t_bar)
+
+    cdef np.ndarray[float, ndim=2] t_bar_diff_vals = np.zeros((2, end - 1), dtype=np.float32)
+
+    t_bar_diff_vals[Diff.single, :] = np.subtract(data.t_bar[1:], data.t_bar[:end - 1]) 
+    t_bar_diff_vals[Diff.double, :end - 2] = np.subtract(data.t_bar[2:], data.t_bar[:end - 2])
+    t_bar_diff_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
+
+    return t_bar_diff_vals
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline float[:, :] read_recip_vals(ReadPattern data):
+    """
+    Compute the reciprical sum of the number of reads
+
+    Returns
+    -------
+    [
+        <(1/n_reads[i+1] + 1/n_reads[i])>,
+        <(1/n_reads[i+2] + 1/n_reads[i])>,
+    ]
+
+    """
+    cdef int end = len(data.n_reads)
+
+    cdef np.ndarray[float, ndim=2] read_recip_vals = np.zeros((2, end - 1), dtype=np.float32)
+
+    read_recip_vals[Diff.single, :] = (np.divide(1.0, data.n_reads[1:], dtype=np.float32) +
+                                        np.divide(1.0, data.n_reads[:end - 1], dtype=np.float32))
+    read_recip_vals[Diff.double, :end - 2] = (np.divide(1.0, data.n_reads[2:], dtype=np.float32) +
+                                                np.divide(1.0, data.n_reads[:end - 2], dtype=np.float32))
+    read_recip_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
+
+    return read_recip_vals
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline float[:, :] var_slope_vals(ReadPattern data):
+    """
+    Compute slope part of the jump statistic variances
+
+    Returns
+    -------
+    [
+        <(tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1])) * correction(i, i+1)>,
+        <(tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2])) * correction(i, i+2)>,
+    ]
+    """
+    cdef int end = len(data.t_bar)
+
+    cdef np.ndarray[float, ndim=2] var_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
+
+    var_slope_vals[Diff.single, :] = (np.add(data.tau[1:], data.tau[:end - 1]) - 2 * np.minimum(data.t_bar[1:], data.t_bar[:end - 1]))
+    var_slope_vals[Diff.double, :end - 2] = (np.add(data.tau[2:], data.tau[:end - 2]) - 2 * np.minimum(data.t_bar[2:], data.t_bar[:end - 2]))
+    var_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
+
+    return var_slope_vals
+
+
+cpdef inline FixedValues fixed_values_from_metadata(ReadPattern data, Thresh threshold, bool use_jump):
     """
     Fast constructor for FixedValues class
         Use this instead of an __init__ because it does not incure the overhead
@@ -267,9 +247,9 @@ cpdef inline FixedValues fixed_values_from_metadata(ReadPatternMetadata data, Th
 
     # Pre-compute jump detection computations shared by all pixels
     if use_jump:
-        fixed.t_bar_diffs = fixed.t_bar_diff_vals()
+        fixed.t_bar_diffs = t_bar_diff_vals(data)
         fixed.t_bar_diff_sqrs = np.square(fixed.t_bar_diffs, dtype=np.float32)
-        fixed.read_recip_coeffs = fixed.read_recip_vals()
-        fixed.var_slope_coeffs = fixed.var_slope_vals()
+        fixed.read_recip_coeffs = read_recip_vals(data)
+        fixed.var_slope_coeffs = var_slope_vals(data)
 
     return fixed

@@ -15,12 +15,6 @@ cdef struct RampFits:
     RampQueue index
 
 
-cdef struct ReadPatternMetadata:
-    vector[float] t_bar
-    vector[float] tau
-    vector[int] n_reads
-
-
 cpdef enum Diff:
     single = 0
     double = 1
@@ -42,4 +36,3 @@ cpdef enum RampJumpDQ:
 
 
 cdef float get_power(float s)
-cpdef ReadPatternMetadata metadata_from_read_pattern(list[list[int]] read_pattern, float read_time)

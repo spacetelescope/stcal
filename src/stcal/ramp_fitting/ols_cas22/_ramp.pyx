@@ -8,7 +8,7 @@ cnp.import_array()
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef inline RampQueue init_ramps(cnp.int32_t[:, :] dq, cnp.int32_t n_resultants, cnp.int32_t index_pixel):
+cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixel):
     """
     Create the initial ramp stack for each pixel
         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
