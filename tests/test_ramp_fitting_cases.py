@@ -1,7 +1,7 @@
-import pytest
 import inspect
 import numpy as np
 import numpy.testing as npt
+import os
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
@@ -294,12 +294,12 @@ def test_pix_5():
     # XXX see the note above for the differences in C and python testing values.
     # Set truth values for PRIMARY results:
     p_true_p = [1.076075, JUMP, 0.16134359, 0.00227273, 0.02375903]
-    p_true_c = [1.076122522354126, JUMP, 0.16134359, 0.00227273, 0.02375903]
+    # p_true_c = [1.076122522354126, JUMP, 0.16134359, 0.00227273, 0.02375903]  # To be used with C
     p_true = p_true_p
 
     # Set truth values for OPTIONAL results:
     oslope_p = [1.2799551, 1.0144024]
-    oslope_c = [1.2799551, 1.0144479]
+    # oslope_c = [1.2799551, 1.0144479]  # To be used with C
     o_true = [oslope_p,
               [18.312422, 9.920552],
               [0.00606061, 0.00363636],
