@@ -74,35 +74,4 @@ Functions
         - cpdef gives a python wrapper, but the python version of this method
           is considered private, only to be used for testing
 """
-import numpy as np
-cimport numpy as np
-cimport cython
-
-
-# Casertano+2022, Table 2
-cdef float[2][6] PTABLE = [
-    [-np.inf, 5, 10, 20, 50, 100],
-    [0,     0.4,  1,  3,  6,  10]]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline float get_power(float signal):
-    """
-    Return the power from Casertano+22, Table 2
-
-    Parameters
-    ----------
-    signal: float
-        signal from the resultants
-
-    Returns
-    -------
-    signal power from Table 2
-    """
-    cdef int i
-    for i in range(6):
-        if signal < PTABLE[0][i]:
-            return PTABLE[1][i - 1]
-
-    return PTABLE[1][i]
+from stcal.ramp_fitting.ols_cas22._core cimport Diff, Parameter, Variance, RampJumpDQ

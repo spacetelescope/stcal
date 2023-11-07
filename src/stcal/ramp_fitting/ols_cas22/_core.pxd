@@ -1,20 +1,3 @@
-from libcpp.vector cimport vector
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampQueue
-
-
-cdef struct RampFit:
-    float slope
-    float read_var
-    float poisson_var
-
-
-cdef struct RampFits:
-    RampFit average
-    vector[int] jumps
-    vector[RampFit] fits
-    RampQueue index
-
-
 cpdef enum Diff:
     single = 0
     double = 1
@@ -33,6 +16,3 @@ cpdef enum Variance:
 
 cpdef enum RampJumpDQ:
     JUMP_DET = 4
-
-
-cdef float get_power(float s)

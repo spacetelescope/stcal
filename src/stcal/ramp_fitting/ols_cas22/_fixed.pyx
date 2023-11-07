@@ -22,7 +22,6 @@ from libcpp cimport bool
 
 from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
 
 cdef class FixedValues:
@@ -135,7 +134,6 @@ cdef class FixedValues:
                 raise AttributeError("var_slope_coeffs should not exist")
 
         return dict(data=self.data._to_dict(),
-                    threshold=self.threshold,
                     t_bar_diffs=t_bar_diffs,
                     t_bar_diff_sqrs=t_bar_diff_sqrs,
                     read_recip_coeffs=read_recip_coeffs,
@@ -216,7 +214,7 @@ cdef inline float[:, :] var_slope_vals(ReadPattern data):
     return var_slope_vals
 
 
-cpdef inline FixedValues fixed_values_from_metadata(ReadPattern data, Thresh threshold, bool use_jump):
+cpdef inline FixedValues fixed_values_from_metadata(ReadPattern data, bool use_jump):
     """
     Fast constructor for FixedValues class
         Use this instead of an __init__ because it does not incure the overhead
@@ -240,7 +238,6 @@ cpdef inline FixedValues fixed_values_from_metadata(ReadPattern data, Thresh thr
 
     # Fill in input information for all pixels
     fixed.use_jump = use_jump
-    fixed.threshold = threshold
 
     # Cast vector to a c array
     fixed.data = data

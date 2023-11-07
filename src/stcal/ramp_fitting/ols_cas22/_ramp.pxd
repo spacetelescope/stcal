@@ -6,6 +6,12 @@ cdef struct RampIndex:
     int end
 
 
+cdef struct RampFit:
+    float slope
+    float read_var
+    float poisson_var
+
+
 ctypedef vector[RampIndex] RampQueue
 
 

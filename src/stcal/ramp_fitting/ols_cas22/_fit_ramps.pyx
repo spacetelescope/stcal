@@ -4,12 +4,11 @@ from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 cimport cython
 
-from stcal.ramp_fitting.ols_cas22._core cimport (RampFits,
-                                                 Parameter, Variance, RampJumpDQ)
+from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance, RampJumpDQ
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport make_pixel
 
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh
+from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, fit_jumps, RampFits
 from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport from_read_pattern
 
@@ -102,9 +101,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
                            f'match number of resultants {n_resultants}')
 
     # Pre-compute data for all pixels
-    cdef FixedValues fixed = fixed_values_from_metadata(from_read_pattern(read_pattern, read_time),
-                                                        Thresh(np.float32(intercept), np.float32(constant)),
-                                                        use_jump)
+    cdef FixedValues fixed = fixed_values_from_metadata(from_read_pattern(read_pattern, read_time), use_jump)
+    cdef Thresh thresh = Thresh(intercept, constant)
 
     # Use list because this might grow very large which would require constant
     #    reallocation. We don't need random access, and this gets cast to a python
@@ -119,8 +117,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     cdef int index
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
-        fit = make_pixel(fixed, read_noise[index],
-                         resultants[:, index]).fit_ramps(init_ramps(dq, n_resultants, index), include_diagnostic)
+        fit = fit_jumps(make_pixel(fixed, read_noise[index], resultants[:, index]),
+                        init_ramps(dq, n_resultants, index),  thresh, include_diagnostic)
 
         parameters[index, Parameter.slope] = fit.average.slope
 

@@ -167,24 +167,14 @@ def test_fixed_values_from_metadata(ramp_data, use_jump):
     tau = data_dict['tau']
     n_reads = data_dict['n_reads']
 
-    # Create the python analog of the Threshold struct
-    #    Note that structs get mapped to/from python as dictionary objects with
-    #    the keys being the struct members.
-    thresh = {
-        'intercept': np.float32(5.5),
-        'constant': np.float32(1/3)
-    }
-
     # Note this is converted to a dictionary so we can directly interrogate the
     #   variables in question
-    fixed = fixed_values_from_metadata(data, thresh, use_jump)._to_dict()
+    fixed = fixed_values_from_metadata(data, use_jump)._to_dict()
 
     # Basic sanity checks that data passed in survives
     assert (fixed['data']['t_bar'] == t_bar).all()
     assert (fixed['data']['tau'] == tau).all()
     assert (fixed['data']['n_reads'] == n_reads).all()
-    assert fixed['threshold']["intercept"] == thresh['intercept']
-    assert fixed['threshold']["constant"] == thresh['constant']
 
     # Check the computed data
     # These are computed via vectorized operations in the main code, here we
@@ -303,11 +293,7 @@ def test_make_pixel(pixel_data, use_jump):
     tau = data['tau']
     n_reads = data['n_reads']
 
-    thresh = {
-        'intercept': np.float32(5.5),
-        'constant': np.float32(1/3)
-    }
-    fixed = fixed_values_from_metadata(metadata, thresh, use_jump)
+    fixed = fixed_values_from_metadata(metadata, use_jump)
 
     # Note this is converted to a dictionary so we can directly interrogate the
     #   variables in question
