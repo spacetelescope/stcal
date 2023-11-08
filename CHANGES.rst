@@ -10,9 +10,10 @@ ramp_fitting
   jump detection algorithm into it. [#215]
 
 - Fix memory issue with uneven ramp fitting [#226]
+
 - Fix some bugs in the jump detection algorithm [#227]
 
-- Moving some CI tests from JWST to STCAL. [#228]
+- Moving some CI tests from JWST to STCAL. [#228, spacetelescope/jwst#6080]
 
 Changes to API
 --------------
