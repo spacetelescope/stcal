@@ -1,8 +1,9 @@
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
+
+from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
-cimport cython
 
 from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance, RampJumpDQ
 from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
@@ -13,6 +14,9 @@ from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport from_read_pattern
 
 from typing import NamedTuple, Optional
+
+
+cnp.import_array()
 
 
 # Fix the default Threshold values at compile time these values cannot be overridden
@@ -48,11 +52,11 @@ class RampFitOutputs(NamedTuple):
     fits: Optional[list] = None
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def fit_ramps(np.ndarray[float, ndim=2] resultants,
-              np.ndarray[int, ndim=2] dq,
-              np.ndarray[float, ndim=1] read_noise,
+@boundscheck(False)
+@wraparound(False)
+def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
+              cnp.ndarray[int, ndim=2] dq,
+              cnp.ndarray[float, ndim=1] read_noise,
               float read_time,
               list[list[int]] read_pattern,
               bool use_jump=False,
@@ -109,8 +113,8 @@ def fit_ramps(np.ndarray[float, ndim=2] resultants,
     #    list in the end.
     cdef cpp_list[RampFits] ramp_fits
 
-    cdef np.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
-    cdef np.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
+    cdef cnp.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
+    cdef cnp.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
 
     # Perform all of the fits
     cdef RampFits fit

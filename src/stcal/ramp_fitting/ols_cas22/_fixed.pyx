@@ -16,13 +16,17 @@ Functions
               is considered private, only to be used for testing
 """
 import numpy as np
-cimport numpy as np
-cimport cython
+cimport numpy as cnp
+
+from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 
 from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
+
+cnp.import_array()
+
 
 cdef class FixedValues:
     """
@@ -94,10 +98,10 @@ cdef class FixedValues:
             to to the cython class and should not be used by any cython code, and
             only exists for testing purposes.
         """
-        cdef np.ndarray[float, ndim=2] t_bar_diffs
-        cdef np.ndarray[float, ndim=2] t_bar_diff_sqrs
-        cdef np.ndarray[float, ndim=2] read_recip_coeffs
-        cdef np.ndarray[float, ndim=2] var_slope_coeffs
+        cdef cnp.ndarray[float, ndim=2] t_bar_diffs
+        cdef cnp.ndarray[float, ndim=2] t_bar_diff_sqrs
+        cdef cnp.ndarray[float, ndim=2] read_recip_coeffs
+        cdef cnp.ndarray[float, ndim=2] var_slope_coeffs
 
         if self.use_jump:
             t_bar_diffs = np.array(self.t_bar_diffs, dtype=np.float32)
@@ -140,8 +144,8 @@ cdef class FixedValues:
                     var_slope_coeffs=var_slope_coeffs)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef inline float[:, :] t_bar_diff_vals(ReadPattern data):
     """
     Compute the difference offset of t_bar
@@ -155,7 +159,7 @@ cdef inline float[:, :] t_bar_diff_vals(ReadPattern data):
     """
     cdef int end = len(data.t_bar)
 
-    cdef np.ndarray[float, ndim=2] t_bar_diff_vals = np.zeros((2, end - 1), dtype=np.float32)
+    cdef cnp.ndarray[float, ndim=2] t_bar_diff_vals = np.zeros((2, end - 1), dtype=np.float32)
 
     t_bar_diff_vals[Diff.single, :] = np.subtract(data.t_bar[1:], data.t_bar[:end - 1]) 
     t_bar_diff_vals[Diff.double, :end - 2] = np.subtract(data.t_bar[2:], data.t_bar[:end - 2])
@@ -163,8 +167,8 @@ cdef inline float[:, :] t_bar_diff_vals(ReadPattern data):
 
     return t_bar_diff_vals
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef inline float[:, :] read_recip_vals(ReadPattern data):
     """
     Compute the reciprical sum of the number of reads
@@ -179,7 +183,7 @@ cdef inline float[:, :] read_recip_vals(ReadPattern data):
     """
     cdef int end = len(data.n_reads)
 
-    cdef np.ndarray[float, ndim=2] read_recip_vals = np.zeros((2, end - 1), dtype=np.float32)
+    cdef cnp.ndarray[float, ndim=2] read_recip_vals = np.zeros((2, end - 1), dtype=np.float32)
 
     read_recip_vals[Diff.single, :] = (np.divide(1.0, data.n_reads[1:], dtype=np.float32) +
                                         np.divide(1.0, data.n_reads[:end - 1], dtype=np.float32))
@@ -190,8 +194,8 @@ cdef inline float[:, :] read_recip_vals(ReadPattern data):
     return read_recip_vals
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef inline float[:, :] var_slope_vals(ReadPattern data):
     """
     Compute slope part of the jump statistic variances
@@ -205,7 +209,7 @@ cdef inline float[:, :] var_slope_vals(ReadPattern data):
     """
     cdef int end = len(data.t_bar)
 
-    cdef np.ndarray[float, ndim=2] var_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
+    cdef cnp.ndarray[float, ndim=2] var_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
 
     var_slope_vals[Diff.single, :] = (np.add(data.tau[1:], data.tau[:end - 1]) - 2 * np.minimum(data.t_bar[1:], data.t_bar[:end - 1]))
     var_slope_vals[Diff.double, :end - 2] = (np.add(data.tau[2:], data.tau[:end - 2]) - 2 * np.minimum(data.t_bar[2:], data.t_bar[:end - 2]))
@@ -214,6 +218,8 @@ cdef inline float[:, :] var_slope_vals(ReadPattern data):
     return var_slope_vals
 
 
+@boundscheck(False)
+@wraparound(False)
 cpdef inline FixedValues fixed_values_from_metadata(ReadPattern data, bool use_jump):
     """
     Fast constructor for FixedValues class

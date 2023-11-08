@@ -1,7 +1,4 @@
-import numpy as np
-
-cimport cython
-cimport numpy as cnp
+from cython cimport boundscheck, wraparound, cdivision, cpow
 
 from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf
 from libcpp.vector cimport vector
@@ -11,10 +8,8 @@ from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
-cnp.import_array()
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixel):
     """
     Create the initial ramp stack for each pixel
@@ -82,8 +77,8 @@ cdef _row[2] PTABLE = [[-INFINITY, 5,   10, 20, 50, 100],
                        [ 0,        0.4, 1,  3,  6,  10 ]]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef inline float get_power(float signal):
     """
     Return the power from Casertano+22, Table 2
@@ -104,9 +99,9 @@ cdef inline float get_power(float signal):
 
     return PTABLE[1][i]
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
+@boundscheck(False)
+@wraparound(False)
+@cdivision(True)
 cdef inline RampFit fit_ramp(float[:] resultants_,
                              float[:] t_bar_,
                              float[:] tau_,
@@ -174,7 +169,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     cdef float coeff
 
     # Issue when tbar[] == tbarmid causes exception otherwise
-    with cython.cpow(True):
+    with cpow(True):
         for i in range(n_resultants):
             # Casertano+22, Eq. 45
             weights[i] = ((((1 + power) * n_reads[i]) / (1 + power * n_reads[i])) *

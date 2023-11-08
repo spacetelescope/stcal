@@ -16,12 +16,16 @@ Functions
 """
 import numpy as np
 cimport numpy as cnp
-cimport cython
+
+from cython cimport boundscheck, wraparound
 
 
 from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
+
+
+cnp.import_array()
 
 
 cdef class Pixel:
@@ -116,8 +120,8 @@ cdef class Pixel:
                     local_slopes=local_slopes,
                     var_read_noise=var_read_noise)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cdef inline float[:, :] local_slope_vals(float[:] resultants, FixedValues fixed):
     """
     Compute the local slopes between resultants for the pixel
@@ -145,8 +149,8 @@ cdef inline float[:, :] local_slope_vals(float[:] resultants, FixedValues fixed)
     return local_slope_vals
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cpdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants):
     """
     Fast constructor for the Pixel C class.

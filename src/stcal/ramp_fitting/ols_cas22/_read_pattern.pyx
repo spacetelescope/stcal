@@ -1,6 +1,6 @@
 import numpy as np
 cimport numpy as cnp
-cimport cython
+from cython cimport boundscheck, wraparound
 
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
 
@@ -38,8 +38,8 @@ cdef class ReadPattern:
                     n_reads=np.array(self.n_reads, dtype=np.int32))
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@boundscheck(False)
+@wraparound(False)
 cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_time):
     """
     Derive the input data from the the read pattern
