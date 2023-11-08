@@ -171,6 +171,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     cdef vector[float] coeffs = vector[float](n_resultants)
     cdef RampFit ramp_fit = RampFit(0, 0, 0)
     cdef float f0 = 0, f1 = 0, f2 = 0
+    cdef float coeff
 
     # Issue when tbar[] == tbarmid causes exception otherwise
     with cython.cpow(True):
@@ -191,18 +192,18 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
 
     for i in range(n_resultants):
         # Casertano+22 Eq. 37
-        coeffs[i] = (f0 * t_bar[i] - f1) * weights[i] / det
+        coeff = (f0 * t_bar[i] - f1) * weights[i] / det
+        coeffs[i] = coeff
 
-    for i in range(n_resultants):
         # Casertano+22 Eq. 38
-        ramp_fit.slope += coeffs[i] * resultants[i]
+        ramp_fit.slope += coeff * resultants[i]
 
         # Casertano+22 Eq. 39
-        ramp_fit.read_var += (coeffs[i] ** 2 * read_noise ** 2 / n_reads[i])
+        ramp_fit.read_var += (coeff ** 2 * read_noise ** 2 / n_reads[i])
 
         # Casertano+22 Eq 40
-        ramp_fit.poisson_var += coeffs[i] ** 2 * tau[i]
-        for j in range(i + 1, n_resultants):
-            ramp_fit.poisson_var += (2 * coeffs[i] * coeffs[j] * t_bar[i])
+        ramp_fit.poisson_var += coeff ** 2 * tau[i]
+        for j in range(i):
+            ramp_fit.poisson_var += (2 * coeff * coeffs[j] * t_bar[j])
 
     return ramp_fit
