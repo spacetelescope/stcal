@@ -1,7 +1,14 @@
+import numpy as np
+
 cimport cython
 cimport numpy as cnp
 
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue
+from libc.math cimport sqrt, fabs
+from libcpp.vector cimport vector
+
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
+from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
 cnp.import_array()
@@ -66,3 +73,135 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
         ramps.push_back(ramp)
 
     return ramps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline float get_power(float signal):
+    """
+    Return the power from Casertano+22, Table 2
+
+    Parameters
+    ----------
+    signal: float
+        signal from the resultants
+
+    Returns
+    -------
+    signal power from Table 2
+    """
+    # Casertano+2022, Table 2
+    cdef float[2][6] PTABLE = [
+        [-np.inf, 5, 10, 20, 50, 100],
+        [0,     0.4,  1,  3,  6,  10]]
+
+    cdef int i
+    for i in range(6):
+        if signal < PTABLE[0][i]:
+            return PTABLE[1][i - 1]
+
+    return PTABLE[1][i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline RampFit fit_ramp(Pixel pixel, RampIndex ramp):
+    """
+    Fit a single ramp using Casertano+22 algorithm.
+
+    Parameters
+    ----------
+    ramp : RampIndex
+        Struct for start and end of ramp to fit
+
+    Returns
+    -------
+    RampFit struct of slope, read_var, poisson_var
+    """
+    cdef int n_resultants = ramp.end - ramp.start + 1
+
+    # Special case where there is no or one resultant, there is no fit and
+    # we bail out before any computations.
+    #    Note that in this case, we cannot compute the slope or the variances
+    #    because these computations require at least two resultants. Therefore,
+    #    this case is degernate and we return NaNs for the values.
+    if n_resultants <= 1:
+        return RampFit(np.nan, np.nan, np.nan)
+
+    # Start computing the fit
+    cdef FixedValues fixed = pixel.fixed
+
+    # Setup data for fitting (work over subset of data)
+    #    Recall that the RampIndex contains the index of the first and last
+    #    index of the ramp. Therefore, the Python slice needed to get all the
+    #    data within the ramp is:
+    #         ramp.start:ramp.end + 1
+    cdef float[:] resultants = pixel.resultants[ramp.start:ramp.end + 1]
+    cdef float[:] t_bar = fixed.data.t_bar[ramp.start:ramp.end + 1]
+    cdef float[:] tau = fixed.data.tau[ramp.start:ramp.end + 1]
+    cdef int[:] n_reads = fixed.data.n_reads[ramp.start:ramp.end + 1]
+
+    # Reference read_noise as a local variable to avoid calling through Python
+    # every time it is accessed.
+    cdef float read_noise = pixel.read_noise
+
+    # Compute mid point time
+    cdef int end = len(resultants) - 1
+    cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
+
+    # Casertano+2022 Eq. 44
+    # Note we've departed from Casertano+22 slightly;
+    # there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
+    # a CR in the first resultant has boosted the whole ramp high but there
+    # is no actual signal.
+    cdef float s = max(resultants[end] - resultants[0], 0)
+    s = s / sqrt(read_noise**2 + s)
+    cdef float power = get_power(s)
+
+    # It's easy to use up a lot of dynamic range on something like
+    # (tbar - tbarmid) ** 10.  Rescale these.
+    cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
+    t_scale = 1 if t_scale == 0 else t_scale
+
+    # Initalize the fit loop
+    cdef int i = 0, j = 0
+    cdef vector[float] weights = vector[float](n_resultants)
+    cdef vector[float] coeffs = vector[float](n_resultants)
+    cdef RampFit ramp_fit = RampFit(0, 0, 0)
+    cdef float f0 = 0, f1 = 0, f2 = 0
+
+    # Issue when tbar[] == tbarmid causes exception otherwise
+    with cython.cpow(True):
+        for i in range(n_resultants):
+            # Casertano+22, Eq. 45
+            weights[i] = ((((1 + power) * n_reads[i]) / (1 + power * n_reads[i])) *
+                            fabs((t_bar[i] - t_bar_mid) / t_scale) ** power)
+
+            # Casertano+22 Eq. 35
+            f0 += weights[i]
+            f1 += weights[i] * t_bar[i]
+            f2 += weights[i] * t_bar[i]**2
+
+    # Casertano+22 Eq. 36
+    cdef float det = f2 * f0 - f1 ** 2
+    if det == 0:
+        return ramp_fit
+
+    for i in range(n_resultants):
+        # Casertano+22 Eq. 37
+        coeffs[i] = (f0 * t_bar[i] - f1) * weights[i] / det
+
+    for i in range(n_resultants):
+        # Casertano+22 Eq. 38
+        ramp_fit.slope += coeffs[i] * resultants[i]
+
+        # Casertano+22 Eq. 39
+        ramp_fit.read_var += (coeffs[i] ** 2 * read_noise ** 2 / n_reads[i])
+
+        # Casertano+22 Eq 40
+        ramp_fit.poisson_var += coeffs[i] ** 2 * tau[i]
+        for j in range(i + 1, n_resultants):
+            ramp_fit.poisson_var += (2 * coeffs[i] * coeffs[j] * t_bar[i])
+
+    return ramp_fit

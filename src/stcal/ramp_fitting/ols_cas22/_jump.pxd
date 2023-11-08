@@ -17,5 +17,4 @@ cdef struct RampFits:
 
 
 cpdef float threshold(Thresh thresh, float slope)
-cdef float get_power(float s)
 cdef RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool include_diagnostic)

@@ -10,7 +10,7 @@ from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, RampFits
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, fit_ramp
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
 
 cpdef inline float threshold(Thresh thresh, float slope):
@@ -34,32 +34,6 @@ cpdef inline float threshold(Thresh thresh, float slope):
     return thresh.intercept - thresh.constant * log10(slope)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline float get_power(float signal):
-    """
-    Return the power from Casertano+22, Table 2
-
-    Parameters
-    ----------
-    signal: float
-        signal from the resultants
-
-    Returns
-    -------
-    signal power from Table 2
-    """
-    # Casertano+2022, Table 2
-    cdef float[2][6] PTABLE = [
-        [-np.inf, 5, 10, 20, 50, 100],
-        [0,     0.4,  1,  3,  6,  10]]
-
-    cdef int i
-    for i in range(6):
-        if signal < PTABLE[0][i]:
-            return PTABLE[1][i - 1]
-
-    return PTABLE[1][i]
 
 
 @cython.boundscheck(False)
@@ -207,7 +181,7 @@ cdef inline RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool
         ramps.pop_back()
 
         # Compute fit
-        ramp_fit = pixel.fit_ramp(ramp)
+        ramp_fit = fit_ramp(pixel, ramp)
 
         # Run jump detection if enabled
         if pixel.fixed.use_jump:
