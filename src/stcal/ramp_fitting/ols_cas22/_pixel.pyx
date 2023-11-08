@@ -75,35 +75,6 @@ cdef class Pixel:
         with jump detection.
     """
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef inline float[:, :] local_slope_vals(Pixel self):
-        """
-        Compute the local slopes between resultants for the pixel
-
-        Returns
-        -------
-        [
-            <(resultants[i+1] - resultants[i])> / <(t_bar[i+1] - t_bar[i])>,
-            <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
-        ]
-        """
-        cdef float[:] resultants = self.resultants
-        cdef int end = len(resultants)
-
-        # Read the t_bar_diffs into a local variable to avoid calling through Python
-        #    multiple times
-        cdef cnp.ndarray[float, ndim=2] t_bar_diffs = np.array(self.fixed.t_bar_diffs, dtype=np.float32)
-
-        cdef cnp.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
-
-        local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1])
-                                            / t_bar_diffs[Diff.single, :]).astype(np.float32)
-        local_slope_vals[Diff.double, :end - 2] = (np.subtract(resultants[2:], resultants[:end - 2])
-                                                   / t_bar_diffs[Diff.double, :end-2]).astype(np.float32)
-        local_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
-
-        return local_slope_vals
 
     def _to_dict(Pixel self):
         """
@@ -145,6 +116,34 @@ cdef class Pixel:
                     local_slopes=local_slopes,
                     var_read_noise=var_read_noise)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline float[:, :] local_slope_vals(float[:] resultants, FixedValues fixed):
+    """
+    Compute the local slopes between resultants for the pixel
+
+    Returns
+    -------
+    [
+        <(resultants[i+1] - resultants[i])> / <(t_bar[i+1] - t_bar[i])>,
+        <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
+    ]
+    """
+    cdef int end = len(resultants)
+
+    # Read the t_bar_diffs into a local variable to avoid calling through Python
+    #    multiple times
+    cdef cnp.ndarray[float, ndim=2] t_bar_diffs = np.array(fixed.t_bar_diffs, dtype=np.float32)
+    cdef cnp.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
+
+    local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1])
+                                        / t_bar_diffs[Diff.single, :]).astype(np.float32)
+    local_slope_vals[Diff.double, :end - 2] = (np.subtract(resultants[2:], resultants[:end - 2])
+                                                / t_bar_diffs[Diff.double, :end-2]).astype(np.float32)
+    local_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
+
+    return local_slope_vals
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -180,7 +179,7 @@ cpdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] res
 
     # Pre-compute values for jump detection shared by all pixels for this pixel
     if fixed.use_jump:
-        pixel.local_slopes = pixel.local_slope_vals()
+        pixel.local_slopes = local_slope_vals(resultants, fixed)
         pixel.var_read_noise = (read_noise ** 2) * np.array(fixed.read_recip_coeffs)
 
     return pixel

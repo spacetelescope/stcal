@@ -11,7 +11,5 @@ cdef class Pixel:
     cdef float[:, :] local_slopes
     cdef float[:, :] var_read_noise
 
-    cdef float[:, :] local_slope_vals(Pixel self)
-
 
 cpdef Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants)
