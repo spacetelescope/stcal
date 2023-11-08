@@ -3,7 +3,7 @@ import numpy as np
 cimport cython
 cimport numpy as cnp
 
-from libc.math cimport sqrt, fabs
+from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf
 from libcpp.vector cimport vector
 
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit
@@ -74,6 +74,13 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
 
     return ramps
 
+# Keeps the static type checker/highligher happy this has no actual effect
+ctypedef float[6] _row
+
+# Casertano+2022, Table 2
+cdef _row[2] PTABLE = [[-INFINITY, 5,   10, 20, 50, 100],
+                       [ 0,        0.4, 1,  3,  6,  10 ]]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -90,11 +97,6 @@ cdef inline float get_power(float signal):
     -------
     signal power from Table 2
     """
-    # Casertano+2022, Table 2
-    cdef float[2][6] PTABLE = [
-        [-np.inf, 5, 10, 20, 50, 100],
-        [0,     0.4,  1,  3,  6,  10]]
-
     cdef int i
     for i in range(6):
         if signal < PTABLE[0][i]:
@@ -102,11 +104,15 @@ cdef inline float get_power(float signal):
 
     return PTABLE[1][i]
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline RampFit fit_ramp(Pixel pixel, RampIndex ramp):
+cdef inline RampFit fit_ramp(float[:] resultants_,
+                             float[:] t_bar_,
+                             float[:] tau_,
+                             int[:] n_reads_,
+                             float read_noise,
+                             RampIndex ramp):
     """
     Fit a single ramp using Casertano+22 algorithm.
 
@@ -127,27 +133,23 @@ cdef inline RampFit fit_ramp(Pixel pixel, RampIndex ramp):
     #    because these computations require at least two resultants. Therefore,
     #    this case is degernate and we return NaNs for the values.
     if n_resultants <= 1:
-        return RampFit(np.nan, np.nan, np.nan)
+        return RampFit(NAN, NAN, NAN)
 
-    # Start computing the fit
-    cdef FixedValues fixed = pixel.fixed
+    # Compute the fit
+    cdef int i = 0, j = 0
 
     # Setup data for fitting (work over subset of data)
     #    Recall that the RampIndex contains the index of the first and last
     #    index of the ramp. Therefore, the Python slice needed to get all the
     #    data within the ramp is:
     #         ramp.start:ramp.end + 1
-    cdef float[:] resultants = pixel.resultants[ramp.start:ramp.end + 1]
-    cdef float[:] t_bar = fixed.data.t_bar[ramp.start:ramp.end + 1]
-    cdef float[:] tau = fixed.data.tau[ramp.start:ramp.end + 1]
-    cdef int[:] n_reads = fixed.data.n_reads[ramp.start:ramp.end + 1]
-
-    # Reference read_noise as a local variable to avoid calling through Python
-    # every time it is accessed.
-    cdef float read_noise = pixel.read_noise
+    cdef float[:] resultants = resultants_[ramp.start:ramp.end + 1]
+    cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
+    cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
+    cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
 
     # Compute mid point time
-    cdef int end = len(resultants) - 1
+    cdef int end = n_resultants - 1
     cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
 
     # Casertano+2022 Eq. 44
@@ -155,9 +157,9 @@ cdef inline RampFit fit_ramp(Pixel pixel, RampIndex ramp):
     # there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
     # a CR in the first resultant has boosted the whole ramp high but there
     # is no actual signal.
-    cdef float s = max(resultants[end] - resultants[0], 0)
-    s = s / sqrt(read_noise**2 + s)
-    cdef float power = get_power(s)
+    cdef float power = fmaxf(resultants[end] - resultants[0], 0)
+    power = power / sqrt(read_noise**2 + power)
+    power = get_power(power)
 
     # It's easy to use up a lot of dynamic range on something like
     # (tbar - tbarmid) ** 10.  Rescale these.
@@ -165,7 +167,6 @@ cdef inline RampFit fit_ramp(Pixel pixel, RampIndex ramp):
     t_scale = 1 if t_scale == 0 else t_scale
 
     # Initalize the fit loop
-    cdef int i = 0, j = 0
     cdef vector[float] weights = vector[float](n_resultants)
     cdef vector[float] coeffs = vector[float](n_resultants)
     cdef RampFit ramp_fit = RampFit(0, 0, 0)

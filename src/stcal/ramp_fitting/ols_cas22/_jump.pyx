@@ -201,11 +201,17 @@ cdef inline RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool
     cdef float max_stat
     cdef float weight, total_weight = 0
 
+    cdef float[:] resultants = pixel.resultants
+    cdef float read_noise = pixel.read_noise
+
+    cdef float[:] t_bar = pixel.fixed.data.t_bar
+    cdef float[:] tau = pixel.fixed.data.tau
+    cdef int[:] n_reads = pixel.fixed.data.n_reads
+
     cdef float[:, :] local_slopes
     cdef float[:, :] var_read_noise
     cdef float[:, :] var_slope_coeffs
     cdef float[:, :] t_bar_diff_sqrs
-    cdef float[:] t_bar
 
     if pixel.fixed.use_jump:
         local_slopes = pixel.local_slopes
@@ -221,7 +227,12 @@ cdef inline RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool
         ramps.pop_back()
 
         # Compute fit
-        ramp_fit = fit_ramp(pixel, ramp)
+        ramp_fit = fit_ramp(resultants,
+                            t_bar,
+                            tau,
+                            n_reads,
+                            read_noise,
+                            ramp)
 
         # Run jump detection if enabled
         if pixel.fixed.use_jump:
