@@ -15,6 +15,4 @@ cdef struct RampFits:
     vector[RampFit] fits
     RampQueue index
 
-
-cpdef float threshold(Thresh thresh, float slope)
 cdef RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool include_diagnostic)
