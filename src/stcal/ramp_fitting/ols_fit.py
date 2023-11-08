@@ -1509,11 +1509,11 @@ def calc_power(snr):
         weighting exponent, 1-D float
     """
     pow_wt = snr.copy() * 0.0
-    #pow_wt[snr > 5.] = 0.4
-    #pow_wt[snr > 10.] = 1.0
-    #pow_wt[snr > 20.] = 3.0
-    #pow_wt[snr > 50.] = 6.0
-    #pow_wt[snr > 100.] = 10.0
+    pow_wt[snr > 5.] = 0.4
+    pow_wt[snr > 10.] = 1.0
+    pow_wt[snr > 20.] = 3.0
+    pow_wt[snr > 50.] = 6.0
+    pow_wt[snr > 100.] = 10.0
 
     return pow_wt.ravel()
 
