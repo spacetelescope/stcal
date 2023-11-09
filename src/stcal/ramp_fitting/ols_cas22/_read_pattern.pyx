@@ -32,8 +32,7 @@ cdef class ReadPattern:
             to to the cython class and should not be used by any cython code, and
             only exists for testing purposes.
         """
-        return dict(n_resultants=self.n_resultants,
-                    t_bar=np.array(self.t_bar, dtype=np.float32),
+        return dict(t_bar=np.array(self.t_bar, dtype=np.float32),
                     tau=np.array(self.tau, dtype=np.float32),
                     n_reads=np.array(self.n_reads, dtype=np.int32))
 
@@ -61,7 +60,6 @@ cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_tim
     cdef int n_resultants = len(read_pattern)
 
     cdef ReadPattern data = ReadPattern()
-    data.n_resultants = n_resultants
     data.t_bar = np.empty(n_resultants, dtype=np.float32)
     data.tau = np.empty(n_resultants, dtype=np.float32)
     data.n_reads = np.empty(n_resultants, dtype=np.int32)

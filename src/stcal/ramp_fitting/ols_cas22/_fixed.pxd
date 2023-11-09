@@ -1,16 +1,17 @@
-from libcpp cimport bool
-
-from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
-
-
-cdef class FixedValues:
-    cdef bool use_jump
-    cdef ReadPattern data
-
-    cdef float[:, :] t_bar_diffs
-    cdef float[:, :] t_bar_diff_sqrs
-    cdef float[:, :] read_recip_coeffs
-    cdef float[:, :] var_slope_coeffs
+cpdef enum FixedOffsets:
+    single_t_bar_diff
+    double_t_bar_diff
+    single_t_bar_diff_sqr
+    double_t_bar_diff_sqr
+    single_read_recip
+    double_read_recip
+    single_var_slope_val
+    double_var_slope_val
+    n_fixed_offsets
 
 
-cpdef FixedValues fixed_values_from_metadata(ReadPattern data, bool use_jump)
+cpdef float[:, :] fill_fixed_values(float[:, :] fixed,
+                                    float[:] t_bar,
+                                    float[:] tau,
+                                    int[:] n_reads,
+                                    int n_resultants)

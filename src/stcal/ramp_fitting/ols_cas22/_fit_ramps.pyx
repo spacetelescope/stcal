@@ -6,12 +6,12 @@ from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 
 from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance, RampJumpDQ
-from stcal.ramp_fitting.ols_cas22._fixed cimport fixed_values_from_metadata, FixedValues
+from stcal.ramp_fitting.ols_cas22._fixed cimport fill_fixed_values, n_fixed_offsets
 from stcal.ramp_fitting.ols_cas22._pixel cimport n_pixel_offsets
 
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, fit_jumps, RampFits
 from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
-from stcal.ramp_fitting.ols_cas22._read_pattern cimport from_read_pattern
+from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern, from_read_pattern
 
 from typing import NamedTuple, Optional
 
@@ -105,7 +105,16 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
                            f'match number of resultants {n_resultants}')
 
     # Pre-compute data for all pixels
-    cdef FixedValues fixed = fixed_values_from_metadata(from_read_pattern(read_pattern, read_time), use_jump)
+    cdef ReadPattern metadata = from_read_pattern(read_pattern, read_time)
+    cdef float[:] t_bar = metadata.t_bar
+    cdef float[:] tau = metadata.tau
+    cdef int[:] n_reads = metadata.n_reads
+
+    cdef float[:, :] fixed = np.empty((n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    cdef float[:, :] pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    if use_jump:
+        fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
+
     cdef Thresh thresh = Thresh(intercept, constant)
 
     # Use list because this might grow very large which would require constant
@@ -116,7 +125,6 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
     cdef cnp.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
     cdef cnp.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
 
-    cdef float[:, :] pixel = np.empty((n_pixel_offsets, fixed.data.n_resultants - 1), dtype=np.float32)
 
     # Perform all of the fits
     cdef RampFits fit
@@ -126,12 +134,15 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
         fit = fit_jumps(resultants[:, index],
                         read_noise[index],
                         init_ramps(dq, n_resultants, index), 
+                        t_bar,
+                        tau,
+                        n_reads,
+                        n_resultants,
                         fixed,
                         pixel,
                         thresh,
+                        use_jump,
                         include_diagnostic)
-        # fit = fit_jumps(make_pixel(fixed, read_noise[index], resultants[:, index]),
-        #                 init_ramps(dq, n_resultants, index),  thresh, include_diagnostic)
 
         parameters[index, Parameter.slope] = fit.average.slope
 

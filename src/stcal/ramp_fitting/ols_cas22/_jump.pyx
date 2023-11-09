@@ -4,9 +4,8 @@ from libcpp cimport bool
 from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
 
-from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, RampFits
-from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedOffsets
 from stcal.ramp_fitting.ols_cas22._pixel cimport PixelOffsets, fill_pixel_values
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp
 
@@ -29,8 +28,6 @@ cdef inline float threshold(Thresh thresh, float slope):
     slope = slope if slope < 1e4 else 1e4
 
     return thresh.intercept - thresh.constant * log10(slope)
-
-
 
 
 @boundscheck(False)
@@ -59,8 +56,8 @@ cdef inline float correction(float[:] t_bar, RampIndex ramp, float slope):
 @cdivision(True)
 cdef inline float statstic(float local_slope,
                            float var_read_noise,
-                           float var_slope_coeff,
                            float t_bar_diff_sqr,
+                           float var_slope_coeff,
                            float slope,
                            float correct):
     """
@@ -100,8 +97,7 @@ cdef inline float statstic(float local_slope,
 @boundscheck(False)
 @wraparound(False)
 cdef inline (int, float) statistics(float[:, :] pixel,
-                                    float[:, :] var_slope_coeffs,
-                                    float[:, :] t_bar_diff_sqrs,
+                                    float[:, :] fixed,
                                     float[:] t_bar,
                                     float slope, RampIndex ramp):
     """
@@ -131,14 +127,16 @@ cdef inline (int, float) statistics(float[:, :] pixel,
     cdef int start = ramp.start  # index of first resultant for ramp
     cdef int end = ramp.end      # index of last resultant for ramp
 
-    # Case the enum values into integers for indexing
-    cdef int single = Diff.single
-    cdef int double = Diff.double
-
+    # Cast the enum values into integers for indexing
     cdef int single_local_slope = PixelOffsets.single_local_slope
     cdef int double_local_slope = PixelOffsets.double_local_slope
     cdef int single_var_read_noise = PixelOffsets.single_var_read_noise
     cdef int double_var_read_noise = PixelOffsets.double_var_read_noise
+
+    cdef int single_t_bar_diff_sqr = FixedOffsets.single_t_bar_diff_sqr
+    cdef int double_t_bar_diff_sqr = FixedOffsets.double_t_bar_diff_sqr
+    cdef int single_var_slope_val = FixedOffsets.single_var_slope_val
+    cdef int double_var_slope_val = FixedOffsets.double_var_slope_val
 
     cdef float correct = correction(t_bar, ramp, slope)
 
@@ -151,8 +149,8 @@ cdef inline (int, float) statistics(float[:, :] pixel,
     for stat_index, index in enumerate(range(start, end)):
         stat = statstic(pixel[single_local_slope, index],
                         pixel[single_var_read_noise, index],
-                        var_slope_coeffs[single, index],
-                        t_bar_diff_sqrs[single, index],
+                        fixed[single_t_bar_diff_sqr, index],
+                        fixed[single_var_slope_val, index],
                         slope,
                         correct)
 
@@ -162,8 +160,8 @@ cdef inline (int, float) statistics(float[:, :] pixel,
         if index != end - 1:
             double_stat = statstic(pixel[double_local_slope, index],
                                    pixel[double_var_read_noise, index],
-                                   var_slope_coeffs[double, index],
-                                   t_bar_diff_sqrs[double, index],
+                                   fixed[double_t_bar_diff_sqr, index],
+                                   fixed[double_var_slope_val, index],
                                    slope,
                                    correct)
             stat = fmaxf(stat, double_stat)
@@ -181,9 +179,14 @@ cdef inline (int, float) statistics(float[:, :] pixel,
 cdef inline RampFits fit_jumps(float[:] resultants,
                                float read_noise,
                                RampQueue ramps,
-                               FixedValues fixed,
+                               float[:] t_bar,
+                               float[:] tau,
+                               int[:] n_reads,
+                               int n_resultants,
+                               float[:, :] fixed,
                                float[:, :] pixel,
                                Thresh thresh,
+                               bool use_jump,
                                bool include_diagnostic):
     """
     Compute all the ramps for a single pixel using the Casertano+22 algorithm
@@ -212,18 +215,8 @@ cdef inline RampFits fit_jumps(float[:] resultants,
     cdef float max_stat
     cdef float weight, total_weight = 0
 
-    cdef float[:] t_bar = fixed.data.t_bar
-    cdef float[:] tau = fixed.data.tau
-    cdef int[:] n_reads = fixed.data.n_reads
-
-    cdef float[:, :] var_slope_coeffs
-    cdef float[:, :] t_bar_diff_sqrs
-
-    if fixed.use_jump:
-        pixel = fill_pixel_values(pixel, resultants, fixed.t_bar_diffs, fixed.read_recip_coeffs, read_noise, fixed.data.n_resultants)
-        var_slope_coeffs = fixed.var_slope_coeffs
-        t_bar_diff_sqrs = fixed.t_bar_diff_sqrs
-        t_bar = fixed.data.t_bar
+    if use_jump:
+        pixel = fill_pixel_values(pixel, resultants, fixed, read_noise, n_resultants)
 
     # Run while the stack is non-empty
     while not ramps.empty():
@@ -240,10 +233,9 @@ cdef inline RampFits fit_jumps(float[:] resultants,
                             ramp)
 
         # Run jump detection if enabled
-        if fixed.use_jump:
+        if use_jump:
             argmax, max_stat = statistics(pixel,
-                                          var_slope_coeffs,
-                                          t_bar_diff_sqrs,
+                                          fixed,
                                           t_bar,
                                           ramp_fit.slope,
                                           ramp)

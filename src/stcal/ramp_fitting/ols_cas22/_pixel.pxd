@@ -7,7 +7,6 @@ cpdef enum PixelOffsets:
 
 cpdef float[:, :] fill_pixel_values(float[:, :] pixel,
                                     float[:] resultants,
-                                    float[:, :] t_bar_diffs,
-                                    float[:, :] read_recip_coeffs,
+                                    float[:, :] fixed,
                                     float read_noise,
                                     int n_resultants)

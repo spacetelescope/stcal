@@ -4,7 +4,6 @@ from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf
 from libcpp.vector cimport vector
 
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit
-from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 
 
 @boundscheck(False)
