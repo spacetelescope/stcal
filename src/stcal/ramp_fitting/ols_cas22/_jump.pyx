@@ -6,8 +6,9 @@ from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
 from stcal.ramp_fitting.ols_cas22._core cimport Diff
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, RampFits
-from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, fit_ramp
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
+from stcal.ramp_fitting.ols_cas22._pixel cimport PixelOffsets, fill_pixel_values
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp
 
 cdef inline float threshold(Thresh thresh, float slope):
     """
@@ -98,12 +99,11 @@ cdef inline float statstic(float local_slope,
 
 @boundscheck(False)
 @wraparound(False)
-cdef inline (int, float) statistics(float[:, :] local_slopes,
-                                  float[:, :] var_read_noise,
-                                  float[:, :] var_slope_coeffs,
-                                  float[:, :] t_bar_diff_sqrs,
-                                  float[:] t_bar,
-                                  float slope, RampIndex ramp):
+cdef inline (int, float) statistics(float[:, :] pixel,
+                                    float[:, :] var_slope_coeffs,
+                                    float[:, :] t_bar_diff_sqrs,
+                                    float[:] t_bar,
+                                    float slope, RampIndex ramp):
     """
     Compute fit statistics for jump detection on a single ramp
         stats[i] = max(stat(i, 0), stat(i, 1))
@@ -135,6 +135,11 @@ cdef inline (int, float) statistics(float[:, :] local_slopes,
     cdef int single = Diff.single
     cdef int double = Diff.double
 
+    cdef int single_local_slope = PixelOffsets.single_local_slope
+    cdef int double_local_slope = PixelOffsets.double_local_slope
+    cdef int single_var_read_noise = PixelOffsets.single_var_read_noise
+    cdef int double_var_read_noise = PixelOffsets.double_var_read_noise
+
     cdef float correct = correction(t_bar, ramp, slope)
 
     cdef float stat, double_stat
@@ -144,8 +149,8 @@ cdef inline (int, float) statistics(float[:, :] local_slopes,
 
     cdef int index, stat_index
     for stat_index, index in enumerate(range(start, end)):
-        stat = statstic(local_slopes[single, index],
-                        var_read_noise[single, index],
+        stat = statstic(pixel[single_local_slope, index],
+                        pixel[single_var_read_noise, index],
                         var_slope_coeffs[single, index],
                         t_bar_diff_sqrs[single, index],
                         slope,
@@ -155,8 +160,8 @@ cdef inline (int, float) statistics(float[:, :] local_slopes,
         # to last resultant in the ramp. Therefore, we include the double
         # differences for every stat except the last one.
         if index != end - 1:
-            double_stat = statstic(local_slopes[double, index],
-                                   var_read_noise[double, index],
+            double_stat = statstic(pixel[double_local_slope, index],
+                                   pixel[double_var_read_noise, index],
                                    var_slope_coeffs[double, index],
                                    t_bar_diff_sqrs[double, index],
                                    slope,
@@ -173,7 +178,13 @@ cdef inline (int, float) statistics(float[:, :] local_slopes,
 @boundscheck(False)
 @wraparound(False)
 @cdivision(True)
-cdef inline RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool include_diagnostic):
+cdef inline RampFits fit_jumps(float[:] resultants,
+                               float read_noise,
+                               RampQueue ramps,
+                               FixedValues fixed,
+                               float[:, :] pixel,
+                               Thresh thresh,
+                               bool include_diagnostic):
     """
     Compute all the ramps for a single pixel using the Casertano+22 algorithm
         with jump detection.
@@ -201,24 +212,18 @@ cdef inline RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool
     cdef float max_stat
     cdef float weight, total_weight = 0
 
-    cdef float[:] resultants = pixel.resultants
-    cdef float read_noise = pixel.read_noise
+    cdef float[:] t_bar = fixed.data.t_bar
+    cdef float[:] tau = fixed.data.tau
+    cdef int[:] n_reads = fixed.data.n_reads
 
-    cdef float[:] t_bar = pixel.fixed.data.t_bar
-    cdef float[:] tau = pixel.fixed.data.tau
-    cdef int[:] n_reads = pixel.fixed.data.n_reads
-
-    cdef float[:, :] local_slopes
-    cdef float[:, :] var_read_noise
     cdef float[:, :] var_slope_coeffs
     cdef float[:, :] t_bar_diff_sqrs
 
-    if pixel.fixed.use_jump:
-        local_slopes = pixel.local_slopes
-        var_read_noise = pixel.var_read_noise
-        var_slope_coeffs = pixel.fixed.var_slope_coeffs
-        t_bar_diff_sqrs = pixel.fixed.t_bar_diff_sqrs
-        t_bar = pixel.fixed.data.t_bar
+    if fixed.use_jump:
+        pixel = fill_pixel_values(pixel, resultants, fixed.t_bar_diffs, fixed.read_recip_coeffs, read_noise, fixed.data.n_resultants)
+        var_slope_coeffs = fixed.var_slope_coeffs
+        t_bar_diff_sqrs = fixed.t_bar_diff_sqrs
+        t_bar = fixed.data.t_bar
 
     # Run while the stack is non-empty
     while not ramps.empty():
@@ -235,9 +240,8 @@ cdef inline RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool
                             ramp)
 
         # Run jump detection if enabled
-        if pixel.fixed.use_jump:
-            argmax, max_stat = statistics(local_slopes,
-                                          var_read_noise,
+        if fixed.use_jump:
+            argmax, max_stat = statistics(pixel,
                                           var_slope_coeffs,
                                           t_bar_diff_sqrs,
                                           t_bar,

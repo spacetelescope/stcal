@@ -5,7 +5,6 @@ from libcpp.vector cimport vector
 
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
-from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
 
 
 @boundscheck(False)

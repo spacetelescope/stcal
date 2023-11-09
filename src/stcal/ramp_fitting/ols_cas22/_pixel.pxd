@@ -1,15 +1,13 @@
-from libcpp cimport bool
+cpdef enum PixelOffsets:
+    single_local_slope
+    double_local_slope
+    single_var_read_noise
+    double_var_read_noise
+    n_pixel_offsets
 
-from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampFit
-
-cdef class Pixel:
-    cdef FixedValues fixed
-    cdef float read_noise
-    cdef float[:] resultants
-
-    cdef float[:, :] local_slopes
-    cdef float[:, :] var_read_noise
-
-
-cpdef Pixel make_pixel(FixedValues fixed, float read_noise, float [:] resultants)
+cpdef float[:, :] fill_pixel_values(float[:, :] pixel,
+                                    float[:] resultants,
+                                    float[:, :] t_bar_diffs,
+                                    float[:, :] read_recip_coeffs,
+                                    float read_noise,
+                                    int n_resultants)

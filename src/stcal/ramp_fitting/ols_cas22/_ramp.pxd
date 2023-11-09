@@ -1,7 +1,5 @@
 from libcpp.vector cimport vector
 
-from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
-
 
 cdef struct RampIndex:
     int start

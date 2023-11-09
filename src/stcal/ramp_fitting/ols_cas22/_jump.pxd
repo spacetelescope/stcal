@@ -2,7 +2,7 @@ from libcpp cimport bool
 from libcpp.vector cimport vector
 
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampQueue
-from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 
 cdef struct Thresh:
     float intercept
@@ -15,4 +15,10 @@ cdef struct RampFits:
     vector[RampFit] fits
     RampQueue index
 
-cdef RampFits fit_jumps(Pixel pixel, RampQueue ramps, Thresh thresh, bool include_diagnostic)
+cdef RampFits fit_jumps(float[:] resultants,
+                        float read_noise,
+                        RampQueue ramps,
+                        FixedValues fixed,
+                        float[:, :] pixel,
+                        Thresh thresh,
+                        bool include_diagnostic)
