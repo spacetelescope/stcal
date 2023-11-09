@@ -19,6 +19,8 @@ import numpy as np
 cimport numpy as cnp
 
 from cython cimport boundscheck, wraparound
+
+from libc.math cimport NAN
 from libcpp cimport bool
 
 from stcal.ramp_fitting.ols_cas22._core cimport Diff
@@ -144,9 +146,24 @@ cdef class FixedValues:
                     var_slope_coeffs=var_slope_coeffs)
 
 
+cpdef enum FixedOffsets:
+    single_t_bar_diff
+    double_t_bar_diff
+    single_t_bar_diff_sqr
+    double_t_bar_diff_sqr
+    single_read_recip
+    double_read_recip
+    single_var_slope_val
+    double_var_slope_val
+    n_fixed_offsets
+
+
 @boundscheck(False)
 @wraparound(False)
-cdef inline float[:, :] t_bar_diff_vals(ReadPattern data):
+cdef inline float[:, :] fill_fixed_values(float[:] t_bar,
+                                          float[:] tau,
+                                          int[:] n_reads,
+                                          int end):
     """
     Compute the difference offset of t_bar
 
@@ -156,42 +173,54 @@ cdef inline float[:, :] t_bar_diff_vals(ReadPattern data):
         <t_bar[i+1] - t_bar[i]>,
         <t_bar[i+2] - t_bar[i]>,
     ]
-    """
-    cdef int end = len(data.t_bar)
-
-    cdef cnp.ndarray[float, ndim=2] t_bar_diff_vals = np.zeros((2, end - 1), dtype=np.float32)
-
-    t_bar_diff_vals[Diff.single, :] = np.subtract(data.t_bar[1:], data.t_bar[:end - 1]) 
-    t_bar_diff_vals[Diff.double, :end - 2] = np.subtract(data.t_bar[2:], data.t_bar[:end - 2])
-    t_bar_diff_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
-
-    return t_bar_diff_vals
-
-@boundscheck(False)
-@wraparound(False)
-cdef inline float[:, :] read_recip_vals(ReadPattern data):
-    """
-    Compute the reciprical sum of the number of reads
-
-    Returns
-    -------
+    [
+        <t_bar[i+1] - t_bar[i]> ** 2,
+        <t_bar[i+2] - t_bar[i]> ** 2,
+    ]
     [
         <(1/n_reads[i+1] + 1/n_reads[i])>,
         <(1/n_reads[i+2] + 1/n_reads[i])>,
     ]
-
+    [
+        <(tau[i] + tau[i+1] - 2 * min(t_bar[i], t_bar[i+1]))>,
+        <(tau[i] + tau[i+2] - 2 * min(t_bar[i], t_bar[i+2]))>,
+    ]
     """
-    cdef int end = len(data.n_reads)
 
-    cdef cnp.ndarray[float, ndim=2] read_recip_vals = np.zeros((2, end - 1), dtype=np.float32)
+    cdef int single_t_bar_diff = FixedOffsets.single_t_bar_diff
+    cdef int double_t_bar_diff = FixedOffsets.double_t_bar_diff
+    cdef int single_t_bar_diff_sqr = FixedOffsets.single_t_bar_diff_sqr
+    cdef int double_t_bar_diff_sqr = FixedOffsets.double_t_bar_diff_sqr
+    cdef int single_read_recip = FixedOffsets.single_read_recip
+    cdef int double_read_recip = FixedOffsets.double_read_recip
+    cdef int single_var_slope_val = FixedOffsets.single_var_slope_val
+    cdef int double_var_slope_val = FixedOffsets.double_var_slope_val
 
-    read_recip_vals[Diff.single, :] = (np.divide(1.0, data.n_reads[1:], dtype=np.float32) +
-                                        np.divide(1.0, data.n_reads[:end - 1], dtype=np.float32))
-    read_recip_vals[Diff.double, :end - 2] = (np.divide(1.0, data.n_reads[2:], dtype=np.float32) +
-                                                np.divide(1.0, data.n_reads[:end - 2], dtype=np.float32))
-    read_recip_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
+    cdef float[:, :] pre_compute = np.empty((n_fixed_offsets, end - 1), dtype=np.float32)
 
-    return read_recip_vals
+    # Coerce division to be using floats
+    cdef float num = 1
+
+    cdef int i
+    for i in range(end - 1):
+        pre_compute[single_t_bar_diff, i] = t_bar[i + 1] - t_bar[i]
+        pre_compute[single_t_bar_diff_sqr, i] = pre_compute[single_t_bar_diff, i] ** 2
+        pre_compute[single_read_recip, i] = (num / n_reads[i + 1]) + (num / n_reads[i])
+        pre_compute[single_var_slope_val, i] = tau[i + 1] + tau[i] - 2 * min(t_bar[i + 1], t_bar[i])
+
+        if i < end - 2:
+            pre_compute[double_t_bar_diff, i] = t_bar[i + 2] - t_bar[i]
+            pre_compute[double_t_bar_diff_sqr, i] = pre_compute[double_t_bar_diff, i] ** 2
+            pre_compute[double_read_recip, i] = (num / n_reads[i + 2]) + (num / n_reads[i])
+            pre_compute[double_var_slope_val, i] = tau[i + 2] + tau[i] - 2 * min(t_bar[i + 2], t_bar[i])
+        else:
+            # Last double difference is undefined
+            pre_compute[double_t_bar_diff, i] = NAN
+            pre_compute[double_t_bar_diff_sqr, i] = NAN
+            pre_compute[double_read_recip, i] = NAN
+            pre_compute[double_var_slope_val, i] = NAN
+
+    return pre_compute
 
 
 @boundscheck(False)
@@ -202,10 +231,6 @@ cdef inline float[:, :] var_slope_vals(ReadPattern data):
 
     Returns
     -------
-    [
-        <(tau[i] + tau[i+1] - min(t_bar[i], t_bar[i+1])) * correction(i, i+1)>,
-        <(tau[i] + tau[i+2] - min(t_bar[i], t_bar[i+2])) * correction(i, i+2)>,
-    ]
     """
     cdef int end = len(data.t_bar)
 
@@ -249,10 +274,12 @@ cpdef inline FixedValues fixed_values_from_metadata(ReadPattern data, bool use_j
     fixed.data = data
 
     # Pre-compute jump detection computations shared by all pixels
+    cdef float[:, :] pre_compute
     if use_jump:
-        fixed.t_bar_diffs = t_bar_diff_vals(data)
-        fixed.t_bar_diff_sqrs = np.square(fixed.t_bar_diffs, dtype=np.float32)
-        fixed.read_recip_coeffs = read_recip_vals(data)
-        fixed.var_slope_coeffs = var_slope_vals(data)
+        pre_compute = fill_fixed_values(data.t_bar, data.tau, data.n_reads, data.n_resultants)
+        fixed.t_bar_diffs = pre_compute[:FixedOffsets.double_t_bar_diff + 1, :]
+        fixed.t_bar_diff_sqrs = pre_compute[FixedOffsets.single_t_bar_diff_sqr:FixedOffsets.double_t_bar_diff_sqr + 1, :]
+        fixed.read_recip_coeffs = pre_compute[FixedOffsets.single_read_recip:FixedOffsets.double_read_recip + 1, :]
+        fixed.var_slope_coeffs = pre_compute[FixedOffsets.single_var_slope_val:FixedOffsets.double_var_slope_val + 1, :]
 
     return fixed
