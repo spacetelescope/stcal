@@ -8,20 +8,20 @@ Options.annotate = False
 
 extensions = [
     Extension(
-        'stcal.ramp_fitting.ols_cas22._jump',
-        ['src/stcal/ramp_fitting/ols_cas22/_jump.pyx'],
-        include_dirs=[np.get_include()],
-        language='c++'
-    ),
-    Extension(
         'stcal.ramp_fitting.ols_cas22._ramp',
         ['src/stcal/ramp_fitting/ols_cas22/_ramp.pyx'],
         include_dirs=[np.get_include()],
         language='c++'
     ),
     Extension(
-        'stcal.ramp_fitting.ols_cas22._fit_ramps',
-        ['src/stcal/ramp_fitting/ols_cas22/_fit_ramps.pyx'],
+        'stcal.ramp_fitting.ols_cas22._jump',
+        ['src/stcal/ramp_fitting/ols_cas22/_jump.pyx'],
+        include_dirs=[np.get_include()],
+        language='c++'
+    ),
+    Extension(
+        'stcal.ramp_fitting.ols_cas22._fit',
+        ['src/stcal/ramp_fitting/ols_cas22/_fit.pyx'],
         include_dirs=[np.get_include()],
         language='c++'
     ),
