@@ -2,7 +2,7 @@
 
 import numpy as np
 cimport numpy as cnp
-from cython cimport boundscheck, wraparound
+from cython cimport boundscheck, cdivision, wraparound
 
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern
 
@@ -11,11 +11,16 @@ cnp.import_array()
 cdef class ReadPattern:
     """
     Class to contain the read pattern derived metadata
+        This exists only to allow us to output multiple memory views at the same time
+        from the same cython function. This is needed because neither structs nor unions
+        can contain memory views.
+
+        In the case of this code memory views are the fastest "safe" array data structure.
+        This class will immediately be unpacked into raw memory views, so that we avoid
+        any further overhead of swithcing between python and cython.
 
     Attributes:
     ----------
-    n_resultants : int
-        The number of resultants in the read pattern
     t_bar : np.ndarray[float_t, ndim=1]
         The mean time of each resultant
     tau : np.ndarray[float_t, ndim=1]
@@ -41,12 +46,12 @@ cdef class ReadPattern:
 
 @boundscheck(False)
 @wraparound(False)
+@cdivision(True)
 cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_time, int n_resultants):
     """
     Derive the input data from the the read pattern
-
-        read pattern is a list of resultant lists, where each resultant list is
-        a list of the reads in that resultant.
+        This is faster than using __init__ or __cinit__ to construct the object with
+        these calls.
 
     Parameters
     ----------
@@ -54,11 +59,18 @@ cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_tim
         read pattern for the image
     read_time : float
         Time to perform a readout.
+    n_resultants : int
+        Number of resultants in the image
 
     Returns
     -------
     ReadPattern
+        Contains:
+        - t_bar
+        - tau
+        - n_reads
     """
+
     cdef ReadPattern data = ReadPattern()
     data.t_bar = np.empty(n_resultants, dtype=np.float32)
     data.tau = np.empty(n_resultants, dtype=np.float32)

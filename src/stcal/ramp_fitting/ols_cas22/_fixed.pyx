@@ -100,19 +100,19 @@ cpdef inline float[:, :] fill_pixel_values(float[:, :] pixel,
     [
         <(resultants[i+1] - resultants[i])> / <(t_bar[i+1] - t_bar[i])>,
         <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
-        read_noise ** 2 / <(t_bar[i+1] - t_bar[i])>,
-        read_noise ** 2 / <(t_bar[i+2] - t_bar[i])>,
+        read_noise**2 * <(1/n_reads[i+1] + 1/n_reads[i])>,
+        read_noise**2 * <(1/n_reads[i+2] + 1/n_reads[i])>,
     ]
     """
-    cdef int single_slope = PixelOffsets.single_local_slope
-    cdef int double_slope = PixelOffsets.double_local_slope
-    cdef int single_var = PixelOffsets.single_var_read_noise
-    cdef int double_var = PixelOffsets.double_var_read_noise
-
     cdef int single_t_bar_diff = FixedOffsets.single_t_bar_diff
     cdef int double_t_bar_diff = FixedOffsets.double_t_bar_diff
     cdef int single_read_recip = FixedOffsets.single_read_recip
     cdef int double_read_recip = FixedOffsets.double_read_recip
+
+    cdef int single_slope = PixelOffsets.single_local_slope
+    cdef int double_slope = PixelOffsets.double_local_slope
+    cdef int single_var = PixelOffsets.single_var_read_noise
+    cdef int double_var = PixelOffsets.double_var_read_noise
 
     cdef float read_noise_sqr = read_noise ** 2
 

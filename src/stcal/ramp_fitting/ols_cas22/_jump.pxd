@@ -14,14 +14,14 @@ cdef struct Thresh:
     float constant
 
 
-cdef struct RampFits:
+cdef struct JumpFits:
     RampFit average
     vector[int] jumps
     vector[RampFit] fits
     RampQueue index
 
 
-cdef RampFits fit_jumps(float[:] resultants,
+cdef JumpFits fit_jumps(float[:] resultants,
                         int[:] dq,
                         float read_noise,
                         RampQueue ramps,

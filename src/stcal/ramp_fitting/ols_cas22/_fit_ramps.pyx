@@ -10,7 +10,7 @@ from libcpp.list cimport list as cpp_list
 # from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance
 from stcal.ramp_fitting.ols_cas22._fixed cimport fill_fixed_values, n_fixed_offsets, n_pixel_offsets
 
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, fit_jumps, RampFits
+from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, fit_jumps, JumpFits
 from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern, from_read_pattern
 
@@ -129,7 +129,7 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
     # Use list because this might grow very large which would require constant
     #    reallocation. We don't need random access, and this gets cast to a python
     #    list in the end.
-    cdef cpp_list[RampFits] ramp_fits
+    cdef cpp_list[JumpFits] ramp_fits
 
     # intercept is currently always zero, where as every variance is calculated and set
     cdef float[:, :] parameters = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
@@ -141,7 +141,7 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
     cdef int total_var = Variance.total_var
 
     # Perform all of the fits
-    cdef RampFits fit
+    cdef JumpFits fit
     cdef int index
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel

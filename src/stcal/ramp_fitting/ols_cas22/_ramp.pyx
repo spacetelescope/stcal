@@ -1,5 +1,43 @@
 # cython: language_level=3str
 
+"""
+This module contains all the functions needed to execute the Casertano+22 ramp
+    fitting algorithm on its own without jump detection.
+
+    The _jump module contains a driver function which calls the `fit_ramp` function
+    from this module iteratively. This evvetively handles dq flags and detected
+    jumps simultaneously.
+
+Structs
+-------
+RampIndex : struct
+    - start : int
+        Index of the first resultant in the ramp
+    - end : int
+        Index of the last resultant in the ramp (so indexing of ramp requires end + 1)
+
+RampFit : struct
+    - slope : float
+        The slope fit to the ramp
+    - read_var : float
+        The read noise variance for the fit
+    - poisson_var : float
+        The poisson variance for the fit
+
+RampQueue : vector[RampIndex]
+    Vector of RampIndex objects (convienience typedef)
+
+(Public) Functions
+------------------
+init_ramps : function
+    Create the initial ramp "queue" for each pixel in order to handle any initial
+    "dq" flags passed in from outside.
+
+fit_ramps : function
+    Implementation of running the Casertano+22 algorithm on a (sub)set of resultants
+    listed for a single pixel
+"""
+
 from cython cimport boundscheck, wraparound, cdivision, cpow
 
 from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf
@@ -12,7 +50,7 @@ from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit
 @wraparound(False)
 cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixel):
     """
-    Create the initial ramp stack for each pixel
+    Create the initial ramp "queue" for each pixel
         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
         otherwise, the resultant is not in a ramp
 
@@ -27,9 +65,10 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
 
     Returns
     -------
-    vector of RampIndex objects
-        - vector with entry for each ramp found (last entry is last ramp found)
-        - RampIndex with start and end indices of the ramp in the resultants
+    RampQueue
+        vector of RampIndex objects
+            - vector with entry for each ramp found (last entry is last ramp found)
+            - RampIndex with start and end indices of the ramp in the resultants
     """
     cdef RampQueue ramps = RampQueue()
 
@@ -73,13 +112,13 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
 ctypedef float[6] _row
 
 # Casertano+2022, Table 2
-cdef _row[2] PTABLE = [[-INFINITY, 5,   10, 20, 50, 100],
-                       [ 0,        0.4, 1,  3,  6,  10 ]]
+cdef _row[2] _PTABLE = [[-INFINITY, 5,   10, 20, 50, 100],
+                        [ 0,        0.4, 1,  3,  6,  10 ]]
 
 
 @boundscheck(False)
 @wraparound(False)
-cdef inline float get_power(float signal):
+cdef inline float _get_power(float signal):
     """
     Return the power from Casertano+22, Table 2
 
@@ -94,10 +133,11 @@ cdef inline float get_power(float signal):
     """
     cdef int i
     for i in range(6):
-        if signal < PTABLE[0][i]:
-            return PTABLE[1][i - 1]
+        if signal < _PTABLE[0][i]:
+            return _PTABLE[1][i - 1]
 
-    return PTABLE[1][i]
+    return _PTABLE[1][i]
+
 
 @boundscheck(False)
 @wraparound(False)
@@ -113,12 +153,26 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
 
     Parameters
     ----------
+    resultants_ : float[:]
+        All of the resultants for the pixel
+    t_bar_ : float[:]
+        All the t_bar values
+    tau_ : float[:]
+        All the tau values
+    n_reads_ : int[:]
+        All the n_reads values
+    read_noise : float
+        The read noise for the pixel
     ramp : RampIndex
         Struct for start and end of ramp to fit
 
     Returns
     -------
-    RampFit struct of slope, read_var, poisson_var
+    RampFit
+        struct containing
+        - slope
+        - read_var
+        - poisson_var
     """
     cdef int n_resultants = ramp.end - ramp.start + 1
 
@@ -133,7 +187,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     # Compute the fit
     cdef int i = 0, j = 0
 
-    # Setup data for fitting (work over subset of data)
+    # Setup data for fitting (work over subset of data) to make things cleaner
     #    Recall that the RampIndex contains the index of the first and last
     #    index of the ramp. Therefore, the Python slice needed to get all the
     #    data within the ramp is:
@@ -148,13 +202,13 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
 
     # Casertano+2022 Eq. 44
-    # Note we've departed from Casertano+22 slightly;
-    # there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
-    # a CR in the first resultant has boosted the whole ramp high but there
-    # is no actual signal.
+    #    Note we've departed from Casertano+22 slightly;
+    #    there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
+    #    a CR in the first resultant has boosted the whole ramp high but there
+    #    is no actual signal.
     cdef float power = fmaxf(resultants[end] - resultants[0], 0)
     power = power / sqrt(read_noise**2 + power)
-    power = get_power(power)
+    power = _get_power(power)
 
     # It's easy to use up a lot of dynamic range on something like
     # (tbar - tbarmid) ** 10.  Rescale these.
@@ -162,6 +216,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     t_scale = 1 if t_scale == 0 else t_scale
 
     # Initalize the fit loop
+    #   it is faster to generate a c++ vector than a numpy array
     cdef vector[float] weights = vector[float](n_resultants)
     cdef vector[float] coeffs = vector[float](n_resultants)
     cdef RampFit ramp_fit = RampFit(0, 0, 0)
@@ -197,6 +252,9 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         ramp_fit.read_var += (coeff ** 2 * read_noise ** 2 / n_reads[i])
 
         # Casertano+22 Eq 40
+        #    Note that this is an inversion of the indexing from the equation;
+        #    however, commutivity of addition results in the same answer. This
+        #    makes it so that we don't have to loop over all the resultants twice.
         ramp_fit.poisson_var += coeff ** 2 * tau[i]
         for j in range(i):
             ramp_fit.poisson_var += (2 * coeff * coeffs[j] * t_bar[j])
