@@ -139,34 +139,36 @@ cdef inline (int, float) statistics(float[:, :] pixel,
     cdef int double_var_slope_val = FixedOffsets.double_var_slope_val
 
     cdef float correct = correction(t_bar, ramp, slope)
+    cdef float stat
 
-    cdef float stat, double_stat
+    if start == end:
+        return 0, NAN
 
-    cdef int argmax = 0
-    cdef float max_stat = NAN
-
-    cdef int index, stat_index
-    for stat_index, index in enumerate(range(start, end)):
-        stat = statstic(pixel[single_local_slope, index],
-                        pixel[single_var_read_noise, index],
-                        fixed[single_t_bar_diff_sqr, index],
-                        fixed[single_var_slope_val, index],
-                        slope,
-                        correct)
-
-        # It is not possible to compute double differences for the second
-        # to last resultant in the ramp. Therefore, we include the double
-        # differences for every stat except the last one.
-        if index != end - 1:
-            double_stat = statstic(pixel[double_local_slope, index],
-                                   pixel[double_var_read_noise, index],
-                                   fixed[double_t_bar_diff_sqr, index],
-                                   fixed[double_var_slope_val, index],
+    cdef int index = end - 1
+    cdef int argmax = end - start - 1
+    cdef float max_stat = statstic(pixel[single_local_slope, index],
+                                   pixel[single_var_read_noise, index],
+                                   fixed[single_t_bar_diff_sqr, index],
+                                   fixed[single_var_slope_val, index],
                                    slope,
                                    correct)
-            stat = fmaxf(stat, double_stat)
 
-        if isnan(max_stat) or stat > max_stat:
+    cdef int stat_index
+    for stat_index, index in enumerate(range(start, end - 1)):
+        stat = fmaxf(statstic(pixel[single_local_slope, index],
+                              pixel[single_var_read_noise, index],
+                              fixed[single_t_bar_diff_sqr, index],
+                              fixed[single_var_slope_val, index],
+                              slope,
+                              correct),
+                    statstic(pixel[double_local_slope, index],
+                             pixel[double_var_read_noise, index],
+                             fixed[double_t_bar_diff_sqr, index],
+                             fixed[double_var_slope_val, index],
+                             slope,
+                             correct))
+
+        if stat > max_stat:
             max_stat = stat
             argmax = stat_index
 
