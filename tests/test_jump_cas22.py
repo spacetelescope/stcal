@@ -48,7 +48,7 @@ def test_init_ramps():
                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1]], dtype=np.int32)
 
     n_resultants, n_pixels = dq.shape
-    ramps = [init_ramps(dq, n_resultants, index_pixel) for index_pixel in range(n_pixels)]
+    ramps = [init_ramps(dq[:, index], n_resultants) for index in range(n_pixels)]
 
     assert len(ramps) == dq.shape[1] == 16
 

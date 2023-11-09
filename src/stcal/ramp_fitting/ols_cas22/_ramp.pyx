@@ -145,7 +145,7 @@ cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_tim
 
 @boundscheck(False)
 @wraparound(False)
-cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixel):
+cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
     """
     Create the initial ramp "queue" for each pixel
         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
@@ -153,12 +153,10 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
 
     Parameters
     ----------
-    dq : int[n_resultants, n_pixel]
+    dq : int[n_resultants]
         DQ array
     n_resultants : int
         Number of resultants
-    index_pixel : int
-        The index of the pixel to find ramps for
 
     Returns
     -------
@@ -177,7 +175,7 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
     for index_resultant in range(n_resultants):
         if ramp.start == -1:
             # Looking for the start of a ramp
-            if dq[index_resultant, index_pixel] == 0:
+            if dq[index_resultant] == 0:
                 # We have found the start of a ramp!
                 ramp.start = index_resultant
             else:
@@ -185,7 +183,7 @@ cpdef inline RampQueue init_ramps(int[:, :] dq, int n_resultants, int index_pixe
                 continue
         else:
             # Looking for the end of a ramp
-            if dq[index_resultant, index_pixel] == 0:
+            if dq[index_resultant] == 0:
                 # This pixel is in the ramp do nothing
                 continue
             else:

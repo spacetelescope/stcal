@@ -13,7 +13,7 @@ from stcal.ramp_fitting.ols_cas22._jump cimport (Thresh,
                                                  fit_jumps,
                                                  n_fixed_offsets,
                                                  n_pixel_offsets)
-from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps, ReadPattern, from_read_pattern
+from stcal.ramp_fitting.ols_cas22._ramp cimport ReadPattern, from_read_pattern
 
 from typing import NamedTuple, Optional
 
@@ -149,7 +149,6 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
         fit = fit_jumps(resultants[:, index],
                         dq[:, index],
                         read_noise[index],
-                        init_ramps(dq, n_resultants, index), 
                         t_bar,
                         tau,
                         n_reads,

@@ -60,7 +60,7 @@ from libcpp cimport bool
 from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, JumpFits, JUMP_DET, FixedOffsets, PixelOffsets
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp, init_ramps
 
 
 
@@ -393,7 +393,6 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
 cdef inline JumpFits fit_jumps(float[:] resultants,
                                int[:] dq,
                                float read_noise,
-                               RampQueue ramps,
                                float[:] t_bar,
                                float[:] tau,
                                int[:] n_reads,
@@ -444,6 +443,9 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
     -------
     RampFits struct of all the fits for a single pixel
     """
+    # Find initial set of ramps
+    cdef RampQueue ramps = init_ramps(dq, n_resultants)
+
     # Initialize algorithm
     cdef JumpFits ramp_fits
     cdef RampIndex ramp

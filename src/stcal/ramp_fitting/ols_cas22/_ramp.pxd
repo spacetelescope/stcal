@@ -23,9 +23,8 @@ cdef class ReadPattern:
     cdef int[::1] n_reads
 
 
-cpdef RampQueue init_ramps(int[:, :] dq,
-                           int n_resultants,
-                           int index_pixel)
+cpdef RampQueue init_ramps(int[:] dq,
+                           int n_resultants)
 
 
 cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern,
