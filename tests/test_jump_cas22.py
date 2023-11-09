@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._fixed import fill_fixed_values, fill_pixel_values, FixedOffsets, PixelOffsets
+from stcal.ramp_fitting.ols_cas22._jump import fill_fixed_values, fill_pixel_values, FixedOffsets, PixelOffsets
 from stcal.ramp_fitting.ols_cas22._ramp import init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern import from_read_pattern
 

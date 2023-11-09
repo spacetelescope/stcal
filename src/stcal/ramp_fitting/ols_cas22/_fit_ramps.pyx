@@ -7,10 +7,7 @@ from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 
-# from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance
-from stcal.ramp_fitting.ols_cas22._fixed cimport fill_fixed_values, n_fixed_offsets, n_pixel_offsets
-
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, fit_jumps, JumpFits
+from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, JumpFits, fill_fixed_values, fit_jumps, n_fixed_offsets, n_pixel_offsets
 from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern, from_read_pattern
 
