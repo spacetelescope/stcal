@@ -28,8 +28,24 @@ JumpFits : struct
         - index : RampQueue
             The RampIndex representations correspoinding to each fit in fits
 
+Enums
+-----
+    FixedOffsets : enum
+        Enumerate the different pieces of information computed for jump detection
+            which only depend on the read pattern.
+
+    PixelOffsets : enum
+        Enumerate the different pieces of information computed for jump detection
+            which only depend on the given pixel (independent of specific ramp).
+
+    JUMP_DET : value
+        A the fixed value for the jump detection dq flag.
+
 (Public) Functions
 ------------------
+fill_fixed_values : function
+    Pre-compute all the values needed for jump detection for a given read_pattern,
+        this is independent of the pixel involved.
 
 fit_jumps : function
     Compute all the ramps for a single pixel using the Casertano+22 algorithm
@@ -57,7 +73,22 @@ cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
                                            int[:] n_reads,
                                            int n_resultants):
     """
-    Compute the difference offset of t_bar
+    Pre-compute all the values needed for jump detection which only depend on
+        the read pattern.
+
+    Parameters
+    ----------
+    fixed : float[:, :]
+        A pre-allocated memoryview to store the pre-computed values in, its faster
+        to allocate outside this function.
+    t_bar : float[:]
+        The average time for each resultant
+    tau : float[:]
+        The time variance for each resultant
+    n_reads : int[:]
+        The number of reads for each resultant
+    n_resultants : int
+        The number of resultants for the read pattern
 
     Returns
     -------
@@ -72,7 +103,8 @@ cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
         <(tau[i] + tau[i+2] - 2 * min(t_bar[i], t_bar[i+2]))>,
     ]
     """
-
+    # Cast the enum values into integers for indexing (otherwise compiler complains)
+    #   These will be optimized out
     cdef int single_t_bar_diff = FixedOffsets.single_t_bar_diff
     cdef int double_t_bar_diff = FixedOffsets.double_t_bar_diff
     cdef int single_t_bar_diff_sqr = FixedOffsets.single_t_bar_diff_sqr
@@ -110,13 +142,28 @@ cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
 @boundscheck(False)
 @wraparound(False)
 @cdivision(True)
-cpdef inline float[:, :] fill_pixel_values(float[:, :] pixel,
-                                           float[:] resultants,
-                                           float[:, :] fixed,
-                                           float read_noise,
-                                           int n_resultants):
+cpdef inline float[:, :] _fill_pixel_values(float[:, :] pixel,
+                                            float[:] resultants,
+                                            float[:, :] fixed,
+                                            float read_noise,
+                                            int n_resultants):
     """
-    Compute the local slopes between resultants for the pixel
+    Pre-compute all the values needed for jump detection which only depend on
+        the a specific pixel (independent of the given ramp for a pixel).
+
+    Parameters
+    ----------
+    pixel : float[:, :]
+        A pre-allocated memoryview to store the pre-computed values in, its faster
+        to allocate outside this function.
+    resultants : float[:]
+        The resultants for the pixel in question.
+    fixed : float[:, :]
+        The pre-computed fixed values for the read_pattern
+    read_noise : float
+        The read noise for the pixel
+    n_resultants : int
+        The number of resultants for the read_pattern
 
     Returns
     -------
@@ -412,7 +459,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
 
     # Fill in the jump detection pre-compute values for a single pixel
     if use_jump:
-        pixel = fill_pixel_values(pixel, resultants, fixed, read_noise, n_resultants)
+        pixel = _fill_pixel_values(pixel, resultants, fixed, read_noise, n_resultants)
 
     # Run while the Queue is non-empty
     while not ramps.empty():

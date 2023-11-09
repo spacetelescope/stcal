@@ -48,13 +48,6 @@ cpdef float[:, :] fill_fixed_values(float[:, :] fixed,
                                     int n_resultants)
 
 
-cpdef float[:, :] fill_pixel_values(float[:, :] pixel,
-                                    float[:] resultants,
-                                    float[:, :] fixed,
-                                    float read_noise,
-                                    int n_resultants)
-
-
 cdef JumpFits fit_jumps(float[:] resultants,
                         int[:] dq,
                         float read_noise,

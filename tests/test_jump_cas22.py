@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._jump import fill_fixed_values, fill_pixel_values, FixedOffsets, PixelOffsets
+from stcal.ramp_fitting.ols_cas22._jump import fill_fixed_values, _fill_pixel_values, FixedOffsets, PixelOffsets
 from stcal.ramp_fitting.ols_cas22._ramp import init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern import from_read_pattern
 
@@ -252,13 +252,13 @@ def pixel_data(ramp_data):
     yield resultants, t_bar, tau, n_reads, fixed
 
 
-def test_fill_pixel_values(pixel_data):
+def test__fill_pixel_values(pixel_data):
     """Test computing the initial pixel data"""
     resultants, t_bar, tau, n_reads, fixed = pixel_data
 
     n_resultants = len(t_bar)
     pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-    pixel = fill_pixel_values(pixel, resultants, fixed, READ_NOISE, n_resultants)
+    pixel = _fill_pixel_values(pixel, resultants, fixed, READ_NOISE, n_resultants)
 
     # Sanity check that the shape of pixel is correct
     assert pixel.shape == (2 * 2, n_resultants - 1)
