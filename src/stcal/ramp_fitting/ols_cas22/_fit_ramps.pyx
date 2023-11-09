@@ -104,7 +104,7 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
                            f'match number of resultants {n_resultants}')
 
     # Pre-compute data for all pixels
-    cdef ReadPattern metadata = from_read_pattern(read_pattern, read_time)
+    cdef ReadPattern metadata = from_read_pattern(read_pattern, read_time, n_resultants)
     cdef float[:] t_bar = metadata.t_bar
     cdef float[:] tau = metadata.tau
     cdef int[:] n_reads = metadata.n_reads
@@ -121,9 +121,14 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
     #    list in the end.
     cdef cpp_list[RampFits] ramp_fits
 
-    cdef cnp.ndarray[float, ndim=2] parameters = np.zeros((n_pixels, 2), dtype=np.float32)
-    cdef cnp.ndarray[float, ndim=2] variances = np.zeros((n_pixels, 3), dtype=np.float32)
+    # intercept is currently always zero, where as every variance is calculated and set
+    cdef float[:, :] parameters = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
+    cdef float[:, :] variances = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
 
+    cdef int slope = Parameter.slope
+    cdef int read_var = Variance.read_var
+    cdef int poisson_var = Variance.poisson_var
+    cdef int total_var = Variance.total_var
 
     # Perform all of the fits
     cdef RampFits fit
@@ -143,11 +148,11 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
                         use_jump,
                         include_diagnostic)
 
-        parameters[index, Parameter.slope] = fit.average.slope
+        parameters[index, slope] = fit.average.slope
 
-        variances[index, Variance.read_var] = fit.average.read_var
-        variances[index, Variance.poisson_var] = fit.average.poisson_var
-        variances[index, Variance.total_var] = fit.average.read_var + fit.average.poisson_var
+        variances[index, read_var] = fit.average.read_var
+        variances[index, poisson_var] = fit.average.poisson_var
+        variances[index, total_var] = fit.average.read_var + fit.average.poisson_var
 
         for jump in fit.jumps:
             dq[jump, index] = RampJumpDQ.JUMP_DET
@@ -156,4 +161,4 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
             ramp_fits.push_back(fit)
 
     # return RampFitOutputs(ramp_fits, parameters, variances, dq)
-    return RampFitOutputs(parameters, variances, dq, ramp_fits if include_diagnostic else None)
+    return RampFitOutputs(np.array(parameters, dtype=np.float32), np.array(variances, dtype=np.float32), dq, ramp_fits if include_diagnostic else None)

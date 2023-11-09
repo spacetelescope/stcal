@@ -331,11 +331,6 @@ cdef inline RampFits fit_jumps(float[:] resultants,
             ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
             ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
 
-    # Reverse to order in time
-    if include_diagnostic:
-        ramp_fits.fits = ramp_fits.fits[::-1]
-        ramp_fits.index = ramp_fits.index[::-1]
-
     # Finish computing averages
     ramp_fits.average.slope /= total_weight if total_weight != 0 else 1
     ramp_fits.average.read_var /= total_weight**2 if total_weight != 0 else 1

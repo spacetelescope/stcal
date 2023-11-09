@@ -6,7 +6,7 @@ from stcal.ramp_fitting.ols_cas22._fixed import fill_fixed_values, fill_pixel_va
 from stcal.ramp_fitting.ols_cas22._ramp import init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern import from_read_pattern
 
-from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
+from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, RampJumpDQ
 
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
@@ -106,7 +106,7 @@ def read_pattern():
 
 def test_from_read_pattern(read_pattern):
     """Test turning read_pattern into the time data"""
-    metadata = from_read_pattern(read_pattern, READ_TIME)._to_dict()
+    metadata = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()
 
     t_bar = metadata['t_bar']
     tau = metadata['tau']
@@ -135,7 +135,7 @@ def ramp_data(read_pattern):
         metadata : dict
             The metadata computed from the read pattern
     """
-    data = from_read_pattern(read_pattern, READ_TIME)._to_dict()
+    data = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()
 
     yield data['t_bar'], data['tau'], data['n_reads'], read_pattern
 

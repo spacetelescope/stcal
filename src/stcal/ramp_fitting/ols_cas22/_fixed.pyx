@@ -25,6 +25,7 @@ from stcal.ramp_fitting.ols_cas22._fixed cimport FixedOffsets, PixelOffsets
 
 @boundscheck(False)
 @wraparound(False)
+@cdivision(True)
 cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
                                            float[:] t_bar,
                                            float[:] tau,

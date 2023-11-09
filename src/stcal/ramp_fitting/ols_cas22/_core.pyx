@@ -74,4 +74,4 @@ Functions
         - cpdef gives a python wrapper, but the python version of this method
           is considered private, only to be used for testing
 """
-from stcal.ramp_fitting.ols_cas22._core cimport Diff, Parameter, Variance, RampJumpDQ
+from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance, RampJumpDQ

@@ -4,4 +4,4 @@ cdef class ReadPattern:
     cdef int[::1] n_reads
 
 
-cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_time)
+cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_time, int n_resultants)

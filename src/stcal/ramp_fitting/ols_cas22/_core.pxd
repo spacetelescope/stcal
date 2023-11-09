@@ -1,18 +1,14 @@
-cpdef enum Diff:
-    single
-    double
-    n_diff
-
-
 cpdef enum Parameter:
-    intercept = 0
-    slope = 1
+    intercept
+    slope
+    n_param
 
 
 cpdef enum Variance:
-    read_var = 0
-    poisson_var = 1
-    total_var = 2
+    read_var
+    poisson_var
+    total_var
+    n_var
 
 
 cpdef enum RampJumpDQ:

@@ -39,7 +39,7 @@ cdef class ReadPattern:
 
 @boundscheck(False)
 @wraparound(False)
-cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_time):
+cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_time, int n_resultants):
     """
     Derive the input data from the the read pattern
 
@@ -57,8 +57,6 @@ cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_tim
     -------
     ReadPattern
     """
-    cdef int n_resultants = len(read_pattern)
-
     cdef ReadPattern data = ReadPattern()
     data.t_bar = np.empty(n_resultants, dtype=np.float32)
     data.tau = np.empty(n_resultants, dtype=np.float32)
