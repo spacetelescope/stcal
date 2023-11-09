@@ -6,7 +6,7 @@ from stcal.ramp_fitting.ols_cas22._fixed import fill_fixed_values, fill_pixel_va
 from stcal.ramp_fitting.ols_cas22._ramp import init_ramps
 from stcal.ramp_fitting.ols_cas22._read_pattern import from_read_pattern
 
-from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, RampJumpDQ
+from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, JUMP_DET
 
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
@@ -539,7 +539,7 @@ def test_override_default_threshold(jump_data):
 
 def test_jump_dq_set(jump_data):
     # Check the DQ flag value to start
-    assert RampJumpDQ.JUMP_DET == 2**2
+    assert JUMP_DET == 2**2
 
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
@@ -549,7 +549,7 @@ def test_jump_dq_set(jump_data):
 
     for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
         # Check that all jumps found get marked
-        assert (pixel_dq[fit['jumps']] == RampJumpDQ.JUMP_DET).all()
+        assert (pixel_dq[fit['jumps']] == JUMP_DET).all()
 
         # Check that dq flags for jumps are only set if the jump is marked
-        assert set(np.where(pixel_dq == RampJumpDQ.JUMP_DET)[0]) == set(fit['jumps'])
+        assert set(np.where(pixel_dq == JUMP_DET)[0]) == set(fit['jumps'])

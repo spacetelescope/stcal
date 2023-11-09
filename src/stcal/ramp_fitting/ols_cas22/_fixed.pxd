@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 cpdef enum FixedOffsets:
     single_t_bar_diff
     double_t_bar_diff

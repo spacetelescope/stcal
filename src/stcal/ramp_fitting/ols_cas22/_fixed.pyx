@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 """
 Define the data which is fixed for all pixels to compute the CAS22 algorithm with
     jump detection

@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 from libcpp.vector cimport vector
 
 

@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 from cython cimport boundscheck, wraparound, cdivision, cpow
 
 from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf

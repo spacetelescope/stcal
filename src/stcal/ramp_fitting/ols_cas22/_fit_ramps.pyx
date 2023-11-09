@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 import numpy as np
 cimport numpy as cnp
 
@@ -5,7 +7,7 @@ from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 
-from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance, RampJumpDQ
+# from stcal.ramp_fitting.ols_cas22._core cimport Parameter, Variance
 from stcal.ramp_fitting.ols_cas22._fixed cimport fill_fixed_values, n_fixed_offsets, n_pixel_offsets
 
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, fit_jumps, RampFits
@@ -18,10 +20,18 @@ from typing import NamedTuple, Optional
 cnp.import_array()
 
 
-# Fix the default Threshold values at compile time these values cannot be overridden
-#   dynamically at runtime.
-DEF DefaultIntercept = 5.5
-DEF DefaultConstant = 1/3.0
+cpdef enum Parameter:
+    intercept
+    slope
+    n_param
+
+
+cpdef enum Variance:
+    read_var
+    poisson_var
+    total_var
+    n_var
+
 
 class RampFitOutputs(NamedTuple):
     """
@@ -59,8 +69,8 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
               float read_time,
               list[list[int]] read_pattern,
               bool use_jump=False,
-              float intercept=DefaultIntercept,
-              float constant=DefaultConstant,
+              float intercept=5.5,
+              float constant=1/3,
               bool include_diagnostic=False):
     """Fit ramps using the Casertano+22 algorithm.
         This implementation uses the Cas22 algorithm to fit ramps, where

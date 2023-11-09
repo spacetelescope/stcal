@@ -1,7 +1,13 @@
+# cython: language_level=3str
+
 from libcpp cimport bool
 from libcpp.vector cimport vector
 
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampQueue
+
+
+cpdef enum:
+    JUMP_DET = 4
 
 cdef struct Thresh:
     float intercept

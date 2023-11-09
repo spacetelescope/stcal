@@ -1,3 +1,5 @@
+# cython: language_level=3str
+
 cdef class ReadPattern:
     cdef float[::1] t_bar
     cdef float[::1] tau
