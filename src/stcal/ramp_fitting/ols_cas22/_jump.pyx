@@ -4,6 +4,7 @@ from libcpp cimport bool
 from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
 
+from stcal.ramp_fitting.ols_cas22._core cimport JUMP_DET
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, RampFits
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedOffsets, PixelOffsets, fill_pixel_values
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp
@@ -176,6 +177,7 @@ cdef inline (int, float) statistics(float[:, :] pixel,
 @wraparound(False)
 @cdivision(True)
 cdef inline RampFits fit_jumps(float[:] resultants,
+                               int[:] dq,
                                float read_noise,
                                RampQueue ramps,
                                float[:] t_bar,
@@ -266,6 +268,9 @@ cdef inline RampFits fit_jumps(float[:] resultants,
                 #     consideration.
                 jump0 = argmax + ramp.start
                 jump1 = jump0 + 1
+
+                dq[jump0] = JUMP_DET
+                dq[jump1] = JUMP_DET
                 if include_diagnostic:
                     ramp_fits.jumps.push_back(jump0)
                     ramp_fits.jumps.push_back(jump1)

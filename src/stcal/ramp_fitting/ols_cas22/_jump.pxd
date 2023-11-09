@@ -16,6 +16,7 @@ cdef struct RampFits:
 
 
 cdef RampFits fit_jumps(float[:] resultants,
+                        int[:] dq,
                         float read_noise,
                         RampQueue ramps,
                         float[:] t_bar,

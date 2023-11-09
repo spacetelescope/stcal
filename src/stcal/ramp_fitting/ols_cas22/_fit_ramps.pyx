@@ -136,6 +136,7 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
         fit = fit_jumps(resultants[:, index],
+                        dq[:, index],
                         read_noise[index],
                         init_ramps(dq, n_resultants, index), 
                         t_bar,
@@ -153,9 +154,6 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
         variances[index, read_var] = fit.average.read_var
         variances[index, poisson_var] = fit.average.poisson_var
         variances[index, total_var] = fit.average.read_var + fit.average.poisson_var
-
-        for jump in fit.jumps:
-            dq[jump, index] = RampJumpDQ.JUMP_DET
 
         if include_diagnostic:
             ramp_fits.push_back(fit)
