@@ -1,6 +1,7 @@
 cpdef enum Diff:
-    single = 0
-    double = 1
+    single
+    double
+    n_diff
 
 
 cpdef enum Parameter:

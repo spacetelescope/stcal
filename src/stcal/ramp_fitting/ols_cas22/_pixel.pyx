@@ -17,12 +17,14 @@ Functions
 import numpy as np
 cimport numpy as cnp
 
-from cython cimport boundscheck, wraparound
+from libc.math cimport NAN
+from cython cimport boundscheck, wraparound, cdivision
 
-
-from stcal.ramp_fitting.ols_cas22._core cimport Diff
+from stcal.ramp_fitting.ols_cas22._core cimport Diff, n_diff
 from stcal.ramp_fitting.ols_cas22._fixed cimport FixedValues
 from stcal.ramp_fitting.ols_cas22._pixel cimport Pixel
+
+
 
 
 cnp.import_array()
@@ -120,9 +122,22 @@ cdef class Pixel:
                     local_slopes=local_slopes,
                     var_read_noise=var_read_noise)
 
+cdef enum Offsets:
+    single_slope
+    double_slope
+    single_var
+    double_var
+    n_offsets
+
+
 @boundscheck(False)
 @wraparound(False)
-cdef inline float[:, :] local_slope_vals(float[:] resultants, FixedValues fixed):
+@cdivision(True)
+cdef inline float[:, :] local_slope_vals(float[:] resultants,
+                                         float[:, :] t_bar_diffs,
+                                         float[:, :] read_recip_coeffs,
+                                         float read_noise,
+                                         int end):
     """
     Compute the local slopes between resultants for the pixel
 
@@ -133,20 +148,30 @@ cdef inline float[:, :] local_slope_vals(float[:] resultants, FixedValues fixed)
         <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
     ]
     """
-    cdef int end = len(resultants)
+    cdef int single = Diff.single
+    cdef int double = Diff.double
 
-    # Read the t_bar_diffs into a local variable to avoid calling through Python
-    #    multiple times
-    cdef cnp.ndarray[float, ndim=2] t_bar_diffs = np.array(fixed.t_bar_diffs, dtype=np.float32)
-    cdef cnp.ndarray[float, ndim=2] local_slope_vals = np.zeros((2, end - 1), dtype=np.float32)
+    cdef int single_slope = Offsets.single_slope
+    cdef int double_slope = Offsets.double_slope
+    cdef int single_var = Offsets.single_var
+    cdef int double_var = Offsets.double_var
 
-    local_slope_vals[Diff.single, :] = (np.subtract(resultants[1:], resultants[:end - 1])
-                                        / t_bar_diffs[Diff.single, :]).astype(np.float32)
-    local_slope_vals[Diff.double, :end - 2] = (np.subtract(resultants[2:], resultants[:end - 2])
-                                                / t_bar_diffs[Diff.double, :end-2]).astype(np.float32)
-    local_slope_vals[Diff.double, end - 2] = np.nan  # last double difference is undefined
+    cdef float[:, :] pre_compute = np.empty((n_offsets, end - 1), dtype=np.float32)
+    cdef float read_noise_sqr = read_noise ** 2
 
-    return local_slope_vals
+    cdef int i
+    for i in range(end - 1):
+        pre_compute[single_slope, i] = (resultants[i + 1] - resultants[i]) / t_bar_diffs[single, i]
+
+        if i < end - 2:
+            pre_compute[double_slope, i] = (resultants[i + 2] - resultants[i]) / t_bar_diffs[double, i]
+        else:
+            pre_compute[double_slope, i] = NAN  # last double difference is undefined
+
+        pre_compute[single_var, i] = read_noise_sqr * read_recip_coeffs[single, i]
+        pre_compute[double_var, i] = read_noise_sqr * read_recip_coeffs[double, i]
+
+    return pre_compute
 
 
 @boundscheck(False)
@@ -182,8 +207,11 @@ cpdef inline Pixel make_pixel(FixedValues fixed, float read_noise, float [:] res
     pixel.resultants = resultants
 
     # Pre-compute values for jump detection shared by all pixels for this pixel
+    cdef float[:, :] pre_compute
+    cdef int n_resultants = len(resultants)
     if fixed.use_jump:
-        pixel.local_slopes = local_slope_vals(resultants, fixed)
-        pixel.var_read_noise = (read_noise ** 2) * np.array(fixed.read_recip_coeffs)
+        pre_compute = local_slope_vals(resultants, fixed.t_bar_diffs, fixed.read_recip_coeffs, read_noise, n_resultants)
+        pixel.local_slopes = pre_compute[:n_diff, :]
+        pixel.var_read_noise = pre_compute[n_diff:n_offsets, :]
 
     return pixel
