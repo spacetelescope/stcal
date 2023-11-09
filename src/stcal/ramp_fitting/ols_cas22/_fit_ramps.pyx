@@ -1,5 +1,32 @@
 # cython: language_level=3str
 
+"""
+External interface module for the Casertano+22 ramp fitting algorithm with jump detection.
+    This module is intended to contain everything needed by external code.
+
+Enums
+-----
+Parameter :
+    Enumerate the index for the output parameters array.
+
+Variance :
+    Enumerate the index for the output variances array.
+
+Classes
+-------
+RampFitOutputs : NamedTuple
+    Simple tuple wrapper for outputs from the ramp fitting algorithm
+        This clarifies the meaning of the outputs via naming them something
+        descriptive.
+
+(Public) Functions
+------------------
+fit_ramps : function
+    Fit ramps using the Castenario+22 algorithm to a set of pixels accounting
+    for jumps (if use_jump is True) and bad pixels (via the dq array). This
+    is the primary externally callable function.
+"""
+
 import numpy as np
 cimport numpy as cnp
 
@@ -18,6 +45,7 @@ from stcal.ramp_fitting.ols_cas22._ramp cimport ReadPattern, from_read_pattern
 from typing import NamedTuple, Optional
 
 
+# Initialize numpy for cython use in this module
 cnp.import_array()
 
 
@@ -64,9 +92,9 @@ class RampFitOutputs(NamedTuple):
 
 @boundscheck(False)
 @wraparound(False)
-def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
+def fit_ramps(float[:, :] resultants,
               cnp.ndarray[int, ndim=2] dq,
-              cnp.ndarray[float, ndim=1] read_noise,
+              float[:] read_noise,
               float read_time,
               list[list[int]] read_pattern,
               bool use_jump=False,
@@ -82,12 +110,16 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
 
     Parameters
     ----------
-    resultants : np.ndarry[n_resultants, n_pixel]
-        the resultants in electrons
+    resultants : float[n_resultants, n_pixel]
+        the resultants in electrons (Note that this can be based as any sort of
+        array, such as a numpy array. The memmory view is just for efficiency in
+        cython)
     dq : np.ndarry[n_resultants, n_pixel]
-        the dq array.  dq != 0 implies bad pixel / CR.
-    read_noise : np.ndarray[n_pixel]
-        the read noise in electrons for each pixel
+        the dq array.  dq != 0 implies bad pixel / CR. (Kept as a numpy array
+        so that it can be passed out without copying into new numpy array, will
+        be working on memmory views of this array)
+    read_noise : float[n_pixel]
+        the read noise in electrons for each pixel (same note as the resultants)
     read_time : float
         Time to perform a readout. For Roman data, this is FRAME_TIME.
     read_pattern : list[list[int]]
@@ -110,38 +142,58 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
     n_resultants = resultants.shape[0]
     n_pixels = resultants.shape[1]
 
+    # Raise error if input data is inconsistent
     if n_resultants != len(read_pattern):
         raise RuntimeError(f'The read pattern length {len(read_pattern)} does not '
                            f'match number of resultants {n_resultants}')
 
-    # Pre-compute data for all pixels
+    # Compute the main metadata from the read pattern and cast it to memory views
     cdef ReadPattern metadata = from_read_pattern(read_pattern, read_time, n_resultants)
     cdef float[:] t_bar = metadata.t_bar
     cdef float[:] tau = metadata.tau
     cdef int[:] n_reads = metadata.n_reads
 
-    cdef float[:, :] fixed = np.empty((n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-    cdef float[:, :] pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    # Setup pre-compute arrays for jump detection
+    cdef float[:, :] fixed
+    cdef float[:, :] pixel
     if use_jump:
-        fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
+        # Initialize arrays for the jump detection pre-computed values
+        fixed = np.empty((n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+        pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
 
+        # Pre-compute the values from the read pattern
+        fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
+    else:
+        # "Initialize" the arrays when not using jump detection, they need to be
+        #    initialized because they do get passed around, but they don't need
+        #    to actually have any entries
+        fixed = np.empty((0, 0), dtype=np.float32)
+        pixel = np.empty((0, 0), dtype=np.float32)
+
+    # Create a threshold struct
     cdef Thresh thresh = Thresh(intercept, constant)
 
+    # Create variable to old the diagnostic data
     # Use list because this might grow very large which would require constant
     #    reallocation. We don't need random access, and this gets cast to a python
     #    list in the end.
     cdef cpp_list[JumpFits] ramp_fits
 
-    # intercept is currently always zero, where as every variance is calculated and set
+    # Initialize the output arrays. Note that the fit intercept is currently always
+    #    zero, where as every variance is calculated and set. This means that the
+    #    parameters need to be filled with zeros, where as the variances can just
+    #    be allocated
     cdef float[:, :] parameters = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
     cdef float[:, :] variances = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
 
+    # Cast the enum values into integers for indexing (otherwise compiler complains)
+    #   These will be optimized out
     cdef int slope = Parameter.slope
     cdef int read_var = Variance.read_var
     cdef int poisson_var = Variance.poisson_var
     cdef int total_var = Variance.total_var
 
-    # Perform all of the fits
+    # Run the jump fitting algorithm for each pixel
     cdef JumpFits fit
     cdef int index
     for index in range(n_pixels):
@@ -159,14 +211,20 @@ def fit_ramps(cnp.ndarray[float, ndim=2] resultants,
                         use_jump,
                         include_diagnostic)
 
+        # Extract the output fit's parameters
         parameters[index, slope] = fit.average.slope
 
+        # Extract the output fit's variances
         variances[index, read_var] = fit.average.read_var
         variances[index, poisson_var] = fit.average.poisson_var
         variances[index, total_var] = fit.average.read_var + fit.average.poisson_var
 
+        # Store diagnostic data if requested
         if include_diagnostic:
             ramp_fits.push_back(fit)
 
-    # return RampFitOutputs(ramp_fits, parameters, variances, dq)
-    return RampFitOutputs(np.array(parameters, dtype=np.float32), np.array(variances, dtype=np.float32), dq, ramp_fits if include_diagnostic else None)
+    # Cast memory views into numpy arrays for ease of use in python.
+    return RampFitOutputs(np.array(parameters, dtype=np.float32),
+                          np.array(variances, dtype=np.float32), 
+                          dq,
+                          ramp_fits if include_diagnostic else None)

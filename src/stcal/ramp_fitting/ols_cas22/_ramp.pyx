@@ -29,10 +29,10 @@ RampQueue : vector[RampIndex]
 
 Classes
 -------
-    ReadPattern :
-        Container class for all the metadata derived from the read pattern, this
-        is just a temporary object to allow us to return multiple memory views from
-        a single function.
+ReadPattern :
+    Container class for all the metadata derived from the read pattern, this
+    is just a temporary object to allow us to return multiple memory views from
+    a single function.
 
 (Public) Functions
 ------------------
@@ -60,6 +60,7 @@ from libcpp.vector cimport vector
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, ReadPattern
 
 
+# Initialize numpy for cython use in this module
 cnp.import_array()
 
 

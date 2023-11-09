@@ -30,16 +30,16 @@ JumpFits : struct
 
 Enums
 -----
-    FixedOffsets : enum
-        Enumerate the different pieces of information computed for jump detection
-            which only depend on the read pattern.
+FixedOffsets : enum
+    Enumerate the different pieces of information computed for jump detection
+        which only depend on the read pattern.
 
-    PixelOffsets : enum
-        Enumerate the different pieces of information computed for jump detection
-            which only depend on the given pixel (independent of specific ramp).
+PixelOffsets : enum
+    Enumerate the different pieces of information computed for jump detection
+        which only depend on the given pixel (independent of specific ramp).
 
-    JUMP_DET : value
-        A the fixed value for the jump detection dq flag.
+JUMP_DET : value
+    A the fixed value for the jump detection dq flag.
 
 (Public) Functions
 ------------------
