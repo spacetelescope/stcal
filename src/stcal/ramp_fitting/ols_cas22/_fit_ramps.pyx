@@ -7,9 +7,13 @@ from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, JumpFits, fill_fixed_values, fit_jumps, n_fixed_offsets, n_pixel_offsets
-from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps
-from stcal.ramp_fitting.ols_cas22._read_pattern cimport ReadPattern, from_read_pattern
+from stcal.ramp_fitting.ols_cas22._jump cimport (Thresh,
+                                                 JumpFits,
+                                                 fill_fixed_values,
+                                                 fit_jumps,
+                                                 n_fixed_offsets,
+                                                 n_pixel_offsets)
+from stcal.ramp_fitting.ols_cas22._ramp cimport init_ramps, ReadPattern, from_read_pattern
 
 from typing import NamedTuple, Optional
 
