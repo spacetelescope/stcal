@@ -5,8 +5,7 @@ from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
 
 from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, RampFits
-from stcal.ramp_fitting.ols_cas22._fixed cimport FixedOffsets
-from stcal.ramp_fitting.ols_cas22._pixel cimport PixelOffsets, fill_pixel_values
+from stcal.ramp_fitting.ols_cas22._fixed cimport FixedOffsets, PixelOffsets, fill_pixel_values
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp
 
 cdef inline float threshold(Thresh thresh, float slope):
