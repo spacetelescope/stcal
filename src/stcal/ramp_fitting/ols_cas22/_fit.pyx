@@ -26,6 +26,7 @@ fit_ramps : function
     for jumps (if use_jump is True) and bad pixels (via the dq array). This
     is the primary externally callable function.
 """
+from __future__ import annotations
 
 import numpy as np
 cimport numpy as cnp
@@ -42,7 +43,7 @@ from stcal.ramp_fitting.ols_cas22._jump cimport (Thresh,
                                                  n_pixel_offsets)
 from stcal.ramp_fitting.ols_cas22._ramp cimport ReadPattern, from_read_pattern
 
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 
 # Initialize numpy for cython use in this module
@@ -87,7 +88,7 @@ class RampFitOutputs(NamedTuple):
     parameters: np.ndarray
     variances: np.ndarray
     dq: np.ndarray
-    fits: Optional[list] = None
+    fits: list | None = None
 
 
 @boundscheck(False)
