@@ -274,7 +274,7 @@ def create_output_opt_res(ramp_data):
         The original data used to do ramp fitting.
     """
     # TODO Need to create the optional results output arrays.
-    return None
+    return
 
 
 def reassemble_image(ramp_data, image_info, image_slice, crow, nrows):

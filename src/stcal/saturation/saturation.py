@@ -151,8 +151,7 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat):
     box_dim = (n_pix_grow_sat * 2) + 1
     struct = np.ones((box_dim, box_dim)).astype(bool)
     dialated = ndimage.binary_dilation(only_sat, structure=struct).astype(only_sat.dtype)
-    sat_pix = np.bitwise_or(cgdq, (dialated * saturated))
-    return sat_pix
+    return np.bitwise_or(cgdq, (dialated * saturated))
 
 
 def plane_saturation(plane, sat_thresh, dqflags):

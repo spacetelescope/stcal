@@ -280,7 +280,7 @@ class OptRes:
         self.weights[1.0 / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.0
         warnings.resetwarnings()
 
-        opt_info = (
+        return (
             self.slope_seg,
             self.sigslope_seg,
             self.var_p_seg,
@@ -291,8 +291,6 @@ class OptRes:
             self.weights,
             self.cr_mag_seg,
         )
-
-        return opt_info
 
     def print_full(self):  # pragma: no cover
         """
@@ -1315,8 +1313,7 @@ def compute_num_slices(max_cores, nrows, max_available):
     elif max_cores == "all":
         number_slices = max_available
     # Make sure we don't have more slices than rows or available cores.
-    number_slices = min([nrows, number_slices, max_available])
-    return number_slices
+    return min([nrows, number_slices, max_available])
 
 
 def dq_compress_final(dq_int, ramp_data):
@@ -1649,6 +1646,4 @@ def groups_saturated_in_integration(intdq, sat_flag, num_sat_groups):
     sat_groups = np.zeros(intdq.shape, dtype=int)
     sat_groups[np.bitwise_and(intdq, sat_flag).astype(bool)] = 1
     nsat_groups = sat_groups.sum(axis=0)
-    wh_nsat_groups = np.where(nsat_groups == num_sat_groups)
-
-    return wh_nsat_groups
+    return np.where(nsat_groups == num_sat_groups)

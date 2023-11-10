@@ -161,268 +161,265 @@ def find_crs(
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
         log.info("Data shape %s", dat.shape)
         dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
+
         return gdq, row_below_gdq, row_above_gdq, 0, dummy
-    else:
-        # set 'saturated' or 'do not use' pixels to nan in data
-        dat[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
-        dat[np.where(np.bitwise_and(gdq, dnu_flag))] = np.nan
-        dat[np.where(np.bitwise_and(gdq, dnu_flag + sat_flag))] = np.nan
 
-        # calculate the differences between adjacent groups (first diffs)
-        # use mask on data, so the results will have sat/donotuse groups masked
-        first_diffs = np.diff(dat, axis=1)
+    # set 'saturated' or 'do not use' pixels to nan in data
+    dat[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
+    dat[np.where(np.bitwise_and(gdq, dnu_flag))] = np.nan
+    dat[np.where(np.bitwise_and(gdq, dnu_flag + sat_flag))] = np.nan
 
-        # calc. the median of first_diffs for each pixel along the group axis
-        first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-        median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
-        # calculate sigma for each pixel
-        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+    # calculate the differences between adjacent groups (first diffs)
+    # use mask on data, so the results will have sat/donotuse groups masked
+    first_diffs = np.diff(dat, axis=1)
 
-        # reset sigma so pxels with 0 readnoise are not flagged as jumps
-        sigma[np.where(sigma == 0.0)] = np.nan
+    # calc. the median of first_diffs for each pixel along the group axis
+    first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
+    median_diffs = np.ma.median(first_diffs_masked, axis=(0, 1))
+    # calculate sigma for each pixel
+    sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
 
-        # compute 'ratio' for each group. this is the value that will be
-        # compared to 'threshold' to classify jumps. subtract the median of
-        # first_diffs from first_diffs, take the abs. value and divide by sigma.
-        e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
-        ratio_all = (
-            np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :])
-            / sigma[np.newaxis, np.newaxis, :, :]
+    # reset sigma so pxels with 0 readnoise are not flagged as jumps
+    sigma[np.where(sigma == 0.0)] = np.nan
+
+    # compute 'ratio' for each group. this is the value that will be
+    # compared to 'threshold' to classify jumps. subtract the median of
+    # first_diffs from first_diffs, take the abs. value and divide by sigma.
+    e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
+    ratio_all = (
+        np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / sigma[np.newaxis, np.newaxis, :, :]
+    )
+    if (only_use_ints and nints >= minimum_sigclip_groups) or (
+        not only_use_ints and total_groups >= minimum_sigclip_groups
+    ):
+        log.info(
+            " Jump Step using sigma clip %s greater than %s, rejection threshold %s",
+            total_groups,
+            minimum_sigclip_groups,
+            normal_rej_thresh,
         )
-        if (only_use_ints and nints >= minimum_sigclip_groups) or (
-            not only_use_ints and total_groups >= minimum_sigclip_groups
-        ):
-            log.info(
-                " Jump Step using sigma clip %s greater than %s, rejection threshold %s",
-                total_groups,
-                minimum_sigclip_groups,
-                normal_rej_thresh,
+        warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
+
+        if only_use_ints:
+            mean, median, stddev = stats.sigma_clipped_stats(
+                first_diffs_masked, sigma=normal_rej_thresh, axis=0
             )
-            warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-            warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
-            warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
-
-            if only_use_ints:
-                mean, median, stddev = stats.sigma_clipped_stats(
-                    first_diffs_masked, sigma=normal_rej_thresh, axis=0
-                )
-                clipped_diffs = stats.sigma_clip(
-                    first_diffs_masked, sigma=normal_rej_thresh, axis=0, masked=True
-                )
-            else:
-                mean, median, stddev = stats.sigma_clipped_stats(
-                    first_diffs_masked, sigma=normal_rej_thresh, axis=(0, 1)
-                )
-                clipped_diffs = stats.sigma_clip(
-                    first_diffs_masked, sigma=normal_rej_thresh, axis=(0, 1), masked=True
-                )
-            jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
-            jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
-            jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
-            jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
-            gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask * np.uint8(dqflags["JUMP_DET"]))
-            # if grp is all jump set to do not use
-            for integ in range(nints):
-                for grp in range(ngrps):
-                    if np.all(
-                        np.bitwise_or(
-                            np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
-                            np.bitwise_and(gdq[integ, grp, :, :], dnu_flag),
-                        )
-                    ):
-                        jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
-                        gdq[integ, grp, jumpy, jumpx] = 0
-            warnings.resetwarnings()
+            clipped_diffs = stats.sigma_clip(first_diffs_masked, sigma=normal_rej_thresh, axis=0, masked=True)
         else:
-            for integ in range(nints):
-                # get data, gdq for this integration
-                dat = dataa[integ]
-                gdq_integ = gdq[integ]
-
-                # set 'saturated' or 'do not use' pixels to nan in data
-                dat[np.where(np.bitwise_and(gdq_integ, sat_flag))] = np.nan
-                dat[np.where(np.bitwise_and(gdq_integ, dnu_flag))] = np.nan
-
-                # calculate the differences between adjacent groups (first diffs)
-                # use mask on data, so the results will have sat/donotuse groups masked
-                first_diffs = np.diff(dat, axis=0)
-
-                # calc. the median of first_diffs for each pixel along the group axis
-                median_diffs = calc_med_first_diffs(first_diffs)
-
-                # calculate sigma for each pixel
-                sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-                # reset sigma so pxels with 0 readnoise are not flagged as jumps
-                sigma[np.where(sigma == 0.0)] = np.nan
-
-                # compute 'ratio' for each group. this is the value that will be
-                # compared to 'threshold' to classify jumps. subtract the median of
-                # first_diffs from first_diffs, take the abs. value and divide by sigma.
-                e_jump = first_diffs - median_diffs[np.newaxis, :, :]
-                ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-
-                # create a 2d array containing the value of the largest 'ratio' for each group
-                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-                max_ratio = np.nanmax(ratio, axis=0)
-                warnings.resetwarnings()
-                # now see if the largest ratio of all groups for each pixel exceeds the threshold.
-                # there are different threshold for 4+, 3, and 2 usable groups
-                num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
-                row4cr, col4cr = np.where(
-                    np.logical_and(ndiffs - num_unusable_groups >= 4, max_ratio > normal_rej_thresh)
-                )
-                row3cr, col3cr = np.where(
-                    np.logical_and(ndiffs - num_unusable_groups == 3, max_ratio > three_diff_rej_thresh)
-                )
-                row2cr, col2cr = np.where(
-                    np.logical_and(ndiffs - num_unusable_groups == 2, max_ratio > two_diff_rej_thresh)
-                )
-
-                # get the rows, col pairs for all pixels with at least one CR
-                all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
-                all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
-
-                # iterate over all groups of the pix w/ an inital CR to look for subsequent CRs
-                # flag and clip the first CR found. recompute median/sigma/ratio
-                # and repeat the above steps of comparing the max 'ratio' for each pixel
-                # to the threshold to determine if another CR can be flagged and clipped.
-                # repeat this process until no more CRs are found.
-                for j in range(len(all_crs_row)):
-                    # get arrays of abs(diffs), ratio, readnoise for this pixel
-                    pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
-                    pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
-                    pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
-
-                    # Create a mask to flag CRs. pix_cr_mask = 0 denotes a CR
-                    pix_cr_mask = np.ones(pix_first_diffs.shape, dtype=bool)
-
-                    # set the largest ratio as a CR
-                    pix_cr_mask[np.nanargmax(pix_ratio)] = 0
-                    new_CR_found = True
-
-                    # loop and check for more CRs, setting the mask as you go and
-                    # clipping the group with the CR. stop when no more CRs are found
-                    # or there is only one two diffs left (which means there is
-                    # actually one left, since the next CR will be masked after
-                    # checking that condition)
-                    while new_CR_found and (ndiffs - np.sum(np.isnan(pix_first_diffs)) > 2):
-                        new_CR_found = False
-
-                        # set CRs to nans in first diffs to clip them
-                        pix_first_diffs[~pix_cr_mask] = np.nan
-
-                        # recalculate median, sigma, and ratio
-                        new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
-
-                        new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / nframes)
-                        new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
-
-                        # check if largest ratio exceeds threhold appropriate for num remaining groups
-
-                        # select appropriate thresh. based on number of remaining groups
-                        rej_thresh = normal_rej_thresh
-                        if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
-                            rej_thresh = three_diff_rej_thresh
-                        if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
-                            rej_thresh = two_diff_rej_thresh
-                        new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
-                        if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
-                            new_CR_found = True
-                            pix_cr_mask[new_pix_max_ratio_idx] = 0
-                        unusable_diffs = np.sum(np.isnan(pix_first_diffs))
-                    # Found all CRs for this pix - set flags in input DQ array
-                    gdq[integ, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
-                        gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
-                        dqflags["JUMP_DET"] * np.invert(pix_cr_mask),
+            mean, median, stddev = stats.sigma_clipped_stats(
+                first_diffs_masked, sigma=normal_rej_thresh, axis=(0, 1)
+            )
+            clipped_diffs = stats.sigma_clip(
+                first_diffs_masked, sigma=normal_rej_thresh, axis=(0, 1), masked=True
+            )
+        jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
+        jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
+        jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
+        jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
+        gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask * np.uint8(dqflags["JUMP_DET"]))
+        # if grp is all jump set to do not use
+        for integ in range(nints):
+            for grp in range(ngrps):
+                if np.all(
+                    np.bitwise_or(
+                        np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
+                        np.bitwise_and(gdq[integ, grp, :, :], dnu_flag),
                     )
-
-        cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
-        num_primary_crs = len(cr_group)
-        if flag_4_neighbors:  # iterate over each 'jump' pixel
-            for j in range(len(cr_group)):
-                ratio_this_pix = ratio_all[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
-
-                # Jumps must be in a certain range to have neighbors flagged
-                if (ratio_this_pix < max_jump_to_flag_neighbors) and (
-                    ratio_this_pix > min_jump_to_flag_neighbors
                 ):
-                    integ = cr_integ[j]
-                    group = cr_group[j]
-                    row = cr_row[j]
-                    col = cr_col[j]
+                    jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
+                    gdq[integ, grp, jumpy, jumpx] = 0
+        warnings.resetwarnings()
+    else:
+        for integ in range(nints):
+            # get data, gdq for this integration
+            dat = dataa[integ]
+            gdq_integ = gdq[integ]
 
-                    # This section saves flagged neighbors that are above or
-                    # below the current range of row. If this method
-                    # running in a single process, the row above and below are
-                    # not used. If it is running in multiprocessing mode, then
-                    # the rows above and below need to be returned to
-                    # find_jumps to use when it reconstructs the full group dq
-                    # array from the slices.
+            # set 'saturated' or 'do not use' pixels to nan in data
+            dat[np.where(np.bitwise_and(gdq_integ, sat_flag))] = np.nan
+            dat[np.where(np.bitwise_and(gdq_integ, dnu_flag))] = np.nan
 
-                    # Only flag adjacent pixels if they do not already have the
-                    # 'SATURATION' or 'DONOTUSE' flag set
-                    if row != 0:
-                        if (gdq[integ, group, row - 1, col] & sat_flag) == 0:
-                            if (gdq[integ, group, row - 1, col] & dnu_flag) == 0:
-                                gdq[integ, group, row - 1, col] = np.bitwise_or(
-                                    gdq[integ, group, row - 1, col], jump_flag
-                                )
-                    else:
-                        row_below_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
+            # calculate the differences between adjacent groups (first diffs)
+            # use mask on data, so the results will have sat/donotuse groups masked
+            first_diffs = np.diff(dat, axis=0)
 
-                    if row != nrows - 1:
-                        if (gdq[integ, group, row + 1, col] & sat_flag) == 0:
-                            if (gdq[integ, group, row + 1, col] & dnu_flag) == 0:
-                                gdq[integ, group, row + 1, col] = np.bitwise_or(
-                                    gdq[integ, group, row + 1, col], jump_flag
-                                )
-                    else:
-                        row_above_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
+            # calc. the median of first_diffs for each pixel along the group axis
+            median_diffs = calc_med_first_diffs(first_diffs)
 
-                    # Here we are just checking that we don't flag neighbors of
-                    # jumps that are off the detector.
-                    if cr_col[j] != 0:
-                        if (gdq[integ, group, row, col - 1] & sat_flag) == 0:
-                            if (gdq[integ, group, row, col - 1] & dnu_flag) == 0:
-                                gdq[integ, group, row, col - 1] = np.bitwise_or(
-                                    gdq[integ, group, row, col - 1], jump_flag
-                                )
+            # calculate sigma for each pixel
+            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+            # reset sigma so pxels with 0 readnoise are not flagged as jumps
+            sigma[np.where(sigma == 0.0)] = np.nan
 
-                    if cr_col[j] != ncols - 1:
-                        if (gdq[integ, group, row, col + 1] & sat_flag) == 0:
-                            if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
-                                gdq[integ, group, row, col + 1] = np.bitwise_or(
-                                    gdq[integ, group, row, col + 1], jump_flag
-                                )
+            # compute 'ratio' for each group. this is the value that will be
+            # compared to 'threshold' to classify jumps. subtract the median of
+            # first_diffs from first_diffs, take the abs. value and divide by sigma.
+            e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+            ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
-        # flag n groups after jumps above the specified thresholds to account for
-        # the transient seen after ramp jumps
-        flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
-        flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
+            # create a 2d array containing the value of the largest 'ratio' for each group
+            warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+            max_ratio = np.nanmax(ratio, axis=0)
+            warnings.resetwarnings()
+            # now see if the largest ratio of all groups for each pixel exceeds the threshold.
+            # there are different threshold for 4+, 3, and 2 usable groups
+            num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
+            row4cr, col4cr = np.where(
+                np.logical_and(ndiffs - num_unusable_groups >= 4, max_ratio > normal_rej_thresh)
+            )
+            row3cr, col3cr = np.where(
+                np.logical_and(ndiffs - num_unusable_groups == 3, max_ratio > three_diff_rej_thresh)
+            )
+            row2cr, col2cr = np.where(
+                np.logical_and(ndiffs - num_unusable_groups == 2, max_ratio > two_diff_rej_thresh)
+            )
 
-        for cthres, cgroup in zip(flag_e_threshold, flag_groups):
-            if cgroup > 0:
-                cr_intg, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
-                for j in range(len(cr_group)):
-                    intg = cr_intg[j]
-                    group = cr_group[j]
-                    row = cr_row[j]
-                    col = cr_col[j]
-                    if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
-                        for kk in range(group, min(group + cgroup + 1, ngroups)):
-                            if (gdq[intg, kk, row, col] & sat_flag) == 0:
-                                if (gdq[intg, kk, row, col] & dnu_flag) == 0:
-                                    gdq[intg, kk, row, col] = np.bitwise_or(
-                                        gdq[integ, kk, row, col], jump_flag
-                                    )
+            # get the rows, col pairs for all pixels with at least one CR
+            all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
+            all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
+
+            # iterate over all groups of the pix w/ an inital CR to look for subsequent CRs
+            # flag and clip the first CR found. recompute median/sigma/ratio
+            # and repeat the above steps of comparing the max 'ratio' for each pixel
+            # to the threshold to determine if another CR can be flagged and clipped.
+            # repeat this process until no more CRs are found.
+            for j in range(len(all_crs_row)):
+                # get arrays of abs(diffs), ratio, readnoise for this pixel
+                pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
+                pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
+                pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
+
+                # Create a mask to flag CRs. pix_cr_mask = 0 denotes a CR
+                pix_cr_mask = np.ones(pix_first_diffs.shape, dtype=bool)
+
+                # set the largest ratio as a CR
+                pix_cr_mask[np.nanargmax(pix_ratio)] = 0
+                new_CR_found = True
+
+                # loop and check for more CRs, setting the mask as you go and
+                # clipping the group with the CR. stop when no more CRs are found
+                # or there is only one two diffs left (which means there is
+                # actually one left, since the next CR will be masked after
+                # checking that condition)
+                while new_CR_found and (ndiffs - np.sum(np.isnan(pix_first_diffs)) > 2):
+                    new_CR_found = False
+
+                    # set CRs to nans in first diffs to clip them
+                    pix_first_diffs[~pix_cr_mask] = np.nan
+
+                    # recalculate median, sigma, and ratio
+                    new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
+
+                    new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / nframes)
+                    new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
+
+                    # check if largest ratio exceeds threhold appropriate for num remaining groups
+
+                    # select appropriate thresh. based on number of remaining groups
+                    rej_thresh = normal_rej_thresh
+                    if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
+                        rej_thresh = three_diff_rej_thresh
+                    if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
+                        rej_thresh = two_diff_rej_thresh
+                    new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
+                    if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
+                        new_CR_found = True
+                        pix_cr_mask[new_pix_max_ratio_idx] = 0
+                    unusable_diffs = np.sum(np.isnan(pix_first_diffs))
+                # Found all CRs for this pix - set flags in input DQ array
+                gdq[integ, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
+                    gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
+                    dqflags["JUMP_DET"] * np.invert(pix_cr_mask),
+                )
+
+    cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
+    num_primary_crs = len(cr_group)
+    if flag_4_neighbors:  # iterate over each 'jump' pixel
+        for j in range(len(cr_group)):
+            ratio_this_pix = ratio_all[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
+
+            # Jumps must be in a certain range to have neighbors flagged
+            if (ratio_this_pix < max_jump_to_flag_neighbors) and (
+                ratio_this_pix > min_jump_to_flag_neighbors
+            ):
+                integ = cr_integ[j]
+                group = cr_group[j]
+                row = cr_row[j]
+                col = cr_col[j]
+
+                # This section saves flagged neighbors that are above or
+                # below the current range of row. If this method
+                # running in a single process, the row above and below are
+                # not used. If it is running in multiprocessing mode, then
+                # the rows above and below need to be returned to
+                # find_jumps to use when it reconstructs the full group dq
+                # array from the slices.
+
+                # Only flag adjacent pixels if they do not already have the
+                # 'SATURATION' or 'DONOTUSE' flag set
+                if row != 0:
+                    if (gdq[integ, group, row - 1, col] & sat_flag) == 0:
+                        if (gdq[integ, group, row - 1, col] & dnu_flag) == 0:
+                            gdq[integ, group, row - 1, col] = np.bitwise_or(
+                                gdq[integ, group, row - 1, col], jump_flag
+                            )
+                else:
+                    row_below_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
+
+                if row != nrows - 1:
+                    if (gdq[integ, group, row + 1, col] & sat_flag) == 0:
+                        if (gdq[integ, group, row + 1, col] & dnu_flag) == 0:
+                            gdq[integ, group, row + 1, col] = np.bitwise_or(
+                                gdq[integ, group, row + 1, col], jump_flag
+                            )
+                else:
+                    row_above_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
+
+                # Here we are just checking that we don't flag neighbors of
+                # jumps that are off the detector.
+                if cr_col[j] != 0:
+                    if (gdq[integ, group, row, col - 1] & sat_flag) == 0:
+                        if (gdq[integ, group, row, col - 1] & dnu_flag) == 0:
+                            gdq[integ, group, row, col - 1] = np.bitwise_or(
+                                gdq[integ, group, row, col - 1], jump_flag
+                            )
+
+                if cr_col[j] != ncols - 1:
+                    if (gdq[integ, group, row, col + 1] & sat_flag) == 0:
+                        if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
+                            gdq[integ, group, row, col + 1] = np.bitwise_or(
+                                gdq[integ, group, row, col + 1], jump_flag
+                            )
+
+    # flag n groups after jumps above the specified thresholds to account for
+    # the transient seen after ramp jumps
+    flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
+    flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
+
+    for cthres, cgroup in zip(flag_e_threshold, flag_groups):
+        if cgroup > 0:
+            cr_intg, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
+            for j in range(len(cr_group)):
+                intg = cr_intg[j]
+                group = cr_group[j]
+                row = cr_row[j]
+                col = cr_col[j]
+                if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
+                    for kk in range(group, min(group + cgroup + 1, ngroups)):
+                        if (gdq[intg, kk, row, col] & sat_flag) == 0:
+                            if (gdq[intg, kk, row, col] & dnu_flag) == 0:
+                                gdq[intg, kk, row, col] = np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
     if "stddev" in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
+
+    if only_use_ints:
+        dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
     else:
-        if only_use_ints:
-            dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
-        else:
-            dummy = np.zeros((dataa.shape[2], dataa.shape[3]), dtype=np.float32)
-        return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
+        dummy = np.zeros((dataa.shape[2], dataa.shape[3]), dtype=np.float32)
+
+    return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 
 
 def calc_med_first_diffs(first_diffs):
@@ -457,12 +454,14 @@ def calc_med_first_diffs(first_diffs):
             mask = np.ones_like(first_diffs).astype(bool)
             mask[np.nanargmax(np.abs(first_diffs))] = False  # clip the diff with the largest abs value
             return np.nanmedian(first_diffs[mask])
-        elif num_usable_groups == 3:  # if 3, no clipping just return median
+
+        if num_usable_groups == 3:  # if 3, no clipping just return median
             return np.nanmedian(first_diffs)
-        elif num_usable_groups == 2:  # if 2, return diff with minimum abs
+
+        if num_usable_groups == 2:  # if 2, return diff with minimum abs
             return first_diffs[np.nanargmin(np.abs(first_diffs))]
-        else:
-            return np.nan
+
+        return np.nan
 
     # if input is multi-dimensional
 

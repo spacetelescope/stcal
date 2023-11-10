@@ -689,8 +689,7 @@ def find_circles(dqplane, bitmask, min_area):
     pixels = np.bitwise_and(dqplane, bitmask)
     contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     bigcontours = [con for con in contours if cv.contourArea(con) >= min_area]
-    circles = [cv.minEnclosingCircle(con) for con in bigcontours]
-    return circles
+    return [cv.minEnclosingCircle(con) for con in bigcontours]
 
 
 def find_ellipses(dqplane, bitmask, min_area):
@@ -703,8 +702,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     # minAreaRect is used becuase fitEllipse requires 5 points and it is
     # possible to have a contour
     # with just 4 points.
-    ellipses = [cv.minAreaRect(con) for con in bigcontours]
-    return ellipses
+    return [cv.minAreaRect(con) for con in bigcontours]
 
 
 def make_snowballs(
@@ -764,25 +762,20 @@ def make_snowballs(
 def point_inside_ellipse(point, ellipse):
     delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
     minor_axis = min(ellipse[1][0], ellipse[1][1])
-    if delta_center < minor_axis:
-        return True
-    else:
-        return False
+
+    return delta_center < minor_axis
 
 
 def near_edge(jump, low_threshold, high_threshold):
     #  This routing tests whether the center of a jump is close to the edge of
     # the detector. Jumps that are within the threshold will not requre a
     # saturated core since this may be off the detector
-    if (
+    return (
         jump[0][0] < low_threshold
         or jump[0][1] < low_threshold
         or jump[0][0] > high_threshold
         or jump[0][1] > high_threshold
-    ):
-        return True
-    else:
-        return False
+    )
 
 
 def find_faint_extended(
@@ -976,5 +969,4 @@ def calc_num_slices(n_rows, max_cores, max_available):
     elif max_cores == "all":
         n_slices = max_available
     # Make sure we don't have more slices than rows or available cores.
-    n_slices = min([n_rows, n_slices, max_available])
-    return n_slices
+    return min([n_rows, n_slices, max_available])

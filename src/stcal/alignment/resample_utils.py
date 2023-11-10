@@ -38,5 +38,4 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
     # and the reverse for all y columns
     grid = grid_from_bounding_box(bb)
     transform_function = util.reproject(in_wcs, out_wcs)
-    pixmap = np.dstack(transform_function(grid[0], grid[1]))
-    return pixmap
+    return np.dstack(transform_function(grid[0], grid[1]))

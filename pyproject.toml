@@ -104,7 +104,7 @@ select = [
     'PT',      # flake8-pytest-style (best practices for pytest)
     'Q',       # flake8-quotes (best practices for quotes)
     'RSE',     # flake8-raise (best practices for raising exceptions)
-    # 'RET',     # flake8-return (best practices for return statements)
+    'RET',     # flake8-return (best practices for return statements)
     # 'SLF',     # flake8-self (prevent private member access)
     # 'TID',     # flake8-tidy-imports (prevent banned api and best import practices)
     # 'INT',     # flake8-gettext (when to use printf style strings)

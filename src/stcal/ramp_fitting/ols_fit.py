@@ -105,12 +105,11 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
         return image_info, integ_info, opt_info
 
     # Call ramp fitting for multi-processor (multiple data slices) case
-    else:
-        image_info, integ_info, opt_info = ols_ramp_fit_multiprocessing(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
-        )
+    image_info, integ_info, opt_info = ols_ramp_fit_multiprocessing(
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+    )
 
-        return image_info, integ_info, opt_info
+    return image_info, integ_info, opt_info
 
 
 def ols_ramp_fit_multiprocessing(
@@ -2286,9 +2285,7 @@ def fit_next_segment_only_good_0th_group(
     opt_res.append_arr(num_seg, these_pix, intercept, slope, sig_intercept, sig_slope, inv_var, save_opt)
 
     num_seg[these_pix] += 1
-    f_max_seg = max(f_max_seg, num_seg.max())
-
-    return f_max_seg
+    return max(f_max_seg, num_seg.max())
 
 
 def fit_next_segment_short_seg_not_at_end(
@@ -2445,9 +2442,7 @@ def fit_next_segment_short_seg_not_at_end(
     opt_res.append_arr(num_seg, these_pix, intercept, slope, sig_intercept, sig_slope, inv_var, save_opt)
 
     num_seg[these_pix] += 1
-    f_max_seg = max(f_max_seg, num_seg.max())
-
-    return f_max_seg
+    return max(f_max_seg, num_seg.max())
 
 
 def fit_next_segment_short_seg_at_end(
@@ -3560,9 +3555,7 @@ def check_both_groups_good(gdq):
     group_1_good[g1 == 0] = True
 
     # Mark the pixels with good groups in the both groups.
-    both = group_0_good & group_1_good
-
-    return both
+    return group_0_good & group_1_good
 
 
 def check_good_0_bad_1(gdq):
@@ -3594,9 +3587,7 @@ def check_good_0_bad_1(gdq):
     group_1_good[g1 != 0] = True
 
     # Mark the pixels with good group 0 and bad group 1.
-    both = group_0_good & group_1_good
-
-    return both
+    return group_0_good & group_1_good
 
 
 def check_bad_0_good_1(gdq, sat):
@@ -3640,9 +3631,7 @@ def check_bad_0_good_1(gdq, sat):
     group_1_good[g1 == 0] = True
 
     # Mark the pixels with non-saturated bad zeroeth group and good first group.
-    both = group_0_bad_nsat & group_1_good
-
-    return both
+    return group_0_bad_nsat & group_1_good
 
 
 def fit_2_group(

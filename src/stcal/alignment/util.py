@@ -345,7 +345,8 @@ def _validate_wcs_list(wcs_list):
     """
     if not isiterable(wcs_list):
         raise ValueError("Expected 'wcs_list' to be an iterable of WCS objects.")
-    elif len(wcs_list):
+
+    if len(wcs_list):
         if not all(isinstance(w, gwcs.WCS) for w in wcs_list):
             raise TypeError("All items in 'wcs_list' are to be instances of gwcs.wcs.WCS.")
     else:
