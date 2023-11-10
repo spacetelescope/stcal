@@ -250,7 +250,7 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
         updated array of correction coefficients in reference file
     """
 
-    # The critcal coefficient that should not be zero is the linear term other terms are fine to be zero
+    # The critical coefficient that should not be zero is the linear term other terms are fine to be zero
     linear_term = lin_coeffs[1, :, :]
     wh_zero = np.where(linear_term == 0)
     yzero, xzero = wh_zero[0], wh_zero[1]

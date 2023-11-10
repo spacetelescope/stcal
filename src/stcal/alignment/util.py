@@ -144,7 +144,7 @@ def _generate_tranform(
 
 def _get_axis_min_and_bounding_box(ref_model, wcs_list, ref_wcs):
     """
-    Calculates axis mininum values and bounding box.
+    Calculates axis minimum values and bounding box.
 
     Parameters
     ----------
@@ -286,7 +286,7 @@ def _calculate_new_wcs(ref_model, shape, wcs_list, fiducial, crpix=None, transfo
         The coordinates of the reference pixel.
 
     transform : ~astropy.modeling.Model
-        An optional tranform to be prepended to the transform constructed by the
+        An optional transform to be prepended to the transform constructed by the
         fiducial point. The number of outputs of this transform must equal the number
         of axes in the coordinate frame.
 
@@ -763,7 +763,7 @@ def reproject(wcs1, wcs2):
 
     def _get_forward_transform_func(wcs1):
         """Get the forward transform function from the input WCS. If the wcs is a
-        fitswcs.WCS object all_pix2world requres three inputs, the x (str, ndarrray),
+        fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         )
@@ -811,7 +811,7 @@ def reproject(wcs1, wcs2):
             raise ValueError("x and y must be the same length")
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
 
-        # rearrange into array including flattened x and y vaues
+        # rearrange into array including flattened x and y values
         flat_sky = [axis.flatten() for axis in sky]
         det = np.array(_get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0))
         det_reshaped = [axis.reshape(x.shape) for axis in det]

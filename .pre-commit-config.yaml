@@ -23,11 +23,13 @@ repos:
     - id: rst-inline-touching-normal
     - id: text-unicode-replacement-char
 
-# - repo: https://github.com/asottile/pyupgrade
-#   rev: 'v3.10.1'
-#   hooks:
-#     - id: pyupgrade
-#       args: ["--py39-plus"]
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.2.5
+  hooks:
+    - id: codespell
+      args: ["--write-changes"]
+      additional_dependencies:
+        - tomli
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: 'v0.1.5'
@@ -36,6 +38,12 @@ repos:
       args: ["--fix", "--show-fixes"]
     - id: ruff-format
 
+- repo: https://github.com/adamchainz/blacken-docs
+  rev: 1.16.0
+  hooks:
+    - id: blacken-docs
+      additional_dependencies:
+        - black==22.12.0
 
 # - repo: https://github.com/pycqa/isort
 #   rev: 5.12.0

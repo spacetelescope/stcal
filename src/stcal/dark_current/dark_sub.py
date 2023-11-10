@@ -147,7 +147,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
         # Create a frame-averaged version of the dark data to match
         # the nframes and groupgap settings of the science data.
         # If the data are from JWST/MIRI, the darks are integration-dependent
-        # and we average them with a seperate routine.
+        # and we average them with a separate routine.
 
         if len(dark_data.data.shape) == 4:  # only MIRI uses 4-D darks
             averaged_dark = average_dark_frames_4d(

@@ -108,7 +108,7 @@ def detect_jumps(
     max_cores: str
         Maximum number of cores to use for multiprocessing. Available choices
         are 'none' (which will create one process), 'quarter', 'half', 'all'
-        (of availble cpu cores).
+        (of available cpu cores).
 
     max_jump_to_flag_neighbors : float
         value in units of sigma that sets the upper limit for flagging of
@@ -699,7 +699,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     pixels = np.bitwise_and(dqplane, bitmask)
     contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
-    # minAreaRect is used becuase fitEllipse requires 5 points and it is
+    # minAreaRect is used because fitEllipse requires 5 points and it is
     # possible to have a contour
     # with just 4 points.
     return [cv.minAreaRect(con) for con in bigcontours]
@@ -718,7 +718,7 @@ def make_snowballs(
     sat_flag,
     max_extended_radius,
 ):
-    # Ths routine will create a list of snowballs (ellipses) that have the
+    # This routine will create a list of snowballs (ellipses) that have the
     # center
     # of the saturation circle within the enclosing jump rectangle.
     snowballs = []
@@ -768,7 +768,7 @@ def point_inside_ellipse(point, ellipse):
 
 def near_edge(jump, low_threshold, high_threshold):
     #  This routing tests whether the center of a jump is close to the edge of
-    # the detector. Jumps that are within the threshold will not requre a
+    # the detector. Jumps that are within the threshold will not require a
     # saturated core since this may be off the detector
     return (
         jump[0][0] < low_threshold
@@ -882,7 +882,7 @@ def find_faint_extended(
             extended_emission[exty, extx] = 1
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-            #  get the countours that are above the minimum size
+            #  get the contours that are above the minimum size
             bigcontours = [con for con in contours if cv.contourArea(con) > min_shower_area]
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
@@ -935,7 +935,7 @@ def find_faint_extended(
     if all_ellipses:
         #  Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers
-        # can flag future groups and would confuse the detection algorthim if
+        # can flag future groups and would confuse the detection algorithm if
         # we worked on groups that already had some flagged showers.
         for showers in all_ellipses:
             intg = showers[0]

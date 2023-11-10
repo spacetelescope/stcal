@@ -316,10 +316,10 @@ def test_simple_ramp():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     check = 20.0 / 3
     tol = 1.0e-5
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 def test_read_noise_only_fit():
@@ -344,12 +344,12 @@ def test_read_noise_only_fit():
     xvalues = np.arange(5) * 1.0
     yvalues = np.array(ramp_arr)
     coeff = np.polyfit(xvalues, yvalues, 1)
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     check = coeff[0]
     tol = 1.0e-2
-    # print(f"ans = {ans}")         # 11.78866004
+    # print(f"answer = {answer}")         # 11.78866004
     # print(f"check = {check}")     # 11.79999999
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS not sure what expected value is.")
@@ -372,11 +372,11 @@ def test_photon_noise_only_fit():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     tol = 1.0e-2
-    # print(f"ans = {ans}")         #  8.6579208
+    # print(f"answer = {answer}")         #  8.6579208
     # print(f"check = {check}")     # 12.5
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS not sure what expected value is.")
@@ -403,11 +403,11 @@ def test_photon_noise_only_bad_last_group():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     tol = 1.0e-2
-    # print(f"ans = {ans}")         # 8.6579208
+    # print(f"answer = {answer}")         # 8.6579208
     # print(f"check = {check}")     # 7.6666666
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS not sure what expected value is.")
@@ -435,11 +435,11 @@ def test_photon_noise_with_unweighted_fit():
     yvalues = np.array([10, 15, 25, 33, 60])
     coeff = np.polyfit(xvalues, yvalues, 1)
     check = coeff[0]
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     tol = 1.0e-5
-    # print(f"ans = {ans}")         #  8.6579208
+    # print(f"answer = {answer}")         #  8.6579208
     # print(f"check = {check}")     # 11.7999999
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 def test_two_groups_fit():
@@ -505,9 +505,9 @@ def test_four_groups_oneCR_orphangroupatend_fit():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     tol = 1.0e-6
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 def test_four_groups_two_CRs_at_end():
@@ -534,9 +534,9 @@ def test_four_groups_two_CRs_at_end():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     tol = 1.0e-6
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS code does not [yet] handle all groups as jump.")
@@ -563,12 +563,12 @@ def test_four_groups_four_CRs():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     check = 0
     tol = 1.0e-6
-    # print(f"ans = {ans}")
+    # print(f"answer = {answer}")
     # print(f"check = {check}")
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS code does not [yet] handle only one good group.")
@@ -595,12 +595,12 @@ def test_four_groups_three_CRs_at_end():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     check = 10.0
     tol = 1.0e-6
-    # print(f"ans = {ans}")
+    # print(f"answer = {answer}")
     # print(f"check = {check}")
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 def test_four_groups_CR_causes_orphan_1st_group():
@@ -624,10 +624,10 @@ def test_four_groups_CR_causes_orphan_1st_group():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     check = 20.0
     tol = 1.0e-6
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 def test_one_group_fit():
@@ -645,10 +645,10 @@ def test_one_group_fit():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
+    answer = slopes[0][50, 50]
     check = 10.0
     tol = 1.0e-6
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS not sure what expected value is.")
@@ -670,12 +670,12 @@ def test_two_groups_unc():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[2][50, 50]
+    answer = slopes[2][50, 50]
     check = np.sqrt((deltaDN / gain) / group_time**2 + (rnoise**2 / group_time**2))
     tol = 1.0e-6
-    # print(f"ans = {ans}")
+    # print(f"answer = {answer}")
     # print(f"check = {check}")
-    np.testing.assert_allclose(ans, check, tol)
+    np.testing.assert_allclose(answer, check, tol)
 
 
 @pytest.mark.skip(reason="GLS does not comopute VAR_XXX arrays.")
@@ -757,8 +757,8 @@ def test_oneCR_10_groups_combination():
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    ans = slopes[0][50, 50]
-    print(f"ans = {ans}")
+    answer = slopes[0][50, 50]
+    print(f"answer = {answer}")
 
     # TODO Need to add the optional results product to GLS
 

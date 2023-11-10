@@ -5,7 +5,7 @@ from stcal.ramp_fitting.utils import compute_num_slices
 
 DELIM = "=" * 70
 
-# single group intergrations fail in the GLS fitting
+# single group integrations fail in the GLS fitting
 # so, keep the two method test separate and mark GLS test as
 # expected to fail.  Needs fixing, but the fix is not clear
 # to me. [KDG - 19 Dec 2018]
@@ -221,7 +221,7 @@ def base_neg_med_rates_single_integration_multi_segment():
 def test_neg_med_rates_single_integration_multi_segment_optional():
     """
     Test a ramp with multiple segments to make sure the right number of
-    segments are created and to make sure all Poisson segements are set to
+    segments are created and to make sure all Poisson segments are set to
     zero.
     """
     slopes, cube, optional, gls_dummy, dims = base_neg_med_rates_single_integration_multi_segment()
@@ -355,9 +355,9 @@ def test_miri_ramp_dnu_at_ramp_beginning():
 
     s1 = slopes1[0]
     tol = 1e-6
-    ans = -4.1035075
+    answer = -4.1035075
 
-    assert abs(s1[0, 0] - ans) < tol
+    assert abs(s1[0, 0] - answer) < tol
 
 
 def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
@@ -377,9 +377,9 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
 
     s2 = slopes2[0]
     tol = 1e-6
-    ans = -4.9032097
+    answer = -4.9032097
 
-    assert abs(s2[0, 0] - ans) < tol
+    assert abs(s2[0, 0] - answer) < tol
 
 
 def test_2_group_cases():

@@ -787,7 +787,7 @@ def gls_pedestal(first_group, slope_int, s_mask, frame_time, nframes_used):  # p
 
     nframes_used : int
         Number of frames that were averaged together to make a group.
-        Exludes the groupgap.
+        Excludes the groupgap.
 
     Returns
     -------

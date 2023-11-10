@@ -280,7 +280,7 @@ def find_crs(
             all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
             all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
 
-            # iterate over all groups of the pix w/ an inital CR to look for subsequent CRs
+            # iterate over all groups of the pix w/ an initial CR to look for subsequent CRs
             # flag and clip the first CR found. recompute median/sigma/ratio
             # and repeat the above steps of comparing the max 'ratio' for each pixel
             # to the threshold to determine if another CR can be flagged and clipped.
@@ -315,7 +315,7 @@ def find_crs(
                     new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / nframes)
                     new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
 
-                    # check if largest ratio exceeds threhold appropriate for num remaining groups
+                    # check if largest ratio exceeds threshold appropriate for num remaining groups
 
                     # select appropriate thresh. based on number of remaining groups
                     rej_thresh = normal_rej_thresh
@@ -426,8 +426,8 @@ def calc_med_first_diffs(first_diffs):
     """Calculate the median of `first diffs` along the group axis.
 
     If there are 4+ usable groups (e.g not flagged as saturated, donotuse,
-    or a previously clipped CR), then the group with largest absoulte
-    first difference will be clipped and the median of the remianing groups
+    or a previously clipped CR), then the group with largest absolute
+    first difference will be clipped and the median of the remaining groups
     will be returned. If there are exactly 3 usable groups, the median of
     those three groups will be returned without any clipping. Finally, if
     there are two usable groups, the group with the smallest absolute

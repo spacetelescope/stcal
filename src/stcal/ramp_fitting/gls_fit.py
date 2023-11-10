@@ -1491,7 +1491,7 @@ def gls_fit(
 
     Notes
     -----
-    Curently the noise model is assumed to be a combination of
+    Currently the noise model is assumed to be a combination of
     read and photon noise alone.
     Same technique could be used with more complex noise models, but then
     the ramp covariance matrix should be input.

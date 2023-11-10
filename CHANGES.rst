@@ -174,7 +174,7 @@ ramp_fitting
 - Correct the "averaging" of the final image slope by properly excluding
   variances as a part of the denominator from integrations with invalid slopes.
   [#167]
-- Removing the usage of ``numpy.where`` where possible for perfomance
+- Removing the usage of ``numpy.where`` where possible for performance
   reasons. [#169]
 
 1.3.7 (2023-04-26)
@@ -566,7 +566,7 @@ ramp_fitting
 jump
 ~~~~
 
-- Fix issue in jump detection that occured when there were only 2 usable
+- Fix issue in jump detection that occurred when there were only 2 usable
   differences with no other groups flagged. This PR also added tests and
   fixed some of the logging statements in twopoint difference. [#74]
 

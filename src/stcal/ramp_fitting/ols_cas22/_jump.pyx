@@ -6,7 +6,7 @@ This module contains all the functions needed to execute jump detection for the
     Castentano+22 ramp fitting algorithm
 
     The _ramp module contains the actual ramp fitting algorithm, this module
-    contains a driver for the algoritm and detection of jumps/splitting ramps.
+    contains a driver for the algorithm and detection of jumps/splitting ramps.
 
 Structs
 -------
@@ -26,7 +26,7 @@ JumpFits : struct
         - fits : vector[RampFit]
             All of the fits for each ramp fit for the pixel
         - index : RampQueue
-            The RampIndex representations correspoinding to each fit in fits
+            The RampIndex representations corresponding to each fit in fits
 
 Enums
 -----
@@ -518,12 +518,12 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                 dq[jump0] = JUMP_DET
                 dq[jump1] = JUMP_DET
 
-                # Record jump diagnotics
+                # Record jump diagnostics
                 if include_diagnostic:
                     ramp_fits.jumps.push_back(jump0)
                     ramp_fits.jumps.push_back(jump1)
 
-                # The two resultant indicies need to be skipped, therefore
+                # The two resultant indices need to be skipped, therefore
                 # the two
                 # possible new ramps are:
                 #     RampIndex(ramp.start, jump0 - 1)
@@ -535,7 +535,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                 #    we need to add the ramps in the time order they were
                 #    observed in. This results in the last observation ramp
                 #    being the top of the stack; meaning that,
-                #    it will be the next ramp handeled.
+                #    it will be the next ramp handled.
 
                 if jump0 > ramp.start:
                     # Note that when jump0 == ramp.start, we have detected a
@@ -558,7 +558,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                     # Note that jump1 > ramp.end is technically possible
                     # however in those potential cases it will draw on
                     # resultants which are not considered part of the ramp
-                    # under consideration. Therefore, we have to exlude all
+                    # under consideration. Therefore, we have to exclude all
                     # of those values.
                     ramps.push_back(RampIndex(jump1 + 1, ramp.end))
 
@@ -584,7 +584,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
             ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
             ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
 
-    # Finish computing averages using the lazy proces
+    # Finish computing averages using the lazy process
     ramp_fits.average.slope /= total_weight if total_weight != 0 else 1
     ramp_fits.average.read_var /= total_weight**2 if total_weight != 0 else 1
     ramp_fits.average.poisson_var /= total_weight**2 if total_weight != 0 else 1

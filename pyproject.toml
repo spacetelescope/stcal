@@ -120,7 +120,7 @@ select = [
 ]
 ignore = [
     'C901', # variable is too complex
-    'ISC001', # interfers with formatter
+    'ISC001', # interferes with formatter
     'PLR0912', # Too many branches
     'PLR0913', # Too many arguments
     'PLR0915', # Too many statements

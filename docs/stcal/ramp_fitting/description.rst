@@ -32,7 +32,7 @@ cores on the host computer and the value of the max_cores input parameter. By
 default the step runs on a single processor. At the other extreme if max_cores is
 set to 'all', it will use all available cores (real and virtual). Testing has shown
 a reduction in the elapsed time for the step proportional to the number of real
-cores used. Using the virtual cores also reduces the elasped time but at a slightly
+cores used. Using the virtual cores also reduces the elapsed time but at a slightly
 lower rate than the real cores.  Since the data is sliced based on the number
 of rows, if the number of cores requested for multiprocessing is greater than
 the number of rows, the number of cores actually used will be no more than the
@@ -139,7 +139,7 @@ is the following: the type of noise (when appropriate) will appear as the supers
 and the form of the data will appear as the subscript: ‘s’, ‘i’, ‘o’ for segment,
 integration, or overall (for the entire dataset), respectively.
 
-It is possible for an integration or pixel to have invalid data, so useable
+It is possible for an integration or pixel to have invalid data, so usable
 slope data will not be available.  If a pixel has an invalid integration, the value
 for that integration for that pixel will be set to NaN in the rateints product.
 Further, if all integrations for a given pixel are invalid the pixel value for

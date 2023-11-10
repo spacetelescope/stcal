@@ -25,7 +25,7 @@ RampFit : struct
         The poisson variance for the fit
 
 RampQueue : vector[RampIndex]
-    Vector of RampIndex objects (convienience typedef)
+    Vector of RampIndex objects (convenience typedef)
 
 Classes
 -------
@@ -73,7 +73,7 @@ cdef class ReadPattern:
 
         In the case of this code memory views are the fastest "safe" array data structure.
         This class will immediately be unpacked into raw memory views, so that we avoid
-        any further overhead of swithcing between python and cython.
+        any further overhead of switching between python and cython.
 
     Attributes:
     ----------
@@ -204,7 +204,7 @@ cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
 
     return ramps
 
-# Keeps the static type checker/highligher happy this has no actual effect
+# Keeps the static type checker/highlighter happy this has no actual effect
 ctypedef float[6] _row
 
 # Casertano+2022, Table 2
@@ -311,7 +311,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
     t_scale = 1 if t_scale == 0 else t_scale
 
-    # Initalize the fit loop
+    # Initialize the fit loop
     #   it is faster to generate a c++ vector than a numpy array
     cdef vector[float] weights = vector[float](n_resultants)
     cdef vector[float] coeffs = vector[float](n_resultants)

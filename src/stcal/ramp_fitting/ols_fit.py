@@ -307,7 +307,7 @@ def get_opt_slice(opt_info, opt_slice, row_start, nrows):
 
     # The optional results product is of variable size in its second dimension.
     # The number of segments/cosmic rays determine the final products size.
-    # Because each slice is computed indpendently, the number of segments may
+    # Because each slice is computed independently, the number of segments may
     # differ from segment to segment.  The final output product is created
     # using the max size for this dimension.  To ensure correct assignment is
     # done during this step, the second dimension, as well as the row
@@ -734,7 +734,7 @@ def discard_miri_groups(ramp_data):
     -------
     bool :
         False if no data to process after discarding unusable data.
-        True if useable data available for further processing.
+        True if usable data available for further processing.
     """
     data = ramp_data.data
     err = ramp_data.err
@@ -1678,7 +1678,7 @@ def calc_slope(
 
     # end_heads is initially a tuple populated with every pixel that is
     # either saturated or contains a cosmic ray based on the input DQ
-    # array, so is sized to accomodate the maximum possible number of
+    # array, so is sized to accommodate the maximum possible number of
     # pixels flagged. It is later compressed to be an array denoting
     # the number of endpoints per pixel.
     end_heads = np.ones(npix * ngroups, dtype=np.int32)
@@ -1759,7 +1759,7 @@ def calc_slope(
         #   set.  In the above line that group would be excluded from the
         #   current segment.  If a segment is created only due to a group
         #   flagged as JUMP_DET it will be the group just prior to the 0th
-        #   group in the current segement.  We want to include it as part of
+        #   group in the current segment.  We want to include it as part of
         #   the current segment, but exclude all other groups with any other
         #   flag.
 
@@ -1859,7 +1859,7 @@ def fit_next_segment(
         delineates which channels to fit for each pixel, 2-D bool
 
     mask_2d_init : ndarray
-        copy of intial mask_2d, 2-D bool
+        copy of initial mask_2d, 2-D bool
 
     inv_var : ndarray
         values of 1/variance for good pixels, 1-D float
@@ -2263,7 +2263,7 @@ def fit_next_segment_only_good_0th_group(
        save optional fitting results
 
     mask_2d_init : ndarray
-        copy of intial mask_2d, 2-D bool
+        copy of initial mask_2d, 2-D bool
 
     Returns
     -------
@@ -2379,7 +2379,7 @@ def fit_next_segment_short_seg_not_at_end(
        save optional fitting results
 
     mask_2d_init : ndarray
-        copy of intial mask_2d, 2-D bool
+        copy of initial mask_2d, 2-D bool
 
     end_locs : ndarray
         end locations, 1-D
@@ -2533,7 +2533,7 @@ def fit_next_segment_short_seg_at_end(
        save optional fitting results
 
     mask_2d_init : ndarray
-        copy of intial mask_2d, 2-D bool
+        copy of initial mask_2d, 2-D bool
 
     Returns
     -------
@@ -2669,7 +2669,7 @@ def fit_next_segment_long_not_end_of_ramp(
         end locations, 1-D
 
     mask_2d_init : ndarray
-        copy of intial mask_2d, 2-D bool
+        copy of initial mask_2d, 2-D bool
 
     ngroups : int
         number of groups in exposure
@@ -2914,7 +2914,7 @@ def fit_short_ngroups(
        save optional fitting results
 
     mask_2d_init : ndarray
-        copy of intial mask_2d, 2-D bool
+        copy of initial mask_2d, 2-D bool
 
     ramp_mask_sum : ndarray
         number of channels to fit for each pixel, 1-D int
@@ -3147,7 +3147,7 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
         denominator = nreads_1d * sumxx - sumx**2
 
         # In case this branch is ever used again, disable, and then re-enable
-        #   harmless arithmetic warrnings
+        #   harmless arithmetic warnings
         warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
         variance = nreads_1d / denominator
@@ -3771,7 +3771,7 @@ def calc_num_seg(gdq, n_int, jump_det, do_not_use):
     Return
     -------
     max_num_seg : int
-        The maximum number of segements within an integration
+        The maximum number of segments within an integration
     max_cr : int
         The maximum number of cosmic rays within an integration
     """

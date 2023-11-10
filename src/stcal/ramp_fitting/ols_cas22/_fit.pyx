@@ -113,12 +113,12 @@ def fit_ramps(float[:, :] resultants,
     ----------
     resultants : float[n_resultants, n_pixel]
         the resultants in electrons (Note that this can be based as any sort of
-        array, such as a numpy array. The memmory view is just for efficiency in
+        array, such as a numpy array. The memory view is just for efficiency in
         cython)
     dq : np.ndarry[n_resultants, n_pixel]
         the dq array.  dq != 0 implies bad pixel / CR. (Kept as a numpy array
         so that it can be passed out without copying into new numpy array, will
-        be working on memmory views of this array)
+        be working on memory views of this array)
     read_noise : float[n_pixel]
         the read noise in electrons for each pixel (same note as the resultants)
     read_time : float
