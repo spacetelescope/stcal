@@ -7,6 +7,7 @@ class DarkData:
     This class contains all data needed to perform the dark current subtraction
     step.
     """
+
     def __init__(self, dims=None, dark_model=None):
         """
         Creates a class to remove data model dependencies in the internals of
@@ -84,14 +85,14 @@ class ScienceData:
             populating the data.
         """
         if science_model is not None:
-            if isinstance(science_model.data,u.Quantity):
+            if isinstance(science_model.data, u.Quantity):
                 self.data = science_model.data.value
             else:
                 self.data = science_model.data
             self.groupdq = science_model.groupdq
             self.pixeldq = science_model.pixeldq
 
-            if isinstance(science_model.err,u.Quantity):
+            if isinstance(science_model.err, u.Quantity):
                 self.err = science_model.err.value
             else:
                 self.err = science_model.err

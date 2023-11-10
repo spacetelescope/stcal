@@ -97,11 +97,11 @@ def fit_ramps_casertano(
     #   parameters outside the cython code.
     kwargs = {}
     if threshold_intercept is not None:
-        kwargs['intercept'] = threshold_intercept
+        kwargs["intercept"] = threshold_intercept
     if threshold_constant is not None:
-        kwargs['constant'] = threshold_constant
+        kwargs["constant"] = threshold_constant
 
-    resultants_unit = getattr(resultants, 'unit', None)
+    resultants_unit = getattr(resultants, "unit", None)
     if resultants_unit is not None:
         resultants = resultants.to(u.electron).value
 
@@ -126,7 +126,8 @@ def fit_ramps_casertano(
         read_time,
         read_pattern,
         use_jump,
-        **kwargs)
+        **kwargs,
+    )
 
     parameters = output.parameters.reshape(orig_shape[1:] + (2,))
     variances = output.variances.reshape(orig_shape[1:] + (3,))

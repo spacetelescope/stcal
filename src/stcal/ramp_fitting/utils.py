@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 # Replace zero or negative variances with this:
-LARGE_VARIANCE = 1.e8
+LARGE_VARIANCE = 1.0e8
 LARGE_VARIANCE_THRESHOLD = 0.01 * LARGE_VARIANCE
 
 
@@ -118,24 +118,21 @@ class OptRes:
         -------
         """
         for ii_seg in range(0, self.slope_seg.shape[1]):
-            self.slope_seg[num_int, ii_seg, rlo:rhi, :] = \
-                self.slope_2d[ii_seg, :].reshape(sect_shape)
+            self.slope_seg[num_int, ii_seg, rlo:rhi, :] = self.slope_2d[ii_seg, :].reshape(sect_shape)
 
             if save_opt:
-                self.yint_seg[num_int, ii_seg, rlo:rhi, :] = \
-                    self.interc_2d[ii_seg, :].reshape(sect_shape)
-                self.slope_seg[num_int, ii_seg, rlo:rhi, :] = \
-                    self.slope_2d[ii_seg, :].reshape(sect_shape)
-                self.sigyint_seg[num_int, ii_seg, rlo:rhi, :] = \
-                    self.siginterc_2d[ii_seg, :].reshape(sect_shape)
-                self.sigslope_seg[num_int, ii_seg, rlo:rhi, :] = \
-                    self.sigslope_2d[ii_seg, :].reshape(sect_shape)
-                self.inv_var_seg[num_int, ii_seg, rlo:rhi, :] = \
-                    self.inv_var_2d[ii_seg, :].reshape(sect_shape)
+                self.yint_seg[num_int, ii_seg, rlo:rhi, :] = self.interc_2d[ii_seg, :].reshape(sect_shape)
+                self.slope_seg[num_int, ii_seg, rlo:rhi, :] = self.slope_2d[ii_seg, :].reshape(sect_shape)
+                self.sigyint_seg[num_int, ii_seg, rlo:rhi, :] = self.siginterc_2d[ii_seg, :].reshape(
+                    sect_shape
+                )
+                self.sigslope_seg[num_int, ii_seg, rlo:rhi, :] = self.sigslope_2d[ii_seg, :].reshape(
+                    sect_shape
+                )
+                self.inv_var_seg[num_int, ii_seg, rlo:rhi, :] = self.inv_var_2d[ii_seg, :].reshape(sect_shape)
                 self.firstf_int[num_int, rlo:rhi, :] = ff_sect
 
-    def append_arr(self, num_seg, g_pix, intercept, slope, sig_intercept,
-                   sig_slope, inv_var, save_opt):
+    def append_arr(self, num_seg, g_pix, intercept, slope, sig_intercept, sig_slope, inv_var, save_opt):
         """
         Add the fitting results for the current segment to the 2d arrays.
 
@@ -217,7 +214,7 @@ class OptRes:
         for ii_int in range(0, n_int):
             dq_int = dq_cube[ii_int, :, :, :]
             dq_cr = np.bitwise_and(jump_det, dq_int)
-            max_cr_int = (dq_cr > 0.).sum(axis=0).max()
+            max_cr_int = (dq_cr > 0.0).sum(axis=0).max()
             max_cr = max(max_cr, max_cr_int)
 
         # Allocate compressed array based on max number of crs
@@ -237,7 +234,7 @@ class OptRes:
                 for nn in range(len(cr_int_has_cr[0])):
                     y, x = cr_int_has_cr[0][nn], cr_int_has_cr[1][nn]
 
-                    if cr_mag_int[k_rd, y, x] > 0.:
+                    if cr_mag_int[k_rd, y, x] > 0.0:
                         cr_com[ii_int, end_cr[y, x], y, x] = cr_mag_int[k_rd, y, x]
                         end_cr[y, x] += 1
 
@@ -271,20 +268,28 @@ class OptRes:
         opt_info : tuple
             The tuple of computed optional results arrays for fitting.
         """
-        self.var_p_seg[self.var_p_seg > LARGE_VARIANCE_THRESHOLD] = 0.
-        self.var_r_seg[self.var_r_seg > LARGE_VARIANCE_THRESHOLD] = 0.
+        self.var_p_seg[self.var_p_seg > LARGE_VARIANCE_THRESHOLD] = 0.0
+        self.var_r_seg[self.var_r_seg > LARGE_VARIANCE_THRESHOLD] = 0.0
 
         # Suppress, then re-enable, arithmetic warnings
         warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
         # Tiny 'weights' values correspond to non-existent segments, so set to 0.
-        self.weights[1. / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.
+        self.weights[1.0 / self.weights > LARGE_VARIANCE_THRESHOLD] = 0.0
         warnings.resetwarnings()
 
-        opt_info = (self.slope_seg, self.sigslope_seg, self.var_p_seg,
-                    self.var_r_seg, self.yint_seg, self.sigyint_seg,
-                    self.ped_int, self.weights, self.cr_mag_seg)
+        opt_info = (
+            self.slope_seg,
+            self.sigslope_seg,
+            self.var_p_seg,
+            self.var_r_seg,
+            self.yint_seg,
+            self.sigyint_seg,
+            self.ped_int,
+            self.weights,
+            self.cr_mag_seg,
+        )
 
         return opt_info
 
@@ -301,29 +306,29 @@ class OptRes:
         -------
         None
         """
-        print('Will now print all optional output arrays - ')
-        print(' yint_seg: ')
+        print("Will now print all optional output arrays - ")
+        print(" yint_seg: ")
         print((self.yint_seg))
-        print('  ')
-        print(' slope_seg: ')
+        print("  ")
+        print(" slope_seg: ")
         print(self.slope_seg)
-        print('  ')
-        print(' sigyint_seg: ')
+        print("  ")
+        print(" sigyint_seg: ")
         print(self.sigyint_seg)
-        print('  ')
-        print(' sigslope_seg: ')
+        print("  ")
+        print(" sigslope_seg: ")
         print(self.sigslope_seg)
-        print('  ')
-        print(' inv_var_2d: ')
+        print("  ")
+        print(" inv_var_2d: ")
         print((self.inv_var_2d))
-        print('  ')
-        print(' firstf_int: ')
+        print("  ")
+        print(" firstf_int: ")
         print((self.firstf_int))
-        print('  ')
-        print(' ped_int: ')
+        print("  ")
+        print(" ped_int: ")
         print((self.ped_int))
-        print('  ')
-        print(' cr_mag_seg: ')
+        print("  ")
+        print(" cr_mag_seg: ")
         print((self.cr_mag_seg))
 
 
@@ -446,9 +451,19 @@ def alloc_arrays_2(n_int, imshape, max_seg):
     # number of segments
     segs_4 = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.uint8)
 
-    return (var_p3, var_r3, var_p4, var_r4, var_both4, var_both3,
-            inv_var_both4, s_inv_var_p3, s_inv_var_r3,
-            s_inv_var_both3, segs_4)
+    return (
+        var_p3,
+        var_r3,
+        var_p4,
+        var_r4,
+        var_both4,
+        var_both3,
+        inv_var_both4,
+        s_inv_var_p3,
+        s_inv_var_r3,
+        s_inv_var_both3,
+        segs_4,
+    )
 
 
 def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg):
@@ -506,8 +521,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     gdq_2d_nan = gdq_2d_nan.astype(np.float32)
 
     # set all SAT groups to nan
-    gdq_2d_nan[np.bitwise_and(
-            gdq_2d, ramp_data.flags_saturated).astype(bool)] = np.nan
+    gdq_2d_nan[np.bitwise_and(gdq_2d, ramp_data.flags_saturated).astype(bool)] = np.nan
 
     # Get lengths of semiramps for all pix [number_of_semiramps, number_of_pix]
     segs = np.zeros_like(gdq_2d)
@@ -530,8 +544,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         # Locate any CRs that appear before the first SAT group...
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
-            wh_cr = np.where(
-                gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
+            wh_cr = np.where(gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
 
         # ... but not on final read:
         if len(wh_cr[0]) > 0 and (i_read < nreads - 1):
@@ -573,35 +586,35 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     #   checked for and handled later
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-    den_p3 = 1. / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
+    den_p3 = 1.0 / (group_time * gain_1d.reshape(imshape) * segs_beg_3_m1)
 
     if ramp_data.zframe_locs:
         zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
         frame_time = ramp_data.frame_time
         tmp_den_p3 = den_p3[0, :, :]
-        tmp_den_p3[zinteg_locs] = 1. / (frame_time * gain_sect[zinteg_locs])
+        tmp_den_p3[zinteg_locs] = 1.0 / (frame_time * gain_sect[zinteg_locs])
         den_p3[0, :, :] = tmp_den_p3
 
     if ramp_data.one_groups_time is not None:
         ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
         tmp_den_p3 = den_p3[0, :, :]
-        tmp_den_p3[ginteg_locs] = 1. / (ramp_data.one_groups_time * gain_sect[ginteg_locs])
+        tmp_den_p3[ginteg_locs] = 1.0 / (ramp_data.one_groups_time * gain_sect[ginteg_locs])
         den_p3[0, :, :] = tmp_den_p3
 
     warnings.resetwarnings()
 
     # For a segment, the variance due to readnoise noise
     # = 12 * readnoise**2 /(ngroups_seg**3. - ngroups_seg)/( tgroup **2.)
-    num_r3 = 12. * (rn_sect / group_time)**2.  # always >0
+    num_r3 = 12.0 * (rn_sect / group_time) ** 2.0  # always >0
 
     if ramp_data.zframe_locs:
         zinteg_locs = ramp_data.zframe_locs[ramp_data.current_integ]
         frame_time = ramp_data.frame_time
-        num_r3[zinteg_locs] = 12. * (rn_sect[zinteg_locs] / frame_time)**2.
+        num_r3[zinteg_locs] = 12.0 * (rn_sect[zinteg_locs] / frame_time) ** 2.0
 
     if ramp_data.one_groups_time is not None:
         ginteg_locs = ramp_data.one_groups_locs[ramp_data.current_integ]
-        num_r3[ginteg_locs] = 12. * (rn_sect[ginteg_locs] / ramp_data.one_groups_time)**2.
+        num_r3[ginteg_locs] = 12.0 * (rn_sect[ginteg_locs] / ramp_data.one_groups_time) ** 2.0
 
     # Reshape for every group, every pixel in section
     num_r3 = np.dstack([num_r3] * max_seg)
@@ -613,7 +626,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     #   only one good group at the beginning of the integration, so it will be
     #   be compared to the plane of (near) zeros resulting from the reset. For
     #   longer segments, this value is overwritten below.
-    den_r3 = num_r3.copy() * 0. + 1. / 6
+    den_r3 = num_r3.copy() * 0.0 + 1.0 / 6
     wh_seg_pos = np.where(segs_beg_3 > 1)
 
     # Suppress, then, re-enable harmless arithmetic warnings, as NaN will be
@@ -621,14 +634,13 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     # overwrite where segs>1
-    den_r3[wh_seg_pos] = 1. / (segs_beg_3[wh_seg_pos] ** 3. - segs_beg_3[wh_seg_pos])
+    den_r3[wh_seg_pos] = 1.0 / (segs_beg_3[wh_seg_pos] ** 3.0 - segs_beg_3[wh_seg_pos])
     warnings.resetwarnings()
 
     return den_r3, den_p3, num_r3, segs_beg_3
 
 
-def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first,
-                  nframes, groupgap, dropframes1):
+def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first, nframes, groupgap, dropframes1):
     """
     The pedestal is calculated by extrapolating the final slope for each pixel
     from its value at the first sample in the integration to an exposure time
@@ -667,12 +679,12 @@ def calc_pedestal(ramp_data, num_int, slope_int, firstf_int, dq_first,
         pedestal image, 2-D float
     """
     ff_all = firstf_int[num_int, :, :].astype(np.float32)
-    tmp = (((nframes + 1.) / 2. + dropframes1) / (nframes + groupgap))
+    tmp = ((nframes + 1.0) / 2.0 + dropframes1) / (nframes + groupgap)
     ped = ff_all - slope_int[num_int, ::] * tmp
 
     sat_flag = ramp_data.flags_saturated
     ped[np.bitwise_and(dq_first, sat_flag) == sat_flag] = 0
-    ped[np.isnan(ped)] = 0.
+    ped[np.isnan(ped)] = 0.0
 
     return ped
 
@@ -720,9 +732,9 @@ def output_integ(ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3):
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-    var_p3[var_p3 > LARGE_VARIANCE_THRESHOLD] = 0.
-    var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.
-    var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.
+    var_p3[var_p3 > LARGE_VARIANCE_THRESHOLD] = 0.0
+    var_r3[var_r3 > LARGE_VARIANCE_THRESHOLD] = 0.0
+    var_both3[var_both3 > LARGE_VARIANCE_THRESHOLD] = 0.0
 
     data = slope_int
     invalid_data = ramp_data.flags_saturated | ramp_data.flags_do_not_use
@@ -741,8 +753,7 @@ def output_integ(ramp_data, slope_int, dq_int, var_p3, var_r3, var_both3):
     return integ_info
 
 
-def gls_pedestal(first_group, slope_int, s_mask,
-                 frame_time, nframes_used):  # pragma: no cover
+def gls_pedestal(first_group, slope_int, s_mask, frame_time, nframes_used):  # pragma: no cover
     """
     Calculate the pedestal for the GLS case.
 
@@ -786,9 +797,9 @@ def gls_pedestal(first_group, slope_int, s_mask,
         current integration, 2-D float
     """
     M = float(nframes_used)
-    pedestal = first_group - slope_int * frame_time * (M + 1.) / 2.
+    pedestal = first_group - slope_int * frame_time * (M + 1.0) / 2.0
     if s_mask.any():
-        pedestal[s_mask] = 0.
+        pedestal[s_mask] = 0.0
 
     return pedestal
 
@@ -858,21 +869,21 @@ def get_efftim_ped(ramp_data):
     frame_time = ramp_data.frame_time
     dropframes1 = ramp_data.drop_frames1
 
-    if dropframes1 is None:    # set to default if missing
+    if dropframes1 is None:  # set to default if missing
         dropframes1 = 0
-        log.debug('Missing keyword DRPFRMS1, so setting to default value of 0')
+        log.debug("Missing keyword DRPFRMS1, so setting to default value of 0")
 
     try:
         effintim = (nframes + groupgap) * frame_time
     except TypeError:
-        log.error('Can not retrieve values needed to calculate integ. time')
+        log.error("Can not retrieve values needed to calculate integ. time")
 
-    log.debug('Calculating effective integration time for a single group using:')
-    log.debug(' groupgap: %s' % (groupgap))
-    log.debug(' nframes: %s' % (nframes))
-    log.debug(' frame_time: %s' % (frame_time))
-    log.debug(' dropframes1: %s' % (dropframes1))
-    log.info('Effective integration time per group: %s' % (effintim))
+    log.debug("Calculating effective integration time for a single group using:")
+    log.debug(" groupgap: %s" % (groupgap))
+    log.debug(" nframes: %s" % (nframes))
+    log.debug(" frame_time: %s" % (frame_time))
+    log.debug(" dropframes1: %s" % (dropframes1))
+    log.info("Effective integration time per group: %s" % (effintim))
 
     return effintim, nframes, groupgap, dropframes1
 
@@ -931,8 +942,7 @@ def get_dataset_info(ramp_data):
     imshape = (asize2, asize1)
     cubeshape = (nreads,) + imshape
 
-    return (nreads, npix, imshape, cubeshape, n_int, instrume,
-            frame_time, ngroups, group_time)
+    return (nreads, npix, imshape, cubeshape, n_int, instrume, frame_time, ngroups, group_time)
 
 
 def get_more_info(ramp_data, saturated_flag, jump_flag):  # pragma: no cover
@@ -1014,12 +1024,12 @@ def reset_bad_gain(ramp_data, pdq, gain):
         for pixels in the gain array that are either non-positive or NaN., 2-D
         flag
     """
-    '''
+    """
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
         wh_g = np.where(gain <= 0.)
-    '''
-    wh_g = np.where(gain <= 0.)
+    """
+    wh_g = np.where(gain <= 0.0)
     if len(wh_g[0]) > 0:
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], ramp_data.flags_no_gain_val)
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], ramp_data.flags_do_not_use)
@@ -1057,8 +1067,7 @@ def remove_bad_singles(segs_beg_3):
     max_seg = segs_beg_3.shape[0]
 
     # get initial number of ramps having single-group segments
-    tot_num_single_grp_ramps = len(np.where((segs_beg_3 == 1) &
-                                            (segs_beg_3.sum(axis=0) > 1))[0])
+    tot_num_single_grp_ramps = len(np.where((segs_beg_3 == 1) & (segs_beg_3.sum(axis=0) > 1))[0])
 
     while tot_num_single_grp_ramps > 0:
         # until there are no more single-group segments
@@ -1080,7 +1089,7 @@ def remove_bad_singles(segs_beg_3):
                     continue
 
                 # Remove the 1-group segment
-                segs_beg_3[ii_0:-1, wh_y, wh_x] = segs_beg_3[ii_0 + 1:, wh_y, wh_x]
+                segs_beg_3[ii_0:-1, wh_y, wh_x] = segs_beg_3[ii_0 + 1 :, wh_y, wh_x]
 
                 # Zero the last segment entry for the ramp, which would otherwise
                 # remain non-zero due to the shift
@@ -1088,8 +1097,7 @@ def remove_bad_singles(segs_beg_3):
 
                 del wh_y, wh_x
 
-                tot_num_single_grp_ramps = len(np.where((segs_beg_3 == 1) &
-                                                        (segs_beg_3.sum(axis=0) > 1))[0])
+                tot_num_single_grp_ramps = len(np.where((segs_beg_3 == 1) & (segs_beg_3.sum(axis=0) > 1))[0])
 
     return segs_beg_3
 
@@ -1149,8 +1157,7 @@ def fix_sat_ramps(ramp_data, sat_0th_group_int, var_p3, var_both3, slope_int, dq
     var_p3[sat_0th_group_int > 0] = LARGE_VARIANCE
     var_both3[sat_0th_group_int > 0] = LARGE_VARIANCE
     slope_int[sat_0th_group_int > 0] = np.nan
-    dq_int[sat_0th_group_int > 0] = np.bitwise_or(
-        dq_int[sat_0th_group_int > 0], ramp_data.flags_do_not_use)
+    dq_int[sat_0th_group_int > 0] = np.bitwise_or(dq_int[sat_0th_group_int > 0], ramp_data.flags_do_not_use)
 
     return var_p3, var_both3, slope_int, dq_int
 
@@ -1207,8 +1214,7 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
         groupdq_3d = np.zeros((m_sh[0], m_sh[2], m_sh[3]), dtype=np.uint32)
 
         for ii in range(n_int):  # add SAT flag to existing groupdq in each slice
-            groupdq_3d[ii, :, :] = np.bitwise_or.reduce(groupdq[ii, :, :, :],
-                                                        axis=0)
+            groupdq_3d[ii, :, :] = np.bitwise_or.reduce(groupdq[ii, :, :, :], axis=0)
 
         groupdq_3d = np.bitwise_or(groupdq_3d, ramp_data.flags_do_not_use)
 
@@ -1236,13 +1242,12 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
         weights = new_arr
         crmag = new_arr
 
-        opt_info = (slope, sigslope, var_poisson, var_rnoise,
-                    yint, sigyint, pedestal, weights, crmag)
+        opt_info = (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag)
 
     else:
         opt_info = None
 
-    log.info('All groups of all integrations are saturated.')
+    log.info("All groups of all integrations are saturated.")
 
     return image_info, integ_info, opt_info
 
@@ -1260,12 +1265,14 @@ def log_stats(c_rates):
     -------
     None
     """
-    wh_c_0 = np.where(c_rates == 0.)  # insuff data or no signal
+    wh_c_0 = np.where(c_rates == 0.0)  # insuff data or no signal
 
-    log.debug('The number of pixels having insufficient data')
-    log.debug('due to excessive CRs or saturation %d:', len(wh_c_0[0]))
-    log.debug('Count rates - min, mean, max, std: %f, %f, %f, %f'
-              % (c_rates.min(), c_rates.mean(), c_rates.max(), c_rates.std()))
+    log.debug("The number of pixels having insufficient data")
+    log.debug("due to excessive CRs or saturation %d:", len(wh_c_0[0]))
+    log.debug(
+        "Count rates - min, mean, max, std: %f, %f, %f, %f"
+        % (c_rates.min(), c_rates.mean(), c_rates.max(), c_rates.std())
+    )
 
 
 def compute_num_slices(max_cores, nrows, max_available):
@@ -1295,13 +1302,13 @@ def compute_num_slices(max_cores, nrows, max_available):
     number_slices = 1
     if max_cores.isnumeric():
         number_slices = int(max_cores)
-    elif max_cores.lower() == "none" or max_cores.lower() == 'one':
+    elif max_cores.lower() == "none" or max_cores.lower() == "one":
         number_slices = 1
-    elif max_cores == 'quarter':
+    elif max_cores == "quarter":
         number_slices = max_available // 4 or 1
-    elif max_cores == 'half':
+    elif max_cores == "half":
         number_slices = max_available // 2 or 1
-    elif max_cores == 'all':
+    elif max_cores == "all":
         number_slices = max_available
     # Make sure we don't have more slices than rows or available cores.
     number_slices = min([nrows, number_slices, max_available])
@@ -1419,8 +1426,7 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
 
     # Assume total saturation if group 0 is SATURATED.
     gdq0_sat = np.bitwise_and(gdq_sect[0], sat)
-    pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(
-        pixeldq_sect[gdq0_sat != 0], sat | dnu)
+    pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(pixeldq_sect[gdq0_sat != 0], sat | dnu)
 
     # If jump occurs mark the appropriate flag.
     jump_loc = np.bitwise_and(gdq_sect, jump)
@@ -1526,8 +1532,11 @@ def compute_median_rates(ramp_data):
             #   starting at group 1.  The purpose of starting at index 1 is
             #   to shift all the indices down by 1, so they line up with the
             #   indices in first_diffs.
-            i_group, i_yy, i_xx, = np.where(np.bitwise_and(
-                gdq_sect[1:, :, :], ramp_data.flags_jump_det))
+            (
+                i_group,
+                i_yy,
+                i_xx,
+            ) = np.where(np.bitwise_and(gdq_sect[1:, :, :], ramp_data.flags_jump_det))
             first_diffs_sect[i_group, i_yy, i_xx] = np.nan
 
             del i_group, i_yy, i_xx
@@ -1537,8 +1546,9 @@ def compute_median_rates(ramp_data):
             #   few good groups past the 0th. Due to the shortage of good
             #   data, the first_diffs will be set here equal to the data in
             #   the 0th group.
-            wh_min = np.where(np.logical_and(
-                np.isnan(first_diffs_sect).all(axis=0), np.isfinite(data_sect[0, :, :])))
+            wh_min = np.where(
+                np.logical_and(np.isnan(first_diffs_sect).all(axis=0), np.isfinite(data_sect[0, :, :]))
+            )
             if len(wh_min[0] > 0):
                 first_diffs_sect[0, :, :][wh_min] = data_sect[0, :, :][wh_min]
 
@@ -1550,7 +1560,7 @@ def compute_median_rates(ramp_data):
             warnings.filterwarnings("ignore", "All-NaN.*", RuntimeWarning)
             nan_med = np.nanmedian(first_diffs_sect, axis=0)
 
-        nan_med[np.isnan(nan_med)] = 0.  # if all first_diffs_sect are nans
+        nan_med[np.isnan(nan_med)] = 0.0  # if all first_diffs_sect are nans
         median_diffs_2d[:, :] += nan_med
 
     # Compute the final 2D array of differences; create rate array

@@ -1,8 +1,7 @@
 import numpy as np
 
 
-def linearity_correction(
-        data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=None):
+def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=None):
     """
     Apply linearity correction to individual groups in `data` to pixels that
     haven't already been flagged as saturated.
@@ -62,8 +61,7 @@ def linearity_correction(
         zlin_dq = lin_dq.copy()
 
     # Do linear correction on SCI data
-    data, new_pdq = linearity_correction_branch(
-        data, gdq, pdq, lin_coeffs, lin_dq, dqflags, False)
+    data, new_pdq = linearity_correction_branch(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, False)
 
     zdata = None  # zframe needs to be returned, so initialize it to None.
     if zframe is not None:
@@ -73,23 +71,21 @@ def linearity_correction(
         # set to ZERO.  Since zero ZEROFRAME values indicates bad data,
         # remember where this happens.  Make a dummy ZEROFRAME DQ array and
         # mark zeroed data as saturated.
-        wh_zero = np.where(zframe[:, :, :] == 0.)
+        wh_zero = np.where(zframe[:, :, :] == 0.0)
         zdq = np.zeros(zframe.shape, dtype=gdq.dtype)
-        zdq[zframe == 0.] = dqflags["SATURATED"]
+        zdq[zframe == 0.0] = dqflags["SATURATED"]
         zpdq = np.zeros(zframe.shape[-2:], dtype=pdq.dtype)
 
         # Linearly correct ZEROFRAME
-        zdata, _ = linearity_correction_branch(
-            zframe, zdq, zpdq, zlin_coeffs, zlin_dq, dqflags, True)
+        zdata, _ = linearity_correction_branch(zframe, zdq, zpdq, zlin_coeffs, zlin_dq, dqflags, True)
 
         # Ensure bad data remains bad.
-        zdata[wh_zero] = 0.
+        zdata[wh_zero] = 0.0
 
     return data, new_pdq, zdata
 
 
-def linearity_correction_branch(
-        data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe):
+def linearity_correction_branch(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe):
     """
     Parameters
     ----------
@@ -149,15 +145,13 @@ def linearity_correction_branch(
             for plane in range(ngroups):
                 dataplane = data[ints, plane]
                 gdqplane = gdq[ints, plane]
-                linear_correct_plane(
-                    dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags)
+                linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags)
 
         else:
             # ZEROFRAME processing
             dataplane = data[ints]
             gdqplane = gdq[ints]
-            linear_correct_plane(
-                dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags)
+            linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags)
 
     return data, new_pdq
 
@@ -187,9 +181,7 @@ def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
     # Only use the corrected signal where the original signal value
     # has not been flagged by the saturation step.
     # Otherwise use the original signal.
-    dataplane[:, :] = np.where(np.bitwise_and(gdqplane[:, :], dqflags['SATURATED']),
-                               dataplane[:, :],
-                               scorr)
+    dataplane[:, :] = np.where(np.bitwise_and(gdqplane[:, :], dqflags["SATURATED"]), dataplane[:, :], scorr)
 
 
 def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
@@ -220,8 +212,7 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
     znan, ynan, xnan = wh_nan[0], wh_nan[1], wh_nan[2]
     num_nan = 0
 
-    nan_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]),
-                         dtype=np.uint32)
+    nan_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]), dtype=np.uint32)
 
     # If there are NaNs as the correction coefficients, update those
     # coefficients so that those SCI values will be unchanged.
@@ -231,7 +222,7 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
 
         for ii in range(num_nan):
             lin_coeffs[:, ynan[ii], xnan[ii]] = ben_cor
-            nan_array[ynan[ii], xnan[ii]] = dqflags['NO_LIN_CORR']
+            nan_array[ynan[ii], xnan[ii]] = dqflags["NO_LIN_CORR"]
 
         # Include these pixels in the output pixeldq
         pixeldq = np.bitwise_or(pixeldq, nan_array)
@@ -260,12 +251,11 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     """
 
     # The critcal coefficient that should not be zero is the linear term other terms are fine to be zero
-    linear_term = lin_coeffs[1,:,:]
+    linear_term = lin_coeffs[1, :, :]
     wh_zero = np.where(linear_term == 0)
     yzero, xzero = wh_zero[0], wh_zero[1]
     num_zero = 0
-    lin_dq_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]),
-                            dtype=np.uint32)
+    lin_dq_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]), dtype=np.uint32)
 
     # If there are linearity linear term equal to zero,
     # update the coefficients so the SCI values will be unchanged.
@@ -275,7 +265,7 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
 
         for ii in range(num_zero):
             lin_coeffs[:, yzero[ii], xzero[ii]] = ben_cor
-            lin_dq_array[yzero[ii], xzero[ii]] = dqflags['NO_LIN_CORR']
+            lin_dq_array[yzero[ii], xzero[ii]] = dqflags["NO_LIN_CORR"]
 
         # Include these pixels in the output pixeldq
         pixeldq = np.bitwise_or(pixeldq, lin_dq_array)
@@ -307,10 +297,10 @@ def correct_for_flag(lin_coeffs, lin_dq, dqflags):
         updated array of correction coefficients in reference file
     """
 
-    wh_flag = np.bitwise_and(lin_dq, dqflags['NO_LIN_CORR'])
+    wh_flag = np.bitwise_and(lin_dq, dqflags["NO_LIN_CORR"])
     num_flag = len(np.where(wh_flag > 0)[0])
 
-    wh_lin = np.where(wh_flag == dqflags['NO_LIN_CORR'])
+    wh_lin = np.where(wh_flag == dqflags["NO_LIN_CORR"])
     yf, xf = wh_lin[0], wh_lin[1]
 
     # If there are pixels flagged as 'NO_LIN_CORR', update the corresponding

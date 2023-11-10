@@ -17,8 +17,8 @@ import numpy as np
 from astropy import units as u
 import logging
 
-from . import gls_fit           # used only if algorithm is "GLS"
-from . import ols_fit           # used only if algorithm is "OLS"
+from . import gls_fit  # used only if algorithm is "GLS"
+from . import ols_fit  # used only if algorithm is "OLS"
 from . import ramp_fit_class
 
 log = logging.getLogger(__name__)
@@ -50,15 +50,13 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     ramp_data = ramp_fit_class.RampData()
 
-    if isinstance(model.data,u.Quantity):
-        ramp_data.set_arrays(model.data.value, model.err.value,
-                             model.groupdq, model.pixeldq)
+    if isinstance(model.data, u.Quantity):
+        ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq, model.pixeldq)
     else:
-        ramp_data.set_arrays(model.data, model.err,
-                             model.groupdq, model.pixeldq)
+        ramp_data.set_arrays(model.data, model.err, model.groupdq, model.pixeldq)
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
-    if hasattr(model, 'drop_frames1'):
+    if hasattr(model, "drop_frames1"):
         drop_frames1 = model.meta.exposure.drop_frames1
     else:
         drop_frames1 = None
@@ -68,7 +66,8 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
         group_time=model.meta.exposure.group_time,
         groupgap=model.meta.exposure.groupgap,
         nframes=model.meta.exposure.nframes,
-        drop_frames1=drop_frames1)
+        drop_frames1=drop_frames1,
+    )
 
     if "zero_frame" in model.meta.exposure and model.meta.exposure.zero_frame:
         ramp_data.zeroframe = model.zeroframe
@@ -82,8 +81,18 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     return ramp_data
 
 
-def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
-             weighting, max_cores, dqflags, suppress_one_group=False):
+def ramp_fit(
+    model,
+    buffsize,
+    save_opt,
+    readnoise_2d,
+    gain_2d,
+    algorithm,
+    weighting,
+    max_cores,
+    dqflags,
+    suppress_one_group=False,
+):
     """
     Calculate the count rate for each pixel in all data cube sections and all
     integrations, equal to the slope for all sections (intervals between
@@ -158,12 +167,13 @@ def ramp_fit(model, buffsize, save_opt, readnoise_2d, gain_2d, algorithm,
     ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
 
     return ramp_fit_data(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
-        algorithm, weighting, max_cores, dqflags)
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+    )
 
 
-def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
-                  algorithm, weighting, max_cores, dqflags):
+def ramp_fit_data(
+    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+):
     """
     This function begins the ramp fit computation after the creation of the
     RampData class.  It determines the proper path for computation to take
@@ -222,13 +232,14 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
     """
     if algorithm.upper() == "GLS":
         image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
+        )
         opt_info = None
     else:
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
         nframes = ramp_data.nframes
-        readnoise_2d *= gain_2d / np.sqrt(2. * nframes)
+        readnoise_2d *= gain_2d / np.sqrt(2.0 * nframes)
 
         # Suppress one group ramps, if desired.
         if ramp_data.suppress_one_group_ramps:
@@ -236,7 +247,8 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
+        )
         gls_opt_info = None
 
     return image_info, integ_info, opt_info, gls_opt_info
@@ -276,4 +288,5 @@ def suppress_one_good_group_ramps(ramp_data):
             good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
             if ramp_data.groupdq[integ, good_index, row, col] == 0:
                 ramp_data.groupdq[integ, :, row, col] = np.bitwise_or(
-                 ramp_data.groupdq[integ, :, row, col], dnu_flag)
+                    ramp_data.groupdq[integ, :, row, col], dnu_flag
+                )

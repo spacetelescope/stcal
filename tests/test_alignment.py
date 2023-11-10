@@ -43,12 +43,8 @@ def _create_wcs_object_without_distortion(
     det2sky = shift | scale | tan | celestial_rotation
     det2sky.name = "linear_transform"
 
-    detector_frame = cf.Frame2D(
-        name="detector", axes_names=("x", "y"), unit=(u.pix, u.pix)
-    )
-    sky_frame = cf.CelestialFrame(
-        reference_frame=coord.FK5(), name="fk5", unit=(u.deg, u.deg)
-    )
+    detector_frame = cf.Frame2D(name="detector", axes_names=("x", "y"), unit=(u.pix, u.pix))
+    sky_frame = cf.CelestialFrame(reference_frame=coord.FK5(), name="fk5", unit=(u.deg, u.deg))
 
     pipeline = [(detector_frame, det2sky), (sky_frame, None)]
 
@@ -63,9 +59,7 @@ def _create_wcs_object_without_distortion(
 
 
 def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
-    wcs = _create_wcs_object_without_distortion(
-        fiducial_world=fiducial_world, shape=shape, pscale=pscale
-    )
+    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
     ra_ref, dec_ref = fiducial_world[0], fiducial_world[1]
     return DataModel(
         ra_ref=ra_ref,
@@ -107,9 +101,7 @@ class MetaData:
 
 class DataModel:
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
-        self.meta = MetaData(
-            ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs
-        )
+        self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
 
 def test_compute_fiducial():
@@ -121,9 +113,7 @@ def test_compute_fiducial():
     fiducial_world = (0, 0)  # in deg
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(
-        fiducial_world=fiducial_world, shape=shape, pscale=pscale
-    )
+    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
 
     computed_fiducial = compute_fiducial([wcs])
 
@@ -139,9 +129,7 @@ def test_compute_scale(pscales):
     fiducial_world = (0, 0)  # in deg
     pscale = (pscales[0], pscales[1])  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(
-        fiducial_world=fiducial_world, shape=shape, pscale=pscale
-    )
+    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
     expected_scale = np.sqrt(pscale[0] * pscale[1])
 
     computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world)
@@ -288,7 +276,7 @@ def test_wcs_bbox_from_shape_2d():
 @pytest.mark.parametrize(
     "shape, pixmap_expected_shape",
     [
-        (None,(4, 4, 2)),
+        (None, (4, 4, 2)),
         ((100, 200), (100, 200, 2)),
     ],
 )
@@ -296,7 +284,7 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
     # TODO: add test for gwcs.WCS
     wcs1, wcs2 = get_fake_wcs()
     pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
-    assert pixmap.shape==pixmap_expected_shape
+    assert pixmap.shape == pixmap_expected_shape
 
 
 @pytest.mark.parametrize(
@@ -316,9 +304,7 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
         ),
     ],
 )
-def test_update_s_region_keyword(
-    model, footprint, expected_s_region, expected_log_info, caplog
-):
+def test_update_s_region_keyword(model, footprint, expected_s_region, expected_log_info, caplog):
     """
     Test that S_REGION keyword is being properly populated with the coordinate values.
     """
@@ -372,10 +358,5 @@ def test_update_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, -0.5),
     ]
     update_s_region_imaging(model, center=False)
-    updated_s_region_coords = [
-        float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]
-    ]
-    assert all(
-        np.isclose(x, y)
-        for x, y in zip(updated_s_region_coords, expected_s_region_coords)
-    )
+    updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
+    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords, expected_s_region_coords))

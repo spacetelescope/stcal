@@ -86,12 +86,18 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     drk_groupgap = dark_data.exp_groupgap
 
     log.info(
-        'Science data nints=%d, ngroups=%d, nframes=%d, groupgap=%d',
-        sci_nints, sci_ngroups, sci_nframes, sci_groupgap
+        "Science data nints=%d, ngroups=%d, nframes=%d, groupgap=%d",
+        sci_nints,
+        sci_ngroups,
+        sci_nframes,
+        sci_groupgap,
     )
     log.info(
-        'Dark data nints=%d, ngroups=%d, nframes=%d, groupgap=%d',
-        drk_nints, drk_ngroups, drk_nframes, drk_groupgap
+        "Dark data nints=%d, ngroups=%d, nframes=%d, groupgap=%d",
+        drk_nints,
+        drk_ngroups,
+        drk_nframes,
+        drk_groupgap,
     )
 
     # Check that the number of groups in the science data does not exceed
@@ -99,11 +105,9 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     sci_total_frames = sci_ngroups * sci_nframes + (sci_ngroups - 1) * sci_groupgap
     drk_total_frames = drk_ngroups * drk_nframes + (drk_ngroups - 1) * drk_groupgap
     if sci_total_frames > drk_total_frames:
-        log.warning(
-            "Not enough data in dark reference file to match to science data."
-        )
+        log.warning("Not enough data in dark reference file to match to science data.")
         log.warning("Input will be returned without subtracting dark current.")
-        science_data.cal_step = 'SKIPPED'
+        science_data.cal_step = "SKIPPED"
         out_data = copy.deepcopy(science_data)
 
         return out_data, None
@@ -116,7 +120,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
             "greater than that of the science data."
             "Input will be returned without subtracting dark current."
         )
-        science_data.cal_step = 'SKIPPED'
+        science_data.cal_step = "SKIPPED"
         out_data = copy.deepcopy(science_data)
         return out_data, None
 
@@ -127,7 +131,6 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     # nframes and groupgap settings.
     averaged_dark = None
     if sci_nframes == drk_nframes and sci_groupgap == drk_groupgap:
-
         # They match, so we can subtract the dark ref file data directly
         output_data = subtract_dark(science_data, dark_data)
 
@@ -140,7 +143,6 @@ def do_correction_data(science_data, dark_data, dark_output=None):
             averaged_dark.output_name = dark_output
 
     else:
-
         # Create a frame-averaged version of the dark data to match
         # the nframes and groupgap settings of the science data.
         # If the data are from JWST/MIRI, the darks are integration-dependent
@@ -151,9 +153,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
                 dark_data, sci_nints, sci_ngroups, sci_nframes, sci_groupgap
             )
         else:
-            averaged_dark = average_dark_frames_3d(
-                dark_data, sci_ngroups, sci_nframes, sci_groupgap
-            )
+            averaged_dark = average_dark_frames_3d(dark_data, sci_ngroups, sci_nframes, sci_groupgap)
 
         # Save the frame-averaged dark data that was just created,
         # if requested by the user
@@ -164,7 +164,7 @@ def do_correction_data(science_data, dark_data, dark_output=None):
         # Subtract the frame-averaged dark data from the science data
         output_data = subtract_dark(science_data, averaged_dark)
 
-    output_data.cal_step = 'COMPLETE'
+    output_data.cal_step = "COMPLETE"
 
     return output_data, averaged_dark
 
@@ -213,17 +213,18 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
 
         # If there's only 1 frame per group, just copy the dark frames
         if nframes == 1:
-            log.debug('copy dark frame %d', start)
+            log.debug("copy dark frame %d", start)
             avg_dark.data[group] = dark_data.data[start]
             avg_dark.err[group] = dark_data.err[start]
 
         # Otherwise average nframes into a new group: take the mean of
         # the SCI arrays and the quadratic sum of the ERR arrays.
         else:
-            log.debug('average dark frames %d to %d', start + 1, end)
+            log.debug("average dark frames %d to %d", start + 1, end)
             avg_dark.data[group] = dark_data.data[start:end].mean(axis=0)
-            avg_dark.err[group] = np.sqrt(np.add.reduce(
-                dark_data.err[start:end]**2, axis=0)) / (end - start)
+            avg_dark.err[group] = np.sqrt(np.add.reduce(dark_data.err[start:end] ** 2, axis=0)) / (
+                end - start
+            )
 
         # Skip over unused frames
         start = end + groupgap
@@ -297,19 +298,20 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
 
             # If there's only 1 frame per group, just copy the dark frames
             if nframes == 1:
-                log.debug('copy dark frame %d', start)
+                log.debug("copy dark frame %d", start)
                 avg_dark.data[it, group] = dark_data.data[it, start]
                 avg_dark.err[it, group] = dark_data.err[it, start]
 
             # Otherwise average nframes into a new group: take the mean of
             # the SCI arrays and the quadratic sum of the ERR arrays.
             else:
-                log.debug('average dark frames %d to %d', start + 1, end)
+                log.debug("average dark frames %d to %d", start + 1, end)
                 avg_dark.data[it, group] = dark_data.data[it, start:end].mean(axis=0)
-                avg_dark.err[it, group] = np.sqrt(np.add.reduce(
-                    dark_data.err[it, start:end]**2, axis=0)) / (end - start)
+                avg_dark.err[it, group] = np.sqrt(
+                    np.add.reduce(dark_data.err[it, start:end] ** 2, axis=0)
+                ) / (end - start)
 
-        # Skip over unused frames
+            # Skip over unused frames
             start = end + groupgap
 
     # Reset some metadata values for the averaged dark
@@ -350,9 +352,13 @@ def subtract_dark(science_data, dark_data):
     else:
         dark_nints = 1
 
-    log.debug("subtract_dark: nints=%d, ngroups=%d, size=%d,%d",
-              science_data.data.shape[0], science_data.data.shape[1],
-              science_data.data.shape[2], science_data.data.shape[3])
+    log.debug(
+        "subtract_dark: nints=%d, ngroups=%d, size=%d,%d",
+        science_data.data.shape[0],
+        science_data.data.shape[1],
+        science_data.data.shape[2],
+        science_data.data.shape[3],
+    )
 
     # Create output as a copy of the input science data model
     output = copy.deepcopy(science_data)
@@ -372,7 +378,6 @@ def subtract_dark(science_data, dark_data):
 
     # Loop over all integrations in input science data
     for i in range(science_data.data.shape[0]):
-
         if len(dark_data.data.shape) == 4:  # MIRI data
             # Apply the first dark_nints-1 integrations from the dark ref file
             # to the first few science integrations. There's an additional

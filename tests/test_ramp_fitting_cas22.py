@@ -1,4 +1,3 @@
-
 """
 Unit tests for ramp-fitting functions.
 """
@@ -39,14 +38,14 @@ def test_simulated_ramps(use_unit, use_dq):
         dq |= bad
 
     output = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern,
-        threshold_constant=0, threshold_intercept=0)  # set the threshold parameters
-                                                      #   to demo the interface. This
-                                                      #   will raise an error if
-                                                      #   the interface changes, but
-                                                      #   does not effect the computation
-                                                      #   since jump detection is off in
-                                                      #   this case.
+        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, threshold_constant=0, threshold_intercept=0
+    )  # set the threshold parameters
+    #   to demo the interface. This
+    #   will raise an error if
+    #   the interface changes, but
+    #   does not effect the computation
+    #   since jump detection is off in
+    #   this case.
 
     # Check that the output shapes are correct
     assert output.parameters.shape == (320, 320, 2) == resultants.shape[1:] + (2,)
@@ -74,7 +73,7 @@ def test_simulated_ramps(use_unit, use_dq):
     if not use_dq:
         assert np.all(okay)
 
-    chi2dof_slope = np.sum((parameters[okay, 1] - flux)**2 / variances[okay, 2]) / np.sum(okay)
+    chi2dof_slope = np.sum((parameters[okay, 1] - flux) ** 2 / variances[okay, 2]) / np.sum(okay)
     assert np.abs(chi2dof_slope - 1) < 0.03
     assert np.all(parameters[~okay, 1] == 0)
     assert np.all(variances[~okay, 1] == 0)
@@ -109,24 +108,26 @@ def simulate_many_ramps(ntrial=100, flux=100, readnoise=5, read_pattern=None):
     readnoise : float
         read noise used
     resultants : np.ndarray[n_resultant, ntrial] (float)
-        simulated resultants
-"""
+        simulated resultants"""
     if read_pattern is None:
-        read_pattern = [[1, 2, 3, 4],
-                        [5],
-                        [6, 7, 8],
-                        [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-                        [19, 20, 21],
-                        [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]]
+        read_pattern = [
+            [1, 2, 3, 4],
+            [5],
+            [6, 7, 8],
+            [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+            [19, 20, 21],
+            [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36],
+        ]
     nread = np.array([len(x) for x in read_pattern])
-    resultants = np.zeros((len(read_pattern), ntrial), dtype='f4')
-    buf = np.zeros(ntrial, dtype='i4')
+    resultants = np.zeros((len(read_pattern), ntrial), dtype="f4")
+    buf = np.zeros(ntrial, dtype="i4")
     for i, reads in enumerate(read_pattern):
-        subbuf = np.zeros(ntrial, dtype='i4')
+        subbuf = np.zeros(ntrial, dtype="i4")
         for _ in reads:
             buf += np.random.poisson(ROMAN_READ_TIME * flux, ntrial)
             subbuf += buf
-        resultants[i] = (subbuf / len(reads)).astype('f4')
-    resultants += np.random.randn(len(read_pattern), ntrial) * (
-        readnoise / np.sqrt(nread)).reshape(len(read_pattern), 1)
+        resultants[i] = (subbuf / len(reads)).astype("f4")
+    resultants += np.random.randn(len(read_pattern), ntrial) * (readnoise / np.sqrt(nread)).reshape(
+        len(read_pattern), 1
+    )
     return (read_pattern, flux, readnoise, resultants)

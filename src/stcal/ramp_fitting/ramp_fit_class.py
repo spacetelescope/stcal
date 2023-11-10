@@ -71,8 +71,7 @@ class RampData:
         self.groupdq = groupdq
         self.pixeldq = pixeldq
 
-    def set_meta(self, name, frame_time, group_time, groupgap,
-                 nframes, drop_frames1=None):
+    def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """
         Set the metainformation needed for ramp fitting.
 
@@ -181,7 +180,6 @@ class RampData:
         print(f"groupdq : \n{self.groupdq}")
         print(f"pixeldq : \n{self.pixeldq}")
         print("-" * 80)
-
 
     def dbg_print_pixel_info(self, row, col):
         print("-" * 80)
