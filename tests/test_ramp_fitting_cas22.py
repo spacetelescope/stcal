@@ -6,6 +6,9 @@ import numpy as np
 import pytest
 from stcal.ramp_fitting import ols_cas22_fit as ramp
 
+# Purposefully set a fixed seed so that the tests in this module are deterministic
+RNG = np.random.default_rng(42)
+
 # Read Time in seconds
 #   For Roman, the read time of the detectors is a fixed value and is currently
 #   backed into code. Will need to refactor to consider the more general case.
@@ -33,7 +36,7 @@ def test_simulated_ramps(use_unit, use_dq):
 
     # now let's mark a bunch of the ramps as compromised. When using dq flags
     if use_dq:
-        bad = np.random.uniform(size=resultants.shape) > 0.7
+        bad = RNG.uniform(size=resultants.shape) > 0.7
         dq |= bad
 
     output = ramp.fit_ramps_casertano(
@@ -123,10 +126,10 @@ def simulate_many_ramps(ntrial=100, flux=100, readnoise=5, read_pattern=None):
     for i, reads in enumerate(read_pattern):
         subbuf = np.zeros(ntrial, dtype="i4")
         for _ in reads:
-            buf += np.random.poisson(ROMAN_READ_TIME * flux, ntrial)
+            buf += RNG.poisson(ROMAN_READ_TIME * flux, ntrial)
             subbuf += buf
         resultants[i] = (subbuf / len(reads)).astype("f4")
-    resultants += np.random.randn(len(read_pattern), ntrial) * (readnoise / np.sqrt(nread)).reshape(
-        len(read_pattern), 1
-    )
+    resultants += RNG.standard_normal(size=(len(read_pattern), ntrial)) * (
+        readnoise / np.sqrt(nread)
+    ).reshape(len(read_pattern), 1)
     return (read_pattern, flux, readnoise, resultants)
