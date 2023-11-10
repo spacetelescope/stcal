@@ -965,7 +965,7 @@ def determine_slope(
 
     use_extra_terms = True
 
-    iter = 0
+    iter_ = 0
     done = False
     if NUM_ITER_NO_EXTRA_TERMS <= 0:
         # Even the first iteration uses the extra terms.
@@ -991,11 +991,11 @@ def determine_slope(
             temp_use_extra_terms,
         )
 
-        iter += 1
-        if iter == NUM_ITER_NO_EXTRA_TERMS:
+        iter_ += 1
+        if iter_ == NUM_ITER_NO_EXTRA_TERMS:
             temp_use_extra_terms = use_extra_terms
 
-        if iter >= MAX_ITER:
+        if iter_ >= MAX_ITER:
             done = True
         else:
             # If there are pixels with zero or negative variance, ignore
@@ -1004,7 +1004,7 @@ def determine_slope(
             slope_diff = np.where(slope_var_sect > 0.0, prev_slope_sect - slope_sect, 0.0)
 
             max_slope_diff = np.abs(slope_diff).max()
-            if iter >= MIN_ITER and max_slope_diff < slope_diff_cutoff:
+            if iter_ >= MIN_ITER and max_slope_diff < slope_diff_cutoff:
                 done = True
 
             current_fit = evaluate_fit(
