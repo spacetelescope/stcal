@@ -194,13 +194,17 @@ def fit_ramps(float[:, :] resultants,
     cdef int poisson_var = Variance.poisson_var
     cdef int total_var = Variance.total_var
 
+    # Pull memory view of dq for speed of access later
+    #   changes to this array will backpropagate to the original numpy array
+    cdef int[:, :] dq_ = dq
+
     # Run the jump fitting algorithm for each pixel
     cdef JumpFits fit
     cdef int index
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
         fit = fit_jumps(resultants[:, index],
-                        dq[:, index],
+                        dq_[:, index],
                         read_noise[index],
                         t_bar,
                         tau,
