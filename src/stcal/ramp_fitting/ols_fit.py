@@ -910,7 +910,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     med_rates = utils.compute_median_rates(ramp_data)
 
     # Loop over data integrations:
-    for num_int in range(0, n_int):
+    for num_int in range(n_int):
         # Loop over data sections
         ramp_data.current_integ = num_int
         for rlo in range(0, cubeshape[1], nrows):
@@ -1392,7 +1392,7 @@ def ramp_fit_overall(
     if save_opt:
         dq_slice = np.zeros((gdq_cube_shape[2], gdq_cube_shape[3]), dtype=np.uint32)
 
-        for num_int in range(0, n_int):
+        for num_int in range(n_int):
             dq_slice = groupdq[num_int, 0, :, :]
             opt_res.ped_int[num_int, :, :] = utils.calc_pedestal(
                 ramp_data, num_int, slope_int, opt_res.firstf_int, dq_slice, nframes, groupgap, dropframes1

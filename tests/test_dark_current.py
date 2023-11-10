@@ -197,7 +197,7 @@ def test_more_sci_frames(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[0, i] = i
 
     refgroups = 5
@@ -205,7 +205,7 @@ def test_more_sci_frames(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # apply correction
@@ -236,7 +236,7 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[0, i] = i
 
     # create dark reference file model with more frames than science data
@@ -244,7 +244,7 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # apply correction
@@ -281,7 +281,7 @@ def test_nan(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[0, i, :, :] = i
 
     # create dark reference file model with more frames than science data
@@ -289,7 +289,7 @@ def test_nan(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # set NaN in dark file
@@ -357,7 +357,7 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[:, i] = i + 1
 
     # create dark reference file model
@@ -366,7 +366,7 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # apply correction

@@ -118,7 +118,7 @@ class OptRes:
         Returns
         -------
         """
-        for ii_seg in range(0, self.slope_seg.shape[1]):
+        for ii_seg in range(self.slope_seg.shape[1]):
             self.slope_seg[num_int, ii_seg, rlo:rhi, :] = self.slope_2d[ii_seg, :].reshape(sect_shape)
 
             if save_opt:
@@ -212,7 +212,7 @@ class OptRes:
         # Loop over data integrations to find max num of crs flagged per pixel
         # (this could exceed the maximum number of segments fit)
         max_cr = 0
-        for ii_int in range(0, n_int):
+        for ii_int in range(n_int):
             dq_int = dq_cube[ii_int, :, :, :]
             dq_cr = np.bitwise_and(jump_det, dq_int)
             max_cr_int = (dq_cr > 0.0).sum(axis=0).max()
@@ -223,7 +223,7 @@ class OptRes:
 
         # Loop over integrations and groups: for those pix having a cr, add
         #    the magnitude to the compressed array
-        for ii_int in range(0, n_int):
+        for ii_int in range(n_int):
             cr_mag_int = self.cr_mag_seg[ii_int, :, :, :]
             cr_int_has_cr = np.where(cr_mag_int.sum(axis=0) != 0)
 
