@@ -91,7 +91,7 @@ select = [
     'UP',     # pyupgrade
     'S',      # flake8-bandit
     # 'BLE',    # flake8-blind-except
-    # 'B',      # flake8-bugbear
+    'B',      # flake8-bugbear
     # 'A',       # flake8-builtins (prevent shadowing of builtins)
     # 'C4',      # flake8-comprehensions (best practices for comprehensions)
     # 'T10',     # flake8-debugger (prevent debugger statements in code)

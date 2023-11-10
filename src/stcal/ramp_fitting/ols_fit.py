@@ -1728,8 +1728,8 @@ def calc_slope(
     # to fit well.
     for ii, val in enumerate(these_p):
         if these_r[ii] != (ngroups - 1):
-            end_st[end_heads[these_p[ii]], these_p[ii]] = these_r[ii]
-            end_heads[these_p[ii]] += 1
+            end_st[end_heads[val], val] = these_r[ii]
+            end_heads[val] += 1
 
     # Sort and reverse array to handle the order that saturated pixels
     # were added
@@ -1745,7 +1745,7 @@ def calc_slope(
 
     # LS fit until 'ngroups' iterations or all pixels in
     #    section have been processed
-    for iter_num in range(ngroups):
+    for _ in range(ngroups):
         if pixel_done.all():
             break
 
