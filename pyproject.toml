@@ -105,7 +105,7 @@ select = [
     'Q',       # flake8-quotes (best practices for quotes)
     'RSE',     # flake8-raise (best practices for raising exceptions)
     'RET',     # flake8-return (best practices for return statements)
-    # 'SLF',     # flake8-self (prevent private member access)
+    'SLF',     # flake8-self (prevent private member access)
     # 'TID',     # flake8-tidy-imports (prevent banned api and best import practices)
     # 'INT',     # flake8-gettext (when to use printf style strings)
     # 'ARG',     # flake8-unused-arguments (prevent unused arguments)

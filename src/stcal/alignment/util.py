@@ -117,7 +117,7 @@ def _generate_tranform(
         An :py:mod:`~astropy` model containing the transform between frames.
     """
     if transform is None:
-        sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
+        sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()  # noqa: SLF001
         v3yangle = np.deg2rad(refmodel.meta.wcsinfo.v3yangle)
         vparity = refmodel.meta.wcsinfo.vparity
         if rotation is None:
