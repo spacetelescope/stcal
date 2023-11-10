@@ -729,7 +729,7 @@ def update_s_region_keyword(model, footprint):
     s_region : str
         String containing the S_REGION object.
     """
-    s_region = "POLYGON ICRS " " {:.9f} {:.9f}" " {:.9f} {:.9f}" " {:.9f} {:.9f}" " {:.9f} {:.9f}".format(
+    s_region = "POLYGON ICRS  {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f}".format(
         *footprint.flatten()
     )
     if "nan" in s_region:
@@ -772,7 +772,7 @@ def reproject(wcs1, wcs2):
         elif isinstance(wcs1, gwcs.WCS):
             forward_transform = wcs1.forward_transform
         else:
-            raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS " "object")
+            raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS object")
         return forward_transform
 
     def _get_backward_transform_func(wcs2):
@@ -781,7 +781,7 @@ def reproject(wcs1, wcs2):
         elif isinstance(wcs2, gwcs.WCS):
             backward_transform = wcs2.backward_transform
         else:
-            raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS " "object")
+            raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS object")
         return backward_transform
 
     def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
