@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from stcal.jump.twopoint_difference import calc_med_first_diffs, find_crs
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1}
@@ -128,7 +129,6 @@ def test_5grps_cr2_nframe2(setup_cube):
     assert np.array_equal([0, 4, 4, 0, 0], out_gdq[0, :, 100, 100])
 
 
-@pytest.mark.xfail()
 def test_4grps_twocrs_2nd_4th(setup_cube):
     ngroups = 4
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)

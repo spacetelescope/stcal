@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from stcal.ramp_fitting.ramp_fit import ramp_fit_class, ramp_fit_data
 
 test_dq_flags = {

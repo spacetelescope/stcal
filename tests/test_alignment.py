@@ -7,6 +7,7 @@ from astropy import wcs as fitswcs
 from astropy.io import fits
 from astropy.modeling import models
 from gwcs import coordinate_frames as cf
+
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _validate_wcs_list,

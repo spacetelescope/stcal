@@ -4,6 +4,7 @@ Unit tests for ramp-fitting functions.
 import astropy.units as u
 import numpy as np
 import pytest
+
 from stcal.ramp_fitting import ols_cas22_fit as ramp
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic

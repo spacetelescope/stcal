@@ -5,6 +5,7 @@ Unit tests for saturation flagging
 """
 
 import numpy as np
+
 from stcal.saturation.saturation import flag_saturated_pixels
 
 # dictionary with required DQ flags

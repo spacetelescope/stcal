@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
+
 from stcal.ramp_fitting.ols_cas22 import JUMP_DET, Parameter, Variance, fit_ramps
 from stcal.ramp_fitting.ols_cas22._jump import (
     FixedOffsets,

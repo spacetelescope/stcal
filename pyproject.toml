@@ -34,7 +34,7 @@ docs = [
 ]
 test = [
     'psutil',
-    'pytest >=4.6.0',
+    'pytest >=6',
     'pytest-cov',
     'pytest-doctestplus',
 ]
@@ -47,7 +47,6 @@ test = [
 requires = [
     'setuptools >=61',
     'setuptools_scm[toml] >=3.4',
-    'wheel',
     'Cython >=0.29.21',
     'numpy >=1.18',
 ]
@@ -63,11 +62,24 @@ zip-safe = true
 where = ['src']
 
 [tool.pytest.ini_options]
-minversion = 4.6
+minversion = 6
+log_cli_level = "INFO"
+xfail_strict = true
 doctest_plus = true
 doctest_rst = true
 text_file_format = 'rst'
-addopts = ''
+addopts = [
+    '--color=yes',
+    '--doctest-rst',
+    '-ra',
+    '--strict-config',
+    '--strict-markers',
+]
+testpaths = [
+    "tests",
+    "src/stcal",
+    "docs",
+]
 norecursedirs = [
     'benchmarks',
     '.asv',
@@ -82,7 +94,14 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 110
-select = [
+src = [
+    'src',
+    'tests',
+    'docs',
+]
+
+[tool.ruff.lint]
+extend-select = [
     'F',      # Pyflakes
     'W', 'E', # pycodestyle
     'C',
@@ -137,6 +156,20 @@ exclude = [
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = [
     "S101"
+]
+
+[tool.codespell]
+skip="*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
+# ignore-words-list="""
+# """
+
+[tool.repo-review]
+ignore = [
+    "GH200",  # Use dependabot
+    "PC140",  # add MyPy to pre-commit
+    "PC180",  # use prettier
+    "PC901",  # custom pre-comit.ci message
+    "MY100",  # Use MyPy
 ]
 
 [tool.cibuildwheel.macos]

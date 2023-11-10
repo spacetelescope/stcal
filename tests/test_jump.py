@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from stcal.jump.jump import (
     calc_num_slices,
     extend_saturation,

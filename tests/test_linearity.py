@@ -5,6 +5,7 @@ Unit tests for linearity correction
 """
 
 import numpy as np
+
 from stcal.linearity.linearity import linearity_correction
 
 DQFLAGS = {"GOOD": 0, "DO_NOT_USE": 1, "SATURATED": 2, "DEAD": 1024, "HOT": 2048, "NO_LIN_CORR": 1048576}

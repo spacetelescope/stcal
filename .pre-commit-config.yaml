@@ -45,6 +45,12 @@ repos:
       additional_dependencies:
         - black==22.12.0
 
+- repo: https://github.com/scientific-python/cookie
+  rev: 2023.10.27
+  hooks:
+    - id: sp-repo-review
+      additional_dependencies: ["repo-review[cli]"]
+
 # - repo: https://github.com/pycqa/isort
 #   rev: 5.12.0
 #   hooks:
