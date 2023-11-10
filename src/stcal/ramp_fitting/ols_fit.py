@@ -157,7 +157,7 @@ def ols_ramp_fit_multiprocessing(
     opt_info: tuple
         The tuple of computed optional results arrays for fitting.
     """
-    log.info(f"Number of processors used for multiprocessing: {number_slices}")
+    log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
@@ -1473,8 +1473,8 @@ def ramp_fit_overall(
 
     log.debug("Instrument: %s", instrume)
     log.debug("Number of pixels in 2D array: %d", nrows * ncols)
-    log.debug("Shape of 2D image: (%d, %d)" % (imshape))
-    log.debug("Shape of data cube: (%d, %d, %d)" % (orig_cubeshape))
+    log.debug("Shape of 2D image: (%d, %d)", *imshape)
+    log.debug("Shape of data cube: (%d, %d, %d)", *orig_cubeshape)
     log.debug("Buffer size (bytes): %d", buffsize)
     log.debug("Number of rows per buffer: %d", nrows)
     log.info("Number of groups per integration: %d", orig_ngroups)

@@ -739,7 +739,7 @@ def update_s_region_keyword(model, footprint):
         log.info("There are NaNs in s_region, S_REGION not updated.")
     else:
         model.meta.wcsinfo.s_region = s_region
-        log.info(f"Update S_REGION to {model.meta.wcsinfo.s_region}")
+        log.info("Update S_REGION to %s", model.meta.wcsinfo.s_region)
 
 
 def reproject(wcs1, wcs2):

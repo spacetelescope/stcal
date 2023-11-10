@@ -120,9 +120,9 @@ def flag_saturated_pixels(
             zframe[ints] = plane
 
     n_sat = np.any(np.any(np.bitwise_and(gdq, saturated), axis=0), axis=0).sum()
-    log.info(f"Detected {n_sat} saturated pixels")
+    log.info("Detected %i saturated pixels", n_sat)
     n_floor = np.any(np.any(np.bitwise_and(gdq, ad_floor), axis=0), axis=0).sum()
-    log.info(f"Detected {n_floor} A/D floor pixels")
+    log.info("Detected %i A/D floor pixels", n_floor)
 
     pdq = np.bitwise_or(pdq, sat_dq)
 

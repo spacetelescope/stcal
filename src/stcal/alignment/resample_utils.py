@@ -29,10 +29,10 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
     """
     if shape:
         bb = util.wcs_bbox_from_shape(shape)
-        log.debug("Bounding box from data shape: {}".format(bb))
+        log.debug("Bounding box from data shape: %s", bb)
     else:
         bb = util.wcs_bbox_from_shape(in_wcs.pixel_shape)
-        log.debug("Bounding box from WCS: {}".format(bb))
+        log.debug("Bounding box from WCS: %s", bb)
 
     # creates 2 grids, one with rows of all x values * len(y) rows,
     # and the reverse for all y columns

@@ -105,7 +105,7 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
     num_available_cores = cpu_count()
     number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
 
-    log.info(f"Number of data slices: {number_slices}")
+    log.info("Number of data slices: %s", number_slices)
 
     # Get needed sizes and shapes
     (
@@ -152,10 +152,10 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
 
     tstop = time.time()
 
-    log.info("Number of groups per integration: %d" % nreads)
-    log.info("Number of integrations: %d" % n_int)
+    log.info("Number of groups per integration: %d", nreads)
+    log.info("Number of integrations: %d", n_int)
 
-    log.debug(f"The execution time in seconds: {tstop - tstart:,}")
+    log.debug("The execution time in seconds: %d", tstop - tstart)
 
     return image_info, integ_info, gls_opt_info
 
@@ -180,7 +180,7 @@ def gls_fit_multi(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number
     number_slices: int
         The number of slices/cores to use for multiprocessing.
     """
-    log.info(f"Number of processors used for multiprocessing: {number_slices}")
+    log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
         ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices
     )
@@ -350,12 +350,12 @@ def reassemble_opt(ramp_data, opt_res, opt_slice, crow, nrows):
     inter, err, pedestal, ampl, ampl_err = opt_slice
     # srow, erow = crow, crow + nrows
 
-    log.debug(f"    ---> ({crow}, {crow + nrows})")
-    log.debug(f"inter    = {inter.shape}")
-    log.debug(f"err      = {err.shape}")
-    log.debug(f"pedestal = {pedestal.shape}")
-    log.debug(f"ampl     = {ampl.shape}")
-    log.debug(f"ampl_err = {ampl_err.shape}")
+    log.debug("    ---> (%i, %i)", crow, crow + nrows)
+    log.debug("inter    = %s", inter.shape)
+    log.debug("err      = %s", err.shape)
+    log.debug("pedestal = %s", pedestal.shape)
+    log.debug("ampl     = %s", ampl.shape)
+    log.debug("ampl_err = %s", ampl_err.shape)
 
     # TODO Dimension check
     """
@@ -1658,7 +1658,7 @@ def gls_fit(
             try:
                 la.solve(temp_var[z], I_2)
             except la.LinAlgError as msg2:
-                log.warning("singular matrix, z = %d" % z)
+                log.warning("singular matrix, z = %d", z)
                 raise la.LinAlgError(msg2)
     del I_2
 

@@ -880,11 +880,11 @@ def get_efftim_ped(ramp_data):
         log.error("Can not retrieve values needed to calculate integ. time")
 
     log.debug("Calculating effective integration time for a single group using:")
-    log.debug(" groupgap: %s" % (groupgap))
-    log.debug(" nframes: %s" % (nframes))
-    log.debug(" frame_time: %s" % (frame_time))
-    log.debug(" dropframes1: %s" % (dropframes1))
-    log.info("Effective integration time per group: %s" % (effintim))
+    log.debug(" groupgap: %s", groupgap)
+    log.debug(" nframes: %s", nframes)
+    log.debug(" frame_time: %s", frame_time)
+    log.debug(" dropframes1: %s", dropframes1)
+    log.info("Effective integration time per group: %s", effintim)
 
     return effintim, nframes, groupgap, dropframes1
 
@@ -1271,8 +1271,11 @@ def log_stats(c_rates):
     log.debug("The number of pixels having insufficient data")
     log.debug("due to excessive CRs or saturation %d:", len(wh_c_0[0]))
     log.debug(
-        "Count rates - min, mean, max, std: %f, %f, %f, %f"
-        % (c_rates.min(), c_rates.mean(), c_rates.max(), c_rates.std())
+        "Count rates - min, mean, max, std: %f, %f, %f, %f",
+        c_rates.min(),
+        c_rates.mean(),
+        c_rates.max(),
+        c_rates.std(),
     )
 
 

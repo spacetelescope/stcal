@@ -292,7 +292,7 @@ def detect_jumps(
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
             )
-            log.info("Total snowballs = %i" % total_snowballs)
+            log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
         if find_showers:
             gdq, num_showers = find_faint_extended(
@@ -311,7 +311,7 @@ def detect_jumps(
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
             )
-            log.info("Total showers= %i" % num_showers)
+            log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     else:
         yinc = int(n_rows / n_slices)
@@ -379,7 +379,7 @@ def detect_jumps(
                 only_use_ints,
             ),
         )
-        log.info("Creating %d processes for jump detection " % n_slices)
+        log.info("Creating %d processes for jump detection ", n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
         # Starts each slice in its own process. Starmap allows more than one
         # parameter to be passed.
@@ -442,7 +442,7 @@ def detect_jumps(
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
             )
-            log.info("Total snowballs = %i" % total_snowballs)
+            log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
         if find_showers:
             gdq, num_showers = find_faint_extended(
@@ -461,10 +461,10 @@ def detect_jumps(
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
             )
-            log.info("Total showers= %i" % num_showers)
+            log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     elapsed = time.time() - start
-    log.info("Total elapsed time = %g sec" % elapsed)
+    log.info("Total elapsed time = %g sec", elapsed)
 
     # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
     #    back in units of DN

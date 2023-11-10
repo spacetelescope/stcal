@@ -159,7 +159,7 @@ def find_crs(
         not only_use_ints and nints * ngrps < minimum_sigclip_groups and ngrps < minimum_groups
     ):
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        log.info("Data shape {}".format(str(dat.shape)))
+        log.info("Data shape %s", dat.shape)
         dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, 0, dummy
     else:
@@ -193,9 +193,10 @@ def find_crs(
             not only_use_ints and total_groups >= minimum_sigclip_groups
         ):
             log.info(
-                " Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
-                    str(total_groups), str(minimum_sigclip_groups), str(normal_rej_thresh)
-                )
+                " Jump Step using sigma clip %s greater than %s, rejection threshold %s",
+                total_groups,
+                minimum_sigclip_groups,
+                normal_rej_thresh,
             )
             warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
