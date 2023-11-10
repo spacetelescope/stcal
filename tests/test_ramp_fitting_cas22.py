@@ -66,7 +66,7 @@ def test_simulated_ramps(use_unit, use_dq):
     # ramps passing the below criterion have at least two adjacent valid reads
     # i.e., we can make a measurement from them.
     okay = np.sum((dq[1:, :] == 0) & (dq[:-1, :] == 0), axis=0) != 0
-    okay = okay.reshape((320 * 320))
+    okay = okay.reshape(320 * 320)
 
     # Sanity check that when no dq is used, all ramps are used
     if not use_dq:

@@ -309,7 +309,7 @@ class OptRes:
         """
         print("Will now print all optional output arrays - ")
         print(" yint_seg: ")
-        print((self.yint_seg))
+        print(self.yint_seg)
         print("  ")
         print(" slope_seg: ")
         print(self.slope_seg)
@@ -321,16 +321,16 @@ class OptRes:
         print(self.sigslope_seg)
         print("  ")
         print(" inv_var_2d: ")
-        print((self.inv_var_2d))
+        print(self.inv_var_2d)
         print("  ")
         print(" firstf_int: ")
-        print((self.firstf_int))
+        print(self.firstf_int)
         print("  ")
         print(" ped_int: ")
-        print((self.ped_int))
+        print(self.ped_int)
         print("  ")
         print(" cr_mag_seg: ")
-        print((self.cr_mag_seg))
+        print(self.cr_mag_seg)
 
 
 def alloc_arrays_1(n_int, imshape):

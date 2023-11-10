@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import List, Protocol
+from typing import Protocol
 
 import gwcs
 import numpy as np
@@ -381,7 +381,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
     for key in ["CRPIX", "CRVAL", "CDELT", "CTYPE", "CUNIT"]:
         val = []
         for ax in range(1, wcsaxes + 1):
-            k = (key + "{0}".format(ax)).lower()
+            k = (key + f"{ax}").lower()
             v = getattr(input_model.meta.wcsinfo, k, defaults[key])
             val.append(v)
         wcsinfo[key] = np.array(val)
@@ -389,7 +389,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
     pc = np.zeros((wcsaxes, wcsaxes), dtype=np.float32)
     for i in range(1, wcsaxes + 1):
         for j in range(1, wcsaxes + 1):
-            pc[i - 1, j - 1] = getattr(input_model.meta.wcsinfo, "pc{0}_{1}".format(i, j), 1)
+            pc[i - 1, j - 1] = getattr(input_model.meta.wcsinfo, f"pc{i}_{j}", 1)
     wcsinfo["PC"] = pc
     wcsinfo["RADESYS"] = input_model.meta.coordinates.reference_frame
     wcsinfo["has_cd"] = False
@@ -505,7 +505,7 @@ def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
     return fiducial
 
 
-def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -> List[float]:
+def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -> list[float]:
     """Calculate the rotation matrix.
 
     Parameters
@@ -729,10 +729,8 @@ def update_s_region_keyword(model, footprint):
     s_region : str
         String containing the S_REGION object.
     """
-    s_region = (
-        "POLYGON ICRS " " {0:.9f} {1:.9f}" " {2:.9f} {3:.9f}" " {4:.9f} {5:.9f}" " {6:.9f} {7:.9f}".format(
-            *footprint.flatten()
-        )
+    s_region = "POLYGON ICRS " " {:.9f} {:.9f}" " {:.9f} {:.9f}" " {:.9f} {:.9f}" " {:.9f} {:.9f}".format(
+        *footprint.flatten()
     )
     if "nan" in s_region:
         # do not update s_region if there are NaNs.

@@ -88,7 +88,7 @@ select = [
     'C',
     'I',      # isort
     # 'N',      # pep8-naming
-    # 'UP',     # pyupgrade
+    'UP',     # pyupgrade
     # 'S',      # flake8-bandit
     # 'BLE',    # flake8-blind-except
     # 'B',      # flake8-bugbear
@@ -113,7 +113,7 @@ select = [
     # 'ERA',     # eradicate (remove commented out code)
     # 'PGH',     # pygrep (simple grep checks)
     # 'PL',      # pylint (general linting, flake8 alternative)
-    # 'FLY',     # flynt (f-string conversion where possible)
+    'FLY',     # flynt (f-string conversion where possible)
     # 'NPY',     # NumPy-specific checks (recommendations from NumPy)
     # 'PERF',    # Perflint (performance linting)
     'RUF',     # ruff specific checks
