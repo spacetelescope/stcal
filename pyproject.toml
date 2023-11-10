@@ -89,7 +89,7 @@ select = [
     'I',      # isort
     # 'N',      # pep8-naming
     'UP',     # pyupgrade
-    # 'S',      # flake8-bandit
+    'S',      # flake8-bandit
     # 'BLE',    # flake8-blind-except
     # 'B',      # flake8-bugbear
     # 'A',       # flake8-builtins (prevent shadowing of builtins)
@@ -127,6 +127,11 @@ exclude = [
     'dist',
     '.tox',
     '.eggs',
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*.py" = [
+    "S101"
 ]
 
 [tool.cibuildwheel.macos]
