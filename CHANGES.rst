@@ -15,6 +15,8 @@ ramp_fitting
 
 - Moving some CI tests from JWST to STCAL. [#228, spacetelescope/jwst#6080]
 
+- Significantly, improve the performance of the uneven ramp fitting algorithm. [#229]
+
 Changes to API
 --------------
 

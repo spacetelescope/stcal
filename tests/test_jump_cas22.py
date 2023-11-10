@@ -2,11 +2,13 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22._core import init_ramps, metadata_from_read_pattern, threshold
-from stcal.ramp_fitting.ols_cas22._fixed import fixed_values_from_metadata
-from stcal.ramp_fitting.ols_cas22._pixel import make_pixel
+from stcal.ramp_fitting.ols_cas22._jump import (fill_fixed_values,
+                                                _fill_pixel_values,
+                                                FixedOffsets,
+                                                PixelOffsets)
+from stcal.ramp_fitting.ols_cas22._ramp import from_read_pattern, init_ramps
 
-from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, Diff, RampJumpDQ
+from stcal.ramp_fitting.ols_cas22 import fit_ramps, Parameter, Variance, JUMP_DET
 
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
@@ -34,47 +36,6 @@ CHI2_TOL = 0.03
 GOOD_PROB = 0.7
 
 
-@pytest.fixture(scope="module")
-def base_ramp_data():
-    """
-    Basic data for simulating ramps for testing (not unpacked)
-
-    Returns
-    -------
-        read_pattern : list[list[int]]
-            The example read pattern
-        metadata : dict
-            The metadata computed from the read pattern
-    """
-    read_pattern = [
-        [1, 2, 3, 4],
-        [5],
-        [6, 7, 8],
-        [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-        [19, 20, 21],
-        [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-    ]
-
-    yield read_pattern, metadata_from_read_pattern(read_pattern, READ_TIME)
-
-
-def test_metadata_from_read_pattern(base_ramp_data):
-    """Test turning read_pattern into the time data"""
-    _, data = base_ramp_data
-
-    # Basic sanity checks (structs become dicts)
-    assert isinstance(data, dict)
-    assert 't_bar' in data
-    assert 'tau' in data
-    assert 'n_reads' in data
-    assert len(data) == 3
-
-    # Check that the data is correct
-    assert_allclose(data['t_bar'], [7.6, 15.2, 21.279999, 41.040001, 60.799999, 88.159996])
-    assert_allclose(data['tau'], [5.7, 15.2, 19.928888, 36.023998, 59.448887, 80.593781])
-    assert data['n_reads'] == [4, 1, 3, 10, 3, 15]
-
-
 def test_init_ramps():
     """
     Test turning dq flags into initial ramp splits
@@ -90,7 +51,7 @@ def test_init_ramps():
                    [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1]], dtype=np.int32)
 
     n_resultants, n_pixels = dq.shape
-    ramps = [init_ramps(dq, n_resultants, index_pixel) for index_pixel in range(n_pixels)]
+    ramps = [init_ramps(dq[:, index], n_resultants) for index in range(n_pixels)]
 
     assert len(ramps) == dq.shape[1] == 16
 
@@ -123,129 +84,106 @@ def test_init_ramps():
     assert ramps[15] == []
 
 
-def test_threshold():
-    """
-    Test the threshold object/fucnction
-        intercept - constant * log10(slope) = threshold
-    """
-
-    # Create the python analog of the Threshold struct
-    #    Note that structs get mapped to/from python as dictionary objects with
-    #    the keys being the struct members.
-    thresh = {
-        'intercept': np.float32(5.5),
-        'constant': np.float32(1/3)
-    }
-
-    # Check the 'intercept' is correctly interpreted.
-    #    Since the log of the input slope is taken, log10(1) = 0, meaning that
-    #    we should directly recover the intercept value in that case.
-    assert thresh['intercept'] == threshold(thresh, 1.0)
-
-    # Check the 'constant' is correctly interpreted.
-    #    Since we know that the intercept is correctly identified and that `log10(10) = 1`,
-    #    we can use that to check that the constant is correctly interpreted.
-    assert np.float32(thresh['intercept'] - thresh['constant']) == threshold(thresh, 10.0)
-
-
 @pytest.fixture(scope="module")
-def ramp_data(base_ramp_data):
+def read_pattern():
     """
-    Unpacked metadata for simulating ramps for testing
+    Basic data for simulating ramps for testing (not unpacked)
 
     Returns
     -------
-        read_pattern:
-            The read pattern used for testing
-        t_bar:
-            The t_bar values for the read pattern
-        tau:
-            The tau values for the read pattern
-        n_reads:
-            The number of reads for the read pattern
+        read_pattern : list[list[int]]
+            The example read pattern
+        metadata : dict
+            The metadata computed from the read pattern
     """
-    read_pattern, read_pattern_metadata = base_ramp_data
-    t_bar = np.array(read_pattern_metadata['t_bar'], dtype=np.float32)
-    tau = np.array(read_pattern_metadata['tau'], dtype=np.float32)
-    n_reads = np.array(read_pattern_metadata['n_reads'], dtype=np.int32)
+    yield [
+        [1, 2, 3, 4],
+        [5],
+        [6, 7, 8],
+        [9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        [19, 20, 21],
+        [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+    ]
 
-    yield read_pattern, t_bar, tau, n_reads
+
+def test_from_read_pattern(read_pattern):
+    """Test turning read_pattern into the time data"""
+    metadata = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()
+
+    t_bar = metadata['t_bar']
+    tau = metadata['tau']
+    n_reads = metadata['n_reads']
+
+    # Check that the data is correct
+    assert_allclose(t_bar, [7.6, 15.2, 21.279999, 41.040001, 60.799999, 88.159996])
+    assert_allclose(tau, [5.7, 15.2, 19.928888, 36.023998, 59.448887, 80.593781])
+    assert np.all(n_reads == [4, 1, 3, 10, 3, 15])
+
+    # Check datatypes
+    assert t_bar.dtype == np.float32
+    assert tau.dtype == np.float32
+    assert n_reads.dtype == np.int32
 
 
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_fixed_values_from_metadata(ramp_data, use_jump):
+@pytest.fixture(scope="module")
+def ramp_data(read_pattern):
+    """
+    Basic data for simulating ramps for testing (not unpacked)
+
+    Returns
+    -------
+        read_pattern : list[list[int]]
+            The example read pattern
+        metadata : dict
+            The metadata computed from the read pattern
+    """
+    data = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()
+
+    yield data['t_bar'], data['tau'], data['n_reads'], read_pattern
+
+
+def test_fill_fixed_values(ramp_data):
     """Test computing the fixed data for all pixels"""
-    _, t_bar, tau, n_reads = ramp_data
+    t_bar, tau, n_reads, _ = ramp_data
 
-    # Create the python analog of the ReadPatternMetadata struct
-    #    Note that structs get mapped to/from python as dictionary objects with
-    #    the keys being the struct members.
-    data = {
-        "t_bar": t_bar,
-        "tau": tau,
-        "n_reads": n_reads,
-    }
+    n_resultants = len(t_bar)
+    fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
 
-    # Create the python analog of the Threshold struct
-    #    Note that structs get mapped to/from python as dictionary objects with
-    #    the keys being the struct members.
-    thresh = {
-        'intercept': np.float32(5.5),
-        'constant': np.float32(1/3)
-    }
+    # Sanity check that the shape of fixed is correct
+    assert fixed.shape == (2 * 4, n_resultants - 1)
 
-    # Note this is converted to a dictionary so we can directly interrogate the
-    #   variables in question
-    fixed = fixed_values_from_metadata(data, thresh, use_jump)._to_dict()
+    # Split into the different types of data
+    t_bar_diffs = fixed[FixedOffsets.single_t_bar_diff:FixedOffsets.double_t_bar_diff + 1, :]
+    t_bar_diff_sqrs = fixed[FixedOffsets.single_t_bar_diff_sqr:FixedOffsets.double_t_bar_diff_sqr + 1, :]
+    read_recip = fixed[FixedOffsets.single_read_recip:FixedOffsets.double_read_recip + 1, :]
+    var_slope_vals = fixed[FixedOffsets.single_var_slope_val:FixedOffsets.double_var_slope_val + 1, :]
 
-    # Basic sanity checks that data passed in survives
-    assert (fixed['data']['t_bar'] == t_bar).all()
-    assert (fixed['data']['tau'] == tau).all()
-    assert (fixed['data']['n_reads'] == n_reads).all()
-    assert fixed['threshold']["intercept"] == thresh['intercept']
-    assert fixed['threshold']["constant"] == thresh['constant']
+    # Sanity check that these are all the right shape
+    assert t_bar_diffs.shape == (2, n_resultants - 1)
+    assert t_bar_diff_sqrs.shape == (2, n_resultants - 1)
+    assert read_recip.shape == (2, n_resultants - 1)
+    assert var_slope_vals.shape == (2, n_resultants - 1)
 
     # Check the computed data
-    # These are computed via vectorized operations in the main code, here we
-    #    check using item-by-item operations
-    if use_jump:
-        single_gen = zip(
-            fixed['t_bar_diffs'][Diff.single],
-            fixed['t_bar_diff_sqrs'][Diff.single],
-            fixed['read_recip_coeffs'][Diff.single],
-            fixed['var_slope_coeffs'][Diff.single]
-        )
-        double_gen = zip(
-            fixed['t_bar_diffs'][Diff.double],
-            fixed['t_bar_diff_sqrs'][Diff.double],
-            fixed['read_recip_coeffs'][Diff.double],
-            fixed['var_slope_coeffs'][Diff.double]
-        )
+    #   These are computed using loop in cython, here we check against numpy
+    # Single diffs
+    assert np.all(t_bar_diffs[0] == t_bar[1:] - t_bar[:-1])
+    assert np.all(t_bar_diff_sqrs[0] == (t_bar[1:] - t_bar[:-1])**2)
+    assert np.all(read_recip[0] == np.float32(1 / n_reads[1:]) + np.float32(1 / n_reads[:-1]))
+    assert np.all(var_slope_vals[0] == (tau[1:] + tau[:-1] - 2 * np.minimum(t_bar[1:], t_bar[:-1])))
 
-        for index, (t_bar_diff_1, t_bar_diff_sqr_1, read_recip_1, var_slope_1) in enumerate(single_gen):
-            assert t_bar_diff_1 == t_bar[index + 1] - t_bar[index]
-            assert t_bar_diff_sqr_1 == np.float32((t_bar[index + 1] - t_bar[index]) ** 2)
-            assert read_recip_1 == np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
-            assert var_slope_1 == (tau[index + 1] + tau[index] - 2 * min(t_bar[index], t_bar[index + 1]))
+    # Double diffs
+    assert np.all(t_bar_diffs[1, :-1] == t_bar[2:] - t_bar[:-2])
+    assert np.all(t_bar_diff_sqrs[1, :-1] == (t_bar[2:] - t_bar[:-2])**2)
+    assert np.all(read_recip[1, :-1] == np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
+    assert np.all(var_slope_vals[1, :-1] == (tau[2:] + tau[:-2] - 2 * np.minimum(t_bar[2:], t_bar[:-2])))
 
-        for index, (t_bar_diff_2, t_bar_diff_sqr_2, read_recip_2, var_slope_2) in enumerate(double_gen):
-            if index == len(fixed['t_bar_diffs'][1]) - 1:
-                # Last value must be NaN
-                assert np.isnan(t_bar_diff_2)
-                assert np.isnan(read_recip_2)
-                assert np.isnan(var_slope_2)
-            else:
-                assert t_bar_diff_2 == t_bar[index + 2] - t_bar[index]
-                assert t_bar_diff_sqr_2 == np.float32((t_bar[index + 2] - t_bar[index])**2)
-                assert read_recip_2 == np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
-                assert var_slope_2 == (tau[index + 2] + tau[index] - 2 * min(t_bar[index], t_bar[index + 2]))
-    else:
-        # If not using jumps, these values should not even exist. However, for wrapping
-        #    purposes, they are checked to be non-existent and then set to NaN
-        assert np.isnan(fixed['t_bar_diffs']).all()
-        assert np.isnan(fixed['t_bar_diff_sqrs']).all()
-        assert np.isnan(fixed['read_recip_coeffs']).all()
-        assert np.isnan(fixed['var_slope_coeffs']).all()
+    # Last double diff should be NaN
+    assert np.isnan(t_bar_diffs[1, -1])
+    assert np.isnan(t_bar_diff_sqrs[1, -1])
+    assert np.isnan(read_recip[1, -1])
+    assert np.isnan(var_slope_vals[1, -1])
 
 
 def _generate_resultants(read_pattern, n_pixels=1):
@@ -305,76 +243,57 @@ def pixel_data(ramp_data):
         n_reads:
             The number of reads for the read pattern used for the resultants
     """
+    t_bar, tau, n_reads, read_pattern = ramp_data
 
-    read_pattern, t_bar, tau, n_reads = ramp_data
+    n_resultants = len(t_bar)
+    fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
+
     resultants = _generate_resultants(read_pattern)
 
-    yield resultants, t_bar, tau, n_reads
+    yield resultants, t_bar, tau, n_reads, fixed
 
 
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_make_pixel(pixel_data, use_jump):
+def test__fill_pixel_values(pixel_data):
     """Test computing the initial pixel data"""
-    resultants, t_bar, tau, n_reads = pixel_data
+    resultants, t_bar, tau, n_reads, fixed = pixel_data
 
-    # Create a fixed object to pass into the constructor
-    #    This requires setting up some structs as dictionaries
-    data = {
-        "t_bar": t_bar,
-        "tau": tau,
-        "n_reads": n_reads,
-    }
-    thresh = {
-        'intercept': np.float32(5.5),
-        'constant': np.float32(1/3)
-    }
-    fixed = fixed_values_from_metadata(data, thresh, use_jump)
+    n_resultants = len(t_bar)
+    pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    pixel = _fill_pixel_values(pixel, resultants, fixed, READ_NOISE, n_resultants)
 
-    # Note this is converted to a dictionary so we can directly interrogate the
-    #   variables in question
-    pixel = make_pixel(fixed, READ_NOISE, resultants)._to_dict()
+    # Sanity check that the shape of pixel is correct
+    assert pixel.shape == (2 * 2, n_resultants - 1)
 
-    # Basic sanity checks that data passed in survives
-    assert (pixel['resultants'] == resultants).all()
-    assert READ_NOISE == pixel['read_noise']
+    # Split into the different types of data
+    local_slopes = pixel[PixelOffsets.single_local_slope:PixelOffsets.double_local_slope + 1, :]
+    var_read_noise = pixel[PixelOffsets.single_var_read_noise:PixelOffsets.double_var_read_noise + 1, :]
 
-    # the "fixed" data is not checked as this is already done above
+    # Sanity check that these are all the right shape
+    assert local_slopes.shape == (2, n_resultants - 1)
+    assert var_read_noise.shape == (2, n_resultants - 1)
 
     # Check the computed data
-    # These are computed via vectorized operations in the main code, here we
-    #    check using item-by-item operations
-    if use_jump:
-        single_gen = zip(pixel['local_slopes'][Diff.single], pixel['var_read_noise'][Diff.single])
-        double_gen = zip(pixel['local_slopes'][Diff.double], pixel['var_read_noise'][Diff.double])
+    #   These are computed using loop in cython, here we check against numpy
+    # Single diffs
+    assert np.all(local_slopes[0] == (resultants[1:] - resultants[:-1]) / (t_bar[1:] - t_bar[:-1]))
+    assert np.all(var_read_noise[0] == np.float32(READ_NOISE ** 2) * (
+        np.float32(1 / n_reads[1:]) + np.float32(1 / n_reads[:-1]))
+    )
 
-        for index, (local_slope_1, var_read_noise_1) in enumerate(single_gen):
-            assert local_slope_1 == (
-                (resultants[index + 1] - resultants[index]) / (t_bar[index + 1] - t_bar[index]))
-            assert var_read_noise_1 == np.float32(READ_NOISE ** 2)* (
-                np.float32(1 / n_reads[index + 1]) + np.float32(1 / n_reads[index])
-            )
+    # Double diffs
+    assert np.all(local_slopes[1, :-1] == (resultants[2:] - resultants[:-2]) / (t_bar[2:] - t_bar[:-2]))
+    assert np.all(var_read_noise[1, :-1] == np.float32(READ_NOISE ** 2) * (
+        np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
+    )
 
-        for index, (local_slope_2, var_read_noise_2) in enumerate(double_gen):
-            if index == len(pixel['local_slopes'][1]) - 1:
-                # Last value must be NaN
-                assert np.isnan(local_slope_2)
-                assert np.isnan(var_read_noise_2)
-            else:
-                assert local_slope_2 == (
-                    (resultants[index + 2] - resultants[index]) / (t_bar[index + 2] - t_bar[index])
-                )
-                assert var_read_noise_2 == np.float32(READ_NOISE ** 2) * (
-                    np.float32(1 / n_reads[index + 2]) + np.float32(1 / n_reads[index])
-                )
-    else:
-        # If not using jumps, these values should not even exist. However, for wrapping
-        #    purposes, they are checked to be non-existent and then set to NaN
-        assert np.isnan(pixel['local_slopes']).all()
-        assert np.isnan(pixel['var_read_noise']).all()
+    # Last double diff should be NaN
+    assert np.isnan(local_slopes[1, -1])
+    assert np.isnan(var_read_noise[1, -1])
 
 
 @pytest.fixture(scope="module")
-def detector_data(ramp_data):
+def detector_data(read_pattern):
     """
     Generate a set of with no jumps data as if for a single detector as it
         would be passed in by the supporting code.
@@ -387,7 +306,6 @@ def detector_data(ramp_data):
         read_pattern:
             The read pattern used for the resultants
     """
-    read_pattern, *_ = ramp_data
     read_noise = np.ones(N_PIXELS, dtype=np.float32) * READ_NOISE
 
     resultants = _generate_resultants(read_pattern, n_pixels=N_PIXELS)
@@ -623,7 +541,7 @@ def test_override_default_threshold(jump_data):
 
 def test_jump_dq_set(jump_data):
     # Check the DQ flag value to start
-    assert RampJumpDQ.JUMP_DET == 2**2
+    assert JUMP_DET == 2**2
 
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
@@ -633,7 +551,7 @@ def test_jump_dq_set(jump_data):
 
     for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
         # Check that all jumps found get marked
-        assert (pixel_dq[fit['jumps']] == RampJumpDQ.JUMP_DET).all()
+        assert (pixel_dq[fit['jumps']] == JUMP_DET).all()
 
         # Check that dq flags for jumps are only set if the jump is marked
-        assert set(np.where(pixel_dq == RampJumpDQ.JUMP_DET)[0]) == set(fit['jumps'])
+        assert set(np.where(pixel_dq == JUMP_DET)[0]) == set(fit['jumps'])
