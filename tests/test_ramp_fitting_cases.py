@@ -1,5 +1,5 @@
 import inspect
-import os
+from pathlib import Path
 
 import numpy as np
 import numpy.testing as npt
@@ -918,5 +918,5 @@ def dbg_print(string):
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
     finfo = inspect.getframeinfo(cf.f_back)
-    fname = os.path.basename(finfo.filename)
+    fname = Path(finfo.filename).name
     print(f"[{fname}:{line_number}] {string}")
