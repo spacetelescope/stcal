@@ -111,7 +111,7 @@ select = [
     # 'ARG',     # flake8-unused-arguments (prevent unused arguments)
     'PTH',     # flake8-use-pathlib (prefer pathlib over os.path)
     # 'ERA',     # eradicate (remove commented out code)
-    # 'PGH',     # pygrep (simple grep checks)
+    'PGH',     # pygrep (simple grep checks)
     # 'PL',      # pylint (general linting, flake8 alternative)
     'FLY',     # flynt (f-string conversion where possible)
     'NPY',     # NumPy-specific checks (recommendations from NumPy)
