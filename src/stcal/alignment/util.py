@@ -2,9 +2,11 @@
 Common utility functions for datamodel alignment.
 
 """
+from __future__ import annotations
+
 import functools
 import logging
-from typing import List, Protocol, Union
+from typing import List, Protocol
 
 import gwcs
 import numpy as np
@@ -70,9 +72,9 @@ def _calculate_fiducial_from_spatial_footprint(
 def _generate_tranform(
     refmodel: SupportsDataWithWcs,
     ref_fiducial: np.array,
-    pscale_ratio: int = None,
-    pscale: float = None,
-    rotation: float = None,
+    pscale_ratio: int | None = None,
+    pscale: float | None = None,
+    rotation: float | None = None,
     transform=None,
 ):
     """
@@ -396,9 +398,9 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
 def compute_scale(
     wcs: gwcs.WCS,
-    fiducial: Union[tuple, np.ndarray],
-    disp_axis: int = None,
-    pscale_ratio: float = None,
+    fiducial: tuple | np.ndarray,
+    disp_axis: int | None = None,
+    pscale_ratio: float | None = None,
 ) -> float:
     """Compute the scale at the fiducial point on the detector..
 
@@ -766,7 +768,7 @@ def reproject(wcs1, wcs2):
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         )
-        """  # noqa: E501
+        """
         if isinstance(wcs1, fitswcs.WCS):
             forward_transform = wcs1.all_pix2world
         elif isinstance(wcs1, gwcs.WCS):
@@ -784,7 +786,7 @@ def reproject(wcs1, wcs2):
             raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS " "object")
         return backward_transform
 
-    def _reproject(x: Union[float, np.ndarray], y: Union[float, np.ndarray]) -> tuple:
+    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 

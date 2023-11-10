@@ -47,17 +47,17 @@ class OptRes:
         save_opt : bool
            save optional fitting results
         """
-        self.slope_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
+        self.slope_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
         if save_opt:
-            self.yint_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
-            self.sigyint_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
-            self.sigslope_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
-            self.inv_var_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
-            self.firstf_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-            self.ped_int = np.zeros((n_int,) + imshape, dtype=np.float32)
-            self.cr_mag_seg = np.zeros((n_int,) + (nreads,) + imshape, dtype=np.float32)
-            self.var_p_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
-            self.var_r_seg = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32)
+            self.yint_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
+            self.sigyint_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
+            self.sigslope_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
+            self.inv_var_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
+            self.firstf_int = np.zeros((n_int, *imshape), dtype=np.float32)
+            self.ped_int = np.zeros((n_int, *imshape), dtype=np.float32)
+            self.cr_mag_seg = np.zeros((n_int, nreads, *imshape), dtype=np.float32)
+            self.var_p_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
+            self.var_r_seg = np.zeros((n_int, max_seg, *imshape), dtype=np.float32)
 
     def init_2d(self, npix, max_seg, save_opt):
         """
@@ -219,7 +219,7 @@ class OptRes:
             max_cr = max(max_cr, max_cr_int)
 
         # Allocate compressed array based on max number of crs
-        cr_com = np.zeros((n_int,) + (max_cr,) + imshape, dtype=np.float32)
+        cr_com = np.zeros((n_int, max_cr, *imshape), dtype=np.float32)
 
         # Loop over integrations and groups: for those pix having a cr, add
         #    the magnitude to the compressed array
@@ -361,11 +361,11 @@ def alloc_arrays_1(n_int, imshape):
         Integration-specific slice whose value for a pixel is 1 if the initial
         group of the ramp is saturated, 3-D uint8
     """
-    dq_int = np.zeros((n_int,) + imshape, dtype=np.uint32)
-    num_seg_per_int = np.zeros((n_int,) + imshape, dtype=np.uint8)
+    dq_int = np.zeros((n_int, *imshape), dtype=np.uint32)
+    num_seg_per_int = np.zeros((n_int, *imshape), dtype=np.uint8)
 
     # for estimated median slopes
-    sat_0th_group_int = np.zeros((n_int,) + imshape, dtype=np.uint8)
+    sat_0th_group_int = np.zeros((n_int, *imshape), dtype=np.uint8)
 
     return dq_int, num_seg_per_int, sat_0th_group_int
 
@@ -436,7 +436,7 @@ def alloc_arrays_2(n_int, imshape, max_seg):
     # Initialize variances so that non-existing ramps and segments will have
     #   negligible contributions
     # Integration-specific:
-    var_p3 = np.zeros((n_int,) + imshape, dtype=np.float32) + LARGE_VARIANCE
+    var_p3 = np.zeros((n_int, *imshape), dtype=np.float32) + LARGE_VARIANCE
     var_r3 = var_p3.copy()
     var_both3 = var_p3.copy()
     s_inv_var_p3 = np.zeros_like(var_p3)
@@ -444,13 +444,13 @@ def alloc_arrays_2(n_int, imshape, max_seg):
     s_inv_var_both3 = np.zeros_like(var_p3)
 
     # Segment-specific:
-    var_p4 = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.float32) + LARGE_VARIANCE
+    var_p4 = np.zeros((n_int, max_seg, *imshape), dtype=np.float32) + LARGE_VARIANCE
     var_r4 = var_p4.copy()
     var_both4 = var_p4.copy()
     inv_var_both4 = np.zeros_like(var_p4)
 
     # number of segments
-    segs_4 = np.zeros((n_int,) + (max_seg,) + imshape, dtype=np.uint8)
+    segs_4 = np.zeros((n_int, max_seg, *imshape), dtype=np.uint8)
 
     return (
         var_p3,
@@ -941,7 +941,7 @@ def get_dataset_info(ramp_data):
 
     npix = asize2 * asize1  # number of pixels in 2D array
     imshape = (asize2, asize1)
-    cubeshape = (nreads,) + imshape
+    cubeshape = (nreads, *imshape)
 
     return (nreads, npix, imshape, cubeshape, n_int, instrume, frame_time, ngroups, group_time)
 
@@ -1219,11 +1219,11 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
 
         groupdq_3d = np.bitwise_or(groupdq_3d, ramp_data.flags_do_not_use)
 
-        data = np.zeros((n_int,) + imshape, dtype=np.float32)
+        data = np.zeros((n_int, *imshape), dtype=np.float32)
         dq = groupdq_3d
-        var_poisson = np.zeros((n_int,) + imshape, dtype=np.float32)
-        var_rnoise = np.zeros((n_int,) + imshape, dtype=np.float32)
-        err = np.zeros((n_int,) + imshape, dtype=np.float32)
+        var_poisson = np.zeros((n_int, *imshape), dtype=np.float32)
+        var_rnoise = np.zeros((n_int, *imshape), dtype=np.float32)
+        err = np.zeros((n_int, *imshape), dtype=np.float32)
 
         integ_info = (data, dq, var_poisson, var_rnoise, err)
     else:
@@ -1231,7 +1231,7 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
 
     # Create model for the optional output
     if save_opt:
-        new_arr = np.zeros((n_int,) + (1,) + imshape, dtype=np.float32)
+        new_arr = np.zeros((n_int, 1, *imshape), dtype=np.float32)
 
         slope = new_arr
         sigslope = new_arr
@@ -1239,7 +1239,7 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
         var_rnoise = new_arr
         yint = new_arr
         sigyint = new_arr
-        pedestal = np.zeros((n_int,) + imshape, dtype=np.float32)
+        pedestal = np.zeros((n_int, *imshape), dtype=np.float32)
         weights = new_arr
         crmag = new_arr
 

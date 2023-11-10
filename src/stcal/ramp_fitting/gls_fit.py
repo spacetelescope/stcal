@@ -739,12 +739,12 @@ def create_opt_res(save_opt, dims, max_num_cr):
     if save_opt:
         # Create arrays for the fitted values of zero-point intercept and
         # cosmic-ray amplitudes, and their errors.
-        intercept_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
-        intercept_err_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+        intercept_int = np.zeros((number_ints, *imshape), dtype=np.float32)
+        intercept_err_int = np.zeros((number_ints, *imshape), dtype=np.float32)
 
         # The pedestal is the extrapolation of the first group back to zero
         # time, for each integration.
-        pedestal_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+        pedestal_int = np.zeros((number_ints, *imshape), dtype=np.float32)
 
         # The first group, for calculating the pedestal.  (This only needs
         # to be nrows high, but we don't have nrows yet.  xxx)

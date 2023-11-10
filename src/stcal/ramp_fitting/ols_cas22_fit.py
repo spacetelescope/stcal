@@ -115,8 +115,8 @@ def fit_ramps_casertano(
     orig_shape = resultants.shape
     if len(resultants.shape) == 1:
         # single ramp.
-        resultants = resultants.reshape(orig_shape + (1,))
-        dq = dq.reshape(orig_shape + (1,))
+        resultants = resultants.reshape((*orig_shape, 1))
+        dq = dq.reshape((*orig_shape, 1))
         read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
     output = ols_cas22.fit_ramps(

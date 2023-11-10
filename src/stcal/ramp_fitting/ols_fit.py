@@ -875,7 +875,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     # Get needed sizes and shapes
     n_int, ngroups, nrows, ncols = data.shape
     imshape = (nrows, ncols)
-    cubeshape = (ngroups,) + imshape
+    cubeshape = (ngroups, *imshape)
 
     # Get GROUP DQ and ERR arrays from input file
     gdq_cube = groupdq
@@ -1096,7 +1096,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
     # Get needed sizes and shapes
     n_int, ngroups, nrows, ncols = data.shape
     imshape = (nrows, ncols)
-    cubeshape = (ngroups,) + imshape
+    cubeshape = (ngroups, *imshape)
 
     max_seg = fit_slopes_ans[0]
     num_seg_per_int = fit_slopes_ans[5]
