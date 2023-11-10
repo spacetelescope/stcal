@@ -8,9 +8,9 @@ warnings.warn(
 try:
     from stdatamodels.dqflags import (
         ap_interpret_bit_flags,
-        multiple_replace,
-        interpret_bit_flags,
         dqflags_to_mnemonics,
+        interpret_bit_flags,
+        multiple_replace,
     )
 except ImportError:
     raise ImportError("dqflags has been moved to stdatamodels.dqflags, please install stdatamodels")

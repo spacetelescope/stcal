@@ -82,7 +82,12 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 110
-select = ['F', 'W', 'E', 'C']
+select = [
+    'F',      # Pyflakes
+    'W', 'E', # pycodestyle
+    'C',
+    'I',      # isort
+]
 ignore = [
     'C901', # variable is too complex
 ]

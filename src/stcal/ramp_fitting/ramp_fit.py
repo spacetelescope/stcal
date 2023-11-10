@@ -13,13 +13,16 @@
 # In this module, comments on the 'first group','second group', etc are
 #    1-based, unless noted otherwise.
 
-import numpy as np
-from astropy import units as u
 import logging
 
-from . import gls_fit  # used only if algorithm is "GLS"
-from . import ols_fit  # used only if algorithm is "OLS"
-from . import ramp_fit_class
+import numpy as np
+from astropy import units as u
+
+from . import (
+    gls_fit,  # used only if algorithm is "GLS"
+    ols_fit,  # used only if algorithm is "OLS"
+    ramp_fit_class,
+)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

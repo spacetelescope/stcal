@@ -1,8 +1,6 @@
-import pytest
 import numpy as np
-
-from stcal.ramp_fitting.ramp_fit import ramp_fit_data
-from stcal.ramp_fitting.ramp_fit import ramp_fit_class
+import pytest
+from stcal.ramp_fitting.ramp_fit import ramp_fit_class, ramp_fit_data
 
 test_dq_flags = {
     "GOOD": 0,

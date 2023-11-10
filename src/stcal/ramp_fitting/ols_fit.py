@@ -1,16 +1,14 @@
 #! /usr/bin/env python
 
 import logging
-from multiprocessing.pool import Pool as Pool
-from multiprocessing import cpu_count as cpu_count
-import numpy as np
 import time
-
 import warnings
+from multiprocessing import cpu_count as cpu_count
+from multiprocessing.pool import Pool as Pool
 
-from . import ramp_fit_class
-from . import utils
+import numpy as np
 
+from . import ramp_fit_class, utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

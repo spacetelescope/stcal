@@ -1,7 +1,7 @@
-from setuptools import setup, Extension
+import numpy as np
 from Cython.Build import cythonize
 from Cython.Compiler import Options
-import numpy as np
+from setuptools import Extension, setup
 
 Options.docstrings = True
 Options.annotate = False

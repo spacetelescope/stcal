@@ -2,8 +2,9 @@
 #
 # utils.py: utility functions
 import logging
-import numpy as np
 import warnings
+
+import numpy as np
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

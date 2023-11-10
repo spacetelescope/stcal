@@ -1,11 +1,10 @@
 import inspect
-import numpy as np
-import numpy.testing as npt
 import os
 
+import numpy as np
+import numpy.testing as npt
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
-
 
 #
 # The first 12 tests are for a single ramp in a single integration. The ramps

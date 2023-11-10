@@ -1,7 +1,9 @@
 import logging
+
 import numpy as np
-from stcal.alignment import util
 from gwcs.wcstools import grid_from_bounding_box
+
+from stcal.alignment import util
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

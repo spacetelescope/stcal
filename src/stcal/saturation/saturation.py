@@ -1,7 +1,7 @@
-import numpy as np
+import copy
 import logging
 
-import copy
+import numpy as np
 from scipy import ndimage
 
 log = logging.getLogger(__name__)

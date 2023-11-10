@@ -1,7 +1,7 @@
-import pytest
 import importlib
-
 from contextlib import nullcontext
+
+import pytest
 
 try:
     import stdatamodels  # noqa: F401

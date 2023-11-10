@@ -1,25 +1,22 @@
+import gwcs
 import numpy as np
-
-from astropy.modeling import models
+import pytest
 from astropy import coordinates as coord
 from astropy import units as u
-from astropy.io import fits
-
 from astropy import wcs as fitswcs
-import gwcs
+from astropy.io import fits
+from astropy.modeling import models
 from gwcs import coordinate_frames as cf
-
-import pytest
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
+    _validate_wcs_list,
     compute_fiducial,
     compute_scale,
-    wcs_from_footprints,
-    _validate_wcs_list,
+    reproject,
+    update_s_region_imaging,
     update_s_region_keyword,
     wcs_bbox_from_shape,
-    update_s_region_imaging,
-    reproject,
+    wcs_from_footprints,
 )
 
 

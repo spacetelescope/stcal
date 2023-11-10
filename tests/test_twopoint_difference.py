@@ -1,8 +1,6 @@
-import pytest
 import numpy as np
-
-from stcal.jump.twopoint_difference import find_crs, calc_med_first_diffs
-
+import pytest
+from stcal.jump.twopoint_difference import calc_med_first_diffs, find_crs
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1}
 

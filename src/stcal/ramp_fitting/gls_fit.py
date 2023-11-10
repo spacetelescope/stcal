@@ -11,14 +11,14 @@
 
 
 import logging
-from multiprocessing.pool import Pool as Pool
+import time
 from multiprocessing import cpu_count as cpu_count
+from multiprocessing.pool import Pool as Pool
+
 import numpy as np
 import numpy.linalg as la
-import time
 
-from . import ramp_fit_class
-from . import utils
+from . import ramp_fit_class, utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

@@ -2,22 +2,19 @@
 Common utility functions for datamodel alignment.
 
 """
-import logging
 import functools
+import logging
 from typing import List, Protocol, Union
 
-import numpy as np
-
-from astropy.coordinates import SkyCoord
-from astropy.utils.misc import isiterable
-from astropy import units as u
-from astropy.modeling import models as astmodels
-from astropy import wcs as fitswcs
-
-from asdf import AsdfFile
 import gwcs
+import numpy as np
+from asdf import AsdfFile
+from astropy import units as u
+from astropy import wcs as fitswcs
+from astropy.coordinates import SkyCoord
+from astropy.modeling import models as astmodels
+from astropy.utils.misc import isiterable
 from gwcs.wcstools import wcs_from_fiducial
-
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

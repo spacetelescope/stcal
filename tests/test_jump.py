@@ -1,13 +1,12 @@
 import numpy as np
 import pytest
-
 from stcal.jump.jump import (
-    flag_large_events,
-    find_ellipses,
-    extend_saturation,
-    point_inside_ellipse,
-    find_faint_extended,
     calc_num_slices,
+    extend_saturation,
+    find_ellipses,
+    find_faint_extended,
+    flag_large_events,
+    point_inside_ellipse,
 )
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
