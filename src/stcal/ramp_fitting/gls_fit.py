@@ -1657,7 +1657,7 @@ def gls_fit(
         for z in range(nz):
             try:
                 la.solve(temp_var[z], I_2)
-            except la.LinAlgError as msg2:
+            except la.LinAlgError as msg2:  # noqa: PERF203
                 log.warning("singular matrix, z = %d", z)
                 raise la.LinAlgError(msg2) from err
     del I_2

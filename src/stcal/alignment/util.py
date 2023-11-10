@@ -812,13 +812,10 @@ def reproject(wcs1, wcs2):
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
 
         # rearrange into array including flattened x and y vaues
-        flat_sky = []
-        for axis in sky:
-            flat_sky.append(axis.flatten())
+        flat_sky = [axis.flatten() for axis in sky]
         det = np.array(_get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0))
-        det_reshaped = []
-        for axis in det:
-            det_reshaped.append(axis.reshape(x.shape))
+        det_reshaped = [axis.reshape(x.shape) for axis in det]
+
         return tuple(det_reshaped)
 
     return _reproject
