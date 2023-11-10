@@ -25,7 +25,7 @@ NGROUPS_DARK = 10
 DELIM = "-" * 80
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def make_rampmodel():
     """Make MIRI Ramp model for testing"""
 
@@ -49,7 +49,7 @@ def make_rampmodel():
     return _ramp
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def make_darkmodel():
     """Make MIRI dark model for testing"""
 
@@ -72,7 +72,7 @@ def make_darkmodel():
     return _dark
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def setup_nrc_cube():
     """Set up fake NIRCam data to test."""
 
@@ -135,7 +135,7 @@ def _params():
     return params
 
 
-@pytest.mark.parametrize("readpatt, ngroups, nframes, groupgap, nrows, ncols", _params())
+@pytest.mark.parametrize(("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params())
 def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, nrows, ncols):
     """Check that if nframes>1 or groupgap>0, then the pipeline reconstructs
     the dark reference file to match the frame averaging and groupgap

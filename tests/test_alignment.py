@@ -193,7 +193,7 @@ def test_validate_wcs_list():
 
 
 @pytest.mark.parametrize(
-    "wcs_list, expected_error",
+    ("wcs_list", "expected_error"),
     [
         ([], TypeError),
         ([1, 2, 3], TypeError),
@@ -205,10 +205,8 @@ def test_validate_wcs_list():
     ],
 )
 def test_validate_wcs_list_invalid(wcs_list, expected_error):
-    with pytest.raises(Exception) as exec_info:
+    with pytest.raises(expected_error, match=r".*"):
         _validate_wcs_list(wcs_list)
-
-    assert type(exec_info.value) == expected_error
 
 
 def get_fake_wcs():
@@ -250,7 +248,7 @@ def get_fake_wcs():
 
 
 @pytest.mark.parametrize(
-    "x_inp, y_inp, x_expected, y_expected",
+    ("x_inp", "y_inp", "x_expected", "y_expected"),
     [
         (1000, 2000, np.array(2000), np.array(4000)),  # string input test
         ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
@@ -271,7 +269,7 @@ def test_wcs_bbox_from_shape_2d():
 
 
 @pytest.mark.parametrize(
-    "shape, pixmap_expected_shape",
+    ("shape", "pixmap_expected_shape"),
     [
         (None, (4, 4, 2)),
         ((100, 200), (100, 200, 2)),
@@ -285,7 +283,7 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
 
 
 @pytest.mark.parametrize(
-    "model, footprint, expected_s_region, expected_log_info",
+    ("model", "footprint", "expected_s_region", "expected_log_info"),
     [
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),
@@ -311,7 +309,7 @@ def test_update_s_region_keyword(model, footprint, expected_s_region, expected_l
 
 
 @pytest.mark.parametrize(
-    "shape, expected_bbox",
+    ("shape", "expected_bbox"),
     [
         ((100, 200), ((-0.5, 199.5), (-0.5, 99.5))),
         ((1, 1), ((-0.5, 0.5), (-0.5, 0.5))),
@@ -327,7 +325,7 @@ def test_wcs_bbox_from_shape(shape, expected_bbox):
 
 
 @pytest.mark.parametrize(
-    "model, bounding_box, data",
+    ("model", "bounding_box", "data"),
     [
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),

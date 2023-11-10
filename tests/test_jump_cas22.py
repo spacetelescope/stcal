@@ -100,7 +100,7 @@ def read_pattern():
         metadata : dict
             The metadata computed from the read pattern
     """
-    yield [
+    return [
         [1, 2, 3, 4],
         [5],
         [6, 7, 8],
@@ -143,7 +143,7 @@ def ramp_data(read_pattern):
     """
     data = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()
 
-    yield data["t_bar"], data["tau"], data["n_reads"], read_pattern
+    return data["t_bar"], data["tau"], data["n_reads"], read_pattern
 
 
 def test_fill_fixed_values(ramp_data):
@@ -255,7 +255,7 @@ def pixel_data(ramp_data):
 
     resultants = _generate_resultants(read_pattern)
 
-    yield resultants, t_bar, tau, n_reads, fixed
+    return resultants, t_bar, tau, n_reads, fixed
 
 
 def test__fill_pixel_values(pixel_data):

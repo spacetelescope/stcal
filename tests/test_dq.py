@@ -11,7 +11,7 @@ else:
     HAS_STDATAMODELS = True
 
 
-@pytest.mark.parametrize("name", ("dqflags", "dynamicdq", "basic_utils"))
+@pytest.mark.parametrize("name", ["dqflags", "dynamicdq", "basic_utils"])
 def test_deprecation(name):
     error = (
         nullcontext()

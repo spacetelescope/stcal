@@ -12,7 +12,7 @@ from stcal.jump.jump import (
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def setup_cube():
     def _cube(ngroups, readnoise=10):
         nints = 1
