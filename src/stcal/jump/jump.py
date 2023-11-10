@@ -2,9 +2,9 @@ import logging
 import multiprocessing
 import time
 
-import astropy.stats as stats
 import cv2 as cv
 import numpy as np
+from astropy import stats
 from astropy.convolution import Ring2DKernel, convolve
 
 from . import constants

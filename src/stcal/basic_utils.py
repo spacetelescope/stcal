@@ -14,4 +14,4 @@ except ImportError as err:
     ) from err
 
 
-__all__ = [multiple_replace]
+__all__ = ["multiple_replace"]

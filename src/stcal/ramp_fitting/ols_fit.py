@@ -3,8 +3,8 @@
 import logging
 import time
 import warnings
-from multiprocessing import cpu_count as cpu_count
-from multiprocessing.pool import Pool as Pool
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
 
 import numpy as np
 
@@ -1933,7 +1933,7 @@ def fit_next_segment(
     got_case = np.zeros((ncols * nrows), dtype=bool)
 
     # Special case fit with NGROUPS being 1 or 2.
-    if ngroups == 1 or ngroups == 2:
+    if ngroups in (1, 2):
         return fit_short_ngroups(
             ngroups,
             start,

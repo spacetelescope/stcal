@@ -12,8 +12,8 @@
 
 import logging
 import time
-from multiprocessing import cpu_count as cpu_count
-from multiprocessing.pool import Pool as Pool
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
 
 import numpy as np
 import numpy.linalg as la

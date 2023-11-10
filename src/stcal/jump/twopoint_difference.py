@@ -1,8 +1,8 @@
 import logging
 import warnings
 
-import astropy.stats as stats
 import numpy as np
+from astropy import stats
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

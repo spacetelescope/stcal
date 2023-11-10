@@ -14,4 +14,4 @@ except ImportError as err:
     ) from err
 
 
-__all__ = [dynamic_mask]
+__all__ = ["dynamic_mask"]

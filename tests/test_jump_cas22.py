@@ -499,9 +499,7 @@ def test_find_jumps(jump_data):
             # The two resultants excluded should be adjacent
             jump_correct = []
             for jump in fit["jumps"]:
-                jump_correct.append(
-                    jump == resultant_index or jump == resultant_index - 1 or jump == resultant_index + 1
-                )
+                jump_correct.append(jump in (resultant_index, resultant_index - 1, resultant_index + 1))
             if not all(jump_correct):
                 incorrect_other += 1
                 continue

@@ -839,8 +839,6 @@ def assert_pri(p_true, new_info, pix):
     npt.assert_allclose(var_poisson[0, pix], p_true[3], atol=2e-5, rtol=2e-5)
     npt.assert_allclose(var_rnoise[0, pix], p_true[4], atol=2e-5, rtol=2e-5)
 
-    return
-
 
 def debug_opt(o_true, opt_info, pix):
     (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
@@ -907,8 +905,6 @@ def assert_opt(o_true, opt_info, pix):
     npt.assert_allclose(opt_sigyint, o_true[5], atol=2e-5, rtol=2e-5)
     npt.assert_allclose(opt_pedestal, o_true[6], atol=2e-5, rtol=3e-5)
     npt.assert_allclose(opt_weights, o_true[7], atol=2e-5, rtol=2e-5)
-
-    return
 
 
 def dbg_print(string):
