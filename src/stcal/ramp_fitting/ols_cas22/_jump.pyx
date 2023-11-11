@@ -63,7 +63,6 @@ from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, JumpFits, JUMP_DET, Fixe
 from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp, init_ramps
 
 
-
 @boundscheck(False)
 @wraparound(False)
 @cdivision(True)
@@ -246,6 +245,7 @@ cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
 
     return - slope / diff
 
+
 @boundscheck(False)
 @wraparound(False)
 @cdivision(True)
@@ -362,22 +362,23 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
                                     correct)
 
     # Compute the rest of the fit statistics
-    cdef float stat
+    cdef float stat, stat1, stat2
     cdef int stat_index
     for stat_index, index in enumerate(range(ramp.start, ramp.end - 1)):
         # Compute max of single and double difference statistics
-        stat = fmaxf(_statstic(pixel[single_local_slope, index],
-                               pixel[single_var_read_noise, index],
-                               fixed[single_t_bar_diff_sqr, index],
-                               fixed[single_var_slope_val, index],
-                               slope,
-                               correct),
-                    _statstic(pixel[double_local_slope, index],
-                              pixel[double_var_read_noise, index],
-                              fixed[double_t_bar_diff_sqr, index],
-                              fixed[double_var_slope_val, index],
-                              slope,
-                              correct))
+        stat1 = _statstic(pixel[single_local_slope, index],
+                          pixel[single_var_read_noise, index],
+                          fixed[single_t_bar_diff_sqr, index],
+                          fixed[single_var_slope_val, index],
+                          slope,
+                          correct)
+        stat2 = _statstic(pixel[double_local_slope, index],
+                          pixel[double_var_read_noise, index],
+                          fixed[double_t_bar_diff_sqr, index],
+                          fixed[double_var_slope_val, index],
+                          slope,
+                          correct)
+        stat = fmaxf(stat1, stat2)
 
         # If this is larger than the current max, update the max
         if stat > max_stat:

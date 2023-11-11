@@ -158,6 +158,9 @@ exclude = [
     "S101"
 ]
 
+[tool.cython-lint]
+max-line-length = 110
+
 [tool.codespell]
 skip="*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 # ignore-words-list="""
