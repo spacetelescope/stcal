@@ -1,7 +1,12 @@
 1.4.5 (unreleased)
 ==================
 
+Other
+-----
+
 - Added ``alignment`` sub-package. [#179]
+
+- Enable automatic linting and code style checks [#187]
 
 ramp_fitting
 ------------
@@ -24,11 +29,6 @@ Changes to API
 
 Bug Fixes
 ---------
-
--
-
-Other
------
 
 -
 
