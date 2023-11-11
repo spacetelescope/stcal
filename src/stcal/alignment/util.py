@@ -341,13 +341,16 @@ def _validate_wcs_list(wcs_list):
         instance of WCS.
     """
     if not isiterable(wcs_list):
-        raise ValueError("Expected 'wcs_list' to be an iterable of WCS objects.")
+        msg = "Expected 'wcs_list' to be an iterable of WCS objects."
+        raise ValueError(msg)
 
     if len(wcs_list):
         if not all(isinstance(w, gwcs.WCS) for w in wcs_list):
-            raise TypeError("All items in 'wcs_list' are to be instances of gwcs.wcs.WCS.")
+            msg = "All items in 'wcs_list' are to be instances of gwcs.wcs.WCS."
+            raise TypeError(msg)
     else:
-        raise TypeError("'wcs_list' should not be empty.")
+        msg = "'wcs_list' should not be empty."
+        raise TypeError(msg)
 
     return True
 
@@ -427,7 +430,8 @@ def compute_scale(
     spectral = "SPECTRAL" in wcs.output_frame.axes_type
 
     if spectral and disp_axis is None:
-        raise ValueError("If input WCS is spectral, a disp_axis must be given")
+        msg = "If input WCS is spectral, a disp_axis must be given"
+        raise ValueError(msg)
 
     crpix = np.array(wcs.invert(*fiducial))
 
@@ -533,7 +537,8 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
             \\end{bmatrix}
     """
     if vparity not in (1, -1):
-        raise ValueError(f"vparity should be 1 or -1. Input was: {vparity}")
+        msg = f"vparity should be 1 or -1. Input was: {vparity}"
+        raise ValueError(msg)
 
     rel_angle = roll_ref - (vparity * v3i_yangle)
 
@@ -768,7 +773,8 @@ def reproject(wcs1, wcs2):
         elif isinstance(wcs1, gwcs.WCS):
             forward_transform = wcs1.forward_transform
         else:
-            raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS object")
+            msg = "Expected input to be astropy.wcs.WCS or gwcs.WCS object"
+            raise TypeError(msg)
         return forward_transform
 
     def _get_backward_transform_func(wcs2):
@@ -777,7 +783,8 @@ def reproject(wcs1, wcs2):
         elif isinstance(wcs2, gwcs.WCS):
             backward_transform = wcs2.backward_transform
         else:
-            raise TypeError("Expected input to be astropy.wcs.WCS or gwcs.WCS object")
+            msg = "Expected input to be astropy.wcs.WCS or gwcs.WCS object"
+            raise TypeError(msg)
         return backward_transform
 
     def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
@@ -803,7 +810,8 @@ def reproject(wcs1, wcs2):
         if not isinstance(y, (np.ndarray)):
             y = np.array(y)
         if x.shape != y.shape:
-            raise ValueError("x and y must be the same length")
+            msg = "x and y must be the same length"
+            raise ValueError(msg)
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
 
         # rearrange into array including flattened x and y values

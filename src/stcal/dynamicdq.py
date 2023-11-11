@@ -9,9 +9,8 @@ warnings.warn(
 try:
     from stdatamodels.dynamicdq import dynamic_mask
 except ImportError as err:
-    raise ImportError(
-        "dynamicdq has been moved to stdatamodels.dynamicdq, please install stdatamodels"
-    ) from err
+    msg = "dynamicdq has been moved to stdatamodels.dynamicdq, please install stdatamodels"
+    raise ImportError(msg) from err
 
 
 __all__ = ["dynamic_mask"]
