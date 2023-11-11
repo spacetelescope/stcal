@@ -344,10 +344,7 @@ def subtract_dark(science_data, dark_data):
     int_start = 1 if science_data.exp_intstart is None else science_data.exp_intstart
 
     # Determine the number of integrations contained in the dark reference file
-    if len(dark_data.data.shape) == 4:
-        dark_nints = dark_data.data.shape[0]
-    else:
-        dark_nints = 1
+    dark_nints = dark_data.data.shape[0] if len(dark_data.data.shape) == 4 else 1
 
     log.debug(
         "subtract_dark: nints=%d, ngroups=%d, size=%d,%d",
@@ -380,12 +377,12 @@ def subtract_dark(science_data, dark_data):
             # to the first few science integrations. There's an additional
             # check of the starting integration number in case the science
             # data are segmented.
-            if i < dark_nints and int_start == 1:
-                dark_sci = dark_data.data[i]
-            else:
-                # For science integrations beyond the number of
-                # dark integrations, use the last dark integration
-                dark_sci = dark_data.data[-1]
+            #
+            # else
+            #
+            # For science integrations beyond the number of
+            # dark integrations, use the last dark integration
+            dark_sci = dark_data.data[i] if i < dark_nints and int_start == 1 else dark_data.data[-1]
         else:
             # Use single-integration dark data
             dark_sci = dark_data.data

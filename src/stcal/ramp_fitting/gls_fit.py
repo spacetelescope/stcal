@@ -965,11 +965,8 @@ def determine_slope(
 
     iter_ = 0
     done = False
-    if NUM_ITER_NO_EXTRA_TERMS <= 0:
-        # Even the first iteration uses the extra terms.
-        temp_use_extra_terms = True
-    else:
-        temp_use_extra_terms = False
+    # Even the first iteration uses the extra terms.
+    temp_use_extra_terms = NUM_ITER_NO_EXTRA_TERMS <= 0
 
     while not done:
         (intercept_sect, int_var_sect, slope_sect, slope_var_sect, cr_sect, cr_var_sect) = compute_slope(

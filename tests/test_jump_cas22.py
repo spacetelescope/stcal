@@ -550,7 +550,7 @@ def test_override_default_threshold(jump_data):
 
 def test_jump_dq_set(jump_data):
     # Check the DQ flag value to start
-    assert JUMP_DET == 2**2
+    assert 2**2 == JUMP_DET
 
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)

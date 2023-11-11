@@ -152,10 +152,7 @@ def find_crs(
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
-    if only_use_ints and nints:
-        total_groups = nints
-    else:
-        total_groups = nints * ngrps - num_flagged_grps
+    total_groups = nints if only_use_ints and nints else nints * ngrps - num_flagged_grps
     if (ngrps < minimum_groups and only_use_ints and nints < minimum_sigclip_groups) or (
         not only_use_ints and nints * ngrps < minimum_sigclip_groups and ngrps < minimum_groups
     ):
@@ -361,38 +358,44 @@ def find_crs(
                 # Only flag adjacent pixels if they do not already have the
                 # 'SATURATION' or 'DONOTUSE' flag set
                 if row != 0:
-                    if (gdq[integ, group, row - 1, col] & sat_flag) == 0:
-                        if (gdq[integ, group, row - 1, col] & dnu_flag) == 0:
-                            gdq[integ, group, row - 1, col] = np.bitwise_or(
-                                gdq[integ, group, row - 1, col], jump_flag
-                            )
+                    if (gdq[integ, group, row - 1, col] & sat_flag) == 0 and (
+                        gdq[integ, group, row - 1, col] & dnu_flag
+                    ) == 0:
+                        gdq[integ, group, row - 1, col] = np.bitwise_or(
+                            gdq[integ, group, row - 1, col], jump_flag
+                        )
                 else:
                     row_below_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
 
                 if row != nrows - 1:
-                    if (gdq[integ, group, row + 1, col] & sat_flag) == 0:
-                        if (gdq[integ, group, row + 1, col] & dnu_flag) == 0:
-                            gdq[integ, group, row + 1, col] = np.bitwise_or(
-                                gdq[integ, group, row + 1, col], jump_flag
-                            )
+                    if (gdq[integ, group, row + 1, col] & sat_flag) == 0 and (
+                        gdq[integ, group, row + 1, col] & dnu_flag
+                    ) == 0:
+                        gdq[integ, group, row + 1, col] = np.bitwise_or(
+                            gdq[integ, group, row + 1, col], jump_flag
+                        )
                 else:
                     row_above_gdq[integ, cr_group[j], cr_col[j]] = jump_flag
 
                 # Here we are just checking that we don't flag neighbors of
                 # jumps that are off the detector.
-                if cr_col[j] != 0:
-                    if (gdq[integ, group, row, col - 1] & sat_flag) == 0:
-                        if (gdq[integ, group, row, col - 1] & dnu_flag) == 0:
-                            gdq[integ, group, row, col - 1] = np.bitwise_or(
-                                gdq[integ, group, row, col - 1], jump_flag
-                            )
+                if (
+                    cr_col[j] != 0
+                    and (gdq[integ, group, row, col - 1] & sat_flag) == 0
+                    and (gdq[integ, group, row, col - 1] & dnu_flag) == 0
+                ):
+                    gdq[integ, group, row, col - 1] = np.bitwise_or(
+                        gdq[integ, group, row, col - 1], jump_flag
+                    )
 
-                if cr_col[j] != ncols - 1:
-                    if (gdq[integ, group, row, col + 1] & sat_flag) == 0:
-                        if (gdq[integ, group, row, col + 1] & dnu_flag) == 0:
-                            gdq[integ, group, row, col + 1] = np.bitwise_or(
-                                gdq[integ, group, row, col + 1], jump_flag
-                            )
+                if (
+                    cr_col[j] != ncols - 1
+                    and (gdq[integ, group, row, col + 1] & sat_flag) == 0
+                    and (gdq[integ, group, row, col + 1] & dnu_flag) == 0
+                ):
+                    gdq[integ, group, row, col + 1] = np.bitwise_or(
+                        gdq[integ, group, row, col + 1], jump_flag
+                    )
 
     # flag n groups after jumps above the specified thresholds to account for
     # the transient seen after ramp jumps
@@ -409,9 +412,10 @@ def find_crs(
                 col = cr_col[j]
                 if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
                     for kk in range(group, min(group + cgroup + 1, ngroups)):
-                        if (gdq[intg, kk, row, col] & sat_flag) == 0:
-                            if (gdq[intg, kk, row, col] & dnu_flag) == 0:
-                                gdq[intg, kk, row, col] = np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
+                        if (gdq[intg, kk, row, col] & sat_flag) == 0 and (
+                            gdq[intg, kk, row, col] & dnu_flag
+                        ) == 0:
+                            gdq[intg, kk, row, col] = np.bitwise_or(gdq[integ, kk, row, col], jump_flag)
     if "stddev" in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 

@@ -180,8 +180,8 @@ def test_nocrs_noflux():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    assert 0 == np.max(slopes[0])
-    assert 0 == np.min(slopes[0])
+    assert np.max(slopes[0]) == 0
+    assert np.min(slopes[0]) == 0
 
 
 @pytest.mark.skip(reason="Getting all NaN's, but expecting all zeros.")
@@ -203,8 +203,8 @@ def test_nocrs_noflux_firstrows_are_nan():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    assert 0 == np.max(slopes[0])
-    assert 0 == np.min(slopes[0])
+    assert np.max(slopes[0]) == 0
+    assert np.min(slopes[0]) == 0
 
 
 def test_error_when_frame_time_not_set():
@@ -293,8 +293,8 @@ def test_bad_gain_values():
     assert dq[r2, c2] == flag_check
 
     # These asserts are wrong for some reason
-    assert 0 == np.max(data)
-    assert 0 == np.min(data)
+    assert np.max(data) == 0
+    assert np.min(data) == 0
 
 
 def test_simple_ramp():

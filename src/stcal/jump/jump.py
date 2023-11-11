@@ -724,25 +724,27 @@ def make_snowballs(
     for jump in jump_ellipses:
         # center of jump should be saturated
         jump_center = jump[0]
-        # if center of the jump ellipse is not saturated in this group and is saturated in
-        # the next group add the jump ellipse to the snowball list
         if (
+            # if center of the jump ellipse is not saturated in this group and is saturated in
+            # the next group add the jump ellipse to the snowball list
             group < (num_groups - 1)
             and gdq[integration, group + 1, round(jump_center[1]), round(jump_center[0])] == sat_flag
             and gdq[integration, group, round(jump_center[1]), round(jump_center[0])] != sat_flag
+        ) or (
+            # if the jump ellipse is near the edge, do not require saturation in the
+            # center of the jump ellipse
+            near_edge(jump, low_threshold, high_threshold)
         ):
-            snowballs.append(jump)
-        # if the jump ellipse is near the edge, do not require saturation in the
-        # center of the jump ellipse
-        elif near_edge(jump, low_threshold, high_threshold):
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
                 # center of saturation is within the enclosing jump rectangle
-                if point_inside_ellipse(sat[0], jump):
-                    if gdq[integration, group, round(jump_center[1]), round(jump_center[0])] == sat_flag:
-                        if jump not in snowballs:
-                            snowballs.append(jump)
+                if (
+                    point_inside_ellipse(sat[0], jump)
+                    and gdq[integration, group, round(jump_center[1]), round(jump_center[0])] == sat_flag
+                    and jump not in snowballs
+                ):
+                    snowballs.append(jump)
     # extend the saturated ellipses that are larger than the min_sat_radius
     gdq[integration, :, :, :] = extend_saturation(
         gdq[integration, :, :, :],
