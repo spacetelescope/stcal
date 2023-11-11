@@ -871,7 +871,7 @@ def get_efftim_ped(ramp_data):
     try:
         effintim = (nframes + groupgap) * frame_time
     except TypeError:
-        log.error("Can not retrieve values needed to calculate integ. time")
+        log.exception("Can not retrieve values needed to calculate integ. time")
 
     log.debug("Calculating effective integration time for a single group using:")
     log.debug(" groupgap: %s", groupgap)
