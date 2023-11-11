@@ -29,22 +29,23 @@ fit_ramps : function
 from __future__ import annotations
 
 import numpy as np
-cimport numpy as cnp
 
+cimport numpy as cnp
 from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 
-from stcal.ramp_fitting.ols_cas22._jump cimport (Thresh,
-                                                 JumpFits,
-                                                 fill_fixed_values,
-                                                 fit_jumps,
-                                                 n_fixed_offsets,
-                                                 n_pixel_offsets)
+from stcal.ramp_fitting.ols_cas22._jump cimport (
+    JumpFits,
+    Thresh,
+    fill_fixed_values,
+    fit_jumps,
+    n_fixed_offsets,
+    n_pixel_offsets,
+)
 from stcal.ramp_fitting.ols_cas22._ramp cimport ReadPattern, from_read_pattern
 
 from typing import NamedTuple
-
 
 # Initialize numpy for cython use in this module
 cnp.import_array()

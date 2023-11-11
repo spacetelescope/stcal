@@ -54,13 +54,12 @@ fit_jumps : function
         to splitting across detected jumps (if jump detection is turned on).
 """
 
-from cython cimport boundscheck, wraparound, cdivision
-
+from cython cimport boundscheck, cdivision, wraparound
+from libc.math cimport NAN, fmaxf, isnan, log10, sqrt
 from libcpp cimport bool
-from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, JumpFits, JUMP_DET, FixedOffsets, PixelOffsets
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp, init_ramps
+from stcal.ramp_fitting.ols_cas22._jump cimport JUMP_DET, FixedOffsets, JumpFits, PixelOffsets, Thresh
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, fit_ramp, init_ramps
 
 
 @boundscheck(False)

@@ -50,15 +50,13 @@ fit_ramps : function
     listed for a single pixel
 """
 import numpy as np
+
 cimport numpy as cnp
-
-from cython cimport boundscheck, wraparound, cdivision, cpow
-
-from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf
+from cython cimport boundscheck, cdivision, cpow, wraparound
+from libc.math cimport INFINITY, NAN, fabs, fmaxf, sqrt
 from libcpp.vector cimport vector
 
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, ReadPattern
-
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, ReadPattern
 
 # Initialize numpy for cython use in this module
 cnp.import_array()
