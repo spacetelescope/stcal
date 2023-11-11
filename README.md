@@ -12,21 +12,20 @@ STScI Calibration algorithms and tools.
 
 **STCAL requires Python 3.9 or above and a C compiler for dependencies.**
 
-**Linux and MacOS platforms are tested and supported.  Windows is not currently supported.**
+**Linux and MacOS platforms are tested and supported. Windows is not currently supported.**
 
 **If installing on MacOS Mojave 10.14, you must install
-  into an environment with python 3.9. Installation will fail on python 3.10 due
-  to lack of a stable build for dependency ``opencv-python``.**
-
+into an environment with python 3.9. Installation will fail on python 3.10 due
+to lack of a stable build for dependency `opencv-python`.**
 
 `STCAL` is intended to be used as a support package for calibration pipeline
-software, such as the `JWST` and `Roman` calibration pipelines.  `STCAL` is a
+software, such as the `JWST` and `Roman` calibration pipelines. `STCAL` is a
 separate package because it is also intended to be software that can be reused
-by multiple calibration pipelines.  Even though it is intended to be a support
+by multiple calibration pipelines. Even though it is intended to be a support
 package for calibration pipelines, it can be installed and used as a stand alone
-package.  This could make usage unwieldy as it is easier to use `STCAL` through
-calibration software.  The main use case for stand alone installation is for
-development purposes, such as bug fixes and feature additions.  When installing
+package. This could make usage unwieldy as it is easier to use `STCAL` through
+calibration software. The main use case for stand alone installation is for
+development purposes, such as bug fixes and feature additions. When installing
 calibration pipelines that depend on `STCAL` this package automatically gets
 installed as a dependency.
 
@@ -48,9 +47,10 @@ If desired, you can create multiple environments to allow for switching between 
 versions of the `stcal` package (e.g. a released version versus the current development version).
 
 In all cases, the installation is generally a 3-step process:
-* Create a conda environment
-* Activate that environment
-* Install the desired version of the `stcal` package into that environment
+
+- Create a conda environment
+- Activate that environment
+- Install the desired version of the `stcal` package into that environment
 
 Details are given below on how to do this for different types of installations,
 including tagged releases and development versions.
@@ -58,7 +58,7 @@ Remember that all conda operations must be done from within a bash/zsh shell.
 
 ### Installing latest releases
 
-You can install the latest released version via `pip`.  From a bash/zsh shell:
+You can install the latest released version via `pip`. From a bash/zsh shell:
 
     conda create -n <env_name> python
     conda activate <env_name>
@@ -100,7 +100,7 @@ fork and clone the `stcal` repo:
     git clone https://github.com/spacetelescope/stcal
     cd stcal
 
-*Note: `python setup.py install` and `python setup.py develop` commands do not work.*
+_Note: `python setup.py install` and `python setup.py develop` commands do not work._
 
 Install from your local checked-out copy as an "editable" install:
 
@@ -117,7 +117,6 @@ Need other useful packages in your development environment?
 
     pip install ipython jupyter matplotlib pylint ipdb
 
-
 ## Contributions and Feedback
 
 We welcome contributions and feedback on the project. Please follow the
@@ -131,7 +130,7 @@ at https://github.com/spacetelescope/stcal/issues.
 
 ## Unit Tests
 
-Unit tests can be run via `pytest`.  Within the top level of your local `stcal` repo checkout:
+Unit tests can be run via `pytest`. Within the top level of your local `stcal` repo checkout:
 
     pip install -e ".[test]"
     pytest

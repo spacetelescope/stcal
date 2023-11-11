@@ -2,7 +2,7 @@ name: build
 
 on:
   release:
-    types: [ released ]
+    types: [released]
   pull_request:
   workflow_dispatch:
 
