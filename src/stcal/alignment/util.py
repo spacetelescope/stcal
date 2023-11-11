@@ -72,8 +72,8 @@ def _generate_tranform(
     pscale_ratio: int | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
-    transform=None,
-):
+    transform: astmodels.Model | None = None,
+) -> astmodels.Model:
     """
     Creates a transform from pixel to world coordinates based on a
     reference datamodel's WCS.
@@ -352,7 +352,7 @@ def _validate_wcs_list(wcs_list):
     return True
 
 
-def wcsinfo_from_model(input_model: SupportsDataWithWcs):
+def wcsinfo_from_model(input_model: SupportsDataWithWcs) -> dict[str, np.ndarray | str | bool]:
     """
     Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
 
@@ -458,7 +458,7 @@ def compute_scale(
     return np.sqrt(xscale * yscale)
 
 
-def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
+def compute_fiducial(wcslist: list, bounding_box: tuple | list | None = None) -> np.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the

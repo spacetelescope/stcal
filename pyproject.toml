@@ -108,6 +108,8 @@ extend-select = [
     # 'N',      # pep8-naming
     'D',      # pydocstyle
     'UP',     # pyupgrade
+    'YTT',    # flake8-2020 (system version info)
+    'ANN',    # flake8-annotations (best practices for type annotations)
     'S',      # flake8-bandit
     'BLE',    # flake8-blind-except
     'B',      # flake8-bugbear
@@ -170,6 +172,9 @@ exclude = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.flake8-annotations]
+ignore-fully-untyped = true  # Turn of annotation checking for fully untyped code
 
 [tool.cython-lint]
 max-line-length = 110
