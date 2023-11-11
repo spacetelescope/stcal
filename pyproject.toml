@@ -104,12 +104,11 @@ src = [
 extend-select = [
     'F',      # Pyflakes
     'W', 'E', # pycodestyle
-    'C',
     'I',      # isort
     # 'N',      # pep8-naming
     'UP',     # pyupgrade
     'S',      # flake8-bandit
-    # 'BLE',    # flake8-blind-except
+    'BLE',    # flake8-blind-except
     'B',      # flake8-bugbear
     'A',       # flake8-builtins (prevent shadowing of builtins)
     'C4',      # flake8-comprehensions (best practices for comprehensions)
@@ -138,7 +137,6 @@ extend-select = [
     'RUF',     # ruff specific checks
 ]
 ignore = [
-    'C901', # variable is too complex
     'ISC001', # interferes with formatter
     'PLR0912', # Too many branches
     'PLR0913', # Too many arguments
