@@ -91,6 +91,9 @@ norecursedirs = [
 filterwarnings = [
     "error::ResourceWarning",
 ]
+markers = [
+    "soctests",
+]
 
 [tool.ruff]
 line-length = 110
