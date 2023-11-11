@@ -106,35 +106,36 @@ extend-select = [
     'W', 'E', # pycodestyle
     'I',      # isort
     # 'N',      # pep8-naming
+    'D',      # pydocstyle
     'UP',     # pyupgrade
     'S',      # flake8-bandit
     'BLE',    # flake8-blind-except
     'B',      # flake8-bugbear
-    'A',       # flake8-builtins (prevent shadowing of builtins)
-    'C4',      # flake8-comprehensions (best practices for comprehensions)
-    'T10',     # flake8-debugger (prevent debugger statements in code)
-    'ISC',     # flake8-implicit-str-concat (prevent implicit string concat)
-    'ICN',     # flake8-import-conventions (enforce import conventions)
-    'INP',     # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
-    'G',       # flake8-logging-format (best practices for logging)
-    'PIE',     # flake8-pie (misc suggested improvement linting)
-    # 'T20',     # flake8-print (prevent print statements in code)
-    'PT',      # flake8-pytest-style (best practices for pytest)
-    'Q',       # flake8-quotes (best practices for quotes)
-    'RSE',     # flake8-raise (best practices for raising exceptions)
-    'RET',     # flake8-return (best practices for return statements)
-    'SLF',     # flake8-self (prevent private member access)
-    'TID',     # flake8-tidy-imports (prevent banned api and best import practices)
-    'INT',     # flake8-gettext (when to use printf style strings)
-    # 'ARG',     # flake8-unused-arguments (prevent unused arguments)
-    'PTH',     # flake8-use-pathlib (prefer pathlib over os.path)
-    # 'ERA',     # eradicate (remove commented out code)
-    'PGH',     # pygrep (simple grep checks)
-    'PL',      # pylint (general linting, flake8 alternative)
-    'FLY',     # flynt (f-string conversion where possible)
-    'NPY',     # NumPy-specific checks (recommendations from NumPy)
-    'PERF',    # Perflint (performance linting)
-    'RUF',     # ruff specific checks
+    'A',      # flake8-builtins (prevent shadowing of builtins)
+    'C4',     # flake8-comprehensions (best practices for comprehensions)
+    'T10',    # flake8-debugger (prevent debugger statements in code)
+    'ISC',    # flake8-implicit-str-concat (prevent implicit string concat)
+    'ICN',    # flake8-import-conventions (enforce import conventions)
+    'INP',    # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
+    'G',      # flake8-logging-format (best practices for logging)
+    'PIE',    # flake8-pie (misc suggested improvement linting)
+    # 'T20',    # flake8-print (prevent print statements in code)
+    'PT',     # flake8-pytest-style (best practices for pytest)
+    'Q',      # flake8-quotes (best practices for quotes)
+    'RSE',    # flake8-raise (best practices for raising exceptions)
+    'RET',    # flake8-return (best practices for return statements)
+    'SLF',    # flake8-self (prevent private member access)
+    'TID',    # flake8-tidy-imports (prevent banned api and best import practices)
+    'INT',    # flake8-gettext (when to use printf style strings)
+    # 'ARG',    # flake8-unused-arguments (prevent unused arguments)
+    'PTH',    # flake8-use-pathlib (prefer pathlib over os.path)
+    # 'ERA',    # eradicate (remove commented out code)
+    'PGH',    # pygrep (simple grep checks)
+    'PL',     # pylint (general linting, flake8 alternative)
+    'FLY',    # flynt (f-string conversion where possible)
+    'NPY',    # NumPy-specific checks (recommendations from NumPy)
+    'PERF',   # Perflint (performance linting)
+    'RUF',    # ruff specific checks
 ]
 ignore = [
     'ISC001', # interferes with formatter
@@ -142,6 +143,16 @@ ignore = [
     'PLR0913', # Too many arguments
     'PLR0915', # Too many statements
     'PLR2004', # Magic value used in comparison
+
+    # Pydocstyle (to fix over time
+    'D100', # Undocumented public module
+    'D101', # Undocumented public class
+    'D102', # Undocumented public method
+    'D103', # Undocumented public function
+    'D104', # Undocumented public package
+    'D205', # 1 blank line required between summary line and description
+    'D401', # First line of docstring should be in imperative mood
+    'D404', # First word of docstring should not be This
 ]
 exclude = [
     'docs',
@@ -153,8 +164,12 @@ exclude = [
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = [
-    "S101"
+    "S101",
+    "D",
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.cython-lint]
 max-line-length = 110

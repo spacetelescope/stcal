@@ -114,9 +114,6 @@ class OptRes:
 
         save_opt : bool
             save optional fitting results
-
-        Returns
-        -------
         """
         for ii_seg in range(self.slope_seg.shape[1]):
             self.slope_seg[num_int, ii_seg, rlo:rhi, :] = self.slope_2d[ii_seg, :].reshape(sect_shape)
@@ -205,7 +202,7 @@ class OptRes:
             number of reads in an integration
 
         Returns
-        ----------
+        -------
         None
 
         """
@@ -295,7 +292,7 @@ class OptRes:
     def print_full(self):  # pragma: no cover
         """
         Diagnostic function for printing optional output arrays; most
-        useful for tiny datasets
+        useful for tiny datasets.
 
         Parameters
         ----------
@@ -862,7 +859,6 @@ def get_efftim_ped(ramp_data):
         number of frames dropped at the beginning of every integration; from
         the DRPFRMS1 keyword, or 0 if the keyword is missing
     """
-
     groupgap = ramp_data.groupgap
     nframes = ramp_data.nframes
     frame_time = ramp_data.frame_time
@@ -968,7 +964,6 @@ def get_more_info(ramp_data, saturated_flag, jump_flag):  # pragma: no cover
     jump_flag : int
         Group data quality flag that indicates a cosmic ray hit.
     """
-
     group_time = ramp_data.group_time
     nframes_used = ramp_data.nframes
     saturated_flag = ramp_data.flags_saturated
@@ -1253,7 +1248,7 @@ def do_all_sat(ramp_data, pixeldq, groupdq, imshape, n_int, save_opt):
 
 def log_stats(c_rates):
     """
-    Optionally log statistics of detected cosmic rays
+    Optionally log statistics of detected cosmic rays.
 
     Parameters
     ----------
@@ -1300,7 +1295,6 @@ def compute_num_slices(max_cores, nrows, max_available):
     number_slices : int
         The number of slices for multiprocessing.
     """
-
     number_slices = 1
     if max_cores.isnumeric():
         number_slices = int(max_cores)

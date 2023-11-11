@@ -499,7 +499,6 @@ def flag_large_events(
 
     Parameters
     ----------
-
     gdq : int, 4D array
         Group dq array
     jump_flag : int
@@ -532,7 +531,6 @@ def flag_large_events(
     Nothing, gdq array is modified.
 
     """
-
     log.info("Flagging large Snowballs")
 
     n_showers_grp = []
@@ -825,6 +823,7 @@ def find_faint_extended(
         The number of groups after the detected shower to be flagged as jump.
     max_extended_radius: int
         The upper limit for the extension of saturation and jump
+
     Returns
     -------
     gdq : int, 4D array

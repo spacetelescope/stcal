@@ -1,8 +1,6 @@
 class RampData:
     def __init__(self):
-        """
-        Creates an internal ramp fit class.
-        """
+        """Creates an internal ramp fit class."""
         # Arrays from the data model
         self.data = None
         self.err = None
@@ -96,7 +94,6 @@ class RampData:
             The number of frames dropped at the beginning of every integration.
             May not be used in some pipelines, so is defaulted to NoneType.
         """
-
         # Get meta information
         self.instrument_name = name
 

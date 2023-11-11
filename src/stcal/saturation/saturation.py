@@ -62,7 +62,6 @@ def flag_saturated_pixels(
     pdq : int, 2D array
         updated pixel dq array
     """
-
     nints, ngroups, nrows, ncols = data.shape
     saturated = dqflags["SATURATED"]
     ad_floor = dqflags["AD_FLOOR"]

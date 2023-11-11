@@ -228,9 +228,7 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
 
 
 def create_outputs(ramp_data):
-    """
-    Create the output arrays needed for multiprocessing reassembly.
-    """
+    """Create the output arrays needed for multiprocessing reassembly."""
     image_info = create_output_image(ramp_data)
     integ_info = create_output_integ(ramp_data)
     opt_res = create_output_opt_res(ramp_data)
@@ -521,7 +519,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         Save optional product.
 
     Returns
-    --------
+    -------
     image_info: tuple
         Tuple of ndarrays computed for the primary product for ramp fitting.
 
@@ -1175,7 +1173,6 @@ def evaluate_fit(intercept_sect, slope_sect, cr_sect, frame_time, group_time, gd
         This is the same shape as data_sect, and if the fit is good,
         fit_model and data_sect should not differ by much.
     """
-
     shape_3d = gdq_sect.shape  # the ramp, (ngroups, ny, nx)
     ngroups = gdq_sect.shape[0]
 
@@ -1236,7 +1233,6 @@ def positive_fit(current_fit):
         This is the same as the input current_fit, except that zero and
         negative values will have been replaced by a positive value.
     """
-
     return np.where(current_fit <= 0.0, FIT_MUST_BE_POSITIVE, current_fit)
 
 
@@ -1559,7 +1555,6 @@ def gls_fit(
         The variance for the intercept, slope, and for the amplitude of
         each cosmic ray that was detected.
     """
-
     M = float(nframes_used)
 
     ngroups = ramp_data.shape[0]

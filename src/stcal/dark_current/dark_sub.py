@@ -69,7 +69,6 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     averaged_dark : DarkData
         New dark object with averaged frames
     """
-
     # Save some data params for easy use later
     sci_nints = science_data.data.shape[0]
     sci_ngroups = science_data.data.shape[1]
@@ -195,7 +194,6 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
     avg_dark : DarkData
         New dark object with averaged frames
     """
-
     # Create a model for the averaged dark data
     dny = dark_data.data.shape[1]
     dnx = dark_data.data.shape[2]
@@ -268,7 +266,6 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     avg_dark : dark data model
         New dark object with averaged frames
     """
-
     # Create a model for the averaged dark data
     dint = dark_data.data.shape[0]
     dny = dark_data.data.shape[2]
@@ -342,7 +339,6 @@ def subtract_dark(science_data, dark_data):
     output : data model object
         dark-subtracted science data
     """
-
     # The integration start number is only needed for JWST/MIRI data.
     # It defaults to 1 if the keyword is not in the science data.
     int_start = 1 if science_data.exp_intstart is None else science_data.exp_intstart

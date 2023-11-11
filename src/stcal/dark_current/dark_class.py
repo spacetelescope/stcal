@@ -21,7 +21,7 @@ class DarkData:
         to set wanted values.
 
         Parameters
-        ---------
+        ----------
         dims : tuple, optional
             A tuple of integers to describe the dimensions of the arrays used
             during the dark current step.  This argument is only used if the
@@ -78,7 +78,7 @@ class ScienceData:
         from the data.
 
         Parameters
-        ---------
+        ----------
         science_model : data model, optional
             Input data model, assumed to be a JWST RampModel like model.  If
             this is None, then the class instantiator is responsible for

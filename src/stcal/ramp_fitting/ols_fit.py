@@ -68,7 +68,6 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-
     # Determine number of slices to use for multi-processor computations
     nrows = ramp_data.data.shape[2]
     num_available_cores = cpu_count()
@@ -1082,7 +1081,6 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
     s_inv_var_both3 : ndarray
         1 / var_both3, summed over integrations
     """
-
     # Get image data information
     data = ramp_data.data
     err = ramp_data.err
@@ -2102,7 +2100,7 @@ def fit_next_segment_all_other(wh_check, start, end_st, end_heads, ngroups):
     handled here have adequate data, but the stack arrays are updated.
         - increment start array
         - remove current end from end stack
-        - decrement number of ends
+        - decrement number of ends.
 
     Parameters
     ----------
@@ -2148,7 +2146,7 @@ def fit_next_segment_good_0th_bad_1st(wh_check, start, end_st, end_heads, got_ca
     adjusted.
         - increment start array
         - remove current end from end stack
-        - decrement number of ends
+        - decrement number of ends.
 
     Parameters
     ----------
@@ -2205,7 +2203,7 @@ def fit_next_segment_only_good_0th_group(
         - remove current end from end stack
         - set number of end to 0
         - add slopes and variances to running sums
-        - set pixel_done to True to designate all fitting done
+        - set pixel_done to True to designate all fitting done.
 
     Parameters
     ----------
@@ -2475,7 +2473,7 @@ def fit_next_segment_short_seg_at_end(
         - set pixel_done to True to designate all fitting done
     For segments of this type, the final good group is the final group in the
     ramp, and the variable `l_interval` used below = 1, and the number of
-    groups in the segment = 2
+    groups in the segment = 2.
 
     Parameters
     ----------
@@ -2929,7 +2927,6 @@ def fit_short_ngroups(
     num_seg : ndarray
         numbers of segments for good pixels, 1-D int
     """
-
     # Dataset has NGROUPS=2, so special fitting is done for all pixels.
     # All segments are at the end of the array.
     #    - set start to -1 to designate all fitting done
@@ -3379,7 +3376,6 @@ def calc_unwtd_fit(xvalues, nreads_1d, sumxx, sumx, sumxy, sumy):
     line_fit : ndarray
        1-D values of fit using slope and intercept
     """
-
     denominator = nreads_1d * sumxx - sumx**2
 
     # In case this branch is ever used again, suppress, and then re-enable

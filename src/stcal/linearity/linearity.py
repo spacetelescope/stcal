@@ -207,7 +207,6 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
     lin_coeffs: 3D array
         updated array of correction coefficients in reference file
     """
-
     wh_nan = np.where(np.isnan(lin_coeffs))
     znan, ynan, xnan = wh_nan[0], wh_nan[1], wh_nan[2]
     num_nan = 0
@@ -249,7 +248,6 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     lin_coeffs: 3D array
         updated array of correction coefficients in reference file
     """
-
     # The critical coefficient that should not be zero is the linear term other terms are fine to be zero
     linear_term = lin_coeffs[1, :, :]
     wh_zero = np.where(linear_term == 0)
@@ -296,7 +294,6 @@ def correct_for_flag(lin_coeffs, lin_dq, dqflags):
     lin_coeffs: 3D array
         updated array of correction coefficients in reference file
     """
-
     wh_flag = np.bitwise_and(lin_dq, dqflags["NO_LIN_CORR"])
     num_flag = len(np.where(wh_flag > 0)[0])
 

@@ -92,7 +92,6 @@ def fit_ramps_casertano(
         fits: always None, this is a hold over which can contain the diagnostic
             fit information from the jump detection algorithm.
     """
-
     # Trickery to avoid having to specify the defaults for the threshold
     #   parameters outside the cython code.
     kwargs = {}

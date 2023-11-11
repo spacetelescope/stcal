@@ -110,6 +110,7 @@ def find_crs(
         integrations. This means that a group will only be compared against the
         same group in other integrations. If False all groups across all integrations
         will be used to detect outliers.
+
     Returns
     -------
     gdq : int, 4D array
@@ -434,7 +435,7 @@ def calc_med_first_diffs(first_diffs):
     difference will be returned.
 
     Parameters
-    -----------
+    ----------
     first_diffs : array, float
         array containing the first differences of adjacent groups
         for a single integration. Can be 3d or 1d (for a single pix)
@@ -447,7 +448,6 @@ def calc_med_first_diffs(first_diffs):
         array of several pixels, a 2d array with the median for each pixel
         will be returned.
     """
-
     if first_diffs.ndim == 1:  # in the case where input is a single pixel
         num_usable_groups = len(first_diffs) - np.sum(np.isnan(first_diffs), axis=0)
         if num_usable_groups >= 4:  # if 4+, clip largest and return median

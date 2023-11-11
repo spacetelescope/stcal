@@ -1,7 +1,4 @@
-"""
-Common utility functions for datamodel alignment.
-
-"""
+"""Common utility functions for datamodel alignment."""
 from __future__ import annotations
 
 import functools
@@ -490,7 +487,6 @@ def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
     -----
     This function assumes all WCSs have the same output coordinate frame.
     """
-
     axes_types = wcslist[0].output_frame.axes_type
     spatial_axes = np.array(axes_types) == "SPATIAL"
     spectral_axes = np.array(axes_types) == "SPECTRAL"
@@ -507,7 +503,7 @@ def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
 
 
 def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -> list[float]:
-    """Calculate the rotation matrix.
+    r"""Calculate the rotation matrix.
 
     Parameters
     ----------
@@ -632,7 +628,6 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-
     wcs_list = [im.meta.wcs for im in dmodels]
 
     _validate_wcs_list(wcs_list)
@@ -672,7 +667,6 @@ def update_s_region_imaging(model, center=True):
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
     """
-
     bbox = model.meta.wcs.bounding_box
 
     if bbox is None:
@@ -702,6 +696,7 @@ def wcs_bbox_from_shape(shape):
     """Create a bounding box from the shape of the data.
 
     This is appropriate to attach to a wcs object
+
     Parameters
     ----------
     shape : tuple
@@ -766,7 +761,7 @@ def reproject(wcs1, wcs2):
         fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
-        )
+        ).
         """
         if isinstance(wcs1, fitswcs.WCS):
             forward_transform = wcs1.all_pix2world
@@ -789,15 +784,15 @@ def reproject(wcs1, wcs2):
         """
         Reprojects the input coordinates from one WCS to another.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         x : float or np.ndarray
             x-coordinate(s) to be reprojected.
         y : float or np.ndarray
             y-coordinate(s) to be reprojected.
 
-        Returns:
-        --------
+        Returns
+        -------
         tuple
             Tuple of np.ndarrays including reprojected x and y coordinates.
         """

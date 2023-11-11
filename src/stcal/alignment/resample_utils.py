@@ -10,7 +10,7 @@ log.setLevel(logging.DEBUG)
 
 
 def calc_pixmap(in_wcs, out_wcs, shape=None):
-    """Return a pixel grid map from input frame to output frame
+    """Return a pixel grid map from input frame to output frame.
 
     Parameters
     ----------
