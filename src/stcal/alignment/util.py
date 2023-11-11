@@ -3,17 +3,19 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import gwcs
 import numpy as np
-from asdf import AsdfFile
 from astropy import units as u
 from astropy import wcs as fitswcs
 from astropy.coordinates import SkyCoord
 from astropy.modeling import models as astmodels
 from astropy.utils.misc import isiterable
 from gwcs.wcstools import wcs_from_fiducial
+
+if TYPE_CHECKING:
+    from asdf import AsdfFile
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
