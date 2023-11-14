@@ -25,7 +25,7 @@ RampFit : struct
         The poisson variance for the fit
 
 RampQueue : vector[RampIndex]
-    Vector of RampIndex objects (convienience typedef)
+    Vector of RampIndex objects (convenience typedef)
 
 Classes
 -------
@@ -50,15 +50,13 @@ fit_ramps : function
     listed for a single pixel
 """
 import numpy as np
+
 cimport numpy as cnp
-
-from cython cimport boundscheck, wraparound, cdivision, cpow
-
-from libc.math cimport sqrt, fabs, INFINITY, NAN, fmaxf
+from cython cimport boundscheck, cdivision, cpow, wraparound
+from libc.math cimport INFINITY, NAN, fabs, fmaxf, sqrt
 from libcpp.vector cimport vector
 
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, ReadPattern
-
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, ReadPattern
 
 # Initialize numpy for cython use in this module
 cnp.import_array()
@@ -73,7 +71,7 @@ cdef class ReadPattern:
 
         In the case of this code memory views are the fastest "safe" array data structure.
         This class will immediately be unpacked into raw memory views, so that we avoid
-        any further overhead of swithcing between python and cython.
+        any further overhead of switching between python and cython.
 
     Attributes:
     ----------
@@ -135,11 +133,12 @@ cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern, float read_tim
     cdef int index, n_reads
     cdef list[int] resultant
     for index, resultant in enumerate(read_pattern):
-            n_reads = len(resultant)
+        n_reads = len(resultant)
 
-            data.n_reads[index] = n_reads
-            data.t_bar[index] = read_time * np.mean(resultant)
-            data.tau[index] = np.sum((2 * (n_reads - np.arange(n_reads)) - 1) * resultant) * read_time / n_reads**2
+        data.n_reads[index] = n_reads
+        data.t_bar[index] = read_time * np.mean(resultant)
+        data.tau[index] = (np.sum((2 * (n_reads - np.arange(n_reads)) - 1) * resultant) *
+                           read_time / n_reads**2)
 
     return data
 
@@ -204,12 +203,12 @@ cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
 
     return ramps
 
-# Keeps the static type checker/highligher happy this has no actual effect
+# Keeps the static type checker/highlighter happy this has no actual effect
 ctypedef float[6] _row
 
 # Casertano+2022, Table 2
 cdef _row[2] _PTABLE = [[-INFINITY, 5,   10, 20, 50, 100],
-                        [ 0,        0.4, 1,  3,  6,  10 ]]
+                        [0,         0.4, 1,  3,  6,  10]]
 
 
 @boundscheck(False)
@@ -311,7 +310,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
     t_scale = 1 if t_scale == 0 else t_scale
 
-    # Initalize the fit loop
+    # Initialize the fit loop
     #   it is faster to generate a c++ vector than a numpy array
     cdef vector[float] weights = vector[float](n_resultants)
     cdef vector[float] coeffs = vector[float](n_resultants)
@@ -324,7 +323,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         for i in range(n_resultants):
             # Casertano+22, Eq. 45
             weights[i] = ((((1 + power) * n_reads[i]) / (1 + power * n_reads[i])) *
-                            fabs((t_bar[i] - t_bar_mid) / t_scale) ** power)
+                          fabs((t_bar[i] - t_bar_mid) / t_scale) ** power)
 
             # Casertano+22 Eq. 35
             f0 += weights[i]

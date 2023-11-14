@@ -29,22 +29,23 @@ fit_ramps : function
 from __future__ import annotations
 
 import numpy as np
-cimport numpy as cnp
 
+cimport numpy as cnp
 from cython cimport boundscheck, wraparound
 from libcpp cimport bool
 from libcpp.list cimport list as cpp_list
 
-from stcal.ramp_fitting.ols_cas22._jump cimport (Thresh,
-                                                 JumpFits,
-                                                 fill_fixed_values,
-                                                 fit_jumps,
-                                                 n_fixed_offsets,
-                                                 n_pixel_offsets)
+from stcal.ramp_fitting.ols_cas22._jump cimport (
+    JumpFits,
+    Thresh,
+    fill_fixed_values,
+    fit_jumps,
+    n_fixed_offsets,
+    n_pixel_offsets,
+)
 from stcal.ramp_fitting.ols_cas22._ramp cimport ReadPattern, from_read_pattern
 
 from typing import NamedTuple
-
 
 # Initialize numpy for cython use in this module
 cnp.import_array()
@@ -113,12 +114,12 @@ def fit_ramps(float[:, :] resultants,
     ----------
     resultants : float[n_resultants, n_pixel]
         the resultants in electrons (Note that this can be based as any sort of
-        array, such as a numpy array. The memmory view is just for efficiency in
+        array, such as a numpy array. The memory view is just for efficiency in
         cython)
     dq : np.ndarry[n_resultants, n_pixel]
         the dq array.  dq != 0 implies bad pixel / CR. (Kept as a numpy array
         so that it can be passed out without copying into new numpy array, will
-        be working on memmory views of this array)
+        be working on memory views of this array)
     read_noise : float[n_pixel]
         the read noise in electrons for each pixel (same note as the resultants)
     read_time : float
@@ -230,6 +231,6 @@ def fit_ramps(float[:, :] resultants,
 
     # Cast memory views into numpy arrays for ease of use in python.
     return RampFitOutputs(np.array(parameters, dtype=np.float32),
-                          np.array(variances, dtype=np.float32), 
+                          np.array(variances, dtype=np.float32),
                           dq,
                           ramp_fits if include_diagnostic else None)

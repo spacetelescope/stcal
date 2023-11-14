@@ -1,7 +1,12 @@
 1.4.5 (unreleased)
 ==================
 
+Other
+-----
+
 - Added ``alignment`` sub-package. [#179]
+
+- Enable automatic linting and code style checks [#187]
 
 ramp_fitting
 ------------
@@ -26,11 +31,6 @@ Bug Fixes
 ---------
 
 -
-
-Other
------
-
-- 
 
 1.4.4 (2023-09-15)
 ==================
@@ -174,7 +174,7 @@ ramp_fitting
 - Correct the "averaging" of the final image slope by properly excluding
   variances as a part of the denominator from integrations with invalid slopes.
   [#167]
-- Removing the usage of ``numpy.where`` where possible for perfomance
+- Removing the usage of ``numpy.where`` where possible for performance
   reasons. [#169]
 
 1.3.7 (2023-04-26)
@@ -218,7 +218,7 @@ Other
 -----
 
 - Remove use of deprecated ``pytest-openfiles`` ``pytest`` plugin. This has been replaced by
-  catching ``ResourceWarning``s. [#159]
+  catching ``ResourceWarning``. [#159]
 
 
 1.3.5 (2023-03-30)
@@ -566,7 +566,7 @@ ramp_fitting
 jump
 ~~~~
 
-- Fix issue in jump detection that occured when there were only 2 usable
+- Fix issue in jump detection that occurred when there were only 2 usable
   differences with no other groups flagged. This PR also added tests and
   fixed some of the logging statements in twopoint difference. [#74]
 

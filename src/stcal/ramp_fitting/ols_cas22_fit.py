@@ -29,8 +29,8 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
-from astropy import units as u
 import numpy as np
+from astropy import units as u
 
 from . import ols_cas22
 
@@ -92,16 +92,15 @@ def fit_ramps_casertano(
         fits: always None, this is a hold over which can contain the diagnostic
             fit information from the jump detection algorithm.
     """
-
     # Trickery to avoid having to specify the defaults for the threshold
     #   parameters outside the cython code.
     kwargs = {}
     if threshold_intercept is not None:
-        kwargs['intercept'] = threshold_intercept
+        kwargs["intercept"] = threshold_intercept
     if threshold_constant is not None:
-        kwargs['constant'] = threshold_constant
+        kwargs["constant"] = threshold_constant
 
-    resultants_unit = getattr(resultants, 'unit', None)
+    resultants_unit = getattr(resultants, "unit", None)
     if resultants_unit is not None:
         resultants = resultants.to(u.electron).value
 
@@ -115,8 +114,8 @@ def fit_ramps_casertano(
     orig_shape = resultants.shape
     if len(resultants.shape) == 1:
         # single ramp.
-        resultants = resultants.reshape(orig_shape + (1,))
-        dq = dq.reshape(orig_shape + (1,))
+        resultants = resultants.reshape((*orig_shape, 1))
+        dq = dq.reshape((*orig_shape, 1))
         read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
     output = ols_cas22.fit_ramps(
@@ -126,7 +125,8 @@ def fit_ramps_casertano(
         read_time,
         read_pattern,
         use_jump,
-        **kwargs)
+        **kwargs,
+    )
 
     parameters = output.parameters.reshape(orig_shape[1:] + (2,))
     variances = output.variances.reshape(orig_shape[1:] + (3,))

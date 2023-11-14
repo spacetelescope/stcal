@@ -1,11 +1,11 @@
 import inspect
+from pathlib import Path
+
 import numpy as np
 import numpy.testing as npt
-import os
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
-
 
 #
 # The first 12 tests are for a single ramp in a single integration. The ramps
@@ -21,18 +21,18 @@ from stcal.ramp_fitting.ramp_fit_class import RampData
 
 DELIM = "-" * 80
 
-# single group intergrations fail in the GLS fitting
+# single group integrations fail in the GLS fitting
 # so, keep the two method test separate and mark GLS test as
 # expected to fail.  Needs fixing, but the fix is not clear
 # to me. [KDG - 19 Dec 2018]
 
 dqflags = {
-    'GOOD':             0,      # Good pixel.
-    'DO_NOT_USE':       2**0,   # Bad pixel. Do not use.
-    'SATURATED':        2**1,   # Pixel saturated during exposure.
-    'JUMP_DET':         2**2,   # Jump detected during exposure.
-    'NO_GAIN_VALUE':    2**19,  # Gain cannot be measured.
-    'UNRELIABLE_SLOPE': 2**24,  # Slope variance large (i.e., noisy pixel).
+    "GOOD": 0,  # Good pixel.
+    "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
+    "SATURATED": 2**1,  # Pixel saturated during exposure.
+    "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
+    "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
 }
 
 GOOD = dqflags["GOOD"]
@@ -53,13 +53,15 @@ def test_pix_0():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD] * ngroups
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     # [data, dq, err, var_p, var_r]
@@ -67,8 +69,7 @@ def test_pix_0():
 
     # Set truth values for OPTIONAL results:
     # [slope, sigslope, var_poisson, var_rnoise, yint, sigyint, ped, weights]
-    o_true = [1.0117551, 4.874572, 0.0020202, 0.00647973,
-              15.911023, 27.789335, 13.988245, 13841.038]
+    o_true = [1.0117551, 4.874572, 0.0020202, 0.00647973, 15.911023, 27.789335, 13.988245, 13841.038]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -90,7 +91,8 @@ def test_pix_1():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD] * ngroups
     dq[1] = JUMP
     dq[2] = JUMP
@@ -99,14 +101,14 @@ def test_pix_1():
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.8999999, JUMP, 1.05057204, 0.03454545, 1.0691562]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.9, 56.870003, 0.03454545, 1.0691562, -3., 56.870003,
-              13.1, 0.82091206]
+    o_true = [1.9, 56.870003, 0.03454545, 1.0691562, -3.0, 56.870003, 13.1, 0.82091206]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -125,27 +127,30 @@ def test_pix_2():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD, GOOD, GOOD, JUMP, GOOD, JUMP, GOOD, JUMP, SAT, SAT]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [0.84833729, JUMP, 0.42747884, 0.00454545, 0.1781927]
 
     # Set truth values for OPTIONAL results for all segments
-    o_true = [[1.0000001, 0.1, 1.],                 # slopes for 3 segments
-              [28.435, 56.870003, 56.870003],        # sigslope
-              [0.00909091, 0.01818182, 0.01818182],  # var_poisson
-              [0.26728904, 1.0691562, 1.0691562],   # var_rnoise
-              [14.999998, 51., 15.],                # yint
-              [36.709427, 56.870003, 56.870003],     # sigyint
-              [14.151663],                          # pedestal
-              [13.091425, 0.84580624, 0.84580624],   # weights
-              ]
+    o_true = [
+        [1.0000001, 0.1, 1.0],  # slopes for 3 segments
+        [28.435, 56.870003, 56.870003],  # sigslope
+        [0.00909091, 0.01818182, 0.01818182],  # var_poisson
+        [0.26728904, 1.0691562, 1.0691562],  # var_rnoise
+        [14.999998, 51.0, 15.0],  # yint
+        [36.709427, 56.870003, 56.870003],  # sigyint
+        [14.151663],  # pedestal
+        [13.091425, 0.84580624, 0.84580624],  # weights
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -164,28 +169,31 @@ def test_pix_3():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD] * ngroups
     dq[-2] = JUMP
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.0746869, JUMP, 0.12186482, 0.00227273, 0.01257831]
 
     # Set truth values for OPTIONAL results:
-    o_true = [[1.0757396, 1.],
-              [6.450687, 56.870003],
-              [0.0025974, 0.01818182],
-              [0.01272805, 1.0691562],
-              [14.504965, 15.],
-              [27.842508, 56.870003],
-              [13.925313],
-              [4.2576841e+03, 8.458062e-01],
-              ]
+    o_true = [
+        [1.0757396, 1.0],
+        [6.450687, 56.870003],
+        [0.0025974, 0.01818182],
+        [0.01272805, 1.0691562],
+        [14.504965, 15.0],
+        [27.842508, 56.870003],
+        [13.925313],
+        [4.2576841e03, 8.458062e-01],
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -204,25 +212,27 @@ def test_pix_4():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 1055., 1065., 1075., 2594., 2595., 2605.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 1055.0, 1065.0, 1075.0, 2594.0, 2595.0, 2605.0], dtype=np.float32
+    )
     dq = [GOOD] + [SAT] * (ngroups - 1)
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.5, GOOD, 1.047105, 0.02727273, 1.0691562]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.5, 0., 0.02727273, 1.0691562, 0., 0., 13.5, 0.8318386]
+    o_true = [1.5, 0.0, 0.02727273, 1.0691562, 0.0, 0.0, 13.5, 0.8318386]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
 
 
-'''
+"""
     NOTE:
         There are small differences in the slope computation due to architectural
         differences of C and python.
@@ -266,7 +276,9 @@ Debug - [slope_fitter.c:2631] slope = 10.144479751587
 
 Debug - [slope_fitter.c:2632] gtime = 10.000000000000
 Debug - [slope_fitter.c:2633] seg->slope = 1.014447927475
-'''
+"""
+
+
 # @pytest.mark.skip(reason="C architecture gives small differences for slope.")
 def test_pix_5():
     """
@@ -282,14 +294,16 @@ def test_pix_5():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 2055., 2065., 2075., 2094., 2095., 2105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 2055.0, 2065.0, 2075.0, 2094.0, 2095.0, 2105.0], dtype=np.float32
+    )
     dq = [GOOD] * ngroups
     dq[4] = JUMP
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # XXX see the note above for the differences in C and python testing values.
     # Set truth values for PRIMARY results:
@@ -300,15 +314,16 @@ def test_pix_5():
     # Set truth values for OPTIONAL results:
     oslope_p = [1.2799551, 1.0144024]
     # oslope_c = [1.2799551, 1.0144479]  # To be used with C
-    o_true = [oslope_p,
-              [18.312422, 9.920552],
-              [0.00606061, 0.00363636],
-              [0.10691562, 0.03054732],
-              [13.537246, 2015.0737],
-              [35.301933, 67.10882],
-              [13.923912],
-              [78.34764, 855.78046]
-              ]
+    o_true = [
+        oslope_p,
+        [18.312422, 9.920552],
+        [0.00606061, 0.00363636],
+        [0.10691562, 0.03054732],
+        [13.537246, 2015.0737],
+        [35.301933, 67.10882],
+        [13.923912],
+        [78.34764, 855.78046],
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -327,7 +342,8 @@ def test_pix_6():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 375., 394., 395., 405.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 375.0, 394.0, 395.0, 405.0], dtype=np.float32
+    )
     dq = [GOOD] * ngroups
     dq[2] = JUMP
     dq[3] = JUMP
@@ -335,21 +351,23 @@ def test_pix_6():
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [6.092052, JUMP, 0.14613187, 0.0025974, 0.01875712]
 
     # Set truth values for OPTIONAL results:
-    o_true = [[1., 6.195652],
-              [56.870003, 8.8936615],
-              [0.01818182, 0.0030303],
-              [1.0691562, 0.01909207],
-              [15., -143.2391],
-              [56.870003, 58.76999],
-              [8.907948],
-              [8.4580624e-01, 2.0433204e+03]
-              ]
+    o_true = [
+        [1.0, 6.195652],
+        [56.870003, 8.8936615],
+        [0.01818182, 0.0030303],
+        [1.0691562, 0.01909207],
+        [15.0, -143.2391],
+        [56.870003, 58.76999],
+        [8.907948],
+        [8.4580624e-01, 2.0433204e03],
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -367,20 +385,21 @@ def test_pix_7():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 195., 205.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 195.0, 205.0], dtype=np.float32
+    )
     dq = [GOOD] * (ngroups - 2) + [JUMP, JUMP]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.0757396, JUMP, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.0757396, 6.450687, 0.0025974, 0.01272805, 14.504951,
-              27.842508, 13.92426, 4257.684]
+    o_true = [1.0757396, 6.450687, 0.0025974, 0.01272805, 14.504951, 27.842508, 13.92426, 4257.684]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -399,20 +418,21 @@ def test_pix_8():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD, JUMP, GOOD, GOOD, GOOD, GOOD, GOOD, SAT, SAT, SAT]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [0.98561335, JUMP, 0.1848883, 0.00363636, 0.03054732]
 
     # Set truth values for OPTIONAL results:
-    o_true = [0.98561335, 9.920554, 0.00363636, 0.03054732, 16.508228,
-              39.383667, 14.014386, 855.78046]
+    o_true = [0.98561335, 9.920554, 0.00363636, 0.03054732, 16.508228, 39.383667, 14.014386, 855.78046]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -432,27 +452,30 @@ def test_pix_9():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD, GOOD, JUMP, JUMP, GOOD, GOOD, GOOD, GOOD, JUMP, GOOD]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [0.9999994, JUMP, 0.22721863, 0.0030303, 0.048598]
 
     # Set truth values for OPTIONAL results:
-    o_true = [[1., 0.9999994, 1.],
-              [56.870003, 13.036095, 56.870003],
-              [0.01818182, 0.00454545, 0.01818182],
-              [1.0691562, 0.05345781, 1.0691562],
-              [15., 20.119896, 15.],
-              [56.870003, 68.618195, 56.870003],
-              [14.],
-              [0.84580624, 297.23172, 0.84580624]
-              ]
+    o_true = [
+        [1.0, 0.9999994, 1.0],
+        [56.870003, 13.036095, 56.870003],
+        [0.01818182, 0.00454545, 0.01818182],
+        [1.0691562, 0.05345781, 1.0691562],
+        [15.0, 20.119896, 15.0],
+        [56.870003, 68.618195, 56.870003],
+        [14.0],
+        [0.84580624, 297.23172, 0.84580624],
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -472,27 +495,30 @@ def test_pix_10():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD, GOOD, JUMP, GOOD, GOOD, JUMP, GOOD, GOOD, GOOD, GOOD]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
-    p_true = [1., JUMP, 0.21298744, 0.0025974, 0.04276625]
+    p_true = [1.0, JUMP, 0.21298744, 0.0025974, 0.04276625]
 
     # Set truth values for OPTIONAL results:
-    o_true = [[1., 1.0000014, 0.99999964],
-              [56.870003, 28.434996, 13.036095],
-              [0.01818182, 0.00909091, 0.00454545],
-              [1.0691562, 0.26728904, 0.05345781],
-              [15., 17.999956, 15.000029],
-              [56.870003, 88.40799, 93.73906],
-              [14.],
-              [0.84580624, 13.091425, 297.23172]
-              ]
+    o_true = [
+        [1.0, 1.0000014, 0.99999964],
+        [56.870003, 28.434996, 13.036095],
+        [0.01818182, 0.00909091, 0.00454545],
+        [1.0691562, 0.26728904, 0.05345781],
+        [15.0, 17.999956, 15.000029],
+        [56.870003, 88.40799, 93.73906],
+        [14.0],
+        [0.84580624, 13.091425, 297.23172],
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -510,20 +536,21 @@ def test_pix_11():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [15., 25., 35., 54., 55., 65., 75., 94., 95., 105.], dtype=np.float32)
+        [15.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 105.0], dtype=np.float32
+    )
     dq = [GOOD, GOOD] + [SAT] * (ngroups - 2)
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
-    p_true = [1., GOOD, 1.042755, 0.01818182, 1.0691562]
+    p_true = [1.0, GOOD, 1.042755, 0.01818182, 1.0691562]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1., 56.870003, 0.01818182, 1.0691562, 15., 56.870003, 14.,
-              0.84580624]
+    o_true = [1.0, 56.870003, 0.01818182, 1.0691562, 15.0, 56.870003, 14.0, 0.84580624]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -545,14 +572,15 @@ def test_pix_12():
     ramp_data, gain, rnoise = create_blank_ramp_data(dims, var, timing)
 
     # Populate pixel-specific SCI and GROUPDQ arrays
-    ramp_data.data[0, :, 0, 0] = np.array([15., 59025.], dtype=np.float32)
+    ramp_data.data[0, :, 0, 0] = np.array([15.0, 59025.0], dtype=np.float32)
     ramp_data.groupdq[0, :, 0, 0] = np.array([0, SAT])
-    ramp_data.data[0, :, 0, 1] = np.array([61000., 61000.], dtype=np.float32)
+    ramp_data.data[0, :, 0, 1] = np.array([61000.0, 61000.0], dtype=np.float32)
     ramp_data.groupdq[0, :, 0, 1] = np.array([SAT, SAT])
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results for pixel 1:
     # slope, dq, err, var_p, var_r
@@ -564,7 +592,7 @@ def test_pix_12():
     # slope, sig_slope, var_p, var_r, yint, sig_yint, pedestal, weights
     # slope = group1 / deltatime = 15 / 10 = 1.5
     # sig_slope, yint, sig_yint, and pedestal are all zero, because only 1 good group
-    o_true = [1.5, 0., 0.027273, 1.069156, 0., 0., 13.5, 0.831839]
+    o_true = [1.5, 0.0, 0.027273, 1.069156, 0.0, 0.0, 13.5, 0.831839]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -573,12 +601,12 @@ def test_pix_12():
     # slope, dq, err, var_p, var_r
     # slope = zero, because no good data
     # dq = 3 (saturation + do_not_use) because both groups are saturated
-    p_true = [np.nan, 3, 0., 0., 0.]
+    p_true = [np.nan, 3, 0.0, 0.0, 0.0]
 
     # Set truth values for OPTIONAL results:
     # slope, sig_slope, var_p, var_r, yint, sig_yint, pedestal, weights
     # all values zero, because no good data
-    o_true = [0., 0., 0., 0., 0., 0., 0., 0.]
+    o_true = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     assert_pri(p_true, slopes, 1)
     assert_opt(o_true, ols_opt, 1)
@@ -598,20 +626,21 @@ def test_miri_0():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [8888., 25., 35., 54., 55., 65., 75., 94., 95., 888.], dtype=np.float32)
+        [8888.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 888.0], dtype=np.float32
+    )
     dq = [DNU] + [GOOD] * (ngroups - 2) + [DNU]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508,
-              23.974146, 4257.684]
+    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 4257.684]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -631,20 +660,21 @@ def test_miri_1():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [7777., 125., 135., 154., 165., 175., 185., 204., 205., 777.], dtype=np.float32)
+        [7777.0, 125.0, 135.0, 154.0, 165.0, 175.0, 185.0, 204.0, 205.0, 777.0], dtype=np.float32
+    )
     dq = [DNU | JUMP] + [GOOD] * (ngroups - 2) + [DNU]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.1996487, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.1996487, 6.450687, 0.0025974, 0.01272805, 126.110214,
-              27.842508, 123.800354, 4257.684]
+    o_true = [1.1996487, 6.450687, 0.0025974, 0.01272805, 126.110214, 27.842508, 123.800354, 4257.684]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -664,20 +694,21 @@ def test_miri_2():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [4444., 25., 35., 54., 55., 65., 75., 94., 95., 444.], dtype=np.float32)
+        [4444.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 444.0], dtype=np.float32
+    )
     dq = [DNU | JUMP] + [GOOD] * (ngroups - 2) + [DNU | JUMP]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508,
-              23.974146, 4257.684]
+    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 4257.684]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -697,20 +728,21 @@ def test_miri_3():
 
     # Populate pixel-specific SCI and GROUPDQ arrays
     ramp_data.data[0, :, 0, 0] = np.array(
-        [6666., 25., 35., 54., 55., 65., 75., 94., 95., 666.], dtype=np.float32)
+        [6666.0, 25.0, 35.0, 54.0, 55.0, 65.0, 75.0, 94.0, 95.0, 666.0], dtype=np.float32
+    )
     dq = [DNU] + [GOOD] * (ngroups - 2) + [DNU | JUMP]
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo,"optimal", ncores, dqflags)
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266,
-              27.842508, 23.974146, 4257.684]
+    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 4257.684]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -756,11 +788,15 @@ def create_blank_ramp_data(dims, var, timing, ts_name="NIRSpec"):
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
 
     ramp_data = RampData()
-    ramp_data.set_arrays(
-        data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
     ramp_data.set_meta(
-        name=ts_name, frame_time=frame_time, group_time=group_time,
-        groupgap=groupgap, nframes=nframes, drop_frames1=None)
+        name=ts_name,
+        frame_time=frame_time,
+        group_time=group_time,
+        groupgap=groupgap,
+        nframes=nframes,
+        drop_frames1=None,
+    )
     ramp_data.set_dqflags(dqflags)
 
     gain = np.ones(shape=(nrows, ncols), dtype=np.float32) * gval
@@ -798,18 +834,15 @@ def assert_pri(p_true, new_info, pix):
 
     data, dq, var_poisson, var_rnoise, err = new_info
 
-    npt.assert_allclose(data[0, pix], p_true[0], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(dq[0, pix], p_true[1], atol=1E-1)
-    npt.assert_allclose(err[0, pix], p_true[2], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(var_poisson[0, pix], p_true[3], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(var_rnoise[0, pix], p_true[4], atol=2E-5, rtol=2e-5)
-
-    return None
+    npt.assert_allclose(data[0, pix], p_true[0], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(dq[0, pix], p_true[1], atol=1e-1)
+    npt.assert_allclose(err[0, pix], p_true[2], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(var_poisson[0, pix], p_true[3], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(var_rnoise[0, pix], p_true[4], atol=2e-5, rtol=2e-5)
 
 
 def debug_opt(o_true, opt_info, pix):
-    (slope, sigslope, var_poisson, var_rnoise,
-        yint, sigyint, pedestal, weights, crmag) = opt_info
+    (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
 
     opt_slope = slope[0, :, 0, pix]
     opt_sigslope = sigslope[0, :, 0, pix]
@@ -854,8 +887,7 @@ def assert_opt(o_true, opt_info, pix):
     Selecting the particular (and only) ramp in the optional output, which is
     [0,:,0,0]
     """
-    (slope, sigslope, var_poisson, var_rnoise,
-        yint, sigyint, pedestal, weights, crmag) = opt_info
+    (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
 
     opt_slope = slope[0, :, 0, pix]
     opt_sigslope = sigslope[0, :, 0, pix]
@@ -866,16 +898,14 @@ def assert_opt(o_true, opt_info, pix):
     opt_pedestal = pedestal[:, 0, pix]
     opt_weights = weights[0, :, 0, pix]
 
-    npt.assert_allclose(opt_slope, o_true[0], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(opt_sigslope, o_true[1], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(opt_var_poisson, o_true[2], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(opt_var_rnoise, o_true[3], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(opt_yint, o_true[4], atol=2E-2)
-    npt.assert_allclose(opt_sigyint, o_true[5], atol=2E-5, rtol=2e-5)
-    npt.assert_allclose(opt_pedestal, o_true[6], atol=2E-5, rtol=3e-5)
-    npt.assert_allclose(opt_weights, o_true[7], atol=2E-5, rtol=2e-5)
-
-    return None
+    npt.assert_allclose(opt_slope, o_true[0], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(opt_sigslope, o_true[1], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(opt_var_poisson, o_true[2], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(opt_var_rnoise, o_true[3], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(opt_yint, o_true[4], atol=2e-2)
+    npt.assert_allclose(opt_sigyint, o_true[5], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(opt_pedestal, o_true[6], atol=2e-5, rtol=3e-5)
+    npt.assert_allclose(opt_weights, o_true[7], atol=2e-5, rtol=2e-5)
 
 
 def dbg_print(string):
@@ -885,5 +915,5 @@ def dbg_print(string):
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
     finfo = inspect.getframeinfo(cf.f_back)
-    fname = os.path.basename(finfo.filename)
+    fname = Path(finfo.filename).name
     print(f"[{fname}:{line_number}] {string}")

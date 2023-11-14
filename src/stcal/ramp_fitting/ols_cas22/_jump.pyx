@@ -6,7 +6,7 @@ This module contains all the functions needed to execute jump detection for the
     Castentano+22 ramp fitting algorithm
 
     The _ramp module contains the actual ramp fitting algorithm, this module
-    contains a driver for the algoritm and detection of jumps/splitting ramps.
+    contains a driver for the algorithm and detection of jumps/splitting ramps.
 
 Structs
 -------
@@ -26,7 +26,7 @@ JumpFits : struct
         - fits : vector[RampFit]
             All of the fits for each ramp fit for the pixel
         - index : RampQueue
-            The RampIndex representations correspoinding to each fit in fits
+            The RampIndex representations corresponding to each fit in fits
 
 Enums
 -----
@@ -54,14 +54,12 @@ fit_jumps : function
         to splitting across detected jumps (if jump detection is turned on).
 """
 
-from cython cimport boundscheck, wraparound, cdivision
-
+from cython cimport boundscheck, cdivision, wraparound
+from libc.math cimport NAN, fmaxf, isnan, log10, sqrt
 from libcpp cimport bool
-from libc.math cimport sqrt, log10, fmaxf, NAN, isnan
 
-from stcal.ramp_fitting.ols_cas22._jump cimport Thresh, JumpFits, JUMP_DET, FixedOffsets, PixelOffsets
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampIndex, RampQueue, RampFit, fit_ramp, init_ramps
-
+from stcal.ramp_fitting.ols_cas22._jump cimport JUMP_DET, FixedOffsets, JumpFits, PixelOffsets, Thresh
+from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, fit_ramp, init_ramps
 
 
 @boundscheck(False)
@@ -231,7 +229,7 @@ cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
     Compute the correction factor for the variance used by a statistic
 
         - slope / (t_bar[end] - t_bar[start])
-    
+
     Parameters
     ----------
     t_bar : float[:]
@@ -245,6 +243,7 @@ cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
     cdef float diff = t_bar[ramp.end] - t_bar[ramp.start]
 
     return - slope / diff
+
 
 @boundscheck(False)
 @wraparound(False)
@@ -268,7 +267,7 @@ cdef inline float _statstic(float local_slope,
             var_read_noise = read_noise ** 2 * (1/n_reads[i + j] + 1/n_reads[i])
             var_slope_coeff = tau[i + j] + tau[i] - 2 * min(t_bar[i + j], t_bar[i])
             t_bar_diff_sqr = (t_bar[i + j] - t_bar[i]) ** 2
-    
+
     Parameters
     ----------
     local_slope : float
@@ -290,7 +289,7 @@ cdef inline float _statstic(float local_slope,
     """
 
     cdef float delta = local_slope - slope
-    cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr 
+    cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
 
     return delta / sqrt(var + correct)
 
@@ -362,22 +361,23 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
                                     correct)
 
     # Compute the rest of the fit statistics
-    cdef float stat
+    cdef float stat, stat1, stat2
     cdef int stat_index
     for stat_index, index in enumerate(range(ramp.start, ramp.end - 1)):
         # Compute max of single and double difference statistics
-        stat = fmaxf(_statstic(pixel[single_local_slope, index],
-                               pixel[single_var_read_noise, index],
-                               fixed[single_t_bar_diff_sqr, index],
-                               fixed[single_var_slope_val, index],
-                               slope,
-                               correct),
-                    _statstic(pixel[double_local_slope, index],
-                              pixel[double_var_read_noise, index],
-                              fixed[double_t_bar_diff_sqr, index],
-                              fixed[double_var_slope_val, index],
-                              slope,
-                              correct))
+        stat1 = _statstic(pixel[single_local_slope, index],
+                          pixel[single_var_read_noise, index],
+                          fixed[single_t_bar_diff_sqr, index],
+                          fixed[single_var_slope_val, index],
+                          slope,
+                          correct)
+        stat2 = _statstic(pixel[double_local_slope, index],
+                          pixel[double_var_read_noise, index],
+                          fixed[double_t_bar_diff_sqr, index],
+                          fixed[double_var_slope_val, index],
+                          slope,
+                          correct)
+        stat = fmaxf(stat1, stat2)
 
         # If this is larger than the current max, update the max
         if stat > max_stat:
@@ -385,7 +385,7 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
             argmax = stat_index
 
     return argmax, max_stat
-    
+
 
 @boundscheck(False)
 @wraparound(False)
@@ -429,7 +429,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
     fixed : float[:, :]
         The jump detection pre-computed values for a given read_pattern
     pixel : float[:, :]
-        A pre-allocated array for the jump detection fixed values for the 
+        A pre-allocated array for the jump detection fixed values for the
         given pixel. This will be modified in place, it is passed in to avoid
         re-allocating it for each pixel.
     thresh : Thresh
@@ -518,12 +518,12 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                 dq[jump0] = JUMP_DET
                 dq[jump1] = JUMP_DET
 
-                # Record jump diagnotics
+                # Record jump diagnostics
                 if include_diagnostic:
                     ramp_fits.jumps.push_back(jump0)
                     ramp_fits.jumps.push_back(jump1)
 
-                # The two resultant indicies need to be skipped, therefore
+                # The two resultant indices need to be skipped, therefore
                 # the two
                 # possible new ramps are:
                 #     RampIndex(ramp.start, jump0 - 1)
@@ -535,7 +535,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                 #    we need to add the ramps in the time order they were
                 #    observed in. This results in the last observation ramp
                 #    being the top of the stack; meaning that,
-                #    it will be the next ramp handeled.
+                #    it will be the next ramp handled.
 
                 if jump0 > ramp.start:
                     # Note that when jump0 == ramp.start, we have detected a
@@ -558,7 +558,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                     # Note that jump1 > ramp.end is technically possible
                     # however in those potential cases it will draw on
                     # resultants which are not considered part of the ramp
-                    # under consideration. Therefore, we have to exlude all
+                    # under consideration. Therefore, we have to exclude all
                     # of those values.
                     ramps.push_back(RampIndex(jump1 + 1, ramp.end))
 
@@ -584,7 +584,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
             ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
             ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
 
-    # Finish computing averages using the lazy proces
+    # Finish computing averages using the lazy process
     ramp_fits.average.slope /= total_weight if total_weight != 0 else 1
     ramp_fits.average.read_var /= total_weight**2 if total_weight != 0 else 1
     ramp_fits.average.poisson_var /= total_weight**2 if total_weight != 0 else 1
