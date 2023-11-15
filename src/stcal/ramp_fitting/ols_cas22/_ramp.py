@@ -49,30 +49,32 @@ fit_ramps : function
     Implementation of running the Casertano+22 algorithm on a (sub)set of resultants
     listed for a single pixel
 """
+import cython
 import numpy as np
-
-cimport numpy as cnp
-from cython cimport boundscheck, cdivision, cpow, wraparound
-from libc.math cimport INFINITY, NAN, fabs, fmaxf, sqrt
-from libcpp.vector cimport vector
-
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue
+from cython.cimports import numpy as cnp
+from cython.cimports.libc.math import INFINITY, NAN, fabs, fmaxf, sqrt
+from cython.cimports.libcpp.vector import vector
+from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import RampFit, RampIndex, RampQueue
 
 # Initialize numpy for cython use in this module
 cnp.import_array()
 
 
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cpdef _fill_metadata(list[list[int]] read_pattern,
-                     float read_time,
-                     float[:] t_bar,
-                     float[:] tau,
-                     int[:] n_reads):
-
-    cdef int index, n_read
-    cdef list[int] resultant
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.ccall
+def _fill_metadata(
+    read_pattern: list[list[cython.int]],
+    read_time: cython.float,
+    t_bar: cython.float[:],
+    tau: cython.float[:],
+    n_reads: cython.int[:],
+) -> cython.void:
+    index: cython.int
+    n_read: cython.int
+    resultant: list[cython.int]
     for index, resultant in enumerate(read_pattern):
         n_read = len(resultant)
 
@@ -81,13 +83,15 @@ cpdef _fill_metadata(list[list[int]] read_pattern,
         tau[index] = np.sum((2 * (n_read - np.arange(n_read)) - 1) * resultant) * read_time / n_read**2
 
 
-@boundscheck(False)
-@wraparound(False)
-cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.inline
+@cython.ccall
+def init_ramps(dq: cython.int[:], n_resultants: cython.int) -> RampQueue:
     """
     Create the initial ramp "queue" for each pixel
         if dq[index_resultant, index_pixel] == 0, then the resultant is in a ramp
-        otherwise, the resultant is not in a ramp
+        otherwise, the resultant is not in a ramp.
 
     Parameters
     ----------
@@ -103,13 +107,13 @@ cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
             - vector with entry for each ramp found (last entry is last ramp found)
             - RampIndex with start and end indices of the ramp in the resultants
     """
-    cdef RampQueue ramps = RampQueue()
+    ramps: RampQueue = RampQueue()
 
     # Note: if start/end are -1, then no value has been assigned
     # ramp.start == -1 means we have not started a ramp
     # dq[index_resultant, index_pixel] == 0 means resultant is in ramp
-    cdef RampIndex ramp = RampIndex(-1, -1)
-    cdef int index_resultant
+    ramp: RampIndex = RampIndex(-1, -1)
+    index_resultant: cython.int
     for index_resultant in range(n_resultants):
         if ramp.start == -1:
             # Looking for the start of a ramp
@@ -119,12 +123,12 @@ cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
             else:
                 # This is not the start of the ramp yet
                 continue
-        else:
+        else:  # noqa: PLR5501 (makes more logical sense than to use elif)
             # Looking for the end of a ramp
             if dq[index_resultant] == 0:
                 # This pixel is in the ramp do nothing
                 continue
-            else:
+            else:  # noqa: RET507 (makes more logical sense than to remove else)
                 # This pixel is not in the ramp
                 # => index_resultant - 1 is the end of the ramp
                 ramp.end = index_resultant - 1
@@ -141,19 +145,25 @@ cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
 
     return ramps
 
-# Keeps the static type checker/highlighter happy this has no actual effect
-ctypedef float[6] _row
 
 # Casertano+2022, Table 2
-cdef _row[2] _PTABLE = [[-INFINITY, 5,   10, 20, 50, 100],
-                        [0,         0.4, 1,  3,  6,  10]]
+_P_TABLE = cython.declare(
+    cython.float[6][2],
+    [
+        [-INFINITY, 5, 10, 20, 50, 100],
+        [0, 0.4, 1, 3, 6, 10],
+    ],
+)
 
 
-@boundscheck(False)
-@wraparound(False)
-cdef inline float _get_power(float signal):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.inline
+@cython.cfunc
+@cython.exceptval(check=False)
+def _get_power(signal: cython.float) -> cython.float:
     """
-    Return the power from Casertano+22, Table 2
+    Return the power from Casertano+22, Table 2.
 
     Parameters
     ----------
@@ -164,23 +174,27 @@ cdef inline float _get_power(float signal):
     -------
     signal power from Table 2
     """
-    cdef int i
+    i: cython.int
     for i in range(6):
-        if signal < _PTABLE[0][i]:
-            return _PTABLE[1][i - 1]
+        if signal < _P_TABLE[0][i]:
+            return _P_TABLE[1][i - 1]
 
-    return _PTABLE[1][i]
+    return _P_TABLE[1][i]
 
 
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cdef inline RampFit fit_ramp(float[:] resultants_,
-                             float[:] t_bar_,
-                             float[:] tau_,
-                             int[:] n_reads_,
-                             float read_noise,
-                             RampIndex ramp):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.cfunc
+def fit_ramp(
+    resultants_: cython.float[:],
+    t_bar_: cython.float[:],
+    tau_: cython.float[:],
+    n_reads_: cython.int[:],
+    read_noise: cython.float,
+    ramp: RampIndex,
+) -> RampFit:
     """
     Fit a single ramp using Casertano+22 algorithm.
 
@@ -207,7 +221,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         - read_var
         - poisson_var
     """
-    cdef int n_resultants = ramp.end - ramp.start + 1
+    n_resultants: cython.int = ramp.end - ramp.start + 1
 
     # Special case where there is no or one resultant, there is no fit and
     # we bail out before any computations.
@@ -218,58 +232,62 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         return RampFit(NAN, NAN, NAN)
 
     # Compute the fit
-    cdef int i = 0, j = 0
+    i: cython.int = 0
+    j: cython.int = 0
 
     # Setup data for fitting (work over subset of data) to make things cleaner
     #    Recall that the RampIndex contains the index of the first and last
     #    index of the ramp. Therefore, the Python slice needed to get all the
     #    data within the ramp is:
     #         ramp.start:ramp.end + 1
-    cdef float[:] resultants = resultants_[ramp.start:ramp.end + 1]
-    cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
-    cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
-    cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
+    resultants: cython.float[:] = resultants_[ramp.start : ramp.end + 1]
+    t_bar: cython.float[:] = t_bar_[ramp.start : ramp.end + 1]
+    tau: cython.float[:] = tau_[ramp.start : ramp.end + 1]
+    n_reads: cython.int[:] = n_reads_[ramp.start : ramp.end + 1]
 
     # Compute mid point time
-    cdef int end = n_resultants - 1
-    cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
+    end: cython.int = n_resultants - 1
+    t_bar_mid: cython.float = (t_bar[0] + t_bar[end]) / 2
 
     # Casertano+2022 Eq. 44
     #    Note we've departed from Casertano+22 slightly;
     #    there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
     #    a CR in the first resultant has boosted the whole ramp high but there
     #    is no actual signal.
-    cdef float power = fmaxf(resultants[end] - resultants[0], 0)
+    power: cython.float = fmaxf(resultants[end] - resultants[0], 0)
     power = power / sqrt(read_noise**2 + power)
     power = _get_power(power)
 
     # It's easy to use up a lot of dynamic range on something like
     # (tbar - tbarmid) ** 10.  Rescale these.
-    cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
+    t_scale: cython.float = (t_bar[end] - t_bar[0]) / 2
     t_scale = 1 if t_scale == 0 else t_scale
 
     # Initialize the fit loop
     #   it is faster to generate a c++ vector than a numpy array
-    cdef vector[float] weights = vector[float](n_resultants)
-    cdef vector[float] coeffs = vector[float](n_resultants)
-    cdef RampFit ramp_fit = RampFit(0, 0, 0)
-    cdef float f0 = 0, f1 = 0, f2 = 0
-    cdef float coeff
+    weights: vector[cython.float] = vector[float](n_resultants)
+    coeffs: vector[cython.float] = vector[float](n_resultants)
+    ramp_fit: RampFit = RampFit(0, 0, 0)
+    f0: cython.float = 0
+    f1: cython.float = 0
+    f2: cython.float = 0
+    coeff: cython.float
 
     # Issue when tbar[] == tbarmid causes exception otherwise
-    with cpow(True):
+    with cython.cpow(True):
         for i in range(n_resultants):
             # Casertano+22, Eq. 45
-            weights[i] = ((((1 + power) * n_reads[i]) / (1 + power * n_reads[i])) *
-                          fabs((t_bar[i] - t_bar_mid) / t_scale) ** power)
+            weights[i] = (((1 + power) * n_reads[i]) / (1 + power * n_reads[i])) * fabs(
+                (t_bar[i] - t_bar_mid) / t_scale
+            ) ** power
 
             # Casertano+22 Eq. 35
             f0 += weights[i]
             f1 += weights[i] * t_bar[i]
-            f2 += weights[i] * t_bar[i]**2
+            f2 += weights[i] * t_bar[i] ** 2
 
     # Casertano+22 Eq. 36
-    cdef float det = f2 * f0 - f1 ** 2
+    det: cython.float = f2 * f0 - f1**2
     if det == 0:
         return ramp_fit
 
@@ -282,14 +300,14 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         ramp_fit.slope += coeff * resultants[i]
 
         # Casertano+22 Eq. 39
-        ramp_fit.read_var += (coeff ** 2 * read_noise ** 2 / n_reads[i])
+        ramp_fit.read_var += coeff**2 * read_noise**2 / n_reads[i]
 
         # Casertano+22 Eq 40
         #    Note that this is an inversion of the indexing from the equation;
         #    however, commutivity of addition results in the same answer. This
         #    makes it so that we don't have to loop over all the resultants twice.
-        ramp_fit.poisson_var += coeff ** 2 * tau[i]
+        ramp_fit.poisson_var += coeff**2 * tau[i]
         for j in range(i):
-            ramp_fit.poisson_var += (2 * coeff * coeffs[j] * t_bar[j])
+            ramp_fit.poisson_var += 2 * coeff * coeffs[j] * t_bar[j]
 
     return ramp_fit

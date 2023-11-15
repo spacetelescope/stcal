@@ -81,6 +81,7 @@ testpaths = [
     "docs",
 ]
 norecursedirs = [
+    'src/stcal/ramp_fitting/ols_cas22',
     'benchmarks',
     '.asv',
     '.eggs',
