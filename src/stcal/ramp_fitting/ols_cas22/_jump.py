@@ -3,7 +3,7 @@
 
 """
 This module contains all the functions needed to execute jump detection for the
-    Castentano+22 ramp fitting algorithm
+    Castentano+22 ramp fitting algorithm.
 
     The _ramp module contains the actual ramp fitting algorithm, this module
     contains a driver for the algorithm and detection of jumps/splitting ramps.
@@ -53,24 +53,38 @@ fit_jumps : function
         meaning it automatically handles splitting ramps across dq flags in addition
         to splitting across detected jumps (if jump detection is turned on).
 """
+import cython
+from cython.cimports.libc.math import NAN, fmaxf, isnan, log10, sqrt
+from cython.cimports.libcpp import bool as cpp_bool
+from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
+    JUMP_DET,
+    FixedOffsets,
+    JumpFits,
+    PixelOffsets,
+    Thresh,
+)
+from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import (
+    RampFit,
+    RampIndex,
+    RampQueue,
+    fit_ramp,
+    init_ramps,
+)
 
-from cython cimport boundscheck, cdivision, wraparound
-from libc.math cimport NAN, fmaxf, isnan, log10, sqrt
-from libcpp cimport bool
 
-from stcal.ramp_fitting.ols_cas22._jump cimport JUMP_DET, FixedOffsets, JumpFits, PixelOffsets, Thresh
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, fit_ramp, init_ramps
-
-
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cpdef inline _fill_fixed_values(float[:, :] single_fixed,
-                                float[:, :] double_fixed,
-                                float[:] t_bar,
-                                float[:] tau,
-                                int[:] n_reads,
-                                int n_resultants):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.ccall
+def _fill_fixed_values(
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    t_bar: cython.float[:],
+    tau: cython.float[:],
+    n_reads: cython.int[:],
+    n_resultants: cython.int,
+) -> cython.void:
     """
     Pre-compute all the values needed for jump detection which only depend on
         the read pattern.
@@ -104,15 +118,15 @@ cpdef inline _fill_fixed_values(float[:, :] single_fixed,
     """
     # Cast the enum values into integers for indexing (otherwise compiler complains)
     #   These will be optimized out
-    cdef int t_bar_diff = FixedOffsets.t_bar_diff
-    cdef int t_bar_diff_sqr = FixedOffsets.t_bar_diff_sqr
-    cdef int read_recip = FixedOffsets.read_recip
-    cdef int var_slope_val = FixedOffsets.var_slope_val
+    t_bar_diff: cython.int = FixedOffsets.t_bar_diff
+    t_bar_diff_sqr: cython.int = FixedOffsets.t_bar_diff_sqr
+    read_recip: cython.int = FixedOffsets.read_recip
+    var_slope_val: cython.int = FixedOffsets.var_slope_val
 
     # Coerce division to be using floats
-    cdef float num = 1
+    num: cython.float = 1
 
-    cdef int i
+    i: cython.int
     for i in range(n_resultants - 1):
         single_fixed[t_bar_diff, i] = t_bar[i + 1] - t_bar[i]
         single_fixed[t_bar_diff_sqr, i] = single_fixed[t_bar_diff, i] ** 2
@@ -126,16 +140,20 @@ cpdef inline _fill_fixed_values(float[:, :] single_fixed,
             double_fixed[var_slope_val, i] = tau[i + 2] + tau[i] - 2 * min(t_bar[i + 2], t_bar[i])
 
 
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cpdef inline _fill_pixel_values(float[:, :] single_pixel,
-                                float[:, :] double_pixel,
-                                float[:, :] single_fixed,
-                                float[:, :] double_fixed,
-                                float[:] resultants,
-                                float read_noise,
-                                int n_resultants):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.ccall
+def _fill_pixel_values(
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    resultants: cython.float[:],
+    read_noise: cython.float,
+    n_resultants: cython.int,
+) -> cython.void:
     """
     Pre-compute all the values needed for jump detection which only depend on
         the a specific pixel (independent of the given ramp for a pixel).
@@ -163,15 +181,15 @@ cpdef inline _fill_pixel_values(float[:, :] single_pixel,
         read_noise**2 * <(1/n_reads[i+2] + 1/n_reads[i])>,
     ]
     """
-    cdef int t_bar_diff = FixedOffsets.t_bar_diff
-    cdef int read_recip = FixedOffsets.read_recip
+    t_bar_diff: cython.int = FixedOffsets.t_bar_diff
+    read_recip: cython.int = FixedOffsets.read_recip
 
-    cdef int local_slope = PixelOffsets.local_slope
-    cdef int var_read_noise = PixelOffsets.var_read_noise
+    local_slope: cython.int = PixelOffsets.local_slope
+    var_read_noise: cython.int = PixelOffsets.var_read_noise
 
-    cdef float read_noise_sqr = read_noise ** 2
+    read_noise_sqr: cython.float = read_noise**2
 
-    cdef int i
+    i: cython.int
     for i in range(n_resultants - 1):
         single_pixel[local_slope, i] = (resultants[i + 1] - resultants[i]) / single_fixed[t_bar_diff, i]
         single_pixel[var_read_noise, i] = read_noise_sqr * single_fixed[read_recip, i]
@@ -181,9 +199,12 @@ cpdef inline _fill_pixel_values(float[:, :] single_pixel,
             double_pixel[var_read_noise, i] = read_noise_sqr * double_fixed[read_recip, i]
 
 
-cdef inline float _threshold(Thresh thresh, float slope):
+@cython.inline
+@cython.cfunc
+@cython.exceptval(check=False)
+def _threshold(thresh: Thresh, slope: cython.float) -> cython.float:
     """
-    Compute jump threshold
+    Compute jump threshold.
 
     Parameters
     ----------
@@ -202,12 +223,14 @@ cdef inline float _threshold(Thresh thresh, float slope):
     return thresh.intercept - thresh.constant * log10(slope)
 
 
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.cfunc
+def _correction(t_bar: cython.float[:], ramp: RampIndex, slope: cython.float) -> cython.float:
     """
-    Compute the correction factor for the variance used by a statistic
+    Compute the correction factor for the variance used by a statistic.
 
         - slope / (t_bar[end] - t_bar[start])
 
@@ -220,24 +243,27 @@ cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
     slope : float
         The computed slope for the ramp
     """
+    diff: cython.float = t_bar[ramp.end] - t_bar[ramp.start]
 
-    cdef float diff = t_bar[ramp.end] - t_bar[ramp.start]
-
-    return - slope / diff
+    return -slope / diff
 
 
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cdef inline float _statstic(float local_slope,
-                            float var_read_noise,
-                            float t_bar_diff_sqr,
-                            float var_slope_coeff,
-                            float slope,
-                            float correct):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.cfunc
+def _statistic(
+    local_slope: cython.float,
+    var_read_noise: cython.float,
+    t_bar_diff_sqr: cython.float,
+    var_slope_coeff: cython.float,
+    slope: cython.float,
+    correct: cython.float,
+) -> cython.float:
     """
     Compute a single fit statistic
-        delta / sqrt(var + correct)
+        delta / sqrt(var + correct).
 
     where:
         delta = local_slope - slope
@@ -268,27 +294,33 @@ cdef inline float _statstic(float local_slope,
     -------
         Create a single instance of the stastic for the given parameters
     """
-
-    cdef float delta = local_slope - slope
-    cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
+    delta: cython.float = local_slope - slope
+    var: cython.float = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
 
     return delta / sqrt(var + correct)
 
 
-@boundscheck(False)
-@wraparound(False)
-cdef inline (int, float) _fit_statistic(float[:, :] single_pixel,
-                                        float[:, :] double_pixel,
-                                        float[:, :] single_fixed,
-                                        float[:, :] double_fixed,
-                                        float[:] t_bar,
-                                        float slope,
-                                        RampIndex ramp):
+Stat = cython.struct(arg_max=cython.int, max_stat=cython.float)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.inline
+@cython.cfunc
+def _fit_statistic(
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    t_bar: cython.float[:],
+    slope: cython.float,
+    ramp: RampIndex,
+) -> Stat:
     """
     Compute the maximum index and its value over all fit statistics for a given
         ramp. Each index's stat is the max of the single and double difference
         statistics:
-            all_stats = <max(single_stats), max(double_stats)>
+            all_stats = <max(single_stats), max(double_stats)>.
 
     Parameters
     ----------
@@ -309,19 +341,18 @@ cdef inline (int, float) _fit_statistic(float[:, :] single_pixel,
     """
     # Cast the enum values into integers for indexing (otherwise compiler complains)
     #   These will be optimized out
-    cdef int local_slope = PixelOffsets.local_slope
-    cdef int var_read_noise = PixelOffsets.var_read_noise
+    local_slope: cython.int = PixelOffsets.local_slope
+    var_read_noise: cython.int = PixelOffsets.var_read_noise
 
-    cdef int t_bar_diff_sqr = FixedOffsets.t_bar_diff_sqr
-    cdef int var_slope_val = FixedOffsets.var_slope_val
-
+    t_bar_diff_sqr: cython.int = FixedOffsets.t_bar_diff_sqr
+    var_slope_val: cython.int = FixedOffsets.var_slope_val
     # Note that a ramp consisting of a single point is degenerate and has no
     #   fit statistic so we bail out here
     if ramp.start == ramp.end:
-        return 0, NAN
+        return Stat(0, NAN)
 
     # Start computing fit statistics
-    cdef float correct = _correction(t_bar, ramp, slope)
+    correct: cython.float = _correction(t_bar, ramp, slope)
 
     # We are computing single and double differences of using the ramp's resultants.
     #    Each of these computations requires two points meaning that there are
@@ -330,59 +361,72 @@ cdef inline (int, float) _fit_statistic(float[:, :] single_pixel,
     #    We use this point's single difference as our initial guess for the fit
     #    statistic. Note that the fit statistic can technically be negative so
     #    this makes it much easier to compute a "lazy" max.
-    cdef int index = ramp.end - 1
-    cdef int argmax = ramp.end - ramp.start - 1
-    cdef float max_stat = _statstic(single_pixel[local_slope, index],
-                                    single_pixel[var_read_noise, index],
-                                    single_fixed[t_bar_diff_sqr, index],
-                                    single_fixed[var_slope_val, index],
-                                    slope,
-                                    correct)
+    index: cython.int = ramp.end - 1
+    stat: Stat = Stat(
+        ramp.end - ramp.start - 1,
+        _statistic(
+            single_pixel[local_slope, index],
+            single_pixel[var_read_noise, index],
+            single_fixed[t_bar_diff_sqr, index],
+            single_fixed[var_slope_val, index],
+            slope,
+            correct,
+        ),
+    )
 
     # Compute the rest of the fit statistics
-    cdef float stat, stat1, stat2
-    cdef int stat_index
-    for stat_index, index in enumerate(range(ramp.start, ramp.end - 1)):
+    max_stat: cython.float
+    single_stat: cython.float
+    double_stat: cython.float
+    arg_max: cython.int
+    for arg_max, index in enumerate(range(ramp.start, ramp.end - 1)):
         # Compute max of single and double difference statistics
-        stat1 = _statstic(single_pixel[local_slope, index],
-                          single_pixel[var_read_noise, index],
-                          single_fixed[t_bar_diff_sqr, index],
-                          single_fixed[var_slope_val, index],
-                          slope,
-                          correct)
-        stat2 = _statstic(double_pixel[local_slope, index],
-                          double_pixel[var_read_noise, index],
-                          double_fixed[t_bar_diff_sqr, index],
-                          double_fixed[var_slope_val, index],
-                          slope,
-                          correct)
-        stat = fmaxf(stat1, stat2)
+        single_stat = _statistic(
+            single_pixel[local_slope, index],
+            single_pixel[var_read_noise, index],
+            single_fixed[t_bar_diff_sqr, index],
+            single_fixed[var_slope_val, index],
+            slope,
+            correct,
+        )
+        double_stat = _statistic(
+            double_pixel[local_slope, index],
+            double_pixel[var_read_noise, index],
+            double_fixed[t_bar_diff_sqr, index],
+            double_fixed[var_slope_val, index],
+            slope,
+            correct,
+        )
+        max_stat = fmaxf(single_stat, double_stat)
 
         # If this is larger than the current max, update the max
-        if stat > max_stat:
-            max_stat = stat
-            argmax = stat_index
+        if max_stat > stat.max_stat:
+            stat = Stat(arg_max, max_stat)
 
-    return argmax, max_stat
+    return stat
 
 
-@boundscheck(False)
-@wraparound(False)
-@cdivision(True)
-cdef inline JumpFits fit_jumps(float[:] resultants,
-                               int[:] dq,
-                               float read_noise,
-                               float[:] t_bar,
-                               float[:] tau,
-                               int[:] n_reads,
-                               int n_resultants,
-                               float[:, :] single_pixel,
-                               float[:, :] double_pixel,
-                               float[:, :] single_fixed,
-                               float[:, :] double_fixed,
-                               Thresh thresh,
-                               bool use_jump,
-                               bool include_diagnostic):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.cfunc
+def fit_jumps(
+    resultants: cython.float[:],
+    dq: cython.int[:],
+    read_noise: cython.float,
+    t_bar: cython.float[:],
+    tau: cython.float[:],
+    n_reads: cython.int[:],
+    n_resultants: cython.int,
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    thresh: Thresh,
+    use_jump: cpp_bool,
+    include_diagnostic: cpp_bool,
+) -> JumpFits:
     """
     Compute all the ramps for a single pixel using the Casertano+22 algorithm
         with jump detection.
@@ -425,30 +469,28 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
     RampFits struct of all the fits for a single pixel
     """
     # Find initial set of ramps
-    cdef RampQueue ramps = init_ramps(dq, n_resultants)
+    ramps: RampQueue = init_ramps(dq, n_resultants)
 
     # Initialize algorithm
-    cdef JumpFits ramp_fits
-    cdef RampIndex ramp
-    cdef RampFit ramp_fit
-
+    ramp_fits: JumpFits = JumpFits()
     ramp_fits.average.slope = 0
     ramp_fits.average.read_var = 0
     ramp_fits.average.poisson_var = 0
 
-    cdef int argmax, jump0, jump1
-    cdef float max_stat
-    cdef float weight, total_weight = 0
+    # Declare variables for the loop
+    ramp: RampIndex
+    ramp_fit: RampFit
+    stat: Stat
+    jump0: cython.int
+    jump1: cython.int
+    weight: cython.float
+    total_weight: cython.float = 0
 
     # Fill in the jump detection pre-compute values for a single pixel
     if use_jump:
-        _fill_pixel_values(single_pixel,
-                           double_pixel,
-                           single_fixed,
-                           double_fixed,
-                           resultants,
-                           read_noise,
-                           n_resultants)
+        _fill_pixel_values(
+            single_pixel, double_pixel, single_fixed, double_fixed, resultants, read_noise, n_resultants
+        )
 
     # Run while the Queue is non-empty
     while not ramps.empty():
@@ -457,27 +499,18 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
         ramps.pop_back()
 
         # Compute fit using the Casertano+22 algorithm
-        ramp_fit = fit_ramp(resultants,
-                            t_bar,
-                            tau,
-                            n_reads,
-                            read_noise,
-                            ramp)
+        ramp_fit = fit_ramp(resultants, t_bar, tau, n_reads, read_noise, ramp)
 
         # Run jump detection if enabled
         if use_jump:
-            argmax, max_stat = _fit_statistic(single_pixel,
-                                              double_pixel,
-                                              single_fixed,
-                                              double_fixed,
-                                              t_bar,
-                                              ramp_fit.slope,
-                                              ramp)
+            stat = _fit_statistic(
+                single_pixel, double_pixel, single_fixed, double_fixed, t_bar, ramp_fit.slope, ramp
+            )
 
             # Note that when a "ramp" is a single point, _fit_statistic returns
             # a NaN for max_stat. Note that NaN > anything is always false so the
             # result drops through as desired.
-            if max_stat > _threshold(thresh, ramp_fit.slope):
+            if stat.max_stat > _threshold(thresh, ramp_fit.slope):
                 # Compute jump point to create two new ramps
                 #    This jump point corresponds to the index of the largest
                 #    statistic:
@@ -486,7 +519,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                 #    ramp's range. Therefore, we need to add the start index
                 #    of the ramp to the result.
                 #
-                jump0 = argmax + ramp.start
+                jump0 = stat.arg_max + ramp.start
 
                 # Note that because the resultants are averages of reads, but
                 # jumps occur in individual reads, it is possible that the

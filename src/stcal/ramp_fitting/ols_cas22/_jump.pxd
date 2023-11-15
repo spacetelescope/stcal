@@ -35,12 +35,12 @@ cdef struct JumpFits:
     RampQueue index
 
 
-cpdef _fill_fixed_values(float[:, :] single_fixed,
-                         float[:, :] double_fixed,
-                         float[:] t_bar,
-                         float[:] tau,
-                         int[:] n_reads,
-                         int n_resultants)
+cpdef void _fill_fixed_values(float[:, :] single_fixed,
+                              float[:, :] double_fixed,
+                              float[:] t_bar,
+                              float[:] tau,
+                              int[:] n_reads,
+                              int n_resultants)
 
 
 cdef JumpFits fit_jumps(float[:] resultants,
