@@ -2,10 +2,12 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22 import JUMP_DET, Parameter, Variance, fit_ramps
+from stcal.ramp_fitting.ols_cas22 import JUMP_DET, fit_ramps
 from stcal.ramp_fitting.ols_cas22._jump import (
     FixedOffsets,
+    Parameter,
     PixelOffsets,
+    Variance,
     _fill_fixed_values,
     _fill_pixel_values,
 )
@@ -329,8 +331,12 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     )
     assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
+    slopes = output.parameters[:, Parameter.slope]
+    read_vars = output.variances[:, Variance.read_var]
+    poisson_vars = output.variances[:, Variance.poisson_var]
+
     chi2 = 0
-    for fit, use in zip(output.fits, okay):
+    for fit, slope, read_var, poisson_var, use in zip(output.fits, slopes, read_vars, poisson_vars, okay):
         if not use_dq and not use_jump:
             ##### The not use_jump makes this NOT test for false positives #####
             # Check that the data generated does not generate any false positives
@@ -343,42 +349,19 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
 
         if use:
             # Add okay ramps to chi2
-            total_var = fit["average"]["read_var"] + fit["average"]["poisson_var"]
+            total_var = read_var + poisson_var
             if total_var != 0:
-                chi2 += (fit["average"]["slope"] - FLUX) ** 2 / total_var
+                chi2 += (slope - FLUX) ** 2 / total_var
         else:
             # Check no slope fit for bad ramps
-            assert fit["average"]["slope"] == 0
-            assert fit["average"]["read_var"] == 0
-            assert fit["average"]["poisson_var"] == 0
+            assert slope == 0
+            assert read_var == 0
+            assert poisson_var == 0
 
             assert use_dq  # sanity check that this branch is only encountered when use_dq = True
 
     chi2 /= np.sum(okay)
     assert np.abs(chi2 - 1) < CHI2_TOL
-
-
-@pytest.mark.parametrize("use_jump", [True, False])
-def test_fit_ramps_array_outputs(detector_data, use_jump):
-    """
-    Test that the array outputs line up with the dictionary output
-    """
-    resultants, read_noise, read_pattern = detector_data
-    dq = np.zeros(resultants.shape, dtype=np.int32)
-
-    output = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump, include_diagnostic=True
-    )
-
-    for fit, par, var in zip(output.fits, output.parameters, output.variances):
-        assert par[Parameter.intercept] == 0
-        assert par[Parameter.slope] == fit["average"]["slope"]
-
-        assert var[Variance.read_var] == fit["average"]["read_var"]
-        assert var[Variance.poisson_var] == fit["average"]["poisson_var"]
-        assert var[Variance.total_var] == np.float32(
-            fit["average"]["read_var"] + fit["average"]["poisson_var"]
-        )
 
 
 @pytest.fixture(scope="module")
@@ -445,12 +428,18 @@ def test_find_jumps(jump_data):
     )
     assert len(output.fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
+    slopes = output.parameters[:, Parameter.slope]
+    read_vars = output.variances[:, Variance.read_var]
+    poisson_vars = output.variances[:, Variance.poisson_var]
+
     chi2 = 0
     incorrect_too_few = 0
     incorrect_too_many = 0
     incorrect_does_not_capture = 0
     incorrect_other = 0
-    for fit, jump_index, resultant_index in zip(output.fits, jump_reads, jump_resultants):
+    for fit, slope, read_var, poisson_var, jump_index, resultant_index in zip(
+        output.fits, slopes, read_vars, poisson_vars, jump_reads, jump_resultants
+    ):
         # Check that the jumps are detected correctly
         if jump_index == 0:
             # There is no way to detect a jump if it is in the very first read
@@ -503,8 +492,8 @@ def test_find_jumps(jump_data):
             # assert set(ramp_indices).union(fit['jumps']) == set(range(len(read_pattern)))
 
         # Compute the chi2 for the fit and add it to a running "total chi2"
-        total_var = fit["average"]["read_var"] + fit["average"]["poisson_var"]
-        chi2 += (fit["average"]["slope"] - FLUX) ** 2 / total_var
+        total_var = read_var + poisson_var
+        chi2 += (slope - FLUX) ** 2 / total_var
 
     # Check that the average chi2 is ~1.
     chi2 /= N_PIXELS - incorrect_too_few - incorrect_too_many - incorrect_does_not_capture - incorrect_other

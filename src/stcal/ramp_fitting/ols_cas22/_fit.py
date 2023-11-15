@@ -34,10 +34,11 @@ import cython
 import numpy as np
 from cython.cimports import numpy as cnp
 from cython.cimports.libcpp.list import list as cpp_list
-from cython.cimports.stcal.ramp_fitting.ols_cas22._fit import Parameter, Variance
 from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     JumpFits,
+    Parameter,
     Thresh,
+    Variance,
     _fill_fixed_values,
     fit_jumps,
     n_fixed_offsets,
@@ -203,6 +204,8 @@ def fit_ramps(
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
         fit = fit_jumps(
+            parameters[index, :],
+            variances[index, :],
             resultants[:, index],
             dq[:, index],
             read_noise[index],
@@ -218,14 +221,6 @@ def fit_ramps(
             use_jump,
             include_diagnostic,
         )
-
-        # Extract the output fit's parameters
-        parameters[index, _slope] = fit.average.slope
-
-        # Extract the output fit's variances
-        variances[index, _read_var] = fit.average.read_var
-        variances[index, _poisson_var] = fit.average.poisson_var
-        variances[index, _total_var] = fit.average.read_var + fit.average.poisson_var
 
         # Store diagnostic data if requested
         if include_diagnostic:

@@ -61,8 +61,10 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     JUMP_DET,
     FixedOffsets,
     JumpFits,
+    Parameter,
     PixelOffsets,
     Thresh,
+    Variance,
 )
 from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import (
     RampFit,
@@ -396,12 +398,20 @@ def _fit_statistic(
     return stat
 
 
+_slope = cython.declare(cython.int, Parameter.slope)
+_read_var = cython.declare(cython.int, Variance.read_var)
+_poisson_var = cython.declare(cython.int, Variance.poisson_var)
+_total_var = cython.declare(cython.int, Variance.total_var)
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.inline
 @cython.cfunc
 def fit_jumps(
+    parameters: cython.float[:],
+    variances: cython.float[:],
     resultants: cython.float[:],
     dq: cython.int[:],
     read_noise: cython.float,
@@ -462,7 +472,9 @@ def fit_jumps(
     ramps: RampQueue = init_ramps(dq, n_resultants)
 
     # Initialize algorithm
-    average: RampFit = RampFit(0, 0, 0)
+    parameters[:] = 0
+    variances[:] = 0
+
     jumps: vector[cython.int] = vector[cython.int]()
     fits: vector[RampFit] = vector[RampFit]()
     index: RampQueue = RampQueue()
@@ -592,16 +604,17 @@ def fit_jumps(
             weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
             total_weight += weight
 
-            average.slope += weight * ramp_fit.slope
-            average.read_var += weight**2 * ramp_fit.read_var
-            average.poisson_var += weight**2 * ramp_fit.poisson_var
+            parameters[_slope] += weight * ramp_fit.slope
+            variances[_read_var] += weight**2 * ramp_fit.read_var
+            variances[_poisson_var] += weight**2 * ramp_fit.poisson_var
 
     # Finish computing averages using the lazy process
-    average.slope /= total_weight if total_weight != 0 else 1
-    average.read_var /= total_weight**2 if total_weight != 0 else 1
-    average.poisson_var /= total_weight**2 if total_weight != 0 else 1
+    parameters[_slope] /= total_weight if total_weight != 0 else 1
+    variances[_read_var] /= total_weight**2 if total_weight != 0 else 1
+    variances[_poisson_var] /= total_weight**2 if total_weight != 0 else 1
 
     # Multiply poisson term by flux, (no negative fluxes)
-    average.poisson_var *= max(average.slope, 0)
+    variances[_poisson_var] *= max(parameters[_slope], 0)
+    variances[_total_var] = variances[_read_var] + variances[_poisson_var]
 
-    return JumpFits(average, jumps, fits, index)
+    return JumpFits(jumps, fits, index)

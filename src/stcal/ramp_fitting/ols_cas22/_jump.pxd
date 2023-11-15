@@ -20,6 +20,19 @@ cpdef enum PixelOffsets:
     n_pixel_offsets
 
 
+cpdef enum Parameter:
+    intercept
+    slope
+    n_param
+
+
+cpdef enum Variance:
+    read_var
+    poisson_var
+    total_var
+    n_var
+
+
 cpdef enum:
     JUMP_DET = 4
 
@@ -29,7 +42,6 @@ cdef struct Thresh:
 
 
 cdef struct JumpFits:
-    RampFit average
     vector[int] jumps
     vector[RampFit] fits
     RampQueue index
@@ -43,7 +55,9 @@ cpdef void _fill_fixed_values(float[:, :] single_fixed,
                               int n_resultants)
 
 
-cdef JumpFits fit_jumps(float[:] resultants,
+cdef JumpFits fit_jumps(float[:] parameters,
+                        float[:] variances,
+                        float[:] resultants,
                         int[:] dq,
                         float read_noise,
                         float[:] t_bar,
