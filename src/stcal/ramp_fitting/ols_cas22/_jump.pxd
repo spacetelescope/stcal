@@ -3,8 +3,6 @@
 from libcpp cimport bool
 from libcpp.vector cimport vector
 
-from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampQueue
-
 
 cpdef enum FixedOffsets:
     t_bar_diff
@@ -39,6 +37,20 @@ cpdef enum:
 cdef struct Thresh:
     float intercept
     float constant
+
+
+cdef struct RampIndex:
+    int start
+    int end
+
+
+ctypedef vector[RampIndex] RampQueue
+
+
+cdef struct RampFit:
+    float slope
+    float read_var
+    float poisson_var
 
 
 cdef struct JumpFits:

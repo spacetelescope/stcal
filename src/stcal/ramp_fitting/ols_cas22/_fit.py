@@ -36,7 +36,6 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     _fill_fixed_values,
     fit_jumps,
 )
-from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata
 
 
 @cython.boundscheck(False)
@@ -148,3 +147,37 @@ def fit_ramps(
 
     # Cast memory views into numpy arrays for ease of use in python.
     return ramp_fits
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.ccall
+def _fill_metadata(
+    t_bar: cython.float[:],
+    tau: cython.float[:],
+    n_reads: cython.int[:],
+    read_pattern: vector[vector[cython.int]],
+    read_time: cython.float,
+    n_resultants: cython.int,
+) -> cython.void:
+    n_read: cython.int
+
+    i: cython.int
+    j: cython.int
+    resultant: vector[cython.int]
+    for i in range(n_resultants):
+        resultant = read_pattern[i]
+        n_read = resultant.size()
+
+        n_reads[i] = n_read
+        t_bar[i] = 0
+        tau[i] = 0
+
+        for j in range(n_read):
+            t_bar[i] += read_time * resultant[j]
+            tau[i] += (2 * (n_read - j) - 1) * resultant[j]
+
+        t_bar[i] /= n_read
+        tau[i] *= read_time / n_read**2

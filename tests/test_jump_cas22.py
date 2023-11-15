@@ -3,6 +3,7 @@ import pytest
 from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22 import JUMP_DET, DefaultThreshold, fit_ramps
+from stcal.ramp_fitting.ols_cas22._fit import _fill_metadata
 from stcal.ramp_fitting.ols_cas22._jump import (
     FixedOffsets,
     Parameter,
@@ -10,8 +11,8 @@ from stcal.ramp_fitting.ols_cas22._jump import (
     Variance,
     _fill_fixed_values,
     _fill_pixel_values,
+    _init_ramps,
 )
-from stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata, init_ramps
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)
@@ -38,7 +39,7 @@ CHI2_TOL = 0.03
 GOOD_PROB = 0.7
 
 
-def test_init_ramps():
+def test__init_ramps():
     """
     Test turning dq flags into initial ramp splits
         Note that because `init_ramps` itself returns a stack, which does not have
@@ -58,7 +59,7 @@ def test_init_ramps():
     )
 
     n_resultants, n_pixels = dq.shape
-    ramps = [init_ramps(dq[:, index], n_resultants) for index in range(n_pixels)]
+    ramps = [_init_ramps(dq[:, index], n_resultants) for index in range(n_pixels)]
 
     assert len(ramps) == dq.shape[1] == 16
 
