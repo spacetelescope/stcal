@@ -9,7 +9,7 @@ from stcal.ramp_fitting.ols_cas22._jump import (
     _fill_pixel_values,
     fill_fixed_values,
 )
-from stcal.ramp_fitting.ols_cas22._ramp import from_read_pattern, init_ramps
+from stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata, init_ramps
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)
@@ -111,13 +111,18 @@ def read_pattern():
     ]
 
 
-def test_from_read_pattern(read_pattern):
+def test__fill_metadata(read_pattern):
     """Test turning read_pattern into the time data"""
-    metadata = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()  # noqa: SLF001
 
-    t_bar = metadata["t_bar"]
-    tau = metadata["tau"]
-    n_reads = metadata["n_reads"]
+    n_resultants = len(read_pattern)
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    _fill_metadata(read_pattern, READ_TIME, t_bar, tau, n_reads)
+
+    assert t_bar.shape == (n_resultants,)
+    assert tau.shape == (n_resultants,)
+    assert n_reads.shape == (n_resultants,)
 
     # Check that the data is correct
     assert_allclose(t_bar, [7.6, 15.2, 21.279999, 41.040001, 60.799999, 88.159996])
@@ -142,9 +147,13 @@ def ramp_data(read_pattern):
         metadata : dict
             The metadata computed from the read pattern
     """
-    data = from_read_pattern(read_pattern, READ_TIME, len(read_pattern))._to_dict()  # noqa: SLF001
+    n_resultants = len(read_pattern)
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    _fill_metadata(read_pattern, READ_TIME, t_bar, tau, n_reads)
 
-    return data["t_bar"], data["tau"], data["n_reads"], read_pattern
+    return t_bar, tau, n_reads, read_pattern
 
 
 def test_fill_fixed_values(ramp_data):

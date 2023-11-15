@@ -17,19 +17,15 @@ cdef struct RampFit:
 ctypedef vector[RampIndex] RampQueue
 
 
-cdef class ReadPattern:
-    cdef float[::1] t_bar
-    cdef float[::1] tau
-    cdef int[::1] n_reads
-
-
 cpdef RampQueue init_ramps(int[:] dq,
                            int n_resultants)
 
 
-cpdef ReadPattern from_read_pattern(list[list[int]] read_pattern,
-                                    float read_time,
-                                    int n_resultants)
+cpdef _fill_metadata(list[list[int]] read_pattern,
+                     float read_time,
+                     float[:] t_bar,
+                     float[:] tau,
+                     int[:] n_reads)
 
 
 cdef RampFit fit_ramp(float[:] resultants_,

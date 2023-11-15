@@ -43,7 +43,7 @@ from stcal.ramp_fitting.ols_cas22._jump cimport (
     n_fixed_offsets,
     n_pixel_offsets,
 )
-from stcal.ramp_fitting.ols_cas22._ramp cimport ReadPattern, from_read_pattern
+from stcal.ramp_fitting.ols_cas22._ramp cimport _fill_metadata
 
 from typing import NamedTuple
 
@@ -150,10 +150,10 @@ def fit_ramps(float[:, :] resultants,
                            f'match number of resultants {n_resultants}')
 
     # Compute the main metadata from the read pattern and cast it to memory views
-    cdef ReadPattern metadata = from_read_pattern(read_pattern, read_time, n_resultants)
-    cdef float[:] t_bar = metadata.t_bar
-    cdef float[:] tau = metadata.tau
-    cdef int[:] n_reads = metadata.n_reads
+    cdef float[:] t_bar = np.empty(n_resultants, dtype=np.float32)
+    cdef float[:] tau = np.empty(n_resultants, dtype=np.float32)
+    cdef int[:] n_reads = np.empty(n_resultants, dtype=np.int32)
+    _fill_metadata(read_pattern, read_time, t_bar, tau, n_reads)
 
     # Setup pre-compute arrays for jump detection
     cdef float[:, :] fixed
