@@ -102,14 +102,6 @@ def fit_ramps(
     n_resultants: cython.int = resultants.shape[0]
     n_pixels: cython.int = resultants.shape[1]
 
-    # Raise error if input data is inconsistent
-    if n_resultants != len(read_pattern):
-        msg = (
-            f"The read pattern length {len(read_pattern)} does "
-            f"not match number of resultants {n_resultants}"
-        )
-        raise RuntimeError(msg)
-
     # Compute the main metadata from the read pattern and cast it to memory views
     _fill_metadata(t_bar, tau, n_reads, read_pattern, read_time, n_resultants)
 

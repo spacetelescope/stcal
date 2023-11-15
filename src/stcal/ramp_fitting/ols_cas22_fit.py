@@ -141,6 +141,15 @@ def fit_ramps_casertano(
         read_noise = read_noise * np.ones(resultants.shape[1:])
     read_noise = np.array(read_noise).astype(np.float32)
 
+    # Raise error if input data is inconsistent
+    n_resultants = resultants.shape[0]
+    if n_resultants != len(read_pattern):
+        msg = (
+            f"The read pattern length {len(read_pattern)} does "
+            f"not match number of resultants {n_resultants}"
+        )
+        raise RuntimeError(msg)
+
     orig_shape = resultants.shape
     if len(resultants.shape) == 1:
         # single ramp.
@@ -156,7 +165,6 @@ def fit_ramps_casertano(
     # Pre-allocate the working memory arrays
     #   This prevents bouncing to and from cython for this allocation, which
     #   is slower than just doing it all in python to start.
-    n_resultants = resultants.shape[0]
     t_bar = np.empty(n_resultants, dtype=np.float32)
     tau = np.empty(n_resultants, dtype=np.float32)
     n_reads = np.empty(n_resultants, dtype=np.int32)
