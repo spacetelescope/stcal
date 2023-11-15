@@ -72,6 +72,11 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import (
     init_ramps,
 )
 
+_t_bar_diff = cython.declare(cython.int, FixedOffsets.t_bar_diff)
+_t_bar_diff_sqr = cython.declare(cython.int, FixedOffsets.t_bar_diff_sqr)
+_read_recip = cython.declare(cython.int, FixedOffsets.read_recip)
+_var_slope_val = cython.declare(cython.int, FixedOffsets.var_slope_val)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -117,28 +122,25 @@ def _fill_fixed_values(
         <(tau[i] + tau[i+2] - 2 * min(t_bar[i], t_bar[i+2]))>,
     ]
     """
-    # Cast the enum values into integers for indexing (otherwise compiler complains)
-    #   These will be optimized out
-    t_bar_diff: cython.int = FixedOffsets.t_bar_diff
-    t_bar_diff_sqr: cython.int = FixedOffsets.t_bar_diff_sqr
-    read_recip: cython.int = FixedOffsets.read_recip
-    var_slope_val: cython.int = FixedOffsets.var_slope_val
-
     # Coerce division to be using floats
     num: cython.float = 1
 
     i: cython.int
     for i in range(n_resultants - 1):
-        single_fixed[t_bar_diff, i] = t_bar[i + 1] - t_bar[i]
-        single_fixed[t_bar_diff_sqr, i] = single_fixed[t_bar_diff, i] ** 2
-        single_fixed[read_recip, i] = (num / n_reads[i + 1]) + (num / n_reads[i])
-        single_fixed[var_slope_val, i] = tau[i + 1] + tau[i] - 2 * min(t_bar[i + 1], t_bar[i])
+        single_fixed[_t_bar_diff, i] = t_bar[i + 1] - t_bar[i]
+        single_fixed[_t_bar_diff_sqr, i] = single_fixed[_t_bar_diff, i] ** 2
+        single_fixed[_read_recip, i] = (num / n_reads[i + 1]) + (num / n_reads[i])
+        single_fixed[_var_slope_val, i] = tau[i + 1] + tau[i] - 2 * min(t_bar[i + 1], t_bar[i])
 
         if i < n_resultants - 2:
-            double_fixed[t_bar_diff, i] = t_bar[i + 2] - t_bar[i]
-            double_fixed[t_bar_diff_sqr, i] = double_fixed[t_bar_diff, i] ** 2
-            double_fixed[read_recip, i] = (num / n_reads[i + 2]) + (num / n_reads[i])
-            double_fixed[var_slope_val, i] = tau[i + 2] + tau[i] - 2 * min(t_bar[i + 2], t_bar[i])
+            double_fixed[_t_bar_diff, i] = t_bar[i + 2] - t_bar[i]
+            double_fixed[_t_bar_diff_sqr, i] = double_fixed[_t_bar_diff, i] ** 2
+            double_fixed[_read_recip, i] = (num / n_reads[i + 2]) + (num / n_reads[i])
+            double_fixed[_var_slope_val, i] = tau[i + 2] + tau[i] - 2 * min(t_bar[i + 2], t_bar[i])
+
+
+_local_slope = cython.declare(cython.int, PixelOffsets.local_slope)
+_var_read_noise = cython.declare(cython.int, PixelOffsets.var_read_noise)
 
 
 @cython.boundscheck(False)
@@ -182,22 +184,16 @@ def _fill_pixel_values(
         read_noise**2 * <(1/n_reads[i+2] + 1/n_reads[i])>,
     ]
     """
-    t_bar_diff: cython.int = FixedOffsets.t_bar_diff
-    read_recip: cython.int = FixedOffsets.read_recip
-
-    local_slope: cython.int = PixelOffsets.local_slope
-    var_read_noise: cython.int = PixelOffsets.var_read_noise
-
     read_noise_sqr: cython.float = read_noise**2
 
     i: cython.int
     for i in range(n_resultants - 1):
-        single_pixel[local_slope, i] = (resultants[i + 1] - resultants[i]) / single_fixed[t_bar_diff, i]
-        single_pixel[var_read_noise, i] = read_noise_sqr * single_fixed[read_recip, i]
+        single_pixel[_local_slope, i] = (resultants[i + 1] - resultants[i]) / single_fixed[_t_bar_diff, i]
+        single_pixel[_var_read_noise, i] = read_noise_sqr * single_fixed[_read_recip, i]
 
         if i < n_resultants - 2:
-            double_pixel[local_slope, i] = (resultants[i + 2] - resultants[i]) / double_fixed[t_bar_diff, i]
-            double_pixel[var_read_noise, i] = read_noise_sqr * double_fixed[read_recip, i]
+            double_pixel[_local_slope, i] = (resultants[i + 2] - resultants[i]) / double_fixed[_t_bar_diff, i]
+            double_pixel[_var_read_noise, i] = read_noise_sqr * double_fixed[_read_recip, i]
 
 
 @cython.inline
@@ -258,7 +254,7 @@ def _statistic(
     local_slope: cython.float,
     var_read_noise: cython.float,
     t_bar_diff_sqr: cython.float,
-    var_slope_coeff: cython.float,
+    var_slope_val: cython.float,
     slope: cython.float,
     correct: cython.float,
 ) -> cython.float:
@@ -267,8 +263,8 @@ def _statistic(
         delta / sqrt(var + correct).
 
     where:
-        delta = local_slope - slope
-        var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
+        delta = _local_slope - slope
+        var = (var_read_noise + slope * var_slope_val) / t_bar_diff_sqr
 
         pre-computed:
             local_slope = (resultant[i + j]  - resultant[i]) / (t_bar[i + j] - t_bar[i])
@@ -280,12 +276,12 @@ def _statistic(
     ----------
     local_slope : float
         The local slope the statistic is computed for
-    float : var_read_noise
-        The read noise variance for local_slope
+    var_read_noise: float
+        The read noise variance for _local_slope
     t_bar_diff_sqr : float
-        The square difference for the t_bar corresponding to local_slope
-    var_slope_coeff : float
-        The slope variance coefficient for local_slope
+        The square difference for the t_bar corresponding to _local_slope
+    var_slope_val : float
+        The slope variance coefficient for _local_slope
     slope : float
         The computed slope for the ramp
     correct : float
@@ -296,7 +292,7 @@ def _statistic(
         Create a single instance of the stastic for the given parameters
     """
     delta: cython.float = local_slope - slope
-    var: cython.float = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
+    var: cython.float = (var_read_noise + slope * var_slope_val) / t_bar_diff_sqr
 
     return delta / sqrt(var + correct)
 
@@ -340,13 +336,6 @@ def _fit_statistic(
     -------
         argmax(all_stats), max(all_stats)
     """
-    # Cast the enum values into integers for indexing (otherwise compiler complains)
-    #   These will be optimized out
-    local_slope: cython.int = PixelOffsets.local_slope
-    var_read_noise: cython.int = PixelOffsets.var_read_noise
-
-    t_bar_diff_sqr: cython.int = FixedOffsets.t_bar_diff_sqr
-    var_slope_val: cython.int = FixedOffsets.var_slope_val
     # Note that a ramp consisting of a single point is degenerate and has no
     #   fit statistic so we bail out here
     if ramp.start == ramp.end:
@@ -366,10 +355,10 @@ def _fit_statistic(
     stat: Stat = Stat(
         ramp.end - ramp.start - 1,
         _statistic(
-            single_pixel[local_slope, index],
-            single_pixel[var_read_noise, index],
-            single_fixed[t_bar_diff_sqr, index],
-            single_fixed[var_slope_val, index],
+            single_pixel[_local_slope, index],
+            single_pixel[_var_read_noise, index],
+            single_fixed[_t_bar_diff_sqr, index],
+            single_fixed[_var_slope_val, index],
             slope,
             correct,
         ),
@@ -383,18 +372,18 @@ def _fit_statistic(
     for arg_max, index in enumerate(range(ramp.start, ramp.end - 1)):
         # Compute max of single and double difference statistics
         single_stat = _statistic(
-            single_pixel[local_slope, index],
-            single_pixel[var_read_noise, index],
-            single_fixed[t_bar_diff_sqr, index],
-            single_fixed[var_slope_val, index],
+            single_pixel[_local_slope, index],
+            single_pixel[_var_read_noise, index],
+            single_fixed[_t_bar_diff_sqr, index],
+            single_fixed[_var_slope_val, index],
             slope,
             correct,
         )
         double_stat = _statistic(
-            double_pixel[local_slope, index],
-            double_pixel[var_read_noise, index],
-            double_fixed[t_bar_diff_sqr, index],
-            double_fixed[var_slope_val, index],
+            double_pixel[_local_slope, index],
+            double_pixel[_var_read_noise, index],
+            double_fixed[_t_bar_diff_sqr, index],
+            double_fixed[_var_slope_val, index],
             slope,
             correct,
         )

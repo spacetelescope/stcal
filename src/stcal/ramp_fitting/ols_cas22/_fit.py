@@ -82,6 +82,13 @@ class RampFitOutputs(NamedTuple):
     fits: list | None = None
 
 
+_slope = cython.declare(cython.int, Parameter.slope)
+
+_read_var = cython.declare(cython.int, Variance.read_var)
+_poisson_var = cython.declare(cython.int, Variance.poisson_var)
+_total_var = cython.declare(cython.int, Variance.total_var)
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def fit_ramps(
@@ -190,13 +197,6 @@ def fit_ramps(
     parameters: cython.float[:, :] = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
     variances: cython.float[:, :] = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
 
-    # Cast the enum values into integers for indexing (otherwise compiler complains)
-    #   These will be optimized out
-    slope: cython.int = Parameter.slope
-    read_var: cython.int = Variance.read_var
-    poisson_var: cython.int = Variance.poisson_var
-    total_var: cython.int = Variance.total_var
-
     # Run the jump fitting algorithm for each pixel
     fit: JumpFits
     index: cython.int
@@ -220,12 +220,12 @@ def fit_ramps(
         )
 
         # Extract the output fit's parameters
-        parameters[index, slope] = fit.average.slope
+        parameters[index, _slope] = fit.average.slope
 
         # Extract the output fit's variances
-        variances[index, read_var] = fit.average.read_var
-        variances[index, poisson_var] = fit.average.poisson_var
-        variances[index, total_var] = fit.average.read_var + fit.average.poisson_var
+        variances[index, _read_var] = fit.average.read_var
+        variances[index, _poisson_var] = fit.average.poisson_var
+        variances[index, _total_var] = fit.average.read_var + fit.average.poisson_var
 
         # Store diagnostic data if requested
         if include_diagnostic:
