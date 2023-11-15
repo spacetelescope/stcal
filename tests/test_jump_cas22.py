@@ -3,13 +3,13 @@ import pytest
 from numpy.testing import assert_allclose
 
 from stcal.ramp_fitting.ols_cas22 import JUMP_DET, DefaultThreshold, fit_ramps
-from stcal.ramp_fitting.ols_cas22._fit import _fill_metadata
-from stcal.ramp_fitting.ols_cas22._jump import (
+from stcal.ramp_fitting.ols_cas22._fit import (
     FixedOffsets,
     Parameter,
     PixelOffsets,
     Variance,
     _fill_fixed_values,
+    _fill_metadata,
     _fill_pixel_values,
     _init_ramps,
 )

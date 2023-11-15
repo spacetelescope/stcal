@@ -2,8 +2,7 @@ from enum import Enum
 
 import numpy as np
 
-from ._fit import fit_ramps
-from ._jump import JUMP_DET, Parameter, Variance
+from ._fit import JUMP_DET, Parameter, Variance, fit_ramps
 
 
 class DefaultThreshold(Enum):
