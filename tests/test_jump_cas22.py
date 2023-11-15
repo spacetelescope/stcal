@@ -329,6 +329,23 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     # Initialize the output arrays
     parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
     variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
+
+    # Initialize scratch storage
+    n_resultants = resultants.shape[0]
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    if use_jump:
+        single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+        double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+        single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+        double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+    else:
+        single_pixel = np.empty((0, 0), dtype=np.float32)
+        double_pixel = np.empty((0, 0), dtype=np.float32)
+        single_fixed = np.empty((0, 0), dtype=np.float32)
+        double_fixed = np.empty((0, 0), dtype=np.float32)
+
     output = fit_ramps(
         resultants,
         dq,
@@ -337,6 +354,13 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
         read_pattern,
         parameters,
         variances,
+        t_bar,
+        tau,
+        n_reads,
+        single_pixel,
+        double_pixel,
+        single_fixed,
+        double_fixed,
         use_jump=use_jump,
         include_diagnostic=True,
     )
@@ -440,6 +464,17 @@ def test_find_jumps(jump_data):
     # Initialize the output arrays
     parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
     variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
+
+    # Initialize scratch storage
+    n_resultants = resultants.shape[0]
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+
     output = fit_ramps(
         resultants,
         dq,
@@ -448,6 +483,13 @@ def test_find_jumps(jump_data):
         read_pattern,
         parameters,
         variances,
+        t_bar,
+        tau,
+        n_reads,
+        single_pixel,
+        double_pixel,
+        single_fixed,
+        double_fixed,
         use_jump=True,
         include_diagnostic=True,
     )
@@ -533,6 +575,16 @@ def test_override_default_threshold(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
+    # Initialize scratch storage
+    n_resultants = resultants.shape[0]
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+
     # Initialize the output arrays
     standard_parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
     standard_variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
@@ -544,6 +596,13 @@ def test_override_default_threshold(jump_data):
         read_pattern,
         standard_parameters,
         standard_variances,
+        t_bar,
+        tau,
+        n_reads,
+        single_pixel,
+        double_pixel,
+        single_fixed,
+        double_fixed,
         use_jump=True,
     )
 
@@ -557,6 +616,13 @@ def test_override_default_threshold(jump_data):
         read_pattern,
         override_parameters,
         override_variances,
+        t_bar,
+        tau,
+        n_reads,
+        single_pixel,
+        double_pixel,
+        single_fixed,
+        double_fixed,
         use_jump=True,
         intercept=0,
         constant=0,
@@ -565,6 +631,7 @@ def test_override_default_threshold(jump_data):
     # All this is intended to do is show that with all other things being equal passing non-default
     #    threshold parameters changes the results.
     assert (standard_parameters != override_parameters).any()
+    assert (standard_variances != override_variances).any()
 
 
 def test_jump_dq_set(jump_data):
@@ -577,6 +644,17 @@ def test_jump_dq_set(jump_data):
     # Initialize the output arrays
     parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
     variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
+
+    # Initialize scratch storage
+    n_resultants = resultants.shape[0]
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+
     output = fit_ramps(
         resultants,
         dq,
@@ -585,6 +663,13 @@ def test_jump_dq_set(jump_data):
         read_pattern,
         parameters,
         variances,
+        t_bar,
+        tau,
+        n_reads,
+        single_pixel,
+        double_pixel,
+        single_fixed,
+        double_fixed,
         use_jump=True,
         include_diagnostic=True,
     )

@@ -28,8 +28,6 @@ fit_ramps : function
 """
 
 import cython
-import numpy as np
-from cython.cimports import numpy as cnp
 from cython.cimports.libcpp import bool as cpp_bool
 from cython.cimports.libcpp.list import list as cpp_list
 from cython.cimports.libcpp.vector import vector
@@ -38,13 +36,8 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     Thresh,
     _fill_fixed_values,
     fit_jumps,
-    n_fixed_offsets,
-    n_pixel_offsets,
 )
 from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata
-
-# Initialize numpy for cython use in this module
-cnp.import_array()
 
 
 @cython.boundscheck(False)
@@ -57,6 +50,13 @@ def fit_ramps(
     read_pattern: vector[vector[cython.int]],
     parameters: cython.float[:, :],
     variances: cython.float[:, :],
+    t_bar: cython.float[:],
+    tau: cython.float[:],
+    n_reads: cython.int[:],
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
     use_jump: cpp_bool = False,
     intercept: cython.float = 5.5,
     constant: cython.float = 1 / 3,
@@ -111,35 +111,11 @@ def fit_ramps(
         raise RuntimeError(msg)
 
     # Compute the main metadata from the read pattern and cast it to memory views
-    t_bar: cython.float[:] = np.empty(n_resultants, dtype=np.float32)
-    tau: cython.float[:] = np.empty(n_resultants, dtype=np.float32)
-    n_reads: cython.int[:] = np.empty(n_resultants, dtype=np.int32)
     _fill_metadata(t_bar, tau, n_reads, read_pattern, read_time, n_resultants)
 
-    # Setup pre-compute arrays for jump detection
-    single_pixel: cython.float[:, :]
-    double_pixel: cython.float[:, :]
-    single_fixed: cython.float[:, :]
-    double_fixed: cython.float[:, :]
     if use_jump:
-        # Initialize arrays for the jump detection pre-computed values
-        single_pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-        double_pixel = np.empty((n_pixel_offsets, n_resultants - 2), dtype=np.float32)
-
-        single_fixed = np.empty((n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-        double_fixed = np.empty((n_fixed_offsets, n_resultants - 2), dtype=np.float32)
-
         # Pre-compute the values from the read pattern
         _fill_fixed_values(single_fixed, double_fixed, t_bar, tau, n_reads, n_resultants)
-    else:
-        # "Initialize" the arrays when not using jump detection, they need to be
-        #    initialized because they do get passed around, but they don't need
-        #    to actually have any entries
-        single_pixel = np.empty((0, 0), dtype=np.float32)
-        double_pixel = np.empty((0, 0), dtype=np.float32)
-
-        single_fixed = np.empty((0, 0), dtype=np.float32)
-        double_fixed = np.empty((0, 0), dtype=np.float32)
 
     # Create a threshold struct
     thresh: Thresh = Thresh(intercept, constant)
