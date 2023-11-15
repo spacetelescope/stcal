@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -301,9 +303,46 @@ def detector_data(read_pattern):
     return resultants, read_noise, read_pattern
 
 
+class AllocatedData(NamedTuple):
+    parameters: np.ndarray
+    variances: np.ndarray
+    t_bar: np.ndarray
+    tau: np.ndarray
+    n_reads: np.ndarray
+    single_pixel: np.ndarray
+    double_pixel: np.ndarray
+    single_fixed: np.ndarray
+    double_fixed: np.ndarray
+
+
+@pytest.fixture()
+def allocated_data(read_pattern):
+    """
+    Allocate the working data for the tests
+    """
+    n_resultants = len(read_pattern)
+
+    # Initialize the output arrays
+    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
+    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
+
+    # Initialize scratch storage
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+
+    return AllocatedData(
+        parameters, variances, t_bar, tau, n_reads, single_pixel, double_pixel, single_fixed, double_fixed
+    )
+
+
 @pytest.mark.parametrize("use_jump", [True, False])
 @pytest.mark.parametrize("use_dq", [True, False])
-def test_fit_ramps(detector_data, use_jump, use_dq):
+def test_fit_ramps(detector_data, allocated_data, use_jump, use_dq):
     """
     Test fitting ramps
         Since no jumps are simulated in the data, jump detection shouldn't pick
@@ -327,20 +366,12 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     if not use_dq:
         assert okay.all()
 
-    # Initialize the output arrays
-    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
-    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
-
-    # Initialize scratch storage
-    n_resultants = resultants.shape[0]
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
+    # Mirror what python supporting code does
     if use_jump:
-        single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-        double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
-        single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-        double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+        single_pixel = allocated_data.single_pixel
+        double_pixel = allocated_data.double_pixel
+        single_fixed = allocated_data.single_fixed
+        double_fixed = allocated_data.double_fixed
     else:
         single_pixel = np.empty((0, 0), dtype=np.float32)
         double_pixel = np.empty((0, 0), dtype=np.float32)
@@ -353,11 +384,7 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
         read_noise,
         READ_TIME,
         read_pattern,
-        parameters,
-        variances,
-        t_bar,
-        tau,
-        n_reads,
+        *allocated_data[:-4],
         single_pixel,
         double_pixel,
         single_fixed,
@@ -370,11 +397,11 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     assert len(output) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     # Check that the intercept is always zero
-    assert np.all(parameters[:, Parameter.intercept] == 0)
+    assert np.all(allocated_data.parameters[:, Parameter.intercept] == 0)
 
-    slopes = parameters[:, Parameter.slope]
-    read_vars = variances[:, Variance.read_var]
-    poisson_vars = variances[:, Variance.poisson_var]
+    slopes = allocated_data.parameters[:, Parameter.slope]
+    read_vars = allocated_data.variances[:, Variance.read_var]
+    poisson_vars = allocated_data.variances[:, Variance.poisson_var]
 
     chi2 = 0
     for fit, slope, read_var, poisson_var, use in zip(output, slopes, read_vars, poisson_vars, okay):
@@ -455,7 +482,7 @@ def jump_data(detector_data):
     return resultants, read_noise, read_pattern, jump_reads, jump_resultants
 
 
-def test_find_jumps(jump_data):
+def test_find_jumps(jump_data, allocated_data):
     """
     Full unit tests to demonstrate that we can detect jumps in any read (except
     the first one) and that we correctly remove these reads from the fit to recover
@@ -464,35 +491,13 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    # Initialize the output arrays
-    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
-    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
-
-    # Initialize scratch storage
-    n_resultants = resultants.shape[0]
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
-    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
-    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
-
     output = fit_ramps(
         resultants,
         dq,
         read_noise,
         READ_TIME,
         read_pattern,
-        parameters,
-        variances,
-        t_bar,
-        tau,
-        n_reads,
-        single_pixel,
-        double_pixel,
-        single_fixed,
-        double_fixed,
+        *allocated_data,
         True,
         DefaultThreshold.INTERCEPT.value,
         DefaultThreshold.CONSTANT.value,
@@ -501,11 +506,11 @@ def test_find_jumps(jump_data):
     assert len(output) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
     # Check that the intercept is always zero
-    assert np.all(parameters[:, Parameter.intercept] == 0)
+    assert np.all(allocated_data.parameters[:, Parameter.intercept] == 0)
 
-    slopes = parameters[:, Parameter.slope]
-    read_vars = variances[:, Variance.read_var]
-    poisson_vars = variances[:, Variance.poisson_var]
+    slopes = allocated_data.parameters[:, Parameter.slope]
+    read_vars = allocated_data.variances[:, Variance.read_var]
+    poisson_vars = allocated_data.variances[:, Variance.poisson_var]
 
     chi2 = 0
     incorrect_too_few = 0
@@ -575,20 +580,10 @@ def test_find_jumps(jump_data):
     assert np.abs(chi2 - 1) < CHI2_TOL
 
 
-def test_override_default_threshold(jump_data):
+def test_override_default_threshold(jump_data, allocated_data):
     """This tests that we can override the default jump detection threshold constants"""
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
-
-    # Initialize scratch storage
-    n_resultants = resultants.shape[0]
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
-    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
-    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
 
     # Initialize the output arrays
     standard_parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
@@ -601,13 +596,7 @@ def test_override_default_threshold(jump_data):
         read_pattern,
         standard_parameters,
         standard_variances,
-        t_bar,
-        tau,
-        n_reads,
-        single_pixel,
-        double_pixel,
-        single_fixed,
-        double_fixed,
+        *allocated_data[2:],
         True,
         DefaultThreshold.INTERCEPT.value,
         DefaultThreshold.CONSTANT.value,
@@ -624,13 +613,7 @@ def test_override_default_threshold(jump_data):
         read_pattern,
         override_parameters,
         override_variances,
-        t_bar,
-        tau,
-        n_reads,
-        single_pixel,
-        double_pixel,
-        single_fixed,
-        double_fixed,
+        *allocated_data[2:],
         True,
         0,
         0,
@@ -643,26 +626,12 @@ def test_override_default_threshold(jump_data):
     assert (standard_variances != override_variances).any()
 
 
-def test_jump_dq_set(jump_data):
+def test_jump_dq_set(jump_data, allocated_data):
     # Check the DQ flag value to start
     assert 2**2 == JUMP_DET
 
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
-
-    # Initialize the output arrays
-    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
-    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
-
-    # Initialize scratch storage
-    n_resultants = resultants.shape[0]
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
-    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
-    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
 
     output = fit_ramps(
         resultants,
@@ -670,15 +639,7 @@ def test_jump_dq_set(jump_data):
         read_noise,
         READ_TIME,
         read_pattern,
-        parameters,
-        variances,
-        t_bar,
-        tau,
-        n_reads,
-        single_pixel,
-        double_pixel,
-        single_fixed,
-        double_fixed,
+        *allocated_data,
         True,
         DefaultThreshold.INTERCEPT.value,
         DefaultThreshold.CONSTANT.value,
