@@ -50,14 +50,9 @@ fit_ramps : function
     listed for a single pixel
 """
 import cython
-import numpy as np
-from cython.cimports import numpy as cnp
 from cython.cimports.libc.math import INFINITY, NAN, fabs, fmaxf, sqrt
 from cython.cimports.libcpp.vector import vector
 from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import RampFit, RampIndex, RampQueue
-
-# Initialize numpy for cython use in this module
-cnp.import_array()
 
 
 @cython.boundscheck(False)
@@ -66,21 +61,32 @@ cnp.import_array()
 @cython.inline
 @cython.ccall
 def _fill_metadata(
-    read_pattern: list[list[cython.int]],
-    read_time: cython.float,
     t_bar: cython.float[:],
     tau: cython.float[:],
     n_reads: cython.int[:],
+    read_pattern: vector[vector[cython.int]],
+    read_time: cython.float,
+    n_resultants: cython.int,
 ) -> cython.void:
-    index: cython.int
     n_read: cython.int
-    resultant: list[cython.int]
-    for index, resultant in enumerate(read_pattern):
-        n_read = len(resultant)
 
-        n_reads[index] = n_read
-        t_bar[index] = read_time * np.mean(resultant)
-        tau[index] = np.sum((2 * (n_read - np.arange(n_read)) - 1) * resultant) * read_time / n_read**2
+    i: cython.int
+    j: cython.int
+    resultant: vector[cython.int]
+    for i in range(n_resultants):
+        resultant = read_pattern[i]
+        n_read = resultant.size()
+
+        n_reads[i] = n_read
+        t_bar[i] = 0
+        tau[i] = 0
+
+        for j in range(n_read):
+            t_bar[i] += read_time * resultant[j]
+            tau[i] += (2 * (n_read - j) - 1) * resultant[j]
+
+        t_bar[i] /= n_read
+        tau[i] *= read_time / n_read**2
 
 
 @cython.boundscheck(False)

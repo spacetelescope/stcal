@@ -47,6 +47,7 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata
 
 if TYPE_CHECKING:
     from cython.cimports.libcpp import bool as cpp_bool
+    from cython.cimports.libcpp.vector import vector
 
 # Initialize numpy for cython use in this module
 cnp.import_array()
@@ -88,7 +89,7 @@ def fit_ramps(
     dq: cython.int[:, :],
     read_noise: cython.float[:],
     read_time: cython.float,
-    read_pattern: list[list[int]],
+    read_pattern: vector[vector[cython.int]],
     use_jump: cpp_bool = False,
     intercept: cython.float = 5.5,
     constant: cython.float = 1 / 3,
@@ -146,7 +147,7 @@ def fit_ramps(
     t_bar: cython.float[:] = np.empty(n_resultants, dtype=np.float32)
     tau: cython.float[:] = np.empty(n_resultants, dtype=np.float32)
     n_reads: cython.int[:] = np.empty(n_resultants, dtype=np.int32)
-    _fill_metadata(read_pattern, read_time, t_bar, tau, n_reads)
+    _fill_metadata(t_bar, tau, n_reads, read_pattern, read_time, n_resultants)
 
     # Setup pre-compute arrays for jump detection
     single_pixel: cython.float[:, :]

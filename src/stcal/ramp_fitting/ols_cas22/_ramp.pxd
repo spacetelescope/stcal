@@ -3,11 +3,12 @@
 from libcpp.vector cimport vector
 
 
-cpdef void _fill_metadata(list[list[int]] read_pattern,
-                          float read_time,
-                          float[:] t_bar,
+cpdef void _fill_metadata(float[:] t_bar,
                           float[:] tau,
-                          int[:] n_reads)
+                          int[:] n_reads,
+                          vector[vector[int]] read_pattern,
+                          float read_time,
+                          int n_resultants)
 
 
 cdef struct RampIndex:
