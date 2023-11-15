@@ -28,14 +28,14 @@ fit_ramps : function
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, NamedTuple
+
+import cython
 import numpy as np
-
-cimport numpy as cnp
-from cython cimport boundscheck, wraparound
-from libcpp cimport bool
-from libcpp.list cimport list as cpp_list
-
-from stcal.ramp_fitting.ols_cas22._jump cimport (
+from cython.cimports import numpy as cnp
+from cython.cimports.libcpp.list import list as cpp_list
+from cython.cimports.stcal.ramp_fitting.ols_cas22._fit import Parameter, Variance
+from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     JumpFits,
     Thresh,
     _fill_fixed_values,
@@ -43,25 +43,13 @@ from stcal.ramp_fitting.ols_cas22._jump cimport (
     n_fixed_offsets,
     n_pixel_offsets,
 )
-from stcal.ramp_fitting.ols_cas22._ramp cimport _fill_metadata
+from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata
 
-from typing import NamedTuple
+if TYPE_CHECKING:
+    from cython.cimports.libcpp import bool as cpp_bool
 
 # Initialize numpy for cython use in this module
 cnp.import_array()
-
-
-cpdef enum Parameter:
-    intercept
-    slope
-    n_param
-
-
-cpdef enum Variance:
-    read_var
-    poisson_var
-    total_var
-    n_var
 
 
 class RampFitOutputs(NamedTuple):
@@ -86,23 +74,26 @@ class RampFitOutputs(NamedTuple):
             the raw ramp fit outputs, these are all structs which will get mapped to
             python dictionaries.
     """
+
     parameters: np.ndarray
     variances: np.ndarray
     dq: np.ndarray
     fits: list | None = None
 
 
-@boundscheck(False)
-@wraparound(False)
-def fit_ramps(float[:, :] resultants,
-              cnp.ndarray[int, ndim=2] dq,
-              float[:] read_noise,
-              float read_time,
-              list[list[int]] read_pattern,
-              bool use_jump=False,
-              float intercept=5.5,
-              float constant=1/3,
-              bool include_diagnostic=False):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def fit_ramps(
+    resultants: cython.float[:, :],
+    dq: cython.int[:, :],
+    read_noise: cython.float[:],
+    read_time: cython.float,
+    read_pattern: list[list[int]],
+    use_jump: cpp_bool = False,
+    intercept: cython.float = 5.5,
+    constant: cython.float = 1 / 3,
+    include_diagnostic: cpp_bool = False,
+) -> RampFitOutputs:
     """Fit ramps using the Casertano+22 algorithm.
         This implementation uses the Cas22 algorithm to fit ramps, where
         ramps are fit between bad resultants marked by dq flags for each pixel
@@ -140,26 +131,28 @@ def fit_ramps(float[:, :] resultants,
     -------
     A RampFitOutputs tuple
     """
-    cdef int n_pixels, n_resultants
-    n_resultants = resultants.shape[0]
-    n_pixels = resultants.shape[1]
+    n_resultants: cython.int = resultants.shape[0]
+    n_pixels: cython.int = resultants.shape[1]
 
     # Raise error if input data is inconsistent
     if n_resultants != len(read_pattern):
-        raise RuntimeError(f'The read pattern length {len(read_pattern)} does not '
-                           f'match number of resultants {n_resultants}')
+        msg = (
+            f"The read pattern length {len(read_pattern)} does "
+            f"not match number of resultants {n_resultants}"
+        )
+        raise RuntimeError(msg)
 
     # Compute the main metadata from the read pattern and cast it to memory views
-    cdef float[:] t_bar = np.empty(n_resultants, dtype=np.float32)
-    cdef float[:] tau = np.empty(n_resultants, dtype=np.float32)
-    cdef int[:] n_reads = np.empty(n_resultants, dtype=np.int32)
+    t_bar: cython.float[:] = np.empty(n_resultants, dtype=np.float32)
+    tau: cython.float[:] = np.empty(n_resultants, dtype=np.float32)
+    n_reads: cython.int[:] = np.empty(n_resultants, dtype=np.int32)
     _fill_metadata(read_pattern, read_time, t_bar, tau, n_reads)
 
     # Setup pre-compute arrays for jump detection
-    cdef float[:, :] single_pixel
-    cdef float[:, :] double_pixel
-    cdef float[:, :] single_fixed
-    cdef float[:, :] double_fixed
+    single_pixel: cython.float[:, :]
+    double_pixel: cython.float[:, :]
+    single_fixed: cython.float[:, :]
+    double_fixed: cython.float[:, :]
     if use_jump:
         # Initialize arrays for the jump detection pre-computed values
         single_pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
@@ -169,12 +162,7 @@ def fit_ramps(float[:, :] resultants,
         double_fixed = np.empty((n_fixed_offsets, n_resultants - 2), dtype=np.float32)
 
         # Pre-compute the values from the read pattern
-        _fill_fixed_values(single_fixed,
-                           double_fixed,
-                           t_bar,
-                           tau,
-                           n_reads,
-                           n_resultants)
+        _fill_fixed_values(single_fixed, double_fixed, t_bar, tau, n_reads, n_resultants)
     else:
         # "Initialize" the arrays when not using jump detection, they need to be
         #    initialized because they do get passed around, but they don't need
@@ -186,51 +174,49 @@ def fit_ramps(float[:, :] resultants,
         double_fixed = np.empty((0, 0), dtype=np.float32)
 
     # Create a threshold struct
-    cdef Thresh thresh = Thresh(intercept, constant)
+    thresh: Thresh = Thresh(intercept, constant)
 
     # Create variable to old the diagnostic data
     # Use list because this might grow very large which would require constant
     #    reallocation. We don't need random access, and this gets cast to a python
     #    list in the end.
-    cdef cpp_list[JumpFits] ramp_fits
+    ramp_fits: cpp_list[JumpFits] = cpp_list[JumpFits]()
 
     # Initialize the output arrays. Note that the fit intercept is currently always
     #    zero, where as every variance is calculated and set. This means that the
     #    parameters need to be filled with zeros, where as the variances can just
     #    be allocated
-    cdef float[:, :] parameters = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
-    cdef float[:, :] variances = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
+    parameters: cython.float[:, :] = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
+    variances: cython.float[:, :] = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
 
     # Cast the enum values into integers for indexing (otherwise compiler complains)
     #   These will be optimized out
-    cdef int slope = Parameter.slope
-    cdef int read_var = Variance.read_var
-    cdef int poisson_var = Variance.poisson_var
-    cdef int total_var = Variance.total_var
-
-    # Pull memory view of dq for speed of access later
-    #   changes to this array will backpropagate to the original numpy array
-    cdef int[:, :] dq_ = dq
+    slope: cython.int = Parameter.slope
+    read_var: cython.int = Variance.read_var
+    poisson_var: cython.int = Variance.poisson_var
+    total_var: cython.int = Variance.total_var
 
     # Run the jump fitting algorithm for each pixel
-    cdef JumpFits fit
-    cdef int index
+    fit: JumpFits
+    index: cython.int
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
-        fit = fit_jumps(resultants[:, index],
-                        dq_[:, index],
-                        read_noise[index],
-                        t_bar,
-                        tau,
-                        n_reads,
-                        n_resultants,
-                        single_pixel,
-                        double_pixel,
-                        single_fixed,
-                        double_fixed,
-                        thresh,
-                        use_jump,
-                        include_diagnostic)
+        fit = fit_jumps(
+            resultants[:, index],
+            dq[:, index],
+            read_noise[index],
+            t_bar,
+            tau,
+            n_reads,
+            n_resultants,
+            single_pixel,
+            double_pixel,
+            single_fixed,
+            double_fixed,
+            thresh,
+            use_jump,
+            include_diagnostic,
+        )
 
         # Extract the output fit's parameters
         parameters[index, slope] = fit.average.slope
@@ -245,7 +231,9 @@ def fit_ramps(float[:, :] resultants,
             ramp_fits.push_back(fit)
 
     # Cast memory views into numpy arrays for ease of use in python.
-    return RampFitOutputs(np.array(parameters, dtype=np.float32),
-                          np.array(variances, dtype=np.float32),
-                          dq,
-                          ramp_fits if include_diagnostic else None)
+    return RampFitOutputs(
+        np.array(parameters, dtype=np.float32),
+        np.array(variances, dtype=np.float32),
+        np.array(dq, dtype=np.uint32),
+        ramp_fits if include_diagnostic else None,
+    )

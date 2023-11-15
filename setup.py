@@ -21,7 +21,7 @@ extensions = [
     ),
     Extension(
         "stcal.ramp_fitting.ols_cas22._fit",
-        ["src/stcal/ramp_fitting/ols_cas22/_fit.pyx"],
+        ["src/stcal/ramp_fitting/ols_cas22/_fit.py"],
         include_dirs=[np.get_include()],
         language="c++",
     ),
