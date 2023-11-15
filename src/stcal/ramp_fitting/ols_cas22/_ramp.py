@@ -121,27 +121,23 @@ def init_ramps(dq: cython.int[:], n_resultants: cython.int) -> RampQueue:
     ramp: RampIndex = RampIndex(-1, -1)
     index_resultant: cython.int
     for index_resultant in range(n_resultants):
+        # Checking for start of ramp
         if ramp.start == -1:
-            # Looking for the start of a ramp
             if dq[index_resultant] == 0:
-                # We have found the start of a ramp!
+                # This resultant is in the ramp
+                # => We have found the start of a ramp!
                 ramp.start = index_resultant
-            else:
-                # This is not the start of the ramp yet
-                continue
-        else:  # noqa: PLR5501 (makes more logical sense than to use elif)
-            # Looking for the end of a ramp
-            if dq[index_resultant] == 0:
-                # This pixel is in the ramp do nothing
-                continue
-            else:  # noqa: RET507 (makes more logical sense than to remove else)
-                # This pixel is not in the ramp
-                # => index_resultant - 1 is the end of the ramp
-                ramp.end = index_resultant - 1
 
-                # Add completed ramp to stack and reset ramp
-                ramps.push_back(ramp)
-                ramp = RampIndex(-1, -1)
+        # This resultant cannot be the start of a ramp
+        # => Checking for end of ramp
+        elif dq[index_resultant] != 0:
+            # This pixel is not in the ramp
+            # => index_resultant - 1 is the end of the ramp
+            ramp.end = index_resultant - 1
+
+            # Add completed ramp to the queue and reset ramp
+            ramps.push_back(ramp)
+            ramp = RampIndex(-1, -1)
 
     # Handle case where last resultant is in ramp (so no end has been set)
     if ramp.start != -1 and ramp.end == -1:
