@@ -26,19 +26,16 @@ fit_ramps : function
     for jumps (if use_jump is True) and bad pixels (via the dq array). This
     is the primary externally callable function.
 """
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, NamedTuple
 
 import cython
 import numpy as np
 from cython.cimports import numpy as cnp
+from cython.cimports.libcpp import bool as cpp_bool
 from cython.cimports.libcpp.list import list as cpp_list
+from cython.cimports.libcpp.vector import vector
 from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     JumpFits,
-    Parameter,
     Thresh,
-    Variance,
     _fill_fixed_values,
     fit_jumps,
     n_fixed_offsets,
@@ -46,48 +43,8 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
 )
 from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata
 
-if TYPE_CHECKING:
-    from cython.cimports.libcpp import bool as cpp_bool
-    from cython.cimports.libcpp.vector import vector
-
 # Initialize numpy for cython use in this module
 cnp.import_array()
-
-
-class RampFitOutputs(NamedTuple):
-    """
-    Simple tuple wrapper for outputs from the ramp fitting algorithm
-        This clarifies the meaning of the outputs via naming them something
-        descriptive.
-
-    Attributes
-    ----------
-        parameters: np.ndarray[n_pixel, 2]
-            the slope and intercept for each pixel's ramp fit. see Parameter enum
-            for indexing indicating slope/intercept in the second dimension.
-        variances: np.ndarray[n_pixel, 3]
-            the read, poisson, and total variances for each pixel's ramp fit.
-            see Variance enum for indexing indicating read/poisson/total in the
-            second dimension.
-        dq: np.ndarray[n_resultants, n_pixel]
-            the dq array, with additional flags set for jumps detected by the
-            jump detection algorithm.
-        fits: list of RampFits
-            the raw ramp fit outputs, these are all structs which will get mapped to
-            python dictionaries.
-    """
-
-    parameters: np.ndarray
-    variances: np.ndarray
-    dq: np.ndarray
-    fits: list | None = None
-
-
-_slope = cython.declare(cython.int, Parameter.slope)
-
-_read_var = cython.declare(cython.int, Variance.read_var)
-_poisson_var = cython.declare(cython.int, Variance.poisson_var)
-_total_var = cython.declare(cython.int, Variance.total_var)
 
 
 @cython.boundscheck(False)
@@ -98,11 +55,13 @@ def fit_ramps(
     read_noise: cython.float[:],
     read_time: cython.float,
     read_pattern: vector[vector[cython.int]],
+    parameters: cython.float[:, :],
+    variances: cython.float[:, :],
     use_jump: cpp_bool = False,
     intercept: cython.float = 5.5,
     constant: cython.float = 1 / 3,
     include_diagnostic: cpp_bool = False,
-) -> RampFitOutputs:
+) -> cpp_list[JumpFits]:
     """Fit ramps using the Casertano+22 algorithm.
         This implementation uses the Cas22 algorithm to fit ramps, where
         ramps are fit between bad resultants marked by dq flags for each pixel
@@ -191,13 +150,6 @@ def fit_ramps(
     #    list in the end.
     ramp_fits: cpp_list[JumpFits] = cpp_list[JumpFits]()
 
-    # Initialize the output arrays. Note that the fit intercept is currently always
-    #    zero, where as every variance is calculated and set. This means that the
-    #    parameters need to be filled with zeros, where as the variances can just
-    #    be allocated
-    parameters: cython.float[:, :] = np.zeros((n_pixels, Parameter.n_param), dtype=np.float32)
-    variances: cython.float[:, :] = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
-
     # Run the jump fitting algorithm for each pixel
     fit: JumpFits
     index: cython.int
@@ -227,9 +179,4 @@ def fit_ramps(
             ramp_fits.push_back(fit)
 
     # Cast memory views into numpy arrays for ease of use in python.
-    return RampFitOutputs(
-        np.array(parameters, dtype=np.float32),
-        np.array(variances, dtype=np.float32),
-        np.array(dq, dtype=np.uint32),
-        ramp_fits if include_diagnostic else None,
-    )
+    return ramp_fits

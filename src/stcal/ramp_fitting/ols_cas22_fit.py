@@ -29,10 +29,40 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
+from typing import NamedTuple
+
 import numpy as np
 from astropy import units as u
 
 from . import ols_cas22
+
+
+class RampFitOutputs(NamedTuple):
+    """
+    Simple tuple wrapper for outputs from the ramp fitting algorithm
+        This clarifies the meaning of the outputs via naming them something
+        descriptive.
+
+    Attributes
+    ----------
+        parameters: np.ndarray[n_pixel, 2]
+            the slope and intercept for each pixel's ramp fit. see Parameter enum
+            for indexing indicating slope/intercept in the second dimension.
+        variances: np.ndarray[n_pixel, 3]
+            the read, poisson, and total variances for each pixel's ramp fit.
+            see Variance enum for indexing indicating read/poisson/total in the
+            second dimension.
+        dq: np.ndarray[n_resultants, n_pixel]
+            the dq array, with additional flags set for jumps detected by the
+            jump detection algorithm.
+        fits: list of RampFits
+            the raw ramp fit outputs, these are all structs which will get mapped to
+            python dictionaries.
+    """
+
+    parameters: np.ndarray
+    variances: np.ndarray
+    dq: np.ndarray
 
 
 def fit_ramps_casertano(
@@ -118,19 +148,25 @@ def fit_ramps_casertano(
         dq = dq.reshape((*orig_shape, 1))
         read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
-    output = ols_cas22.fit_ramps(
+    n_pixels = np.prod(resultants.shape[1:])
+    parameters = np.empty((n_pixels, ols_cas22.Parameter.n_param), dtype=np.float32)
+    variances = np.empty((n_pixels, ols_cas22.Variance.n_var), dtype=np.float32)
+
+    ols_cas22.fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
         read_time,
         read_pattern,
+        parameters,
+        variances,
         use_jump,
         **kwargs,
     )
 
-    parameters = output.parameters.reshape(orig_shape[1:] + (2,))
-    variances = output.variances.reshape(orig_shape[1:] + (3,))
-    dq = output.dq.reshape(orig_shape)
+    parameters = parameters.reshape(orig_shape[1:] + (2,))
+    variances = variances.reshape(orig_shape[1:] + (3,))
+    dq = dq.reshape(orig_shape)
 
     if resultants.shape != orig_shape:
         parameters = parameters[0]
@@ -140,4 +176,4 @@ def fit_ramps_casertano(
         parameters = parameters * resultants_unit
 
     # return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
-    return ols_cas22.RampFitOutputs(parameters, variances, dq)
+    return RampFitOutputs(parameters, variances, dq)

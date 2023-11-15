@@ -326,17 +326,31 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     if not use_dq:
         assert okay.all()
 
+    # Initialize the output arrays
+    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
+    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
     output = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump, include_diagnostic=True
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        parameters,
+        variances,
+        use_jump=use_jump,
+        include_diagnostic=True,
     )
-    assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
+    assert len(output) == N_PIXELS  # sanity check that a fit is output for each pixel
 
-    slopes = output.parameters[:, Parameter.slope]
-    read_vars = output.variances[:, Variance.read_var]
-    poisson_vars = output.variances[:, Variance.poisson_var]
+    # Check that the intercept is always zero
+    assert np.all(parameters[:, Parameter.intercept] == 0)
+
+    slopes = parameters[:, Parameter.slope]
+    read_vars = variances[:, Variance.read_var]
+    poisson_vars = variances[:, Variance.poisson_var]
 
     chi2 = 0
-    for fit, slope, read_var, poisson_var, use in zip(output.fits, slopes, read_vars, poisson_vars, okay):
+    for fit, slope, read_var, poisson_var, use in zip(output, slopes, read_vars, poisson_vars, okay):
         if not use_dq and not use_jump:
             ##### The not use_jump makes this NOT test for false positives #####
             # Check that the data generated does not generate any false positives
@@ -423,14 +437,28 @@ def test_find_jumps(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
+    # Initialize the output arrays
+    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
+    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
     output = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True, include_diagnostic=True
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        parameters,
+        variances,
+        use_jump=True,
+        include_diagnostic=True,
     )
-    assert len(output.fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
+    assert len(output) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
-    slopes = output.parameters[:, Parameter.slope]
-    read_vars = output.variances[:, Variance.read_var]
-    poisson_vars = output.variances[:, Variance.poisson_var]
+    # Check that the intercept is always zero
+    assert np.all(parameters[:, Parameter.intercept] == 0)
+
+    slopes = parameters[:, Parameter.slope]
+    read_vars = variances[:, Variance.read_var]
+    poisson_vars = variances[:, Variance.poisson_var]
 
     chi2 = 0
     incorrect_too_few = 0
@@ -438,7 +466,7 @@ def test_find_jumps(jump_data):
     incorrect_does_not_capture = 0
     incorrect_other = 0
     for fit, slope, read_var, poisson_var, jump_index, resultant_index in zip(
-        output.fits, slopes, read_vars, poisson_vars, jump_reads, jump_resultants
+        output, slopes, read_vars, poisson_vars, jump_reads, jump_resultants
     ):
         # Check that the jumps are detected correctly
         if jump_index == 0:
@@ -505,14 +533,38 @@ def test_override_default_threshold(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
-    standard = fit_ramps(resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True)
-    override = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True, intercept=0, constant=0
+    # Initialize the output arrays
+    standard_parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
+    standard_variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
+    fit_ramps(
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        standard_parameters,
+        standard_variances,
+        use_jump=True,
+    )
+
+    override_parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
+    override_variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
+    fit_ramps(
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        override_parameters,
+        override_variances,
+        use_jump=True,
+        intercept=0,
+        constant=0,
     )
 
     # All this is intended to do is show that with all other things being equal passing non-default
     #    threshold parameters changes the results.
-    assert (standard.parameters != override.parameters).any()
+    assert (standard_parameters != override_parameters).any()
 
 
 def test_jump_dq_set(jump_data):
@@ -522,11 +574,22 @@ def test_jump_dq_set(jump_data):
     resultants, read_noise, read_pattern, jump_reads, jump_resultants = jump_data
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
+    # Initialize the output arrays
+    parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
+    variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
     output = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True, include_diagnostic=True
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        parameters,
+        variances,
+        use_jump=True,
+        include_diagnostic=True,
     )
 
-    for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
+    for fit, pixel_dq in zip(output, dq.transpose()):
         # Check that all jumps found get marked
         assert (pixel_dq[fit["jumps"]] == JUMP_DET).all()
 
