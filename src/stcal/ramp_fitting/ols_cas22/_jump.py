@@ -56,6 +56,7 @@ fit_jumps : function
 import cython
 from cython.cimports.libc.math import NAN, fmaxf, isnan, log10, sqrt
 from cython.cimports.libcpp import bool as cpp_bool
+from cython.cimports.libcpp.vector import vector
 from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     JUMP_DET,
     FixedOffsets,
@@ -472,10 +473,10 @@ def fit_jumps(
     ramps: RampQueue = init_ramps(dq, n_resultants)
 
     # Initialize algorithm
-    ramp_fits: JumpFits = JumpFits()
-    ramp_fits.average.slope = 0
-    ramp_fits.average.read_var = 0
-    ramp_fits.average.poisson_var = 0
+    average: RampFit = RampFit(0, 0, 0)
+    jumps: vector[cython.int] = vector[cython.int]()
+    fits: vector[RampFit] = vector[RampFit]()
+    index: RampQueue = RampQueue()
 
     # Declare variables for the loop
     ramp: RampIndex
@@ -542,8 +543,8 @@ def fit_jumps(
 
                 # Record jump diagnostics
                 if include_diagnostic:
-                    ramp_fits.jumps.push_back(jump0)
-                    ramp_fits.jumps.push_back(jump1)
+                    jumps.push_back(jump0)
+                    jumps.push_back(jump1)
 
                 # The two resultant indices need to be skipped, therefore
                 # the two
@@ -591,8 +592,8 @@ def fit_jumps(
 
         # Record the diagnositcs
         if include_diagnostic:
-            ramp_fits.fits.push_back(ramp_fit)
-            ramp_fits.index.push_back(ramp)
+            fits.push_back(ramp_fit)
+            index.push_back(ramp)
 
         # Start computing the averages using a lazy process
         #    Note we do not do anything in the NaN case for degenerate ramps
@@ -602,16 +603,16 @@ def fit_jumps(
             weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
             total_weight += weight
 
-            ramp_fits.average.slope += weight * ramp_fit.slope
-            ramp_fits.average.read_var += weight**2 * ramp_fit.read_var
-            ramp_fits.average.poisson_var += weight**2 * ramp_fit.poisson_var
+            average.slope += weight * ramp_fit.slope
+            average.read_var += weight**2 * ramp_fit.read_var
+            average.poisson_var += weight**2 * ramp_fit.poisson_var
 
     # Finish computing averages using the lazy process
-    ramp_fits.average.slope /= total_weight if total_weight != 0 else 1
-    ramp_fits.average.read_var /= total_weight**2 if total_weight != 0 else 1
-    ramp_fits.average.poisson_var /= total_weight**2 if total_weight != 0 else 1
+    average.slope /= total_weight if total_weight != 0 else 1
+    average.read_var /= total_weight**2 if total_weight != 0 else 1
+    average.poisson_var /= total_weight**2 if total_weight != 0 else 1
 
     # Multiply poisson term by flux, (no negative fluxes)
-    ramp_fits.average.poisson_var *= max(ramp_fits.average.slope, 0)
+    average.poisson_var *= max(average.slope, 0)
 
-    return ramp_fits
+    return JumpFits(average, jumps, fits, index)

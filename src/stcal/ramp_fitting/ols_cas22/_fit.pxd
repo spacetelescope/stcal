@@ -1,3 +1,6 @@
+# cython: language_level=3str
+
+
 cpdef enum Parameter:
     intercept
     slope
