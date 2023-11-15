@@ -144,7 +144,7 @@ def fit_ramps(
     index: cython.int
     for index in range(n_pixels):
         # Fit all the ramps for the given pixel
-        fit = _fit_jumps(
+        fit = _fit_pixel(
             parameters[index, :],
             variances[index, :],
             resultants[:, index],
@@ -182,7 +182,7 @@ _total_var = cython.declare(cython.int, Variance.total_var)
 @cython.cdivision(True)
 @cython.inline
 @cython.cfunc
-def _fit_jumps(
+def _fit_pixel(
     parameters: cython.float[:],
     variances: cython.float[:],
     resultants: cython.float[:],
@@ -747,6 +747,7 @@ def _fit_statistic(
 @cython.cdivision(True)
 @cython.inline
 @cython.cfunc
+@cython.exceptval(check=False)
 def _statistic(
     local_slope: cython.float,
     var_read_noise: cython.float,
@@ -799,6 +800,7 @@ def _statistic(
 @cython.cdivision(True)
 @cython.inline
 @cython.cfunc
+@cython.exceptval(check=False)
 def _correction(t_bar: cython.float[:], ramp: RampIndex, slope: cython.float) -> cython.float:
     """
     Compute the correction factor for the variance used by a statistic.
