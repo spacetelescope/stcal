@@ -6,8 +6,8 @@ from stcal.ramp_fitting.ols_cas22 import JUMP_DET, Parameter, Variance, fit_ramp
 from stcal.ramp_fitting.ols_cas22._jump import (
     FixedOffsets,
     PixelOffsets,
+    _fill_fixed_values,
     _fill_pixel_values,
-    fill_fixed_values,
 )
 from stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata, init_ramps
 
@@ -161,43 +161,23 @@ def test_fill_fixed_values(ramp_data):
     t_bar, tau, n_reads, _ = ramp_data
 
     n_resultants = len(t_bar)
-    fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-    fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
-
-    # Sanity check that the shape of fixed is correct
-    assert fixed.shape == (2 * 4, n_resultants - 1)
-
-    # Split into the different types of data
-    t_bar_diffs = fixed[FixedOffsets.single_t_bar_diff : FixedOffsets.double_t_bar_diff + 1, :]
-    t_bar_diff_sqrs = fixed[FixedOffsets.single_t_bar_diff_sqr : FixedOffsets.double_t_bar_diff_sqr + 1, :]
-    read_recip = fixed[FixedOffsets.single_read_recip : FixedOffsets.double_read_recip + 1, :]
-    var_slope_vals = fixed[FixedOffsets.single_var_slope_val : FixedOffsets.double_var_slope_val + 1, :]
-
-    # Sanity check that these are all the right shape
-    assert t_bar_diffs.shape == (2, n_resultants - 1)
-    assert t_bar_diff_sqrs.shape == (2, n_resultants - 1)
-    assert read_recip.shape == (2, n_resultants - 1)
-    assert var_slope_vals.shape == (2, n_resultants - 1)
+    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+    _fill_fixed_values(single_fixed, double_fixed, t_bar, tau, n_reads, n_resultants)
 
     # Check the computed data
     #   These are computed using loop in cython, here we check against numpy
     # Single diffs
-    assert np.all(t_bar_diffs[0] == t_bar[1:] - t_bar[:-1])
-    assert np.all(t_bar_diff_sqrs[0] == (t_bar[1:] - t_bar[:-1]) ** 2)
-    assert np.all(read_recip[0] == np.float32(1 / n_reads[1:]) + np.float32(1 / n_reads[:-1]))
-    assert np.all(var_slope_vals[0] == (tau[1:] + tau[:-1] - 2 * np.minimum(t_bar[1:], t_bar[:-1])))
+    assert np.all(single_fixed[0, :] == t_bar[1:] - t_bar[:-1])
+    assert np.all(single_fixed[1, :] == (t_bar[1:] - t_bar[:-1]) ** 2)
+    assert np.all(single_fixed[2, :] == np.float32(1 / n_reads[1:]) + np.float32(1 / n_reads[:-1]))
+    assert np.all(single_fixed[3, :] == (tau[1:] + tau[:-1] - 2 * np.minimum(t_bar[1:], t_bar[:-1])))
 
     # Double diffs
-    assert np.all(t_bar_diffs[1, :-1] == t_bar[2:] - t_bar[:-2])
-    assert np.all(t_bar_diff_sqrs[1, :-1] == (t_bar[2:] - t_bar[:-2]) ** 2)
-    assert np.all(read_recip[1, :-1] == np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
-    assert np.all(var_slope_vals[1, :-1] == (tau[2:] + tau[:-2] - 2 * np.minimum(t_bar[2:], t_bar[:-2])))
-
-    # Last double diff should be NaN
-    assert np.isnan(t_bar_diffs[1, -1])
-    assert np.isnan(t_bar_diff_sqrs[1, -1])
-    assert np.isnan(read_recip[1, -1])
-    assert np.isnan(var_slope_vals[1, -1])
+    assert np.all(double_fixed[0, :] == t_bar[2:] - t_bar[:-2])
+    assert np.all(double_fixed[1, :] == (t_bar[2:] - t_bar[:-2]) ** 2)
+    assert np.all(double_fixed[2, :] == np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
+    assert np.all(double_fixed[3, :] == (tau[2:] + tau[:-2] - 2 * np.minimum(t_bar[2:], t_bar[:-2])))
 
 
 def _generate_resultants(read_pattern, n_pixels=1):
@@ -260,52 +240,41 @@ def pixel_data(ramp_data):
     t_bar, tau, n_reads, read_pattern = ramp_data
 
     n_resultants = len(t_bar)
-    fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-    fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
+    single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+    double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+    _fill_fixed_values(single_fixed, double_fixed, t_bar, tau, n_reads, n_resultants)
 
     resultants = _generate_resultants(read_pattern)
 
-    return resultants, t_bar, tau, n_reads, fixed
+    return resultants, t_bar, n_reads, single_fixed, double_fixed
 
 
 def test__fill_pixel_values(pixel_data):
     """Test computing the initial pixel data"""
-    resultants, t_bar, tau, n_reads, fixed = pixel_data
+    resultants, t_bar, n_reads, single_fixed, double_fixed = pixel_data
 
     n_resultants = len(t_bar)
-    pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-    pixel = _fill_pixel_values(pixel, resultants, fixed, READ_NOISE, n_resultants)
-
-    # Sanity check that the shape of pixel is correct
-    assert pixel.shape == (2 * 2, n_resultants - 1)
-
-    # Split into the different types of data
-    local_slopes = pixel[PixelOffsets.single_local_slope : PixelOffsets.double_local_slope + 1, :]
-    var_read_noise = pixel[PixelOffsets.single_var_read_noise : PixelOffsets.double_var_read_noise + 1, :]
-
-    # Sanity check that these are all the right shape
-    assert local_slopes.shape == (2, n_resultants - 1)
-    assert var_read_noise.shape == (2, n_resultants - 1)
+    single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+    double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+    _fill_pixel_values(
+        single_pixel, double_pixel, single_fixed, double_fixed, resultants, READ_NOISE, n_resultants
+    )
 
     # Check the computed data
     #   These are computed using loop in cython, here we check against numpy
     # Single diffs
-    assert np.all(local_slopes[0] == (resultants[1:] - resultants[:-1]) / (t_bar[1:] - t_bar[:-1]))
+    assert np.all(single_pixel[0, :] == (resultants[1:] - resultants[:-1]) / (t_bar[1:] - t_bar[:-1]))
     assert np.all(
-        var_read_noise[0]
+        single_pixel[1, :]
         == np.float32(READ_NOISE**2) * (np.float32(1 / n_reads[1:]) + np.float32(1 / n_reads[:-1]))
     )
 
     # Double diffs
-    assert np.all(local_slopes[1, :-1] == (resultants[2:] - resultants[:-2]) / (t_bar[2:] - t_bar[:-2]))
+    assert np.all(double_pixel[0, :] == (resultants[2:] - resultants[:-2]) / (t_bar[2:] - t_bar[:-2]))
     assert np.all(
-        var_read_noise[1, :-1]
+        double_pixel[1, :]
         == np.float32(READ_NOISE**2) * (np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
     )
-
-    # Last double diff should be NaN
-    assert np.isnan(local_slopes[1, -1])
-    assert np.isnan(var_read_noise[1, -1])
 
 
 @pytest.fixture(scope="module")

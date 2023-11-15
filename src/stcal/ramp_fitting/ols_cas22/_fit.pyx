@@ -38,7 +38,7 @@ from libcpp.list cimport list as cpp_list
 from stcal.ramp_fitting.ols_cas22._jump cimport (
     JumpFits,
     Thresh,
-    fill_fixed_values,
+    _fill_fixed_values,
     fit_jumps,
     n_fixed_offsets,
     n_pixel_offsets,
@@ -156,21 +156,34 @@ def fit_ramps(float[:, :] resultants,
     _fill_metadata(read_pattern, read_time, t_bar, tau, n_reads)
 
     # Setup pre-compute arrays for jump detection
-    cdef float[:, :] fixed
-    cdef float[:, :] pixel
+    cdef float[:, :] single_pixel
+    cdef float[:, :] double_pixel
+    cdef float[:, :] single_fixed
+    cdef float[:, :] double_fixed
     if use_jump:
         # Initialize arrays for the jump detection pre-computed values
-        fixed = np.empty((n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-        pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+        single_pixel = np.empty((n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+        double_pixel = np.empty((n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+
+        single_fixed = np.empty((n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+        double_fixed = np.empty((n_fixed_offsets, n_resultants - 2), dtype=np.float32)
 
         # Pre-compute the values from the read pattern
-        fixed = fill_fixed_values(fixed, t_bar, tau, n_reads, n_resultants)
+        _fill_fixed_values(single_fixed,
+                           double_fixed,
+                           t_bar,
+                           tau,
+                           n_reads,
+                           n_resultants)
     else:
         # "Initialize" the arrays when not using jump detection, they need to be
         #    initialized because they do get passed around, but they don't need
         #    to actually have any entries
-        fixed = np.empty((0, 0), dtype=np.float32)
-        pixel = np.empty((0, 0), dtype=np.float32)
+        single_pixel = np.empty((0, 0), dtype=np.float32)
+        double_pixel = np.empty((0, 0), dtype=np.float32)
+
+        single_fixed = np.empty((0, 0), dtype=np.float32)
+        double_fixed = np.empty((0, 0), dtype=np.float32)
 
     # Create a threshold struct
     cdef Thresh thresh = Thresh(intercept, constant)
@@ -211,8 +224,10 @@ def fit_ramps(float[:, :] resultants,
                         tau,
                         n_reads,
                         n_resultants,
-                        fixed,
-                        pixel,
+                        single_pixel,
+                        double_pixel,
+                        single_fixed,
+                        double_fixed,
                         thresh,
                         use_jump,
                         include_diagnostic)
