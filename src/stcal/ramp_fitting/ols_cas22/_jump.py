@@ -70,330 +70,6 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._jump import (
     Variance,
 )
 
-_t_bar_diff = cython.declare(cython.int, FixedOffsets.t_bar_diff)
-_t_bar_diff_sqr = cython.declare(cython.int, FixedOffsets.t_bar_diff_sqr)
-_read_recip = cython.declare(cython.int, FixedOffsets.read_recip)
-_var_slope_val = cython.declare(cython.int, FixedOffsets.var_slope_val)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-@cython.inline
-@cython.ccall
-def _fill_fixed_values(
-    single_fixed: cython.float[:, :],
-    double_fixed: cython.float[:, :],
-    t_bar: cython.float[:],
-    tau: cython.float[:],
-    n_reads: cython.int[:],
-    n_resultants: cython.int,
-) -> cython.void:
-    """
-    Pre-compute all the values needed for jump detection which only depend on
-        the read pattern.
-
-    Parameters
-    ----------
-    fixed : float[:, :]
-        A pre-allocated memoryview to store the pre-computed values in, its faster
-        to allocate outside this function.
-    t_bar : float[:]
-        The average time for each resultant
-    tau : float[:]
-        The time variance for each resultant
-    n_reads : int[:]
-        The number of reads for each resultant
-    n_resultants : int
-        The number of resultants for the read pattern
-
-    Returns
-    -------
-    [
-        <t_bar[i+1] - t_bar[i]>,
-        <t_bar[i+2] - t_bar[i]>,
-        <t_bar[i+1] - t_bar[i]> ** 2,
-        <t_bar[i+2] - t_bar[i]> ** 2,
-        <(1/n_reads[i+1] + 1/n_reads[i])>,
-        <(1/n_reads[i+2] + 1/n_reads[i])>,
-        <(tau[i] + tau[i+1] - 2 * min(t_bar[i], t_bar[i+1]))>,
-        <(tau[i] + tau[i+2] - 2 * min(t_bar[i], t_bar[i+2]))>,
-    ]
-    """
-    # Coerce division to be using floats
-    num: cython.float = 1
-
-    i: cython.int
-    for i in range(n_resultants - 1):
-        single_fixed[_t_bar_diff, i] = t_bar[i + 1] - t_bar[i]
-        single_fixed[_t_bar_diff_sqr, i] = single_fixed[_t_bar_diff, i] ** 2
-        single_fixed[_read_recip, i] = (num / n_reads[i + 1]) + (num / n_reads[i])
-        single_fixed[_var_slope_val, i] = tau[i + 1] + tau[i] - 2 * min(t_bar[i + 1], t_bar[i])
-
-        if i < n_resultants - 2:
-            double_fixed[_t_bar_diff, i] = t_bar[i + 2] - t_bar[i]
-            double_fixed[_t_bar_diff_sqr, i] = double_fixed[_t_bar_diff, i] ** 2
-            double_fixed[_read_recip, i] = (num / n_reads[i + 2]) + (num / n_reads[i])
-            double_fixed[_var_slope_val, i] = tau[i + 2] + tau[i] - 2 * min(t_bar[i + 2], t_bar[i])
-
-
-_local_slope = cython.declare(cython.int, PixelOffsets.local_slope)
-_var_read_noise = cython.declare(cython.int, PixelOffsets.var_read_noise)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-@cython.inline
-@cython.ccall
-def _fill_pixel_values(
-    single_pixel: cython.float[:, :],
-    double_pixel: cython.float[:, :],
-    single_fixed: cython.float[:, :],
-    double_fixed: cython.float[:, :],
-    resultants: cython.float[:],
-    read_noise: cython.float,
-    n_resultants: cython.int,
-) -> cython.void:
-    """
-    Pre-compute all the values needed for jump detection which only depend on
-        the a specific pixel (independent of the given ramp for a pixel).
-
-    Parameters
-    ----------
-    pixel : float[:, :]
-        A pre-allocated memoryview to store the pre-computed values in, its faster
-        to allocate outside this function.
-    resultants : float[:]
-        The resultants for the pixel in question.
-    fixed : float[:, :]
-        The pre-computed fixed values for the read_pattern
-    read_noise : float
-        The read noise for the pixel
-    n_resultants : int
-        The number of resultants for the read_pattern
-
-    Returns
-    -------
-    [
-        <(resultants[i+1] - resultants[i])> / <(t_bar[i+1] - t_bar[i])>,
-        <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
-        read_noise**2 * <(1/n_reads[i+1] + 1/n_reads[i])>,
-        read_noise**2 * <(1/n_reads[i+2] + 1/n_reads[i])>,
-    ]
-    """
-    read_noise_sqr: cython.float = read_noise**2
-
-    i: cython.int
-    for i in range(n_resultants - 1):
-        single_pixel[_local_slope, i] = (resultants[i + 1] - resultants[i]) / single_fixed[_t_bar_diff, i]
-        single_pixel[_var_read_noise, i] = read_noise_sqr * single_fixed[_read_recip, i]
-
-        if i < n_resultants - 2:
-            double_pixel[_local_slope, i] = (resultants[i + 2] - resultants[i]) / double_fixed[_t_bar_diff, i]
-            double_pixel[_var_read_noise, i] = read_noise_sqr * double_fixed[_read_recip, i]
-
-
-@cython.inline
-@cython.cfunc
-@cython.exceptval(check=False)
-def _threshold(thresh: Thresh, slope: cython.float) -> cython.float:
-    """
-    Compute jump threshold.
-
-    Parameters
-    ----------
-    thresh : Thresh
-        threshold parameters struct
-    slope : float
-        slope of the ramp in question
-
-    Returns
-    -------
-        intercept - constant * log10(slope)
-    """
-    slope = slope if slope > 1 else 1
-    slope = slope if slope < 1e4 else 1e4
-
-    return thresh.intercept - thresh.constant * log10(slope)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-@cython.inline
-@cython.cfunc
-def _correction(t_bar: cython.float[:], ramp: RampIndex, slope: cython.float) -> cython.float:
-    """
-    Compute the correction factor for the variance used by a statistic.
-
-        - slope / (t_bar[end] - t_bar[start])
-
-    Parameters
-    ----------
-    t_bar : float[:]
-        The computed t_bar values for the ramp
-    ramp : RampIndex
-        Struct for start and end indices resultants for the ramp
-    slope : float
-        The computed slope for the ramp
-    """
-    diff: cython.float = t_bar[ramp.end] - t_bar[ramp.start]
-
-    return -slope / diff
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-@cython.inline
-@cython.cfunc
-def _statistic(
-    local_slope: cython.float,
-    var_read_noise: cython.float,
-    t_bar_diff_sqr: cython.float,
-    var_slope_val: cython.float,
-    slope: cython.float,
-    correct: cython.float,
-) -> cython.float:
-    """
-    Compute a single fit statistic
-        delta / sqrt(var + correct).
-
-    where:
-        delta = _local_slope - slope
-        var = (var_read_noise + slope * var_slope_val) / t_bar_diff_sqr
-
-        pre-computed:
-            local_slope = (resultant[i + j]  - resultant[i]) / (t_bar[i + j] - t_bar[i])
-            var_read_noise = read_noise ** 2 * (1/n_reads[i + j] + 1/n_reads[i])
-            var_slope_coeff = tau[i + j] + tau[i] - 2 * min(t_bar[i + j], t_bar[i])
-            t_bar_diff_sqr = (t_bar[i + j] - t_bar[i]) ** 2
-
-    Parameters
-    ----------
-    local_slope : float
-        The local slope the statistic is computed for
-    var_read_noise: float
-        The read noise variance for _local_slope
-    t_bar_diff_sqr : float
-        The square difference for the t_bar corresponding to _local_slope
-    var_slope_val : float
-        The slope variance coefficient for _local_slope
-    slope : float
-        The computed slope for the ramp
-    correct : float
-        The correction factor needed
-
-    Returns
-    -------
-        Create a single instance of the stastic for the given parameters
-    """
-    delta: cython.float = local_slope - slope
-    var: cython.float = (var_read_noise + slope * var_slope_val) / t_bar_diff_sqr
-
-    return delta / sqrt(var + correct)
-
-
-Stat = cython.struct(arg_max=cython.int, max_stat=cython.float)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.inline
-@cython.cfunc
-def _fit_statistic(
-    single_pixel: cython.float[:, :],
-    double_pixel: cython.float[:, :],
-    single_fixed: cython.float[:, :],
-    double_fixed: cython.float[:, :],
-    t_bar: cython.float[:],
-    slope: cython.float,
-    ramp: RampIndex,
-) -> Stat:
-    """
-    Compute the maximum index and its value over all fit statistics for a given
-        ramp. Each index's stat is the max of the single and double difference
-        statistics:
-            all_stats = <max(single_stats), max(double_stats)>.
-
-    Parameters
-    ----------
-    pixel : float[:, :]
-        The pre-computed fixed values for a given pixel
-    fixed : float[:, :]
-        The pre-computed fixed values for a given read_pattern
-    t_bar : float[:, :]
-        The average time for each resultant
-    slope : float
-        The computed slope for the ramp
-    ramp : RampIndex
-        Struct for start and end of ramp to fit
-
-    Returns
-    -------
-        argmax(all_stats), max(all_stats)
-    """
-    # Note that a ramp consisting of a single point is degenerate and has no
-    #   fit statistic so we bail out here
-    if ramp.start == ramp.end:
-        return Stat(0, NAN)
-
-    # Start computing fit statistics
-    correct: cython.float = _correction(t_bar, ramp, slope)
-
-    # We are computing single and double differences of using the ramp's resultants.
-    #    Each of these computations requires two points meaning that there are
-    #    start - end - 1 possible differences. However, we cannot compute a double
-    #    difference for the last point as there is no point after it. Therefore,
-    #    We use this point's single difference as our initial guess for the fit
-    #    statistic. Note that the fit statistic can technically be negative so
-    #    this makes it much easier to compute a "lazy" max.
-    index: cython.int = ramp.end - 1
-    stat: Stat = Stat(
-        ramp.end - ramp.start - 1,
-        _statistic(
-            single_pixel[_local_slope, index],
-            single_pixel[_var_read_noise, index],
-            single_fixed[_t_bar_diff_sqr, index],
-            single_fixed[_var_slope_val, index],
-            slope,
-            correct,
-        ),
-    )
-
-    # Compute the rest of the fit statistics
-    max_stat: cython.float
-    single_stat: cython.float
-    double_stat: cython.float
-    arg_max: cython.int
-    for arg_max, index in enumerate(range(ramp.start, ramp.end - 1)):
-        # Compute max of single and double difference statistics
-        single_stat = _statistic(
-            single_pixel[_local_slope, index],
-            single_pixel[_var_read_noise, index],
-            single_fixed[_t_bar_diff_sqr, index],
-            single_fixed[_var_slope_val, index],
-            slope,
-            correct,
-        )
-        double_stat = _statistic(
-            double_pixel[_local_slope, index],
-            double_pixel[_var_read_noise, index],
-            double_fixed[_t_bar_diff_sqr, index],
-            double_fixed[_var_slope_val, index],
-            slope,
-            correct,
-        )
-        max_stat = fmaxf(single_stat, double_stat)
-
-        # If this is larger than the current max, update the max
-        if max_stat > stat.max_stat:
-            stat = Stat(arg_max, max_stat)
-
-    return stat
-
-
 _slope = cython.declare(cython.int, Parameter.slope)
 _read_var = cython.declare(cython.int, Variance.read_var)
 _poisson_var = cython.declare(cython.int, Variance.poisson_var)
@@ -497,7 +173,7 @@ def fit_jumps(
         ramps.pop_back()
 
         # Compute fit using the Casertano+22 algorithm
-        ramp_fit = fit_ramp(resultants, t_bar, tau, n_reads, read_noise, ramp)
+        ramp_fit = _fit_ramp(resultants, t_bar, tau, n_reads, read_noise, ramp)
 
         # Run jump detection if enabled
         if use_jump:
@@ -621,7 +297,7 @@ def fit_jumps(
 @cython.cdivision(True)
 @cython.inline
 @cython.cfunc
-def fit_ramp(
+def _fit_ramp(
     resultants_: cython.float[:],
     t_bar_: cython.float[:],
     tau_: cython.float[:],
@@ -804,6 +480,330 @@ def _init_ramps(dq: cython.int[:], n_resultants: cython.int) -> RampQueue:
         ramps.push_back(ramp)
 
     return ramps
+
+
+@cython.inline
+@cython.cfunc
+@cython.exceptval(check=False)
+def _threshold(thresh: Thresh, slope: cython.float) -> cython.float:
+    """
+    Compute jump threshold.
+
+    Parameters
+    ----------
+    thresh : Thresh
+        threshold parameters struct
+    slope : float
+        slope of the ramp in question
+
+    Returns
+    -------
+        intercept - constant * log10(slope)
+    """
+    slope = slope if slope > 1 else 1
+    slope = slope if slope < 1e4 else 1e4
+
+    return thresh.intercept - thresh.constant * log10(slope)
+
+
+Stat = cython.struct(arg_max=cython.int, max_stat=cython.float)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.inline
+@cython.cfunc
+def _fit_statistic(
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    t_bar: cython.float[:],
+    slope: cython.float,
+    ramp: RampIndex,
+) -> Stat:
+    """
+    Compute the maximum index and its value over all fit statistics for a given
+        ramp. Each index's stat is the max of the single and double difference
+        statistics:
+            all_stats = <max(single_stats), max(double_stats)>.
+
+    Parameters
+    ----------
+    pixel : float[:, :]
+        The pre-computed fixed values for a given pixel
+    fixed : float[:, :]
+        The pre-computed fixed values for a given read_pattern
+    t_bar : float[:, :]
+        The average time for each resultant
+    slope : float
+        The computed slope for the ramp
+    ramp : RampIndex
+        Struct for start and end of ramp to fit
+
+    Returns
+    -------
+        argmax(all_stats), max(all_stats)
+    """
+    # Note that a ramp consisting of a single point is degenerate and has no
+    #   fit statistic so we bail out here
+    if ramp.start == ramp.end:
+        return Stat(0, NAN)
+
+    # Start computing fit statistics
+    correct: cython.float = _correction(t_bar, ramp, slope)
+
+    # We are computing single and double differences of using the ramp's resultants.
+    #    Each of these computations requires two points meaning that there are
+    #    start - end - 1 possible differences. However, we cannot compute a double
+    #    difference for the last point as there is no point after it. Therefore,
+    #    We use this point's single difference as our initial guess for the fit
+    #    statistic. Note that the fit statistic can technically be negative so
+    #    this makes it much easier to compute a "lazy" max.
+    index: cython.int = ramp.end - 1
+    stat: Stat = Stat(
+        ramp.end - ramp.start - 1,
+        _statistic(
+            single_pixel[_local_slope, index],
+            single_pixel[_var_read_noise, index],
+            single_fixed[_t_bar_diff_sqr, index],
+            single_fixed[_var_slope_val, index],
+            slope,
+            correct,
+        ),
+    )
+
+    # Compute the rest of the fit statistics
+    max_stat: cython.float
+    single_stat: cython.float
+    double_stat: cython.float
+    arg_max: cython.int
+    for arg_max, index in enumerate(range(ramp.start, ramp.end - 1)):
+        # Compute max of single and double difference statistics
+        single_stat = _statistic(
+            single_pixel[_local_slope, index],
+            single_pixel[_var_read_noise, index],
+            single_fixed[_t_bar_diff_sqr, index],
+            single_fixed[_var_slope_val, index],
+            slope,
+            correct,
+        )
+        double_stat = _statistic(
+            double_pixel[_local_slope, index],
+            double_pixel[_var_read_noise, index],
+            double_fixed[_t_bar_diff_sqr, index],
+            double_fixed[_var_slope_val, index],
+            slope,
+            correct,
+        )
+        max_stat = fmaxf(single_stat, double_stat)
+
+        # If this is larger than the current max, update the max
+        if max_stat > stat.max_stat:
+            stat = Stat(arg_max, max_stat)
+
+    return stat
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.cfunc
+def _statistic(
+    local_slope: cython.float,
+    var_read_noise: cython.float,
+    t_bar_diff_sqr: cython.float,
+    var_slope_val: cython.float,
+    slope: cython.float,
+    correct: cython.float,
+) -> cython.float:
+    """
+    Compute a single fit statistic
+        delta / sqrt(var + correct).
+
+    where:
+        delta = _local_slope - slope
+        var = (var_read_noise + slope * var_slope_val) / t_bar_diff_sqr
+
+        pre-computed:
+            local_slope = (resultant[i + j]  - resultant[i]) / (t_bar[i + j] - t_bar[i])
+            var_read_noise = read_noise ** 2 * (1/n_reads[i + j] + 1/n_reads[i])
+            var_slope_coeff = tau[i + j] + tau[i] - 2 * min(t_bar[i + j], t_bar[i])
+            t_bar_diff_sqr = (t_bar[i + j] - t_bar[i]) ** 2
+
+    Parameters
+    ----------
+    local_slope : float
+        The local slope the statistic is computed for
+    var_read_noise: float
+        The read noise variance for _local_slope
+    t_bar_diff_sqr : float
+        The square difference for the t_bar corresponding to _local_slope
+    var_slope_val : float
+        The slope variance coefficient for _local_slope
+    slope : float
+        The computed slope for the ramp
+    correct : float
+        The correction factor needed
+
+    Returns
+    -------
+        Create a single instance of the stastic for the given parameters
+    """
+    delta: cython.float = local_slope - slope
+    var: cython.float = (var_read_noise + slope * var_slope_val) / t_bar_diff_sqr
+
+    return delta / sqrt(var + correct)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.cfunc
+def _correction(t_bar: cython.float[:], ramp: RampIndex, slope: cython.float) -> cython.float:
+    """
+    Compute the correction factor for the variance used by a statistic.
+
+        - slope / (t_bar[end] - t_bar[start])
+
+    Parameters
+    ----------
+    t_bar : float[:]
+        The computed t_bar values for the ramp
+    ramp : RampIndex
+        Struct for start and end indices resultants for the ramp
+    slope : float
+        The computed slope for the ramp
+    """
+    diff: cython.float = t_bar[ramp.end] - t_bar[ramp.start]
+
+    return -slope / diff
+
+
+_t_bar_diff = cython.declare(cython.int, FixedOffsets.t_bar_diff)
+_t_bar_diff_sqr = cython.declare(cython.int, FixedOffsets.t_bar_diff_sqr)
+_read_recip = cython.declare(cython.int, FixedOffsets.read_recip)
+_var_slope_val = cython.declare(cython.int, FixedOffsets.var_slope_val)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.ccall
+def _fill_fixed_values(
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    t_bar: cython.float[:],
+    tau: cython.float[:],
+    n_reads: cython.int[:],
+    n_resultants: cython.int,
+) -> cython.void:
+    """
+    Pre-compute all the values needed for jump detection which only depend on
+        the read pattern.
+
+    Parameters
+    ----------
+    fixed : float[:, :]
+        A pre-allocated memoryview to store the pre-computed values in, its faster
+        to allocate outside this function.
+    t_bar : float[:]
+        The average time for each resultant
+    tau : float[:]
+        The time variance for each resultant
+    n_reads : int[:]
+        The number of reads for each resultant
+    n_resultants : int
+        The number of resultants for the read pattern
+
+    Returns
+    -------
+    [
+        <t_bar[i+1] - t_bar[i]>,
+        <t_bar[i+2] - t_bar[i]>,
+        <t_bar[i+1] - t_bar[i]> ** 2,
+        <t_bar[i+2] - t_bar[i]> ** 2,
+        <(1/n_reads[i+1] + 1/n_reads[i])>,
+        <(1/n_reads[i+2] + 1/n_reads[i])>,
+        <(tau[i] + tau[i+1] - 2 * min(t_bar[i], t_bar[i+1]))>,
+        <(tau[i] + tau[i+2] - 2 * min(t_bar[i], t_bar[i+2]))>,
+    ]
+    """
+    # Coerce division to be using floats
+    num: cython.float = 1
+
+    i: cython.int
+    for i in range(n_resultants - 1):
+        single_fixed[_t_bar_diff, i] = t_bar[i + 1] - t_bar[i]
+        single_fixed[_t_bar_diff_sqr, i] = single_fixed[_t_bar_diff, i] ** 2
+        single_fixed[_read_recip, i] = (num / n_reads[i + 1]) + (num / n_reads[i])
+        single_fixed[_var_slope_val, i] = tau[i + 1] + tau[i] - 2 * min(t_bar[i + 1], t_bar[i])
+
+        if i < n_resultants - 2:
+            double_fixed[_t_bar_diff, i] = t_bar[i + 2] - t_bar[i]
+            double_fixed[_t_bar_diff_sqr, i] = double_fixed[_t_bar_diff, i] ** 2
+            double_fixed[_read_recip, i] = (num / n_reads[i + 2]) + (num / n_reads[i])
+            double_fixed[_var_slope_val, i] = tau[i + 2] + tau[i] - 2 * min(t_bar[i + 2], t_bar[i])
+
+
+_local_slope = cython.declare(cython.int, PixelOffsets.local_slope)
+_var_read_noise = cython.declare(cython.int, PixelOffsets.var_read_noise)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.inline
+@cython.ccall
+def _fill_pixel_values(
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    resultants: cython.float[:],
+    read_noise: cython.float,
+    n_resultants: cython.int,
+) -> cython.void:
+    """
+    Pre-compute all the values needed for jump detection which only depend on
+        the a specific pixel (independent of the given ramp for a pixel).
+
+    Parameters
+    ----------
+    pixel : float[:, :]
+        A pre-allocated memoryview to store the pre-computed values in, its faster
+        to allocate outside this function.
+    resultants : float[:]
+        The resultants for the pixel in question.
+    fixed : float[:, :]
+        The pre-computed fixed values for the read_pattern
+    read_noise : float
+        The read noise for the pixel
+    n_resultants : int
+        The number of resultants for the read_pattern
+
+    Returns
+    -------
+    [
+        <(resultants[i+1] - resultants[i])> / <(t_bar[i+1] - t_bar[i])>,
+        <(resultants[i+2] - resultants[i])> / <(t_bar[i+2] - t_bar[i])>,
+        read_noise**2 * <(1/n_reads[i+1] + 1/n_reads[i])>,
+        read_noise**2 * <(1/n_reads[i+2] + 1/n_reads[i])>,
+    ]
+    """
+    read_noise_sqr: cython.float = read_noise**2
+
+    i: cython.int
+    for i in range(n_resultants - 1):
+        single_pixel[_local_slope, i] = (resultants[i + 1] - resultants[i]) / single_fixed[_t_bar_diff, i]
+        single_pixel[_var_read_noise, i] = read_noise_sqr * single_fixed[_read_recip, i]
+
+        if i < n_resultants - 2:
+            double_pixel[_local_slope, i] = (resultants[i + 2] - resultants[i]) / double_fixed[_t_bar_diff, i]
+            double_pixel[_var_read_noise, i] = read_noise_sqr * double_fixed[_read_recip, i]
 
 
 # Casertano+2022, Table 2
