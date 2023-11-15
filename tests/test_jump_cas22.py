@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22 import JUMP_DET, fit_ramps
+from stcal.ramp_fitting.ols_cas22 import JUMP_DET, DefaultThreshold, fit_ramps
 from stcal.ramp_fitting.ols_cas22._jump import (
     FixedOffsets,
     Parameter,
@@ -361,8 +361,10 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
         double_pixel,
         single_fixed,
         double_fixed,
-        use_jump=use_jump,
-        include_diagnostic=True,
+        use_jump,
+        DefaultThreshold.INTERCEPT.value,
+        DefaultThreshold.CONSTANT.value,
+        True,
     )
     assert len(output) == N_PIXELS  # sanity check that a fit is output for each pixel
 
@@ -490,8 +492,10 @@ def test_find_jumps(jump_data):
         double_pixel,
         single_fixed,
         double_fixed,
-        use_jump=True,
-        include_diagnostic=True,
+        True,
+        DefaultThreshold.INTERCEPT.value,
+        DefaultThreshold.CONSTANT.value,
+        True,
     )
     assert len(output) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
 
@@ -603,7 +607,10 @@ def test_override_default_threshold(jump_data):
         double_pixel,
         single_fixed,
         double_fixed,
-        use_jump=True,
+        True,
+        DefaultThreshold.INTERCEPT.value,
+        DefaultThreshold.CONSTANT.value,
+        False,
     )
 
     override_parameters = np.empty((N_PIXELS, Parameter.n_param), dtype=np.float32)
@@ -623,9 +630,10 @@ def test_override_default_threshold(jump_data):
         double_pixel,
         single_fixed,
         double_fixed,
-        use_jump=True,
-        intercept=0,
-        constant=0,
+        True,
+        0,
+        0,
+        False,
     )
 
     # All this is intended to do is show that with all other things being equal passing non-default
@@ -670,8 +678,10 @@ def test_jump_dq_set(jump_data):
         double_pixel,
         single_fixed,
         double_fixed,
-        use_jump=True,
-        include_diagnostic=True,
+        True,
+        DefaultThreshold.INTERCEPT.value,
+        DefaultThreshold.CONSTANT.value,
+        True,
     )
 
     for fit, pixel_dq in zip(output, dq.transpose()):

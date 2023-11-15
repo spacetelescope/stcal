@@ -73,8 +73,9 @@ def fit_ramps_casertano(
     read_pattern,
     use_jump=False,
     *,
-    threshold_intercept=None,
-    threshold_constant=None,
+    threshold_intercept=ols_cas22.DefaultThreshold.INTERCEPT.value,
+    threshold_constant=ols_cas22.DefaultThreshold.CONSTANT.value,
+    include_diagnostic=False,
 ):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
 
@@ -124,12 +125,6 @@ def fit_ramps_casertano(
     """
     # Trickery to avoid having to specify the defaults for the threshold
     #   parameters outside the cython code.
-    kwargs = {}
-    if threshold_intercept is not None:
-        kwargs["intercept"] = threshold_intercept
-    if threshold_constant is not None:
-        kwargs["constant"] = threshold_constant
-
     resultants_unit = getattr(resultants, "unit", None)
     if resultants_unit is not None:
         resultants = resultants.to(u.electron).value
@@ -195,7 +190,9 @@ def fit_ramps_casertano(
         single_fixed,
         double_fixed,
         use_jump,
-        **kwargs,
+        threshold_intercept,
+        threshold_constant,
+        include_diagnostic,
     )
 
     parameters = parameters.reshape(orig_shape[1:] + (2,))

@@ -26,7 +26,6 @@ fit_ramps : function
     for jumps (if use_jump is True) and bad pixels (via the dq array). This
     is the primary externally callable function.
 """
-
 import cython
 from cython.cimports.libcpp import bool as cpp_bool
 from cython.cimports.libcpp.list import list as cpp_list
@@ -42,6 +41,7 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._ramp import _fill_metadata
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.ccall
 def fit_ramps(
     resultants: cython.float[:, :],
     dq: cython.int[:, :],
@@ -57,10 +57,10 @@ def fit_ramps(
     double_pixel: cython.float[:, :],
     single_fixed: cython.float[:, :],
     double_fixed: cython.float[:, :],
-    use_jump: cpp_bool = False,
-    intercept: cython.float = 5.5,
-    constant: cython.float = 1 / 3,
-    include_diagnostic: cpp_bool = False,
+    use_jump: cpp_bool,
+    intercept: cython.float,
+    constant: cython.float,
+    include_diagnostic: cpp_bool,
 ) -> cpp_list[JumpFits]:
     """Fit ramps using the Casertano+22 algorithm.
         This implementation uses the Cas22 algorithm to fit ramps, where
