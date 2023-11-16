@@ -1,7 +1,12 @@
-1.5.1 (unreleased)
+1.5.2 (unreleased)
 ==================
 
 - 
+
+1.5.1 (2023-10-16)
+==================
+
+- re-release to publish source distribution
 
 1.5.0 (2023-11-15)
 ==================
