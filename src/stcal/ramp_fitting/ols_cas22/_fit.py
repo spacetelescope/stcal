@@ -27,6 +27,8 @@ fit_ramps : function
     is the primary externally callable function.
 """
 import cython
+import numpy as np
+from cython.cimports import numpy as cnp
 from cython.cimports.libc.math import INFINITY, NAN, fabs, fmaxf, isnan, log10, sqrt
 from cython.cimports.libcpp import bool as cpp_bool
 from cython.cimports.libcpp.list import list as cpp_list
@@ -38,6 +40,8 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._fit import (
     PixelOffsets,
     Variance,
 )
+
+cnp.import_array()
 
 RampIndex = cython.struct(
     start=cython.int,
@@ -837,22 +841,14 @@ def _fill_metadata(
     n_read: cython.int
 
     i: cython.int
-    j: cython.int
     resultant: vector[cython.int]
     for i in range(n_resultants):
         resultant = read_pattern[i]
         n_read = resultant.size()
 
         n_reads[i] = n_read
-        t_bar[i] = 0
-        tau[i] = 0
-
-        for j in range(n_read):
-            t_bar[i] += read_time * resultant[j]
-            tau[i] += (2 * (n_read - j) - 1) * resultant[j]
-
-        t_bar[i] /= n_read
-        tau[i] *= read_time / n_read**2
+        t_bar[i] = read_time * np.mean(resultant)
+        tau[i] = np.sum((2 * (n_read - np.arange(n_read)) - 1) * resultant) * read_time / n_read**2
 
 
 _t_bar_diff = cython.declare(cython.int, FixedOffsets.t_bar_diff)

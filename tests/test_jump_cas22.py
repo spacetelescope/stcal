@@ -131,7 +131,7 @@ def test__fill_metadata(read_pattern):
 
     # Check that the data is correct
     assert_allclose(t_bar, [7.6, 15.2, 21.279999, 41.040001, 60.799999, 88.159996])
-    assert_allclose(tau, [5.7, 15.2, 19.928888, 36.024002, 59.448887, 80.59378])
+    assert_allclose(tau, [5.7, 15.2, 19.928888, 36.023998, 59.448887, 80.593781])
     assert np.all(n_reads == [4, 1, 3, 10, 3, 15])
 
     # Check datatypes
