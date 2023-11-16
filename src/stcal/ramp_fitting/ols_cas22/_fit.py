@@ -100,10 +100,31 @@ def fit_ramps(
         be working on memory views of this array)
     read_noise : float[n_pixel]
         the read noise in electrons for each pixel (same note as the resultants)
-    read_time : float
-        Time to perform a readout. For Roman data, this is FRAME_TIME.
-    read_pattern : list[list[int]]
-        the read pattern for the image
+    parameters : float[n_pixel, 2]
+        The output array for the fit parameters. The first dimension is the
+        intercept, the second dimension is the slope.
+    variances : float[n_pixel, 3]
+        The output array for the fit variances. The first dimension is the
+        The first dimension is the read noise variance, the second dimension
+        is the poissson variance, and the third dimension is the total variance.
+    t_bar : float[n_resultants]
+        The average times for each resultant computed from the read pattern
+    tau : float[n_resultants]
+        The variance in the time for each resultant computed from the read pattern
+    n_reads : int[n_resultants]
+        The number of reads for each resultant computed from the read pattern
+    single_pixel : float[2, n_resultants - 1]
+        Pre-allocated array for the jump detection fixed values for a given pixel.
+        These will hold single difference values.
+    double_pixel : float[2, n_resultants - 2]
+        Pre-allocated array for the jump detection fixed values for a given pixel.
+        These will hold double difference values.
+    single_fixed : float[4, n_resultants - 1]
+        Pre-allocated array for the jump detection fixed values for all pixels.
+        These will hold single difference values.
+    double_fixed : float[4, n_resultants - 2]
+        Pre-allocated array for the jump detection fixed values for all pixels.
+        These will hold double difference values.
     use_jump : bool
         If True, use the jump detection algorithm to identify CRs.
         If False, use the DQ array to identify CRs.
@@ -114,9 +135,18 @@ def fit_ramps(
     include_diagnostic : bool
         If True, include the raw ramp fits in the output. Default=False
 
+    Notes
+    -----
+        The single_pixel, double_pixel, single_fixed, and double_fixed arrays
+        are passed in so that python can use numpy to pre-allocate the arrays
+        in python code. Surprisingly this is more efficient than using numpy
+        to allocate these arrays in cython code. This is because numpy requires
+        a back and forth jump between python and cython calls which induces a
+        lot of overhead.
+
     Returns
     -------
-    A RampFitOutputs tuple
+        list of JumpFits (if include_diagnostic is True)
     """
     n_resultants: cython.int = resultants.shape[0]
     n_pixels: cython.int = resultants.shape[1]
@@ -201,16 +231,21 @@ def _fit_pixel(
 
     Parameters
     ----------
+    parameters : float[:]
+        2 element array for the output parameters (slice of the total parameters array).
+        This will be modified in place, so the array it is a slice of will be modified
+        as a side effect.
+    variance : float[:]
+        3 element array for the output variances (slice of the total variances array)
+        This will be modified in place, so the array it is a slice of will be modified
+        as a side effect.
     resultants : float[:]
         The resultants for the pixel
     dq : int[:]
-        The dq flags for the pixel. This is modified in place, so the external
-        dq flag array will be modified as a side-effect.
+        The dq flags for the pixel. This is a slice of the dq array. This is modified
+        in place, so the external dq flag array will be modified as a side-effect.
     read_noise : float
         The read noise for the pixel.
-    ramps : RampQueue
-        RampQueue for initial ramps to fit for the pixel
-        multiple ramps are possible due to dq flags
     t_bar : float[:]
         The average time for each resultant
     tau : float[:]
@@ -219,12 +254,21 @@ def _fit_pixel(
         The number of reads for each resultant
     n_resultants : int
         The number of resultants for the pixel
-    fixed : float[:, :]
-        The jump detection pre-computed values for a given read_pattern
-    pixel : float[:, :]
+    single_pixel : float[:, :]
         A pre-allocated array for the jump detection fixed values for the
         given pixel. This will be modified in place, it is passed in to avoid
         re-allocating it for each pixel.
+        These will hold single difference values.
+    double_pixel : float[:, :]
+        A pre-allocated array for the jump detection fixed values for the
+        given pixel. This will be modified in place, it is passed in to avoid
+        re-allocating it for each pixel.  These will hold double difference values.
+    single-fixed : float[:, :]
+        The jump detection pre-computed values for a given read_pattern.
+        These will hold single difference values.
+    double-fixed : float[:, :]
+        The jump detection pre-computed values for a given read_pattern.
+        These will hold double difference values.
     thresh : Thresh
         The threshold parameter struct for jump detection
     use_jump : bool
@@ -662,10 +706,18 @@ def _fit_statistic(
 
     Parameters
     ----------
-    pixel : float[:, :]
+    single_pixel : float[:, :]
         The pre-computed fixed values for a given pixel
-    fixed : float[:, :]
+        These will hold single difference values.
+    double_pixel : float[:, :]
+        The pre-computed fixed values for a given pixel
+        These will hold double difference values.
+    single_fixed : float[:, :]
         The pre-computed fixed values for a given read_pattern
+        These will hold single difference values.
+    double_fixed : float[:, :]
+        The pre-computed fixed values for a given read_pattern
+        These will hold double difference values.
     t_bar : float[:, :]
         The average time for each resultant
     slope : float
@@ -841,9 +893,12 @@ def _fill_fixed_values(
 
     Parameters
     ----------
-    fixed : float[:, :]
+    single_fixed : float[:, :]
         A pre-allocated memoryview to store the pre-computed values in, its faster
-        to allocate outside this function.
+        to allocate outside this function. These will hold single difference values.
+    double_fixed : float[:, :]
+        A pre-allocated memoryview to store the pre-computed values in, its faster
+        to allocate outside this function. These will hold double difference values.
     t_bar : float[:]
         The average time for each resultant
     tau : float[:]
@@ -907,13 +962,20 @@ def _fill_pixel_values(
 
     Parameters
     ----------
-    pixel : float[:, :]
+    single_pixel : float[:, :]
         A pre-allocated memoryview to store the pre-computed values in, its faster
-        to allocate outside this function.
+        to allocate outside this function. These will hold single difference values.
+    double_pixel : float[:, :]
+        A pre-allocated memoryview to store the pre-computed values in, its faster
+        to allocate outside this function. These will hold double difference values.
+    single_fixed : float[:, :]
+        The pre-computed fixed values for the read_pattern
+        These will hold single difference values.
+    double_fixed : float[:, :]
+        The pre-computed fixed values for the read_pattern
+        These will hold double difference values.
     resultants : float[:]
         The resultants for the pixel in question.
-    fixed : float[:, :]
-        The pre-computed fixed values for the read_pattern
     read_noise : float
         The read noise for the pixel
     n_resultants : int
