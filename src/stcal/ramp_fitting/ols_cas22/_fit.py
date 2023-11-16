@@ -27,8 +27,6 @@ fit_ramps : function
     is the primary externally callable function.
 """
 import cython
-import numpy as np
-from cython.cimports import numpy as cnp
 from cython.cimports.libc.math import INFINITY, NAN, fabs, fmaxf, isnan, log10, sqrt
 from cython.cimports.libcpp import bool as cpp_bool
 from cython.cimports.libcpp.list import list as cpp_list
@@ -40,8 +38,6 @@ from cython.cimports.stcal.ramp_fitting.ols_cas22._fit import (
     PixelOffsets,
     Variance,
 )
-
-cnp.import_array()
 
 RampIndex = cython.struct(
     start=cython.int,
@@ -71,8 +67,6 @@ def fit_ramps(
     resultants: cython.float[:, :],
     dq: cython.int[:, :],
     read_noise: cython.float[:],
-    read_time: cython.float,
-    read_pattern: vector[vector[cython.int]],
     parameters: cython.float[:, :],
     variances: cython.float[:, :],
     t_bar: cython.float[:],
@@ -126,9 +120,6 @@ def fit_ramps(
     """
     n_resultants: cython.int = resultants.shape[0]
     n_pixels: cython.int = resultants.shape[1]
-
-    # Compute the main metadata from the read pattern and cast it to memory views
-    _fill_metadata(t_bar, tau, n_reads, read_pattern, read_time, n_resultants)
 
     if use_jump:
         # Pre-compute the values from the read pattern
@@ -823,32 +814,6 @@ def _correction(t_bar: cython.float[:], ramp: RampIndex, slope: cython.float) ->
     diff: cython.float = t_bar[ramp.end] - t_bar[ramp.start]
 
     return -slope / diff
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-@cython.inline
-@cython.ccall
-def _fill_metadata(
-    t_bar: cython.float[:],
-    tau: cython.float[:],
-    n_reads: cython.int[:],
-    read_pattern: vector[vector[cython.int]],
-    read_time: cython.float,
-    n_resultants: cython.int,
-) -> cython.void:
-    n_read: cython.int
-
-    i: cython.int
-    resultant: vector[cython.int]
-    for i in range(n_resultants):
-        resultant = read_pattern[i]
-        n_read = resultant.size()
-
-        n_reads[i] = n_read
-        t_bar[i] = read_time * np.mean(resultant)
-        tau[i] = np.sum((2 * (n_read - np.arange(n_read)) - 1) * resultant) * read_time / n_read**2
 
 
 _t_bar_diff = cython.declare(cython.int, FixedOffsets.t_bar_diff)

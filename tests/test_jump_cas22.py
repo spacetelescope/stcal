@@ -11,10 +11,10 @@ from stcal.ramp_fitting.ols_cas22._fit import (
     PixelOffsets,
     Variance,
     _fill_fixed_values,
-    _fill_metadata,
     _fill_pixel_values,
     _init_ramps,
 )
+from stcal.ramp_fitting.ols_cas22_fit import _create_metadata
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)
@@ -116,14 +116,11 @@ def read_pattern():
     ]
 
 
-def test__fill_metadata(read_pattern):
+def test__create_metadata(read_pattern):
     """Test turning read_pattern into the time data"""
 
     n_resultants = len(read_pattern)
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
-    _fill_metadata(t_bar, tau, n_reads, read_pattern, READ_TIME, n_resultants)
+    t_bar, tau, n_reads = _create_metadata(read_pattern, READ_TIME)
 
     assert t_bar.shape == (n_resultants,)
     assert tau.shape == (n_resultants,)
@@ -152,13 +149,8 @@ def ramp_data(read_pattern):
         metadata : dict
             The metadata computed from the read pattern
     """
-    n_resultants = len(read_pattern)
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
-    _fill_metadata(t_bar, tau, n_reads, read_pattern, READ_TIME, n_resultants)
 
-    return t_bar, tau, n_reads, read_pattern
+    return *_create_metadata(read_pattern, READ_TIME), read_pattern
 
 
 def test_fill_fixed_values(ramp_data):
@@ -327,16 +319,19 @@ def allocated_data(read_pattern):
     variances = np.empty((N_PIXELS, Variance.n_var), dtype=np.float32)
 
     # Initialize scratch storage
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
     single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
     double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
     single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
     double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
 
     return AllocatedData(
-        parameters, variances, t_bar, tau, n_reads, single_pixel, double_pixel, single_fixed, double_fixed
+        parameters,
+        variances,
+        *_create_metadata(read_pattern, READ_TIME),
+        single_pixel,
+        double_pixel,
+        single_fixed,
+        double_fixed,
     )
 
 
@@ -382,8 +377,6 @@ def test_fit_ramps(detector_data, allocated_data, use_jump, use_dq):
         resultants,
         dq,
         read_noise,
-        READ_TIME,
-        read_pattern,
         *allocated_data[:-4],
         single_pixel,
         double_pixel,
@@ -495,8 +488,6 @@ def test_find_jumps(jump_data, allocated_data):
         resultants,
         dq,
         read_noise,
-        READ_TIME,
-        read_pattern,
         *allocated_data,
         True,
         DefaultThreshold.INTERCEPT.value,
@@ -592,8 +583,6 @@ def test_override_default_threshold(jump_data, allocated_data):
         resultants,
         dq,
         read_noise,
-        READ_TIME,
-        read_pattern,
         standard_parameters,
         standard_variances,
         *allocated_data[2:],
@@ -609,8 +598,6 @@ def test_override_default_threshold(jump_data, allocated_data):
         resultants,
         dq,
         read_noise,
-        READ_TIME,
-        read_pattern,
         override_parameters,
         override_variances,
         *allocated_data[2:],
@@ -637,8 +624,6 @@ def test_jump_dq_set(jump_data, allocated_data):
         resultants,
         dq,
         read_noise,
-        READ_TIME,
-        read_pattern,
         *allocated_data,
         True,
         DefaultThreshold.INTERCEPT.value,

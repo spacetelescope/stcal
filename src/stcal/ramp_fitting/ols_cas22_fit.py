@@ -160,9 +160,7 @@ def fit_ramps_casertano(
     # Pre-allocate the working memory arrays
     #   This prevents bouncing to and from cython for this allocation, which
     #   is slower than just doing it all in python to start.
-    t_bar = np.empty(n_resultants, dtype=np.float32)
-    tau = np.empty(n_resultants, dtype=np.float32)
-    n_reads = np.empty(n_resultants, dtype=np.int32)
+    t_bar, tau, n_reads = _create_metadata(read_pattern, read_time)
     if use_jump:
         single_pixel = np.empty((ols_cas22.PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
         double_pixel = np.empty((ols_cas22.PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
@@ -178,8 +176,6 @@ def fit_ramps_casertano(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),
-        read_time,
-        read_pattern,
         parameters,
         variances,
         t_bar,
@@ -208,3 +204,20 @@ def fit_ramps_casertano(
 
     # return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
     return RampFitOutputs(parameters, variances, dq)
+
+
+def _create_metadata(read_pattern, read_time):
+    n_resultants = len(read_pattern)
+
+    t_bar = np.empty(n_resultants, dtype=np.float32)
+    tau = np.empty(n_resultants, dtype=np.float32)
+    n_reads = np.empty(n_resultants, dtype=np.int32)
+
+    for i, resultant in enumerate(read_pattern):
+        n_read = len(resultant)
+
+        n_reads[i] = n_read
+        t_bar[i] = read_time * np.mean(resultant)
+        tau[i] = np.sum((2 * (n_read - np.arange(n_read)) - 1) * resultant) * read_time / n_read**2
+
+    return t_bar, tau, n_reads
