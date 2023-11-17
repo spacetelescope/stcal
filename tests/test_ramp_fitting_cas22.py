@@ -40,7 +40,7 @@ def test_simulated_ramps(use_unit, use_dq):
         bad = RNG.uniform(size=resultants.shape) > 0.7
         dq |= bad
 
-    output = ramp.fit_ramps_casertano(
+    output = ramp.fit_ramps(
         resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, threshold_constant=0, threshold_intercept=0
     )  # set the threshold parameters
     #   to demo the interface. This

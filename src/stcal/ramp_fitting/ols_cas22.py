@@ -29,12 +29,21 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
+from enum import Enum
 from typing import NamedTuple
 
 import numpy as np
 from astropy import units as u
 
-from . import _ols_cas22
+from ._ols_cas22 import FixedOffsets, Parameter, PixelOffsets, Variance
+from ._ols_cas22 import fit_ramps as _fit_ramps
+
+__all__ = ["fit_ramps", "Parameter", "Variance", "DefaultThreshold", "RampFitOutputs"]
+
+
+class DefaultThreshold(Enum):
+    INTERCEPT = np.float32(5.5)
+    CONSTANT = np.float32(1 / 3)
 
 
 class RampFitOutputs(NamedTuple):
@@ -65,7 +74,7 @@ class RampFitOutputs(NamedTuple):
     dq: np.ndarray
 
 
-def fit_ramps_casertano(
+def fit_ramps(
     resultants,
     dq,
     read_noise,
@@ -73,8 +82,8 @@ def fit_ramps_casertano(
     read_pattern,
     use_jump=False,
     *,
-    threshold_intercept=_ols_cas22.DefaultThreshold.INTERCEPT.value,
-    threshold_constant=_ols_cas22.DefaultThreshold.CONSTANT.value,
+    threshold_intercept=DefaultThreshold.INTERCEPT.value,
+    threshold_constant=DefaultThreshold.CONSTANT.value,
     include_diagnostic=False,
 ):
     """Fit ramps following Casertano+2022, including averaging partial ramps.
@@ -154,25 +163,25 @@ def fit_ramps_casertano(
 
     # Pre-allocate the output arrays
     n_pixels = np.prod(resultants.shape[1:])
-    parameters = np.empty((n_pixels, _ols_cas22.Parameter.n_param), dtype=np.float32)
-    variances = np.empty((n_pixels, _ols_cas22.Variance.n_var), dtype=np.float32)
+    parameters = np.empty((n_pixels, Parameter.n_param), dtype=np.float32)
+    variances = np.empty((n_pixels, Variance.n_var), dtype=np.float32)
 
     # Pre-allocate the working memory arrays
     #   This prevents bouncing to and from cython for this allocation, which
     #   is slower than just doing it all in python to start.
     t_bar, tau, n_reads = _create_metadata(read_pattern, read_time)
     if use_jump:
-        single_pixel = np.empty((_ols_cas22.PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
-        double_pixel = np.empty((_ols_cas22.PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
-        single_fixed = np.empty((_ols_cas22.FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
-        double_fixed = np.empty((_ols_cas22.FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
+        single_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 1), dtype=np.float32)
+        double_pixel = np.empty((PixelOffsets.n_pixel_offsets, n_resultants - 2), dtype=np.float32)
+        single_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 1), dtype=np.float32)
+        double_fixed = np.empty((FixedOffsets.n_fixed_offsets, n_resultants - 2), dtype=np.float32)
     else:
         single_pixel = np.empty((0, 0), dtype=np.float32)
         double_pixel = np.empty((0, 0), dtype=np.float32)
         single_fixed = np.empty((0, 0), dtype=np.float32)
         double_fixed = np.empty((0, 0), dtype=np.float32)
 
-    _ols_cas22.fit_ramps(
+    _fit_ramps(
         resultants.reshape(resultants.shape[0], -1),
         dq.reshape(resultants.shape[0], -1),
         read_noise.reshape(-1),

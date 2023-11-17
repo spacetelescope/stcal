@@ -1,14 +1,9 @@
-from enum import Enum
-
-import numpy as np
-
-from ._fit import JUMP_DET, FixedOffsets, Parameter, PixelOffsets, Variance, fit_ramps
-
-
-class DefaultThreshold(Enum):
-    INTERCEPT = np.float32(5.5)
-    CONSTANT = np.float32(1 / 3)
-
+"""
+This subpackage exists to hold the Cython implementation of the OLS cas22 algorithm
+    This subpackage is private, and should not be imported directly by users. Instead,
+    import from stcal.ramp_fitting.ols_cas22.
+"""
+from ._fit import FixedOffsets, Parameter, PixelOffsets, Variance, fit_ramps
 
 __all__ = [
     "fit_ramps",
@@ -16,6 +11,4 @@ __all__ = [
     "Variance",
     "PixelOffsets",
     "FixedOffsets",
-    "JUMP_DET",
-    "DefaultThreshold",
 ]

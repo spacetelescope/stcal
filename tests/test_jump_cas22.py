@@ -4,17 +4,14 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting._ols_cas22 import JUMP_DET, DefaultThreshold, fit_ramps
+from stcal.ramp_fitting._ols_cas22 import FixedOffsets, Parameter, PixelOffsets, Variance, fit_ramps
 from stcal.ramp_fitting._ols_cas22._fit import (
-    FixedOffsets,
-    Parameter,
-    PixelOffsets,
-    Variance,
+    JUMP_DET,
     _fill_fixed_values,
     _fill_pixel_values,
     _init_ramps,
 )
-from stcal.ramp_fitting.ols_cas22 import _create_metadata
+from stcal.ramp_fitting.ols_cas22 import DefaultThreshold, _create_metadata
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)
