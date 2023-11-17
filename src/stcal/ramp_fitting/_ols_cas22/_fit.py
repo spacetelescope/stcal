@@ -43,7 +43,7 @@ from cython.cimports.libc.math import INFINITY, NAN, fabs, fmaxf, isnan, log10, 
 from cython.cimports.libcpp import bool as cpp_bool
 from cython.cimports.libcpp.list import list as cpp_list
 from cython.cimports.libcpp.vector import vector
-from cython.cimports.stcal.ramp_fitting.ols_cas22._fit import (
+from cython.cimports.stcal.ramp_fitting._ols_cas22._fit import (
     JUMP_DET,
     FixedOffsets,
     Parameter,

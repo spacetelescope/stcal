@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.ramp_fitting.ols_cas22 import JUMP_DET, DefaultThreshold, fit_ramps
-from stcal.ramp_fitting.ols_cas22._fit import (
+from stcal.ramp_fitting._ols_cas22 import JUMP_DET, DefaultThreshold, fit_ramps
+from stcal.ramp_fitting._ols_cas22._fit import (
     FixedOffsets,
     Parameter,
     PixelOffsets,
