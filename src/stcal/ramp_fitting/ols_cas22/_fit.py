@@ -1,30 +1,42 @@
 # cython: language_level=3str
 
 """
-External interface module for the Casertano+22 ramp fitting algorithm with jump detection.
-    This module is intended to contain everything needed by external code.
+Cython implementation of the Casertano+22 algorithm for fitting ramps with jump detection.
+
+    Note that this is written in annotated Python using Cython annotations, meaning
+    that Cython 3 can interpret this "python" file as if it were a Cython file. This
+    enables one to use Python tooling to write Cython code, and prevents the need to
+    context switch between the Python and Cython programming languages.
+
+    Note that everything is crammed into a single file because it enables Cython to
+    directly optimize the C code it generates. This is because Cython can only optimize
+    across a single file (i.e. inlining functions only works if the function is in the
+    same file as the function it is being inlined into). This helps aid the C compiler
+    in optimizing C code when it compiles.
 
 Enums
 -----
-Parameter :
-    Enumerate the index for the output parameters array.
+Parameter:
+    This enum is used to index into the parameter output array.
+        slope: 0
+        intercept: 1
+        n_param: 2 (number of parameters output)
+Variance:
+    This enum is used to index into the variance output array.
+        read_var: 0
+        poisson_var: 1
+        total_var: 2
+        n_var: 3 (number of variances output)
 
-Variance :
-    Enumerate the index for the output variances array.
-
-Classes
--------
-RampFitOutputs : NamedTuple
-    Simple tuple wrapper for outputs from the ramp fitting algorithm
-        This clarifies the meaning of the outputs via naming them something
-        descriptive.
-
-(Public) Functions
-------------------
-fit_ramps : function
-    Fit ramps using the Castenario+22 algorithm to a set of pixels accounting
-    for jumps (if use_jump is True) and bad pixels (via the dq array). This
-    is the primary externally callable function.
+Functions
+---------
+fit_ramps:
+    This is the main driver program for the Casertano+22 algorithm. It fits ramps
+    with jump detection (if enabled) to a series of pixels, returning the Cas22
+    fit parameters and variances for each pixel. This function is not intended to
+    be called outside of stcal itself as it requires a lot of pre-allocation of
+    memory views to be passed in. Use the `stcal.ramp_fitting.ols_cas22.fit_ramps`
+    function instead.
 """
 import cython
 from cython.cimports.libc.math import INFINITY, NAN, fabs, fmaxf, isnan, log10, sqrt
@@ -292,11 +304,9 @@ def _fit_pixel(
     index: RampQueue = RampQueue()
 
     # Declare variables for the loop
+    jump: Jump
     ramp: RampIndex
     ramp_fit: RampFit
-    stat: Stat
-    jump0: cython.int
-    jump1: cython.int
     weight: cython.float
     total_weight: cython.float = 0
 
@@ -315,110 +325,74 @@ def _fit_pixel(
         # Compute fit using the Casertano+22 algorithm
         ramp_fit = _fit_ramp(resultants, t_bar, tau, n_reads, read_noise, ramp)
 
-        # Run jump detection if enabled
-        if use_jump:
-            stat = _fit_statistic(
-                single_pixel, double_pixel, single_fixed, double_fixed, t_bar, ramp_fit.slope, ramp
-            )
+        # Run jump detection
+        jump = _jump_detection(
+            single_pixel,
+            double_pixel,
+            single_fixed,
+            double_fixed,
+            t_bar,
+            ramp_fit.slope,
+            ramp,
+            thresh,
+            use_jump,
+        )
 
-            # Note that when a "ramp" is a single point, _fit_statistic returns
-            # a NaN for max_stat. Note that NaN > anything is always false so the
-            # result drops through as desired.
-            if stat.max_stat > _threshold(thresh, ramp_fit.slope):
-                # Compute jump point to create two new ramps
-                #    This jump point corresponds to the index of the largest
-                #    statistic:
-                #        argmax = argmax(stats)
-                #    These statistics are indexed relative to the
-                #    ramp's range. Therefore, we need to add the start index
-                #    of the ramp to the result.
-                #
-                jump0 = stat.arg_max + ramp.start
+        if jump.detected:
+            # A jump was detected!
+            # => Split the ramp and record the jumps
+            #   Note that we have to do this splitting and recording here because
+            #   vectors cannot be modified in place, so we have to copy the vectors
+            #   if they were updated in a separate function, which is expensive.
 
-                # Note that because the resultants are averages of reads, but
-                # jumps occur in individual reads, it is possible that the
-                # jump is averaged down by the resultant with the actual jump
-                # causing the computed jump to be off by one index.
-                #     In the idealized case this is when the jump occurs near
-                #     the start of the resultant with the jump. In this case,
-                #     the statistic for the resultant will be maximized at
-                #     index - 1 rather than index. This means that we have to
-                #     remove argmax(stats) + 1 as it is also a possible jump.
-                #     This case is difficult to distinguish from the case where
-                #     argmax(stats) does correspond to the jump resultant.
-                #     Therefore, we just remove both possible resultants from
-                #     consideration.
-                jump1 = jump0 + 1
+            # Update the dq flags
+            dq[jump.jump0] = JUMP_DET
+            dq[jump.jump1] = JUMP_DET
 
-                # Update the dq flags
-                dq[jump0] = JUMP_DET
-                dq[jump1] = JUMP_DET
+            # Record jump diagnostics
+            if include_diagnostic:
+                jumps.push_back(jump.jump0)
+                jumps.push_back(jump.jump1)
 
-                # Record jump diagnostics
-                if include_diagnostic:
-                    jumps.push_back(jump0)
-                    jumps.push_back(jump1)
+            # The two resultant indices need to be skipped, therefore
+            # the two possible new ramps are:
+            #     RampIndex(ramp.start, jump0 - 1)
+            #     RampIndex(jump1 + 1, ramp.end)
+            # This is because the RampIndex contains the index of the
+            # first and last resultants in the sub-ramp it describes.
+            if jump.jump0 > ramp.start:
+                # Note that when jump0 == ramp.start, we have detected a
+                # jump in the first resultant of the ramp.
 
-                # The two resultant indices need to be skipped, therefore
-                # the two
-                # possible new ramps are:
-                #     RampIndex(ramp.start, jump0 - 1)
-                #     RampIndex(jump1 + 1, ramp.end)
-                # This is because the RampIndex contains the index of the
-                # first and last resulants in the sub-ramp it describes.
-                #    Note: The algorithm works via working over the sub-ramps
-                #    backward in time. Therefore, since we are using a stack,
-                #    we need to add the ramps in the time order they were
-                #    observed in. This results in the last observation ramp
-                #    being the top of the stack; meaning that,
-                #    it will be the next ramp handled.
+                # Add ramp from start to right before jump0
+                ramps.push_back(RampIndex(ramp.start, jump.jump0 - 1))
 
-                if jump0 > ramp.start:
-                    # Note that when jump0 == ramp.start, we have detected a
-                    # jump in the first resultant of the ramp. This means
-                    # there is no sub-ramp before jump0.
-                    #    Also, note that this will produce bad results as
-                    #    the ramp indexing will go out of bounds. So it is
-                    #    important that we exclude it.
-                    # Note that jump0 < ramp.start is not possible because
-                    # the argmax is always >= 0
-                    ramps.push_back(RampIndex(ramp.start, jump0 - 1))
+            if jump.jump1 < ramp.end:
+                # Note that if jump1 == ramp.end, we have detected a
+                # jump in the last resultant of the ramp.
 
-                if jump1 < ramp.end:
-                    # Note that if jump1 == ramp.end, we have detected a
-                    # jump in the last resultant of the ramp. This means
-                    # there is no sub-ramp after jump1.
-                    #    Also, note that this will produce bad results as
-                    #    the ramp indexing will go out of bounds. So it is
-                    #    important that we exclude it.
-                    # Note that jump1 > ramp.end is technically possible
-                    # however in those potential cases it will draw on
-                    # resultants which are not considered part of the ramp
-                    # under consideration. Therefore, we have to exclude all
-                    # of those values.
-                    ramps.push_back(RampIndex(jump1 + 1, ramp.end))
+                # Add ramp from right after jump1 to end
+                ramps.push_back(RampIndex(jump.jump1 + 1, ramp.end))
+        else:
+            # No jump was detected!
+            # => Record the fit.
 
-                # Skip recording the ramp as it has a detected jump
-                continue
+            # Record the diagnostics
+            if include_diagnostic:
+                fits.push_back(ramp_fit)
+                index.push_back(ramp)
 
-        # Start recording the the fit (no jump detected)
+            # Start computing the averages using a lazy process
+            #    Note we do not do anything in the NaN case for degenerate ramps
+            if not isnan(ramp_fit.slope):
+                # protect weight against the extremely unlikely case of a zero
+                # variance
+                weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
+                total_weight += weight
 
-        # Record the diagnositcs
-        if include_diagnostic:
-            fits.push_back(ramp_fit)
-            index.push_back(ramp)
-
-        # Start computing the averages using a lazy process
-        #    Note we do not do anything in the NaN case for degenerate ramps
-        if not isnan(ramp_fit.slope):
-            # protect weight against the extremely unlikely case of a zero
-            # variance
-            weight = 0 if ramp_fit.read_var == 0 else 1 / ramp_fit.read_var
-            total_weight += weight
-
-            parameters[_slope] += weight * ramp_fit.slope
-            variances[_read_var] += weight**2 * ramp_fit.read_var
-            variances[_poisson_var] += weight**2 * ramp_fit.poisson_var
+                parameters[_slope] += weight * ramp_fit.slope
+                variances[_read_var] += weight**2 * ramp_fit.read_var
+                variances[_poisson_var] += weight**2 * ramp_fit.poisson_var
 
     # Finish computing averages using the lazy process
     parameters[_slope] /= total_weight if total_weight != 0 else 1
@@ -656,6 +630,107 @@ def _init_ramps(dq: cython.int[:], n_resultants: cython.int) -> RampQueue:
         ramps.push_back(ramp)
 
     return ramps
+
+
+# Note everything below this comment is to support jump detection.
+
+
+Jump = cython.struct(
+    detected=cpp_bool,
+    jump0=cython.int,
+    jump1=cython.int,
+)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.inline
+@cython.cfunc
+def _jump_detection(
+    single_pixel: cython.float[:, :],
+    double_pixel: cython.float[:, :],
+    single_fixed: cython.float[:, :],
+    double_fixed: cython.float[:, :],
+    t_bar: cython.float[:],
+    slope: cython.float,
+    ramp: RampIndex,
+    thresh: Thresh,
+    use_jump: cpp_bool,
+) -> Jump:
+    """
+    Run jump detection on a single ramp fit.
+
+    Parameters
+    ----------
+    single_pixel : float[:, :]
+        The pre-computed fixed values for a given pixel
+        These will hold single difference values.
+    double_pixel : float[:, :]
+        The pre-computed fixed values for a given pixel
+        These will hold double difference values.
+    single_fixed : float[:, :]
+        The pre-computed fixed values for a given read_pattern
+        These will hold single difference values.
+    double_fixed : float[:, :]
+        The pre-computed fixed values for a given read_pattern
+        These will hold double difference values.
+    t_bar : float[:, :]
+        The average time for each resultant
+    slope : float
+        The computed slope for the ramp
+    ramp : RampIndex
+        Struct for start and end of ramp to fit
+    thresh : Thresh
+        Threshold parameters struct
+    use_jump : bool
+        Turn on or off jump detection.
+
+    Returns
+    -------
+    Jump: struct
+        - detected: bool
+            True if a jump was detected
+        - jump0: int
+            Index of the first resultant of the jump
+        - jump1: int
+            Index of the second resultant of the jump
+    """
+    jump: cython.int
+
+    # Run jump detection if enabled
+    if use_jump:
+        stat: Stat = _fit_statistic(
+            single_pixel, double_pixel, single_fixed, double_fixed, t_bar, slope, ramp
+        )
+        # Note that when a "ramp" is a single point, _fit_statistic returns
+        # a NaN for max_stat. Note that NaN > anything is always false so the
+        # result drops through as desired.
+        if stat.max_stat > _threshold(thresh, slope):
+            # Compute jump point to create two new ramps
+            #    This jump point corresponds to the index of the largest
+            #    statistic:
+            #        argmax = argmax(stats)
+            #    These statistics are indexed relative to the  ramp's range.
+            #    Therefore, we need to add the start index of the ramp to the
+            #    result.
+            jump = stat.arg_max + ramp.start
+
+            # Note that because the resultants are averages of reads, but
+            # jumps occur in individual reads, it is possible that the
+            # jump is averaged down by the resultant with the actual jump
+            # causing the computed jump to be off by one index.
+            #     In the idealized case this is when the jump occurs near
+            #     the start of the resultant with the jump. In this case,
+            #     the statistic for the resultant will be maximized at
+            #     index - 1 rather than index. This means that we have to
+            #     remove argmax(stats) + 1 as it is also a possible jump.
+            #     This case is difficult to distinguish from the case where
+            #     argmax(stats) does correspond to the jump resultant.
+            #     Therefore, we just remove both possible resultants from
+            #     consideration.
+            return Jump(True, jump, jump + 1)
+
+    return Jump(False, -1, -1)
 
 
 @cython.inline
