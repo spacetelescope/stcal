@@ -14,7 +14,7 @@ from stcal.ramp_fitting._ols_cas22._fit import (
     _fill_pixel_values,
     _init_ramps,
 )
-from stcal.ramp_fitting.ols_cas22_fit import _create_metadata
+from stcal.ramp_fitting.ols_cas22 import _create_metadata
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)
