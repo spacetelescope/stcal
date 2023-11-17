@@ -47,7 +47,7 @@ test = [
 requires = [
     'setuptools >=61',
     'setuptools_scm[toml] >=3.4',
-    'Cython >=0.29.21',
+    'Cython >=3.0.0',
     'numpy >=1.18',
 ]
 build-backend = 'setuptools.build_meta'
