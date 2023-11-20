@@ -1,4 +1,4 @@
-name: Changelog
+name: Ensure changelog
 
 on:
   pull_request:
@@ -13,12 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changelog:
-    name: Confirm changelog entry
+  ensure_changelog:
+    name: Verify that a changelog entry exists for this pull request
     runs-on: ubuntu-latest
     steps:
-    - name: Check change log entry
-      uses: scientific-python/action-check-changelogfile@6087eddce1d684b0132be651a4dad97699513113  # 0.2
+    - uses: scientific-python/action-check-changelogfile@0.2
       env:
         CHANGELOG_FILENAME: CHANGES.rst
         CHECK_MILESTONE: false
