@@ -24,13 +24,13 @@ ramp_fitting
 - Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
   jump detection algorithm into it. [#215]
 
-- Fix memory issue with uneven ramp fitting [#226]
+- Fix memory issue with Cas22 uneven ramp fitting [#226]
 
-- Fix some bugs in the jump detection algorithm [#227]
+- Fix some bugs in the jump detection algorithm within the Cas22 ramp fitting [#227]
 
 - Moving some CI tests from JWST to STCAL. [#228, spacetelescope/jwst#6080]
 
-- Significantly, improve the performance of the uneven ramp fitting algorithm. [#229]
+- Significantly improve the performance of the Cas22 uneven ramp fitting algorithm. [#229]
 
 Changes to API
 --------------
