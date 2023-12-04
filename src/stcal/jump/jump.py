@@ -714,6 +714,7 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
     all_ellipses = []
     first_diffs = np.diff(data, axis=1)
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
+    fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
     nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5,
@@ -755,6 +756,10 @@ def find_faint_extended(indata, gdq, readnoise_2d, nframes, minimum_sigclip_grou
                                                 ncols), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
+            if grp == 12:
+                fits.writeto("masked_ratio.fits", masked_ratio.filled(np.nan), overwrite=True)
+                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
+                fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission,
                                                   cv.RETR_EXTERNAL,

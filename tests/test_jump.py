@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-
+from astropy.io import fits
 from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
     point_inside_ellipse, find_faint_extended, calc_num_slices
 
@@ -292,3 +292,24 @@ def test_calc_num_slices():
     assert (calc_num_slices(n_rows, '3/4', max_available_cores) == 1)
     n_rows = 9
     assert (calc_num_slices(n_rows, '21', max_available_cores) == 9)
+
+def test_shower_slowmode():
+    data = fits.getdata("shower_input_data.fits")
+    gdq = fits.getdata("shower_input_gdq.fits")
+    nint = data.shape[0]
+    ngrps = data.shape[1]
+    ncols = data.shape[2]
+    nrows = data.shape[3]
+    gain = 5
+    readnoise = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_readnoise_0086.fits")
+#    readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
+    rng = np.random.default_rng(12345)
+#    data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
+#    data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
+    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
+                                           snr_threshold=1.3,
+                                           min_shower_area=40, inner=1,
+                                           outer=2, sat_flag=2, jump_flag=4,
+                                           ellipse_expand=1.1, num_grps_masked=3)
+    print("number of showers", num_showers)
+    fits.writeto("outgdq.fits", gdq, overwrite=True)
