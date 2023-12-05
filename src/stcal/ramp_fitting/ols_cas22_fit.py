@@ -29,8 +29,8 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
-from astropy import units as u
 import numpy as np
+from astropy import units as u
 
 from . import ols_cas22
 
@@ -78,22 +78,29 @@ def fit_ramps_casertano(
 
     Returns
     -------
-    par : np.ndarray[..., 2] (float)
-        the best fit pedestal and slope for each pixel
-    var : np.ndarray[..., 3, 2, 2] (float)
-        the covariance matrix of par, for each of three noise terms:
-        the read noise, Poisson source noise, and total noise.
+    RampFitOutputs
+        parameters: np.ndarray[n_pixel, 2]
+            the slope and intercept for each pixel's ramp fit. see Parameter enum
+            for indexing indicating slope/intercept in the second dimension.
+        variances: np.ndarray[n_pixel, 3]
+            the read, poisson, and total variances for each pixel's ramp fit.
+            see Variance enum for indexing indicating read/poisson/total in the
+            second dimension.
+        dq: np.ndarray[n_resultants, n_pixel]
+            the dq array, with additional flags set for jumps detected by the
+            jump detection algorithm.
+        fits: always None, this is a hold over which can contain the diagnostic
+            fit information from the jump detection algorithm.
     """
-
     # Trickery to avoid having to specify the defaults for the threshold
     #   parameters outside the cython code.
     kwargs = {}
     if threshold_intercept is not None:
-        kwargs['intercept'] = threshold_intercept
+        kwargs["intercept"] = threshold_intercept
     if threshold_constant is not None:
-        kwargs['constant'] = threshold_constant
+        kwargs["constant"] = threshold_constant
 
-    resultants_unit = getattr(resultants, 'unit', None)
+    resultants_unit = getattr(resultants, "unit", None)
     if resultants_unit is not None:
         resultants = resultants.to(u.electron).value
 
@@ -107,8 +114,8 @@ def fit_ramps_casertano(
     orig_shape = resultants.shape
     if len(resultants.shape) == 1:
         # single ramp.
-        resultants = resultants.reshape(orig_shape + (1,))
-        dq = dq.reshape(orig_shape + (1,))
+        resultants = resultants.reshape((*orig_shape, 1))
+        dq = dq.reshape((*orig_shape, 1))
         read_noise = read_noise.reshape(orig_shape[1:] + (1,))
 
     output = ols_cas22.fit_ramps(
@@ -118,7 +125,8 @@ def fit_ramps_casertano(
         read_time,
         read_pattern,
         use_jump,
-        **kwargs)
+        **kwargs,
+    )
 
     parameters = output.parameters.reshape(orig_shape[1:] + (2,))
     variances = output.variances.reshape(orig_shape[1:] + (3,))
@@ -131,4 +139,5 @@ def fit_ramps_casertano(
     if resultants_unit is not None:
         parameters = parameters * resultants_unit
 
-    return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
+    # return ols_cas22.RampFitOutputs(output.fits, parameters, variances, dq)
+    return ols_cas22.RampFitOutputs(parameters, variances, dq)

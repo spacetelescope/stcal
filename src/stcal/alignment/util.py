@@ -1,23 +1,21 @@
-"""
-Common utility functions for datamodel alignment.
+"""Common utility functions for datamodel alignment."""
+from __future__ import annotations
 
-"""
-import logging
 import functools
-from typing import List, Protocol, Union
+import logging
+from typing import TYPE_CHECKING, Protocol
 
-import numpy as np
-
-from astropy.coordinates import SkyCoord
-from astropy.utils.misc import isiterable
-from astropy import units as u
-from astropy.modeling import models as astmodels
-from astropy import wcs as fitswcs
-
-from asdf import AsdfFile
 import gwcs
+import numpy as np
+from astropy import units as u
+from astropy import wcs as fitswcs
+from astropy.coordinates import SkyCoord
+from astropy.modeling import models as astmodels
+from astropy.utils.misc import isiterable
 from gwcs.wcstools import wcs_from_fiducial
 
+if TYPE_CHECKING:
+    from asdf import AsdfFile
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -66,20 +64,18 @@ def _calculate_fiducial_from_spatial_footprint(
     y_mid = (np.max(y) + np.min(y)) / 2.0
     z_mid = (np.max(z) + np.min(z)) / 2.0
     lon_fiducial = np.rad2deg(np.arctan2(y_mid, x_mid)) % 360.0
-    lat_fiducial = np.rad2deg(
-        np.arctan2(z_mid, np.sqrt(x_mid**2 + y_mid**2))
-    )
+    lat_fiducial = np.rad2deg(np.arctan2(z_mid, np.sqrt(x_mid**2 + y_mid**2)))
     return lon_fiducial, lat_fiducial
 
 
 def _generate_tranform(
     refmodel: SupportsDataWithWcs,
     ref_fiducial: np.array,
-    pscale_ratio: int = None,
-    pscale: float = None,
-    rotation: float = None,
-    transform=None,
-):
+    pscale_ratio: int | None = None,
+    pscale: float | None = None,
+    rotation: float | None = None,
+    transform: astmodels.Model | None = None,
+) -> astmodels.Model:
     """
     Creates a transform from pixel to world coordinates based on a
     reference datamodel's WCS.
@@ -120,7 +116,7 @@ def _generate_tranform(
         An :py:mod:`~astropy` model containing the transform between frames.
     """
     if transform is None:
-        sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()
+        sky_axes = refmodel.meta.wcs._get_axes_indices().tolist()  # noqa: SLF001
         v3yangle = np.deg2rad(refmodel.meta.wcsinfo.v3yangle)
         vparity = refmodel.meta.wcsinfo.vparity
         if rotation is None:
@@ -130,23 +126,14 @@ def _generate_tranform(
 
         # reshape the rotation matrix returned from calc_rotation_matrix
         # into the correct shape for constructing the transformation
-        pc = np.reshape(
-            calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2)
-        )
+        pc = np.reshape(calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2))
 
-        rotation = astmodels.AffineTransformation2D(
-            pc, name="pc_rotation_matrix"
-        )
+        rotation = astmodels.AffineTransformation2D(pc, name="pc_rotation_matrix")
         transform = [rotation]
         if sky_axes:
             if not pscale:
-                pscale = compute_scale(
-                    refmodel.meta.wcs, ref_fiducial, pscale_ratio=pscale_ratio
-                )
-            transform.append(
-                astmodels.Scale(pscale, name="cdelt1")
-                & astmodels.Scale(pscale, name="cdelt2")
-            )
+                pscale = compute_scale(refmodel.meta.wcs, ref_fiducial, pscale_ratio=pscale_ratio)
+            transform.append(astmodels.Scale(pscale, name="cdelt1") & astmodels.Scale(pscale, name="cdelt2"))
 
         if transform:
             transform = functools.reduce(lambda x, y: x | y, transform)
@@ -156,7 +143,7 @@ def _generate_tranform(
 
 def _get_axis_min_and_bounding_box(ref_model, wcs_list, ref_wcs):
     """
-    Calculates axis mininum values and bounding box.
+    Calculates axis minimum values and bounding box.
 
     Parameters
     ----------
@@ -179,9 +166,7 @@ def _get_axis_min_and_bounding_box(ref_model, wcs_list, ref_wcs):
             ((x0_lower, x0_upper), (x1_lower, x1_upper)).
     """
     footprints = [w.footprint().T for w in wcs_list]
-    domain_bounds = np.hstack(
-        [ref_wcs.backward_transform(*f) for f in footprints]
-    )
+    domain_bounds = np.hstack([ref_wcs.backward_transform(*f) for f in footprints])
     axis_min_values = np.min(domain_bounds, axis=1)
     domain_bounds = (domain_bounds.T - axis_min_values).T
 
@@ -266,26 +251,17 @@ def _calculate_offsets(fiducial, wcs, axis_min_values, crpix):
     find the pixel coordinates of the fiducial point and then correct it by the minimum
     pixel value for each axis.
     """
-    if (
-        crpix is None
-        and fiducial is not None
-        and wcs is not None
-        and axis_min_values is not None
-    ):
+    if crpix is None and fiducial is not None and wcs is not None and axis_min_values is not None:
         offset1, offset2 = wcs.backward_transform(*fiducial)
         offset1 -= axis_min_values[0]
         offset2 -= axis_min_values[1]
     else:
         offset1, offset2 = crpix
 
-    return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(
-        -offset2, name="crpix2"
-    )
+    return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(-offset2, name="crpix2")
 
 
-def _calculate_new_wcs(
-    ref_model, shape, wcs_list, fiducial, crpix=None, transform=None
-):
+def _calculate_new_wcs(ref_model, shape, wcs_list, fiducial, crpix=None, transform=None):
     """
     Calculates a new WCS object based on the combined WCS objects provided.
 
@@ -309,7 +285,7 @@ def _calculate_new_wcs(
         The coordinates of the reference pixel.
 
     transform : ~astropy.modeling.Model
-        An optional tranform to be prepended to the transform constructed by the
+        An optional transform to be prepended to the transform constructed by the
         fiducial point. The number of outputs of this transform must equal the number
         of axes in the coordinate frame.
 
@@ -325,9 +301,7 @@ def _calculate_new_wcs(
         transform=transform,
         input_frame=ref_model.meta.wcs.input_frame,
     )
-    axis_min_values, output_bounding_box = _get_axis_min_and_bounding_box(
-        ref_model, wcs_list, wcs_new
-    )
+    axis_min_values, output_bounding_box = _get_axis_min_and_bounding_box(ref_model, wcs_list, wcs_new)
     offsets = _calculate_offsets(
         fiducial=fiducial,
         wcs=wcs_new,
@@ -339,9 +313,7 @@ def _calculate_new_wcs(
     wcs_new.bounding_box = output_bounding_box
 
     if shape is None:
-        shape = [
-            int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]
-        ]
+        shape = [int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]]
 
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
@@ -371,21 +343,21 @@ def _validate_wcs_list(wcs_list):
         instance of WCS.
     """
     if not isiterable(wcs_list):
-        raise ValueError(
-            "Expected 'wcs_list' to be an iterable of WCS objects."
-        )
-    elif len(wcs_list):
+        msg = "Expected 'wcs_list' to be an iterable of WCS objects."
+        raise ValueError(msg)
+
+    if len(wcs_list):
         if not all(isinstance(w, gwcs.WCS) for w in wcs_list):
-            raise TypeError(
-                "All items in 'wcs_list' are to be instances of gwcs.wcs.WCS."
-            )
+            msg = "All items in 'wcs_list' are to be instances of gwcs.wcs.WCS."
+            raise TypeError(msg)
     else:
-        raise TypeError("'wcs_list' should not be empty.")
+        msg = "'wcs_list' should not be empty."
+        raise TypeError(msg)
 
     return True
 
 
-def wcsinfo_from_model(input_model: SupportsDataWithWcs):
+def wcsinfo_from_model(input_model: SupportsDataWithWcs) -> dict[str, np.ndarray | str | bool]:
     """
     Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
 
@@ -412,7 +384,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
     for key in ["CRPIX", "CRVAL", "CDELT", "CTYPE", "CUNIT"]:
         val = []
         for ax in range(1, wcsaxes + 1):
-            k = (key + "{0}".format(ax)).lower()
+            k = (key + f"{ax}").lower()
             v = getattr(input_model.meta.wcsinfo, k, defaults[key])
             val.append(v)
         wcsinfo[key] = np.array(val)
@@ -420,9 +392,7 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
     pc = np.zeros((wcsaxes, wcsaxes), dtype=np.float32)
     for i in range(1, wcsaxes + 1):
         for j in range(1, wcsaxes + 1):
-            pc[i - 1, j - 1] = getattr(
-                input_model.meta.wcsinfo, "pc{0}_{1}".format(i, j), 1
-            )
+            pc[i - 1, j - 1] = getattr(input_model.meta.wcsinfo, f"pc{i}_{j}", 1)
     wcsinfo["PC"] = pc
     wcsinfo["RADESYS"] = input_model.meta.coordinates.reference_frame
     wcsinfo["has_cd"] = False
@@ -431,9 +401,9 @@ def wcsinfo_from_model(input_model: SupportsDataWithWcs):
 
 def compute_scale(
     wcs: gwcs.WCS,
-    fiducial: Union[tuple, np.ndarray],
-    disp_axis: int = None,
-    pscale_ratio: float = None,
+    fiducial: tuple | np.ndarray,
+    disp_axis: int | None = None,
+    pscale_ratio: float | None = None,
 ) -> float:
     """Compute the scale at the fiducial point on the detector..
 
@@ -462,7 +432,8 @@ def compute_scale(
     spectral = "SPECTRAL" in wcs.output_frame.axes_type
 
     if spectral and disp_axis is None:
-        raise ValueError("If input WCS is spectral, a disp_axis must be given")
+        msg = "If input WCS is spectral, a disp_axis must be given"
+        raise ValueError(msg)
 
     crpix = np.array(wcs.invert(*fiducial))
 
@@ -470,9 +441,7 @@ def compute_scale(
     spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
     delta[spatial_idx[0]] = 1
 
-    crpix_with_offsets = np.vstack(
-        (crpix, crpix + delta, crpix + np.roll(delta, 1))
-    ).T
+    crpix_with_offsets = np.vstack((crpix, crpix + delta, crpix + np.roll(delta, 1))).T
     crval_with_offsets = wcs(*crpix_with_offsets, with_bounding_box=False)
 
     coords = SkyCoord(
@@ -495,7 +464,7 @@ def compute_scale(
     return np.sqrt(xscale * yscale)
 
 
-def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
+def compute_fiducial(wcslist: list, bounding_box: tuple | list | None = None) -> np.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
@@ -524,30 +493,23 @@ def compute_fiducial(wcslist: list, bounding_box=None) -> np.ndarray:
     -----
     This function assumes all WCSs have the same output coordinate frame.
     """
-
     axes_types = wcslist[0].output_frame.axes_type
     spatial_axes = np.array(axes_types) == "SPATIAL"
     spectral_axes = np.array(axes_types) == "SPECTRAL"
-    footprints = np.hstack(
-        [w.footprint(bounding_box=bounding_box).T for w in wcslist]
-    )
+    footprints = np.hstack([w.footprint(bounding_box=bounding_box).T for w in wcslist])
     spatial_footprint = footprints[spatial_axes]
     spectral_footprint = footprints[spectral_axes]
 
     fiducial = np.empty(len(axes_types))
     if spatial_footprint.any():
-        fiducial[spatial_axes] = _calculate_fiducial_from_spatial_footprint(
-            spatial_footprint
-        )
+        fiducial[spatial_axes] = _calculate_fiducial_from_spatial_footprint(spatial_footprint)
     if spectral_footprint.any():
         fiducial[spectral_axes] = spectral_footprint.min()
     return fiducial
 
 
-def calc_rotation_matrix(
-    roll_ref: float, v3i_yangle: float, vparity: int = 1
-) -> List[float]:
-    """Calculate the rotation matrix.
+def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -> list[float]:
+    r"""Calculate the rotation matrix.
 
     Parameters
     ----------
@@ -577,7 +539,8 @@ def calc_rotation_matrix(
             \\end{bmatrix}
     """
     if vparity not in (1, -1):
-        raise ValueError(f"vparity should be 1 or -1. Input was: {vparity}")
+        msg = f"vparity should be 1 or -1. Input was: {vparity}"
+        raise ValueError(msg)
 
     rel_angle = roll_ref - (vparity * v3i_yangle)
 
@@ -672,14 +635,11 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-
     wcs_list = [im.meta.wcs for im in dmodels]
 
     _validate_wcs_list(wcs_list)
 
-    fiducial = _calculate_fiducial(
-        wcs_list=wcs_list, bounding_box=bounding_box, crval=crval
-    )
+    fiducial = _calculate_fiducial(wcs_list=wcs_list, bounding_box=bounding_box, crval=crval)
 
     refmodel = dmodels[0] if refmodel is None else refmodel
 
@@ -688,9 +648,7 @@ def wcs_from_footprints(
         pscale_ratio=pscale_ratio,
         pscale=pscale,
         rotation=rotation,
-        ref_fiducial=np.array(
-            [refmodel.meta.wcsinfo.ra_ref, refmodel.meta.wcsinfo.dec_ref]
-        ),
+        ref_fiducial=np.array([refmodel.meta.wcsinfo.ra_ref, refmodel.meta.wcsinfo.dec_ref]),
         transform=transform,
     )
 
@@ -716,7 +674,6 @@ def update_s_region_imaging(model, center=True):
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
     """
-
     bbox = model.meta.wcs.bounding_box
 
     if bbox is None:
@@ -729,9 +686,7 @@ def update_s_region_imaging(model, center=True):
     ### which means we are interested in each pixel's vertice, not its center.
     ### By using center=True, a difference of 0.5 pixel should be accounted for
     ### when comparing the world coordinates of the bounding box and the footprint.
-    footprint = model.meta.wcs.footprint(
-        bbox, center=center, axis_type="spatial"
-    ).T
+    footprint = model.meta.wcs.footprint(bbox, center=center, axis_type="spatial").T
     # take only imaging footprint
     footprint = footprint[:2, :]
 
@@ -748,6 +703,7 @@ def wcs_bbox_from_shape(shape):
     """Create a bounding box from the shape of the data.
 
     This is appropriate to attach to a wcs object
+
     Parameters
     ----------
     shape : tuple
@@ -776,19 +732,15 @@ def update_s_region_keyword(model, footprint):
     s_region : str
         String containing the S_REGION object.
     """
-    s_region = (
-        "POLYGON ICRS "
-        " {0:.9f} {1:.9f}"
-        " {2:.9f} {3:.9f}"
-        " {4:.9f} {5:.9f}"
-        " {6:.9f} {7:.9f}".format(*footprint.flatten())
+    s_region = "POLYGON ICRS  {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f}".format(
+        *footprint.flatten()
     )
     if "nan" in s_region:
         # do not update s_region if there are NaNs.
         log.info("There are NaNs in s_region, S_REGION not updated.")
     else:
         model.meta.wcsinfo.s_region = s_region
-        log.info(f"Update S_REGION to {model.meta.wcsinfo.s_region}")
+        log.info("Update S_REGION to %s", model.meta.wcsinfo.s_region)
 
 
 def reproject(wcs1, wcs2):
@@ -813,19 +765,18 @@ def reproject(wcs1, wcs2):
 
     def _get_forward_transform_func(wcs1):
         """Get the forward transform function from the input WCS. If the wcs is a
-        fitswcs.WCS object all_pix2world requres three inputs, the x (str, ndarrray),
+        fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
-        )
-        """  # noqa : E501
+        ).
+        """
         if isinstance(wcs1, fitswcs.WCS):
             forward_transform = wcs1.all_pix2world
         elif isinstance(wcs1, gwcs.WCS):
             forward_transform = wcs1.forward_transform
         else:
-            raise TypeError(
-                "Expected input to be astropy.wcs.WCS or gwcs.WCS " "object"
-            )
+            msg = "Expected input to be astropy.wcs.WCS or gwcs.WCS object"
+            raise TypeError(msg)
         return forward_transform
 
     def _get_backward_transform_func(wcs2):
@@ -834,26 +785,23 @@ def reproject(wcs1, wcs2):
         elif isinstance(wcs2, gwcs.WCS):
             backward_transform = wcs2.backward_transform
         else:
-            raise TypeError(
-                "Expected input to be astropy.wcs.WCS or gwcs.WCS " "object"
-            )
+            msg = "Expected input to be astropy.wcs.WCS or gwcs.WCS object"
+            raise TypeError(msg)
         return backward_transform
 
-    def _reproject(
-        x: Union[float, np.ndarray], y: Union[float, np.ndarray]
-    ) -> tuple:
+    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         x : float or np.ndarray
             x-coordinate(s) to be reprojected.
         y : float or np.ndarray
             y-coordinate(s) to be reprojected.
 
-        Returns:
-        --------
+        Returns
+        -------
         tuple
             Tuple of np.ndarrays including reprojected x and y coordinates.
         """
@@ -864,19 +812,15 @@ def reproject(wcs1, wcs2):
         if not isinstance(y, (np.ndarray)):
             y = np.array(y)
         if x.shape != y.shape:
-            raise ValueError("x and y must be the same length")
+            msg = "x and y must be the same length"
+            raise ValueError(msg)
         sky = _get_forward_transform_func(wcs1)(x, y, 0)
 
-        # rearrange into array including flattened x and y vaues
-        flat_sky = []
-        for axis in sky:
-            flat_sky.append(axis.flatten())
-        det = np.array(
-            _get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0)
-        )
-        det_reshaped = []
-        for axis in det:
-            det_reshaped.append(axis.reshape(x.shape))
+        # rearrange into array including flattened x and y values
+        flat_sky = [axis.flatten() for axis in sky]
+        det = np.array(_get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0))
+        det_reshaped = [axis.reshape(x.shape) for axis in det]
+
         return tuple(det_reshaped)
 
     return _reproject
