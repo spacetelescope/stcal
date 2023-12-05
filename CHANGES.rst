@@ -1,13 +1,36 @@
-1.4.5 (unreleased)
+1.5.2 (unreleased)
 ==================
 
+- 
+
+1.5.1 (2023-10-16)
+==================
+
+- re-release to publish source distribution
+
+1.5.0 (2023-11-15)
+==================
+
+Other
+-----
+
 - Added ``alignment`` sub-package. [#179]
+
+- Enable automatic linting and code style checks [#187]
 
 ramp_fitting
 ------------
 
 - Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
   jump detection algorithm into it. [#215]
+
+- Fix memory issue with Cas22 uneven ramp fitting [#226]
+
+- Fix some bugs in the jump detection algorithm within the Cas22 ramp fitting [#227]
+
+- Moving some CI tests from JWST to STCAL. [#228, spacetelescope/jwst#6080]
+
+- Significantly improve the performance of the Cas22 uneven ramp fitting algorithm. [#229]
 
 Changes to API
 --------------
@@ -18,11 +41,6 @@ Bug Fixes
 ---------
 
 -
-
-Other
------
-
-- 
 
 1.4.4 (2023-09-15)
 ==================
@@ -166,7 +184,7 @@ ramp_fitting
 - Correct the "averaging" of the final image slope by properly excluding
   variances as a part of the denominator from integrations with invalid slopes.
   [#167]
-- Removing the usage of ``numpy.where`` where possible for perfomance
+- Removing the usage of ``numpy.where`` where possible for performance
   reasons. [#169]
 
 1.3.7 (2023-04-26)
@@ -210,7 +228,7 @@ Other
 -----
 
 - Remove use of deprecated ``pytest-openfiles`` ``pytest`` plugin. This has been replaced by
-  catching ``ResourceWarning``s. [#159]
+  catching ``ResourceWarning``. [#159]
 
 
 1.3.5 (2023-03-30)
@@ -558,7 +576,7 @@ ramp_fitting
 jump
 ~~~~
 
-- Fix issue in jump detection that occured when there were only 2 usable
+- Fix issue in jump detection that occurred when there were only 2 usable
   differences with no other groups flagged. This PR also added tests and
   fixed some of the logging statements in twopoint difference. [#74]
 

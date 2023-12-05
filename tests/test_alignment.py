@@ -1,25 +1,23 @@
+import gwcs
 import numpy as np
-
-from astropy.modeling import models
+import pytest
 from astropy import coordinates as coord
 from astropy import units as u
-from astropy.io import fits
-
 from astropy import wcs as fitswcs
-import gwcs
+from astropy.io import fits
+from astropy.modeling import models
 from gwcs import coordinate_frames as cf
 
-import pytest
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
+    _validate_wcs_list,
     compute_fiducial,
     compute_scale,
-    wcs_from_footprints,
-    _validate_wcs_list,
+    reproject,
+    update_s_region_imaging,
     update_s_region_keyword,
     wcs_bbox_from_shape,
-    update_s_region_imaging,
-    reproject,
+    wcs_from_footprints,
 )
 
 
@@ -43,12 +41,8 @@ def _create_wcs_object_without_distortion(
     det2sky = shift | scale | tan | celestial_rotation
     det2sky.name = "linear_transform"
 
-    detector_frame = cf.Frame2D(
-        name="detector", axes_names=("x", "y"), unit=(u.pix, u.pix)
-    )
-    sky_frame = cf.CelestialFrame(
-        reference_frame=coord.FK5(), name="fk5", unit=(u.deg, u.deg)
-    )
+    detector_frame = cf.Frame2D(name="detector", axes_names=("x", "y"), unit=(u.pix, u.pix))
+    sky_frame = cf.CelestialFrame(reference_frame=coord.FK5(), name="fk5", unit=(u.deg, u.deg))
 
     pipeline = [(detector_frame, det2sky), (sky_frame, None)]
 
@@ -63,9 +57,7 @@ def _create_wcs_object_without_distortion(
 
 
 def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
-    wcs = _create_wcs_object_without_distortion(
-        fiducial_world=fiducial_world, shape=shape, pscale=pscale
-    )
+    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
     ra_ref, dec_ref = fiducial_world[0], fiducial_world[1]
     return DataModel(
         ra_ref=ra_ref,
@@ -107,9 +99,7 @@ class MetaData:
 
 class DataModel:
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
-        self.meta = MetaData(
-            ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs
-        )
+        self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
 
 def test_compute_fiducial():
@@ -121,9 +111,7 @@ def test_compute_fiducial():
     fiducial_world = (0, 0)  # in deg
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(
-        fiducial_world=fiducial_world, shape=shape, pscale=pscale
-    )
+    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
 
     computed_fiducial = compute_fiducial([wcs])
 
@@ -139,9 +127,7 @@ def test_compute_scale(pscales):
     fiducial_world = (0, 0)  # in deg
     pscale = (pscales[0], pscales[1])  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(
-        fiducial_world=fiducial_world, shape=shape, pscale=pscale
-    )
+    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
     expected_scale = np.sqrt(pscale[0] * pscale[1])
 
     computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world)
@@ -208,7 +194,7 @@ def test_validate_wcs_list():
 
 
 @pytest.mark.parametrize(
-    "wcs_list, expected_error",
+    ("wcs_list", "expected_error"),
     [
         ([], TypeError),
         ([1, 2, 3], TypeError),
@@ -220,10 +206,8 @@ def test_validate_wcs_list():
     ],
 )
 def test_validate_wcs_list_invalid(wcs_list, expected_error):
-    with pytest.raises(Exception) as exec_info:
+    with pytest.raises(expected_error, match=r".*"):
         _validate_wcs_list(wcs_list)
-
-    assert type(exec_info.value) == expected_error
 
 
 def get_fake_wcs():
@@ -265,7 +249,7 @@ def get_fake_wcs():
 
 
 @pytest.mark.parametrize(
-    "x_inp, y_inp, x_expected, y_expected",
+    ("x_inp", "y_inp", "x_expected", "y_expected"),
     [
         (1000, 2000, np.array(2000), np.array(4000)),  # string input test
         ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
@@ -286,9 +270,9 @@ def test_wcs_bbox_from_shape_2d():
 
 
 @pytest.mark.parametrize(
-    "shape, pixmap_expected_shape",
+    ("shape", "pixmap_expected_shape"),
     [
-        (None,(4, 4, 2)),
+        (None, (4, 4, 2)),
         ((100, 200), (100, 200, 2)),
     ],
 )
@@ -296,11 +280,11 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
     # TODO: add test for gwcs.WCS
     wcs1, wcs2 = get_fake_wcs()
     pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
-    assert pixmap.shape==pixmap_expected_shape
+    assert pixmap.shape == pixmap_expected_shape
 
 
 @pytest.mark.parametrize(
-    "model, footprint, expected_s_region, expected_log_info",
+    ("model", "footprint", "expected_s_region", "expected_log_info"),
     [
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),
@@ -316,9 +300,7 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
         ),
     ],
 )
-def test_update_s_region_keyword(
-    model, footprint, expected_s_region, expected_log_info, caplog
-):
+def test_update_s_region_keyword(model, footprint, expected_s_region, expected_log_info, caplog):
     """
     Test that S_REGION keyword is being properly populated with the coordinate values.
     """
@@ -328,7 +310,7 @@ def test_update_s_region_keyword(
 
 
 @pytest.mark.parametrize(
-    "shape, expected_bbox",
+    ("shape", "expected_bbox"),
     [
         ((100, 200), ((-0.5, 199.5), (-0.5, 99.5))),
         ((1, 1), ((-0.5, 0.5), (-0.5, 0.5))),
@@ -344,7 +326,7 @@ def test_wcs_bbox_from_shape(shape, expected_bbox):
 
 
 @pytest.mark.parametrize(
-    "model, bounding_box, data",
+    ("model", "bounding_box", "data"),
     [
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),
@@ -372,10 +354,5 @@ def test_update_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, -0.5),
     ]
     update_s_region_imaging(model, center=False)
-    updated_s_region_coords = [
-        float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]
-    ]
-    assert all(
-        np.isclose(x, y)
-        for x, y in zip(updated_s_region_coords, expected_s_region_coords)
-    )
+    updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
+    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords, expected_s_region_coords))
