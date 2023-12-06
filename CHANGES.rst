@@ -269,6 +269,9 @@ Other
 1.3.4 (2023-02-13)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -480,6 +483,9 @@ general
 0.7.3 (2022-05-20)
 ==================
 
+Bug Fixes
+---------
+
 jump
 ~~~~
 
@@ -493,6 +499,9 @@ ramp_fitting
 0.7.2 (2022-05-19)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -503,12 +512,18 @@ ramp_fitting
 0.7.1 (2022-05-16)
 ==================
 
+Bug Fixes
+---------
+
 jump
 ~~~~
 - Enable multiprocessing for jump detection, which is controlled by the 'max_cores' parameter. [#87]
 
 0.7.0 (2022-05-13)
 ==================
+
+Bug Fixes
+---------
 
 linearity
 ~~~~~~~~~
@@ -530,6 +545,9 @@ saturation
 0.6.4 (2022-05-02)
 ==================
 
+Bug Fixes
+---------
+
 saturation
 ~~~~~~~~~~
 
@@ -538,6 +556,9 @@ saturation
 0.6.3 (2022-04-27)
 ==================
 
+Bug Fixes
+---------
+
 - Pin astropy min version to 5.0.4. [#82]
 
 - Fix for jumps in first good group after dropping groups [#84]
@@ -545,6 +566,9 @@ saturation
 
 0.6.2 (22-03-29)
 ================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -559,6 +583,9 @@ ramp_fitting
 0.6.1 (22-03-04)
 ================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -567,6 +594,9 @@ ramp_fitting
 
 0.6.0 (22-01-14)
 ================
+
+Bug Fixes
+---------
 
 ramp_fitting
 ~~~~~~~~~~~~
@@ -583,6 +613,9 @@ jump
 0.5.1 (2022-01-07)
 ==================
 
+Bug Fixes
+---------
+
 jump
 ~~~~
 
@@ -593,6 +626,9 @@ jump
 0.5.0 (2021-12-28)
 ==================
 
+Bug Fixes
+---------
+
 dark_current
 ~~~~~~~~~~~~
 
@@ -600,6 +636,9 @@ dark_current
 
 0.4.3 (2021-12-27)
 ==================
+
+Bug Fixes
+---------
 
 linearity
 ~~~~~~~~~
@@ -618,6 +657,9 @@ ramp_fitting
 0.4.2 (2021-10-28)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -629,6 +671,9 @@ ramp_fitting
 0.4.1 (2021-10-14)
 ==================
 
+Bug Fixes
+---------
+
 jump_detection
 ~~~~~~~~~~~~~~
 
@@ -637,6 +682,9 @@ jump_detection
 
 0.4.0 (2021-10-13)
 ==================
+
+Bug Fixes
+---------
 
 jump_detection
 ~~~~~~~~~~~~~~
@@ -656,6 +704,9 @@ ramp_fitting
 0.3.0 (2021-09-28)
 ==================
 
+Bug Fixes
+---------
+
 saturation
 ~~~~~~~~~~
 
@@ -664,6 +715,9 @@ saturation
 
 0.2.5 (2021-08-27)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -678,11 +732,17 @@ ramp_fitting
 0.2.4 (2021-08-26)
 ==================
 
+Bug Fixes
+---------
+
 Workaround for setuptools_scm issues with recent versions of pip. [#45]
 
 
 0.2.3 (2021-08-06)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -696,6 +756,9 @@ ramp_fitting
 
 0.2.2 (2021-07-19)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -712,6 +775,9 @@ ramp_fitting
 0.2.1 (2021-05-20)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -720,6 +786,9 @@ ramp_fitting
 
 0.2.0 (2021-05-18)
 ==================
+
+Bug Fixes
+---------
 
 ramp_fitting
 ~~~~~~~~~~~~
