@@ -1,8 +1,8 @@
-name: Weekly cron
+name: test on schedule
 
 on:
   schedule:
-    # Weekly Monday 6AM build
+    # Weekly Monday midnight build
     - cron: "0 0 * * 1"
   workflow_dispatch:
 
@@ -12,9 +12,9 @@ concurrency:
 
 jobs:
   test:
+    if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run scheduled tests')))
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       envs: |
         - macos: py39-xdist
         - macos: py310-xdist
-        - linux: py3-devdeps-xdist

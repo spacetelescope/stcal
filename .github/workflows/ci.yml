@@ -1,4 +1,4 @@
-name: CI
+name: test
 
 on:
   push:
@@ -8,11 +8,10 @@ on:
     tags:
       - "*"
   pull_request:
-    branches:
-      - main
   schedule:
     # Weekly Monday 9AM build
-    - cron: "0 9 * * 1"
+    # * is a special character in YAML so you have to quote this string
+    - cron: '0 9 * * 1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,15 +31,14 @@ jobs:
         - linux: py39-oldestdeps-cov-xdist
         - linux: py39-xdist
         - linux: py310-xdist
-        - linux: py311-xdist
+        - linux: py311-cov-xdist
+          coverage: codecov
         - macos: py311-xdist
-        - linux: py3-cov-xdist
-          coverage: 'codecov'
   test_downstream:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@main
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       setenv: |
-        CRDS_PATH: /tmp/crds_cache
+        CRDS_PATH: /tmp/data/crds_cache
         CRDS_CLIENT_RETRY_COUNT: 3
         CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
       envs: |
