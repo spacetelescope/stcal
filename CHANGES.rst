@@ -3,7 +3,7 @@
 
 - 
 
-1.5.1 (2023-10-16)
+1.5.1 (2023-11-16)
 ==================
 
 - re-release to publish source distribution
