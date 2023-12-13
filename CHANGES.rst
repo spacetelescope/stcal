@@ -1,7 +1,12 @@
-1.5.2 (unreleased)
+1.5.3 (unreleased)
 ==================
 
 - 
+
+1.5.2 (2023-12-13)
+==================
+
+- non-code updates to testing and development infrastructure
 
 1.5.1 (2023-11-16)
 ==================
