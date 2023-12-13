@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+<<<<<<< Updated upstream
 
 from stcal.jump.jump import (
     calc_num_slices,
@@ -9,6 +10,11 @@ from stcal.jump.jump import (
     flag_large_events,
     point_inside_ellipse,
 )
+=======
+from astropy.io import fits
+from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
+    point_inside_ellipse, find_faint_extended, calc_num_slices
+>>>>>>> Stashed changes
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
 
@@ -29,6 +35,18 @@ def setup_cube():
 
     return _cube
 
+def test_slowmode():
+    hdul = fits.open("miri_1264_00_jump.fits")
+    data = hdul["sci"].data
+    gdq = hdul["groupdq"].data
+    readnoise = fits.getdata("jwst_miri_readnoise_0050.fits")
+    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
+                                           snr_threshold=1.3,
+                                           min_shower_area=20, inner=1,
+                                           outer=2, sat_flag=2, jump_flag=4,
+                                           ellipse_expand=1.1, num_grps_masked=3)
+    fits.writeto("outgdq.fits", gdq, overwrite=True)
+    print("number of showers", num_showers)
 
 def test_find_simple_ellipse():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)

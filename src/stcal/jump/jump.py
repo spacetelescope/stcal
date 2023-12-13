@@ -1,11 +1,20 @@
 import logging
 import multiprocessing
 import time
+<<<<<<< Updated upstream
 
 import cv2 as cv
 import numpy as np
 from astropy import stats
 from astropy.convolution import Ring2DKernel, convolve
+=======
+import numpy as np
+import cv2 as cv
+import astropy.stats as stats
+from astropy.io import fits
+from astropy.convolution import Ring2DKernel
+from astropy.convolution import convolve
+>>>>>>> Stashed changes
 
 from . import constants
 from . import twopoint_difference as twopt
@@ -471,7 +480,7 @@ def detect_jumps(
     data /= gain_2d
     err /= gain_2d
     readnoise_2d /= gain_2d
-
+    print("jumpgdq.fits", gdq, overwrite=True)
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
@@ -842,6 +851,7 @@ def find_faint_extended(
     all_ellipses = []
     first_diffs = np.diff(data, axis=1)
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
+    fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(np.nan), overwrite=True)
     nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
@@ -849,16 +859,19 @@ def find_faint_extended(
         # calculate sigma for each pixel
         if nints <= minimum_sigclip_groups:
             median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
+            fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
             sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
             # The difference from the median difference for each group
             e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-
+            fits.writeto("e_jump.fits", e_jump.filled(np.nan), overwrite=True)
+            fits.writeto("ratio.fits", ratio.filled(np.nan), overwrite=True)
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
         for grp in range(1, ngrps):
+            print("starting group ", grp)
             if nints > minimum_sigclip_groups:
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
@@ -876,11 +889,15 @@ def find_faint_extended(
             #  mask pix. that are already flagged as sat.
             masked_ratio[saty, satx] = np.nan
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
+            if grp == 2:
+                fits.writeto("masked_ratio.fits", masked_ratio.filled(np.nan), overwrite=True)
+                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
+
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size
@@ -888,7 +905,13 @@ def find_faint_extended(
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
+<<<<<<< Updated upstream
 
+=======
+            if grp == 2:
+                fits.writeto("extended_emmission.fits", extended_emission, overwrite=True)
+                print("number of ellises",len(ellipses))
+>>>>>>> Stashed changes
             expand_by_ratio = True
             expansion = 1.0
             plane = gdq[intg, grp, :, :]
@@ -942,6 +965,7 @@ def find_faint_extended(
             intg = showers[0]
             grp = showers[1]
             ellipses = showers[2]
+<<<<<<< Updated upstream
             gdq, num = extend_ellipses(
                 gdq,
                 intg,
@@ -954,6 +978,16 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius,
             )
+=======
+            gdq, num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag,
+                                       jump_flag, expansion=ellipse_expand,
+                                       expand_by_ratio=True,
+                                       num_grps_masked=num_grps_masked,
+                                       max_extended_radius=max_extended_radius)
+            if grp == 10:
+                fits.writeto("gdq10.fits", gdq, overwrite=True)
+    fits.writeto("gdqall.fits", gdq, overwrite=True)
+>>>>>>> Stashed changes
     return gdq, len(all_ellipses)
 
 
