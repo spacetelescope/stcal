@@ -209,23 +209,19 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                         gdq[integ, grp, jumpy, jumpx] = 0
             warnings.resetwarnings()
         else:
-            for integ in range(nints):
-
                 # get data, gdq for this integration
-                dat = dataa[integ]
-                gdq_integ = gdq[integ]
 
                 # set 'saturated' or 'do not use' pixels to nan in data
-                dat[np.where(np.bitwise_and(gdq_integ, sat_flag))] = np.nan
-                dat[np.where(np.bitwise_and(gdq_integ, dnu_flag))] = np.nan
+                dataa[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
+                dataa[np.where(np.bitwise_and(gdq, dnu_flag))] = np.nan
 
                 # calculate the differences between adjacent groups (first diffs)
                 # use mask on data, so the results will have sat/donotuse groups masked
-                first_diffs = np.diff(dat, axis=0)
+                first_diffs = np.diff(dataa, axis=1)
 
                 # calc. the median of first_diffs for each pixel along the group axis
-                median_diffs = calc_med_first_diffs(first_diffs)
-
+#                median_diffs = calc_med_first_diffs(first_diffs)
+                median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
                 # calculate sigma for each pixel
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
                 # reset sigma so pxels with 0 readnoise are not flagged as jumps
@@ -234,16 +230,21 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 # compute 'ratio' for each group. this is the value that will be
                 # compared to 'threshold' to classify jumps. subtract the median of
                 # first_diffs from first_diffs, take the abs. value and divide by sigma.
-                e_jump = first_diffs - median_diffs[np.newaxis, :, :]
-                ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
+                e_jump = first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]
+
+                ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
 
                 # create a 2d array containing the value of the largest 'ratio' for each group
                 warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
                 max_ratio = np.nanmax(ratio, axis=0)
                 warnings.resetwarnings()
+
+                all_crs_row, all_crs_col = np.where(ratio > normal_rej_thresh)
+                num_unusable_groups = np.sum(np.isnan(first_diffs), axis=(0, 1))
+                if ndiffs - num_unusable_groups < 4:
                 # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                 # there are different threshold for 4+, 3, and 2 usable groups
-                num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
+
                 row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
                                                          max_ratio > normal_rej_thresh))
                 row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
@@ -255,7 +256,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
                 all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
 
-                # iterate over all groups of the pix w/ an inital CR to look for subsequent CRs
+                # iterate over all groups of the pix w/ an initial CR to look for subsequent CRs
                 # flag and clip the first CR found. recompute median/sigma/ratio
                 # and repeat the above steps of comparing the max 'ratio' for each pixel
                 # to the threshold to determine if another CR can be flagged and clipped.
