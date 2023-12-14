@@ -32,7 +32,7 @@ def setup_cube():
 
 def test_slowmode():
     hdul = fits.open("miri_1264_00_jump.fits")
-    data = hdul["sci"].data
+    data = hdul["sci"].data * 3.9
     gdq = hdul["groupdq"].data
     readnoise = fits.getdata("jwst_miri_readnoise_0050.fits") * 3.9
     gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
