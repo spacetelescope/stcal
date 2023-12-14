@@ -635,7 +635,8 @@ def extend_ellipses(
     # For a given DQ plane it will use the list of ellipses to create
     #  expanded ellipses of pixels with
     # the jump flag set.
-    plane = gdq_cube[intg, grp, :, :]
+    out_gdq_cube = gdq_cube.copy()
+    plane = gdq_cube[intg, grp, :, :].copy()
     ncols = plane.shape[1]
     nrows = plane.shape[0]
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
@@ -681,8 +682,8 @@ def extend_ellipses(
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
             saty, satx = np.where(sat_pix == sat_flag)
             jump_ellipse[saty, satx] = 0
-            gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
-    return gdq_cube, num_ellipses
+            out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
+    return out_gdq_cube, num_ellipses
 
 
 def find_circles(dqplane, bitmask, min_area):
