@@ -867,7 +867,9 @@ def find_faint_extended(
         ngrps = data.shape[1]
         for grp in range(1, ngrps):
             print("starting group ", grp)
+            print("snr_threshold 1", snr_threshold)
             if nints > minimum_sigclip_groups:
+                print("inside sigclipped groups")
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
                 # The difference from the median difference for each group
