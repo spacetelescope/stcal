@@ -32,13 +32,14 @@ def setup_cube():
 
 def test_slowmode():
     hdul = fits.open("miri_1264_00_jump.fits")
-    data = hdul["sci"].data * 3.9
+    gain = fits.getdata("jwst_miri_gain_0026.fits")
+    data = hdul["sci"].data * gain
     gdq = hdul["groupdq"].data
-    readnoise = fits.getdata("jwst_miri_readnoise_0050.fits") * 3.9
+    readnoise = fits.getdata("jwst_miri_readnoise_0050.fits") * gain
     gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
                                            snr_threshold=1.3,
-                                           min_shower_area=20, inner=1,
-                                           outer=2, sat_flag=2, jump_flag=4,
+                                           min_shower_area=90, inner=1,
+                                           outer=2.6, sat_flag=2, jump_flag=4,
                                            ellipse_expand=1.1, num_grps_masked=3)
     fits.writeto("outgdq.fits", gdq, overwrite=True)
     print("total number of showers", num_showers)

@@ -838,10 +838,11 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
+    fits.writeto("gdqin.fits", gdq, overwrite=True)
     read_noise_2d_sqr = readnoise_2d**2
-    print("median readnoise sqr", np.nanmedian(read_noise_2d_sqr))
+    print("median readnoise sqr in e-", np.nanmedian(read_noise_2d_sqr))
     data = indata.copy()
-    print("median readnoise data", np.nanmedian(data))
+    print("median data in e=", np.nanmedian(data))
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
     data[gdq == jump_flag] = np.nan
@@ -869,9 +870,8 @@ def find_faint_extended(
         ngrps = data.shape[1]
         for grp in range(1, ngrps):
             print("starting group ", grp)
-            print("snr_threshold 1", snr_threshold)
             if nints > minimum_sigclip_groups:
-                print("inside sigclipped groups")
+                print("inside sig clipped groups")
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
                 # The difference from the median difference for each group
