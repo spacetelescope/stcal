@@ -889,6 +889,7 @@ def find_faint_extended(
                 fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
+            print("snr_threshold", snr_threshold)
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
@@ -902,7 +903,7 @@ def find_faint_extended(
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
             if grp == 2:
                 fits.writeto("extended_emmission.fits", extended_emission, overwrite=True)
-                print("number of ellises",len(ellipses))
+            print("number of ellipses", len(ellipses))
             expand_by_ratio = True
             expansion = 1.0
             plane = gdq[intg, grp, :, :]
