@@ -463,6 +463,7 @@ def detect_jumps(
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
             )
+            print("after find showers multiproc")
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     elapsed = time.time() - start
@@ -473,6 +474,8 @@ def detect_jumps(
     data /= gain_2d
     err /= gain_2d
     readnoise_2d /= gain_2d
+    print("end of jump.py")
+    fits.writeto("finalgdq.fits", gdq, overwrite=True)
      # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
@@ -949,10 +952,12 @@ def find_faint_extended(
         # This is deferred until all showers are detected. because the showers
         # can flag future groups and would confuse the detection algorithm if
         # we worked on groups that already had some flagged showers.
+        total_showers = 0
         for showers in all_ellipses:
             intg = showers[0]
             grp = showers[1]
             ellipses = showers[2]
+            total_showers += len(ellipses)
             gdq, num = extend_ellipses(
                 gdq,
                 intg,
@@ -968,7 +973,7 @@ def find_faint_extended(
             if grp == 10:
                 fits.writeto("gdq10.fits", gdq, overwrite=True)
     fits.writeto("gdqall.fits", gdq, overwrite=True)
-    return gdq, len(all_ellipses)
+    return gdq, total_showers
 
 
 def calc_num_slices(n_rows, max_cores, max_available):

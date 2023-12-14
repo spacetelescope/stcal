@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-<<<<<<< Updated upstream
 
 from stcal.jump.jump import (
     calc_num_slices,
@@ -10,11 +9,7 @@ from stcal.jump.jump import (
     flag_large_events,
     point_inside_ellipse,
 )
-=======
 from astropy.io import fits
-from stcal.jump.jump import flag_large_events, find_ellipses, extend_saturation, \
-    point_inside_ellipse, find_faint_extended, calc_num_slices
->>>>>>> Stashed changes
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
 
