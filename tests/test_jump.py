@@ -34,7 +34,7 @@ def test_slowmode():
     hdul = fits.open("miri_1264_00_jump.fits")
     data = hdul["sci"].data
     gdq = hdul["groupdq"].data
-    readnoise = fits.getdata("jwst_miri_readnoise_0050.fits")
+    readnoise = fits.getdata("jwst_miri_readnoise_0050.fits") * 3.9
     gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
                                            snr_threshold=1.3,
                                            min_shower_area=20, inner=1,

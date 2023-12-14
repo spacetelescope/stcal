@@ -838,7 +838,7 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
-    read_noise_2 = readnoise_2d**2
+    read_noise_2 = readnoise_2d
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
