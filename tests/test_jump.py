@@ -41,7 +41,7 @@ def test_slowmode():
                                            outer=2, sat_flag=2, jump_flag=4,
                                            ellipse_expand=1.1, num_grps_masked=3)
     fits.writeto("outgdq.fits", gdq, overwrite=True)
-    print("number of showers", num_showers)
+    print("total number of showers", num_showers)
 
 def test_find_simple_ellipse():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)

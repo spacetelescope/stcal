@@ -903,7 +903,7 @@ def find_faint_extended(
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
             if grp == 2:
                 fits.writeto("extended_emmission.fits", extended_emission, overwrite=True)
-            print("number of ellipses", len(ellipses))
+            print("number of ellipses in grp", len(ellipses))
             expand_by_ratio = True
             expansion = 1.0
             plane = gdq[intg, grp, :, :]
