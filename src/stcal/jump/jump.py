@@ -473,8 +473,7 @@ def detect_jumps(
     data /= gain_2d
     err /= gain_2d
     readnoise_2d /= gain_2d
-    print("jumpgdq.fits", gdq, overwrite=True)
-    # Return the updated data quality arrays
+     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
 
