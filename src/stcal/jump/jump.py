@@ -1,20 +1,13 @@
 import logging
 import multiprocessing
 import time
-<<<<<<< Updated upstream
-
-import cv2 as cv
-import numpy as np
-from astropy import stats
-from astropy.convolution import Ring2DKernel, convolve
-=======
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
 from astropy.io import fits
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
->>>>>>> Stashed changes
+
 
 from . import constants
 from . import twopoint_difference as twopt
@@ -905,13 +898,9 @@ def find_faint_extended(
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
-<<<<<<< Updated upstream
-
-=======
             if grp == 2:
                 fits.writeto("extended_emmission.fits", extended_emission, overwrite=True)
                 print("number of ellises",len(ellipses))
->>>>>>> Stashed changes
             expand_by_ratio = True
             expansion = 1.0
             plane = gdq[intg, grp, :, :]
@@ -965,7 +954,6 @@ def find_faint_extended(
             intg = showers[0]
             grp = showers[1]
             ellipses = showers[2]
-<<<<<<< Updated upstream
             gdq, num = extend_ellipses(
                 gdq,
                 intg,
@@ -978,16 +966,9 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius,
             )
-=======
-            gdq, num = extend_ellipses(gdq, intg, grp, ellipses, sat_flag,
-                                       jump_flag, expansion=ellipse_expand,
-                                       expand_by_ratio=True,
-                                       num_grps_masked=num_grps_masked,
-                                       max_extended_radius=max_extended_radius)
             if grp == 10:
                 fits.writeto("gdq10.fits", gdq, overwrite=True)
     fits.writeto("gdqall.fits", gdq, overwrite=True)
->>>>>>> Stashed changes
     return gdq, len(all_ellipses)
 
 
