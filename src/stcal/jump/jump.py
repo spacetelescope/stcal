@@ -641,7 +641,7 @@ def extend_ellipses(
     nrows = plane.shape[0]
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
- #   print("num ellipses", num_ellipses)
+    print("num ellipses", num_ellipses)
     for ellipse in ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
