@@ -677,7 +677,7 @@ def extend_ellipses(
         )
         jump_ellipse = image[:, :, 2]
         ngrps = gdq_cube.shape[1]
-        last_grp = min(grp + 1, min(grp + num_grps_masked, ngrps))
+        last_grp = max(grp + 1, min(grp + num_grps_masked, ngrps))
         print("range", grp, last_grp)
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
