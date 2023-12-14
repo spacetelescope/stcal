@@ -1,7 +1,41 @@
-1.4.5 (unreleased)
+1.5.3 (unreleased)
 ==================
 
+- 
+
+1.5.2 (2023-12-13)
+==================
+
+- non-code updates to testing and development infrastructure
+
+1.5.1 (2023-11-16)
+==================
+
+- re-release to publish source distribution
+
+1.5.0 (2023-11-15)
+==================
+
+Other
+-----
+
 - Added ``alignment`` sub-package. [#179]
+
+- Enable automatic linting and code style checks [#187]
+
+ramp_fitting
+------------
+
+- Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
+  jump detection algorithm into it. [#215]
+
+- Fix memory issue with Cas22 uneven ramp fitting [#226]
+
+- Fix some bugs in the jump detection algorithm within the Cas22 ramp fitting [#227]
+
+- Moving some CI tests from JWST to STCAL. [#228, spacetelescope/jwst#6080]
+
+- Significantly improve the performance of the Cas22 uneven ramp fitting algorithm. [#229]
 
 Changes to API
 --------------
@@ -12,11 +46,6 @@ Bug Fixes
 ---------
 
 -
-
-Other
------
-
-- 
 
 1.4.4 (2023-09-15)
 ==================
@@ -160,7 +189,7 @@ ramp_fitting
 - Correct the "averaging" of the final image slope by properly excluding
   variances as a part of the denominator from integrations with invalid slopes.
   [#167]
-- Removing the usage of ``numpy.where`` where possible for perfomance
+- Removing the usage of ``numpy.where`` where possible for performance
   reasons. [#169]
 
 1.3.7 (2023-04-26)
@@ -204,7 +233,7 @@ Other
 -----
 
 - Remove use of deprecated ``pytest-openfiles`` ``pytest`` plugin. This has been replaced by
-  catching ``ResourceWarning``s. [#159]
+  catching ``ResourceWarning``. [#159]
 
 
 1.3.5 (2023-03-30)
@@ -244,6 +273,9 @@ Other
 
 1.3.4 (2023-02-13)
 ==================
+
+Bug Fixes
+---------
 
 ramp_fitting
 ~~~~~~~~~~~~
@@ -456,6 +488,9 @@ general
 0.7.3 (2022-05-20)
 ==================
 
+Bug Fixes
+---------
+
 jump
 ~~~~
 
@@ -469,6 +504,9 @@ ramp_fitting
 0.7.2 (2022-05-19)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -479,12 +517,18 @@ ramp_fitting
 0.7.1 (2022-05-16)
 ==================
 
+Bug Fixes
+---------
+
 jump
 ~~~~
 - Enable multiprocessing for jump detection, which is controlled by the 'max_cores' parameter. [#87]
 
 0.7.0 (2022-05-13)
 ==================
+
+Bug Fixes
+---------
 
 linearity
 ~~~~~~~~~
@@ -506,6 +550,9 @@ saturation
 0.6.4 (2022-05-02)
 ==================
 
+Bug Fixes
+---------
+
 saturation
 ~~~~~~~~~~
 
@@ -514,6 +561,9 @@ saturation
 0.6.3 (2022-04-27)
 ==================
 
+Bug Fixes
+---------
+
 - Pin astropy min version to 5.0.4. [#82]
 
 - Fix for jumps in first good group after dropping groups [#84]
@@ -521,6 +571,9 @@ saturation
 
 0.6.2 (22-03-29)
 ================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -535,6 +588,9 @@ ramp_fitting
 0.6.1 (22-03-04)
 ================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -544,6 +600,9 @@ ramp_fitting
 0.6.0 (22-01-14)
 ================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -552,12 +611,15 @@ ramp_fitting
 jump
 ~~~~
 
-- Fix issue in jump detection that occured when there were only 2 usable
+- Fix issue in jump detection that occurred when there were only 2 usable
   differences with no other groups flagged. This PR also added tests and
   fixed some of the logging statements in twopoint difference. [#74]
 
 0.5.1 (2022-01-07)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -569,6 +631,9 @@ jump
 0.5.0 (2021-12-28)
 ==================
 
+Bug Fixes
+---------
+
 dark_current
 ~~~~~~~~~~~~
 
@@ -576,6 +641,9 @@ dark_current
 
 0.4.3 (2021-12-27)
 ==================
+
+Bug Fixes
+---------
 
 linearity
 ~~~~~~~~~
@@ -594,6 +662,9 @@ ramp_fitting
 0.4.2 (2021-10-28)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -605,6 +676,9 @@ ramp_fitting
 0.4.1 (2021-10-14)
 ==================
 
+Bug Fixes
+---------
+
 jump_detection
 ~~~~~~~~~~~~~~
 
@@ -613,6 +687,9 @@ jump_detection
 
 0.4.0 (2021-10-13)
 ==================
+
+Bug Fixes
+---------
 
 jump_detection
 ~~~~~~~~~~~~~~
@@ -632,6 +709,9 @@ ramp_fitting
 0.3.0 (2021-09-28)
 ==================
 
+Bug Fixes
+---------
+
 saturation
 ~~~~~~~~~~
 
@@ -640,6 +720,9 @@ saturation
 
 0.2.5 (2021-08-27)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -654,11 +737,17 @@ ramp_fitting
 0.2.4 (2021-08-26)
 ==================
 
+Bug Fixes
+---------
+
 Workaround for setuptools_scm issues with recent versions of pip. [#45]
 
 
 0.2.3 (2021-08-06)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -672,6 +761,9 @@ ramp_fitting
 
 0.2.2 (2021-07-19)
 ==================
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -688,6 +780,9 @@ ramp_fitting
 0.2.1 (2021-05-20)
 ==================
 
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
@@ -696,6 +791,9 @@ ramp_fitting
 
 0.2.0 (2021-05-18)
 ==================
+
+Bug Fixes
+---------
 
 ramp_fitting
 ~~~~~~~~~~~~

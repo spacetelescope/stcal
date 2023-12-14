@@ -2,21 +2,20 @@
 Unit tests for dark current correction
 """
 
-import pytest
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 
+from stcal.dark_current.dark_class import DarkData, ScienceData
 from stcal.dark_current.dark_sub import average_dark_frames_3d as average_dark_frames
 from stcal.dark_current.dark_sub import do_correction_data as darkcorr
 
-from stcal.dark_current.dark_class import DarkData, ScienceData
-
 dqflags = {
-    'DO_NOT_USE':       2**0,   # Bad pixel. Do not use.
-    'SATURATED':        2**1,   # Pixel saturated during exposure
-    'JUMP_DET':         2**2,   # Jump detected during exposure
-    'DROPOUT':          2**3,   # Data lost in transmission
-    'AD_FLOOR':         2**6,   # Below A/D floor (0 DN, was RESERVED_3)
+    "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
+    "SATURATED": 2**1,  # Pixel saturated during exposure
+    "JUMP_DET": 2**2,  # Jump detected during exposure
+    "DROPOUT": 2**3,  # Data lost in transmission
+    "AD_FLOOR": 2**6,  # Below A/D floor (0 DN, was RESERVED_3)
 }
 
 
@@ -27,7 +26,7 @@ NGROUPS_DARK = 10
 DELIM = "-" * 80
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture()
 def make_rampmodel():
     """Make MIRI Ramp model for testing"""
 
@@ -51,7 +50,7 @@ def make_rampmodel():
     return _ramp
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture()
 def make_darkmodel():
     """Make MIRI dark model for testing"""
 
@@ -74,12 +73,11 @@ def make_darkmodel():
     return _dark
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture()
 def setup_nrc_cube():
     """Set up fake NIRCam data to test."""
 
     def _cube(readpatt, ngroups, nframes, groupgap, nrows, ncols):
-
         nints = 1
         dims = (nints, ngroups, nrows, ncols)
         ramp_data = ScienceData()
@@ -133,16 +131,16 @@ def _params():
     nrows = 20
     ncols = 20
     for readpatt, values in readpatterns.items():
-        params.append((readpatt, ngroups, values['nframes'], values['nskip'], nrows, ncols))
+        params.append((readpatt, ngroups, values["nframes"], values["nskip"], nrows, ncols))
 
     return params
 
 
-@pytest.mark.parametrize('readpatt, ngroups, nframes, groupgap, nrows, ncols', _params())
+@pytest.mark.parametrize(("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params())
 def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, nrows, ncols):
     """Check that if nframes>1 or groupgap>0, then the pipeline reconstructs
-       the dark reference file to match the frame averaging and groupgap
-       settings of the exposure."""
+    the dark reference file to match the frame averaging and groupgap
+    settings of the exposure."""
 
     # Create data and dark model
     data, dark = setup_nrc_cube(readpatt, ngroups, nframes, groupgap, nrows, ncols)
@@ -167,13 +165,12 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
 
     # Manually average the input data to compare with pipeline output
     for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind):
-
         # Average the data frames
         newframe = np.mean(dark.data[gstart:gend, 10, 10])
         manual_avg[newgp] = newframe
 
         # ERR arrays will be quadratic sum of error values
-        manual_errs[newgp] = np.sqrt(np.sum(dark.err[gstart:gend, 10, 10]**2)) / (gend - gstart)
+        manual_errs[newgp] = np.sqrt(np.sum(dark.err[gstart:gend, 10, 10] ** 2)) / (gend - gstart)
 
     # Check that pipeline output matches manual averaging results
     assert_allclose(manual_avg, avg_dark.data[:, 10, 10], rtol=1e-5)
@@ -201,7 +198,7 @@ def test_more_sci_frames(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[0, i] = i
 
     refgroups = 5
@@ -209,7 +206,7 @@ def test_more_sci_frames(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # apply correction
@@ -222,7 +219,7 @@ def test_more_sci_frames(make_rampmodel, make_darkmodel):
     # darkstatus = outfile.meta.cal_step.dark_sub
     darkstatus = out_data.cal_step
 
-    assert darkstatus == 'SKIPPED'
+    assert darkstatus == "SKIPPED"
 
 
 def test_sub_by_frame(make_rampmodel, make_darkmodel):
@@ -240,7 +237,7 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[0, i] = i
 
     # create dark reference file model with more frames than science data
@@ -248,13 +245,13 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # apply correction
     outfile, avg_dark = darkcorr(dm_ramp, dark)
 
-    assert(outfile.cal_step == "COMPLETE")
+    assert outfile.cal_step == "COMPLETE"
 
     # remove the single dimension at start of file (1, 30, 1032, 1024)
     # so comparison in assert works
@@ -266,7 +263,7 @@ def test_sub_by_frame(make_rampmodel, make_darkmodel):
 
     # test that the output data file is equal to the difference
     # found when subtracting ref file from sci file
-    tol = 1.e-6
+    tol = 1.0e-6
     np.testing.assert_allclose(outdata, diff, tol)
 
 
@@ -285,7 +282,7 @@ def test_nan(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[0, i, :, :] = i
 
     # create dark reference file model with more frames than science data
@@ -293,7 +290,7 @@ def test_nan(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # set NaN in dark file
@@ -340,11 +337,9 @@ def test_dq_combine(make_rampmodel, make_darkmodel):
     outfile, avg_dark = darkcorr(dm_ramp, dark)
 
     # check that dq flags were correctly added
-    assert (outfile.pixeldq[50, 50]
-            == np.bitwise_or(dqflags["JUMP_DET"], dqflags["DO_NOT_USE"]))
+    assert outfile.pixeldq[50, 50] == np.bitwise_or(dqflags["JUMP_DET"], dqflags["DO_NOT_USE"])
 
-    assert (outfile.pixeldq[50, 51]
-            == np.bitwise_or(dqflags["SATURATED"], dqflags["DO_NOT_USE"]))
+    assert outfile.pixeldq[50, 51] == np.bitwise_or(dqflags["SATURATED"], dqflags["DO_NOT_USE"])
 
 
 def test_frame_avg(make_rampmodel, make_darkmodel):
@@ -363,7 +358,7 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     dm_ramp.exp_groupgap = 0
 
     # populate data array of science cube
-    for i in range(0, ngroups - 1):
+    for i in range(ngroups - 1):
         dm_ramp.data[:, i] = i + 1
 
     # create dark reference file model
@@ -372,7 +367,7 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     dark = make_darkmodel(refgroups, nrows, ncols)
 
     # populate data array of reference file
-    for i in range(0, refgroups - 1):
+    for i in range(refgroups - 1):
         dark.data[0, i] = i * 0.1
 
     # apply correction
@@ -389,5 +384,5 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     assert outfile.data[0, 3, 500, 500] == pytest.approx(2.65)
 
     # check that the error array is not modified.
-    tol = 1.e-6
+    tol = 1.0e-6
     np.testing.assert_allclose(outfile.err[:, :], 0, tol)
