@@ -7,6 +7,7 @@ class DarkData:
     This class contains all data needed to perform the dark current subtraction
     step.
     """
+
     def __init__(self, dims=None, dark_model=None):
         """
         Creates a class to remove data model dependencies in the internals of
@@ -20,7 +21,7 @@ class DarkData:
         to set wanted values.
 
         Parameters
-        ---------
+        ----------
         dims : tuple, optional
             A tuple of integers to describe the dimensions of the arrays used
             during the dark current step.  This argument is only used if the
@@ -77,21 +78,21 @@ class ScienceData:
         from the data.
 
         Parameters
-        ---------
+        ----------
         science_model : data model, optional
             Input data model, assumed to be a JWST RampModel like model.  If
             this is None, then the class instantiator is responsible for
             populating the data.
         """
         if science_model is not None:
-            if isinstance(science_model.data,u.Quantity):
+            if isinstance(science_model.data, u.Quantity):
                 self.data = science_model.data.value
             else:
                 self.data = science_model.data
             self.groupdq = science_model.groupdq
             self.pixeldq = science_model.pixeldq
 
-            if isinstance(science_model.err,u.Quantity):
+            if isinstance(science_model.err, u.Quantity):
                 self.err = science_model.err.value
             else:
                 self.err = science_model.err

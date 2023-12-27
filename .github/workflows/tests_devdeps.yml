@@ -1,0 +1,42 @@
+name: test with development versions
+
+on:
+  push:
+    branches:
+      - main
+      - '*x'
+    tags:
+      - '*'
+  pull_request:
+  schedule:
+    # Weekly Monday 9AM build
+    # * is a special character in YAML so you have to quote this string
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      envs: |
+        - linux: py39-devdeps-xdist
+        - linux: py310-devdeps-xdist
+        - linux: py311-devdeps-xdist
+        - linux: py3-devdeps-xdist
+  test_downstream:
+    if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      setenv: |
+        CRDS_PATH: /tmp/data/crds_cache
+        CRDS_CLIENT_RETRY_COUNT: 3
+        CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
+      envs: |
+        - linux: py3-jwst-devdeps-xdist
+        - linux: py3-romancal-devdeps-xdist
+
