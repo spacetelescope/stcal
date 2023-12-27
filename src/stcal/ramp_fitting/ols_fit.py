@@ -1156,8 +1156,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
             # Suppress harmless arithmetic warnings for now
             warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-            var_p4[num_int, :, rlo:rhi, :] = den_p3 * (med_rates[rlo:rhi, :] +
-                                                       avg_dark_current)
+            var_p4[num_int, :, rlo:rhi, :] = (den_p3 * med_rates[rlo:rhi, :]) + avg_dark_current
 
             # Find the segment variance due to read noise and convert back to DN
             var_r4[num_int, :, rlo:rhi, :] = num_r3 * den_r3 / gain_sect**2
@@ -1197,7 +1196,10 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
         var_p3[:, med_rates <= 0.0] = 0.0
         warnings.resetwarnings()
 
-        var_p4[num_int, :, med_rates <= 0.0] = 0.0
+        # For pixels with zero or negative rates set the Poisson variance to the
+        # dark current rate.
+        var_p4[num_int, :, med_rates <= 0.0] = avg_dark_current
+
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
         inv_var_both4[num_int, :, :, :] = 1.0 / var_both4[num_int, :, :, :]
 

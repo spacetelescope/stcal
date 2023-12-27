@@ -3,6 +3,7 @@ import numpy as np
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 from stcal.ramp_fitting.utils import compute_num_slices
+from stcal.ramp_fitting.ols_fit import ramp_fit_compute_variances
 
 DELIM = "=" * 70
 
@@ -1466,6 +1467,28 @@ def test_compute_num_slices():
     n_rows = 9
     assert compute_num_slices("21", n_rows, max_available_cores) == 9
 
+def test_ramp_fit_dark_current_variance():
+    nints, ngroups, nrows, ncols = 1, 5, 2, 2
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10, 1, 0
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+    dims = nints, ngroups, nrows, ncols
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    #Test for zero dark rate
+    avg_dark_current = 0.0
+    med_rates = np.zeros(shape=(2, 2))
+    fit_slopes_ans = (1, 0, 0, 0, 0, 1, 0, 0, 0, med_rates)
+    var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, inv_var_both4, s_inv_var_p3, \
+    s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
+
+    assert(var_p4[0, 0, 0, 0] == 0.0)
+    
+    #Test for a dark rate of 1.5 e-/sec
+    avg_dark_current = 1.5
+    var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, inv_var_both4, s_inv_var_p3, \
+    s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
+    assert(var_p4[0, 0, 0, 0] == 1.5)
 
 # -----------------------------------------------------------------------------
 #                           Set up functions
