@@ -653,6 +653,7 @@ def ols_ramp_fit_single(
 
     weighting : str
         'optimal' is the only valid value
+
     avg_dark_current : float (electrons)
         The average dark current for this detector
 
@@ -1041,6 +1042,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
 
     fit_slopes_ans : tuple
         Contains intermediate values computed in the first pass over the data.
+
     avg_dark_current : float (electrons)
         The average dark current for this detector
     Return
