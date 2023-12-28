@@ -4,7 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
-from astropy.io import fits
+
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
@@ -463,7 +463,6 @@ def detect_jumps(
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
             )
-            print("after find showers multiproc")
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     elapsed = time.time() - start
@@ -474,8 +473,6 @@ def detect_jumps(
     data /= gain_2d
     err /= gain_2d
     readnoise_2d /= gain_2d
-    print("end of jump.py")
-    fits.writeto("finalgdq.fits", gdq, overwrite=True)
      # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
@@ -641,7 +638,6 @@ def extend_ellipses(
     nrows = plane.shape[0]
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
-    print("num ellipses", num_ellipses)
     for ellipse in ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
@@ -678,21 +674,17 @@ def extend_ellipses(
         jump_ellipse = image[:, :, 2]
         ngrps = gdq_cube.shape[1]
         last_grp = find_last_grp(grp, ngrps, num_grps_masked)
-        print("range", grp, last_grp)
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
             saty, satx = np.where(sat_pix == sat_flag)
             jump_ellipse[saty, satx] = 0
-            print("jump ellipse sum", np.sum(jump_ellipse))
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     diff_cube = out_gdq_cube - gdq_cube
-    fits.writeto("diff_cube.fits", diff_cube, overwrite=True)
     return out_gdq_cube, num_ellipses
 
 def find_last_grp(grp, ngrps, num_grps_masked):
-    if num_grps_masked == 0:
-        num_grps_masked = 1
+    num_grps_masked += 1
     last_grp = min(grp + num_grps_masked, ngrps)
     return last_grp
 
@@ -849,18 +841,14 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
-    fits.writeto("gdqin.fits", gdq, overwrite=True)
     read_noise_2d_sqr = readnoise_2d**2
-    print("median readnoise sqr in e-", np.nanmedian(read_noise_2d_sqr))
     data = indata.copy()
-    print("median data in e=", np.nanmedian(data))
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
     data[gdq == jump_flag] = np.nan
     all_ellipses = []
     first_diffs = np.diff(data, axis=1)
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-    fits.writeto("first_diffs_masked.fits", first_diffs_masked.filled(np.nan), overwrite=True)
     nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
@@ -868,21 +856,16 @@ def find_faint_extended(
         # calculate sigma for each pixel
         if nints <= minimum_sigclip_groups:
             median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
-            fits.writeto("median_diffs.fits", median_diffs, overwrite=True)
             sigma = np.sqrt(np.abs(median_diffs) + read_noise_2d_sqr / nframes)
             # The difference from the median difference for each group
             e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-            fits.writeto("e_jump.fits", e_jump.filled(np.nan), overwrite=True)
-            fits.writeto("ratio.fits", ratio.filled(np.nan), overwrite=True)
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
         for grp in range(1, ngrps):
-            print("starting group ", grp)
             if nints > minimum_sigclip_groups:
-                print("inside sig clipped groups")
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
                 # The difference from the median difference for each group
@@ -899,12 +882,8 @@ def find_faint_extended(
             #  mask pix. that are already flagged as sat.
             masked_ratio[saty, satx] = np.nan
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
-            if grp == 2:
-                fits.writeto("masked_ratio.fits", masked_ratio.filled(np.nan), overwrite=True)
-                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
-            print("snr_threshold", snr_threshold)
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
@@ -916,9 +895,6 @@ def find_faint_extended(
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
-            if grp == 2:
-                fits.writeto("extended_emmission.fits", extended_emission, overwrite=True)
-            print("number of ellipses in grp", len(ellipses))
             expand_by_ratio = True
             expansion = 1.0
             plane = gdq[intg, grp, :, :]
@@ -984,11 +960,8 @@ def find_faint_extended(
                 expansion=ellipse_expand,
                 expand_by_ratio=True,
                 num_grps_masked=num_grps_masked,
-                max_extended_radius=max_extended_radius,
+                max_extended_radius=max_extended_radius
             )
-            if grp == 10:
-                fits.writeto("gdq10.fits", gdq, overwrite=True)
-    fits.writeto("gdqall.fits", gdq, overwrite=True)
     return gdq, total_showers
 
 

@@ -376,3 +376,6 @@ def test_find_last_grp():
     assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=1) == 6)
     assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=0) == 6)
     assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=2) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=1) == 7)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=2) == 8)
