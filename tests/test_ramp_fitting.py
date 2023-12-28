@@ -1483,11 +1483,11 @@ def test_ramp_fit_dark_current_variance():
     s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
 
     assert(var_p4[0, 0, 0, 0] == 0.0)
-    
+
     #Test for a dark rate of 1.5 e-/sec
     avg_dark_current = 1.5
     var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, inv_var_both4, s_inv_var_p3, \
-    s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
+        s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
     assert(var_p4[0, 0, 0, 0] == 1.5)
 
 # -----------------------------------------------------------------------------
