@@ -1,7 +1,10 @@
 1.5.3 (unreleased)
 ==================
 
-- 
+jump
+------------
+Fix the code to at least always flag the group with the shower and the requested
+groups after the primary shower. [#237]
 
 1.5.2 (2023-12-13)
 ==================
