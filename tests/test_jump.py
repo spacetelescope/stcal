@@ -368,6 +368,7 @@ def test_calc_num_slices():
     n_rows = 9
     assert calc_num_slices(n_rows, "21", max_available_cores) == 9
 
+
 def test_find_last_grp():
     assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=0) == 6)
     assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=2) == 7)
