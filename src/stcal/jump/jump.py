@@ -677,7 +677,7 @@ def extend_ellipses(
         )
         jump_ellipse = image[:, :, 2]
         ngrps = gdq_cube.shape[1]
-        last_grp = max(grp + 1, min(grp + num_grps_masked, ngrps))
+        last_grp = find_last_grp(grp, ngrps, num_grps_masked)
         print("range", grp, last_grp)
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
@@ -690,6 +690,11 @@ def extend_ellipses(
     fits.writeto("diff_cube.fits", diff_cube, overwrite=True)
     return out_gdq_cube, num_ellipses
 
+def find_last_grp(grp, ngrps, num_grps_masked):
+    if num_grps_masked == 0:
+        num_grps_masked = 1
+    last_grp = min(grp + num_grps_masked, ngrps)
+    return last_grp
 
 def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
