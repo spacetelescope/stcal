@@ -1,7 +1,10 @@
 1.5.3 (unreleased)
 ==================
 
-- 
+ramp_fitting
+------------
+- Added the avg_dark_current parameter that is used to inlcude the
+  dark current in the calculation of the Poisson noise [#236]
 
 1.5.2 (2023-12-13)
 ==================
