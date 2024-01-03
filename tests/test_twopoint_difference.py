@@ -11,10 +11,7 @@ DQFLAGS = {'JUMP_DET': 4, 'SATURATED': 2, 'DO_NOT_USE': 1}
 @pytest.fixture(scope='function')
 def setup_cube():
 
-    def _cube(ngroups, readnoise=10):
-        nints = 1
-        nrows = 204
-        ncols = 204
+    def _cube(ngroups, nints=1, nrows=204, ncols=204, readnoise=10):
         rej_threshold = 3
         nframes = 1
         data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
@@ -116,20 +113,21 @@ def test_4grps_cr2_noflux(setup_cube):
     assert(1 == np.argmax(out_gdq[0, :, 100, 100]))  # find the CR in the expected group
 
 
-def test_5grps_cr2_nframe2(setup_cube):
-    ngroups = 5
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
+def test_6grps_cr2_nframe2(setup_cube):
+    ngroups = 6
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nrows=2, ncols=2)
     nframes = 2
-    data[0, 0, 100, 100] = 10.0
-    data[0, 1, 100, 100] = 500
-    data[0, 2, 100, 100] = 1002
-    data[0, 3, 100, 100] = 1001
-    data[0, 4, 100, 100] = 1005
+    data[0, 0, 1, 1] = 10.0
+    data[0, 1, 1, 1] = 500
+    data[0, 2, 1, 1] = 1002
+    data[0, 3, 1, 1] = 1001
+    data[0, 4, 1, 1] = 1005
+    data[0, 5, 1, 1] = 1015
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     assert(4 == np.max(out_gdq))  # a CR was found
-    assert(np.array_equal([0, 4, 4, 0, 0], out_gdq[0, :, 100, 100]))
+    assert(np.array_equal([0, 4, 4, 0, 0, 0, 0], out_gdq[0, :, 1, 1]))
 
 
 @pytest.mark.xfail
@@ -665,22 +663,22 @@ def test_10grps_satat8_crsat3and6(setup_cube):
 def test_median_with_saturation(setup_cube):
     ngroups = 10
     # crmag = 1000
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=5 * np.sqrt(2))
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nrows=2, ncols=2, readnoise=5 * np.sqrt(2))
     nframes = 1
-    data[0, 0, 100, 100] = 0
-    data[0, 1, 100, 100] = 4500
-    data[0, 2, 100, 100] = 9100
-    data[0, 3, 100, 100] = 13800
-    data[0, 4, 100, 100] = 18600
-    data[0, 5, 100, 100] = 40000  # CR
-    data[0, 6, 100, 100] = 44850
-    data[0, 7, 100, 100] = 49900
-    data[0, 8:10, 100, 100] = 60000
-    gdq[0, 7:10, 100, 100] = DQFLAGS['SATURATED']
+    data[0, 0, 1, 1] = 0
+    data[0, 1, 1, 1] = 4500
+    data[0, 2, 1, 1] = 9100
+    data[0, 3, 1, 1] = 13800
+    data[0, 4, 1, 1] = 18600
+    data[0, 5, 1, 1] = 40000  # CR
+    data[0, 6, 1, 1] = 44850
+    data[0, 7, 1, 1] = 49900
+    data[0, 8:10, 1, 1] = 60000
+    gdq[0, 7:10, 1, 1] = DQFLAGS['SATURATED']
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
-    assert (np.array_equal([0, 0, 0, 0, 0, 4, 0, 2, 2, 2], out_gdq[0, :, 100, 100]))
+    assert (np.array_equal([0, 0, 0, 0, 0, 4, 0, 2, 2, 2], out_gdq[0, :, 1, 1]))
 
 
 def test_median_with_saturation_even_num_sat_frames(setup_cube):
