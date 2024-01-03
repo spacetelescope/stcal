@@ -335,6 +335,8 @@ def test_inside_ellipes5():
     result = point_inside_ellipse(point, ellipse)
     assert result
 
+def test_flag_persist_groups():
+
 
 def test_calc_num_slices():
     n_rows = 20

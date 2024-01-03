@@ -9,7 +9,7 @@ from astropy.convolution import Ring2DKernel, convolve
 
 from . import constants
 from . import twopoint_difference as twopt
-
+from astropy.io import fits
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -278,6 +278,7 @@ def detect_jumps(
             only_use_ints=only_use_ints,
         )
         #  This is the flag that controls the flagging of snowballs.
+        fits.writeto("persistgdq.fits", gdq, overwrite=True)
         if expand_large_events:
             total_snowballs = flag_large_events(
                 gdq,
