@@ -9,7 +9,7 @@ from stcal.jump.jump import (
     flag_large_events,
     point_inside_ellipse,
 )
-
+from astropy.io import fits
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
 
 
@@ -336,8 +336,23 @@ def test_inside_ellipes5():
     assert result
 
 def test_flag_persist_groups():
-
-
+    gdq = fits.getdata("persistgdq.fits")
+    print(gdq.shape[0])
+    gdq = gdq[:, 0:4, :, :]
+    total_snowballs = flag_large_events(
+        gdq,
+        DQFLAGS["JUMP_DET"],
+        DQFLAGS["SATURATED"],
+        min_sat_area=1,
+        min_jump_area=6,
+        expand_factor=1.9,
+        edge_size=0,
+        sat_required_snowball=True,
+        min_sat_radius_extend=2.5,
+        sat_expand=1.1,
+        mask_persist_next_int=True,
+        persist_grps_flagged=5)
+    fits.writeto("persitflaggedgdq.fits", gdq, overwrite=True)
 def test_calc_num_slices():
     n_rows = 20
     max_available_cores = 10

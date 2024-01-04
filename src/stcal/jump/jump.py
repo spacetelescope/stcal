@@ -54,6 +54,8 @@ def detect_jumps(
     minimum_groups=3,
     minimum_sigclip_groups=100,
     only_use_ints=True,
+    mask_persist_grps_next_int=True,
+    persist_grps_flagged=5,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -292,6 +294,8 @@ def detect_jumps(
                 edge_size=edge_size,
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
+                mask_persist_grps_next_int=mask_persist_grps_next_int,
+                persist_grps_flagged=persist_grps_flagged,
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
@@ -443,6 +447,8 @@ def detect_jumps(
                 edge_size=edge_size,
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
+                mask_persist_grps_next_int=mask_persist_grps_next_int,
+                persist_grps_flagged=persist_grps_flagged,
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
@@ -490,8 +496,8 @@ def flag_large_events(
     sat_expand=2,
     edge_size=25,
     max_extended_radius=200,
-    mask_persist_next_int=False,
-    persist_grps_flagged=0,
+    mask_persist_grps_next_int=True,
+    persist_grps_flagged=5,
 ):
     """
     This routine controls the creation of expanded regions that are flagged as
@@ -541,8 +547,8 @@ def flag_large_events(
     total_snowballs = 0
     nints = gdq.shape[0]
     ngrps = gdq.shape[1]
+    persist_jumps = np.zeros(shape=(nints, gdq.shape[2], gdq.shape[3]), dtype=np.uint8)
     for integration in range(nints):
-        persist_jumps = np.zeros(shape=(nints, gdq.shape[2], gdq.shape[3]), dtype=np.uint8)
         for group in range(1, ngrps):
             current_gdq = gdq[integration, group, :, :]
             current_sat = np.bitwise_and(current_gdq, sat_flag)
@@ -557,7 +563,7 @@ def flag_large_events(
                 low_threshold = edge_size
                 nrows = gdq.shape[2]
                 high_threshold = max(0, nrows - edge_size)
-                gdq, snowballs, next_int_persist_jumps = make_snowballs(
+                gdq, snowballs, persist_jumps = make_snowballs(
                     gdq,
                     integration,
                     group,
@@ -570,7 +576,7 @@ def flag_large_events(
                     sat_flag,
                     jump_flag,
                     max_extended_radius,
-                    persist_jumps[integration, :, :],
+                    persist_jumps,
                 )
             else:
                 snowballs = jump_ellipses
@@ -586,10 +592,16 @@ def flag_large_events(
                 expansion=expand_factor,
                 max_extended_radius=max_extended_radius,
             )
-    if mask_persist_next_int:
+    fits.writeto("persist_groups_flagged.fits", persist_jumps, overwrite=True)
+    if mask_persist_grps_next_int:
         for intg in range(1, nints):
-            gdq = np.logical_or(gdq[intg, 0:persist_grps_flagged, :, :],
-                                persist_jumps[intg-1, np.newaxis, :, :])
+            holder = np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
+                                          persist_grps_flagged - 1, axis=0)
+            gdq[intg, 0:persist_grps_flagged, :, :] = np.bitwise_or(gdq[intg, 0:persist_grps_flagged, :, :],
+                                                                    holder)
+    #                            np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
+    #                                      persist_grps_flagged, axis=0)
+    #                            )
 
     return total_snowballs
 
@@ -761,14 +773,14 @@ def make_snowballs(
                 ):
                     snowballs.append(jump)
     # extend the saturated ellipses that are larger than the min_sat_radius
-    gdq[integration, :, :, :], persist_jumps = extend_saturation(
+    gdq[integration, :, :, :], persist_jumps[integration, :, :] = extend_saturation(
         gdq[integration, :, :, :],
         group,
         sat_ellipses,
         sat_flag,
         jump_flag,
         min_sat_radius,
-        persist_jumps,
+        persist_jumps[integration, :, :],
         expansion=expansion,
         max_extended_radius=max_extended_radius,
     )
