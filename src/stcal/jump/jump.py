@@ -615,6 +615,7 @@ def extend_saturation(
     ncols = cube.shape[2]
     nrows = cube.shape[1]
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
+    persist_image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     outcube = cube.copy()
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
@@ -639,7 +640,19 @@ def extend_saturation(
             sat_ellipse = image[:, :, 2]
             saty, satx = np.where(sat_ellipse == 22)
             outcube[grp:, saty, satx] = sat_flag
-            persist_jumps[saty, satx] = jump_flag
+            persist_image = cv.ellipse(
+                persist_image,
+                (round(ceny), round(cenx)),
+                (round(ellipse[1][0] / 2), round(ellipse[1][1] / 2)),
+                alpha,
+                0,
+                360,
+                (0, 0, 22),
+                -1,
+            )
+            persist_ellipse = persist_image[:, :, 2]
+            persist_saty, persist_satx = np.where(persist_ellipse == 22)
+            persist_jumps[persist_saty, persist_satx] = jump_flag
     return outcube, persist_jumps
 
 
