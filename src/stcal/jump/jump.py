@@ -55,7 +55,7 @@ def detect_jumps(
     minimum_sigclip_groups=100,
     only_use_ints=True,
     mask_persist_grps_next_int=True,
-    persist_grps_flagged=15,
+    persist_grps_flagged=25,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
