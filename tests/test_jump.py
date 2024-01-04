@@ -338,7 +338,7 @@ def test_inside_ellipes5():
 def test_flag_persist_groups():
     gdq = fits.getdata("persistgdq.fits")
     print(gdq.shape[0])
-    gdq = gdq[:, 0:4, :, :]
+    gdq = gdq[:, 0:10, :, :]
     total_snowballs = flag_large_events(
         gdq,
         DQFLAGS["JUMP_DET"],
@@ -350,7 +350,7 @@ def test_flag_persist_groups():
         sat_required_snowball=True,
         min_sat_radius_extend=2.5,
         sat_expand=1.1,
-        mask_persist_next_int=True,
+        mask_persist_grps_next_int=True,
         persist_grps_flagged=5)
     fits.writeto("persitflaggedgdq.fits", gdq, overwrite=True)
 def test_calc_num_slices():
