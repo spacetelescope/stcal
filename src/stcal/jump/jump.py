@@ -55,7 +55,7 @@ def detect_jumps(
     minimum_sigclip_groups=100,
     only_use_ints=True,
     mask_persist_grps_next_int=True,
-    persist_grps_flagged=5,
+    persist_grps_flagged=15,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -595,6 +595,7 @@ def flag_large_events(
     fits.writeto("persist_groups_flagged.fits", persist_jumps, overwrite=True)
     if mask_persist_grps_next_int:
         for intg in range(1, nints):
+            last_grp_flagged = min(persist_grps_flagged, ngrps)
             holder = np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
                                           persist_grps_flagged-1, axis=0)
             test = gdq[intg, :persist_grps_flagged, :, :]
