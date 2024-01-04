@@ -596,9 +596,9 @@ def flag_large_events(
     if mask_persist_grps_next_int:
         for intg in range(1, nints):
             holder = np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
-                                          persist_grps_flagged, axis=0)
+                                          persist_grps_flagged-1, axis=0)
             test = gdq[intg, :persist_grps_flagged, :, :]
-            gdq[intg, 0:persist_grps_flagged, :, :] = np.bitwise_or(gdq[intg, 0:persist_grps_flagged, :, :],
+            gdq[intg, 1:persist_grps_flagged, :, :] = np.bitwise_or(gdq[intg, 1:persist_grps_flagged, :, :],
                                                                     holder)
     #                            np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
     #                                      persist_grps_flagged, axis=0)
