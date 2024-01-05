@@ -337,9 +337,10 @@ def test_inside_ellipes5():
     result = point_inside_ellipse(point, ellipse)
     assert result
 
-#@pytest.mark.skip(" used for local testing")
+@pytest.mark.skip(" used for local testing")
 def test_flag_persist_groups():
-    gdq = fits.getdata("persistgdq.fits")
+#   gdq = fits.getdata("persistgdq.fits")
+    gdq = np.zeros(shape=(2,2,2,2))
     print(gdq.shape[0])
     gdq = gdq[:, 0:10, :, :]
     total_snowballs = flag_large_events(
@@ -355,7 +356,7 @@ def test_flag_persist_groups():
         sat_expand=1.1,
         mask_persist_grps_next_int=True,
         persist_grps_flagged=0)
-    fits.writeto("persitflaggedgdq.fits", gdq, overwrite=True)
+#   fits.writeto("persitflaggedgdq.fits", gdq, overwrite=True)
 def test_calc_num_slices():
     n_rows = 20
     max_available_cores = 10
