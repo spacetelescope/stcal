@@ -280,7 +280,6 @@ def detect_jumps(
             only_use_ints=only_use_ints,
         )
         #  This is the flag that controls the flagging of snowballs.
-        fits.writeto("persistgdq.fits", gdq, overwrite=True)
         if expand_large_events:
             total_snowballs = flag_large_events(
                 gdq,
@@ -433,7 +432,6 @@ def detect_jumps(
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
         #  This is the flag that controls the flagging of snowballs.
-        fits.writeto("persistgdq.fits", gdq, overwrite=True)
         if expand_large_events:
             total_snowballs = flag_large_events(
                 gdq,
