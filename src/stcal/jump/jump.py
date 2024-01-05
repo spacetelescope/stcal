@@ -683,9 +683,9 @@ def extend_ellipses(
     diff_cube = out_gdq_cube - gdq_cube
     return out_gdq_cube, num_ellipses
 
-def find_last_grp(grp, ngrps, num_grps_masked):
-    num_grps_masked += 1
-    last_grp = min(grp + num_grps_masked, ngrps)
+def find_last_grp(grp, ngrps, num_grps_masked_after):
+    num_grps_masked_after += 1
+    last_grp = min(grp + num_grps_masked_after, ngrps)
     return last_grp
 
 def find_circles(dqplane, bitmask, min_area):
