@@ -535,7 +535,12 @@ def flag_large_events(
         required for a snowball to be created
     max_extended_radius : int
         The largest radius that a snowball or shower can be extended
-
+    mask_persist_grps_next_int: Boolean
+        The flag to turn on the extension of the flagging of the saturated cores of
+        snowballs.
+    persist_grps_flagged : int (grps)
+        How many groups to be flagged when the saturated cores are extended into
+        subsequent integrations
     Returns
     -------
     Nothing, gdq array is modified.
@@ -592,19 +597,16 @@ def flag_large_events(
                 expansion=expand_factor,
                 max_extended_radius=max_extended_radius,
             )
-    fits.writeto("persist_groups_flagged.fits", persist_jumps, overwrite=True)
+    #  Test to see if the flagging of the saturated cores will be extended into the
+    #  subsequent integrations. Persist_jumps contains all the pixels that were saturated
+    #  in the cores of snowballs.
     if mask_persist_grps_next_int:
         for intg in range(1, nints):
-            last_grp_flagged = min(persist_grps_flagged, ngrps)
-            holder = np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
-                                          persist_grps_flagged-1, axis=0)
-            test = gdq[intg, :persist_grps_flagged, :, :]
-            gdq[intg, 1:persist_grps_flagged, :, :] = np.bitwise_or(gdq[intg, 1:persist_grps_flagged, :, :],
-                                                                    holder)
-    #                            np.repeat(persist_jumps[intg-1, np.newaxis, :, :],
-    #                                      persist_grps_flagged, axis=0)
-    #                            )
-
+            if persist_grps_flagged >= 1:
+                last_grp_flagged = min(persist_grps_flagged, ngrps)
+                gdq[intg, 1:last_grp_flagged, :, :] = np.bitwise_or(gdq[intg, 1:last_grp_flagged, :, :],
+                                                                np.repeat(persist_jumps[intg - 1, np.newaxis, :, :],
+                                                                          last_grp_flagged - 1, axis=0))
     return total_snowballs
 
 
@@ -637,6 +639,9 @@ def extend_saturation(
                 (0, 0, 22),
                 -1,
             )
+            #  Create another non-extended ellipse that is used to create the
+            #  persist_jumps for this integration. This will be used to mask groups
+            #  in subsequent integrations.
             sat_ellipse = image[:, :, 2]
             saty, satx = np.where(sat_ellipse == 22)
             outcube[grp:, saty, satx] = sat_flag
