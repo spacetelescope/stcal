@@ -9,7 +9,7 @@ from astropy.convolution import Ring2DKernel, convolve
 
 from . import constants
 from . import twopoint_difference as twopt
-from astropy.io import fits
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
