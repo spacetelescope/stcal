@@ -1,7 +1,11 @@
 1.5.3 (unreleased)
 ==================
 
-- 
+jump
+------------
+- Add in the flagging of groups in the integration after a snowball
+  occurs. The saturated core of the snowball gets flagged as jump
+  for a number of groups passed in as a parameter [#238]
 
 1.5.2 (2023-12-13)
 ==================
