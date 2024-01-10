@@ -2,6 +2,7 @@ import logging
 import multiprocessing
 import time
 
+import astropy.stats
 import cv2 as cv
 import numpy as np
 from astropy import stats
@@ -838,7 +839,7 @@ def find_faint_extended(
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
-    data[gdq == jump_flag] = np.nan
+#    data[gdq == jump_flag] = np.nan
     all_ellipses = []
     first_diffs = np.diff(data, axis=1)
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
@@ -879,7 +880,9 @@ def find_faint_extended(
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
-            exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
+            mean, median, stddev = astropy.stats.sigma_clipped_stats(masked_smoothed_ratio)
+            cutoff = median + snr_threshold * stddev
+            exty, extx = np.where(masked_smoothed_ratio > cutoff)
             extended_emission[exty, extx] = 1
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
