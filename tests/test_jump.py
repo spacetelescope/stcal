@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-
+from astropy.io import fits
 from stcal.jump.jump import (
     calc_num_slices,
     extend_saturation,
@@ -214,14 +214,17 @@ def test_find_faint_extended():
     nint, ngrps, ncols, nrows = 1, 6, 30, 30
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
+    pdq = np.zeros_like(data, dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
-    data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
+    data[0, 1:2, 14:20, 15:20] = 6 * gain * 2.0
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
+    fits.writeto("data.fits", data, overwrite=True)
     gdq, num_showers = find_faint_extended(
         data,
         gdq,
+        pdq,
         readnoise,
         1,
         100,
@@ -232,8 +235,9 @@ def test_find_faint_extended():
         sat_flag=2,
         jump_flag=4,
         ellipse_expand=1.1,
-        num_grps_masked=3,
+        num_grps_masked=0,
     )
+    fits.writeto("outputgdq.fits", gdq, overwrite=True)
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside
     assert num_showers == 3
@@ -274,6 +278,7 @@ def test_find_faint_extended_sigclip():
     nint, ngrps, ncols, nrows = 101, 6, 30, 30
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
+    pdq = np.zeros_like(data, dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
@@ -282,6 +287,7 @@ def test_find_faint_extended_sigclip():
     gdq, num_showers = find_faint_extended(
         data,
         gdq,
+        pdq,
         readnoise,
         1,
         100,

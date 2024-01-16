@@ -299,6 +299,7 @@ def detect_jumps(
             gdq, num_showers = find_faint_extended(
                 data,
                 gdq,
+                pdq,
                 readnoise_2d,
                 frames_per_group,
                 minimum_sigclip_groups,
@@ -449,6 +450,7 @@ def detect_jumps(
             gdq, num_showers = find_faint_extended(
                 data,
                 gdq,
+                pdq,
                 readnoise_2d,
                 frames_per_group,
                 minimum_sigclip_groups,
@@ -782,6 +784,7 @@ def near_edge(jump, low_threshold, high_threshold):
 def find_faint_extended(
     indata,
     gdq,
+    pdq,
     readnoise_2d,
     nframes,
     minimum_sigclip_groups,
@@ -868,20 +871,24 @@ def find_faint_extended(
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
             masked_ratio = ratio[grp - 1].copy()
-            jumpy, jumpx = np.where(gdq[intg, grp, :, :] == jump_flag)
-            #  mask pix. that are already flagged as jump
+
+            #  mask pixels that are already flagged as jump
+            combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[intg, grp, :, :])
+            jump_pixels_array = np.bitwise_and(combined_pixel_mask, jump_flag)
+            jumpy, jumpx = np.where(jump_pixels_array == jump_flag)
             masked_ratio[jumpy, jumpx] = np.nan
 
-            saty, satx = np.where(gdq[intg, grp, :, :] == sat_flag)
-
-            #  mask pix. that are already flagged as sat.
+            #  mask pixels that are already flagged as sat.
+            sat_pixels_array = np.bitwise_and(combined_pixel_mask, sat_flag)
+            saty, satx = np.where(sat_pixels_array == sat_flag)
             masked_ratio[saty, satx] = np.nan
+
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
-            mean, median, stddev = astropy.stats.sigma_clipped_stats(masked_smoothed_ratio)
-            cutoff = median + snr_threshold * stddev
+            mean2, median2, stddev2 = astropy.stats.sigma_clipped_stats(masked_smoothed_ratio)
+            cutoff = median2 + snr_threshold * stddev2
             exty, extx = np.where(masked_smoothed_ratio > cutoff)
             extended_emission[exty, extx] = 1
             #  find the contours of the extended emission
