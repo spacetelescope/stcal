@@ -215,10 +215,12 @@ def test_find_faint_extended():
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
     pdq = np.zeros_like(data, dtype=np.uint8)
+    pdq[:, :, 0, 0] = 1
+#    pdq = np.zeros(shape=(data.shape[2], data.shape[3]), dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
-    data[0, 1:2, 14:20, 15:20] = 6 * gain * 4.0
+    data[0, 1:, 14:20, 15:20] = 6 * gain * 4.0
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
     fits.writeto("data.fits", data, overwrite=True)
     gdq, num_showers = find_faint_extended(
