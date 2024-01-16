@@ -1,7 +1,7 @@
 import logging
 import multiprocessing
 import time
-
+from astropy.io import fits
 import astropy.stats
 import cv2 as cv
 import numpy as np
@@ -891,6 +891,8 @@ def find_faint_extended(
             cutoff = median2 + snr_threshold * stddev2
             exty, extx = np.where(masked_smoothed_ratio > cutoff)
             extended_emission[exty, extx] = 1
+            if grp == 2:
+                fits.writeto("extendedemission.fits", extended_emission, overwrite=True)
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size

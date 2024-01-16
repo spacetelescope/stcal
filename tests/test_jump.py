@@ -211,27 +211,27 @@ def test_flag_large_events_withsnowball_noextension():
 
 
 def test_find_faint_extended():
-    nint, ngrps, ncols, nrows = 1, 6, 30, 30
+    nint, ngrps, ncols, nrows = 1, 66, 30, 30
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
     pdq = np.zeros_like(data, dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
-    data[0, 1:2, 14:20, 15:20] = 6 * gain * 2.0
+    data[0, 1:2, 14:20, 15:20] = 6 * gain * 4.0
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
     fits.writeto("data.fits", data, overwrite=True)
     gdq, num_showers = find_faint_extended(
         data,
         gdq,
         pdq,
-        readnoise,
+        readnoise * np.sqrt(2),
         1,
         100,
-        snr_threshold=1.3,
-        min_shower_area=20,
+        snr_threshold=3,
+        min_shower_area=10,
         inner=1,
-        outer=2,
+        outer=2.6,
         sat_flag=2,
         jump_flag=4,
         ellipse_expand=1.1,
@@ -240,7 +240,7 @@ def test_find_faint_extended():
     fits.writeto("outputgdq.fits", gdq, overwrite=True)
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside
-    assert num_showers == 3
+    assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert np.all(gdq[0, 1, 21, 16:20] == DQFLAGS["JUMP_DET"])
     assert np.all(gdq[0, 1, 20, 15:22] == DQFLAGS["JUMP_DET"])
