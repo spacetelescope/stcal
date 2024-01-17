@@ -852,7 +852,7 @@ def find_faint_extended(
     dnuy, dnux = np.where(bad_pixels_array == 1)
     data[:, :, dnuy, dnux] = np.nan
     gdq = np.bitwise_or(bad_pixels_array[np.newaxis, np.newaxis, :, :], gdq)
-    fits.writeto("updategdq.fits". gdq, overwrite=True)
+    fits.writeto("updategdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
     all_ellipses = []
