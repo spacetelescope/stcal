@@ -842,14 +842,17 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
+    fits.writeto("ingdq.fits", ingdq, overwrite=True)
+    fits.writeto("inpdg.fits", pdq, overwrite=True)
     gdq = ingdq.copy()
     data = indata.copy()
     read_noise_2 = readnoise_2d**2
     bad_pixels_array = np.bitwise_and(pdq, 1)
+    fits.writeto("badpixelsarray.fits", bad_pixels_array, overwrite=True)
     dnuy, dnux = np.where(bad_pixels_array == 1)
     data[:, :, dnuy, dnux] = np.nan
     gdq = np.bitwise_or(bad_pixels_array[np.newaxis, np.newaxis, :, :], gdq)
-
+    fits.writeto("updategdq.fits". gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
     all_ellipses = []
