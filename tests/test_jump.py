@@ -220,7 +220,7 @@ def test_find_faint_extended():
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
-    data[0, 1:, 14:20, 15:20] = 6 * gain * 4.0
+    data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
     fits.writeto("data.fits", data, overwrite=True)
     gdq, num_showers = find_faint_extended(
