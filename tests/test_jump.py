@@ -214,8 +214,8 @@ def test_find_faint_extended():
     nint, ngrps, ncols, nrows = 1, 66, 30, 30
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
-    pdq = np.zeros_like(data, dtype=np.uint8)
-    pdq[:, :, 0, 0] = 1
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
+    pdq[0, 0] = 1
 #    pdq = np.zeros(shape=(data.shape[2], data.shape[3]), dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain

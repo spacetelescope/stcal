@@ -845,8 +845,8 @@ def find_faint_extended(
     read_noise_2 = readnoise_2d**2
     data = indata.copy()
     bad_pixels_array = np.bitwise_and(pdq, 1)
-    dnu_int, dnu_grp, dnuy, dnux = np.where(bad_pixels_array == 1)
-    data[dnu_int, dnu_grp, dnuy, dnux] = np.nan
+    dnuy, dnux = np.where(bad_pixels_array == 1)
+    data[:, :, dnuy, dnux] = np.nan
 
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
@@ -880,7 +880,7 @@ def find_faint_extended(
             masked_ratio = ratio[grp - 1].copy()
 
             #  mask pixels that are already flagged as jump
-            combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[intg, grp, :, :])
+            combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[:, :])
             jump_pixels_array = np.bitwise_and(combined_pixel_mask, jump_flag)
             jumpy, jumpx = np.where(jump_pixels_array == jump_flag)
             masked_ratio[jumpy, jumpx] = np.nan
