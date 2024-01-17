@@ -683,6 +683,10 @@ def extend_ellipses(
             gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     return gdq_cube, num_ellipses
 
+def find_last_grp(grp, ngrps, num_grps_masked_after):
+    num_grps_masked_after += 1
+    last_grp = min(grp + num_grps_masked_after, ngrps)
+    return last_grp
 
 def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
