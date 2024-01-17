@@ -895,6 +895,11 @@ def find_faint_extended(
             saty, satx = np.where(sat_pixels_array == sat_flag)
             masked_ratio[saty, satx] = np.nan
 
+            #  mask pixels that are already flagged as do not use
+            sat_pixels_array = np.bitwise_and(combined_pixel_mask, 1)
+            dnuy, dnux = np.where(sat_pixels_array == 1)
+            masked_ratio[saty, satx] = np.nan
+
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
