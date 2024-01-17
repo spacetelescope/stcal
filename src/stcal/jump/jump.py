@@ -847,11 +847,13 @@ def find_faint_extended(
     gdq = ingdq.copy()
     data = indata.copy()
     read_noise_2 = readnoise_2d**2
-    bad_pixels_array = np.bitwise_and(pdq, 1)
-    fits.writeto("badpixelsarray.fits", bad_pixels_array, overwrite=True)
-    dnuy, dnux = np.where(bad_pixels_array == 1)
-    data[:, :, dnuy, dnux] = np.nan
-    gdq = np.bitwise_or(bad_pixels_array[np.newaxis, np.newaxis, :, :], gdq)
+#    ref_pixels_array = np.zeros_like(pdq)
+    ref_pixels_array = np.bitwise_and(pdq, 2147483648) // 2147483648
+    test_array = ref_pixels_array // 2147483648
+    fits.writeto("refpixelsarray.fits", ref_pixels_array, overwrite=True)
+    refy, refx = np.where(ref_pixels_array == 1)
+    data[:, :, refy, refx] = np.nan
+    gdq = np.bitwise_or(ref_pixels_array[np.newaxis, np.newaxis, :, :], gdq)
     fits.writeto("updategdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
@@ -899,7 +901,8 @@ def find_faint_extended(
             sat_pixels_array = np.bitwise_and(combined_pixel_mask, 1)
             dnuy, dnux = np.where(sat_pixels_array == 1)
             masked_ratio[saty, satx] = np.nan
-
+#            if grp == 1:
+#               fits.writeto("masked_ratio1.fits", masked_ratio., overwrite=True)
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
