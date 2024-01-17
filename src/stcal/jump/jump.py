@@ -847,6 +847,7 @@ def find_faint_extended(
     bad_pixels_array = np.bitwise_and(pdq, 1)
     dnuy, dnux = np.where(bad_pixels_array == 1)
     data[:, :, dnuy, dnux] = np.nan
+    gdq[:, :, dnuy, dnux] = np.nan
 
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
