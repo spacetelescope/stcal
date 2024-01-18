@@ -218,6 +218,7 @@ def detect_jumps(
     constants.update_dqflags(dqflags)  # populate dq flags
     sat_flag = dqflags["SATURATED"]
     jump_flag = dqflags["JUMP_DET"]
+    refpix_flag = dqflags["REFERENCE_PIXEL"]
     number_extended_events = 0
     # Flag the pixeldq where the gain is <=0 or NaN so they will be ignored
     wh_g = np.where(gain_2d <= 0.0)
@@ -309,6 +310,7 @@ def detect_jumps(
                 outer=extend_outer_radius,
                 sat_flag=sat_flag,
                 jump_flag=jump_flag,
+                refpix_flag=refpix_flag,
                 ellipse_expand=extend_ellipse_expand_ratio,
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
@@ -463,6 +465,7 @@ def detect_jumps(
                 outer=extend_outer_radius,
                 sat_flag=sat_flag,
                 jump_flag=jump_flag,
+                refpix_flag=refpix_flag,
                 ellipse_expand=extend_ellipse_expand_ratio,
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
@@ -799,8 +802,10 @@ def find_faint_extended(
     min_shower_area=40,
     inner=1,
     outer=2,
+    donotuse_flag = 1,
     sat_flag=2,
     jump_flag=4,
+    refpix_flag=2147483648,
     ellipse_expand=1.1,
     num_grps_masked=25,
     max_extended_radius=200,
@@ -845,21 +850,24 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
-    fits.writeto("ingdq.fits", ingdq, overwrite=True)
-    fits.writeto("inpdg.fits", pdq, overwrite=True)
+#    fits.writeto("ingdq.fits", ingdq, overwrite=True)
+#    fits.writeto("inpdg.fits", pdq, overwrite=True)
     gdq = ingdq.copy()
     data = indata.copy()
     read_noise_2 = readnoise_2d**2
 #    ref_pixels_array = np.zeros_like(pdq)
-    ref_pixels_array = np.bitwise_and(pdq, 2147483648) // 2147483648
-    test_array = ref_pixels_array // 2147483648
-    fits.writeto("refpixelsarray.fits", ref_pixels_array, overwrite=True)
-    refy, refx = np.where(ref_pixels_array == 1)
-    data[:, :, refy, refx] = np.nan
-    gdq = np.bitwise_or(ref_pixels_array[np.newaxis, np.newaxis, :, :], gdq)
+#    ref_pixels_array = np.bitwise_and(pdq, 2147483648) // 2147483648
+#    fits.writeto("refpixelsarray.fits", ref_pixels_array, overwrite=True)
+#    refy, refx = np.where(ref_pixels_array == 1)
+#    data[:, :, refy, refx] = np.nan
+    gdq = np.bitwise_or(pdq[np.newaxis, np.newaxis, :, :], gdq)
+    refint, refgrp, refy, refx = np.where(gdq == refpix_flag)
+    gdq[refint, refgrp, refy, refx] = donotuse_flag
     fits.writeto("updategdq.fits", gdq, overwrite=True)
+    x = gdq[0, 2, 1, 1]
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
+
     all_ellipses = []
 
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
@@ -904,9 +912,13 @@ def find_faint_extended(
             dnu_pixels_array = np.bitwise_and(combined_pixel_mask, 1)
             dnuy, dnux = np.where(dnu_pixels_array == 1)
             masked_ratio[dnuy, dnux] = np.nan
-#            if grp == 1:
-#               fits.writeto("masked_ratio1.fits", masked_ratio., overwrite=True)
+            if grp == 2:
+                fits.writeto("dnu_pixel_array.fits", dnu_pixels_array, overwrite=True)
+                fits.writeto("masked_ratio1.fits", masked_ratio.filled(np.nan), overwrite=True)
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
+            #  mask out the pixels that got refilled by the convolution
+            masked_smoothed_ratio[dnuy, dnux] = np.nan
+            
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)

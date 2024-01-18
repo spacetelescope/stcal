@@ -275,6 +275,62 @@ def test_find_faint_extended():
     #  Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
+def test_shower_enhancements():
+    data = fits.getdata("data/incoming_data.fits")
+    pdq = fits.getdata("data/incoming_pdq.fits")
+    gdq = fits.getdata("data/incoming_gdq.fits")
+    readnoise_DN = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_readnoise_0085.fits")
+    gain = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_gain_0020.fits")
+    readnoise = gain * readnoise_DN
+    gdq, num_showers = find_faint_extended(
+        data,
+        gdq,
+        pdq,
+        readnoise * np.sqrt(2),
+        1,
+        100,
+        snr_threshold=3,
+        min_shower_area=10,
+        inner=1,
+        outer=2.6,
+        sat_flag=2,
+        jump_flag=4,
+        ellipse_expand=1.1,
+        num_grps_masked=0,
+    )
+    fits.writeto("outputgdq.fits", gdq, overwrite=True)
+    def test_find_faint_extended():
+        nint, ngrps, ncols, nrows = 1, 66, 5, 5
+        data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
+        gdq = np.zeros_like(data, dtype=np.uint32)
+        pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+        pdq[0, 0] = 1
+        pdq[1, 1] = 2147483648
+        #    pdq = np.zeros(shape=(data.shape[2], data.shape[3]), dtype=np.uint8)
+        gain = 4
+        readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
+        rng = np.random.default_rng(12345)
+        data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
+        data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
+        fits.writeto("data.fits", data, overwrite=True)
+        gdq, num_showers = find_faint_extended(
+            data,
+            gdq,
+            pdq,
+            readnoise * np.sqrt(2),
+            1,
+            100,
+            snr_threshold=3,
+            min_shower_area=10,
+            inner=1,
+            outer=2.6,
+            sat_flag=2,
+            jump_flag=4,
+            ellipse_expand=1.1,
+            num_grps_masked=0,
+        )
+        fits.writeto("outputgdq.fits", gdq, overwrite=True)
+
 
 # No shower is found because the event is identical in all ints
 def test_find_faint_extended_sigclip():
