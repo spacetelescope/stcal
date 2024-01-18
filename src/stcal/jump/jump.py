@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import time
+import warnings
 from astropy.io import fits
 import astropy.stats
 import cv2 as cv
@@ -874,6 +875,8 @@ def find_faint_extended(
     nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
+#    warnings.filterwarnings("ignore", ".*Input data contains invalid values.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     for intg in range(nints):
         # calculate sigma for each pixel
         if nints <= minimum_sigclip_groups:
@@ -915,10 +918,11 @@ def find_faint_extended(
             if grp == 2:
                 fits.writeto("dnu_pixel_array.fits", dnu_pixels_array, overwrite=True)
                 fits.writeto("masked_ratio1.fits", masked_ratio.filled(np.nan), overwrite=True)
+
             masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
             #  mask out the pixels that got refilled by the convolution
             masked_smoothed_ratio[dnuy, dnux] = np.nan
-            
+
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
@@ -984,6 +988,8 @@ def find_faint_extended(
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
+                # Reset the warnings filter to its original state
+    warnings.resetwarnings()
     if all_ellipses:
         #  Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers

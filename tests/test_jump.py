@@ -290,7 +290,7 @@ def test_shower_enhancements():
         1,
         100,
         snr_threshold=3,
-        min_shower_area=10,
+        min_shower_area=50,
         inner=1,
         outer=2.6,
         sat_flag=2,
