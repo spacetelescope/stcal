@@ -237,6 +237,7 @@ def detect_jumps(
     data *= gain_2d
     err *= gain_2d
     readnoise_2d *= gain_2d
+    print("median gain", np.median(gain_2d))
     # also apply to the after_jump thresholds
     after_jump_flag_e1 = after_jump_flag_dn1 * gain_2d
     after_jump_flag_e2 = after_jump_flag_dn2 * gain_2d
