@@ -446,6 +446,9 @@ def detect_jumps(
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
+        fits.writeto("incoming_data.fits", data, overwrite=True)
+        fits.writeto("incoming_pdq.fits", pdq, overwrite=True)
+        fits.writeto("incoming_gdq.fits", gdq, overwrite=True)
         if find_showers:
             gdq, num_showers = find_faint_extended(
                 data,
