@@ -891,7 +891,8 @@ def find_faint_extended(
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
-        for grp in range(1, ngrps):
+        first_good_group = find_first_good_group(gdq[intg, :, :, :])
+        for grp in range(first_good_group, ngrps):
             if nints > minimum_sigclip_groups:
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
@@ -1014,6 +1015,17 @@ def find_faint_extended(
             )
     return gdq, len(all_ellipses)
 
+def find_first_good_group(int_gdq, do_not_use):
+    ngrps = int_gdq.shape[0]
+    skip_grp = True
+    first_good_group = 0
+    for grp in range(ngrps):
+        mask = np.logical_and(int_gdq[grp], do_not_use)
+        skip_grp = np.unique(mask)
+        if not skip_grp:
+            first_good_group = grp
+            break
+    return first_good_group
 
 def calc_num_slices(n_rows, max_cores, max_available):
     n_slices = 1

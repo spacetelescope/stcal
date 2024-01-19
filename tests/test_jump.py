@@ -8,6 +8,7 @@ from stcal.jump.jump import (
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
+    find_first_good_group,
 )
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
@@ -417,3 +418,16 @@ def test_calc_num_slices():
     assert calc_num_slices(n_rows, "3/4", max_available_cores) == 1
     n_rows = 9
     assert calc_num_slices(n_rows, "21", max_available_cores) == 9
+
+def test_find_first_good_grp():
+    ngrps = 5
+    ncols = 2
+    nrows = 2
+    intg_gdq = np.zeros(shape=(ngrps, ncols, nrows), dtype=np.uint32)
+    assert find_first_good_group(intg_gdq, DQFLAGS['DO_NOT_USE']) == 0
+    intg_gdq[0, :, :] = 5
+    assert find_first_good_group(intg_gdq, DQFLAGS['DO_NOT_USE']) == 1
+    intg_gdq[1, :, :] = 5
+    assert find_first_good_group(intg_gdq, DQFLAGS['DO_NOT_USE']) == 2
+    intg_gdq[0, 0, 1] = 4
+    assert find_first_good_group(intg_gdq, DQFLAGS['DO_NOT_USE']) == 0
