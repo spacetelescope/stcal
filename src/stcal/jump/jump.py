@@ -892,7 +892,7 @@ def find_faint_extended(
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
         first_good_group = find_first_good_group(gdq[intg, :, :, :], donotuse_flag)
-        for grp in range(first_good_group, ngrps):
+        for grp in range(first_good_group + 1, ngrps):
             if nints > minimum_sigclip_groups:
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
