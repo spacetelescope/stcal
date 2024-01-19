@@ -891,7 +891,7 @@ def find_faint_extended(
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
-        first_good_group = find_first_good_group(gdq[intg, :, :, :])
+        first_good_group = find_first_good_group(gdq[intg, :, :, :], donotuse_flag)
         for grp in range(first_good_group, ngrps):
             if nints > minimum_sigclip_groups:
                 median_diffs = median[grp - 1]
