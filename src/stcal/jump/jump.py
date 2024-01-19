@@ -1020,8 +1020,8 @@ def find_first_good_group(int_gdq, do_not_use):
     skip_grp = True
     first_good_group = 0
     for grp in range(ngrps):
-        mask = np.logical_and(int_gdq[grp], do_not_use)
-        skip_grp = np.unique(mask)
+        mask = np.bitwise_and(int_gdq[grp], do_not_use)
+        skip_grp = np.all(mask)
         if not skip_grp:
             first_good_group = grp
             break
