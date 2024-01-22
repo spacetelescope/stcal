@@ -282,6 +282,7 @@ def test_shower_enhancements():
     gdq = fits.getdata("data/incoming_gdq.fits")
     readnoise_DN = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_readnoise_0085.fits")
     gain = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_gain_0020.fits")
+    print("median gain", np.nanmedian(gain))
     readnoise = gain * readnoise_DN
     gdq, num_showers = find_faint_extended(
         data,
@@ -290,8 +291,8 @@ def test_shower_enhancements():
         readnoise * np.sqrt(2),
         1,
         100,
-        snr_threshold=3,
-        min_shower_area=50,
+        snr_threshold=3.0,
+        min_shower_area=30,
         inner=1,
         outer=2.6,
         sat_flag=2,
@@ -344,6 +345,7 @@ def test_find_faint_extended_sigclip():
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
+    min_shower_area=20
     gdq, num_showers = find_faint_extended(
         data,
         gdq,
@@ -352,7 +354,7 @@ def test_find_faint_extended_sigclip():
         1,
         100,
         snr_threshold=1.3,
-        min_shower_area=20,
+        min_shower_area=min_shower_area,
         inner=1,
         outer=2,
         sat_flag=2,

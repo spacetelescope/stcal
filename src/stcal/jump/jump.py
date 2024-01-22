@@ -862,13 +862,15 @@ def find_faint_extended(
 #    fits.writeto("refpixelsarray.fits", ref_pixels_array, overwrite=True)
 #    refy, refx = np.where(ref_pixels_array == 1)
 #    data[:, :, refy, refx] = np.nan
-    gdq = np.bitwise_or(pdq[np.newaxis, np.newaxis, :, :], gdq)
+#    gdq = np.bitwise_or(pdq[np.newaxis, np.newaxis, :, :], gdq)
     refint, refgrp, refy, refx = np.where(gdq == refpix_flag)
     gdq[refint, refgrp, refy, refx] = donotuse_flag
     fits.writeto("updategdq.fits", gdq, overwrite=True)
-    x = gdq[0, 2, 1, 1]
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
+    masked_ratio_cube = np.zeros_like(data)
+    masked_smoothed_ratio_cube = np.zeros_like(data)
+    extended_emission_cube = np.zeros_like(data)
 
     all_ellipses = []
 
@@ -917,14 +919,12 @@ def find_faint_extended(
             dnu_pixels_array = np.bitwise_and(combined_pixel_mask, 1)
             dnuy, dnux = np.where(dnu_pixels_array == 1)
             masked_ratio[dnuy, dnux] = np.nan
-            if grp == 2:
-                fits.writeto("dnu_pixel_array.fits", dnu_pixels_array, overwrite=True)
-                fits.writeto("masked_ratio1.fits", masked_ratio.filled(np.nan), overwrite=True)
+            masked_ratio_cube[intg, grp, :, :] = masked_ratio
 
-            masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel)
+            masked_smoothed_ratio = convolve(masked_ratio.filled(np.nan), ring_2D_kernel)
             #  mask out the pixels that got refilled by the convolution
             masked_smoothed_ratio[dnuy, dnux] = np.nan
-
+            masked_smoothed_ratio_cube[intg, grp, :, :] = masked_smoothed_ratio
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
@@ -932,16 +932,13 @@ def find_faint_extended(
             cutoff = median2 + snr_threshold * stddev2
             exty, extx = np.where(masked_smoothed_ratio > cutoff)
             extended_emission[exty, extx] = 1
-            if grp == 1:
-                fits.writeto("masked_smoothed_ratio1.fits", masked_smoothed_ratio, overwrite=True)
-                fits.writeto("extendedemission1.fits", extended_emission, overwrite=True)
-            if grp == 2:
-                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
-                fits.writeto("extendedemission.fits", extended_emission, overwrite=True)
+            extended_emission_cube[intg, grp, :, :] = extended_emission
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size
             bigcontours = [con for con in contours if cv.contourArea(con) > min_shower_area]
+            if grp == 5:
+                 a=1
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
@@ -992,6 +989,9 @@ def find_faint_extended(
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
     warnings.resetwarnings()
+    fits.writeto("masked_ratio_cube.fits", masked_ratio_cube, overwrite=True)
+    fits.writeto("masked_smoothed_ratio_cube.fits", masked_smoothed_ratio_cube, overwrite=True)
+    fits.writeto("extended_emission_cube.fits", extended_emission_cube, overwrite=True)
     if all_ellipses:
         #  Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers
