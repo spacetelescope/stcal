@@ -879,7 +879,7 @@ def find_faint_extended(
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
 #    warnings.filterwarnings("ignore", ".*Input data contains invalid values.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*nan_treatment.*", RuntimeWarning)
+    warnings.filterwarnings("ignore")
     for intg in range(nints):
         # calculate sigma for each pixel
         if nints <= minimum_sigclip_groups:
