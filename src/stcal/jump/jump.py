@@ -542,7 +542,7 @@ def flag_large_events(
     Nothing, gdq array is modified.
 
     """
-    log.info("Flagging large Snowballs")
+    log.info("Flagging Snowballs")
 
     n_showers_grp = []
     total_snowballs = 0
@@ -854,6 +854,7 @@ def find_faint_extended(
     """
 #    fits.writeto("ingdq.fits", ingdq, overwrite=True)
 #    fits.writeto("inpdg.fits", pdq, overwrite=True)
+    log.info("Flagging Showers")
     gdq = ingdq.copy()
     data = indata.copy()
     read_noise_2 = readnoise_2d**2
@@ -863,8 +864,8 @@ def find_faint_extended(
 #    refy, refx = np.where(ref_pixels_array == 1)
 #    data[:, :, refy, refx] = np.nan
 #    gdq = np.bitwise_or(pdq[np.newaxis, np.newaxis, :, :], gdq)
-    refint, refgrp, refy, refx = np.where(gdq == refpix_flag)
-    gdq[refint, refgrp, refy, refx] = donotuse_flag
+    refy, refx = np.where(pdq == refpix_flag)
+    gdq[:, :, refy, refx] = donotuse_flag
     fits.writeto("updategdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
     fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
