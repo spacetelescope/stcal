@@ -320,7 +320,7 @@ def detect_jumps(
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     else:
-        yinc = int(n_rows / n_slices)
+        yinc = int(n_rows // n_slices)
         slices = []
         # Slice up data, gdq, readnoise_2d into slices
         # Each element of slices is a tuple of

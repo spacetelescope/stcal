@@ -160,6 +160,7 @@ def test_flag_large_events_groupedsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
+    fits.writeto("incube.fits", cube, overwrite=True)
     flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
@@ -174,6 +175,7 @@ def test_flag_large_events_groupedsnowball():
     )
     #    assert cube[0, 1, 2, 2] == 0
     #    assert cube[0, 1, 3, 5] == 0
+    fits.writeto("outcube.fits", cube, overwrite=True)
     assert cube[0, 2, 0, 0] == 0
     assert cube[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
