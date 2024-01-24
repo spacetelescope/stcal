@@ -1013,6 +1013,7 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius,
             )
+    fits.writeto("aftergdq.fits", gdq, overwrite=True)
     return gdq, len(all_ellipses)
 
 def find_first_good_group(int_gdq, do_not_use):
