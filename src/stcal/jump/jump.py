@@ -427,6 +427,13 @@ def detect_jumps(
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
+            # remove redundant bits in pixels that have jump flagged but were
+            # already flagged as do_not_use or saturated.
+            gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
+                dqflags['DO_NOT_USE']
+            gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
+                dqflags['SATURATED']
+
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(
