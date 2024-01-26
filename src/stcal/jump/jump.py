@@ -473,7 +473,7 @@ def detect_jumps(
     data /= gain_2d
     err /= gain_2d
     readnoise_2d /= gain_2d
-     # Return the updated data quality arrays
+    # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
 
@@ -684,6 +684,22 @@ def extend_ellipses(
     return out_gdq_cube, num_ellipses
 
 def find_last_grp(grp, ngrps, num_grps_masked_after):
+    """
+    Parameters
+    _________
+    grp : int
+    The location of the shower
+    ngrps :
+    The number of groups in the integration
+    num_grps_masked_after :
+    The requested number of groups to be flagged after the shower
+
+    Returns
+    _______
+    last_grp : int
+      The index of the last group to flag for the shower
+
+    """
     num_grps_masked_after += 1
     last_grp = min(grp + num_grps_masked_after, ngrps)
     return last_grp
