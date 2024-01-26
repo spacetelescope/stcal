@@ -536,7 +536,7 @@ def flag_large_events(
     mask_persist_grps_next_int : bool
         The flag to turn on the extension of the flagging of the saturated cores of
         snowballs.
-    persist_grps_flagged : int (grps)
+    persist_grps_flagged : int
         How many groups to be flagged when the saturated cores are extended into
         subsequent integrations
     Returns
