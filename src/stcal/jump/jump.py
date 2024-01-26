@@ -548,8 +548,7 @@ def flag_large_events(
 
     n_showers_grp = []
     total_snowballs = 0
-    nints = gdq.shape[0]
-    ngrps = gdq.shape[1]
+    nints, ngrps, nrows, ncols = gdq.shape
     persist_jumps = np.zeros(shape=(nints, gdq.shape[2], gdq.shape[3]), dtype=np.uint8)
     for integration in range(nints):
         for group in range(1, ngrps):
@@ -564,7 +563,6 @@ def flag_large_events(
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
-                nrows = gdq.shape[2]
                 high_threshold = max(0, nrows - edge_size)
                 gdq, snowballs, persist_jumps = make_snowballs(
                     gdq,
@@ -612,8 +610,7 @@ def extend_saturation(
     cube, grp, sat_ellipses, sat_flag, jump_flag, min_sat_radius_extend, persist_jumps,
         expansion=2, max_extended_radius=200
 ):
-    ncols = cube.shape[2]
-    nrows = cube.shape[1]
+    nints, ngroups, nrows, ncols = cube.shape
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     persist_image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     outcube = cube.copy()
@@ -634,14 +631,14 @@ def extend_saturation(
                 alpha,
                 0,
                 360,
-                (0, 0, 22),
+                (0, 0, 22),  # in the RGB cube, set blue plane pixels of the ellipse to 22
                 -1,
             )
             #  Create another non-extended ellipse that is used to create the
             #  persist_jumps for this integration. This will be used to mask groups
             #  in subsequent integrations.
-            sat_ellipse = image[:, :, 2]
-            saty, satx = np.where(sat_ellipse == 22)
+            sat_ellipse = image[:, :, 2]  # extract the Blue plane of the image
+            saty, satx = np.where(sat_ellipse == 22)  # find all the ellipse pixels in the ellipse
             outcube[grp:, saty, satx] = sat_flag
             persist_image = cv.ellipse(
                 persist_image,
