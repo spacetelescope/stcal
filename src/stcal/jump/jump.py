@@ -533,7 +533,7 @@ def flag_large_events(
         required for a snowball to be created
     max_extended_radius : int
         The largest radius that a snowball or shower can be extended
-    mask_persist_grps_next_int: Boolean
+    mask_persist_grps_next_int : bool
         The flag to turn on the extension of the flagging of the saturated cores of
         snowballs.
     persist_grps_flagged : int (grps)
