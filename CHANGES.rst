@@ -2,7 +2,7 @@
 ==================
 
 jump
-------------
+----
 Fix the code to at least always flag the group with the shower and the requested
 groups after the primary shower. [#237]
 
