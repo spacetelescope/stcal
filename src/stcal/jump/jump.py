@@ -323,11 +323,11 @@ def detect_jumps(
 
         # must copy arrays here, find_crs will make copies but if slices
         # are being passed in for multiprocessing then the original gdq will be
-        # modified unless copied beforehand
+        # modified unless copied beforehand.
         gdq = gdq.copy()
         data = data.copy()
         copy_arrs = False  # we don't need to copy arrays again in find_crs
-
+        print("this is a test")
         for i in range(n_slices - 1):
             slices.insert(
                 i,
