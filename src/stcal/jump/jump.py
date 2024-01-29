@@ -333,7 +333,7 @@ def detect_jumps(
                 i,
                 (
                     data[:, :, i * yinc : (i + 1) * yinc, :],
-                    gdq[:, :, i * yinc : (i + 1) * yinc, :],
+                    gdq[:, :, i * yinc : (i + 1) * yinc, :].copy(),
                     readnoise_2d[i * yinc : (i + 1) * yinc, :],
                     rejection_thresh,
                     three_grp_thresh,
@@ -359,7 +359,7 @@ def detect_jumps(
             n_slices - 1,
             (
                 data[:, :, (n_slices - 1) * yinc : n_rows, :],
-                gdq[:, :, (n_slices - 1) * yinc : n_rows, :],
+                gdq[:, :, (n_slices - 1) * yinc : n_rows, :].copy(),
                 readnoise_2d[(n_slices - 1) * yinc : n_rows, :],
                 rejection_thresh,
                 three_grp_thresh,
