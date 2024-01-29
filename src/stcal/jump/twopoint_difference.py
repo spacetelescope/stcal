@@ -411,7 +411,7 @@ def find_crs(
                 row = cr_row[j]
                 col = cr_col[j]
                 if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
-                    for kk in range(group, min(group + cgroup + 1, ngroups)):
+                    for kk in range(group + 1, min(group + cgroup + 1, ngroups)):
                         if (gdq[intg, kk, row, col] & sat_flag) == 0 and (
                             gdq[intg, kk, row, col] & dnu_flag
                         ) == 0:
