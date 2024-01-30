@@ -333,7 +333,6 @@ def detect_jumps(
         gdq = gdq.copy()
         data = data.copy()
         copy_arrs = False  # we don't need to copy arrays again in find_crs
-        print("this is a test")
         for i in range(n_slices - 1):
             slices.insert(
                 i,

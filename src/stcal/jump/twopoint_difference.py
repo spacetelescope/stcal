@@ -401,7 +401,6 @@ def find_crs(
     # the transient seen after ramp jumps
     flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
     flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
-    print("starting flagging after jump")
     for cthres, cgroup in zip(flag_e_threshold, flag_groups):
         if cgroup > 0 and cthres > 0:
             cr_intg, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
