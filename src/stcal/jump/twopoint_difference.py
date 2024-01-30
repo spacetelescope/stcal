@@ -410,7 +410,7 @@ def find_crs(
                 group = cr_group[j]
                 row = cr_row[j]
                 col = cr_col[j]
-                if e_jump_4d[intg, group - 1, row, col] >= cthres[row, col]:
+                if e_jump_4d[intg, group - 1, row, col] >= cthres:
                     for kk in range(group + 1, min(group + cgroup + 1, ngroups)):
                        gdq[intg, kk, row, col] = np.bitwise_or(gdq[intg, kk, row, col], jump_flag)
     if "stddev" in locals():
