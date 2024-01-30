@@ -277,6 +277,12 @@ def detect_jumps(
             minimum_sigclip_groups=minimum_sigclip_groups,
             only_use_ints=only_use_ints,
         )
+        # remove redundant bits in pixels that have jump flagged but were
+        # already flagged as do_not_use or saturated.
+        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
+            dqflags['DO_NOT_USE']
+        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
+            dqflags['SATURATED']
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(
