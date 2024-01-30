@@ -4,7 +4,7 @@ import time
 import numpy as np
 import cv2 as cv
 import astropy.stats as stats
-from astropy.io import fits
+
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
@@ -837,8 +837,6 @@ def find_faint_extended(
 
     """
     log.info('Flagging Showers')
-    fits.writeto("shower_input_data.fits", indata, overwrite=True)
-    fits.writeto("shower_input_gdq.fits", gdq, overwrite=True)
     read_noise_2 = readnoise_2d**2
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
@@ -847,7 +845,6 @@ def find_faint_extended(
     all_ellipses = []
     first_diffs = np.diff(data, axis=1)
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-    fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
     nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
@@ -887,10 +884,6 @@ def find_faint_extended(
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
-            if grp == 12:
-                fits.writeto("masked_ratio.fits", masked_ratio.filled(np.nan), overwrite=True)
-                fits.writeto("masked_smoothed_ratio.fits", masked_smoothed_ratio, overwrite=True)
-                fits.writeto("extended_emission.fits", extended_emission, overwrite=True)
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size
