@@ -702,8 +702,8 @@ def find_last_grp(grp, ngrps, num_grps_masked_after):
         The index of the last group to flag for the shower
 
     """
-    num_grps_masked_after += 1
-    last_grp = min(grp + num_grps_masked_after, ngrps)
+    num_grps_masked += 1
+    last_grp = min(grp + num_grps_masked, ngrps)
     return last_grp
 
 def find_circles(dqplane, bitmask, min_area):
