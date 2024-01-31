@@ -683,7 +683,7 @@ def extend_ellipses(
     diff_cube = out_gdq_cube - gdq_cube
     return out_gdq_cube, num_ellipses
 
-def find_last_grp(grp, ngrps, num_grps_masked_after):
+def find_last_grp(grp, ngrps, num_grps_masked):
     """
     Parameters
     ----------
