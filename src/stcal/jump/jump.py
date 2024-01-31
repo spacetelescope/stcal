@@ -686,18 +686,20 @@ def extend_ellipses(
 def find_last_grp(grp, ngrps, num_grps_masked_after):
     """
     Parameters
-    _________
+    ----------
     grp : int
-    The location of the shower
-    ngrps :
-    The number of groups in the integration
-    num_grps_masked_after :
-    The requested number of groups to be flagged after the shower
+        The location of the shower
+    
+    ngrps : int
+        The number of groups in the integration
+    
+    num_grps_masked_after : int
+        The requested number of groups to be flagged after the shower
 
     Returns
-    _______
+    -------
     last_grp : int
-      The index of the last group to flag for the shower
+        The index of the last group to flag for the shower
 
     """
     num_grps_masked_after += 1
