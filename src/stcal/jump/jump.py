@@ -693,7 +693,7 @@ def find_last_grp(grp, ngrps, num_grps_masked_after):
     ngrps : int
         The number of groups in the integration
     
-    num_grps_masked_after : int
+    num_grps_masked : int
         The requested number of groups to be flagged after the shower
 
     Returns
