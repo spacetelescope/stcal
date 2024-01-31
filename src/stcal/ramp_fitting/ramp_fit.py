@@ -30,7 +30,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
-def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
+def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False, avg_dark_current=0):
     """
     Create an internal ramp fit class from a data model.
 
@@ -77,6 +77,7 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     ramp_data.num_rows = ramp_data.data.shape[2]
 
     ramp_data.suppress_one_group_ramps = suppress_one_group
+    ramp_data.avg_dark_current = avg_dark_current
 
     return ramp_data
 
@@ -165,7 +166,7 @@ def ramp_fit(
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
-    ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
+    ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group, avg_dark_current)
 
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
