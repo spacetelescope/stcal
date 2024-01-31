@@ -281,7 +281,7 @@ def detect_jumps(
         )
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-            total_snowballs = flag_large_events(
+            gdq, total_snowballs = flag_large_events(
                 gdq,
                 jump_flag,
                 sat_flag,
@@ -431,7 +431,7 @@ def detect_jumps(
             k += 1
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-            total_snowballs = flag_large_events(
+            gdq, total_snowballs = flag_large_events(
                 gdq,
                 jump_flag,
                 sat_flag,
@@ -581,7 +581,7 @@ def flag_large_events(
                 expansion=expand_factor,
                 max_extended_radius=max_extended_radius,
             )
-    return total_snowballs
+    return gdq, total_snowballs
 
 
 def extend_saturation(
@@ -957,12 +957,12 @@ def find_faint_extended(
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
+    total_showers = 0
     if all_ellipses:
         #  Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers
         # can flag future groups and would confuse the detection algorithm if
         # we worked on groups that already had some flagged showers.
-        total_showers = 0
         for showers in all_ellipses:
             intg = showers[0]
             grp = showers[1]
