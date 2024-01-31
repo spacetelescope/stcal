@@ -167,7 +167,7 @@ def ols_ramp_fit_multiprocessing(
     log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
         ramp_data, buffsize, save_opt,
-        readnoise_2d, gain_2d, weighting, avg_dark_current, number_slices)
+        readnoise_2d, gain_2d, weighting, number_slices)
 
     pool = Pool(processes=number_slices)
     pool_results = pool.starmap(ols_ramp_fit_single, slices)
@@ -712,7 +712,7 @@ def ols_ramp_fit_single(
     #   noise only, read noise only, and the combination of Poisson noise and
     #   read noise. The integration-specific variances are 3D arrays, and the
     #   segment-specific variances are 4D arrays.
-    variances_ans = ramp_fit_compute_variances( ramp_data, gain_2d, readnoise_2d, fit_slopes_ans, avg_dark_current)
+    variances_ans = ramp_fit_compute_variances( ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
     # Now that the segment-specific and integration-specific variances have
     #   been calculated, the segment-specific, integration-specific, and
@@ -1032,8 +1032,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     )
 
 
-def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
-                               avg_dark_current):
+def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans):
     """
     In this 'Second Pass' over the data, loop over integrations and data
     sections to calculate the variances of the slope using the estimated
@@ -1156,7 +1155,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
             # Suppress harmless arithmetic warnings for now
             warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-            var_p4[num_int, :, rlo:rhi, :] = (den_p3 * med_rates[rlo:rhi, :]) + avg_dark_current
+            var_p4[num_int, :, rlo:rhi, :] = ((den_p3 * med_rates[rlo:rhi, :]) +
+                                              ramp_data.avg_dark_current)
 
             # Find the segment variance due to read noise and convert back to DN
             var_r4[num_int, :, rlo:rhi, :] = num_r3 * den_r3 / gain_sect**2
@@ -1198,7 +1198,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans,
 
         # For pixels with zero or negative rates set the Poisson variance to the
         # dark current rate.
-        var_p4[num_int, :, med_rates <= 0.0] = avg_dark_current
+        var_p4[num_int, :, med_rates <= 0.0] = ramp_data.avg_dark_current
 
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
         inv_var_both4[num_int, :, :, :] = 1.0 / var_both4[num_int, :, :, :]

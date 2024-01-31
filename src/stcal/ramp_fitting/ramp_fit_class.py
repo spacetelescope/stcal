@@ -15,6 +15,7 @@ class RampData:
         self.groupgap = None
         self.nframes = None
         self.drop_frames1 = None
+        self.avg_dark_current = None
 
         # Data quality flags
         self.flags_do_not_use = None
