@@ -681,6 +681,8 @@ def extend_ellipses(
             jump_ellipse[saty, satx] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     diff_cube = out_gdq_cube - gdq_cube
+    print("")
+    print("extend ellipse corner", out_gdq_cube[0, 2, 0, 0])
     return out_gdq_cube, num_ellipses
 
 def find_last_grp(grp, ngrps, num_grps_masked):
