@@ -176,7 +176,7 @@ def test_flag_large_events_groupedsnowball():
     print("final corner", cube[0, 2, 0, 0])
     #    assert cube[0, 1, 2, 2] == 0
     #    assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 0, 0] == 0
+    assert cube[0, 2, 0, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
     assert cube[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
 
