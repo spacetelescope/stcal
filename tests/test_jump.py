@@ -356,12 +356,12 @@ def test_calc_num_slices():
 
 
 def test_find_last_grp():
-    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=0) == 6)
-    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=2) == 7)
-    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=3) == 7)
-    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=1) == 6)
-    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=0) == 6)
-    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=2) == 6)
-    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=0) == 6)
-    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=1) == 7)
-    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=2) == 8)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked_after=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked_after=2) == 7)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked_after=3) == 7)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked_after=1) == 6)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked_after=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked_after=2) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked_after=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked_after=1) == 7)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked_after=2) == 8)
