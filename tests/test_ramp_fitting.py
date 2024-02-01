@@ -799,8 +799,7 @@ def test_zeroframe():
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
-        "optimal", ncores, dqflags, avg_dark_current
-    )
+        "optimal", ncores, dqflags)
 
     tol = 1.0e-5
 
