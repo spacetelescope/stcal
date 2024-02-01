@@ -52,7 +52,7 @@ def base_neg_med_rates_single_integration():
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
-        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags, avg_dark_current
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags, avg_dark_current,
     )
 
     return slopes, cube, optional, gls_dummy
@@ -335,8 +335,8 @@ def jp_2326_test_setup():
     ramp_data.set_meta(
         name="MIRI", frame_time=2.77504, group_time=2.77504, groupgap=0,
         nframes=1, drop_frames1=None)
-    ramp_data.set_dqflags(dqflags, avg_dark_current
-                          )
+    ramp_data.set_dqflags(dqflags)
+    ramp_data.avg_dark_current = avg_dark_current
 
     # Set up gain and read noise
     gain = np.ones(shape=(nrows, ncols), dtype=np.float32) * 5.5
@@ -444,7 +444,7 @@ def test_2_group_cases():
         name="NIRSPEC", frame_time=14.58889, group_time=14.58889, groupgap=0, nframes=1, drop_frames1=None
     )
 
-    ramp_data.set_dqflags(dqflags, avg_dark_current)
+    ramp_data.set_dqflags(dqflags)
 
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
@@ -770,7 +770,7 @@ def create_zero_frame_data():
         nframes=nframes,
         drop_frames1=None,
     )
-    ramp_data.set_dqflags(dqflags, avg_dark_current)
+    ramp_data.set_dqflags(dqflags)
 
 
     ramp_data.suppress_one_group_ramps = False
@@ -893,7 +893,7 @@ def create_only_good_0th_group_data():
         nframes=nframes,
         drop_frames1=None,
     )
-    ramp_data.set_dqflags(dqflags, avg_dark_current)
+    ramp_data.set_dqflags(dqflags)
 
     ramp_data.suppress_one_group_ramps = False
 
@@ -1476,18 +1476,18 @@ def test_ramp_fit_dark_current_variance():
     dims = nints, ngroups, nrows, ncols
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
     #Test for zero dark rate
-    avg_dark_current = 0.0
+    ramp.avg_dark_current = 0.0
     med_rates = np.zeros(shape=(2, 2))
     fit_slopes_ans = (1, 0, 0, 0, 0, 1, 0, 0, 0, med_rates)
     var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, inv_var_both4, s_inv_var_p3, \
-    s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
+    s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans)
 
     assert(var_p4[0, 0, 0, 0] == 0.0)
 
     #Test for a dark rate of 1.5 e-/sec
-    avg_dark_current = 1.5
+    ramp.avg_dark_current = 1.5
     var_p3, var_r3, var_p4, var_r4, var_both4, var_both3, inv_var_both4, s_inv_var_p3, \
-        s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans, avg_dark_current)
+        s_inv_var_r3, s_inv_var_both3 = ramp_fit_compute_variances(ramp, gain, rnoise, fit_slopes_ans)
     assert(var_p4[0, 0, 0, 0] == 1.5)
 
 # -----------------------------------------------------------------------------
@@ -1523,7 +1523,7 @@ def setup_inputs(dims, var, tm):
     ramp_data.set_meta(
         name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0,
         nframes=nframes, drop_frames1=None)
-    ramp_data.set_dqflags(dqflags, avg_dark_current)
+    ramp_data.set_dqflags(dqflags)
 
     gain = np.ones(shape=(nrows, ncols), dtype=np.float64) * gain
     rnoise = np.full((nrows, ncols), rnoise, dtype=np.float32)

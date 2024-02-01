@@ -250,8 +250,7 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores, avg_dark_current
-        )
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores)
         gls_opt_info = None
 
     return image_info, integ_info, opt_info, gls_opt_info

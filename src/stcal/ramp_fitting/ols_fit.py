@@ -20,8 +20,7 @@ log.setLevel(logging.DEBUG)
 
 
 def ols_ramp_fit_multi(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores,
-        avg_dark_current):
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
     Setup the inputs to ols_ramp_fit with and without multiprocessing. The
     inputs will be sliced into the number of cores that are being used for
@@ -101,8 +100,7 @@ def ols_ramp_fit_multi(
     if number_slices == 1:
         # Single threaded computation
         image_info, integ_info, opt_info = ols_ramp_fit_single(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting,
-            avg_dark_current)
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
         if image_info is None or integ_info is None:
             return None, None, None
 
@@ -630,7 +628,7 @@ def find_0th_one_good_group(ramp_data):
 
 
 def ols_ramp_fit_single(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, avg_dark_current):
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -712,7 +710,7 @@ def ols_ramp_fit_single(
     #   noise only, read noise only, and the combination of Poisson noise and
     #   read noise. The integration-specific variances are 3D arrays, and the
     #   segment-specific variances are 4D arrays.
-    variances_ans = ramp_fit_compute_variances( ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
+    variances_ans = ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
 
     # Now that the segment-specific and integration-specific variances have
     #   been calculated, the segment-specific, integration-specific, and
