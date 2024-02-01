@@ -10,6 +10,7 @@ The count rate for each pixel is determined by a linear fit to the
 cosmic-ray-free and saturation-free ramp intervals for each pixel; hereafter
 this interval will be referred to as a "segment." The fitting algorithm uses an
 'optimal' weighting scheme, as described by Fixsen et al, PASP, 112, 1350.
+
 Segments are determined using
 the 4-D GROUPDQ array of the input data set, under the assumption that the jump
 step will have already flagged CR's. Segments are terminated where
@@ -17,10 +18,104 @@ saturation flags are found. Pixels are processed simultaneously in blocks
 using the array-based functionality of numpy.  The size of the block depends
 on the image size and the number of groups.
 
+.. _ramp_output_products:
+
+Output Products
+---------------
+
+There are two output products created by default, with a third optional
+product also available:
+
+#. The primary output file ("rate") contains slope and variance/error
+   estimates for each pixel that are the result of averaging over all
+   integrations in the exposure. This is a product with 2-D data arrays.
+#. The secondary product ("rateints") contains slope and variance/error
+   estimates for each pixel on a per-integration basis, stored as 3-D
+   data cubes.
+#. The third, optional, output product contains detailed
+   fit information for every ramp segment for each pixel.
+
+RATE Product
+++++++++++++
+After computing the slopes and variances for all segments for a given pixel, the final slope is
+determined as a weighted average from all segments in all integrations, and is
+written to the "rate" output product.  In this output product, the
+4-D GROUPDQ from all integrations is collapsed into 2-D, merged
+(using a bitwise OR) with the input 2-D PIXELDQ, and stored as a 2-D DQ array.
+The 3-D VAR_POISSON and VAR_RNOISE arrays from all integrations are averaged
+into corresponding 2-D output arrays.  In cases where the median rate
+for a pixel is negative, the VAR_POISSON is set to zero, in order to avoid the
+unphysical situation of having a negative variance.
+
+RATEINTS Product
+++++++++++++++++
+The slope images for each integration are stored as a data cube in "rateints" output data
+product.  Each plane of the 3-D SCI, ERR, DQ, VAR_POISSON, and VAR_RNOISE
+arrays in this product corresponds to the result for a given integration.  In this output
+product, the GROUPDQ data for a given integration is collapsed into 2-D and then
+merged with the input 2-D PIXELDQ array to create the output DQ array for each
+integration. The 3-D VAR_POISSON and VAR_RNOISE arrays are
+calculated by averaging over the fit segments in the corresponding 4-D
+variance arrays.
+
+FITOPT Product
+++++++++++++++
+A third, optional output product is also available and is produced only when
+the step parameter ``save_opt`` is True (the default is False).  This optional
+product contains 4-D arrays called SLOPE, SIGSLOPE, YINT, SIGYINT, WEIGHTS,
+VAR_POISSON, and VAR_RNOISE, which contain the slopes, uncertainties in the
+slopes, y-intercept, uncertainty in the y-intercept, fitting weights,
+variance of the slope due to poisson noise, and the variance of the slope
+due to read noise for each segment of each pixel, respectively. The y-intercept refers
+to the result of the fit at an effective exposure time of zero.  This product also
+contains a 3-D array called PEDESTAL, which gives the signal at zero exposure
+time for each pixel, and the 4-D CRMAG array, which contains the magnitude of
+each group that was flagged as having a CR hit.
+
+By default, the name of this
+output file will have the product type suffix "_fitopt".
+In this optional output product, the pedestal array is
+calculated for each integration by extrapolating the final slope (the weighted
+average of the slopes of all ramp segments in the integration) for each pixel
+from its value at the first group to an exposure time of zero. Any pixel that is
+saturated on the first group is given a pedestal value of 0. Before compression,
+the cosmic-ray magnitude array is equivalent to the input SCI array but with the
+only nonzero values being those whose pixel locations are flagged in the input
+GROUPDQ as cosmic ray hits. The array is compressed, removing all groups in
+which all the values are 0 for pixels having at least one group with a non-zero
+magnitude. The order of the cosmic rays within the ramp is preserved.
+
+.. _ramp_special_cases:
+
+Special Cases
+-------------
+If the input dataset has only one group in each integration (NGROUPS=1), the count rate
+for all unsaturated pixels in each integration will be calculated as the
+value of the science data in the one group divided by the group time.  If the
+input dataset has only two groups per integration (NGROUPS=2), the count rate for all
+unsaturated pixels in each integration will be calculated using the differences
+between the two valid groups of the science data divided by the group time.
+
+For datasets having more than one group in each integration (NGROUPS>1), a ramp having
+a segment with only one good group is processed differently depending on the
+number and size of the other segments in the ramp. If a ramp has only one
+segment and that segment contains a single group, the count rate will be calculated
+to be the value of the science data in that group divided by the group time.  If a ramp
+has a segment with only one good group, and at least one other segment having more
+than one good group, only data from the segment(s) having more than one
+good group will be used to calculate the count rate.
+
+For ramps in a given integration that are saturated beginning in their second group,
+the count rate for that integration will be calculated as the value of the science data
+in the first group divided by the group time, but only if the step parameter
+``suppress_one_group`` is set to ``False``. If set to ``True``, the computation of
+slopes for pixels that have only one good group will be suppressed and the slope
+for that integration will be set to zero.
+
 .. _ramp_slopes_and_variances:
 
 Slope and Variance Calculations
-+++++++++++++++++++++++++++++++
+-------------------------------
 Slopes and their variances are calculated for each segment, for each integration,
 and for the entire exposure. As defined above, a segment is a set of contiguous
 groups where none of the groups is saturated or cosmic ray-affected.  The
@@ -40,7 +135,7 @@ the rate product will be set to NaN.  An example of invalid data would be a
 fully saturated integration for a pixel.
 
 Optimal Weighting Algorithm
----------------------------
++++++++++++++++++++++++++++
 The slope of each segment is calculated using the least-squares method with optimal
 weighting, as described by
 `Fixsen et al 2000 <https://ui.adsabs.harvard.edu/abs/2000PASP..112.1350F/abstract>`_
@@ -86,7 +181,7 @@ sufficient; they are given as:
 +-------------------+------------------------+----------+
 
 Segment-specific Computations
------------------------------
++++++++++++++++++++++++++++++
 The variance of the slope of a segment due to read noise is:
 
 .. math::
@@ -115,7 +210,7 @@ The combined variance of the slope of a segment is the sum of the variances:
 
 
 Integration-specific computations
----------------------------------
++++++++++++++++++++++++++++++++++
 The variance of the slope for an integration due to read noise is:
 
 .. math::
@@ -140,7 +235,7 @@ The slope for an integration depends on the slope and the combined variance of e
    slope_{i} = \frac{ \sum_{s}{ \frac{slope_{s}} {var^C_{s}}}} { \sum_{s}{ \frac{1} {var^C_{s}}}}
 
 Exposure-level computations
----------------------------
++++++++++++++++++++++++++++
 
 The variance of the slope due to read noise depends on a sum over all integrations:
 
@@ -164,4 +259,50 @@ segments, and hence is a sum over integrations and segments:
 
 .. math::
     slope_{o} = \frac{ \sum_{i,s}{ \frac{slope_{i,s}} {var^C_{i,s}}}} { \sum_{i,s}{ \frac{1} {var^C_{i,s}}}}
+
+
+.. _ramp_error_propagation:
+
+Error Propagation
+-----------------
+Error propagation in the ``ramp_fitting`` step is implemented by carrying along
+the individual variances in the slope due to Poisson noise and read noise at all
+levels of calculations. The total error estimate at each level is computed as
+the square-root of the sum of the two variance estimates.
+
+In each type of output product generated by the step, the variance in the slope
+due to Poisson noise is stored in the "VAR_POISSON" extension, the variance in
+the slope due to read noise is stored in the "VAR_RNOISE" extension, and the
+total error is stored in the "ERR" extension. In the optional output product,
+these arrays contain information for every segment used in the fitting for each
+pixel. In the "rateints" product they contain values for each integration, and
+in the "rate" product they contain values for the exposure as a whole.
+
+.. _ramp_dq_propagation:
+
+Data Quality Propagation
+------------------------
+For a given pixel, if all groups in an integration are flagged as DO_NOT_USE or
+SATURATED, then that pixel will be flagged as DO_NOT_USE in the corresponding
+integration in the "rateints" product.  Note this does NOT mean that all groups
+are flagged as SATURATED, nor that all groups are flagged as DO_NOT_USE.  For
+example, slope calculations that are suppressed due to a ramp containing only
+one good group will be flagged as DO_NOT_USE in the
+first group, but not necessarily any other group, while only groups two and
+beyond are flagged as SATURATED.  Further, only if all integrations in the "rateints"
+product are flagged as DO_NOT_USE, then the pixel will be flagged as DO_NOT_USE
+in the "rate" product.
+
+For a given pixel, if all groups in an integration are flagged as SATURATED,
+then that pixel will be flagged as SATURATED and DO_NOT_USE in the corresponding
+integration in the "rateints" product.  This is different from the above case in
+that this is only for all groups flagged as SATURATED, not for some combination
+of DO_NOT_USE and SATURATED.  Further, only if all integrations in the "rateints"
+product are flagged as SATURATED, then the pixel will be flagged as SATURATED
+and DO_NOT_USE in the "rate" product.
+
+For a given pixel, if any group in an integration is flagged as JUMP_DET, then
+that pixel will be flagged as JUMP_DET in the corresponding integration in the
+"rateints" product.  That pixel will also be flagged as JUMP_DET in the "rate"
+product.
 

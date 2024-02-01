@@ -1,7 +1,19 @@
 1.5.3 (unreleased)
 ==================
 
-- 
+Other
+-----
+
+jump
+~~~~
+
+- Fixed the computation of the number of rows per slice for multiprocessing, which
+  was causing different results when running the step with multiprocess [#239]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Reorganize ramp_fitting docs [#240]
 
 1.5.2 (2023-12-13)
 ==================
@@ -24,7 +36,7 @@ Other
 - Enable automatic linting and code style checks [#187]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
   jump detection algorithm into it. [#215]
@@ -84,7 +96,7 @@ jump
   within a group. [#207]
 
 - Added more allowable selections for the number of cores to use for
-  multiprocessing [#183].
+  multiprocessing [#183]
 
 - Fixed the computation of the number of rows per slice for multiprocessing,
   which caused different results when running the step with multiprocess [#239]
@@ -93,7 +105,7 @@ ramp_fitting
 ~~~~~~~~~~~~
 
 - Added more allowable selections for the number of cores to use for
-  multiprocessing [#183].
+  multiprocessing [#183]
 
 - Updating variance computation for invalid integrations, as well as
   updating the median rate computation by excluding groups marked as
