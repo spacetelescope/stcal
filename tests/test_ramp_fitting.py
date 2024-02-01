@@ -762,8 +762,8 @@ def create_zero_frame_data():
     avg_dark_current = 0.0
     # Create RampData for testing.
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq,
-        name="NIRCam",
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_meta(name="NIRCam",
         frame_time=frame_time,
         group_time=group_time,
         groupgap=groupgap,
@@ -799,7 +799,7 @@ def test_zeroframe():
     algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo,
-        "optimal", ncores, dqflags)
+        "optimal", ncores, dqflags, avg_dark_current)
 
     tol = 1.0e-5
 
