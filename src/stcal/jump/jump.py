@@ -235,8 +235,8 @@ def detect_jumps(
     err *= gain_2d
     readnoise_2d *= gain_2d
     # also apply to the after_jump thresholds
-    after_jump_flag_e1 = after_jump_flag_dn1 * gain_2d
-    after_jump_flag_e2 = after_jump_flag_dn2 * gain_2d
+    after_jump_flag_e1 = after_jump_flag_dn1 * np.nanmedian(gain_2d)
+    after_jump_flag_e2 = after_jump_flag_dn2 * np.nanmedian(gain_2d)
 
     # Apply the 2-point difference method as a first pass
     log.info("Executing two-point difference method")
@@ -277,6 +277,12 @@ def detect_jumps(
             minimum_sigclip_groups=minimum_sigclip_groups,
             only_use_ints=only_use_ints,
         )
+        # remove redundant bits in pixels that have jump flagged but were
+        # already flagged as do_not_use or saturated.
+        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
+            dqflags['DO_NOT_USE']
+        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
+            dqflags['SATURATED']
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(
@@ -314,7 +320,7 @@ def detect_jumps(
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     else:
-        yinc = int(n_rows / n_slices)
+        yinc = int(n_rows // n_slices)
         slices = []
         # Slice up data, gdq, readnoise_2d into slices
         # Each element of slices is a tuple of
@@ -323,17 +329,16 @@ def detect_jumps(
 
         # must copy arrays here, find_crs will make copies but if slices
         # are being passed in for multiprocessing then the original gdq will be
-        # modified unless copied beforehand
+        # modified unless copied beforehand.
         gdq = gdq.copy()
         data = data.copy()
         copy_arrs = False  # we don't need to copy arrays again in find_crs
-
         for i in range(n_slices - 1):
             slices.insert(
                 i,
                 (
                     data[:, :, i * yinc : (i + 1) * yinc, :],
-                    gdq[:, :, i * yinc : (i + 1) * yinc, :],
+                    gdq[:, :, i * yinc : (i + 1) * yinc, :].copy(),
                     readnoise_2d[i * yinc : (i + 1) * yinc, :],
                     rejection_thresh,
                     three_grp_thresh,
@@ -359,7 +364,7 @@ def detect_jumps(
             n_slices - 1,
             (
                 data[:, :, (n_slices - 1) * yinc : n_rows, :],
-                gdq[:, :, (n_slices - 1) * yinc : n_rows, :],
+                gdq[:, :, (n_slices - 1) * yinc : n_rows, :].copy() ,
                 readnoise_2d[(n_slices - 1) * yinc : n_rows, :],
                 rejection_thresh,
                 three_grp_thresh,
@@ -381,6 +386,8 @@ def detect_jumps(
         )
         log.info("Creating %d processes for jump detection ", n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
+######### JUST FOR DEBUGGING #########################
+#        pool = multiprocessing.Pool(processes=1)
         # Starts each slice in its own process. Starmap allows more than one
         # parameter to be passed.
         real_result = pool.starmap(twopt.find_crs, slices)
@@ -427,6 +434,13 @@ def detect_jumps(
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
+        # remove redundant bits in pixels that have jump flagged but were
+        # already flagged as do_not_use or saturated.
+        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
+                dqflags['DO_NOT_USE']
+        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
+                dqflags['SATURATED']
+
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(
