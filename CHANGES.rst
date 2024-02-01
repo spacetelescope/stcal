@@ -3,7 +3,7 @@
 
 ramp_fitting
 ------------
-- Added the avg_dark_current parameter that is used to inlcude the
+- Added the avg_dark_current parameter that is used to include the
   dark current in the calculation of the Poisson noise [#236]
 
 1.5.2 (2023-12-13)
