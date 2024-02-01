@@ -354,6 +354,7 @@ def test_calc_num_slices():
     n_rows = 9
     assert (calc_num_slices(n_rows, '21', max_available_cores) == 9)
 
+@pytest.mark.skip(reason="local test only")
 def test_shower_slowmode():
     data = fits.getdata("shower_input_data.fits")
     gdq = fits.getdata("shower_input_gdq.fits")
