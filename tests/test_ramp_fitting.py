@@ -52,7 +52,7 @@ def base_neg_med_rates_single_integration():
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
-        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags, avg_dark_current,
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores,
     )
 
     return slopes, cube, optional, gls_dummy
