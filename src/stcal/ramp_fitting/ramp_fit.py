@@ -92,8 +92,8 @@ def ramp_fit(
     weighting,
     max_cores,
     dqflags,
-    avg_dark_current=0.0,
     suppress_one_group=False,
+    avg_dark_current=0.0,
     ):
     """
     Calculate the count rate for each pixel in all data cube sections and all
@@ -142,6 +142,9 @@ def ramp_fit(
     suppress_one_group : bool
         Find ramps with only one good group and treat it like it has zero good
         groups.
+
+    avg_dark_current : flt
+        The average dark current for this detector in units of electrons per second.
 
     Returns
     -------
