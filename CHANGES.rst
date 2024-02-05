@@ -89,6 +89,9 @@ jump
 - Added more allowable selections for the number of cores to use for
   multiprocessing [#183].
 
+- Fixed the computation of the number of rows per slice for multiprocessing,
+  which caused different results when running the step with multiprocess [#239]
+
 ramp_fitting
 ~~~~~~~~~~~~
 
