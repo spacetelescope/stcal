@@ -106,7 +106,7 @@ def test_one_group_small_buffer():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,
     )
 
     data = slopes[0]
@@ -133,7 +133,7 @@ def test_two_integrations():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,
     )
 
     np.testing.assert_allclose(slopes[0][row, col], 133.3377685, 1e-6)
@@ -155,7 +155,7 @@ def test_one_group_two_integrations():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     data = slopes[0]
@@ -177,7 +177,7 @@ def test_nocrs_noflux():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     assert np.max(slopes[0]) == 0
@@ -200,7 +200,7 @@ def test_nocrs_noflux_firstrows_are_nan():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     assert np.max(slopes[0]) == 0
@@ -224,7 +224,7 @@ def test_error_when_frame_time_not_set():
     save_opt, algo, ncores = False, "GLS", "none"
     with pytest.raises(UnboundLocalError):
         slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-            ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+            ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
         )
 
 
@@ -253,7 +253,7 @@ def test_five_groups_two_integrations_Poisson_noise_only():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     out_slope = slopes[0][row, col]
@@ -282,7 +282,7 @@ def test_bad_gain_values():
     # save_opt, algo, ncores = False, "OLS", "none"
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     # data, dq, var_poisson, var_rnoise, err = slopes
@@ -314,7 +314,7 @@ def test_simple_ramp():
     avg_dark_current = 0.0
     save_opt, algo, ncores = False, "GLS", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -339,7 +339,7 @@ def test_read_noise_only_fit():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     xvalues = np.arange(5) * 1.0
@@ -370,7 +370,7 @@ def test_photon_noise_only_fit():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -401,7 +401,7 @@ def test_photon_noise_only_bad_last_group():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -429,7 +429,7 @@ def test_photon_noise_with_unweighted_fit():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "unweighted", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "unweighted", ncores, 
     )
 
     xvalues = np.arange(5) * 1.0
@@ -471,7 +471,7 @@ def test_two_groups_fit():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     ans_data = slopes[0][0, 0]
@@ -503,7 +503,7 @@ def test_four_groups_oneCR_orphangroupatend_fit():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -532,7 +532,7 @@ def test_four_groups_two_CRs_at_end():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -561,7 +561,7 @@ def test_four_groups_four_CRs():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -593,7 +593,7 @@ def test_four_groups_three_CRs_at_end():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -622,7 +622,7 @@ def test_four_groups_CR_causes_orphan_1st_group():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -643,7 +643,7 @@ def test_one_group_fit():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -668,7 +668,7 @@ def test_two_groups_unc():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[2][50, 50]
@@ -708,7 +708,7 @@ def test_five_groups_unc():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     """
@@ -755,7 +755,7 @@ def test_oneCR_10_groups_combination():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,  test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, 
     )
 
     answer = slopes[0][50, 50]
@@ -809,7 +809,7 @@ def test_oneCR_10_groups_combination_noisy2ndSegment():
     avg_dark_current = 0.0
     save_opt, algo, ncores, bufsize = False, "GLS", "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores,
     )
 
     """

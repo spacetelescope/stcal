@@ -60,7 +60,7 @@ def test_pix_0():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -101,7 +101,7 @@ def test_pix_1():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -134,7 +134,7 @@ def test_pix_2():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -177,7 +177,7 @@ def test_pix_3():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -219,7 +219,7 @@ def test_pix_4():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -302,7 +302,7 @@ def test_pix_5():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # XXX see the note above for the differences in C and python testing values.
@@ -351,7 +351,7 @@ def test_pix_6():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -392,7 +392,7 @@ def test_pix_7():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -425,7 +425,7 @@ def test_pix_8():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -459,7 +459,7 @@ def test_pix_9():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -502,7 +502,7 @@ def test_pix_10():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -543,7 +543,7 @@ def test_pix_11():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -579,7 +579,7 @@ def test_pix_12():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results for pixel 1:
@@ -633,7 +633,7 @@ def test_miri_0():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -667,7 +667,7 @@ def test_miri_1():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -701,7 +701,7 @@ def test_miri_2():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
@@ -735,7 +735,7 @@ def test_miri_3():
     avg_dark_current = 0.0
     save_opt, ncores, bufsize, algo = True, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags, avg_dark_current
+        ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores,
     )
 
     # Set truth values for PRIMARY results:
