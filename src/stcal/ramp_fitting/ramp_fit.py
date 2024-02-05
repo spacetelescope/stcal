@@ -177,7 +177,7 @@ def ramp_fit(
 
 
 def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
-                  algorithm, weighting, max_cores, dqflags, avg_dark_current):
+                  algorithm, weighting, max_cores):
     """
     This function begins the ramp fit computation after the creation of the
     RampData class.  It determines the proper path for computation to take
@@ -215,12 +215,6 @@ def ramp_fit_data(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d,
         to use for multi-proc. The total number of cores includes the SMT cores
         (Hyper Threading for Intel).
 
-    dqflags : dict
-        A dictionary with at least the following keywords:
-        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
-
-    avg_dark_current : float (electrons)
-        The average dark current for this detector
     Returns
     -------
     image_info : tuple
