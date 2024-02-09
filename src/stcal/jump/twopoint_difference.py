@@ -237,9 +237,9 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
 
                 # create a 2d array containing the value of the largest 'ratio' for each group
-                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-                max_ratio = np.nanmax(ratio, axis=0)
-                warnings.resetwarnings()
+#                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+#                max_ratio = np.nanmax(ratio, axis=0)
+#                warnings.resetwarnings()
 
                 num_unusable_groups = np.sum(np.isnan(first_diffs), axis=(0, 1))
                 if total_diffs > 2:  # enough diffs to calculate the outliers
@@ -253,12 +253,12 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                     # there are different threshold for 4+, 3, and 2 usable groups
 
-                    row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
-                                                             max_ratio > normal_rej_thresh))
-                    row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
-                                                             max_ratio > three_diff_rej_thresh))
-                    row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
-                                                             max_ratio > two_diff_rej_thresh))
+                    int4cr, row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
+                                                             ratio > normal_rej_thresh))
+                    int3cr, row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
+                                                             ratio > three_diff_rej_thresh))
+                    int2cr, row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
+                                                             ratio > two_diff_rej_thresh))
 
                     # get the rows, col pairs for all pixels with at least one CR
                     all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
