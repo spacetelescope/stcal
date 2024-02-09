@@ -249,7 +249,6 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     pix_cr_mask[jumpint, jumpgrp, jumprow, jumpcol] = 1
                     pix_flagged[:, 1:, :, :] = pix_cr_mask
                     gdq = np.bitwise_or(gdq, dqflags["JUMP_DET"] * pix_flagged)
-                    test = 1
                 else:
                     # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                     # there are different threshold for 4+, 3, and 2 usable groups
