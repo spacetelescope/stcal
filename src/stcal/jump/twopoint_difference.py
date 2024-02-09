@@ -211,7 +211,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                         jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
                         gdq[integ, grp, jumpy, jumpx] = 0
             warnings.resetwarnings()
-        else: # There are not enough groups for sigma clipping
+        else:  # There are not enough groups for sigma clipping
 
                 # set 'saturated' or 'do not use' pixels to nan in data
                 dat[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
