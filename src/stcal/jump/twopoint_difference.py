@@ -241,7 +241,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #                max_ratio = np.nanmax(ratio, axis=0)
 #                warnings.resetwarnings()
 
-                num_unusable_groups = np.sum(np.isnan(first_diffs), axis=(0, 1))
+                num_unusable_diffs = np.sum(np.isnan(first_diffs), axis=(0, 1))
                 if total_diffs > 2:  # enough diffs to calculate the outliers
                     pix_cr_mask = np.zeros(ratio.shape, dtype=bool)
                     pix_flagged = np.zeros(dat.shape, dtype=bool)
@@ -249,6 +249,14 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     pix_cr_mask[jumpint, jumpgrp, jumprow, jumpcol] = 1
                     pix_flagged[:, 1:, :, :] = pix_cr_mask
                     gdq = np.bitwise_or(gdq, dqflags["JUMP_DET"] * pix_flagged)
+                    # deal with pixels with only two good diffs
+                    good_diffs = np.ones(shape=(nrows, ncols)) * total_diffs - num_unusable_diffs
+                    row2gd, col2gd = np.where(good_diffs == 2)
+                    for idx in row2gd.shape:
+                        if np.max(ratio[:, :, row2gd[idx], col2gd[idx]]) > two_diff_rej_thresh:
+                            if ratio[]
+                            gdq[int2gd[idx], np.argmax(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
+                            gdq[int2gd[idx], np.argmin(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = 0
                 else:
                     # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                     # there are different threshold for 4+, 3, and 2 usable groups
@@ -257,6 +265,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                                              ratio > normal_rej_thresh))
                     int3cr, row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
                                                              ratio > three_diff_rej_thresh))
+
                     int2cr, row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
                                                              ratio > two_diff_rej_thresh))
 

@@ -569,7 +569,7 @@ def test_5grps_satat4_crat3(setup_cube):
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nrows=2, ncols=2, readnoise=5 * np.sqrt(2))
     nframes = 1
     data[0, 0, 1, 1] = 10000
-    data[0, 1, 1, 1] = 35000
+    data[0, 1, 1, 1] = 20000
     data[0, 2, 1, 1] = 60000
     data[0, 3, 1, 1] = 61000
     data[0, 4, 1, 1] = 61000
@@ -579,6 +579,7 @@ def test_5grps_satat4_crat3(setup_cube):
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     # assert(4 == np.max(out_gdq))  # no CR was found
+    result = out_gdq[0, :, 1, 1]
     assert np.array_equal(
         [0, 0, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], DQFLAGS['SATURATED']],
         out_gdq[0, :, 1, 1])
