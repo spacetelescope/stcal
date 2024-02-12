@@ -252,11 +252,12 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     # deal with pixels with only two good diffs
                     good_diffs = np.ones(shape=(nrows, ncols)) * total_diffs - num_unusable_diffs
                     row2gd, col2gd = np.where(good_diffs == 2)
+#                    gdq[:, :, row2gd, col2gd] = dqflags["JUMP_DET"]
                     for idx in row2gd.shape:
                         if np.max(ratio[:, :, row2gd[idx], col2gd[idx]]) > two_diff_rej_thresh:
-                            if ratio[]
-                            gdq[int2gd[idx], np.argmax(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
-                            gdq[int2gd[idx], np.argmin(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = 0
+                            gdq[:, :, row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
+#                           gdq[int2gd[idx], np.argmax(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
+#                            gdq[int2gd[idx], np.argmin(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = 0
                 else:
                     # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                     # there are different threshold for 4+, 3, and 2 usable groups
