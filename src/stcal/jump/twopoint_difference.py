@@ -240,7 +240,10 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
 #                max_ratio = np.nanmax(ratio, axis=0)
 #                warnings.resetwarnings()
-
+                e100 = e_jump[:, :, 100, 100]
+                rall100 = ratio_all[:, :, 100, 100]
+                r100 = ratio[:, :, 100, 100]
+                f100 = first_diffs[:, :, 100, 100]
                 num_unusable_diffs = np.sum(np.isnan(first_diffs), axis=(0, 1))
                 if total_diffs > 2:  # enough diffs to calculate the outliers
                     pix_cr_mask = np.zeros(ratio.shape, dtype=bool)
@@ -253,80 +256,55 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     good_diffs = np.ones(shape=(nrows, ncols)) * total_diffs - num_unusable_diffs
                     row2gd, col2gd = np.where(good_diffs == 2)
 #                    gdq[:, :, row2gd, col2gd] = dqflags["JUMP_DET"]
-                    for idx in row2gd.shape:
-                        if np.max(ratio[:, :, row2gd[idx], col2gd[idx]]) > two_diff_rej_thresh:
-                            gdq[:, :, row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
+                    for idx in range(row2gd.shape[0]):
+                        if np.max(ratio[:, :, row2gd[idx], col2gd[idx]]) < two_diff_rej_thresh:
+                            gdq[:, :, row2gd[idx], col2gd[idx]] = np.bitwise_and(gdq[:, :, row2gd[idx], col2gd[idx]],
+                                                                                 [0b1111111111111111111111111111011])
 #                           gdq[int2gd[idx], np.argmax(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
 #                            gdq[int2gd[idx], np.argmin(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = 0
                 else:
                     # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                     # there are different threshold for 4+, 3, and 2 usable groups
 
-                    int4cr, row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
-                                                             ratio > normal_rej_thresh))
-                    int3cr, row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
-                                                             ratio > three_diff_rej_thresh))
+#                    int4cr, row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
+#                                                             ratio > normal_rej_thresh))
+#                    int3cr, row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
+#                                                             ratio > three_diff_rej_thresh))
+                    if nints == 2:
+                        diff_of_diffs = np.abs(first_diffs[0, :, :, :] - first_diffs[1, :, :, :])
+                        grp2cr, row2cr, col2cr = np.where(diff_of_diffs > two_diff_rej_thresh)
+                        for idx in range(row2cr.shape[0]):
+                            if first_diffs[0, 0, row2cr[idx], col2cr[idx]] > first_diffs[1, 0, row2cr[idx], col2cr[idx]]:
+                                gdq[0, 1, row2cr[idx], col2cr[idx]] = \
+                                    np.bitwise_or(gdq[0, 0, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
+                            else:
+                                gdq[1, 1, row2cr[idx], col2cr[idx]] = \
+                                    np.bitwise_or(gdq[1, 0, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
+                    else:
+                        diff_of_diffs = np.abs(first_diffs[0, 0, :, :] - first_diffs[0, 1, :, :])
+                        row2cr, col2cr = np.where(diff_of_diffs > two_diff_rej_thresh)
+                        for idx in range(row2cr.shape[0]):
+                            if first_diffs[0, 0, row2cr[idx], col2cr[idx]] > first_diffs[0, 1, row2cr[idx], col2cr[idx]]:
+                                gdq[0, 1, row2cr[idx], col2cr[idx]] = \
+                                    np.bitwise_or(gdq[0, 0, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
+                            else:
+                                gdq[0, 2, row2cr[idx], col2cr[idx]] = \
+                                    np.bitwise_or(gdq[0, 1, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
 
-                    int2cr, row2cr, col2cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 2,
-                                                             ratio > two_diff_rej_thresh))
+ #                   row2cr, col2cr = np.where(np.logical_and(diff_of_diffs > two_diff_rej_thresh))
+ #                   r100 = ratio[0, :, 100, 100]
+ #                   for idx in range(row2cr.shape[0]):
+ #                       if np.max(first_diffs[int2cr[idx], grp2cr[idx], row2cr[idx], col2cr[idx]]
+ #                   # get the rows, col pairs for all pixels with at least one CR (only 2 diffs get here)
+ #                   all_crs_int = int2cr
+ #                   all_crs_grp = grp2cr
+ #                   all_crs_row = row2cr
+ #                   all_crs_col = col2cr
 
-                    # get the rows, col pairs for all pixels with at least one CR
-                    all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
-                    all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
 
-                    # iterate over all groups of the pix w/ an initial CR to look for subsequent CRs
-                    # flag and clip the first CR found. recompute median/sigma/ratio
-                    # and repeat the above steps of comparing the max 'ratio' for each pixel
-                    # to the threshold to determine if another CR can be flagged and clipped.
-                    # repeat this process until no more CRs are found.
-                    for j in range(len(all_crs_row)):
-                        # get arrays of abs(diffs), ratio, readnoise for this pixel
-                        pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
-                        pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
-                        pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
-
-                        # Create a mask to flag CRs. pix_cr_mask = 0 denotes a CR
-                        pix_cr_mask = np.ones(pix_first_diffs.shape, dtype=bool)
-
-                        # set the largest ratio as a CR
-                        pix_cr_mask[np.nanargmax(pix_ratio)] = 0
-                        new_CR_found = True
-
-                        # loop and check for more CRs, setting the mask as you go and
-                        # clipping the group with the CR. stop when no more CRs are found
-                        # or there is only one two diffs left (which means there is
-                        # actually one left, since the next CR will be masked after
-                        # checking that condition)
-                        while new_CR_found and (ndiffs - np.sum(np.isnan(pix_first_diffs)) > 2):
-
-                            new_CR_found = False
-
-                            # set CRs to nans in first diffs to clip them
-                            pix_first_diffs[~pix_cr_mask] = np.nan
-
-                            # recalculate median, sigma, and ratio
-                            new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
-
-                            new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / nframes)
-                            new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
-
-                            # check if largest ratio exceeds threhold appropriate for num remaining groups
-
-                            # select appropriate thresh. based on number of remaining groups
-                            rej_thresh = normal_rej_thresh
-                            if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
-                                rej_thresh = three_diff_rej_thresh
-                            if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
-                                rej_thresh = two_diff_rej_thresh
-                            new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
-                            if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
-                                new_CR_found = True
-                                pix_cr_mask[new_pix_max_ratio_idx] = 0
-                            unusable_diffs = np.sum(np.isnan(pix_first_diffs))
-                        # Found all CRs for this pix - set flags in input DQ array
-                        gdq[integ, 1:, all_crs_row[j], all_crs_col[j]] = \
-                            np.bitwise_or(gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
-                                          dqflags["JUMP_DET"] * np.invert(pix_cr_mask))
+                     # Found all CRs for this pix - set flags in input DQ array
+ #                   gdq[integ, 1:, all_crs_row, all_crs_col] = \
+ #                       np.bitwise_or(gdq[int2cr, all_crs_grp, all_crs_row, all_crs_col], dqflags["JUMP_DET"])
 
         cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
         num_primary_crs = len(cr_group)
