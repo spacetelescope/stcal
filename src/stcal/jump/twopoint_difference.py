@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import astropy.stats as stats
 import warnings
+from astropy.io import fits
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -223,6 +224,12 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 
                 # calc. the median of first_diffs for each pixel along the group axis
 #                median_diffs = calc_med_first_diffs(first_diffs)
+#                median_diffs_old = np.nanmedian(first_diffs, axis=(0, 1))
+#                max_index = np.argmax(first_diffs, axis=1)
+#                print("max index shape", max_index.shape)
+#                fits.writeto("max_index.fits", max_index, overwrite=True)
+#                a = max_index[0, 0, 100, 100]
+#                first_diffs[np.newaxis, np.newaxis, max_index[0], max_index[1]] = np.nan
                 median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
                 # calculate sigma for each pixel
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
@@ -240,15 +247,18 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
 #                max_ratio = np.nanmax(ratio, axis=0)
 #                warnings.resetwarnings()
+                med100 = median_diffs[100, 100]
                 e100 = e_jump[:, :, 100, 100]
                 rall100 = ratio_all[:, :, 100, 100]
                 r100 = ratio[:, :, 100, 100]
                 f100 = first_diffs[:, :, 100, 100]
                 num_unusable_diffs = np.sum(np.isnan(first_diffs), axis=(0, 1))
                 if total_diffs > 2:  # enough diffs to calculate the outliers
-                    pix_cr_mask = np.zeros(ratio.shape, dtype=bool)
-                    pix_flagged = np.zeros(dat.shape, dtype=bool)
-                    jumpint, jumpgrp, jumprow, jumpcol = np.where(ratio > normal_rej_thresh)
+                    if total_diffs >= minimum_groups_median:
+                    else:
+                        pix_cr_mask = np.zeros(ratio.shape, dtype=bool)
+                        pix_flagged = np.zeros(dat.shape, dtype=bool)
+                        jumpint, jumpgrp, jumprow, jumpcol = np.where(ratio > normal_rej_thresh)
                     pix_cr_mask[jumpint, jumpgrp, jumprow, jumpcol] = 1
                     pix_flagged[:, 1:, :, :] = pix_cr_mask
                     gdq = np.bitwise_or(gdq, dqflags["JUMP_DET"] * pix_flagged)

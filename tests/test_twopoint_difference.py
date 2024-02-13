@@ -185,9 +185,9 @@ def test_5grps_twocrs_2nd_5thbig(setup_cube):
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
     nframes = 1
     data[0, 0, 100, 100] = 10.0
-    data[0, 1, 100, 100] = 60
-    data[0, 2, 100, 100] = 60
-    data[0, 3, 100, 100] = 60
+    data[0, 1, 100, 100] = 600
+    data[0, 2, 100, 100] = 600
+    data[0, 3, 100, 100] = 600
     data[0, 4, 100, 100] = 2115
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
