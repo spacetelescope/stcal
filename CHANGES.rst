@@ -1,11 +1,41 @@
 1.5.3 (unreleased)
 ==================
 
+Changes to API
+--------------
+
 jump
-----
+~~~~
+
 - Add in the flagging of groups in the integration after a snowball
   occurs. The saturated core of the snowball gets flagged as jump
   for a number of groups passed in as a parameter [#238]
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Fixed the computation of the number of rows per slice for multiprocessing, which
+  was causing different results when running the step with multiprocess [#239]
+
+- Fix the code to at least always flag the group with the shower and the requested
+  groups after the primary shower. [#237]
+
+Other
+-----
+
+jump
+~~~~
+
+- Reorganize jump docs between the jwst and stcal repos. [#240]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Reorganize ramp_fitting docs between the jwst and stcal repos. [#240]
+
 
 1.5.2 (2023-12-13)
 ==================
@@ -28,7 +58,7 @@ Other
 - Enable automatic linting and code style checks [#187]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
   jump detection algorithm into it. [#215]
@@ -88,13 +118,16 @@ jump
   within a group. [#207]
 
 - Added more allowable selections for the number of cores to use for
-  multiprocessing [#183].
+  multiprocessing [#183]
+
+- Fixed the computation of the number of rows per slice for multiprocessing,
+  which caused different results when running the step with multiprocess [#239]
 
 ramp_fitting
 ~~~~~~~~~~~~
 
 - Added more allowable selections for the number of cores to use for
-  multiprocessing [#183].
+  multiprocessing [#183]
 
 - Updating variance computation for invalid integrations, as well as
   updating the median rate computation by excluding groups marked as

@@ -8,6 +8,8 @@ from stcal.jump.jump import (
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
+    detect_jumps,
+    find_last_grp
 )
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
@@ -28,6 +30,99 @@ def setup_cube():
         return data, gdq, nframes, read_noise, rej_threshold
 
     return _cube
+
+
+def test_multiprocessing():
+    nints = 1
+    nrows = 13
+    ncols = 2
+    ngroups = 13
+    readnoise = 10
+    frames_per_group = 1
+
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    readnoise_2d = np.ones((nrows, ncols), dtype=np.float32) * readnoise
+    gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 4
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
+    num_cores = "1"
+    data[0, 4:, 5, 1] = 2000
+    gdq[0, 4:, 6, 1] = DQFLAGS['DO_NOT_USE']
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
+        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
+        flag_4_neighbors=True, dqflags=DQFLAGS)
+    print(data[0, 4, :, :])
+    print(gdq[0, 4, :, :])
+    assert gdq[0, 4, 5, 1] == DQFLAGS['JUMP_DET']
+    assert gdq[0, 4, 6, 1] == DQFLAGS['DO_NOT_USE']
+
+    # This section of code will fail without the fixes for PR #239 that prevent
+    # the double flagging pixels with jump which already have do_not_use or saturation set.
+    num_cores = "5"
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    readnoise_2d = np.ones((nrows, ncols), dtype=np.float32) * readnoise
+    gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 3
+    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
+    data[0, 4:, 5, 1] = 2000
+    gdq[0, 4:, 6, 1] = DQFLAGS['DO_NOT_USE']
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
+        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
+        flag_4_neighbors=True, dqflags=DQFLAGS)
+    assert gdq[0, 4, 5, 1] == DQFLAGS['JUMP_DET']
+    assert gdq[0, 4, 6, 1] == DQFLAGS['DO_NOT_USE'] #This value would have been 5 without the fix.
+
+
+def test_multiprocessing_big():
+    nints = 1
+    nrows = 2048
+    ncols = 7
+    ngroups = 13
+    readnoise = 10
+    frames_per_group = 1
+
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    readnoise_2d = np.ones((nrows, ncols), dtype=np.float32) * readnoise
+    gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 4
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
+    num_cores = "1"
+    data[0, 4:, 204, 5] = 2000
+    gdq[0, 4:, 204, 6] = DQFLAGS['DO_NOT_USE']
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
+        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
+        flag_4_neighbors=True, dqflags=DQFLAGS)
+    print(data[0, 4, :, :])
+    print(gdq[0, 4, :, :])
+    assert gdq[0, 4, 204, 5] == DQFLAGS['JUMP_DET']
+    assert gdq[0, 4, 205, 5] == DQFLAGS['JUMP_DET']
+    assert gdq[0, 4, 204, 6] == DQFLAGS['DO_NOT_USE']
+
+    # This section of code will fail without the fixes for PR #239 that prevent
+    # the double flagging pixels with jump which already have do_not_use or saturation set.
+    num_cores = "10"
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    readnoise_2d = np.ones((nrows, ncols), dtype=np.float32) * readnoise
+    gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 3
+    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
+    data[0, 4:, 204, 5] = 2000
+    gdq[0, 4:, 204, 6] = DQFLAGS['DO_NOT_USE']
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
+        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
+        flag_4_neighbors=True, dqflags=DQFLAGS)
+    assert gdq[0, 4, 204, 5] == DQFLAGS['JUMP_DET']
+    assert gdq[0, 4, 205, 5] == DQFLAGS['JUMP_DET']
+    assert gdq[0, 4, 204, 6] == DQFLAGS['DO_NOT_USE'] #This value would have been 5 without the fix.
+
 
 
 def test_find_simple_ellipse():
@@ -128,7 +223,7 @@ def test_flag_large_events_withsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    flag_large_events(
+    cube, total_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -161,7 +256,7 @@ def test_flag_large_events_groupedsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    flag_large_events(
+    cube, total_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -192,7 +287,7 @@ def test_flag_large_events_withsnowball_noextension():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    flag_large_events(
+    cube, num_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -373,3 +468,15 @@ def test_calc_num_slices():
     assert calc_num_slices(n_rows, "3/4", max_available_cores) == 1
     n_rows = 9
     assert calc_num_slices(n_rows, "21", max_available_cores) == 9
+
+
+def test_find_last_grp():
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=2) == 7)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=3) == 7)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=1) == 6)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=2) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=1) == 7)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=2) == 8)
