@@ -9,7 +9,8 @@ The fit is performed independently for each pixel.
 The count rate for each pixel is determined by a linear fit to the
 cosmic-ray-free and saturation-free ramp intervals for each pixel; hereafter
 this interval will be referred to as a "segment." The fitting algorithm uses an
-'optimal' weighting scheme, as described by Fixsen et al, PASP, 112, 1350.
+'optimal' weighting scheme, as described by
+`Fixsen et al. (2011) <https://ui.adsabs.harvard.edu/abs/2000PASP..112.1350F>`_.
 
 Segments are determined using
 the 4-D GROUPDQ array of the input data set, under the assumption that the jump
