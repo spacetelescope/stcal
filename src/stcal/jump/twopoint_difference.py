@@ -16,7 +16,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
              after_jump_flag_e2=0.0,
              after_jump_flag_n2=0,
              copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=100,
-             only_use_ints=True):
+             only_use_ints=True, min_grps_single_pass=10):
 
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -230,32 +230,26 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
 #                fits.writeto("max_index.fits", max_index, overwrite=True)
 #                a = max_index[0, 0, 100, 100]
 #                first_diffs[np.newaxis, np.newaxis, max_index[0], max_index[1]] = np.nan
-                median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
-                # calculate sigma for each pixel
-                sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-                # reset sigma so pixels with 0 read noise are not flagged as jumps
-                sigma[np.where(sigma == 0.)] = np.nan
+            if total_diffs >= min_grps_single_pass:
+                    median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
+                    # calculate sigma for each pixel
+                    sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+                    # reset sigma so pixels with 0 read noise are not flagged as jumps
+                    sigma[np.where(sigma == 0.)] = np.nan
 
                 # compute 'ratio' for each group. this is the value that will be
                 # compared to 'threshold' to classify jumps. subtract the median of
                 # first_diffs from first_diffs, take the abs. value and divide by sigma.
-                e_jump = first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]
+                    e_jump = first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]
 
-                ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
-
+                    ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
+                    masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
                 # create a 2d array containing the value of the largest 'ratio' for each group
 #                warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
 #                max_ratio = np.nanmax(ratio, axis=0)
 #                warnings.resetwarnings()
-                med100 = median_diffs[100, 100]
-                e100 = e_jump[:, :, 100, 100]
-                rall100 = ratio_all[:, :, 100, 100]
-                r100 = ratio[:, :, 100, 100]
-                f100 = first_diffs[:, :, 100, 100]
                 num_unusable_diffs = np.sum(np.isnan(first_diffs), axis=(0, 1))
-                if total_diffs > 2:  # enough diffs to calculate the outliers
-                    if total_diffs >= minimum_groups_median:
-                    else:
+            else:  # low number of diffs requires iterative flagging
                         pix_cr_mask = np.zeros(ratio.shape, dtype=bool)
                         pix_flagged = np.zeros(dat.shape, dtype=bool)
                         jumpint, jumpgrp, jumprow, jumpcol = np.where(ratio > normal_rej_thresh)
@@ -301,7 +295,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 gdq[0, 2, row2cr[idx], col2cr[idx]] = \
                                     np.bitwise_or(gdq[0, 1, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
 
- #                   row2cr, col2cr = np.where(np.logical_and(diff_of_diffs > two_diff_rej_thresh))
+                    row2cr, col2cr = np.where(np.logical_and(diff_of_diffs > two_diff_rej_thresh))
  #                   r100 = ratio[0, :, 100, 100]
  #                   for idx in range(row2cr.shape[0]):
  #                       if np.max(first_diffs[int2cr[idx], grp2cr[idx], row2cr[idx], col2cr[idx]]
