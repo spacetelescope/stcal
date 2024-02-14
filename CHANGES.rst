@@ -1,8 +1,11 @@
 1.5.3 (unreleased)
 ==================
 
-Other
------
+Changes to API
+--------------
+
+Bug Fixes
+---------
 
 jump
 ~~~~
@@ -10,10 +13,22 @@ jump
 - Fixed the computation of the number of rows per slice for multiprocessing, which
   was causing different results when running the step with multiprocess [#239]
 
+- Fix the code to at least always flag the group with the shower and the requested
+  groups after the primary shower. [#237]
+
+Other
+-----
+
+jump
+~~~~
+
+- Reorganize jump docs between the jwst and stcal repos. [#240]
+
 ramp_fitting
 ~~~~~~~~~~~~
 
-- Reorganize ramp_fitting docs [#240]
+- Reorganize ramp_fitting docs between the jwst and stcal repos. [#240]
+
 
 1.5.2 (2023-12-13)
 ==================

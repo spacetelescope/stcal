@@ -9,6 +9,7 @@ from stcal.jump.jump import (
     flag_large_events,
     point_inside_ellipse,
     detect_jumps,
+    find_last_grp
 )
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
@@ -220,7 +221,7 @@ def test_flag_large_events_withsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    flag_large_events(
+    cube, total_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -253,7 +254,7 @@ def test_flag_large_events_groupedsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    flag_large_events(
+    cube, total_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -284,7 +285,7 @@ def test_flag_large_events_withsnowball_noextension():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    flag_large_events(
+    cube, num_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -446,3 +447,15 @@ def test_calc_num_slices():
     assert calc_num_slices(n_rows, "3/4", max_available_cores) == 1
     n_rows = 9
     assert calc_num_slices(n_rows, "21", max_available_cores) == 9
+
+
+def test_find_last_grp():
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=2) == 7)
+    assert (find_last_grp(grp=5, ngrps=7, num_grps_masked=3) == 7)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=1) == 6)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=6, num_grps_masked=2) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=0) == 6)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=1) == 7)
+    assert (find_last_grp(grp=5, ngrps=8, num_grps_masked=2) == 8)
