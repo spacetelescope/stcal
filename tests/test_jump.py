@@ -156,6 +156,7 @@ def test_find_ellipse2():
 
 def test_extend_saturation_simple():
     cube = np.zeros(shape=(5, 7, 7), dtype=np.uint8)
+    persist_jumps = np.zeros(shape=(7, 7), dtype=np.uint8)
     grp = 1
     min_sat_radius_extend = 1
     cube[1, 3, 3] = DQFLAGS["SATURATED"]
@@ -165,8 +166,9 @@ def test_extend_saturation_simple():
     cube[1, 3, 2] = DQFLAGS["SATURATED"]
     cube[1, 2, 2] = DQFLAGS["JUMP_DET"]
     sat_circles = find_ellipses(cube[grp, :, :], DQFLAGS["SATURATED"], 1)
-    new_cube = extend_saturation(
-        cube, grp, sat_circles, DQFLAGS["SATURATED"], min_sat_radius_extend, expansion=1.1
+    new_cube, persist_jumps = extend_saturation(
+        cube, grp, sat_circles, DQFLAGS["SATURATED"], DQFLAGS["JUMP_DET"],
+        1.1, persist_jumps,
     )
 
     assert new_cube[grp, 2, 2] == DQFLAGS["SATURATED"]
@@ -430,7 +432,26 @@ def test_inside_ellipes5():
     result = point_inside_ellipse(point, ellipse)
     assert result
 
-
+@pytest.mark.skip(" used for local testing")
+def test_flag_persist_groups():
+#   gdq = fits.getdata("persistgdq.fits")
+    gdq = np.zeros(shape=(2,2,2,2))
+    print(gdq.shape[0])
+    gdq = gdq[:, 0:10, :, :]
+    total_snowballs = flag_large_events(
+        gdq,
+        DQFLAGS["JUMP_DET"],
+        DQFLAGS["SATURATED"],
+        min_sat_area=1,
+        min_jump_area=6,
+        expand_factor=1.9,
+        edge_size=0,
+        sat_required_snowball=True,
+        min_sat_radius_extend=2.5,
+        sat_expand=1.1,
+        mask_persist_grps_next_int=True,
+        persist_grps_flagged=0)
+#   fits.writeto("persitflaggedgdq.fits", gdq, overwrite=True)
 def test_calc_num_slices():
     n_rows = 20
     max_available_cores = 10

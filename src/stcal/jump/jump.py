@@ -56,6 +56,8 @@ def detect_jumps(
     minimum_groups=3,
     minimum_sigclip_groups=100,
     only_use_ints=True,
+    mask_persist_grps_next_int=True,
+    persist_grps_flagged=25,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -299,6 +301,8 @@ def detect_jumps(
                 edge_size=edge_size,
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
+                mask_persist_grps_next_int=mask_persist_grps_next_int,
+                persist_grps_flagged=persist_grps_flagged,
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
@@ -457,6 +461,8 @@ def detect_jumps(
                 edge_size=edge_size,
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
+                mask_persist_grps_next_int=mask_persist_grps_next_int,
+                persist_grps_flagged=persist_grps_flagged,
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
@@ -503,6 +509,8 @@ def flag_large_events(
     sat_expand=2,
     edge_size=25,
     max_extended_radius=200,
+    mask_persist_grps_next_int=True,
+    persist_grps_flagged=5,
 ):
     """
     This routine controls the creation of expanded regions that are flagged as
@@ -540,7 +548,12 @@ def flag_large_events(
         required for a snowball to be created
     max_extended_radius : int
         The largest radius that a snowball or shower can be extended
-
+    mask_persist_grps_next_int : bool
+        The flag to turn on the extension of the flagging of the saturated cores of
+        snowballs.
+    persist_grps_flagged : int
+        How many groups to be flagged when the saturated cores are extended into
+        subsequent integrations
     Returns
     -------
     Nothing, gdq array is modified.
@@ -550,8 +563,8 @@ def flag_large_events(
 
     n_showers_grp = []
     total_snowballs = 0
-    nints = gdq.shape[0]
-    ngrps = gdq.shape[1]
+    nints, ngrps, nrows, ncols = gdq.shape
+    persist_jumps = np.zeros(shape=(nints, gdq.shape[2], gdq.shape[3]), dtype=np.uint8)
     for integration in range(nints):
         for group in range(1, ngrps):
             current_gdq = gdq[integration, group, :, :]
@@ -565,10 +578,8 @@ def flag_large_events(
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
-                nrows = gdq.shape[2]
                 high_threshold = max(0, nrows - edge_size)
-
-                gdq, snowballs = make_snowballs(
+                gdq, snowballs, persist_jumps = make_snowballs(
                     gdq,
                     integration,
                     group,
@@ -579,7 +590,9 @@ def flag_large_events(
                     min_sat_radius_extend,
                     sat_expand,
                     sat_flag,
+                    jump_flag,
                     max_extended_radius,
+                    persist_jumps,
                 )
             else:
                 snowballs = jump_ellipses
@@ -596,15 +609,26 @@ def flag_large_events(
                 num_grps_masked=0,
                 max_extended_radius=max_extended_radius,
             )
+
+    #  Test to see if the flagging of the saturated cores will be extended into the
+    #  subsequent integrations. Persist_jumps contains all the pixels that were saturated
+    #  in the cores of snowballs.
+    if mask_persist_grps_next_int:
+        for intg in range(1, nints):
+            if persist_grps_flagged >= 1:
+                last_grp_flagged = min(persist_grps_flagged, ngrps)
+                gdq[intg, 1:last_grp_flagged, :, :] = np.bitwise_or(gdq[intg, 1:last_grp_flagged, :, :],
+                                                                    np.repeat(persist_jumps[intg - 1, np.newaxis, :, :],
+                                                                    last_grp_flagged - 1, axis=0))
     return gdq, total_snowballs
 
-
 def extend_saturation(
-    cube, grp, sat_ellipses, sat_flag, min_sat_radius_extend, expansion=2, max_extended_radius=200
+    cube, grp, sat_ellipses, sat_flag, jump_flag, min_sat_radius_extend, persist_jumps,
+    expansion=2, max_extended_radius=200
 ):
-    ncols = cube.shape[2]
-    nrows = cube.shape[1]
+    ngroups, nrows, ncols = cube.shape
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
+    persist_image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     outcube = cube.copy()
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
@@ -623,13 +647,29 @@ def extend_saturation(
                 alpha,
                 0,
                 360,
+                (0, 0, 22),  # in the RGB cube, set blue plane pixels of the ellipse to 22
+                -1,
+            )
+            #  Create another non-extended ellipse that is used to create the
+            #  persist_jumps for this integration. This will be used to mask groups
+            #  in subsequent integrations.
+            sat_ellipse = image[:, :, 2]  # extract the Blue plane of the image
+            saty, satx = np.where(sat_ellipse == 22)  # find all the ellipse pixels in the ellipse
+            outcube[grp:, saty, satx] = sat_flag
+            persist_image = cv.ellipse(
+                persist_image,
+                (round(ceny), round(cenx)),
+                (round(ellipse[1][0] / 2), round(ellipse[1][1] / 2)),
+                alpha,
+                0,
+                360,
                 (0, 0, 22),
                 -1,
             )
-            sat_ellipse = image[:, :, 2]
-            saty, satx = np.where(sat_ellipse == 22)
-            outcube[grp:, saty, satx] = sat_flag
-    return outcube
+            persist_ellipse = persist_image[:, :, 2]
+            persist_saty, persist_satx = np.where(persist_ellipse == 22)
+            persist_jumps[persist_saty, persist_satx] = jump_flag
+    return outcube, persist_jumps
 
 
 def extend_ellipses(
@@ -754,7 +794,9 @@ def make_snowballs(
     min_sat_radius,
     expansion,
     sat_flag,
+    jump_flag,
     max_extended_radius,
+    persist_jumps,
 ):
     # This routine will create a list of snowballs (ellipses) that have the
     # center
@@ -786,17 +828,19 @@ def make_snowballs(
                 ):
                     snowballs.append(jump)
     # extend the saturated ellipses that are larger than the min_sat_radius
-    gdq[integration, :, :, :] = extend_saturation(
+    gdq[integration, :, :, :], persist_jumps[integration, :, :] = extend_saturation(
         gdq[integration, :, :, :],
         group,
         sat_ellipses,
         sat_flag,
+        jump_flag,
         min_sat_radius,
+        persist_jumps[integration, :, :],
         expansion=expansion,
         max_extended_radius=max_extended_radius,
     )
 
-    return gdq, snowballs
+    return gdq, snowballs, persist_jumps
 
 
 def point_inside_ellipse(point, ellipse):
