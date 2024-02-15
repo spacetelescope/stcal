@@ -146,6 +146,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
         total_sigclip_groups = nints * (ngrps - num_flagged_grps)
     total_groups = nints * (ngrps - num_flagged_grps)
     total_diffs = nints * (ngrps - 1 - num_flagged_grps)
+    total_usable_diffs = total_diffs - num_flagged_grps
     if (ngrps < minimum_groups and only_use_ints and nints < minimum_sigclip_groups) or \
             (not only_use_ints and nints * ngrps < minimum_sigclip_groups and
              total_groups < minimum_groups):
@@ -222,7 +223,7 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                 # use mask on data, so the results will have sat/donotuse groups masked
                 first_diffs = np.diff(dat, axis=1)
 
-                if total_diffs >= min_grps_single_pass:
+                if total_usable_diffs >= min_grps_single_pass:
                     median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
                     # calculate sigma for each pixel
                     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
@@ -238,25 +239,43 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
 
                 else:#  low number of diffs requires iterative flagging
+                    # calculate the differences between adjacent groups (first diffs)
+                    # use mask on data, so the results will have sat/donotuse groups masked
+                    first_diffs = np.diff(dat, axis=1)
 
-                    # create a 2d array containing the value of the largest 'ratio' for each group
+                    # calc. the median of first_diffs for each pixel along the group axis
+                    median_diffs = calc_med_first_diffs(first_diffs)
+
+                    # calculate sigma for each pixel
+                    sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+                    # reset sigma so pxels with 0 readnoise are not flagged as jumps
+                    sigma[np.where(sigma == 0.0)] = np.nan
+
+                    # compute 'ratio' for each group. this is the value that will be
+                    # compared to 'threshold' to classify jumps. subtract the median of
+                    # first_diffs from first_diffs, take the abs. value and divide by sigma.
+                    e_jump = first_diffs - median_diffs[np.newaxis, :, :]
+                    ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
+
+                    # create a 2d array containing the value of the largest 'ratio' for each pixel
                     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-                    max_ratio = np.nanmax(ratio, axis=0)
+                    max_ratio = np.nanmax(ratio, axis=1)
                     warnings.resetwarnings()
                     # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                     # there are different threshold for 4+, 3, and 2 usable groups
-                    num_unusable_groups = np.sum(np.isnan(first_diffs), axis=0)
-                    row4cr, col4cr = np.where(
+                    num_unusable_groups = np.sum(np.isnan(first_diffs), axis=(0, 1))
+                    int4cr, row4cr, col4cr = np.where(
                         np.logical_and(ndiffs - num_unusable_groups >= 4, max_ratio > normal_rej_thresh)
                     )
-                    row3cr, col3cr = np.where(
+                    int3cr, row3cr, col3cr = np.where(
                         np.logical_and(ndiffs - num_unusable_groups == 3, max_ratio > three_diff_rej_thresh)
                     )
-                    row2cr, col2cr = np.where(
+                    int2cr, row2cr, col2cr = np.where(
                         np.logical_and(ndiffs - num_unusable_groups == 2, max_ratio > two_diff_rej_thresh)
                     )
 
                     # get the rows, col pairs for all pixels with at least one CR
+#                    all_crs_int = np.concatenate((int4cr, int3cr, int2cr))
                     all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
                     all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
 
@@ -267,15 +286,27 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                     # repeat this process until no more CRs are found.
                     for j in range(len(all_crs_row)):
                         # get arrays of abs(diffs), ratio, readnoise for this pixel
-                        pix_first_diffs = first_diffs[:, all_crs_row[j], all_crs_col[j]]
-                        pix_ratio = ratio[:, all_crs_row[j], all_crs_col[j]]
+                        TEMP_first_DIFFS = first_diffs[:, :, all_crs_row[j], all_crs_col[j]]
+                        pix_first_diffs = first_diffs[:, :, all_crs_row[j], all_crs_col[j]]
+                        pix_ratio = ratio[:, :, all_crs_row[j], all_crs_col[j]]
                         pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
     
                         # Create a mask to flag CRs. pix_cr_mask = 0 denotes a CR
                         pix_cr_mask = np.ones(pix_first_diffs.shape, dtype=bool)
 
                         # set the largest ratio as a CR
-                        pix_cr_mask[np.nanargmax(pix_ratio)] = 0
+                        test = np.nanargmax(pix_ratio)
+                        int = (test + 1)//ngrps
+                        grp = (test + 1) - int*ngrps
+                        shape = test.shape
+                        print("test size", test.shape)
+                        location = np.unravel_index(pix_ratio.argmax(), pix_ratio.shape)
+#                        if test.shape == (1, 1):
+#                        index = np.zeros((1, 1), dtype=np.int32)
+#                        index[0, 0] = np.nanargmax(pix_ratio)
+
+ #                           pix_cr_mask[test] = 0
+                        pix_cr_mask[location] = 0
                         new_CR_found = True
 
                         # loop and check for more CRs, setting the mask as you go and
@@ -303,77 +334,18 @@ def find_crs(dataa, group_dq, read_noise, normal_rej_thresh,
                                 rej_thresh = three_diff_rej_thresh
                             if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
                                 rej_thresh = two_diff_rej_thresh
-                            new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
-                            if new_pix_ratio[new_pix_max_ratio_idx] > rej_thresh:
+                            location = np.unravel_index(new_pix_ratio.argmax(), new_pix_ratio.shape)
+        #                    mask[location] = False
+         #                   new_pix_max_ratio_idx = np.nanargmax(new_pix_ratio)  # index of largest ratio
+                            if new_pix_ratio[location] > rej_thresh:
                                 new_CR_found = True
-                                pix_cr_mask[new_pix_max_ratio_idx] = 0
+                                pix_cr_mask[location] = 0
                             unusable_diffs = np.sum(np.isnan(pix_first_diffs))
                         # Found all CRs for this pix - set flags in input DQ array
-                        gdq[integ, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
-                            gdq[integ, 1:, all_crs_row[j], all_crs_col[j]],
+                        gdq[:, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
+                             gdq[:, 1:, all_crs_row[j], all_crs_col[j]],
                             dqflags["JUMP_DET"] * np.invert(pix_cr_mask),
                         )
-
-                    pix_cr_mask = np.zeros(ratio.shape, dtype=bool)
-                                pix_flagged = np.zeros(dat.shape, dtype=bool)
-                                jumpint, jumpgrp, jumprow, jumpcol = np.where(ratio > normal_rej_thresh)
-                            pix_cr_mask[jumpint, jumpgrp, jumprow, jumpcol] = 1
-                            pix_flagged[:, 1:, :, :] = pix_cr_mask
-                            gdq = np.bitwise_or(gdq, dqflags["JUMP_DET"] * pix_flagged)
-                    # deal with pixels with only two good diffs
-                    good_diffs = np.ones(shape=(nrows, ncols)) * total_diffs - num_unusable_diffs
-                    row2gd, col2gd = np.where(good_diffs == 2)
-#                    gdq[:, :, row2gd, col2gd] = dqflags["JUMP_DET"]
-                    for idx in range(row2gd.shape[0]):
-                        if np.max(ratio[:, :, row2gd[idx], col2gd[idx]]) < two_diff_rej_thresh:
-                            gdq[:, :, row2gd[idx], col2gd[idx]] = np.bitwise_and(gdq[:, :, row2gd[idx], col2gd[idx]],
-                                                                                 [0b1111111111111111111111111111011])
-#                           gdq[int2gd[idx], np.argmax(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = dqflags["JUMP_DET"]
-#                            gdq[int2gd[idx], np.argmin(grp2gd[0], grp2gd[1]), row2gd[idx], col2gd[idx]] = 0
-                else:
-                    # now see if the largest ratio of all groups for each pixel exceeds the threshold.
-                    # there are different threshold for 4+, 3, and 2 usable groups
-
-#                    int4cr, row4cr, col4cr = np.where(np.logical_and(ndiffs - num_unusable_groups >= 4,
-#                                                             ratio > normal_rej_thresh))
-#                    int3cr, row3cr, col3cr = np.where(np.logical_and(ndiffs - num_unusable_groups == 3,
-#                                                             ratio > three_diff_rej_thresh))
-                    if nints == 2:
-                        diff_of_diffs = np.abs(first_diffs[0, :, :, :] - first_diffs[1, :, :, :])
-                        grp2cr, row2cr, col2cr = np.where(diff_of_diffs > two_diff_rej_thresh)
-                        for idx in range(row2cr.shape[0]):
-                            if first_diffs[0, 0, row2cr[idx], col2cr[idx]] > first_diffs[1, 0, row2cr[idx], col2cr[idx]]:
-                                gdq[0, 1, row2cr[idx], col2cr[idx]] = \
-                                    np.bitwise_or(gdq[0, 0, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
-                            else:
-                                gdq[1, 1, row2cr[idx], col2cr[idx]] = \
-                                    np.bitwise_or(gdq[1, 0, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
-                    else:
-                        diff_of_diffs = np.abs(first_diffs[0, 0, :, :] - first_diffs[0, 1, :, :])
-                        row2cr, col2cr = np.where(diff_of_diffs > two_diff_rej_thresh)
-                        for idx in range(row2cr.shape[0]):
-                            if first_diffs[0, 0, row2cr[idx], col2cr[idx]] > first_diffs[0, 1, row2cr[idx], col2cr[idx]]:
-                                gdq[0, 1, row2cr[idx], col2cr[idx]] = \
-                                    np.bitwise_or(gdq[0, 0, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
-                            else:
-                                gdq[0, 2, row2cr[idx], col2cr[idx]] = \
-                                    np.bitwise_or(gdq[0, 1, row2cr[idx], col2cr[idx]], dqflags["JUMP_DET"])
-
-                    row2cr, col2cr = np.where(np.logical_and(diff_of_diffs > two_diff_rej_thresh))
- #                   r100 = ratio[0, :, 100, 100]
- #                   for idx in range(row2cr.shape[0]):
- #                       if np.max(first_diffs[int2cr[idx], grp2cr[idx], row2cr[idx], col2cr[idx]]
- #                   # get the rows, col pairs for all pixels with at least one CR (only 2 diffs get here)
- #                   all_crs_int = int2cr
- #                   all_crs_grp = grp2cr
- #                   all_crs_row = row2cr
- #                   all_crs_col = col2cr
-
-
-                     # Found all CRs for this pix - set flags in input DQ array
- #                   gdq[integ, 1:, all_crs_row, all_crs_col] = \
- #                       np.bitwise_or(gdq[int2cr, all_crs_grp, all_crs_row, all_crs_col], dqflags["JUMP_DET"])
-
         cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
         num_primary_crs = len(cr_group)
         if flag_4_neighbors:  # iterate over each 'jump' pixel
@@ -476,7 +448,7 @@ def calc_med_first_diffs(first_diffs):
         -----------
         first_diffs : array, float
             array containing the first differences of adjacent groups
-            for a single integration. Can be 3d or 1d (for a single pix)
+            for all integrations. Can be 4d or 1d (for a single pix)
 
         Returns
         -------
@@ -487,51 +459,55 @@ def calc_med_first_diffs(first_diffs):
             will be returned.
         """
 
-    if first_diffs.ndim == 1:  # in the case where input is a single pixel
-
-        num_usable_groups = len(first_diffs) - np.sum(np.isnan(first_diffs), axis=0)
-        if num_usable_groups >= 4:  # if 4+, clip largest and return median
+    if first_diffs.ndim == 2:  # in the case where input is a single pixel
+        nansum = np.sum(np.isnan(first_diffs), axis=(0, 1))
+        num_usable_diffs = first_diffs.size - np.sum(np.isnan(first_diffs), axis=(0, 1))
+        if num_usable_diffs >= 4:  # if 4+, clip largest and return median
             mask = np.ones_like(first_diffs).astype(bool)
-            mask[np.nanargmax(np.abs(first_diffs))] = False  # clip the diff with the largest abs value
+            location = np.unravel_index(first_diffs.argmax(), first_diffs.shape)
+            mask[location] = False  # clip the diff with the largest abs value
             return np.nanmedian(first_diffs[mask])
-        elif num_usable_groups == 3:  # if 3, no clipping just return median
+        elif num_usable_diffs == 3:  # if 3, no clipping just return median
             return np.nanmedian(first_diffs)
-        elif num_usable_groups == 2:  # if 2, return diff with minimum abs
-            return first_diffs[np.nanargmin(np.abs(first_diffs))]
+        elif num_usable_diffs == 2:  # if 2, return diff with minimum abs
+            TEST = np.nanargmin(np.abs(first_diffs))
+            location = np.unravel_index(first_diffs.argmin(), first_diffs.shape)
+            return first_diffs[location]
         else:
             return np.nan
 
     # if input is multi-dimensional
-
-    ngroups, nrows, ncols = first_diffs.shape
-    num_usable_groups = ngroups - np.sum(np.isnan(first_diffs), axis=0)
+    nints, ndiffs, nrows, ncols = first_diffs.shape
+    shaped_diffs = np.reshape(first_diffs, ((nints * ndiffs), nrows, ncols))
+    num_usable_diffs = ndiffs - np.sum(np.isnan(shaped_diffs), axis=1)
     median_diffs = np.zeros((nrows, ncols))  # empty array to store median for each pix
 
-    # process groups with >=4 usable groups
-    row4, col4 = np.where(num_usable_groups >= 4)  # locations of >= 4 usable group pixels
+    # process groups with >=4 usable diffs
+    row4, col4 = np.where(num_usable_diffs >= 4)  # locations of >= 4 usable diffs pixels
     if len(row4) > 0:
-        four_slice = first_diffs[:, row4, col4]
-        four_slice[np.nanargmax(np.abs(four_slice), axis=0),
-                   np.arange(four_slice.shape[1])] = np.nan  # mask largest group in slice
+        four_slice = first_diffs[:, :, row4, col4]
+        location = np.unravel_index(four_slice.argmax(), four_slice.shape)
+        four_slice[location] = np.nan  # mask largest group in slice
+        hold = np.nanmedian(four_slice, axis=1)
         median_diffs[row4, col4] = np.nanmedian(four_slice, axis=0)  # add median to return arr for these pix
 
     # process groups with 3 usable groups
-    row3, col3 = np.where(num_usable_groups == 3)  # locations of >= 4 usable group pixels
+    row3, col3 = np.where(num_usable_diffs == 3)  # locations of == 3 usable diff pixels
     if len(row3) > 0:
-        three_slice = first_diffs[:, row3, col3]
+        three_slice = shaped_diffs[:, row3, col3]
         median_diffs[row3, col3] = np.nanmedian(three_slice, axis=0)  # add median to return arr for these pix
 
     # process groups with 2 usable groups
-    row2, col2 = np.where(num_usable_groups == 2)  # locations of >= 4 usable group pixels
+    row2, col2 = np.where(num_usable_diffs == 2)  # locations of == 2 usable diff pixels
     if len(row2) > 0:
-        two_slice = first_diffs[:, row2, col2]
+        two_slice = shaped_diffs[ :, row2, col2]
         two_slice[np.nanargmax(np.abs(two_slice), axis=0),
                   np.arange(two_slice.shape[1])] = np.nan  # mask larger abs. val
         median_diffs[row2, col2] = np.nanmin(two_slice, axis=0)  # add med. to return arr
 
-    # set the medians all groups with less than 2 usable groups to nan to skip further
+    # set the medians all groups with less than 2 usable diffs to nan to skip further
     # calculations for these pixels
-    row_none, col_none = np.where(num_usable_groups < 2)
+    row_none, col_none = np.where(num_usable_diffs < 2)
     median_diffs[row_none, col_none] = np.nan
 
     return median_diffs

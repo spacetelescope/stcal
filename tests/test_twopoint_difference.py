@@ -43,20 +43,23 @@ def test_5grps_cr3_noflux(setup_cube):
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     assert(4 == np.max(out_gdq))  # a CR was found
+    out_mask = out_gdq[0, :, 100, 100]
     assert(2 == np.argmax(out_gdq[0, :, 100, 100]))  # find the CR in the expected group
 
 
-def test_5grps_cr2_noflux(setup_cube):
-    ngroups = 5
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
 
-    data[0, 0, 100, 100] = 10.0
-    data[0, 1:6, 100, 100] = 1000
+
+def test_4grps_2ints_cr2_noflux(setup_cube):
+    ngroups = 5
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2)
+    data[0, 1, 100,100] = 5
+    data[1, 0, 100, 100] = 10.0
+    data[1, 1:6, 100, 100] = 1000
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     assert(4 == np.max(out_gdq))  # a CR was found
-    assert(1 == np.argmax(out_gdq[0, :, 100, 100]))  # find the CR in the expected group
+    assert(1 == np.argmax(out_gdq[1, :, 100, 100]))  # find the CR in the expected group
 
 
 def test_6grps_negative_differences_zeromedian(setup_cube):
