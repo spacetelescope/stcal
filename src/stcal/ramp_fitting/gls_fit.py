@@ -11,13 +11,14 @@
 
 
 import logging
-from multiprocessing.pool import Pool as Pool
+import time
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
+
 import numpy as np
 import numpy.linalg as la
-import time
 
-from . import ramp_fit_class
-from . import utils
+from . import ramp_fit_class, utils
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -43,12 +44,12 @@ MIN_ITER = 1
 MAX_ITER = 1
 
 # This is a term to add for saturated pixels to give them low weight.
-HUGE_FOR_LOW_WEIGHT = 1.e20
+HUGE_FOR_LOW_WEIGHT = 1.0e20
 
 # This is a value to replace zero or negative values in a fit, to make
 # all values of the fit positive and to give low weight where the fit was
 # zero or negative.
-FIT_MUST_BE_POSITIVE = 1.e10
+FIT_MUST_BE_POSITIVE = 1.0e10
 
 
 def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores):
@@ -101,24 +102,34 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
         Tuple of optional product ndarrays computed for GLS ramp fitting.
     """
     nrows = ramp_data.data.shape[2]
-    number_slices = utils.compute_slices(max_cores, nrows)
+    num_available_cores = cpu_count()
+    number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
 
-    log.info(f"Number of data slices: {number_slices}")
+    log.info("Number of data slices: %s", number_slices)
 
     # Get needed sizes and shapes
-    (nreads, npix, imshape, cubeshape, n_int, instrume, frame_time,
-        ngroups, group_time) = utils.get_dataset_info(ramp_data)
+    (
+        nreads,
+        npix,
+        imshape,
+        cubeshape,
+        n_int,
+        instrume,
+        frame_time,
+        ngroups,
+        group_time,
+    ) = utils.get_dataset_info(ramp_data)
 
     (group_time, frames_per_group, saturated_flag, jump_flag) = utils.get_more_info(
-        ramp_data, ramp_data.flags_saturated, ramp_data.flags_jump_det)
+        ramp_data, ramp_data.flags_saturated, ramp_data.flags_jump_det
+    )
 
     tstart = time.time()
 
     # Determine the maximum number of cosmic ray hits for any pixel.
-    max_num_cr = -1                     # invalid initial value
+    max_num_cr = -1  # invalid initial value
     for num_int in range(n_int):
-        i_max_num_cr = utils.get_max_num_cr(
-            ramp_data.groupdq[num_int, :, :, :], jump_flag)
+        i_max_num_cr = utils.get_max_num_cr(ramp_data.groupdq[num_int, :, :, :], jump_flag)
         max_num_cr = max(max_num_cr, i_max_num_cr)
 
     # Calculate effective integration time (once EFFINTIM has been populated
@@ -131,24 +142,25 @@ def gls_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
 
     if number_slices == 1:
         image_info, integ_info, gls_opt_info = gls_fit_single(
-            ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt)
+            ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt
+        )
 
     else:
         image_info, integ_info, gls_opt_info = gls_fit_multi(
-            ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices)
+            ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices
+        )
 
     tstop = time.time()
 
-    log.info('Number of groups per integration: %d' % nreads)
-    log.info('Number of integrations: %d' % n_int)
+    log.info("Number of groups per integration: %d", nreads)
+    log.info("Number of integrations: %d", n_int)
 
-    log.debug(f"The execution time in seconds: {tstop - tstart:,}")
+    log.debug("The execution time in seconds: %d", tstop - tstart)
 
     return image_info, integ_info, gls_opt_info
 
 
-def gls_fit_multi(
-        ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices):
+def gls_fit_multi(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt, number_slices):
     """
     ramp_data: RampClass
         The data needed to do ramp fitting.
@@ -168,9 +180,10 @@ def gls_fit_multi(
     number_slices: int
         The number of slices/cores to use for multiprocessing.
     """
-    log.info(f"Number of processors used for multiprocessing: {number_slices}")
+    log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
-        ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices)
+        ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices
+    )
 
     pool = Pool(processes=number_slices)
     pool_results = pool.starmap(gls_fit_single, slices)
@@ -178,8 +191,7 @@ def gls_fit_multi(
     pool.join()
 
     # Reassemble results
-    image_info, integ_info, opt_res = assemble_pool_results(
-        ramp_data, save_opt, pool_results, rows_per_slice)
+    image_info, integ_info, opt_res = assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice)
 
     return image_info, integ_info, opt_res
 
@@ -216,9 +228,7 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
 
 
 def create_outputs(ramp_data):
-    """
-    Create the output arrays needed for multiprocessing reassembly.
-    """
+    """Create the output arrays needed for multiprocessing reassembly."""
     image_info = create_output_image(ramp_data)
     integ_info = create_output_integ(ramp_data)
     opt_res = create_output_opt_res(ramp_data)
@@ -262,7 +272,7 @@ def create_output_opt_res(ramp_data):
         The original data used to do ramp fitting.
     """
     # TODO Need to create the optional results output arrays.
-    return None
+    return
 
 
 def reassemble_image(ramp_data, image_info, image_slice, crow, nrows):
@@ -338,25 +348,24 @@ def reassemble_opt(ramp_data, opt_res, opt_slice, crow, nrows):
     inter, err, pedestal, ampl, ampl_err = opt_slice
     # srow, erow = crow, crow + nrows
 
-    log.debug(f"    ---> ({crow}, {crow + nrows})")
-    log.debug(f"inter    = {inter.shape}")
-    log.debug(f"err      = {err.shape}")
-    log.debug(f"pedestal = {pedestal.shape}")
-    log.debug(f"ampl     = {ampl.shape}")
-    log.debug(f"ampl_err = {ampl_err.shape}")
+    log.debug("    ---> (%i, %i)", crow, crow + nrows)
+    log.debug("inter    = %s", inter.shape)
+    log.debug("err      = %s", err.shape)
+    log.debug("pedestal = %s", pedestal.shape)
+    log.debug("ampl     = %s", ampl.shape)
+    log.debug("ampl_err = %s", ampl_err.shape)
 
     # TODO Dimension check
-    '''
+    """
     opt_res[0][:, srow:erow, :] = slope
     opt_res[1][:, srow:erow, :] = err
     opt_res[2][:, srow:erow, :] = pedestal
     opt_res[3][:, srow:erow, :] = ampl
     opt_res[4][:, srow:erow, :] = ampl_err
-    '''
+    """
 
 
-def compute_slices_for_starmap(
-        ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices):
+def compute_slices_for_starmap(ramp_data, save_opt, readnoise_2d, gain_2d, max_num_cr, number_slices):
     """
     Creates the slices needed for each process for multiprocessing.  The slices
     for the arguments needed for ols_ramp_fit_single.
@@ -390,11 +399,9 @@ def compute_slices_for_starmap(
     start_row = 0
     for k in range(len(rslices)):
         ramp_slice = slice_ramp_data(ramp_data, start_row, rslices[k])
-        rnoise_slice = readnoise_2d[start_row:start_row + rslices[k], :].copy()
-        gain_slice = gain_2d[start_row:start_row + rslices[k], :].copy()
-        slices.insert(
-            k,
-            (ramp_slice, rnoise_slice, gain_slice, max_num_cr, save_opt))
+        rnoise_slice = readnoise_2d[start_row : start_row + rslices[k], :].copy()
+        gain_slice = gain_2d[start_row : start_row + rslices[k], :].copy()
+        slices.insert(k, (ramp_slice, rnoise_slice, gain_slice, max_num_cr, save_opt))
         start_row = start_row + rslices[k]
 
     return slices, rslices
@@ -457,10 +464,10 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice = ramp_fit_class.RampData()
 
     # Slice data by row
-    data = ramp_data.data[:, :, start_row:start_row + nrows, :].copy()
-    err = ramp_data.err[:, :, start_row:start_row + nrows, :].copy()
-    groupdq = ramp_data.groupdq[:, :, start_row:start_row + nrows, :].copy()
-    pixeldq = ramp_data.pixeldq[start_row:start_row + nrows, :].copy()
+    data = ramp_data.data[:, :, start_row : start_row + nrows, :].copy()
+    err = ramp_data.err[:, :, start_row : start_row + nrows, :].copy()
+    groupdq = ramp_data.groupdq[:, :, start_row : start_row + nrows, :].copy()
+    pixeldq = ramp_data.pixeldq[start_row : start_row + nrows, :].copy()
 
     ramp_data_slice.set_arrays(data, err, groupdq, pixeldq)
 
@@ -471,7 +478,8 @@ def slice_ramp_data(ramp_data, start_row, nrows):
         group_time=ramp_data.group_time,
         groupgap=ramp_data.groupgap,
         nframes=ramp_data.nframes,
-        drop_frames1=ramp_data.drop_frames1)
+        drop_frames1=ramp_data.drop_frames1,
+    )
 
     # Carry over DQ flags.
     ramp_data_slice.flags_do_not_use = ramp_data.flags_do_not_use
@@ -511,7 +519,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         Save optional product.
 
     Returns
-    --------
+    -------
     image_info: tuple
         Tuple of ndarrays computed for the primary product for ramp fitting.
 
@@ -537,12 +545,18 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     number_ints = data.shape[0]
     ngroups = data.shape[1]
 
-    slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight = \
-        create_integration_arrays(data.shape)
+    slope_int, slope_err_int, dq_int, temp_dq, slopes, sum_weight = create_integration_arrays(data.shape)
 
     # REFAC
-    (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl,
-        ampl_int, ampl_err_int) = create_opt_res(save_opt, data.shape, max_num_cr)
+    (
+        intercept_int,
+        intercept_err_int,
+        pedestal_int,
+        first_group,
+        shape_ampl,
+        ampl_int,
+        ampl_err_int,
+    ) = create_opt_res(save_opt, data.shape, max_num_cr)
 
     pixeldq = utils.reset_bad_gain(ramp_data, pixeldq, gain_2d)  # Flag bad pixels in gain
 
@@ -566,15 +580,31 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         if save_opt:
             first_group[:, :] = data[num_int, 0, :, :].copy()
 
-        (intercept_sect, intercept_var_sect, slope_sect,
-         slope_var_sect, cr_sect, cr_var_sect) = determine_slope(
-             ramp_data,
-             data_cube, input_var_sect, gdq_cube,
-             readnoise_2d, gain_2d, frame_time, group_time,
-             nframes_used, max_num_cr, saturated_flag, jump_flag, med_rates)
+        (
+            intercept_sect,
+            intercept_var_sect,
+            slope_sect,
+            slope_var_sect,
+            cr_sect,
+            cr_var_sect,
+        ) = determine_slope(
+            ramp_data,
+            data_cube,
+            input_var_sect,
+            gdq_cube,
+            readnoise_2d,
+            gain_2d,
+            frame_time,
+            group_time,
+            nframes_used,
+            max_num_cr,
+            saturated_flag,
+            jump_flag,
+            med_rates,
+        )
 
         slope_int[num_int, :, :] = slope_sect.copy()
-        v_mask = (slope_var_sect <= 0.)
+        v_mask = slope_var_sect <= 0.0
         if v_mask.any():
             # Replace negative or zero variances with a large value.
             slope_var_sect[v_mask] = utils.LARGE_VARIANCE
@@ -586,7 +616,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # If a pixel was flagged (by an earlier step) as saturated in
         # the first group, flag the pixel as bad.
         # Note:  save s_mask until after the call to utils.gls_pedestal.
-        s_mask = (gdq_cube[0] == saturated_flag)
+        s_mask = gdq_cube[0] == saturated_flag
         if s_mask.any():
             temp_dq[s_mask] = ramp_data.flags_do_not_use
         slope_err_int[num_int, :, :] = np.sqrt(slope_var_sect)
@@ -594,8 +624,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # We need to take a weighted average if (and only if) number_ints > 1.
         # Accumulate sum of slopes and sum of weights.
         if number_ints > 1:
-            weight = 1. / slope_var_sect
-            slopes[:, :] += (slope_sect * weight)
+            weight = 1.0 / slope_var_sect
+            slopes[:, :] += slope_sect * weight
             sum_weight[:, :] += weight
 
         if save_opt:
@@ -604,8 +634,8 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
             intercept_int[num_int, :, :] = intercept_sect.copy()
             intercept_err_int[num_int, :, :] = np.sqrt(np.abs(intercept_var_sect))
             pedestal_int[num_int, :, :] = utils.gls_pedestal(
-                first_group[:, :], slope_int[num_int, :, :],
-                s_mask, frame_time, nframes_used)
+                first_group[:, :], slope_int[num_int, :, :], s_mask, frame_time, nframes_used
+            )
             del s_mask
 
             ampl_int[num_int, :, :, :] = cr_sect.copy()
@@ -614,16 +644,15 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         # Compress 4D->2D dq arrays for saturated and jump-detected
         # pixels
         pixeldq_sect = pixeldq[:, :].copy()
-        dq_int[num_int, :, :] = utils.dq_compress_sect(
-            ramp_data, num_int, gdq_cube, pixeldq_sect).copy()
+        dq_int[num_int, :, :] = utils.dq_compress_sect(ramp_data, num_int, gdq_cube, pixeldq_sect).copy()
 
         dq_int[num_int, :, :] |= temp_dq
         temp_dq[:, :] = 0  # initialize for next integration
 
     # Average the slopes over all integrations.
     if number_ints > 1:
-        sum_weight = np.where(sum_weight <= 0., 1., sum_weight)
-        recip_sum_weight = 1. / sum_weight
+        sum_weight = np.where(sum_weight <= 0.0, 1.0, sum_weight)
+        recip_sum_weight = 1.0 / sum_weight
         slopes *= recip_sum_weight
         gls_err = np.sqrt(recip_sum_weight)
 
@@ -653,8 +682,7 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     if save_opt:  # collect optional results for output
         # Get the zero-point intercepts and the cosmic-ray amplitudes for
         # each integration (even if there's only one integration).
-        gls_opt_info = (intercept_int, intercept_err_int,
-                        pedestal_int, ampl_int, ampl_err_int)
+        gls_opt_info = (intercept_int, intercept_err_int, pedestal_int, ampl_int, ampl_err_int)
     else:
         gls_opt_info = None
 
@@ -709,12 +737,12 @@ def create_opt_res(save_opt, dims, max_num_cr):
     if save_opt:
         # Create arrays for the fitted values of zero-point intercept and
         # cosmic-ray amplitudes, and their errors.
-        intercept_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
-        intercept_err_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+        intercept_int = np.zeros((number_ints, *imshape), dtype=np.float32)
+        intercept_err_int = np.zeros((number_ints, *imshape), dtype=np.float32)
 
         # The pedestal is the extrapolation of the first group back to zero
         # time, for each integration.
-        pedestal_int = np.zeros((number_ints,) + imshape, dtype=np.float32)
+        pedestal_int = np.zeros((number_ints, *imshape), dtype=np.float32)
 
         # The first group, for calculating the pedestal.  (This only needs
         # to be nrows high, but we don't have nrows yet.  xxx)
@@ -733,14 +761,24 @@ def create_opt_res(save_opt, dims, max_num_cr):
         ampl_int = None
         ampl_err_int = None
 
-    return (intercept_int, intercept_err_int, pedestal_int, first_group,
-            shape_ampl, ampl_int, ampl_err_int)
+    return (intercept_int, intercept_err_int, pedestal_int, first_group, shape_ampl, ampl_int, ampl_err_int)
 
 
 def determine_slope(
-        ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
-        frame_time, group_time, nframes_used, max_num_cr, saturated_flag,
-        jump_flag, med_rates):
+    ramp_data,
+    data_sect,
+    input_var_sect,
+    gdq_sect,
+    readnoise_sect,
+    gain_sect,
+    frame_time,
+    group_time,
+    nframes_used,
+    max_num_cr,
+    saturated_flag,
+    jump_flag,
+    med_rates,
+):
     """Iteratively fit a slope, intercept, and cosmic rays to a ramp.
 
     This function fits a ramp, possibly with discontinuities (cosmic-ray
@@ -901,11 +939,22 @@ def determine_slope(
     ngroups, nrows, ncols = data_sect.shape
     if ngroups == 1:
         return determine_slope_one_group(
-            ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect,
-            gain_sect, frame_time, group_time, nframes_used, max_num_cr,
-            saturated_flag, jump_flag, med_rates)
+            ramp_data,
+            data_sect,
+            input_var_sect,
+            gdq_sect,
+            readnoise_sect,
+            gain_sect,
+            frame_time,
+            group_time,
+            nframes_used,
+            max_num_cr,
+            saturated_flag,
+            jump_flag,
+            med_rates,
+        )
 
-    slope_diff_cutoff = 1.e-5
+    slope_diff_cutoff = 1.0e-5
 
     # These will be updated in the loop.
     # TODO The next line assumes more than one group
@@ -914,54 +963,71 @@ def determine_slope(
 
     use_extra_terms = True
 
-    iter = 0
+    iter_ = 0
     done = False
-    if NUM_ITER_NO_EXTRA_TERMS <= 0:
-        # Even the first iteration uses the extra terms.
-        temp_use_extra_terms = True
-    else:
-        temp_use_extra_terms = False
+    # Even the first iteration uses the extra terms.
+    temp_use_extra_terms = NUM_ITER_NO_EXTRA_TERMS <= 0
 
     while not done:
-        (intercept_sect, int_var_sect, slope_sect,
-         slope_var_sect, cr_sect, cr_var_sect) = compute_slope(
-             data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
-             prev_fit, prev_slope_sect, frame_time, group_time, nframes_used,
-             max_num_cr, saturated_flag, jump_flag, temp_use_extra_terms)
+        (intercept_sect, int_var_sect, slope_sect, slope_var_sect, cr_sect, cr_var_sect) = compute_slope(
+            data_sect,
+            input_var_sect,
+            gdq_sect,
+            readnoise_sect,
+            gain_sect,
+            prev_fit,
+            prev_slope_sect,
+            frame_time,
+            group_time,
+            nframes_used,
+            max_num_cr,
+            saturated_flag,
+            jump_flag,
+            temp_use_extra_terms,
+        )
 
-        iter += 1
-        if iter == NUM_ITER_NO_EXTRA_TERMS:
+        iter_ += 1
+        if iter_ == NUM_ITER_NO_EXTRA_TERMS:
             temp_use_extra_terms = use_extra_terms
 
-        if iter >= MAX_ITER:
+        if iter_ >= MAX_ITER:
             done = True
         else:
             # If there are pixels with zero or negative variance, ignore
             # them when taking the difference between the slopes computed
             # in the current and previous iterations.
-            slope_diff = np.where(
-                slope_var_sect > 0., prev_slope_sect - slope_sect, 0.)
+            slope_diff = np.where(slope_var_sect > 0.0, prev_slope_sect - slope_sect, 0.0)
 
             max_slope_diff = np.abs(slope_diff).max()
-            if iter >= MIN_ITER and max_slope_diff < slope_diff_cutoff:
+            if iter_ >= MIN_ITER and max_slope_diff < slope_diff_cutoff:
                 done = True
 
             current_fit = evaluate_fit(
-                intercept_sect, slope_sect, cr_sect, frame_time,
-                group_time, gdq_sect, jump_flag)
+                intercept_sect, slope_sect, cr_sect, frame_time, group_time, gdq_sect, jump_flag
+            )
 
-            prev_fit = positive_fit(current_fit)      # use for next iteration
+            prev_fit = positive_fit(current_fit)  # use for next iteration
             del current_fit
             prev_slope_sect = slope_sect.copy()
 
-    return (intercept_sect, int_var_sect, slope_sect,
-            slope_var_sect, cr_sect, cr_var_sect)
+    return (intercept_sect, int_var_sect, slope_sect, slope_var_sect, cr_sect, cr_var_sect)
 
 
 def determine_slope_one_group(
-        ramp_data, data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
-        frame_time, group_time, nframes_used, max_num_cr, saturated_flag,
-        jump_flag, med_rates):
+    ramp_data,
+    data_sect,
+    input_var_sect,
+    gdq_sect,
+    readnoise_sect,
+    gain_sect,
+    frame_time,
+    group_time,
+    nframes_used,
+    max_num_cr,
+    saturated_flag,
+    jump_flag,
+    med_rates,
+):
     """
     The special case where an integration has only one group.
 
@@ -1051,7 +1117,7 @@ def determine_slope_one_group(
 
     slope_sect = data_sect[0, :, :] / group_time
     slope_var_sect = np.zeros(imshape, dtype=np.float32)
-    var_r = 12. * (readnoise_sect / group_time)**2
+    var_r = 12.0 * (readnoise_sect / group_time) ** 2
     var_p = med_rates / (group_time * gain_sect)
 
     # Handle ZEROFRAME
@@ -1059,7 +1125,7 @@ def determine_slope_one_group(
         for pix in ramp_data.zframe_locs[ramp_data.current_integ]:
             row, col = pix
             slope_sect = data_sect[0, row, col] / frame_time
-            var_r[row, col] = 12. * (readnoise_sect[row, col] / frame_time)**2.
+            var_r[row, col] = 12.0 * (readnoise_sect[row, col] / frame_time) ** 2.0
             var_p[row, col] = med_rates[row, col] / (frame_time * gain_sect[row, col])
     slope_var_sect = var_r + var_p
 
@@ -1067,12 +1133,10 @@ def determine_slope_one_group(
     cr_sect = np.zeros(cubeshape, dtype=np.float32)  # Not sure what this is
     cr_var_sect = np.zeros(cubeshape, dtype=np.float32)  # Not sure what this is
 
-    return (intercept_sect, int_var_sect, slope_sect,
-            slope_var_sect, cr_sect, cr_var_sect)
+    return (intercept_sect, int_var_sect, slope_sect, slope_var_sect, cr_sect, cr_var_sect)
 
 
-def evaluate_fit(
-        intercept_sect, slope_sect, cr_sect, frame_time, group_time, gdq_sect, jump_flag):
+def evaluate_fit(intercept_sect, slope_sect, cr_sect, frame_time, group_time, gdq_sect, jump_flag):
     """Evaluate the fit (intercept, slope, cosmic-ray amplitudes).
 
     Parameters
@@ -1106,8 +1170,7 @@ def evaluate_fit(
         This is the same shape as data_sect, and if the fit is good,
         fit_model and data_sect should not differ by much.
     """
-
-    shape_3d = gdq_sect.shape           # the ramp, (ngroups, ny, nx)
+    shape_3d = gdq_sect.shape  # the ramp, (ngroups, ny, nx)
     ngroups = gdq_sect.shape[0]
 
     # This array is also created in function compute_slope.
@@ -1125,8 +1188,7 @@ def evaluate_fit(
     # The independent variable, in seconds at each image pixel.
     ind_var = np.zeros(shape_3d, dtype=np.float64)
     M = round(group_time / frame_time)
-    iv = np.arange(ngroups, dtype=np.float64) * group_time + \
-        frame_time * (M + 1.) / 2.
+    iv = np.arange(ngroups, dtype=np.float64) * group_time + frame_time * (M + 1.0) / 2.0
     iv = iv.reshape((ngroups, 1, 1))
     ind_var += iv
 
@@ -1141,8 +1203,8 @@ def evaluate_fit(
 
     # Add an offset for each cosmic ray.
     for n in range(local_max_num_cr):
-        heaviside[:] = np.where(cr_cumsum > n, 1., 0.)
-        fit_model += (heaviside * cr_sect[:, :, n])
+        heaviside[:] = np.where(cr_cumsum > n, 1.0, 0.0)
+        fit_model += heaviside * cr_sect[:, :, n]
 
     return fit_model
 
@@ -1168,14 +1230,25 @@ def positive_fit(current_fit):
         This is the same as the input current_fit, except that zero and
         negative values will have been replaced by a positive value.
     """
-
-    return np.where(current_fit <= 0., FIT_MUST_BE_POSITIVE, current_fit)
+    return np.where(current_fit <= 0.0, FIT_MUST_BE_POSITIVE, current_fit)
 
 
 def compute_slope(
-        data_sect, input_var_sect, gdq_sect, readnoise_sect, gain_sect,
-        prev_fit, prev_slope_sect, frame_time, group_time, nframes_used,
-        max_num_cr, saturated_flag, jump_flag, use_extra_terms):
+    data_sect,
+    input_var_sect,
+    gdq_sect,
+    readnoise_sect,
+    gain_sect,
+    prev_fit,
+    prev_slope_sect,
+    frame_time,
+    group_time,
+    nframes_used,
+    max_num_cr,
+    saturated_flag,
+    jump_flag,
+    use_extra_terms,
+):
     """Set up the call to fit a slope to ramp data.
 
     This loops over the number of cosmic rays (jumps).  That is, all the
@@ -1277,7 +1350,7 @@ def compute_slope(
     # a negative number.  The test `ncr_mask = (sum_flagged == num_cr)`
     # will therefore never match, since num_cr is zero or larger, and the
     # pixel will not be included in any ncr_mask.
-    mask1 = (gdq_sect[0, :, :] == saturated_flag)
+    mask1 = gdq_sect[0, :, :] == saturated_flag
     sum_flagged[mask1] = -1
 
     # one_group_mask flags pixels that are not saturated in the first
@@ -1285,7 +1358,7 @@ def compute_slope(
     # group).  For these pixels, we will assign a value to the slope
     # image by just dividing the value in the first group by group_time.
     if len(gdq_sect) > 1:
-        mask2 = (gdq_sect[1, :, :] == saturated_flag)
+        mask2 = gdq_sect[1, :, :] == saturated_flag
         sum_flagged[mask2] = -1
         one_group_mask = np.bitwise_and(mask2, np.bitwise_not(mask1))
         del mask2
@@ -1297,8 +1370,7 @@ def compute_slope(
     # pixels are saturated.  This is not a flag, it's a value to be
     # added to the diagonal of the covariance matrix.
     saturated = np.empty(data_sect.shape, dtype=np.float64)
-    saturated[:] = np.where(
-        np.bitwise_and(gdq_sect, saturated_flag), HUGE_FOR_LOW_WEIGHT, 0.)
+    saturated[:] = np.where(np.bitwise_and(gdq_sect, saturated_flag), HUGE_FOR_LOW_WEIGHT, 0.0)
 
     # Create arrays to be populated and then returned.
     shape = data_sect.shape
@@ -1324,7 +1396,7 @@ def compute_slope(
     # the ramp, then fit slopes with one CR hit, then with two, etc.
     for num_cr in range(max_num_cr + 1):
         ngroups = len(data_sect)
-        ncr_mask = (sum_flagged == num_cr)
+        ncr_mask = sum_flagged == num_cr
 
         # Number of detector pixels flagged with num_cr CRs within the ramp.
         nz = ncr_mask.sum(dtype=np.int32)
@@ -1358,8 +1430,18 @@ def compute_slope(
             saturated_data[k] = saturated[k][ncr_mask]
 
         result, variances = gls_fit(
-            ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_time,
-            group_time, nframes_used, num_cr, cr_flagged_2d, saturated_data)
+            ramp_data,
+            prev_fit_data,
+            prev_slope_data,
+            readnoise,
+            gain,
+            frame_time,
+            group_time,
+            nframes_used,
+            num_cr,
+            cr_flagged_2d,
+            saturated_data,
+        )
 
         # Copy the intercept, slope, and cosmic-ray amplitudes and their
         # variances to the arrays to be returned.
@@ -1378,12 +1460,22 @@ def compute_slope(
             cr_sect[ncr_mask, i] = result[:, 2 + i].copy()
             cr_var_sect[ncr_mask, i] = variances[:, 2 + i].copy()
 
-    return (intercept_sect, int_var_sect, slope_sect, slope_var_sect,
-            cr_sect, cr_var_sect)
+    return (intercept_sect, int_var_sect, slope_sect, slope_var_sect, cr_sect, cr_var_sect)
 
 
-def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_time,
-            group_time, nframes_used, num_cr, cr_flagged_2d, saturated_data):
+def gls_fit(
+    ramp_data,
+    prev_fit_data,
+    prev_slope_data,
+    readnoise,
+    gain,
+    frame_time,
+    group_time,
+    nframes_used,
+    num_cr,
+    cr_flagged_2d,
+    saturated_data,
+):
     """Generalized least squares linear fit.
 
     It is assumed that every input pixel has num_cr cosmic-ray hits
@@ -1392,7 +1484,7 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
 
     Notes
     -----
-    Curently the noise model is assumed to be a combination of
+    Currently the noise model is assumed to be a combination of
     read and photon noise alone.
     Same technique could be used with more complex noise models, but then
     the ramp covariance matrix should be input.
@@ -1460,7 +1552,6 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
         The variance for the intercept, slope, and for the amplitude of
         each cosmic ray that was detected.
     """
-
     M = float(nframes_used)
 
     ngroups = ramp_data.shape[0]
@@ -1477,17 +1568,15 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     # 0 to 1 is the location of a cosmic ray hit; the first 1 in a column
     # corresponds to the value in cr_flagged_2d being 1.
     x = np.zeros((nz, ngroups, 2 + num_cr), dtype=np.float64)
-    x[:, :, 0] = 1.
-    x[:, :, 1] = np.arange(ngroups, dtype=np.float64) * group_time + \
-        frame_time * (M + 1.) / 2.
+    x[:, :, 0] = 1.0
+    x[:, :, 1] = np.arange(ngroups, dtype=np.float64) * group_time + frame_time * (M + 1.0) / 2.0
 
     if num_cr > 0:
         sum_crs = cr_flagged_2d.cumsum(axis=0)
         for k in range(ngroups):
             s = slice(k, ngroups)
             for n in range(1, num_cr + 1):
-                temp = np.where(np.logical_and(cr_flagged_2d[k] == 1,
-                                               sum_crs[k] == n))
+                temp = np.where(np.logical_and(cr_flagged_2d[k] == 1, sum_crs[k] == n))
                 if len(temp[0]) > 0:
                     index = (temp[0], s, n + 1)
                     x[index] = 1
@@ -1507,9 +1596,9 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     prev_fit_T = np.transpose(prev_fit_data, (1, 0))
     for k in range(ngroups):
         # Populate the upper right, row by row.
-        ramp_cov[:, k, k:ngroups] = prev_fit_T[:, k:k + 1]
+        ramp_cov[:, k, k:ngroups] = prev_fit_T[:, k : k + 1]
         # Populate the lower left, column by column.
-        ramp_cov[:, k:ngroups, k] = prev_fit_T[:, k:k + 1]
+        ramp_cov[:, k:ngroups, k] = prev_fit_T[:, k : k + 1]
         # Give saturated pixels a very high high variance (hence a low weight)
         ramp_cov[:, k, k] += saturated_data[k, :]
     del prev_fit_T
@@ -1519,11 +1608,11 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     iden = np.identity(ngroups)
 
     rn3d = readnoise.reshape((nz, 1, 1))
-    ramp_cov += (iden * rn3d**2)
+    ramp_cov += iden * rn3d**2
 
     # prev_slope_data must be non-negative.
-    flags = prev_slope_data < 0.
-    prev_slope_data[flags] = 1.
+    flags = prev_slope_data < 0.0
+    prev_slope_data[flags] = 1.0
 
     # The resulting fit parameters are
     #  (xT @ ramp_cov^-1 @ x)^-1 @ [xT @ ramp_cov^-1 @ y]
@@ -1542,11 +1631,11 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     # temp1 = xT @ ramp_invcov
     # np.einsum use is equivalent to matrix multiplication
     # shape of temp1 is (nz, 2 + num_cr, ngroups)
-    temp1 = np.einsum('...ij,...jk->...ik', xT, ramp_invcov)
+    temp1 = np.einsum("...ij,...jk->...ik", xT, ramp_invcov)
 
     # temp_var = xT @ ramp_invcov @ x
     # shape of temp_var is (nz, 2 + num_cr, 2 + num_cr)
-    temp_var = np.einsum('...ij,...jk->...ik', temp1, x)
+    temp_var = np.einsum("...ij,...jk->...ik", temp1, x)
 
     # `fitparam_cov` is an array of nz covariance matrices.
     # fitparam_cov = (xT @ ramp_invcov @ x)^-1
@@ -1555,22 +1644,22 @@ def gls_fit(ramp_data, prev_fit_data, prev_slope_data, readnoise, gain, frame_ti
     try:
         # inverse of temp_var
         fitparam_cov = la.solve(temp_var, I_2)
-    except la.LinAlgError:
+    except la.LinAlgError as err:
         # find the pixel with the singular matrix
         for z in range(nz):
             try:
                 la.solve(temp_var[z], I_2)
-            except la.LinAlgError as msg2:
-                log.warning("singular matrix, z = %d" % z)
-                raise la.LinAlgError(msg2)
+            except la.LinAlgError as msg2:  # noqa: PERF203
+                log.warning("singular matrix, z = %d", z)
+                raise la.LinAlgError(msg2) from err
     del I_2
 
     # [xT @ ramp_invcov @ y]
     # shape of temp2 is (nz, 2 + num_cr, 1)
-    temp2 = np.einsum('...ij,...jk->...ik', temp1, y)
+    temp2 = np.einsum("...ij,...jk->...ik", temp1, y)
 
     # shape of fitparam is (nz, 2 + num_cr, 1)
-    fitparam = np.einsum('...ij,...jk->...ik', fitparam_cov, temp2)
+    fitparam = np.einsum("...ij,...jk->...ik", fitparam_cov, temp2)
     r_shape = fitparam.shape
     fitparam2d = fitparam.reshape((r_shape[0], r_shape[1]))
     del fitparam

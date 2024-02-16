@@ -1,7 +1,7 @@
-import numpy as np
+import copy
 import logging
 
-import copy
+import numpy as np
 from scipy import ndimage
 
 log = logging.getLogger(__name__)
@@ -9,8 +9,8 @@ log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(
-        data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags,
-        n_pix_grow_sat=1, zframe=None):
+    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, n_pix_grow_sat=1, zframe=None, read_pattern=None
+):
     """
     Short Summary
     -------------
@@ -50,6 +50,9 @@ def flag_saturated_pixels(
     zframe : float, 3D array
         The ZEROFRAME.
 
+    read_pattern : List[List[float or int]] or None
+        The times or indices of the frames composing each group.
+
 
     Returns
     -------
@@ -59,35 +62,42 @@ def flag_saturated_pixels(
     pdq : int, 2D array
         updated pixel dq array
     """
-
     nints, ngroups, nrows, ncols = data.shape
-    saturated = dqflags['SATURATED']
-    ad_floor = dqflags['AD_FLOOR']
-    no_sat_check = dqflags['NO_SAT_CHECK']
+    saturated = dqflags["SATURATED"]
+    ad_floor = dqflags["AD_FLOOR"]
+    no_sat_check = dqflags["NO_SAT_CHECK"]
 
-    # For pixels flagged in reference file as NO_SAT_CHECK,
-    # set the saturation check threshold above the A-to-D converter limit,
-    # so that they don't get flagged as saturated.
-    sat_thresh[np.bitwise_and(sat_dq, no_sat_check) == no_sat_check] = atod_limit + 1
+    # Identify pixels flagged in reference file as NO_SAT_CHECK,
+    no_sat_check_mask = np.bitwise_and(sat_dq, no_sat_check) == no_sat_check
 
-    # Also reset NaN values in the saturation threshold array above the
-    # A-to-D limit and flag them with NO_SAT_CHECK
+    # Flag pixels in the saturation threshold array with NO_SAT_CHECK,
+    # and add them to to no_sat_check_mask.
     sat_dq[np.isnan(sat_thresh)] |= no_sat_check
-    sat_thresh[np.isnan(sat_thresh)] = atod_limit + 1
+    no_sat_check_mask |= np.isnan(sat_thresh)
+
+    # Set the saturation check threshold above the A-to-D
+    # converter limit so that they don't get flagged as saturated, for
+    # pixels in the no_sat_check_mask.
+    sat_thresh[no_sat_check_mask] = atod_limit + 1
 
     for ints in range(nints):
         for group in range(ngroups):
             plane = data[ints, group, :, :]
-            flagarray, flaglowarray = plane_saturation(plane, sat_thresh, dqflags)
+
+            if read_pattern is not None:
+                dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
+                dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
+            else:
+                dilution_factor = 1
+
+            flagarray, flaglowarray = plane_saturation(plane, sat_thresh * dilution_factor, dqflags)
 
             # for saturation, the flag is set in the current plane
             # and all following planes.
-            np.bitwise_or(
-                gdq[ints, group:, :, :], flagarray, gdq[ints, group:, :, :])
+            np.bitwise_or(gdq[ints, group:, :, :], flagarray, gdq[ints, group:, :, :])
 
             # for A/D floor, the flag is only set of the current plane
-            np.bitwise_or(
-                gdq[ints, group, :, :], flaglowarray, gdq[ints, group, :, :])
+            np.bitwise_or(gdq[ints, group, :, :], flaglowarray, gdq[ints, group, :, :])
 
             del flagarray
             del flaglowarray
@@ -96,8 +106,7 @@ def flag_saturated_pixels(
             if n_pix_grow_sat > 0:
                 gdq_slice = copy.copy(gdq[ints, group, :, :]).astype(int)
 
-                gdq[ints, group, :, :] = adjacent_pixels(
-                    gdq_slice, saturated, n_pix_grow_sat)
+                gdq[ints, group, :, :] = adjacent_pixels(gdq_slice, saturated, n_pix_grow_sat)
 
         # Check ZEROFRAME.
         if zframe is not None:
@@ -106,13 +115,13 @@ def flag_saturated_pixels(
             zdq = flagarray | flaglowarray
             if n_pix_grow_sat > 0:
                 zdq = adjacent_pixels(zdq, saturated, n_pix_grow_sat)
-            plane[zdq != 0] = 0.
+            plane[zdq != 0] = 0.0
             zframe[ints] = plane
 
     n_sat = np.any(np.any(np.bitwise_and(gdq, saturated), axis=0), axis=0).sum()
-    log.info(f'Detected {n_sat} saturated pixels')
+    log.info("Detected %i saturated pixels", n_sat)
     n_floor = np.any(np.any(np.bitwise_and(gdq, ad_floor), axis=0), axis=0).sum()
-    log.info(f'Detected {n_floor} A/D floor pixels')
+    log.info("Detected %i A/D floor pixels", n_floor)
 
     pdq = np.bitwise_or(pdq, sat_dq)
 
@@ -140,10 +149,8 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat):
     only_sat = np.bitwise_and(plane_gdq, saturated).astype(np.uint8)
     box_dim = (n_pix_grow_sat * 2) + 1
     struct = np.ones((box_dim, box_dim)).astype(bool)
-    dialated = ndimage.binary_dilation(
-        only_sat, structure=struct).astype(only_sat.dtype)
-    sat_pix = np.bitwise_or(cgdq, (dialated * saturated))
-    return sat_pix
+    dialated = ndimage.binary_dilation(only_sat, structure=struct).astype(only_sat.dtype)
+    return np.bitwise_or(cgdq, (dialated * saturated))
 
 
 def plane_saturation(plane, sat_thresh, dqflags):
@@ -161,9 +168,9 @@ def plane_saturation(plane, sat_thresh, dqflags):
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, AD_FLOOR, NO_SAT_CHECK
     """
-    donotuse = dqflags['DO_NOT_USE']
-    saturated = dqflags['SATURATED']
-    ad_floor = dqflags['AD_FLOOR']
+    donotuse = dqflags["DO_NOT_USE"]
+    saturated = dqflags["SATURATED"]
+    ad_floor = dqflags["AD_FLOOR"]
 
     flagarray = np.zeros(plane.shape, dtype=np.uint32)
     flaglowarray = np.zeros(plane.shape, dtype=np.uint32)
