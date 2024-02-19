@@ -3,6 +3,7 @@ import multiprocessing
 import time
 import cv2 as cv
 import numpy as np
+from astropy.io import fits
 from astropy import stats
 from astropy.convolution import Ring2DKernel, convolve
 
@@ -430,6 +431,8 @@ def detect_jumps(
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
+        fits.writeto("jumpgdq.fits", gdq, overwrite=True)
+
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             total_snowballs = flag_large_events(
