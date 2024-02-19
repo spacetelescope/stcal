@@ -48,10 +48,10 @@ def test_5grps_cr3_noflux(setup_cube):
 
 def test_4grps_2ints_cr2_noflux(setup_cube):
     ngroups = 5
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2)
-    data[0, 1, 100,100] = 5
-    data[1, 0, 100, 100] = 10.0
-    data[1, 1:6, 100, 100] = 1000
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2, ncols=2, nrows=2)
+    data[0, 1, 1, 1] = 5
+    data[1, 0, 1, 1] = 10.0
+    data[1, 1:6, 1, 1] = 1000
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
@@ -60,8 +60,10 @@ def test_4grps_2ints_cr2_noflux(setup_cube):
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
     assert np.max(out_gdq) == 4  # a CR was found
-    assert np.argmax(out_gdq[0, :, 100, 100]) == 1  # find the CR in the expected group
-    assert(1 == np.argmax(out_gdq[1, :, 100, 100]))  # find the CR in the expected group
+    fits.writeto("outgdq_final.fits", out_gdq, overwrite=True)
+    gdq_11 = out_gdq[:, :, 1, 1]
+    assert np.argmax(out_gdq[1, :, 1, 1]) == 1  # find the CR in the expected group
+    assert(1 == np.argmax(out_gdq[1, :, 1, 1]))  # find the CR in the expected group
 
 def test_6grps_negative_differences_zeromedian(setup_cube):
     ngroups = 6
@@ -109,19 +111,19 @@ def test_3grps_cr2_noflux(setup_cube):
 
 def test_2ints_2grps_noflux(setup_cube):
     ngroups = 2
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2)
-    data[0, 0, 100, 100] = 10.0
-    data[0, 1:3, 100, 100] = 1000
-    data[1, 0, 99, 99] = 10.0
-    data[1, 1:3, 99, 99] = 1000
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2, ncols=2, nrows=2)
+    data[0, 0, 1, 1] = 10.0
+    data[0, 1:3, 1, 1] = 1000
+    data[1, 0, 0, 0] = 10.0
+    data[1, 1:3, 0, 0] = 1000
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS,
                                                                          minimum_groups=2)
  #   assert(4 == np.max(out_gdq))  # a CR was found
     #    assert(1,np.argmax(out_gdq[0, :, 100, 100]))  # find the CR in the expected group
-    assert(np.array_equal([0, 4], out_gdq[0, :, 100, 100]))
-    assert (np.array_equal([0, 4], out_gdq[1, :, 99, 99]))
+    assert(np.array_equal([0, 4], out_gdq[0, :, 1, 1]))
+    assert (np.array_equal([0, 4], out_gdq[1, :, 0, 0]))
 
 def test_4grps_cr2_noflux(setup_cube):
     ngroups = 4
@@ -175,6 +177,7 @@ def test_5grps_twocrs_2nd_5th(setup_cube):
     data[0, 2, 100, 100] = 60
     data[0, 3, 100, 100] = 60
     data[0, 4, 100, 100] = 115
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
     assert np.max(out_gdq) == 4  # a CR was found
@@ -317,15 +320,16 @@ def test_5grps_cr2_negslope(setup_cube):
     ngroups = 5
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups)
     nframes = 1
-    data[0, 0, 100, 100] = 100.0
-    data[0, 1, 100, 100] = 0
-    data[0, 2, 100, 100] = -200
-    data[0, 3, 100, 100] = -260
-    data[0, 4, 100, 100] = -360
+    data[0, 0, 1, 1] = 100.0
+    data[0, 1, 1, 1] = 0
+    data[0, 2, 1, 1] = -200
+    data[0, 3, 1, 1] = -260
+    data[0, 4, 1, 1] = -360
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
     assert np.max(out_gdq) == 4  # a CR was found
-    assert np.array_equal([0, 0, 4, 0, 0], out_gdq[0, :, 100, 100])
+    assert np.array_equal([0, 0, 4, 0, 0], out_gdq[0, :, 1, 1])
 
 
 def test_6grps_1cr(setup_cube):
@@ -381,22 +385,22 @@ def test_8grps_1cr(setup_cube):
 
 def test_9grps_1cr_1sat(setup_cube):
     ngroups = 9
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10, nrows=2, ncols=2)
     nframes = 1
-    data[0, 0, 100, 100] = 0
-    data[0, 1, 100, 100] = 10
-    data[0, 2, 100, 100] = 21
-    data[0, 3, 100, 100] = 33
-    data[0, 4, 100, 100] = 46
-    data[0, 5, 100, 100] = 60
-    data[0, 6, 100, 100] = 1160
-    data[0, 7, 100, 100] = 1175
-    data[0, 8, 100, 100] = 6175
-    gdq[0, 8, 100, 100] = DQFLAGS["SATURATED"]
+    data[0, 0, 1, 1] = 0
+    data[0, 1, 1, 1] = 10
+    data[0, 2, 1, 1] = 21
+    data[0, 3, 1, 1] = 33
+    data[0, 4, 1, 1] = 46
+    data[0, 5, 1, 1] = 60
+    data[0, 6, 1, 1] = 1160
+    data[0, 7, 1, 1] = 1175
+    data[0, 8, 1, 1] = 6175
+    gdq[0, 8, 1, 1] = DQFLAGS["SATURATED"]
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
-    assert out_gdq[0, 6, 100, 100] == 4
+    assert out_gdq[0, 6, 1, 1] == 4
 
 
 def test_10grps_1cr_2sat(setup_cube):
@@ -423,26 +427,26 @@ def test_10grps_1cr_2sat(setup_cube):
 
 def test_11grps_1cr_3sat(setup_cube):
     ngroups = 11
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, readnoise=10, nrows=2, ncols=2)
     nframes = 1
-    data[0, 0, 100, 100] = 0
-    data[0, 1, 100, 100] = 20
-    data[0, 2, 100, 100] = 39
-    data[0, 3, 100, 100] = 57
-    data[0, 4, 100, 100] = 74
-    data[0, 5, 100, 100] = 90
-    data[0, 6, 100, 100] = 1160
-    data[0, 7, 100, 100] = 1175
-    data[0, 8, 100, 100] = 6175
-    data[0, 9, 100, 100] = 6175
-    data[0, 10, 100, 100] = 6175
-    gdq[0, 8, 100, 100] = DQFLAGS["SATURATED"]
-    gdq[0, 9, 100, 100] = DQFLAGS["SATURATED"]
-    gdq[0, 10, 100, 100] = DQFLAGS["SATURATED"]
+    data[0, 0, 1, 1] = 0
+    data[0, 1, 1, 1] = 20
+    data[0, 2, 1, 1] = 39
+    data[0, 3, 1, 1] = 57
+    data[0, 4, 1, 1] = 74
+    data[0, 5, 1, 1] = 90
+    data[0, 6, 1, 1] = 1160
+    data[0, 7, 1, 1] = 1175
+    data[0, 8, 1, 1] = 6175
+    data[0, 9, 1, 1] = 6175
+    data[0, 10, 1, 1] = 6175
+    gdq[0, 8, 1, 1] = DQFLAGS["SATURATED"]
+    gdq[0, 9, 1, 1] = DQFLAGS["SATURATED"]
+    gdq[0, 10, 1, 1] = DQFLAGS["SATURATED"]
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
-    assert out_gdq[0, 6, 100, 100] == 4
+    assert out_gdq[0, 6, 1, 1] == 4
 
 
 def test_11grps_0cr_3donotuse(setup_cube):
