@@ -54,6 +54,7 @@ def detect_jumps(
     minimum_groups=3,
     minimum_sigclip_groups=100,
     only_use_ints=True,
+    min_grps_single_pass=10,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -276,6 +277,7 @@ def detect_jumps(
             minimum_groups=3,
             minimum_sigclip_groups=minimum_sigclip_groups,
             only_use_ints=only_use_ints,
+            minimum_primary_crs=min_grps_single_pass,
         )
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
@@ -351,6 +353,7 @@ def detect_jumps(
                     minimum_groups,
                     minimum_sigclip_groups,
                     only_use_ints,
+                    min_grps_single_pass,
                 ),
             )
 
@@ -377,6 +380,7 @@ def detect_jumps(
                 minimum_groups,
                 minimum_sigclip_groups,
                 only_use_ints,
+                min_grps_single_pass,
             ),
         )
         log.info("Creating %d processes for jump detection ", n_slices)
