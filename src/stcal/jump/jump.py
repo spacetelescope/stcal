@@ -5,7 +5,6 @@ import cv2 as cv
 import numpy as np
 from astropy import stats
 from astropy.convolution import Ring2DKernel, convolve
->>>>>>> 75e1efacba98506604174702b747e7586e9fbc95
 
 from . import constants
 from . import twopoint_difference as twopt
