@@ -21,6 +21,23 @@ def setup_cube():
 
     return _cube
 
+def test_multint_pixel(setup_cube):
+    ngroups=4
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=7, nrows=2, ncols=2, readnoise=8)
+    data[0, :, 0, 0] = (-24,   -15,     0,    13)
+    data[1, :, 0, 0] = (-24,   -11,     6,    21)
+    data[2, :, 0, 0] = (-40,   -28,   -24,    -4)
+    data[3, :, 0, 0] = (-11,     3,    11,    24)
+    data[4, :, 0, 0] = (-43 ,  -24,   -12,     1)
+    data[5, :, 0, 0] = (-45,  8537, 17380, 17437)
+    data[6, :, 0, 0] = (-178,  -156,  -139,  -125)
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
+    )
+    assert np.max(out_gdq) == 4  # a CR was found
+    assert (np.array_equal([0, 4, 4, 4], out_gdq[5, :, 0, 0]))
+
+
 
 def test_nocrs_noflux(setup_cube):
     ngroups = 5

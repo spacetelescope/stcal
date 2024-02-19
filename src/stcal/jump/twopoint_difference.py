@@ -252,7 +252,12 @@ def find_crs(
 
                     ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
                     masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
-
+                    jump_mask = np.logical_and(masked_ratio.mask, np.logical_not(first_diffs_masked.mask))
+                    jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
+                    jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
+                    jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
+                    gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
+                                                     np.uint8(dqflags["JUMP_DET"]))
                 else:#  low number of diffs requires iterative flagging
                     # calculate the differences between adjacent groups (first diffs)
                     # use mask on data, so the results will have sat/donotuse groups masked
