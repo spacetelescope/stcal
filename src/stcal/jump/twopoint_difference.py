@@ -258,7 +258,7 @@ def find_crs(
                     jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
                     gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                                      np.uint8(dqflags["JUMP_DET"]))
-                else:#  low number of diffs requires iterative flagging
+                else:  # low number of diffs requires iterative flagging
                     # calculate the differences between adjacent groups (first diffs)
                     # use mask on data, so the results will have sat/donotuse groups masked
                     first_diffs = np.abs(np.diff(dat, axis=1))
