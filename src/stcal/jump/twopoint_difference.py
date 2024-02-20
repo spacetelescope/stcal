@@ -464,7 +464,7 @@ def find_crs(
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 
 
-def calc_med_first_diffs(first_diffs):
+def calc_med_first_diffs(in_first_diffs):
     """Calculate the median of `first diffs` along the group axis.
 
     If there are 4+ usable groups (e.g not flagged as saturated, donotuse,
@@ -476,7 +476,7 @@ def calc_med_first_diffs(first_diffs):
     difference will be returned.
     Parameters
     ----------
-    first_diffs : array, float
+    in_first_diffs : array, float
         array containing the first differences of adjacent groups
         for a single integration. Can be 3d or 1d (for a single pix)
 
@@ -488,6 +488,21 @@ def calc_med_first_diffs(first_diffs):
         array of several pixels, a 2d array with the median for each pixel
         will be returned.
     """
+    first_diffs = in_first_diffs.copy()
+    if first_diffs.ndim == 1:  # in the case where input is a single pixel
+        num_usable_groups = len(first_diffs) - np.sum(np.isnan(first_diffs), axis=0)
+        if num_usable_groups >= 4:  # if 4+, clip largest and return median
+            mask = np.ones_like(first_diffs).astype(bool)
+            mask[np.nanargmax(np.abs(first_diffs))] = False  # clip the diff with the largest abs value
+            return np.nanmedian(first_diffs[mask])
+
+        if num_usable_groups == 3:  # if 3, no clipping just return median
+            return np.nanmedian(first_diffs)
+
+        if num_usable_groups == 2:  # if 2, return diff with minimum abs
+            return first_diffs[np.nanargmin(np.abs(first_diffs))]
+
+        return np.nan
 
     if first_diffs.ndim == 2:  # in the case where input is a single pixel
         nansum = np.sum(np.isnan(first_diffs), axis=(0, 1))
@@ -507,45 +522,60 @@ def calc_med_first_diffs(first_diffs):
         else:
             return np.nan
 
-    # if input is multi-dimensional
-    nints, ndiffs, nrows, ncols = first_diffs.shape
-    shaped_diffs = np.reshape(first_diffs, ((nints * ndiffs), nrows, ncols))
-    num_usable_diffs = (ndiffs * nints) - np.sum(np.isnan(shaped_diffs), axis=0)
-    median_diffs = np.zeros((nrows, ncols))  # empty array to store median for each pix
+    if first_diffs.ndim == 4:
+        # if input is multi-dimensional
+        nints, ndiffs, nrows, ncols = first_diffs.shape
+        shaped_diffs = np.reshape(first_diffs, ((nints * ndiffs), nrows, ncols))
+        num_usable_diffs = (ndiffs * nints) - np.sum(np.isnan(shaped_diffs), axis=0)
+        median_diffs = np.zeros((nrows, ncols))  # empty array to store median for each pix
 
-    # process groups with >=4 usable diffs
-    row4, col4 = np.where(num_usable_diffs >= 4)  # locations of >= 4 usable diffs pixels
-    if len(row4) > 0:
-        four_slice = shaped_diffs[:, row4, col4]
-        tmp = four_slice.argmax(axis=0)
-        max_values_indx = four_slice.argmax(axis=0)
-        four_slice[max_values_indx, :] = np.nan
-        out_slice = np.reshape(four_slice, (shaped_diffs.shape))
-#        fits.writeto("outslice.fits", out_slice, overwrite=True)
-#        location = np.reshape(four_slice.argmax(axis=0), (nrows, ncols))
-#        max_values = np.reshape(location, (len(row4), len(col4)))
-#        four_slice[max_values] = np.nan  # mask largest group in slice
-#        med = np.nanmedian(four_slice, axis=0)
-#        hold = np.unravel_index(np.nanmedian(four_slice, axis=(0, 1)), (num_usable_diffs.shape[1], num_usable_diffs.shape[2]))
-        median_diffs[row4, col4] = np.nanmedian(four_slice, axis=0)  # add median to return arr for these pix
+        # process groups with >=4 usable diffs
+        row4, col4 = np.where(num_usable_diffs >= 4)  # locations of >= 4 usable diffs pixels
+        if len(row4) > 0:
+#            mask = np.ones_like(shaped_diffs).astype(bool)
+#            location = np.unravel_index(shaped_diffs.argmax(), shaped_diffs.shape)
+#            mask[location] = False  # clip the diff with the largest abs value
+#            masked_first_diffs = shaped_diffs[mask]
+#            result = np.nanmedian(first_diffs[mask], axis=(0, 1))
+#            return np.nanmedian(first_diffs[mask], axis=(0, 1))
 
-    # process groups with 3 usable groups
-    row3, col3 = np.where(num_usable_diffs == 3)  # locations of == 3 usable diff pixels
-    if len(row3) > 0:
-        three_slice = shaped_diffs[:, row3, col3]
-        median_diffs[row3, col3] = np.nanmedian(three_slice, axis=0)  # add median to return arr for these pix
+            four_slice = shaped_diffs[:, row4, col4]
+            loc0 = np.nanargmax(four_slice, axis=0)
+            tmp1 = np.argmax(shaped_diffs, axis=1)
+            tmp2 = np.argmax(shaped_diffs, axis=2)
+            location = np.unravel_index(np.argmax(four_slice, axis=0), (four_slice.shape))
+            shaped_diffs[loc0, row4, col4] = np.nan
+            median_diffs[row4, col4] = np.nanmedian(shaped_diffs[:, row4, col4], axis=0)
+#            return np.nanmedian(four_slice[:, row4, col4])
+#            tmp = four_slice.argmax(axis=0)
+#            max_values_indx = four_slice.argmax(axis=0)
+#            four_slice[max_values_indx, :] = np.nan
+    #        out_slice = np.reshape(four_slice, (shaped_diffs.shape))
+    #        fits.writeto("outslice.fits", out_slice, overwrite=True)
+    #        location = np.reshape(four_slice.argmax(axis=0), (nrows, ncols))
+    #        max_values = np.reshape(location, (len(row4), len(col4)))
+    #        four_slice[max_values] = np.nan  # mask largest group in slice
+    #        med = np.nanmedian(four_slice, axis=0)
+    #        hold = np.unravel_index(np.nanmedian(four_slice, axis=(0, 1)), (num_usable_diffs.shape[1], num_usable_diffs.shape[2]))
+    #        median_diffs[row4, col4] = np.nanmedian(four_slice, axis=0)  # add median to return arr for these pix
 
-    # process groups with 2 usable groups
-    row2, col2 = np.where(num_usable_diffs == 2)  # locations of == 2 usable diff pixels
-    if len(row2) > 0:
-        two_slice = shaped_diffs[ :, row2, col2]
-        two_slice[np.nanargmax(np.abs(two_slice), axis=0),
-                  np.arange(two_slice.shape[1])] = np.nan  # mask larger abs. val
-        median_diffs[row2, col2] = np.nanmin(two_slice, axis=0)  # add med. to return arr
+        # process groups with 3 usable groups
+        row3, col3 = np.where(num_usable_diffs == 3)  # locations of == 3 usable diff pixels
+        if len(row3) > 0:
+            three_slice = shaped_diffs[:, row3, col3]
+            median_diffs[row3, col3] = np.nanmedian(three_slice, axis=0)  # add median to return arr for these pix
 
-    # set the medians all groups with less than 2 usable diffs to nan to skip further
-    # calculations for these pixels
-    row_none, col_none = np.where(num_usable_diffs < 2)
-    median_diffs[row_none, col_none] = np.nan
+        # process groups with 2 usable groups
+        row2, col2 = np.where(num_usable_diffs == 2)  # locations of == 2 usable diff pixels
+        if len(row2) > 0:
+            two_slice = shaped_diffs[ :, row2, col2]
+            two_slice[np.nanargmax(np.abs(two_slice), axis=0),
+                      np.arange(two_slice.shape[1])] = np.nan  # mask larger abs. val
+            median_diffs[row2, col2] = np.nanmin(two_slice, axis=0)  # add med. to return arr
 
-    return median_diffs
+        # set the medians all groups with less than 2 usable diffs to nan to skip further
+        # calculations for these pixels
+        row_none, col_none = np.where(num_usable_diffs < 2)
+        median_diffs[row_none, col_none] = np.nan
+
+        return median_diffs

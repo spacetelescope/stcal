@@ -21,6 +21,23 @@ def setup_cube():
 
     return _cube
 
+
+def test_varying_groups(setup_cube):
+    ngroups = 5
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2, nrows=2, ncols=2, readnoise=8)
+    data[0, :, 0, 0] = [10, 20, 30, 530, 540]
+    data[0, :, 0, 1] = [10, 20, 30, 530, np.nan]
+    data[0, :, 1, 0] = [10, 20, 530, np.nan, np.nan]
+    data[0, :, 1, 1] = [10, 520, np.nan, np.nan, np.nan]
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
+    )
+    assert np.array_equal(out_gdq[0, :, 0, 0], [0, 0, 0, 4, 0])
+    assert np.array_equal(out_gdq[0, :, 0, 1], [0, 0, 0, 4, 0])
+    assert np.array_equal(out_gdq[0, :, 1, 0], [0, 0, 4, 0, 0])
+    assert np.array_equal(out_gdq[0, :, 1, 1], [0, 4, 0, 0, 0])
+
+
 def test_multint_pixel(setup_cube):
     ngroups=4
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=7, nrows=2, ncols=2, readnoise=8)
@@ -168,7 +185,10 @@ def test_6grps_cr2_nframe2(setup_cube):
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
     assert np.max(out_gdq) == 4  # a CR was found
-    assert(np.array_equal([0, 4, 4, 0, 0, 0], out_gdq[0, :, 1, 1]))
+    assert (np.array_equal([0, 4, 4, 0, 0, 0], out_gdq[0, :, 1, 1]))
+    assert (np.max(out_gdq[0, :, 0, 0]) == 0)
+    assert (np.max(out_gdq[0, :, 1, 0]) == 0)
+    assert (np.max(out_gdq[0, :, 0, 1]) == 0)
 
 
 def test_4grps_twocrs_2nd_4th(setup_cube):
@@ -629,7 +649,7 @@ def test_5grps_satat4_crat3(setup_cube):
     # assert(4 == np.max(out_gdq))  # no CR was found
     result = out_gdq[0, :, 1, 1]
     assert np.array_equal(
-        [0, DQFLAGS['JUMP_DET'], DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], DQFLAGS['SATURATED']],
+        [0, 0, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], DQFLAGS['SATURATED']],
         out_gdq[0, :, 1, 1])
     assert np.array_equal(
         [0, 0, 0, DQFLAGS['SATURATED'], DQFLAGS['SATURATED']],
@@ -1042,15 +1062,17 @@ def test_median_func():
     arr = np.array([1.0, 2.0, 3.0, 4.0, 5])
     assert calc_med_first_diffs(arr) == 2.5
     # 3d array, no nans
-    arr = np.zeros(5 * 2 * 2).reshape(5, 2, 2)
-    arr[:, 0, 0] = np.array([1.0, 2.0, 3.0, 4.0, 5])
-    assert calc_med_first_diffs(arr)[0, 0] == 2.5
+    arr = np.zeros(5 * 2 * 2).reshape(1, 5, 2, 2)
+    arr[0, :, 0, 0] = np.array([1.0, 2.0, 3.0, 5.0, 4])
+    arr[0, 1, 0, 1] = 1.0
+    result = calc_med_first_diffs(arr)
+    assert result[0, 0] == 2.5
     # 1d, with nans
     arr = np.array([1.0, 2.0, 3.0, np.nan, 4.0, 5, np.nan])
     assert calc_med_first_diffs(arr) == 2.5
     # 3d, with nans
-    arr = np.zeros(7 * 2 * 2).reshape(7, 2, 2)
-    arr[:, 0, 0] = np.array([1.0, 2.0, 3.0, np.nan, 4.0, 5, np.nan])
+    arr = np.zeros(7 * 2 * 2).reshape(1, 7, 2, 2)
+    arr[0, :, 0, 0] = np.array([1.0, 2.0, 3.0, np.nan, 4.0, 5, np.nan])
     assert calc_med_first_diffs(arr)[0, 0] == 2.5
 
     # single pix with exactly 4 good diffs, should also clip 1 pix and return median
@@ -1058,45 +1080,45 @@ def test_median_func():
     arr = np.array([1.0, 2.0, 3.0, 4.0])
     assert calc_med_first_diffs(arr) == 2
     # 3d array, no nans
-    arr = np.zeros(4 * 2 * 2).reshape(4, 2, 2)
-    arr[:, 0, 0] = np.array([1.0, 2.0, 3.0, 4.0])
+    arr = np.zeros(4 * 2 * 2).reshape(1, 4, 2, 2)
+    arr[0, :, 0, 0] = np.array([1.0, 2.0, 3.0, 4.0])
     assert calc_med_first_diffs(arr)[0, 0] == 2
     # 1d, with nans
     arr = np.array([1.0, 2.0, 3.0, np.nan, 4.0, np.nan])
     assert calc_med_first_diffs(arr) == 2
     # 3d, with nans
-    arr = np.zeros(6 * 2 * 2).reshape(6, 2, 2)
-    arr[:, 0, 0] = np.array([1.0, 2.0, 3.0, np.nan, 4.0, np.nan])
+    arr = np.zeros(6 * 2 * 2).reshape(1, 6, 2, 2)
+    arr[0, :, 0, 0] = np.array([1.0, 2.0, 3.0, np.nan, 4.0, np.nan])
     assert calc_med_first_diffs(arr)[0, 0] == 2
 
     # single pix with exactly 3 good diffs, should compute median without clipping
     arr = np.array([1.0, 2.0, 3.0])
     assert calc_med_first_diffs(arr) == 2
     # 3d array, no nans
-    arr = np.zeros(3 * 2 * 2).reshape(3, 2, 2)
-    arr[:, 0, 0] = np.array([1.0, 2.0, 3.0])
+    arr = np.zeros(3 * 2 * 2).reshape(1, 3, 2, 2)
+    arr[0, :, 0, 0] = np.array([1.0, 2.0, 3.0])
     assert calc_med_first_diffs(arr)[0, 0] == 2
     # 1d, with nans
     arr = np.array([1.0, 2.0, 3.0, np.nan, np.nan])
     assert calc_med_first_diffs(arr) == 2
     # 3d, with nans
-    arr = np.zeros(5 * 2 * 2).reshape(5, 2, 2)
-    arr[:, 0, 0] = np.array([1.0, 2.0, 3.0, np.nan, np.nan])
+    arr = np.zeros(5 * 2 * 2).reshape(1, 5, 2, 2)
+    arr[0, :, 0, 0] = np.array([1.0, 2.0, 3.0, np.nan, np.nan])
     assert calc_med_first_diffs(arr)[0, 0] == 2
 
     # # single pix with exactly 2 good diffs, should return the element with the minimum abs val
     arr = np.array([-1.0, -2.0])
     assert calc_med_first_diffs(arr) == -1
     # 3d array, no nans
-    arr = np.zeros(2 * 2 * 2).reshape(2, 2, 2)
-    arr[:, 0, 0] = np.array([-1.0, -2.0])
+    arr = np.zeros(2 * 2 * 2).reshape(1, 2, 2, 2)
+    arr[0, :, 0, 0] = np.array([-1.0, -2.0])
     assert calc_med_first_diffs(arr)[0, 0] == -1
     # 1d, with nans
     arr = np.array([-1.0, -2.0, np.nan, np.nan])
     assert calc_med_first_diffs(arr) == -1
     # 3d, with nans
-    arr = np.zeros(4 * 2 * 2).reshape(4, 2, 2)
-    arr[:, 0, 0] = np.array([-1.0, -2.0, np.nan, np.nan])
+    arr = np.zeros(4 * 2 * 2).reshape(1, 4, 2, 2)
+    arr[0, :, 0, 0] = np.array([-1.0, -2.0, np.nan, np.nan])
     assert calc_med_first_diffs(arr)[0, 0] == -1
 @pytest.mark.skip("Used for local testing")
 def test_sigma_clip():
