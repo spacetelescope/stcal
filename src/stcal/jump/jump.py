@@ -1,11 +1,13 @@
 import logging
 import multiprocessing
 import time
-import cv2 as cv
+
 import numpy as np
-from astropy.io import fits
-from astropy import stats
-from astropy.convolution import Ring2DKernel, convolve
+import cv2 as cv
+import astropy.stats as stats
+
+from astropy.convolution import Ring2DKernel
+from astropy.convolution import convolve
 
 from . import constants
 from . import twopoint_difference as twopt
@@ -55,6 +57,8 @@ def detect_jumps(
     minimum_sigclip_groups=100,
     only_use_ints=True,
     min_grps_single_pass=10,
+    mask_persist_grps_next_int=True,
+    persist_grps_flagged=25,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -236,8 +240,8 @@ def detect_jumps(
     err *= gain_2d
     readnoise_2d *= gain_2d
     # also apply to the after_jump thresholds
-    after_jump_flag_e1 = after_jump_flag_dn1 * gain_2d
-    after_jump_flag_e2 = after_jump_flag_dn2 * gain_2d
+    after_jump_flag_e1 = after_jump_flag_dn1 * np.nanmedian(gain_2d)
+    after_jump_flag_e2 = after_jump_flag_dn2 * np.nanmedian(gain_2d)
 
     # Apply the 2-point difference method as a first pass
     log.info("Executing two-point difference method")
@@ -279,9 +283,15 @@ def detect_jumps(
             only_use_ints=only_use_ints,
             minimum_primary_crs=min_grps_single_pass,
         )
+        # remove redundant bits in pixels that have jump flagged but were
+        # already flagged as do_not_use or saturated.
+        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
+            dqflags['DO_NOT_USE']
+        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
+            dqflags['SATURATED']
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-            total_snowballs = flag_large_events(
+            gdq, total_snowballs = flag_large_events(
                 gdq,
                 jump_flag,
                 sat_flag,
@@ -293,6 +303,8 @@ def detect_jumps(
                 edge_size=edge_size,
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
+                mask_persist_grps_next_int=mask_persist_grps_next_int,
+                persist_grps_flagged=persist_grps_flagged,
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
@@ -316,7 +328,7 @@ def detect_jumps(
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
     else:
-        yinc = int(n_rows / n_slices)
+        yinc = int(n_rows // n_slices)
         slices = []
         # Slice up data, gdq, readnoise_2d into slices
         # Each element of slices is a tuple of
@@ -325,17 +337,16 @@ def detect_jumps(
 
         # must copy arrays here, find_crs will make copies but if slices
         # are being passed in for multiprocessing then the original gdq will be
-        # modified unless copied beforehand
+        # modified unless copied beforehand.
         gdq = gdq.copy()
         data = data.copy()
         copy_arrs = False  # we don't need to copy arrays again in find_crs
-
         for i in range(n_slices - 1):
             slices.insert(
                 i,
                 (
                     data[:, :, i * yinc : (i + 1) * yinc, :],
-                    gdq[:, :, i * yinc : (i + 1) * yinc, :],
+                    gdq[:, :, i * yinc : (i + 1) * yinc, :].copy(),
                     readnoise_2d[i * yinc : (i + 1) * yinc, :],
                     rejection_thresh,
                     three_grp_thresh,
@@ -362,7 +373,7 @@ def detect_jumps(
             n_slices - 1,
             (
                 data[:, :, (n_slices - 1) * yinc : n_rows, :],
-                gdq[:, :, (n_slices - 1) * yinc : n_rows, :],
+                gdq[:, :, (n_slices - 1) * yinc : n_rows, :].copy() ,
                 readnoise_2d[(n_slices - 1) * yinc : n_rows, :],
                 rejection_thresh,
                 three_grp_thresh,
@@ -385,6 +396,8 @@ def detect_jumps(
         )
         log.info("Creating %d processes for jump detection ", n_slices)
         pool = multiprocessing.Pool(processes=n_slices)
+######### JUST FOR DEBUGGING #########################
+#        pool = multiprocessing.Pool(processes=1)
         # Starts each slice in its own process. Starmap allows more than one
         # parameter to be passed.
         real_result = pool.starmap(twopt.find_crs, slices)
@@ -431,11 +444,16 @@ def detect_jumps(
             # save the neighbors to be flagged that will be in the next slice
             previous_row_above_gdq = row_above_gdq.copy()
             k += 1
-        fits.writeto("jumpgdq.fits", gdq, overwrite=True)
+        # remove redundant bits in pixels that have jump flagged but were
+        # already flagged as do_not_use or saturated.
+        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
+                dqflags['DO_NOT_USE']
+        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
+                dqflags['SATURATED']
 
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-            total_snowballs = flag_large_events(
+            gdq, total_snowballs = flag_large_events(
                 gdq,
                 jump_flag,
                 sat_flag,
@@ -447,6 +465,8 @@ def detect_jumps(
                 edge_size=edge_size,
                 sat_expand=sat_expand,
                 max_extended_radius=max_extended_radius,
+                mask_persist_grps_next_int=mask_persist_grps_next_int,
+                persist_grps_flagged=persist_grps_flagged,
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
@@ -477,7 +497,6 @@ def detect_jumps(
     data /= gain_2d
     err /= gain_2d
     readnoise_2d /= gain_2d
-
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
@@ -494,6 +513,8 @@ def flag_large_events(
     sat_expand=2,
     edge_size=25,
     max_extended_radius=200,
+    mask_persist_grps_next_int=True,
+    persist_grps_flagged=5,
 ):
     """
     This routine controls the creation of expanded regions that are flagged as
@@ -531,7 +552,12 @@ def flag_large_events(
         required for a snowball to be created
     max_extended_radius : int
         The largest radius that a snowball or shower can be extended
-
+    mask_persist_grps_next_int : bool
+        The flag to turn on the extension of the flagging of the saturated cores of
+        snowballs.
+    persist_grps_flagged : int
+        How many groups to be flagged when the saturated cores are extended into
+        subsequent integrations
     Returns
     -------
     Nothing, gdq array is modified.
@@ -541,8 +567,8 @@ def flag_large_events(
 
     n_showers_grp = []
     total_snowballs = 0
-    nints = gdq.shape[0]
-    ngrps = gdq.shape[1]
+    nints, ngrps, nrows, ncols = gdq.shape
+    persist_jumps = np.zeros(shape=(nints, gdq.shape[2], gdq.shape[3]), dtype=np.uint8)
     for integration in range(nints):
         for group in range(1, ngrps):
             current_gdq = gdq[integration, group, :, :]
@@ -556,10 +582,8 @@ def flag_large_events(
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
             if sat_required_snowball:
                 low_threshold = edge_size
-                nrows = gdq.shape[2]
                 high_threshold = max(0, nrows - edge_size)
-
-                gdq, snowballs = make_snowballs(
+                gdq, snowballs, persist_jumps = make_snowballs(
                     gdq,
                     integration,
                     group,
@@ -570,7 +594,9 @@ def flag_large_events(
                     min_sat_radius_extend,
                     sat_expand,
                     sat_flag,
+                    jump_flag,
                     max_extended_radius,
+                    persist_jumps,
                 )
             else:
                 snowballs = jump_ellipses
@@ -584,17 +610,29 @@ def flag_large_events(
                 sat_flag,
                 jump_flag,
                 expansion=expand_factor,
+                num_grps_masked=0,
                 max_extended_radius=max_extended_radius,
             )
-    return total_snowballs
 
+    #  Test to see if the flagging of the saturated cores will be extended into the
+    #  subsequent integrations. Persist_jumps contains all the pixels that were saturated
+    #  in the cores of snowballs.
+    if mask_persist_grps_next_int:
+        for intg in range(1, nints):
+            if persist_grps_flagged >= 1:
+                last_grp_flagged = min(persist_grps_flagged, ngrps)
+                gdq[intg, 1:last_grp_flagged, :, :] = np.bitwise_or(gdq[intg, 1:last_grp_flagged, :, :],
+                                                                    np.repeat(persist_jumps[intg - 1, np.newaxis, :, :],
+                                                                    last_grp_flagged - 1, axis=0))
+    return gdq, total_snowballs
 
 def extend_saturation(
-    cube, grp, sat_ellipses, sat_flag, min_sat_radius_extend, expansion=2, max_extended_radius=200
+    cube, grp, sat_ellipses, sat_flag, jump_flag, min_sat_radius_extend, persist_jumps,
+    expansion=2, max_extended_radius=200
 ):
-    ncols = cube.shape[2]
-    nrows = cube.shape[1]
+    ngroups, nrows, ncols = cube.shape
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
+    persist_image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     outcube = cube.copy()
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
@@ -613,13 +651,29 @@ def extend_saturation(
                 alpha,
                 0,
                 360,
+                (0, 0, 22),  # in the RGB cube, set blue plane pixels of the ellipse to 22
+                -1,
+            )
+            #  Create another non-extended ellipse that is used to create the
+            #  persist_jumps for this integration. This will be used to mask groups
+            #  in subsequent integrations.
+            sat_ellipse = image[:, :, 2]  # extract the Blue plane of the image
+            saty, satx = np.where(sat_ellipse == 22)  # find all the ellipse pixels in the ellipse
+            outcube[grp:, saty, satx] = sat_flag
+            persist_image = cv.ellipse(
+                persist_image,
+                (round(ceny), round(cenx)),
+                (round(ellipse[1][0] / 2), round(ellipse[1][1] / 2)),
+                alpha,
+                0,
+                360,
                 (0, 0, 22),
                 -1,
             )
-            sat_ellipse = image[:, :, 2]
-            saty, satx = np.where(sat_ellipse == 22)
-            outcube[grp:, saty, satx] = sat_flag
-    return outcube
+            persist_ellipse = persist_image[:, :, 2]
+            persist_saty, persist_satx = np.where(persist_ellipse == 22)
+            persist_jumps[persist_saty, persist_satx] = jump_flag
+    return outcube, persist_jumps
 
 
 def extend_ellipses(
@@ -637,7 +691,8 @@ def extend_ellipses(
     # For a given DQ plane it will use the list of ellipses to create
     #  expanded ellipses of pixels with
     # the jump flag set.
-    plane = gdq_cube[intg, grp, :, :]
+    out_gdq_cube = gdq_cube.copy()
+    plane = gdq_cube[intg, grp, :, :].copy()
     ncols = plane.shape[1]
     nrows = plane.shape[0]
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
@@ -677,15 +732,38 @@ def extend_ellipses(
         )
         jump_ellipse = image[:, :, 2]
         ngrps = gdq_cube.shape[1]
-        last_grp = min(grp + num_grps_masked, ngrps)
+        last_grp = find_last_grp(grp, ngrps, num_grps_masked)
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
             saty, satx = np.where(sat_pix == sat_flag)
             jump_ellipse[saty, satx] = 0
-            gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
-    return gdq_cube, num_ellipses
+            out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
+    diff_cube = out_gdq_cube - gdq_cube
+    return out_gdq_cube, num_ellipses
 
+def find_last_grp(grp, ngrps, num_grps_masked):
+    """
+    Parameters
+    ----------
+    grp : int
+        The location of the shower
+    
+    ngrps : int
+        The number of groups in the integration
+    
+    num_grps_masked : int
+        The requested number of groups to be flagged after the shower
+
+    Returns
+    -------
+    last_grp : int
+        The index of the last group to flag for the shower
+
+    """
+    num_grps_masked += 1
+    last_grp = min(grp + num_grps_masked, ngrps)
+    return last_grp
 
 def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
@@ -720,7 +798,9 @@ def make_snowballs(
     min_sat_radius,
     expansion,
     sat_flag,
+    jump_flag,
     max_extended_radius,
+    persist_jumps,
 ):
     # This routine will create a list of snowballs (ellipses) that have the
     # center
@@ -752,17 +832,19 @@ def make_snowballs(
                 ):
                     snowballs.append(jump)
     # extend the saturated ellipses that are larger than the min_sat_radius
-    gdq[integration, :, :, :] = extend_saturation(
+    gdq[integration, :, :, :], persist_jumps[integration, :, :] = extend_saturation(
         gdq[integration, :, :, :],
         group,
         sat_ellipses,
         sat_flag,
+        jump_flag,
         min_sat_radius,
+        persist_jumps[integration, :, :],
         expansion=expansion,
         max_extended_radius=max_extended_radius,
     )
 
-    return gdq, snowballs
+    return gdq, snowballs, persist_jumps
 
 
 def point_inside_ellipse(point, ellipse):
@@ -840,7 +922,7 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
-    read_noise_2 = readnoise_2d**2
+    read_noise_2d_sqr = readnoise_2d**2
     data = indata.copy()
     data[gdq == sat_flag] = np.nan
     data[gdq == 1] = np.nan
@@ -855,12 +937,11 @@ def find_faint_extended(
         # calculate sigma for each pixel
         if nints <= minimum_sigclip_groups:
             median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
-            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2d_sqr / nframes)
             # The difference from the median difference for each group
             e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
@@ -887,6 +968,7 @@ def find_faint_extended(
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
+
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size
@@ -938,6 +1020,7 @@ def find_faint_extended(
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
+    total_showers = 0
     if all_ellipses:
         #  Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers
@@ -947,6 +1030,7 @@ def find_faint_extended(
             intg = showers[0]
             grp = showers[1]
             ellipses = showers[2]
+            total_showers += len(ellipses)
             gdq, num = extend_ellipses(
                 gdq,
                 intg,
@@ -957,9 +1041,9 @@ def find_faint_extended(
                 expansion=ellipse_expand,
                 expand_by_ratio=True,
                 num_grps_masked=num_grps_masked,
-                max_extended_radius=max_extended_radius,
+                max_extended_radius=max_extended_radius
             )
-    return gdq, len(all_ellipses)
+    return gdq, total_showers
 
 
 def calc_num_slices(n_rows, max_cores, max_available):

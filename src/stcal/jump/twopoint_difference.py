@@ -423,9 +423,8 @@ def find_crs(
     # the transient seen after ramp jumps
     flag_e_threshold = [after_jump_flag_e1, after_jump_flag_e2]
     flag_groups = [after_jump_flag_n1, after_jump_flag_n2]
-
     for cthres, cgroup in zip(flag_e_threshold, flag_groups):
-        if cgroup > 0:
+        if cgroup > 0 and cthres > 0:
             cr_intg, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
             for j in range(len(cr_group)):
                 intg = cr_intg[j]
@@ -438,6 +437,7 @@ def find_crs(
                             gdq[intg, kk, row, col] & dnu_flag
                         ) == 0:
                             gdq[intg, kk, row, col] = np.bitwise_or(gdq[intg, kk, row, col], jump_flag)
+
     if "stddev" in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 
