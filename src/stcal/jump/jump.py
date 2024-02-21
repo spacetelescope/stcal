@@ -2,7 +2,6 @@ import logging
 import multiprocessing
 import time
 import warnings
-from astropy.io import fits
 import astropy.stats
 import cv2 as cv
 import numpy as np
@@ -338,9 +337,9 @@ def detect_jumps(
             slices.insert(
                 i,
                 (
-                    data[:, :, i * yinc : (i + 1) * yinc, :],
-                    gdq[:, :, i * yinc : (i + 1) * yinc, :],
-                    readnoise_2d[i * yinc : (i + 1) * yinc, :],
+                    data[:, :, i * yinc: (i + 1) * yinc, :],
+                    gdq[:, :, i * yinc: (i + 1) * yinc, :],
+                    readnoise_2d[i * yinc: (i + 1) * yinc, :],
                     rejection_thresh,
                     three_grp_thresh,
                     four_grp_thresh,
@@ -364,9 +363,9 @@ def detect_jumps(
         slices.insert(
             n_slices - 1,
             (
-                data[:, :, (n_slices - 1) * yinc : n_rows, :],
-                gdq[:, :, (n_slices - 1) * yinc : n_rows, :],
-                readnoise_2d[(n_slices - 1) * yinc : n_rows, :],
+                data[:, :, (n_slices - 1) * yinc: n_rows, :],
+                gdq[:, :, (n_slices - 1) * yinc: n_rows, :],
+                readnoise_2d[(n_slices - 1) * yinc: n_rows, :],
                 rejection_thresh,
                 three_grp_thresh,
                 four_grp_thresh,
@@ -406,15 +405,15 @@ def detect_jumps(
             stddev = np.zeros((nrows, ncols), dtype=np.float32)
         for resultslice in real_result:
             if len(real_result) == k + 1:  # last result
-                gdq[:, :, k * yinc : n_rows, :] = resultslice[0]
+                gdq[:, :, k * yinc: n_rows, :] = resultslice[0]
                 if only_use_ints:
-                    stddev[:, k * yinc : n_rows, :] = resultslice[4]
+                    stddev[:, k * yinc: n_rows, :] = resultslice[4]
                 else:
-                    stddev[k * yinc : n_rows, :] = resultslice[4]
+                    stddev[k * yinc: n_rows, :] = resultslice[4]
             else:
-                gdq[:, :, k * yinc : (k + 1) * yinc, :] = resultslice[0]
+                gdq[:, :, k * yinc: (k + 1) * yinc, :] = resultslice[0]
                 if only_use_ints:
-                    stddev[:, k * yinc : (k + 1) * yinc, :] = resultslice[4]
+                    stddev[:, k * yinc: (k + 1) * yinc, :] = resultslice[4]
                 else:
                     stddev[k * yinc : (k + 1) * yinc, :] = resultslice[4]
             row_below_gdq[:, :, :] = resultslice[1]
@@ -457,9 +456,6 @@ def detect_jumps(
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
-        fits.writeto("incoming_data.fits", data, overwrite=True)
-        fits.writeto("incoming_pdq.fits", pdq, overwrite=True)
-        fits.writeto("incoming_gdq.fits", gdq, overwrite=True)
         if find_showers:
             gdq, num_showers = find_faint_extended(
                 data,
@@ -865,17 +861,14 @@ def find_faint_extended(
     gdq = ingdq.copy()
     data = indata.copy()
     read_noise_2 = readnoise_2d**2
-#    ref_pixels_array = np.zeros_like(pdq)
-#    ref_pixels_array = np.bitwise_and(pdq, 2147483648) // 2147483648
-#    fits.writeto("refpixelsarray.fits", ref_pixels_array, overwrite=True)
-#    refy, refx = np.where(ref_pixels_array == 1)
-#    data[:, :, refy, refx] = np.nan
-#    gdq = np.bitwise_or(pdq[np.newaxis, np.newaxis, :, :], gdq)
+    gdq[gdq == np.bitwise_or(donotuse_flag, jump_flag)] = donotuse_flag
+    gdq[gdq == np.bitwise_or(donotuse_flag, sat_flag)] = donotuse_flag
+    data[gdq == sat_flag] = np.nan
+    data[gdq == jump_flag] = np.nan
+    data[gdq == donotuse_flag] = np.nan
     refy, refx = np.where(pdq == refpix_flag)
     gdq[:, :, refy, refx] = donotuse_flag
-    fits.writeto("updategdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
-    fits.writeto("first_diffs.fits", first_diffs, overwrite=True)
     masked_ratio_cube = np.zeros_like(data)
     masked_smoothed_ratio_cube = np.zeros_like(data)
     extended_emission_cube = np.zeros_like(data)
@@ -997,9 +990,7 @@ def find_faint_extended(
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
     warnings.resetwarnings()
-    fits.writeto("masked_ratio_cube.fits", masked_ratio_cube, overwrite=True)
-    fits.writeto("masked_smoothed_ratio_cube.fits", masked_smoothed_ratio_cube, overwrite=True)
-    fits.writeto("extended_emission_cube.fits", extended_emission_cube, overwrite=True)
+
     if all_ellipses:
         #  Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers
@@ -1021,7 +1012,7 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius,
             )
-    fits.writeto("aftergdq.fits", gdq, overwrite=True)
+
     return gdq, len(all_ellipses)
 
 def find_first_good_group(int_gdq, do_not_use):
