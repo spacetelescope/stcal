@@ -94,8 +94,6 @@ def test_4grps_2ints_cr2_noflux(setup_cube):
         data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold, nframes, False, 200, 10, DQFLAGS
     )
     assert np.max(out_gdq) == 4  # a CR was found
-    fits.writeto("outgdq_final.fits", out_gdq, overwrite=True)
-    gdq_11 = out_gdq[:, :, 1, 1]
     assert np.argmax(out_gdq[1, :, 1, 1]) == 1  # find the CR in the expected group
     assert(1 == np.argmax(out_gdq[1, :, 1, 1]))  # find the CR in the expected group
 
@@ -1122,7 +1120,6 @@ def test_median_func():
     assert calc_med_first_diffs(arr)[0, 0] == -1
 @pytest.mark.skip("Used for local testing")
 def test_sigma_clip():
-#    hdul = fits.open('TSOjump_sc__refpix.fits')
     hdul = fits.open('lrs_TSOjump_sigmaclip5_00_refpix.fits')
     data = hdul['SCI'].data * 4.0
     gdq = hdul['GROUPDQ'].data
