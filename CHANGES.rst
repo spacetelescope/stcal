@@ -1,7 +1,12 @@
 1.5.3 (unreleased)
 ==================
 
-- 
+-Jump
+------------
+- Enable the use of multiple integrations to find outliers. Also,
+  when the number of groups is above a threshold use single pass
+  outlier flagging rather than the iterative flagging.
+
 
 1.5.2 (2023-12-13)
 ==================
