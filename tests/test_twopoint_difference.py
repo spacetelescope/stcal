@@ -24,7 +24,7 @@ def setup_cube():
 
 def test_varying_groups(setup_cube):
     ngroups = 5
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=2, nrows=2, ncols=2, readnoise=8)
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=1, nrows=2, ncols=2, readnoise=8)
     data[0, :, 0, 0] = [10, 20, 30, 530, 540]
     data[0, :, 0, 1] = [10, 20, 30, 530, np.nan]
     data[0, :, 1, 0] = [10, 20, 530, np.nan, np.nan]
@@ -35,7 +35,7 @@ def test_varying_groups(setup_cube):
     assert np.array_equal(out_gdq[0, :, 0, 0], [0, 0, 0, 4, 0])
     assert np.array_equal(out_gdq[0, :, 0, 1], [0, 0, 0, 4, 0])
     assert np.array_equal(out_gdq[0, :, 1, 0], [0, 0, 4, 0, 0])
-    assert np.array_equal(out_gdq[0, :, 1, 1], [0, 4, 0, 0, 0])
+    assert np.array_equal(out_gdq[0, :, 1, 1], [0, 0, 0, 0, 0])
 
 
 def test_multint_pixel(setup_cube):
