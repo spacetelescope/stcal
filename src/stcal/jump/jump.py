@@ -3,6 +3,7 @@ import multiprocessing
 import time
 import warnings
 import astropy.stats
+from astropy.io import fits
 import cv2 as cv
 import numpy as np
 from astropy import stats
@@ -989,6 +990,7 @@ def find_faint_extended(
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
+    fits.writeto("masked_smoothed_ratio_cube.fits",masked_smoothed_ratio_cube, overwrite=True)
     warnings.resetwarnings()
 
     if all_ellipses:
