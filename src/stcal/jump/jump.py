@@ -939,6 +939,7 @@ def find_faint_extended(
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
             mean2, median2, stddev2 = astropy.stats.sigma_clipped_stats(masked_smoothed_ratio)
             cutoff = median2 + snr_threshold * stddev2
+            print("intg ", intg, "grp ", grp, "median2 ", median2, "stddev2 ", stddev2)
             exty, extx = np.where(masked_smoothed_ratio > cutoff)
             extended_emission[exty, extx] = 1
             extended_emission_cube[intg, grp, :, :] = extended_emission
