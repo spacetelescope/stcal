@@ -869,12 +869,14 @@ def find_faint_extended(
     data[gdq == donotuse_flag] = np.nan
     refy, refx = np.where(pdq == refpix_flag)
     gdq[:, :, refy, refx] = donotuse_flag
+    fits.writeto("masked_gdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
     masked_ratio_cube = np.zeros_like(data)
     masked_smoothed_ratio_cube = np.zeros_like(data)
     extended_emission_cube = np.zeros_like(data)
     e_jump_cube = np.zeros(shape=(data.shape[0], data.shape[1]-1, data.shape[2], data.shape[3]))
     median_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
+    sigma_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
     all_ellipses = []
 
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
@@ -892,6 +894,7 @@ def find_faint_extended(
             e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
             e_jump_cube[intg, :, :, :] = e_jump
             median_cube[intg, :, :] = median_diffs
+            sigma_cube[intg, :, :] = sigma
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
@@ -994,6 +997,7 @@ def find_faint_extended(
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
     print("writing msr cube")
+    fits.writeto("sigma_cube.fits", sigma_cube, overwrite=True)
     fits.writeto("median_cube.fits", median_cube, overwrite=True)
     fits.writeto("e_jump_cube.fits", e_jump_cube, overwrite=True)
     fits.writeto("masked_smoothed_ratio_cube.fits",masked_smoothed_ratio_cube, overwrite=True)
