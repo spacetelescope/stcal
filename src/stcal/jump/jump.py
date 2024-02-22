@@ -873,7 +873,7 @@ def find_faint_extended(
     masked_ratio_cube = np.zeros_like(data)
     masked_smoothed_ratio_cube = np.zeros_like(data)
     extended_emission_cube = np.zeros_like(data)
-    e_jump_cube = np.zeros_like(data)
+    e_jump_cube = np.zeros_like(shape=(data.shape[0], data.shape[1]-1, data.shape[2], data.shape[3]))
     median_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
     all_ellipses = []
 
