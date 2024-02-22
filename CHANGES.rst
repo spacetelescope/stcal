@@ -32,6 +32,8 @@ jump
   when the number of groups is above a threshold use single pass
   outlier flagging rather than the iterative flagging. [#242]
 
+=======
+
 Other
 -----
 
