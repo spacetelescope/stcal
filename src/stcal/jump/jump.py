@@ -888,7 +888,7 @@ def find_faint_extended(
     warnings.filterwarnings("ignore")
     for intg in range(nints):
         # calculate sigma for each pixel
-        if nints <= minimum_sigclip_groups:
+        if nints < minimum_sigclip_groups:
             median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
             sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
             # The difference from the median difference for each group
@@ -898,13 +898,13 @@ def find_faint_extended(
             sigma_cube[intg, :, :] = sigma
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-            ratio_cube[intg, :, :] = ratio
+            ratio_cube[intg, :, :, :] = ratio
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
         first_good_group = find_first_good_group(gdq[intg, :, :, :], donotuse_flag)
         for grp in range(first_good_group + 1, ngrps):
-            if nints > minimum_sigclip_groups:
+            if nints >= minimum_sigclip_groups:
                 median_diffs = median[grp - 1]
                 sigma = stddev[grp - 1]
                 # The difference from the median difference for each group
@@ -946,8 +946,6 @@ def find_faint_extended(
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size
             bigcontours = [con for con in contours if cv.contourArea(con) > min_shower_area]
-            if grp == 5:
-                 a=1
             #  get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
             ellipses = [cv.minAreaRect(con) for con in bigcontours]
