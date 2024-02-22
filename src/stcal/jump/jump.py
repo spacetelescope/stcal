@@ -877,6 +877,7 @@ def find_faint_extended(
     e_jump_cube = np.zeros(shape=(data.shape[0], data.shape[1]-1, data.shape[2], data.shape[3]))
     median_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
     sigma_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
+    ratio_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
     all_ellipses = []
 
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
@@ -897,7 +898,7 @@ def find_faint_extended(
             sigma_cube[intg, :, :] = sigma
             # SNR ratio of each diff.
             ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-
+            ratio_cube[intg, :, :] = ratio
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
@@ -998,6 +999,7 @@ def find_faint_extended(
                 # Reset the warnings filter to its original state
     print("writing msr cube")
     fits.writeto("sigma_cube.fits", sigma_cube, overwrite=True)
+    fits.writeto("ratio_cube.fits", ratio_cube, overwrite=True)
     fits.writeto("median_cube.fits", median_cube, overwrite=True)
     fits.writeto("e_jump_cube.fits", e_jump_cube, overwrite=True)
     fits.writeto("masked_smoothed_ratio_cube.fits",masked_smoothed_ratio_cube, overwrite=True)
