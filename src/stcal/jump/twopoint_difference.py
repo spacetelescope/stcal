@@ -29,7 +29,7 @@ def find_crs(
     minimum_groups=3,
     minimum_sigclip_groups=100,
     only_use_ints=True,
-    min_grps_single_pass=10,
+    min_diffs_single_pass=10,
 ):
     """
     Find CRs/Jumps in each integration within the input data array. The input
@@ -113,7 +113,7 @@ def find_crs(
         same group in other integrations. If False all groups across all integrations
         will be used to detect outliers.
 
-    min_grps_single_pass: integer
+    min_diffs_single_pass: integer
         The minimum number of groups to switch from the iterative flagging of
         cosmic rays to just finding all the outliers at once.
     Returns
@@ -240,7 +240,7 @@ def find_crs(
                 # use mask on data, so the results will have sat/donotuse groups masked
                 first_diffs = np.diff(dat, axis=1)
 
-                if total_usable_diffs >= min_grps_single_pass:
+                if total_usable_diffs >= min_diffs_single_pass:
                     median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
                     # calculate sigma for each pixel
                     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)

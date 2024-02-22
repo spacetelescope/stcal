@@ -54,7 +54,7 @@ def detect_jumps(
     minimum_groups=3,
     minimum_sigclip_groups=100,
     only_use_ints=True,
-    min_grps_single_pass=10,
+    min_diffs_single_pass=10,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -206,6 +206,15 @@ def detect_jumps(
     min_sat_radius_extend : float
         The minimum radius of the saturated core of a snowball for the core to
         be extended
+    minimum_groups: int
+       The minimum number of groups for jump detection
+    minimum_sigclip_groups: int
+       The minimum number of groups required to use sigma clipping to find outliers.
+    only_use_ints: boolean
+       In sigma clipping, if True only differences between integrations are compared. If False,
+       then all differences are processed at once.
+    min_diffs_single_pass: int
+       The minimum number of groups to switch to flagging all outliers in a single pass.
 
     Returns
     -------
@@ -277,7 +286,7 @@ def detect_jumps(
             minimum_groups=3,
             minimum_sigclip_groups=minimum_sigclip_groups,
             only_use_ints=only_use_ints,
-            minimum_primary_crs=min_grps_single_pass,
+            min_diffs_single_pass=min_diffs_single_pass,
         )
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
@@ -353,7 +362,7 @@ def detect_jumps(
                     minimum_groups,
                     minimum_sigclip_groups,
                     only_use_ints,
-                    min_grps_single_pass,
+                    min_diffs_single_pass,
                 ),
             )
 
@@ -380,7 +389,7 @@ def detect_jumps(
                 minimum_groups,
                 minimum_sigclip_groups,
                 only_use_ints,
-                min_grps_single_pass,
+                min_diffs_single_pass,
             ),
         )
         log.info("Creating %d processes for jump detection ", n_slices)
@@ -827,10 +836,13 @@ def find_faint_extended(
       ellipse_expand: float
           The relative increase in the size of the fitted ellipse to be
           applied to the shower.
-    num_grps_masked: int
-        The number of groups after the detected shower to be flagged as jump.
-    max_extended_radius: int
-        The upper limit for the extension of saturation and jump
+      num_grps_masked: int
+          The number of groups after the detected shower to be flagged as jump.
+      max_extended_radius: int
+          The upper limit for the extension of saturation and jump
+      minimum_sigclip_groups: int
+          The minimum number of groups to use sigma clipping.
+
 
     Returns
     -------
