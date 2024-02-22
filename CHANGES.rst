@@ -1,7 +1,10 @@
 1.6.1 (unreleased)
 ==================
 
+ramp_fitting
+~~~~~~~~~~~~
 
+- Add ``average_dark_current`` to calculations of poisson variance. [#243]
 
 1.6.0 (2024-02-15)
 ==================
