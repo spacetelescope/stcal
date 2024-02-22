@@ -996,6 +996,7 @@ def find_faint_extended(
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
     print("writing msr cube")
+    fits.writeto("extended_emission_cube.fits",  extended_emission_cube, overwrite=True)
     fits.writeto("sigma_cube.fits", sigma_cube, overwrite=True)
     fits.writeto("ratio_cube.fits", ratio_cube, overwrite=True)
     fits.writeto("median_cube.fits", median_cube, overwrite=True)
