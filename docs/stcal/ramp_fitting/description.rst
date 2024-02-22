@@ -195,7 +195,7 @@ time in seconds (from the keyword TGROUP).
 The variance of the slope in a segment due to Poisson noise is:
 
 .. math::
-   var^P_{s} = \frac{ slope_{est} }{  tgroup \times gain\ (ngroups_{s} -1)}  \,,
+   var^P_{s} = \frac{ slope_{est} + darkcurrent}{  tgroup \times gain\ (ngroups_{s} -1)}  \,,
 
 where :math:`gain` is the gain for the pixel (from the GAIN reference file),
 in e/DN. The :math:`slope_{est}` is an overall estimated slope of the pixel,

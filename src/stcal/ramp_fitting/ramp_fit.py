@@ -54,9 +54,10 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     ramp_data = ramp_fit_class.RampData()
 
     if isinstance(model.data, u.Quantity):
-        ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq, model.pixeldq)
+        ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq,
+                             model.pixeldq, model.average_dark_current)
     else:
-        ramp_data.set_arrays(model.data, model.err, model.groupdq, model.pixeldq)
+        ramp_data.set_arrays(model.data, model.err, model.groupdq, model.pixeldq, model.average_dark_current)
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     drop_frames1 = model.meta.exposure.drop_frames1 if hasattr(model, "drop_frames1") else None
