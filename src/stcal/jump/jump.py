@@ -912,6 +912,7 @@ def find_faint_extended(
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
             masked_ratio = ratio[grp - 1].copy()
+            if ndiffs > 
 
             #  mask pixels that are already flagged as jump
             combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[:, :])
