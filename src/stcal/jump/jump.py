@@ -884,13 +884,16 @@ def find_faint_extended(
     nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
+    else:
+        median_diffs = np.nanmedian(first_diffs_masked, axis=(0, 1))
+        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
 #    warnings.filterwarnings("ignore", ".*Input data contains invalid values.*", RuntimeWarning)
     warnings.filterwarnings("ignore")
     for intg in range(nints):
         # calculate sigma for each pixel
         if nints < minimum_sigclip_groups:
-            median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
-            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+#            median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
+#            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
             # The difference from the median difference for each group
             e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
             e_jump_cube[intg, :, :, :] = e_jump
@@ -902,6 +905,7 @@ def find_faint_extended(
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
+        nints = data.shape[0]
         first_good_group = find_first_good_group(gdq[intg, :, :, :], donotuse_flag)
         for grp in range(first_good_group + 1, ngrps):
             if nints >= minimum_sigclip_groups:
@@ -912,7 +916,6 @@ def find_faint_extended(
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
             masked_ratio = ratio[grp - 1].copy()
-            if ndiffs > 
 
             #  mask pixels that are already flagged as jump
             combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[:, :])
