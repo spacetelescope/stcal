@@ -914,6 +914,8 @@ def find_faint_extended(
                 median_cube[intg, :, :] = median_diffs
                 sigma_cube[intg, :, :] = sigma
                 ratio_cube[intg, :, :, :] = ratio
+                median_diffs = np.nanmedian(first_diffs_masked, axis=(0, 1))
+                sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
