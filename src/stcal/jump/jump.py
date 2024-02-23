@@ -895,13 +895,25 @@ def find_faint_extended(
 #            median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
 #            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
             # The difference from the median difference for each group
-            e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
-            e_jump_cube[intg, :, :, :] = e_jump
-            median_cube[intg, :, :] = median_diffs
-            sigma_cube[intg, :, :] = sigma
-            # SNR ratio of each diff.
-            ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-            ratio_cube[intg, :, :, :] = ratio
+            if intg > 0:
+                e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
+                e_jump_cube[intg, :, :, :] = e_jump
+                median_cube[intg, :, :] = median_diffs
+                sigma_cube[intg, :, :] = sigma
+                # SNR ratio of each diff.
+                ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
+                ratio_cube[intg, :, :, :] = ratio
+            else:
+                median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
+                sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
+                # The difference from the median difference for each group
+                e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
+                # SNR ratio of each diff.
+                ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
+                e_jump_cube[intg, :, :, :] = e_jump
+                median_cube[intg, :, :] = median_diffs
+                sigma_cube[intg, :, :] = sigma
+                ratio_cube[intg, :, :, :] = ratio
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
         ngrps = data.shape[1]
