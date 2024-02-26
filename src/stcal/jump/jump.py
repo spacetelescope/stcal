@@ -875,11 +875,14 @@ def find_faint_extended(
         log.warning("Not enough differences for shower detections")
         return ingdq, 0
     read_noise_2 = readnoise_2d**2
-    gdq[gdq == np.bitwise_or(donotuse_flag, jump_flag)] = donotuse_flag
-    gdq[gdq == np.bitwise_or(donotuse_flag, sat_flag)] = donotuse_flag
+    jump_dnu_flag = jump_flag + donotuse_flag
+    sat_dnu_flag = sat_flag + donotuse_flag
+    data[gdq == jump_dnu_flag] = np.nan
+    data[gdq == sat_dnu_flag] = np.nan
     data[gdq == sat_flag] = np.nan
     data[gdq == jump_flag] = np.nan
     data[gdq == donotuse_flag] = np.nan
+    fits.writeto("data_naned.fits", data, overwrite=True)
     refy, refx = np.where(pdq == refpix_flag)
     gdq[:, :, refy, refx] = donotuse_flag
     fits.writeto("masked_gdq.fits", gdq, overwrite=True)
@@ -1058,11 +1061,11 @@ def find_faint_extended(
                 max_extended_radius=max_extended_radius,
             )
     fits.writeto('before_gdq_reset.fits', gdq, overwrite=True)
-    jump_dnu_flag = jump_flag + donotuse_flag
-    sat_dnu_flag = sat_flag + donotuse_flag
-    gdq[ingdq == np.bitwise_and(ingdq, jump_flag) or ingdq == np.bitwise_and(ingdq, jump_dnu_flag)] = jump_flag
-    gdq[ingdq == np.bitwise_and(ingdq, sat_flag) or ingdq == np.bitwise_and(ingdq, sat_dnu_flag)] = sat_flag
-    fits.writeto('after_gdq_reset.fits', gdq, overwrite=True)
+#    jump_dnu_flag = jump_flag + donotuse_flag
+#    sat_dnu_flag = sat_flag + donotuse_flag
+#    gdq[ingdq == np.bitwise_and(ingdq, jump_flag) or ingdq == np.bitwise_and(ingdq, jump_dnu_flag)] = jump_flag
+#    gdq[ingdq == np.bitwise_and(ingdq, sat_flag) or ingdq == np.bitwise_and(ingdq, sat_dnu_flag)] = sat_flag
+#    fits.writeto('after_gdq_reset.fits', gdq, overwrite=True)
     return gdq, len(all_ellipses)
 
 def find_first_good_group(int_gdq, do_not_use):
