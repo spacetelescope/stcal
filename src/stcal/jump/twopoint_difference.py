@@ -164,9 +164,9 @@ def find_crs(
     total_groups = nints * (ngrps - num_flagged_grps)
     total_diffs = nints * (ngrps - 1 - num_flagged_grps)
     total_usable_diffs = total_diffs - num_flagged_grps
-    if (ngrps < minimum_groups and only_use_ints and nints < minimum_sigclip_groups) or \
+    if ((ngrps < minimum_groups and only_use_ints and nints < minimum_sigclip_groups) or 
             (not only_use_ints and nints * ngrps < minimum_sigclip_groups and
-             total_groups < minimum_groups):
+             total_groups < minimum_groups)):
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
         log.info("Data shape {}".format(str(dat.shape)))
         dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]),
