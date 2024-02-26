@@ -870,7 +870,7 @@ def find_faint_extended(
         for grp in range(ngrps):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], donotuse_flag)):
                 num_grps_donotuse += 1
-    total_diffs = nints * (ngrps - num_grps_donotuse - 1)
+    total_diffs = nints * (ngrps - 1) - num_grps_donotuse
     if total_diffs < min_diffs_for_shower:
         log.warning("Not enough differences for shower detections")
         return ingdq, 0
