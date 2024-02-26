@@ -906,7 +906,7 @@ def test_10grps_1cr_afterjump(setup_cube):
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
 
-    after_jump_flag_e1 = 1.0
+    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data,
         gdq,
