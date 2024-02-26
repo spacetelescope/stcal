@@ -815,6 +815,7 @@ def find_faint_extended(
     ellipse_expand=1.1,
     num_grps_masked=25,
     max_extended_radius=200,
+    min_diffs_for_shower=10,
 ):
     """
     Parameters
@@ -860,7 +861,19 @@ def find_faint_extended(
 #    fits.writeto("inpdg.fits", pdq, overwrite=True)
     log.info("Flagging Showers")
     gdq = ingdq.copy()
+    fits.writeto("input_gdq.fits", gdq, overwrite=True)
     data = indata.copy()
+    nints = data.shape[0]
+    ngrps = data.shape[1]
+    num_grps_donotuse = 0
+    for integ in range(nints):
+        for grp in range(ngrps):
+            if np.all(np.bitwise_and(gdq[integ, grp, :, :], donotuse_flag)):
+                num_grps_donotuse += 1
+    total_diffs = nints * (ngrps - num_grps_donotuse - 1)
+    if total_diffs < min_diffs_for_shower:
+        log.warning("Not enough differences for shower detections")
+        return ingdq, 0
     read_noise_2 = readnoise_2d**2
     gdq[gdq == np.bitwise_or(donotuse_flag, jump_flag)] = donotuse_flag
     gdq[gdq == np.bitwise_or(donotuse_flag, sat_flag)] = donotuse_flag
@@ -871,6 +884,8 @@ def find_faint_extended(
     gdq[:, :, refy, refx] = donotuse_flag
     fits.writeto("masked_gdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
+
+######################################################
     masked_ratio_cube = np.zeros_like(data)
     masked_smoothed_ratio_cube = np.zeros_like(data)
     extended_emission_cube = np.zeros_like(data)
@@ -878,16 +893,16 @@ def find_faint_extended(
     median_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
     sigma_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
     ratio_cube = np.zeros(shape=(data.shape[0], data.shape[1]-1, data.shape[2], data.shape[3]))
+#######################################################
     all_ellipses = []
 
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
-    nints = data.shape[0]
     if nints > minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
     else:
         median_diffs = np.nanmedian(first_diffs_masked, axis=(0, 1))
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
-#    warnings.filterwarnings("ignore", ".*Input data contains invalid values.*", RuntimeWarning)
+
     warnings.filterwarnings("ignore")
     for intg in range(nints):
         # calculate sigma for each pixel
@@ -918,8 +933,6 @@ def find_faint_extended(
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(inner, outer)
-        ngrps = data.shape[1]
-        nints = data.shape[0]
         first_good_group = find_first_good_group(gdq[intg, :, :, :], donotuse_flag)
         for grp in range(first_good_group + 1, ngrps):
             if nints >= minimum_sigclip_groups:
@@ -1044,7 +1057,12 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius,
             )
-
+    fits.writeto('before_gdq_reset.fits', gdq, overwrite=True)
+    jump_dnu_flag = jump_flag + donotuse_flag
+    sat_dnu_flag = sat_flag + donotuse_flag
+    gdq[ingdq == np.bitwise_and(ingdq, jump_flag) or ingdq == np.bitwise_and(ingdq, jump_dnu_flag)] = jump_flag
+    gdq[ingdq == np.bitwise_and(ingdq, sat_flag) or ingdq == np.bitwise_and(ingdq, sat_dnu_flag)] = sat_flag
+    fits.writeto('after_gdq_reset.fits', gdq, overwrite=True)
     return gdq, len(all_ellipses)
 
 def find_first_good_group(int_gdq, do_not_use):
