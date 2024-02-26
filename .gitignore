@@ -148,11 +148,7 @@ src/stcal/_version.py
 
 # auto-generated API docs
 docs/source/api
-<<<<<<< HEAD
-.DS_Store
-=======
 .DS_Store
 
 # VSCode stuff
 .vscode
->>>>>>> 75e1efacba98506604174702b747e7586e9fbc95
