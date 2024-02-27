@@ -251,7 +251,7 @@ def detect_jumps(
     # also apply to the after_jump thresholds
     after_jump_flag_e1 = after_jump_flag_dn1 * np.nanmedian(gain_2d)
     after_jump_flag_e2 = after_jump_flag_dn2 * np.nanmedian(gain_2d)
-
+    print("after_jump_flag_e1: shape", after_jump_flag_e1.shape)
     # Apply the 2-point difference method as a first pass
     log.info("Executing two-point difference method")
     start = time.time()
