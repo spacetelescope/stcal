@@ -31,7 +31,52 @@ def setup_cube():
 
     return _cube
 
+def test_nirspec_saturated_pix():
+    """
+    This test is based on an actual NIRSpec exposure that has some pixels
+    flagged as saturated in one or more groups, which the jump step is
+    supposed to ignore, but an old version of the code was setting JUMP flags
+    for some of the saturated groups. This is to verify that the saturated
+    groups are no longer flagged with jumps.
+    """
+    ingain = 1.0
+    inreadnoise = 10.7
+    ngroups = 7
+    nrows = 2
+    ncols = 2
+    nints = 1
+    nframes = 1
+    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
+    read_noise = np.full((nrows, ncols), inreadnoise, dtype=np.float32)
+    gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
+    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
+    gain = np.ones_like(read_noise) * ingain
 
+    # Setup the needed input pixel and DQ values
+    data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176,
+                              1116.3828, 1936.9746]
+    gdq[0, :, 1, 1] = [0, 0, 0, 0, 0, 2, 2]
+    data[0, :, 0, 1] = [8.25666812e+05, -1.10471914e+05, 1.95755371e+02, 1.83118457e+03,
+                              1.72250879e+03, 1.81733496e+03, 1.65188281e+03]
+    # 2 non-sat groups means only 1 non-sat diff, so no jumps should be flagged
+    gdq[0, :, 0, 1] = [0, 0, 2, 2, 2, 2, 2]
+    data[0, :, 1, 0] = [1228767., 46392.234, -3245.6553, 7762.413,
+                              37190.76, 266611.62, 5072.4434]
+    gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, 2]
+
+    # run jump detection
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(nframes, data, gdq, pdq, err, gain, read_noise, rejection_thresh=4.0, three_grp_thresh=5,
+                                 four_grp_thresh=6,
+                                 max_cores='none', max_jump_to_flag_neighbors=200,
+                                 min_jump_to_flag_neighbors=10, flag_4_neighbors=True, dqflags=DQFLAGS)
+
+    # Check the results. There should not be any pixels with DQ values of 6, which
+    # is saturated (2) plus jump (4). All the DQ's should be either just 2 or just 4.
+    np.testing.assert_array_equal(gdq[0, :, 1, 1], [0, 4, 0, 4, 4, 2, 2])
+    # assert that no groups are flagged when theres only 1 non-sat. grp
+    np.testing.assert_array_equal(gdq[0, :, 0, 1], [0, 0, 2, 2, 2, 2, 2])
+    np.testing.assert_array_equal(gdq[0, :, 1, 0], [0, 4, 4, 0, 4, 4, 2])
 def test_multiprocessing():
     nints = 1
     nrows = 13
