@@ -542,8 +542,9 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     err = ramp_data.err[:, :, start_row : start_row + nrows, :].copy()
     groupdq = ramp_data.groupdq[:, :, start_row : start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row : start_row + nrows, :].copy()
+    average_dark_current = ramp_data.average_dark_current[start_row : start_row + nrows, :].copy()
 
-    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq)
+    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq, average_dark_current)
 
     if ramp_data.zeroframe is not None:
         ramp_data_slice.zeroframe = ramp_data.zeroframe[:, start_row : start_row + nrows, :].copy()
