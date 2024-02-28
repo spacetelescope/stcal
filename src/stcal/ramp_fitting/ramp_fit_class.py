@@ -63,6 +63,10 @@ class RampData:
         pixeldq : ndarray (uint32)
             4-D array containing the pixel data quality information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
+
+        average_dark_current : ndarray (float32)
+            2-D array containing the average dark current. It has
+            dimensions (nrows, ncols)
         """
         # Get arrays from the data model
         self.data = data
