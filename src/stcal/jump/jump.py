@@ -18,10 +18,10 @@ log.setLevel(logging.DEBUG)
 
 def detect_jumps(
     frames_per_group,
-    data,
+    indata,
     gdq,
     pdq,
-    err,
+    inerr,
     gain_2d,
     readnoise_2d,
     rejection_thresh,
@@ -82,7 +82,7 @@ def detect_jumps(
     frames_per_group : int
         number of frames per group
 
-    data : float, 4D array
+    indata : float, 4D array
         science array
 
     gdq : int, 4D array
@@ -91,7 +91,7 @@ def detect_jumps(
     pdq : int, 2D array
         pixelg dq array
 
-    err : float, 4D array
+    inerr : float, 4D array
         error array
 
     gain_2d : float, 2D array
@@ -245,8 +245,8 @@ def detect_jumps(
 
     # Apply gain to the SCI, ERR, and readnoise arrays so they're in units
     # of electrons
-    data *= gain_2d
-    err *= gain_2d
+    data = indata * gain_2d
+    err = inerr * gain_2d
     readnoise_2d *= gain_2d
     # also apply to the after_jump thresholds
     after_jump_flag_e1 = after_jump_flag_dn1 * np.nanmedian(gain_2d)
