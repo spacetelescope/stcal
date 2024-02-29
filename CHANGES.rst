@@ -1,4 +1,16 @@
-1.7.0 (unreleased)
+1.7.1 (unreleased)
+==================
+
+Changes to API
+--------------
+
+Bug Fixes
+---------
+
+Other
+-----
+
+1.7.0 (2024-02-29)
 ==================
 
 Changes to API
@@ -8,12 +20,6 @@ ramp_fitting
 ~~~~~~~~~~~~
 
 - Add ``average_dark_current`` to calculations of poisson variance. [#243]
-
-Bug Fixes
----------
-
-Other
------
 
 1.6.0 (2024-02-15)
 ==================
