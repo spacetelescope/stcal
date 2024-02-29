@@ -1,4 +1,4 @@
-1.7.1 (unreleased)
+1.6.2 (unreleased)
 ==================
 
 Changes to API
@@ -10,7 +10,7 @@ Bug Fixes
 Other
 -----
 
-1.7.0 (2024-02-29)
+1.6.1 (2024-02-29)
 ==================
 
 Changes to API
