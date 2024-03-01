@@ -74,7 +74,7 @@ def test_nirspec_saturated_pix():
     # Check the results. There should not be any pixels with DQ values of 6, which
     # is saturated (2) plus jump (4). All the DQ's should be either just 2 or just 4.
     np.testing.assert_array_equal(gdq[0, :, 1, 1], [0, 4, 0, 4, 4, 2, 2])
-    # assert that no groups are flagged when theres only 1 non-sat. grp
+    # assert that no groups are flagged when there's only 1 non-sat. grp
     np.testing.assert_array_equal(gdq[0, :, 0, 1], [0, 0, 2, 2, 2, 2, 2])
     np.testing.assert_array_equal(gdq[0, :, 1, 0], [0, 4, 4, 0, 4, 4, 2])
 
@@ -168,7 +168,6 @@ def test_multiprocessing_big():
     assert gdq[0, 4, 204, 5] == DQFLAGS['JUMP_DET']
     assert gdq[0, 4, 205, 5] == DQFLAGS['JUMP_DET']
     assert gdq[0, 4, 204, 6] == DQFLAGS['DO_NOT_USE'] #This value would have been 5 without the fix.
-
 
 
 def test_find_simple_ellipse():
@@ -531,7 +530,7 @@ def test_flag_persist_groups():
         sat_expand=1.1,
         mask_persist_grps_next_int=True,
         persist_grps_flagged=0)
-#   fits.writeto("persitflaggedgdq.fits", gdq, overwrite=True)
+
 def test_calc_num_slices():
     n_rows = 20
     max_available_cores = 10
