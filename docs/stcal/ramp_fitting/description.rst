@@ -195,14 +195,16 @@ time in seconds (from the keyword TGROUP).
 The variance of the slope in a segment due to Poisson noise is:
 
 .. math::
-   var^P_{s} = \frac{ slope_{est} }{  tgroup \times gain\ (ngroups_{s} -1)}  \,,
+   var^P_{s} = \frac{ slope_{est} + darkcurrent}{  tgroup \times gain\ (ngroups_{s} -1)}  \,,
 
 where :math:`gain` is the gain for the pixel (from the GAIN reference file),
 in e/DN. The :math:`slope_{est}` is an overall estimated slope of the pixel,
 calculated by taking the median of the first differences of the groups that are
 unaffected by saturation and cosmic rays, in all integrations. This is a more
 robust estimate of the slope than the segment-specific slope, which may be noisy
-for short segments.
+for short segments. The contributions from the dark current are added when present;
+the value can be provided by the user during the `jwst.dark_current.DarkCurrentStep`,
+or it can be specified in scalar or 2D array form by the dark reference file.
 
 The combined variance of the slope of a segment is the sum of the variances:
 

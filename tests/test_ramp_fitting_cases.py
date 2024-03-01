@@ -786,9 +786,10 @@ def create_blank_ramp_data(dims, var, timing, ts_name="NIRSpec"):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+    dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name=ts_name,
         frame_time=frame_time,
