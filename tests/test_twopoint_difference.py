@@ -1171,7 +1171,6 @@ def test_5grp_TSO():
     np.expand_dims(gdq, axis=0)
     np.expand_dims(data, axis=0)
     gdq[:, 0, :, :] = DQFLAGS['DO_NOT_USE']
-#    gdq[1:, 1, :, :] = DQFLAGS['DO_NOT_USE']
     gdq[:, -1, :, :] = DQFLAGS['DO_NOT_USE']
     data[0, :, 0, 0] = [21500, 37600, 52082, 65068, 58627]
     data[0, :, 0, 1] = [21500, 37600, 52082, 65068, 58627]
@@ -1195,33 +1194,3 @@ def test_5grp_realTSO():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
     fits.writeto("new_gdq_cutout.fits", gdq, overwrite=True)
-
-@pytest.mark.skip("Used for local testing")
-def test_1059():
-    hdul = fits.open("data/nircam_1059_00_dark_current.fits")
-    gdq = hdul['groupdq'].data
-    data = hdul['sci'].data * 5.5
-    readnoise = 5.5 * 6
-    read_noise = np.full((gdq.shape[2], gdq.shape[3]), readnoise, dtype=np.float32)
-
-    gdq, row_below_gdq, row_above_gdq, total_total_crs, stddev = \
-        find_crs(data, gdq, read_noise, 5, 4, 5, 1, False, 1000, 10, DQFLAGS,
-                 after_jump_flag_e1=0.0, after_jump_flag_n1=0,
-                 after_jump_flag_e2=0.0, after_jump_flag_n2=0,
-                 copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
-    fits.writeto("new_no_sigma_clip_gdq.fits", gdq, overwrite=True)
-
-@pytest.mark.skip("Used for local testing")
-def test_1952():
-    hdul = fits.open("data/obs1952_sc_shower_00_dark_current.fits")
-    gdq = hdul['groupdq'].data
-    data = hdul['sci'].data * 5.5
-    readnoise = 5.5 * 6
-    read_noise = np.full((gdq.shape[2], gdq.shape[3]), readnoise, dtype=np.float32)
-    gain = np.full((gdq.shape[2], gdq.shape[3]), 5.5, dtype=np.float32)
-    gdq, row_below_gdq, row_above_gdq, total_total_crs, stddev = \
-        find_crs(data, gdq, read_noise, 5, 4, 5, 1, True, 1000, 10, DQFLAGS,
-                 after_jump_flag_e1=100.0 * gain, after_jump_flag_n1=20/2.77,
-                 after_jump_flag_e2=3000.0 * gain, after_jump_flag_n2=1000/2.77,
-                 copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=150)
-    fits.writeto("new_obs1952_gdq.fits", gdq, overwrite=True)
