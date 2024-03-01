@@ -77,6 +77,7 @@ def test_nirspec_saturated_pix():
     # assert that no groups are flagged when theres only 1 non-sat. grp
     np.testing.assert_array_equal(gdq[0, :, 0, 1], [0, 0, 2, 2, 2, 2, 2])
     np.testing.assert_array_equal(gdq[0, :, 1, 0], [0, 4, 4, 0, 4, 4, 2])
+
 def test_multiprocessing():
     nints = 1
     nrows = 13
