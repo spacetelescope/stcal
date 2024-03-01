@@ -1195,20 +1195,6 @@ def test_5grp_realTSO():
                  after_jump_flag_e2=0.0, after_jump_flag_n2=0,
                  copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
     fits.writeto("new_gdq_cutout.fits", gdq, overwrite=True)
-@pytest.mark.skip("Used for local testing")
-def test_5grp_allTSO():
-    hdul = fits.open("obs2508_noshower_sigclip_base_00_dark_current.fits")
-    gdq = hdul['groupdq'].data
-    data = hdul['sci'].data * 5.5
-    readnoise = 5.5 * 6
-    read_noise = np.full((gdq.shape[2], gdq.shape[3]), readnoise, dtype=np.float32)
-
-    gdq, row_below_gdq, row_above_gdq, total_total_crs, stddev = \
-        find_crs(data, gdq, read_noise, 5, 4, 5, 1, False, 1000, 10, DQFLAGS,
-                 after_jump_flag_e1=0.0, after_jump_flag_n1=0,
-                 after_jump_flag_e2=0.0, after_jump_flag_n2=0,
-                 copy_arrs=True, minimum_groups=3, minimum_sigclip_groups=15000)
-    fits.writeto("new_no_sigma_clip_gdq.fits", gdq, overwrite=True)
 
 @pytest.mark.skip("Used for local testing")
 def test_1059():
