@@ -3,7 +3,7 @@ import multiprocessing
 import time
 import warnings
 import astropy.stats
-from astropy.io import fits
+
 import cv2 as cv
 import numpy as np
 from astropy import stats
@@ -237,7 +237,6 @@ def detect_jumps(
     data *= gain_2d
     err *= gain_2d
     readnoise_2d *= gain_2d
-    print("median gain", np.median(gain_2d))
     # also apply to the after_jump thresholds
     after_jump_flag_e1 = after_jump_flag_dn1 * gain_2d
     after_jump_flag_e2 = after_jump_flag_dn2 * gain_2d
@@ -861,7 +860,6 @@ def find_faint_extended(
 #    fits.writeto("inpdg.fits", pdq, overwrite=True)
     log.info("Flagging Showers")
     gdq = ingdq.copy()
-    fits.writeto("input_gdq.fits", gdq, overwrite=True)
     data = indata.copy()
     nints = data.shape[0]
     ngrps = data.shape[1]
@@ -882,21 +880,10 @@ def find_faint_extended(
     data[gdq == sat_flag] = np.nan
     data[gdq == jump_flag] = np.nan
     data[gdq == donotuse_flag] = np.nan
-    fits.writeto("data_naned.fits", data, overwrite=True)
     refy, refx = np.where(pdq == refpix_flag)
     gdq[:, :, refy, refx] = donotuse_flag
-    fits.writeto("masked_gdq.fits", gdq, overwrite=True)
     first_diffs = np.diff(data, axis=1)
 
-######################################################
-    masked_ratio_cube = np.zeros_like(data)
-    masked_smoothed_ratio_cube = np.zeros_like(data)
-    extended_emission_cube = np.zeros_like(data)
-    e_jump_cube = np.zeros(shape=(data.shape[0], data.shape[1]-1, data.shape[2], data.shape[3]))
-    median_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
-    sigma_cube = np.zeros(shape=(data.shape[0], data.shape[2], data.shape[3]))
-    ratio_cube = np.zeros(shape=(data.shape[0], data.shape[1]-1, data.shape[2], data.shape[3]))
-#######################################################
     all_ellipses = []
 
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
@@ -910,17 +897,12 @@ def find_faint_extended(
     for intg in range(nints):
         # calculate sigma for each pixel
         if nints < minimum_sigclip_groups:
-#            median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
-#            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
             # The difference from the median difference for each group
             if intg > 0:
                 e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
-                e_jump_cube[intg, :, :, :] = e_jump
-                median_cube[intg, :, :] = median_diffs
-                sigma_cube[intg, :, :] = sigma
+
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-                ratio_cube[intg, :, :, :] = ratio
             else:
                 median_diffs = np.nanmedian(first_diffs_masked[intg], axis=0)
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
@@ -928,10 +910,6 @@ def find_faint_extended(
                 e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
                 # SNR ratio of each diff.
                 ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-                e_jump_cube[intg, :, :, :] = e_jump
-                median_cube[intg, :, :] = median_diffs
-                sigma_cube[intg, :, :] = sigma
-                ratio_cube[intg, :, :, :] = ratio
                 median_diffs = np.nanmedian(first_diffs_masked, axis=(0, 1))
                 sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
         #  The convolution kernel creation
@@ -962,21 +940,15 @@ def find_faint_extended(
             dnu_pixels_array = np.bitwise_and(combined_pixel_mask, 1)
             dnuy, dnux = np.where(dnu_pixels_array == 1)
             masked_ratio[dnuy, dnux] = np.nan
-            masked_ratio_cube[intg, grp, :, :] = masked_ratio
 
             masked_smoothed_ratio = convolve(masked_ratio.filled(np.nan), ring_2D_kernel)
             #  mask out the pixels that got refilled by the convolution
             masked_smoothed_ratio[dnuy, dnux] = np.nan
-            masked_smoothed_ratio_cube[intg, grp, :, :] = masked_smoothed_ratio
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
-#            mean2, median2, stddev2 = astropy.stats.sigma_clipped_stats(masked_smoothed_ratio)
-#            cutoff = median_diffs + snr_threshold * sigma
-#            print("intg ", intg, "grp ", grp, "median2 ", median2, "stddev2 ", stddev2)
             exty, extx = np.where(masked_smoothed_ratio > snr_threshold)
             extended_emission[exty, extx] = 1
-            extended_emission_cube[intg, grp, :, :] = extended_emission
             #  find the contours of the extended emission
             contours, hierarchy = cv.findContours(extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
             #  get the contours that are above the minimum size
@@ -1030,13 +1002,6 @@ def find_faint_extended(
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
-    print("writing msr cube")
-    fits.writeto("extended_emission_cube.fits",  extended_emission_cube, overwrite=True)
-    fits.writeto("sigma_cube.fits", sigma_cube, overwrite=True)
-    fits.writeto("ratio_cube.fits", ratio_cube, overwrite=True)
-    fits.writeto("median_cube.fits", median_cube, overwrite=True)
-    fits.writeto("e_jump_cube.fits", e_jump_cube, overwrite=True)
-    fits.writeto("masked_smoothed_ratio_cube.fits",masked_smoothed_ratio_cube, overwrite=True)
     warnings.resetwarnings()
 
     if all_ellipses:
@@ -1060,12 +1025,6 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius,
             )
-    fits.writeto('before_gdq_reset.fits', gdq, overwrite=True)
-#    jump_dnu_flag = jump_flag + donotuse_flag
-#    sat_dnu_flag = sat_flag + donotuse_flag
-#    gdq[ingdq == np.bitwise_and(ingdq, jump_flag) or ingdq == np.bitwise_and(ingdq, jump_dnu_flag)] = jump_flag
-#    gdq[ingdq == np.bitwise_and(ingdq, sat_flag) or ingdq == np.bitwise_and(ingdq, sat_dnu_flag)] = sat_flag
-#    fits.writeto('after_gdq_reset.fits', gdq, overwrite=True)
     return gdq, len(all_ellipses)
 
 def find_first_good_group(int_gdq, do_not_use):
