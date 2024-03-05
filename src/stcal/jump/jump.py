@@ -2,8 +2,6 @@ import logging
 import multiprocessing
 import time
 import warnings
-import astropy.stats
-
 import cv2 as cv
 import numpy as np
 from astropy import stats
