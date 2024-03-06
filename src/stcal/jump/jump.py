@@ -540,7 +540,7 @@ def flag_large_events(
 
     Returns
     -------
-    Nothing, gdq array is modified.
+    total Snowballs
 
     """
     log.info("Flagging Snowballs")
