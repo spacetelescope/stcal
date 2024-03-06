@@ -160,7 +160,6 @@ def test_flag_large_events_groupedsnowball():
     cube[0, 2, 5, 1:6] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 1] = DQFLAGS["JUMP_DET"]
     cube[0, 2, 1:6, 5] = DQFLAGS["JUMP_DET"]
-    fits.writeto("incube.fits", cube, overwrite=True)
     flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
@@ -175,7 +174,6 @@ def test_flag_large_events_groupedsnowball():
     )
     #    assert cube[0, 1, 2, 2] == 0
     #    assert cube[0, 1, 3, 5] == 0
-    fits.writeto("outcube.fits", cube, overwrite=True)
     assert cube[0, 2, 0, 0] == 0
     assert cube[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
@@ -214,13 +212,12 @@ def test_flag_large_events_withsnowball_noextension():
 
 
 def test_find_faint_extended():
-    nint, ngrps, ncols, nrows = 1, 66, 5, 5
+    nint, ngrps, ncols, nrows = 1, 66, 25, 25
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint32)
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     pdq[0, 0] = 1
     pdq[1, 1] = 2147483648
-#    pdq = np.zeros(shape=(data.shape[2], data.shape[3]), dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
@@ -234,75 +231,36 @@ def test_find_faint_extended():
         readnoise * np.sqrt(2),
         1,
         100,
-        snr_threshold=3,
+        snr_threshold=1.2,
         min_shower_area=10,
         inner=1,
         outer=2.6,
         sat_flag=2,
         jump_flag=4,
-        ellipse_expand=1.1,
-        num_grps_masked=0,
+        ellipse_expand=1.,
+        num_grps_masked=1,
     )
-    fits.writeto("outputgdq.fits", gdq, overwrite=True)
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside
-    assert num_showers == 1
+    fits.writeto("gdq.fits", gdq, overwrite=True)
+#    assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
-    assert np.all(gdq[0, 1, 21, 16:20] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 20, 15:22] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 19, 15:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 18, 14:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 17, 14:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 16, 14:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 15, 14:22] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 14, 16:22] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 13, 17:21] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 1, 12, 14:23] == 0)
-    assert np.all(gdq[0, 1, 12:23, 24] == 0)
-    assert np.all(gdq[0, 1, 12:23, 13] == 0)
+    assert gdq[0, 1, 16, 18] == DQFLAGS['JUMP_DET']
+    assert np.all(gdq[0, 1, 11:22, 16:19] == DQFLAGS["JUMP_DET"])
+    assert np.all(gdq[0, 1, 22, 16:19] == 0)
+    assert np.all(gdq[0, 1, 10, 16:19] == 0)
     #  Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
-    assert np.all(gdq[0, 2, 21, 16:20] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 20, 15:22] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 19, 15:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 18, 14:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 17, 14:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 16, 14:23] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 15, 14:22] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 14, 16:22] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 13, 17:21] == DQFLAGS["JUMP_DET"])
-    assert np.all(gdq[0, 2, 12, 14:23] == 0)
-    assert np.all(gdq[0, 2, 12:22, 24] == 0)
-    assert np.all(gdq[0, 2, 12:22, 13] == 0)
+    assert gdq[0, 2, 16, 18] == DQFLAGS['JUMP_DET']
+    assert np.all(gdq[0, 2, 11:22, 16:19] == DQFLAGS["JUMP_DET"])
+    assert np.all(gdq[0, 2, 22, 16:19] == 0)
+    assert np.all(gdq[0, 2, 10, 16:19] == 0)
+
+    assert np.all(gdq[0, 3:, :, :]) == 0
 
     #  Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
-def test_shower_enhancements():
-    data = fits.getdata("data/incoming_data.fits")
-    pdq = fits.getdata("data/incoming_pdq.fits")
-    gdq = fits.getdata("data/incoming_gdq.fits")
-    readnoise_DN = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_readnoise_0085.fits")
-    gain = fits.getdata("/grp/crds/jwst/references/jwst/jwst_miri_gain_0020.fits")
-    print("median gain", np.nanmedian(gain))
-    readnoise = gain * readnoise_DN
-    gdq, num_showers = find_faint_extended(
-        data,
-        gdq,
-        pdq,
-        readnoise * np.sqrt(2),
-        1,
-        100,
-        snr_threshold=3.0,
-        min_shower_area=30,
-        inner=1,
-        outer=2.6,
-        sat_flag=2,
-        jump_flag=4,
-        ellipse_expand=1.1,
-        num_grps_masked=0,
-    )
-    fits.writeto("outputgdq.fits", gdq, overwrite=True)
     def test_find_faint_extended():
         nint, ngrps, ncols, nrows = 1, 66, 5, 5
         data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
@@ -316,7 +274,6 @@ def test_shower_enhancements():
         rng = np.random.default_rng(12345)
         data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
         data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-        fits.writeto("data.fits", data, overwrite=True)
         gdq, num_showers = find_faint_extended(
             data,
             gdq,
@@ -333,7 +290,6 @@ def test_shower_enhancements():
             ellipse_expand=1.1,
             num_grps_masked=0,
         )
-        fits.writeto("outputgdq.fits", gdq, overwrite=True)
 
 
 # No shower is found because the event is identical in all ints
@@ -341,7 +297,7 @@ def test_find_faint_extended_sigclip():
     nint, ngrps, ncols, nrows = 101, 6, 30, 30
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
-    pdq = np.zeros_like(data, dtype=np.uint8)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)

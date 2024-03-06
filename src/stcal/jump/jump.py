@@ -854,8 +854,6 @@ def find_faint_extended(
     Total number of showers detected.
 
     """
-#    fits.writeto("ingdq.fits", ingdq, overwrite=True)
-#    fits.writeto("inpdg.fits", pdq, overwrite=True)
     log.info("Flagging Showers")
     gdq = ingdq.copy()
     data = indata.copy()
