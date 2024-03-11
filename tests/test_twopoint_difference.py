@@ -855,7 +855,7 @@ def test_10grps_1cr_afterjump(setup_cube):
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
 
-    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
+    after_jump_flag_e1 = 1.0
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data,
         gdq,
@@ -891,7 +891,7 @@ def test_10grps_1cr_afterjump_2group(setup_cube):
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
 
-    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 0.0
+    after_jump_flag_e1 = 1.0
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data,
         gdq,
@@ -932,7 +932,7 @@ def test_10grps_1cr_afterjump_toosmall(setup_cube):
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
 
-    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 10000.0
+    after_jump_flag_e1 = 10000.0
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data,
         gdq,
@@ -968,8 +968,8 @@ def test_10grps_1cr_afterjump_twothresholds(setup_cube):
     data[0, 8, 100, 100] = 1190
     data[0, 9, 100, 100] = 1209
 
-    after_jump_flag_e1 = np.full(data.shape[2:4], 1.0) * 500.0
-    after_jump_flag_e2 = np.full(data.shape[2:4], 1.0) * 10.0
+    after_jump_flag_e1 = 500.0
+    after_jump_flag_e2 = 10.0
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data,
         gdq,
