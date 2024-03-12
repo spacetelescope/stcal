@@ -1,10 +1,10 @@
 #! /usr/bin/env python
 
 import logging
+import multiprocessing
 import time
 import warnings
 from multiprocessing import cpu_count
-from multiprocessing.pool import Pool
 
 import numpy as np
 
@@ -160,7 +160,8 @@ def ols_ramp_fit_multiprocessing(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
 
-    pool = Pool(processes=number_slices)
+    ctx = multiprocessing.get_context("forkserver")
+    pool = ctx.Pool(processes=number_slices)
     pool_results = pool.starmap(ols_ramp_fit_single, slices)
     pool.close()
     pool.join()
