@@ -4,6 +4,16 @@
 Changes to API
 --------------
 
+jump
+~~~~
+
+- Switch multiprocessing method to ``fork_server``. [#249]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Switch multiprocessing method to ``fork_server``. [#249]
+
 Bug Fixes
 ---------
 
