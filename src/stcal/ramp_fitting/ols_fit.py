@@ -5,6 +5,7 @@ import multiprocessing
 import time
 import warnings
 from multiprocessing import cpu_count
+import sys
 
 import numpy as np
 
@@ -660,8 +661,8 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    use_c = False
-    # use_c = True
+    # use_c = False
+    use_c = True
     # use_c = ramp_data.dbg_run_c_code
     if use_c:
         print(" ")
