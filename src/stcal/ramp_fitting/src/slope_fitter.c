@@ -677,9 +677,12 @@ is_pix_in_list(struct pixel_ramp * pr)
 {
     // (1014, 422),
     const int len = 1;
-    npy_intp rows[len] = {1014};
-    npy_intp cols[len] = {422};
+    npy_intp rows[len];
+    npy_intp cols[len];
     int k;
+
+    rows[0] = 1014;
+    cols[0] = 422;
 
     for (k=0; k<len; ++k) {
         if (pr->row==rows[k] && pr->col==cols[k]) {
