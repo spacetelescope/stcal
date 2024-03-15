@@ -6,7 +6,6 @@ import cv2 as cv
 import numpy as np
 from astropy import stats
 from astropy.convolution import Ring2DKernel, convolve
-
 from . import constants
 from . import twopoint_difference as twopt
 
@@ -217,7 +216,6 @@ def detect_jumps(
     constants.update_dqflags(dqflags)  # populate dq flags
     sat_flag = dqflags["SATURATED"]
     jump_flag = dqflags["JUMP_DET"]
-    refpix_flag = dqflags["REFERENCE_PIXEL"]
     number_extended_events = 0
     # Flag the pixeldq where the gain is <=0 or NaN so they will be ignored
     wh_g = np.where(gain_2d <= 0.0)
@@ -303,13 +301,13 @@ def detect_jumps(
                 readnoise_2d,
                 frames_per_group,
                 minimum_sigclip_groups,
+                dqflags,
                 snr_threshold=extend_snr_threshold,
                 min_shower_area=extend_min_area,
                 inner=extend_inner_radius,
                 outer=extend_outer_radius,
                 sat_flag=sat_flag,
                 jump_flag=jump_flag,
-                refpix_flag=refpix_flag,
                 ellipse_expand=extend_ellipse_expand_ratio,
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
@@ -462,13 +460,13 @@ def detect_jumps(
                 readnoise_2d,
                 frames_per_group,
                 minimum_sigclip_groups,
+                dqflags,
                 snr_threshold=extend_snr_threshold,
                 min_shower_area=extend_min_area,
                 inner=extend_inner_radius,
                 outer=extend_outer_radius,
                 sat_flag=sat_flag,
                 jump_flag=jump_flag,
-                refpix_flag=refpix_flag,
                 ellipse_expand=extend_ellipse_expand_ratio,
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
@@ -801,6 +799,7 @@ def find_faint_extended(
     readnoise_2d,
     nframes,
     minimum_sigclip_groups,
+    dqflags,
     snr_threshold=1.3,
     min_shower_area=40,
     inner=1,
@@ -808,7 +807,6 @@ def find_faint_extended(
     donotuse_flag = 1,
     sat_flag=2,
     jump_flag=4,
-    refpix_flag=2147483648,
     ellipse_expand=1.1,
     num_grps_masked=25,
     max_extended_radius=200,
@@ -855,6 +853,7 @@ def find_faint_extended(
 
     """
     log.info("Flagging Showers")
+    refpix_flag = dqflags["REFERENCE_PIXEL"]
     gdq = ingdq.copy()
     data = indata.copy()
     nints = data.shape[0]

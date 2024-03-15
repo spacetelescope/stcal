@@ -11,7 +11,8 @@ from stcal.jump.jump import (
     find_first_good_group,
 )
 
-DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8}
+DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8,
+           "REFERENCE_PIXEL": 2147483648}
 
 
 @pytest.fixture()
@@ -228,6 +229,7 @@ def test_find_faint_extended():
         readnoise * np.sqrt(2),
         1,
         100,
+        DQFLAGS,
         snr_threshold=1.2,
         min_shower_area=10,
         inner=1,
@@ -308,6 +310,7 @@ def test_find_faint_extended_sigclip():
         readnoise,
         1,
         100,
+        DQFLAGS,
         snr_threshold=1.3,
         min_shower_area=min_shower_area,
         inner=1,
