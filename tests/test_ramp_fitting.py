@@ -322,12 +322,13 @@ def jp_2326_test_setup():
     gdq = np.zeros((nints, ngroups, nrows, ncols), dtype=np.uint8)
     err = np.zeros((nints, ngroups, nrows, ncols))
     pdq = np.zeros((nrows, ncols), dtype=np.uint32)
+    dark_current = np.zeros((nrows, ncols))
 
     data[0, :, 0, 0] = ramp.copy()
     gdq[0, :, 0, 0] = dq.copy()
 
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name="MIRI", frame_time=2.77504, group_time=2.77504, groupgap=0, nframes=1, drop_frames1=None
     )
@@ -417,6 +418,7 @@ def test_2_group_cases():
     rnoise = np.ones((1, npix)) * rnoise_val
     gain = np.ones((1, npix)) * gain_val
     pixeldq = np.zeros((1, npix), dtype=np.uint32)
+    dark_current = np.zeros((nrows, ncols), dtype=np.float32)
 
     data = np.zeros(dims, dtype=np.float32)  # Science data
     for k in range(npix):
@@ -433,7 +435,7 @@ def test_2_group_cases():
     # Setup the RampData class to run ramp fitting on.
     ramp_data = RampData()
 
-    ramp_data.set_arrays(data, err, groupdq, pixeldq)
+    ramp_data.set_arrays(data, err, groupdq, pixeldq, average_dark_current=dark_current)
 
     ramp_data.set_meta(
         name="NIRSPEC", frame_time=14.58889, group_time=14.58889, groupgap=0, nframes=1, drop_frames1=None
@@ -730,6 +732,8 @@ def create_zero_frame_data():
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     zframe = np.ones(shape=(nints, nrows, ncols), dtype=np.float32)
+    dark_current = np.zeros((nrows, ncols), dtype=np.float32)
+
 
     # Create base ramps for each pixel in each integration.
     base_slope = 2000.0
@@ -756,7 +760,7 @@ def create_zero_frame_data():
 
     # Create RampData for testing.
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name="NIRCam",
         frame_time=frame_time,
@@ -855,6 +859,8 @@ def create_only_good_0th_group_data():
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+    dark_current = np.zeros((nrows, ncols), dtype=np.float32)
+
 
     # Create base ramps for each pixel in each integration.
     base_slope = 2000.0
@@ -877,7 +883,7 @@ def create_only_good_0th_group_data():
 
     # Create RampData for testing.
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name="NIRCam",
         frame_time=frame_time,
@@ -1422,9 +1428,10 @@ def create_blank_ramp_data(dims, var, tm):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+    dark_current = np.zeros(shape=(nrows, ncols), dtype = np.float32)
 
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name="NIRSpec",
         frame_time=frame_time,
@@ -1476,6 +1483,7 @@ def setup_inputs(dims, var, tm):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+    dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
     base_array = np.array([k + 1 for k in range(ngroups)])
     base, inc = 1.5, 1.5
@@ -1488,7 +1496,7 @@ def setup_inputs(dims, var, tm):
         data[c_int, :, :, :] = data[0, :, :, :].copy()
 
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0, nframes=nframes, drop_frames1=None
     )
