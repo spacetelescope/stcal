@@ -46,6 +46,10 @@ jump
 - Fix the code to at least always flag the group with the shower and the requested
   groups after the primary shower. [#237]
 
+- Updated the shower flagging code to mask reference pixels, require a minimum
+  number of groups to trigger the detection, and use all integrations to determine
+  the median value. [#248]
+
 Other
 -----
 
