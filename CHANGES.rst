@@ -10,6 +10,14 @@ Bug Fixes
 Other
 -----
 
+jump
+~~~~
+
+- Enable the use of multiple integrations to find outliers. Also,
+  when the number of groups is above a threshold, use single pass
+  outlier flagging rather than the iterative flagging. [#242]
+
+
 1.6.1 (2024-02-29)
 ==================
 
@@ -45,12 +53,6 @@ jump
 
 - Fix the code to at least always flag the group with the shower and the requested
   groups after the primary shower. [#237]
-
-- Enable the use of multiple integrations to find outliers. Also,
-  when the number of groups is above a threshold use single pass
-  outlier flagging rather than the iterative flagging. [#242]
-
-=======
 
 Other
 -----
