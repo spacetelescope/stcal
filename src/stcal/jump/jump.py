@@ -110,7 +110,7 @@ def detect_jumps(
     four_grp_thresh : float
         cosmic ray sigma rejection threshold for ramps having 4 groups
 
-    max_cores: str
+    max_cores : str
         Maximum number of cores to use for multiprocessing. Available choices
         are 'none' (which will create one process), 'quarter', 'half', 'all'
         (of available cpu cores).
@@ -125,11 +125,11 @@ def detect_jumps(
         neighbors (marginal detections). Any primary jump below this value will
         not have its neighbors flagged.
 
-    flag_4_neighbors: bool
+    flag_4_neighbors : bool
         if set to True (default is True), it will cause the four perpendicular
         neighbors of all detected jumps to also be flagged as a jump.
 
-    dqflags: dict
+    dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
 
@@ -210,14 +210,14 @@ def detect_jumps(
     min_sat_radius_extend : float
         The minimum radius of the saturated core of a snowball for the core to
         be extended
-    minimum_groups: int
+    minimum_groups : int
        The minimum number of groups for jump detection
-    minimum_sigclip_groups: int
+    minimum_sigclip_groups : int
        The minimum number of groups required to use sigma clipping to find outliers.
-    only_use_ints: boolean
+    only_use_ints : boolean
        In sigma clipping, if True only differences between integrations are compared. If False,
        then all differences are processed at once.
-    min_diffs_single_pass: int
+    min_diffs_single_pass : int
        The minimum number of groups to switch to flagging all outliers in a single pass.
 
     Returns
@@ -251,7 +251,6 @@ def detect_jumps(
     # also apply to the after_jump thresholds
     after_jump_flag_e1 = after_jump_flag_dn1 * np.nanmedian(gain_2d)
     after_jump_flag_e2 = after_jump_flag_dn2 * np.nanmedian(gain_2d)
-    print("after_jump_flag_e1: shape", after_jump_flag_e1.shape)
     # Apply the 2-point difference method as a first pass
     log.info("Executing two-point difference method")
     start = time.time()
@@ -573,7 +572,7 @@ def flag_large_events(
     Nothing, gdq array is modified.
 
     """
-    log.info("Flagging large Snowballs")
+    log.info("Flagging Snowballs")
 
     n_showers_grp = []
     total_snowballs = 0
@@ -908,7 +907,7 @@ def find_faint_extended(
           emission.
       min_shower_area : int
           The minimum area for a group of pixels to be flagged as a shower.
-      inner: int
+      inner : int
           The inner radius of the ring_2D_kernal used for the convolution.
       outer : int
           The outer radius of the ring_2D_kernal used for the convolution.
@@ -916,14 +915,14 @@ def find_faint_extended(
           The integer value of the saturation flag.
       jump_flag : int
           The integer value of the jump flag
-      ellipse_expand: float
+      ellipse_expand : float
           The relative increase in the size of the fitted ellipse to be
           applied to the shower.
-      num_grps_masked: int
+      num_grps_masked : int
           The number of groups after the detected shower to be flagged as jump.
-      max_extended_radius: int
+      max_extended_radius : int
           The upper limit for the extension of saturation and jump
-      minimum_sigclip_groups: int
+      minimum_sigclip_groups : int
           The minimum number of groups to use sigma clipping.
 
 

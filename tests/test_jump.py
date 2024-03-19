@@ -66,7 +66,9 @@ def test_nirspec_saturated_pix():
     gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, 2]
 
     # run jump detection
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(nframes, data, gdq, pdq, err, gain, read_noise, rejection_thresh=4.0, three_grp_thresh=5,
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(nframes, data, gdq, pdq, err,
+                                                                               gain, read_noise, rejection_thresh=4.0,
+                                                                               three_grp_thresh=5,
                                  four_grp_thresh=6,
                                  max_cores='none', max_jump_to_flag_neighbors=200,
                                  min_jump_to_flag_neighbors=10, flag_4_neighbors=True, dqflags=DQFLAGS)

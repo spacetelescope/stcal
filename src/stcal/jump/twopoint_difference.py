@@ -168,7 +168,6 @@ def find_crs(
             (not only_use_ints and nints * ngrps < minimum_sigclip_groups and
              total_groups < minimum_groups)):
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        log.info("Data shape {}".format(str(dat.shape)))
         dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]),
                          dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, 0, dummy
@@ -197,7 +196,7 @@ def find_crs(
         e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
         ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
-        # Test to see if there are enough group to use sigma clipping
+        # Test to see if there are enough groups to use sigma clipping
         if (only_use_ints and nints >= minimum_sigclip_groups) or \
            (not only_use_ints and total_groups >= minimum_sigclip_groups):
             log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
@@ -247,9 +246,9 @@ def find_crs(
                     # reset sigma so pixels with 0 read noise are not flagged as jumps
                     sigma[np.where(sigma == 0.)] = np.nan
 
-                # compute 'ratio' for each group. this is the value that will be
-                # compared to 'threshold' to classify jumps. subtract the median of
-                # first_diffs from first_diffs, take the abs. value and divide by sigma.
+                    # compute 'ratio' for each group. this is the value that will be
+                    # compared to 'threshold' to classify jumps. subtract the median of
+                    # first_diffs from first_diffs, take the abs. value and divide by sigma.
                     e_jump = first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]
 
                     ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
@@ -293,7 +292,6 @@ def find_crs(
                     int2cr, row2cr, col2cr = np.where(
                         np.logical_and(ndiffs - num_unusable_groups == 2, max_ratio > two_diff_rej_thresh)
                     )
-
                     # get the rows, col pairs for all pixels with at least one CR
 #                    all_crs_int = np.concatenate((int4cr, int3cr, int2cr))
                     all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
