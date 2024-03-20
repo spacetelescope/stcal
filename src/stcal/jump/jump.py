@@ -393,9 +393,10 @@ def detect_jumps(
             ),
         )
         log.info("Creating %d processes for jump detection ", n_slices)
-        pool = multiprocessing.Pool(processes=n_slices)
-######### JUST FOR DEBUGGING #########################
-#        pool = multiprocessing.Pool(processes=1)
+        ctx = multiprocessing.get_context("forkserver")
+        pool = ctx.Pool(processes=n_slices)
+        ######### JUST FOR DEBUGGING #########################
+        # pool = ctx.Pool(processes=1)
         # Starts each slice in its own process. Starmap allows more than one
         # parameter to be passed.
         real_result = pool.starmap(twopt.find_crs, slices)
