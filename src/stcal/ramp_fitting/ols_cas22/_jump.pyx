@@ -133,6 +133,7 @@ cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
             fixed[double_t_bar_diff_sqr, i] = NAN
             fixed[double_read_recip, i] = NAN
             fixed[double_var_slope_val, i] = NAN
+        print(i, fixed[single_t_bar_diff, i], fixed[single_t_bar_diff_sqr, i], fixed[single_read_recip, i], fixed[single_var_slope_val, i], fixed[double_t_bar_diff, i], fixed[double_t_bar_diff_sqr, i], fixed[double_read_recip, i], fixed[double_var_slope_val, i])
 
     return fixed
 
@@ -292,7 +293,10 @@ cdef inline float _statstic(float local_slope,
     cdef float delta = local_slope - slope
     cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
 
-    return delta / sqrtf(var + correct)
+    print("_statstic")
+    print(local_slope, var_read_noise, t_bar_diff_sqr, var_slope_coeff, slope, correct, delta, var)
+
+    return delta / sqrt(var + correct)
 
 
 @boundscheck(False)
@@ -381,7 +385,7 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
                           correct)
         stat = fmaxf(stat1, stat2)
 
-        print(index, stat, max_stat, stat_index, argmax)
+        print(index, stat1, stat2, stat, max_stat, stat_index, argmax)
         # If this is larger than the current max, update the max
         if stat > max_stat:
             max_stat = stat
