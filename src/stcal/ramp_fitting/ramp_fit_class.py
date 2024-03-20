@@ -6,6 +6,7 @@ class RampData:
         self.err = None
         self.groupdq = None
         self.pixeldq = None
+        self.average_dark_current = None
 
         # Meta information
         self.instrument_name = None
@@ -41,7 +42,7 @@ class RampData:
 
         self.current_integ = -1
 
-    def set_arrays(self, data, err, groupdq, pixeldq):
+    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current):
         """
         Set the arrays needed for ramp fitting.
 
@@ -62,12 +63,17 @@ class RampData:
         pixeldq : ndarray (uint32)
             4-D array containing the pixel data quality information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
+
+        average_dark_current : ndarray (float32)
+            2-D array containing the average dark current. It has
+            dimensions (nrows, ncols)
         """
         # Get arrays from the data model
         self.data = data
         self.err = err
         self.groupdq = groupdq
         self.pixeldq = pixeldq
+        self.average_dark_current = average_dark_current
 
     def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """

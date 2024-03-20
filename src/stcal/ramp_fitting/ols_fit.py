@@ -1,10 +1,10 @@
 #! /usr/bin/env python
 
 import logging
+import multiprocessing
 import time
 import warnings
 from multiprocessing import cpu_count
-from multiprocessing.pool import Pool
 
 import numpy as np
 
@@ -160,7 +160,8 @@ def ols_ramp_fit_multiprocessing(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
 
-    pool = Pool(processes=number_slices)
+    ctx = multiprocessing.get_context("forkserver")
+    pool = ctx.Pool(processes=number_slices)
     pool_results = pool.starmap(ols_ramp_fit_single, slices)
     pool.close()
     pool.join()
@@ -542,8 +543,9 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     err = ramp_data.err[:, :, start_row : start_row + nrows, :].copy()
     groupdq = ramp_data.groupdq[:, :, start_row : start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row : start_row + nrows, :].copy()
+    average_dark_current = ramp_data.average_dark_current[start_row : start_row + nrows, :].copy()
 
-    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq)
+    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq, average_dark_current)
 
     if ramp_data.zeroframe is not None:
         ramp_data_slice.zeroframe = ramp_data.zeroframe[:, start_row : start_row + nrows, :].copy()
@@ -1138,7 +1140,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
             # Suppress harmless arithmetic warnings for now
             warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-            var_p4[num_int, :, rlo:rhi, :] = den_p3 * med_rates[rlo:rhi, :]
+            var_p4[num_int, :, rlo:rhi, :] = (den_p3 * med_rates[rlo:rhi, :]) + \
+                                             ramp_data.average_dark_current[rlo:rhi, :]
 
             # Find the segment variance due to read noise and convert back to DN
             var_r4[num_int, :, rlo:rhi, :] = num_r3 * den_r3 / gain_sect**2
@@ -1175,10 +1178,11 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
         var_p3[var_p3 > utils.LARGE_VARIANCE_THRESHOLD] = 0.0
-        var_p3[:, med_rates <= 0.0] = 0.0
+        med_rate_mask = med_rates <= 0.0
+        var_p3[:, med_rate_mask] = 0.0
         warnings.resetwarnings()
 
-        var_p4[num_int, :, med_rates <= 0.0] = 0.0
+        var_p4[num_int, :, med_rate_mask] = ramp_data.average_dark_current[med_rate_mask][..., np.newaxis]
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
         inv_var_both4[num_int, :, :, :] = 1.0 / var_both4[num_int, :, :, :]
 
