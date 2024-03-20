@@ -29,41 +29,20 @@ JUMP = dqflags["JUMP_DET"]
 #                           Test Suite
 def test_Poisson_variance():
     nints, nrows, ncols = 1, 1, 1
-    rnoise_val, gain_val = 10.0, 4.0
-    nframes, gtime, ftime = 1, 2.775, 2.775
+    rnoise_val, gain_val = 1.0, 40.0
+    nframes, gtime, ftime = 1, 3, 3
     tm = (nframes, gtime, ftime)
     num_grps1 = 300
-    num_grps2 = 150
+    num_grps2 = 0
     ramp_data, rnoise_array, gain_array = create_test_2seg_obs(rnoise_val, nints, num_grps1, num_grps2, ncols,
-                                                               nrows, tm, rate=100, Poisson=True, grptime=gtime,
-                                                               gain=gain_val, bias=0, sat_group=250)
-    print("ramp_data.data shape", ramp_data.data.shape)
- #   print("ramp_data.data", ramp_data.data)
- #   print("ramp_data.gdq", ramp_data.groupdq)
-    hdul = fits.open("/users/mregan/Downloads/miri_1276_00_1int_jump.fits")
-    row, col = 214, 676
-    data = hdul['SCI'].data[:, row, col]
-    gdq = hdul['GROUPDQ'].data[:, row, col]
-    print(gdq[125:150])
-    print("gdq in", gdq.shape)
-    print("data in", data.shape)
-    ramp_data.data = data[np.newaxis, :, np.newaxis, np.newaxis]
-    ramp_data.groupdq = gdq[np.newaxis, :, np.newaxis, np.newaxis]
-    print("gdq",ramp_data.groupdq.shape)
-    print("data", ramp_data.data.shape)
-    refgain = fits.getdata("/users/mregan/Downloads/jwst_miri_gain_0019.fits")[row, col]
-    refrnoise = fits.getdata('/users/mregan/Downloads/jwst_miri_readnoise_0085.fits')[row, col]
-    rnoise_array = refrnoise[np.newaxis, np.newaxis]
-    gain_array = refgain[np.newaxis, np.newaxis]
+                                                               nrows, tm, rate=0, Poisson=True, grptime=gtime,
+                                                               gain=gain_val, bias=0)
+    ramp_data.data[0, 280:, 0, 0] = 300 * 3
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
     ramp_data, buffsize, save_opt, rnoise_array, gain_array, algo, wt, ncores, dqflags)
-    print("ramp_data.data shape", ramp_data.data.shape)
-    print("ramp slope", slopes[0])
-    print("P var", slopes[2])
-    print("R var", slopes[3])
-    print("optional variance", optional[2])
+    np.testing.assert_almost_equal(slopes[0], .9, 2)
 
 
 def base_neg_med_rates_single_integration():
@@ -1542,6 +1521,49 @@ def setup_inputs(dims, var, tm):
     rnoise = np.full((nrows, ncols), rnoise, dtype=np.float32)
 
     return ramp_data, rnoise, gain
+
+def create_test_2seg_obs(readnoise, num_ints, num_grps1, num_grps2, ncols,
+                             nrows, tm, rate=0, Poisson=True, grptime=2.77,
+                             gain=4.0, bias=3000, sat_group=0, sat_value=100000):
+        nframes, gtime, dtime = tm
+        rng = np.random.default_rng()
+        outcube1a = np.zeros(shape=(num_ints, num_grps1 + num_grps2, ncols, nrows), dtype=np.float32)
+        outcube1 = np.random.normal(loc=0.0, scale=readnoise / np.sqrt(2),
+                                    size=(num_ints, num_grps1 + num_grps2 + 1, ncols, ncols))
+        if rate > 0:
+            pvalues = grptime * rate + (rng.poisson(lam=gain * rate * grptime,
+                                                    size=(num_ints, num_grps1 + num_grps2, ncols,
+                                                          nrows)) - gain * rate * grptime) / gain
+            for intg in range(num_ints):
+                outcube1a[intg, 0, :, :] = outcube1[intg, 0, :, :]
+                for grp in range(1, num_grps1 + num_grps2):
+                    outcube1a[intg, grp, :, :] = outcube1[intg, grp, :, :] + np.sum(pvalues[intg, 0:grp, :, :], axis=0)
+            outcube1f = outcube1a
+        else:
+            outcube1f = outcube1
+        outdata = outcube1f + bias
+        #        print("cube mean values", np.mean(outdata[0,:,:,:], axis=(2, 3)))
+        outgdq = np.zeros_like(outdata, dtype=np.uint8)
+        outgdq[:, 0, :, :] = 1
+        outgdq[:, -1, :, :] = 1
+        if num_grps2 > 0:
+            outgdq[:, num_grps1, :, :] = 4
+        if sat_group > 0:
+            outgdq[:, sat_group:, :, :] = 2
+            outdata[:, sat_group:, :, :] = sat_value
+        pixdq = np.zeros(shape=(ncols, nrows), dtype=np.int32)
+        err = np.ones(shape=(num_ints, num_grps1 + num_grps2 + 1, nrows, ncols), dtype=np.float32)
+        ramp_data = RampData()
+        dark_current = np.zeros((nrows, ncols))
+        ramp_data.set_arrays(
+            data=outdata, err=err, groupdq=outgdq, pixeldq=pixdq, average_dark_current=dark_current)
+        ramp_data.set_meta(
+            name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0,
+            nframes=nframes, drop_frames1=None)
+        ramp_data.set_dqflags(dqflags)
+        readnoise_array = np.ones_like(pixdq) * readnoise
+        gain_array = np.ones_like(pixdq) * gain
+        return ramp_data, readnoise_array, gain_array
 
 
 # -----------------------------------------------------------------------------
