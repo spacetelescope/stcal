@@ -196,6 +196,7 @@ cpdef inline float[:, :] _fill_pixel_values(float[:, :] pixel,
             # The last double difference is undefined
             pixel[double_slope, i] = NAN
             pixel[double_var, i] = NAN
+        print(i, pixel[single_slope, i], pixel[single_var, i], pixel[double_slope, i], pixel[double_var, i])
 
     return pixel
 
