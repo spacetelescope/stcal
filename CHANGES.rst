@@ -16,7 +16,13 @@ ramp_fitting
 
 Bug Fixes
 ---------
+ramp_fitting
+~~~~~~~~~~~~
 
+-- Changed the data type of three variables that are used in measuring
+   the jump free segments of integrations. The variables were uint8 and
+   they would yield wrong results for integrations with more than 256
+   groups. [#251]
 Other
 -----
 
