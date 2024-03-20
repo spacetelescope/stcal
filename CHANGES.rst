@@ -20,6 +20,14 @@ Bug Fixes
 Other
 -----
 
+jump
+~~~~
+
+- Enable the use of multiple integrations to find outliers. Also,
+  when the number of groups is above a threshold, use single pass
+  outlier flagging rather than the iterative flagging. [#242]
+
+
 1.6.1 (2024-02-29)
 ==================
 

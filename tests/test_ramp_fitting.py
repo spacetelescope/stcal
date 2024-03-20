@@ -1,5 +1,4 @@
 import numpy as np
-
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 from stcal.ramp_fitting.utils import compute_num_slices
