@@ -364,6 +364,7 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
     # Compute the rest of the fit statistics
     cdef float stat, stat1, stat2
     cdef int stat_index
+    print("_fit_statistic")
     for stat_index, index in enumerate(range(ramp.start, ramp.end - 1)):
         # Compute max of single and double difference statistics
         stat1 = _statstic(pixel[single_local_slope, index],
@@ -380,6 +381,7 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
                           correct)
         stat = fmaxf(stat1, stat2)
 
+        print(index, stat, max_stat, stat_index, argmax)
         # If this is larger than the current max, update the max
         if stat > max_stat:
             max_stat = stat
