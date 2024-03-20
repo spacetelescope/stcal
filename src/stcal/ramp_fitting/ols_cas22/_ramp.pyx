@@ -200,6 +200,7 @@ cpdef inline RampQueue init_ramps(int[:] dq, int n_resultants):
         # Last resultant is end of the ramp => set then add to stack
         ramp.end = n_resultants - 1
         ramps.push_back(ramp)
+    print(ramps)
 
     return ramps
 

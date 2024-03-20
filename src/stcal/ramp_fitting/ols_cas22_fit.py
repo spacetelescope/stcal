@@ -130,8 +130,6 @@ def fit_ramps_casertano(
         include_diagnostic=True,
         **kwargs,
     )
-    print(output)
-    logging.warning(f"Fit output: {output}")
 
     parameters = output.parameters.reshape(orig_shape[1:] + (2,))
     variances = output.variances.reshape(orig_shape[1:] + (3,))

@@ -468,6 +468,8 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
         # Remove top ramp of the stack to use
         ramp = ramps.back()
         ramps.pop_back()
+        print("=== Processing ramp ===")
+        print(ramp)
 
         # Compute fit using the Casertano+22 algorithm
         ramp_fit = fit_ramp(resultants,
@@ -476,6 +478,8 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                             n_reads,
                             read_noise,
                             ramp)
+        print("Fit:")
+        print(ramp_fit)
 
         # Run jump detection if enabled
         if use_jump:
@@ -484,6 +488,14 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                                               t_bar,
                                               ramp_fit.slope,
                                               ramp)
+            print("argmax=")
+            print(argmax)
+            print("max_stat=")
+            print(max_stat)
+
+            threshold = _threshold(thresh, ramp_fit.slope)
+            print("threshold=")
+            print(threshold)
 
             # Note that when a "ramp" is a single point, _fit_statistic returns
             # a NaN for max_stat. Note that NaN > anything is always false so the
@@ -513,6 +525,10 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
                 #     Therefore, we just remove both possible resultants from
                 #     consideration.
                 jump1 = jump0 + 1
+                print("jump0=")
+                print(jump0)
+                print("jump1=")
+                print(jump1)
 
                 # Update the dq flags
                 dq[jump0] = JUMP_DET
