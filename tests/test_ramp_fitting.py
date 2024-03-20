@@ -27,6 +27,43 @@ JUMP = dqflags["JUMP_DET"]
 
 # -----------------------------------------------------------------------------
 #                           Test Suite
+def test_Poisson_variance():
+    nints, nrows, ncols = 1, 1, 1
+    rnoise_val, gain_val = 10.0, 4.0
+    nframes, gtime, ftime = 1, 2.775, 2.775
+    tm = (nframes, gtime, ftime)
+    num_grps1 = 300
+    num_grps2 = 150
+    ramp_data, rnoise_array, gain_array = create_test_2seg_obs(rnoise_val, nints, num_grps1, num_grps2, ncols,
+                                                               nrows, tm, rate=100, Poisson=True, grptime=gtime,
+                                                               gain=gain_val, bias=0, sat_group=250)
+    print("ramp_data.data shape", ramp_data.data.shape)
+ #   print("ramp_data.data", ramp_data.data)
+ #   print("ramp_data.gdq", ramp_data.groupdq)
+    hdul = fits.open("/users/mregan/Downloads/miri_1276_00_1int_jump.fits")
+    row, col = 214, 676
+    data = hdul['SCI'].data[:, row, col]
+    gdq = hdul['GROUPDQ'].data[:, row, col]
+    print(gdq[125:150])
+    print("gdq in", gdq.shape)
+    print("data in", data.shape)
+    ramp_data.data = data[np.newaxis, :, np.newaxis, np.newaxis]
+    ramp_data.groupdq = gdq[np.newaxis, :, np.newaxis, np.newaxis]
+    print("gdq",ramp_data.groupdq.shape)
+    print("data", ramp_data.data.shape)
+    refgain = fits.getdata("/users/mregan/Downloads/jwst_miri_gain_0019.fits")[row, col]
+    refrnoise = fits.getdata('/users/mregan/Downloads/jwst_miri_readnoise_0085.fits')[row, col]
+    rnoise_array = refrnoise[np.newaxis, np.newaxis]
+    gain_array = refgain[np.newaxis, np.newaxis]
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+    ramp_data, buffsize, save_opt, rnoise_array, gain_array, algo, wt, ncores, dqflags)
+    print("ramp_data.data shape", ramp_data.data.shape)
+    print("ramp slope", slopes[0])
+    print("P var", slopes[2])
+    print("R var", slopes[3])
+    print("optional variance", optional[2])
 
 
 def base_neg_med_rates_single_integration():
