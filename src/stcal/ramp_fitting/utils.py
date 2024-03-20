@@ -520,7 +520,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     gdq_2d_nan[np.bitwise_and(gdq_2d, ramp_data.flags_saturated).astype(bool)] = np.nan
 
     # Get lengths of semiramps for all pix [number_of_semiramps, number_of_pix]
-    segs = np.zeros_like(gdq_2d).astype(np.int16)
+    segs = np.zeros_like(gdq_2d).astype(np.uint16)
 
     # Counter of semiramp for each pixel
     sr_index = np.zeros(npix, dtype=np.uint16)

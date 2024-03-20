@@ -27,22 +27,23 @@ JUMP = dqflags["JUMP_DET"]
 
 # -----------------------------------------------------------------------------
 #                           Test Suite
-def test_Poisson_variance():
+
+def test_long_integration():
     nints, nrows, ncols = 1, 1, 1
-    rnoise_val, gain_val = 1.0, 40.0
+    rnoise_val, gain_val = 0.1, 40.0
     nframes, gtime, ftime = 1, 3, 3
     tm = (nframes, gtime, ftime)
-    num_grps1 = 300
-    num_grps2 = 0
+    num_grps1 = 301
+    num_grps2 = 20
     ramp_data, rnoise_array, gain_array = create_test_2seg_obs(rnoise_val, nints, num_grps1, num_grps2, ncols,
                                                                nrows, tm, rate=0, Poisson=True, grptime=gtime,
                                                                gain=gain_val, bias=0)
-    ramp_data.data[0, 280:, 0, 0] = 300 * 3
+    ramp_data.data[0, 291:, 0, 0] = 320 * 3
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
     ramp_data, buffsize, save_opt, rnoise_array, gain_array, algo, wt, ncores, dqflags)
-    np.testing.assert_almost_equal(slopes[0], .9, 2)
+    np.testing.assert_almost_equal(slopes[0], .65, 2)
 
 
 def base_neg_med_rates_single_integration():
