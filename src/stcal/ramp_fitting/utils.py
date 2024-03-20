@@ -520,10 +520,10 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     gdq_2d_nan[np.bitwise_and(gdq_2d, ramp_data.flags_saturated).astype(bool)] = np.nan
 
     # Get lengths of semiramps for all pix [number_of_semiramps, number_of_pix]
-    segs = np.zeros_like(gdq_2d)
+    segs = np.zeros_like(gdq_2d).astype(np.int16)
 
     # Counter of semiramp for each pixel
-    sr_index = np.zeros(npix, dtype=np.uint8)
+    sr_index = np.zeros(npix, dtype=np.uint16)
     pix_not_done = np.ones(npix, dtype=bool)  # initialize to True
 
     i_read = 0
@@ -558,7 +558,7 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
 
         i_read += 1
 
-    segs = segs.astype(np.uint8)
+    segs = segs.astype(np.uint16)
     segs_beg = segs[:max_seg, :]  # the leading nonzero lengths
 
     # Create reshaped version [ segs, y, x ] to simplify computation
