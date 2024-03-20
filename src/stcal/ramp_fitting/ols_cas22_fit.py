@@ -29,6 +29,8 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
+import logging
+
 import numpy as np
 from astropy import units as u
 
@@ -125,8 +127,11 @@ def fit_ramps_casertano(
         read_time,
         read_pattern,
         use_jump,
+        include_diagnostic=True,
         **kwargs,
     )
+    print(output)
+    logging.warning(f"Fit output: {output}")
 
     parameters = output.parameters.reshape(orig_shape[1:] + (2,))
     variances = output.variances.reshape(orig_shape[1:] + (3,))
