@@ -38,6 +38,11 @@ ramp_fitting
   they would yield wrong results for integrations with more than 256
   groups. [#251]
 
+- Use ``sqrtf`` instead of ``sqrt`` in ols_cas22 ramp fitting with
+  jump detection to avoid small numerical errors on different systems
+  due to a cast to/from double. [#252]
+
+
 Other
 -----
 
@@ -47,6 +52,10 @@ jump
 - Enable the use of multiple integrations to find outliers. Also,
   when the number of groups is above a threshold, use single pass
   outlier flagging rather than the iterative flagging. [#242]
+
+- Use ``sqrtf`` instead of ``sqrt`` in ols_cas22 ramp fitting with
+  jump detection to avoid small numerical errors on different systems
+  due to a cast to/from double. [#252]
 
 1.6.1 (2024-02-29)
 ==================
