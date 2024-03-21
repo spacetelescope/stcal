@@ -1,4 +1,17 @@
-1.6.2 (unreleased)
+1.7.0 (unreleased)
+==================
+
+Changes to API
+--------------
+
+- 
+
+Bug Fixes
+---------
+
+- 
+
+1.6.2 (2024-03-21)
 ==================
 
 Changes to API
@@ -24,8 +37,23 @@ jump
   number of groups to trigger the detection, and use all integrations to determine
   the median value. [#248]
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changed the data type of three variables that are used in measuring
+  the jump free segments of integrations. The variables were uint8 and
+  they would yield wrong results for integrations with more than 256
+  groups. [#251]
+
 Other
 -----
+
+jump
+~~~~
+
+- Enable the use of multiple integrations to find outliers. Also,
+  when the number of groups is above a threshold, use single pass
+  outlier flagging rather than the iterative flagging. [#242]
 
 1.6.1 (2024-02-29)
 ==================
