@@ -127,6 +127,7 @@ struct ramp_data {
     float (*get_gain)(PyArrayObject*, npy_intp, npy_intp);
     float (*get_rnoise)(PyArrayObject*, npy_intp, npy_intp);
     float (*get_zframe)(PyArrayObject*, npy_intp, npy_intp, npy_intp);
+    float (*get_dcurrent)(PyArrayObject*, npy_intp, npy_intp);
 
     /* The 4-D arrays with dimensions (nints, ngroups, nrows, ncols) */
     PyArrayObject * data;       /* The 4-D science data */
@@ -137,6 +138,7 @@ struct ramp_data {
     PyArrayObject * pixeldq;    /* The 2-D pixel DQ array */
     PyArrayObject * gain;       /* The 2-D gain array */
     PyArrayObject * rnoise ;    /* The 2-D read noise array */
+    PyArrayObject * dcurrent;   /* The 2-D average dark current array */
     PyArrayObject * zframe;     /* The 2-D ZEROFRAME array */
 
     int special1;   /* Count of segments of length 1 */
@@ -254,6 +256,7 @@ struct pixel_ramp {
     real_t gain;      /* The pixel gain */
     real_t rnoise ;   /* The pixel read noise */
     real_t zframe;    /* The pixel ZEROFRAME */
+    real_t dcurrent;  /* The pixel average dark current */
 
     /* Timing bool */
     uint8_t * is_zframe;    /* Boolean to use ZEROFRAME */
@@ -1529,6 +1532,7 @@ get_pixel_ramp_meta(
         pr->rateints[integ].dq = pr->pixeldq;
     }
     pr->rnoise = (real_t) rd->get_rnoise(rd->rnoise, row, col);
+    pr->dcurrent = (real_t) rd->get_dcurrent(rd->dcurrent, row, col);
     pr->rate.dq = pr->pixeldq;
 }
 
@@ -1658,6 +1662,7 @@ get_ramp_data_arrays(
     rd->err = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "err");
     rd->pixeldq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "pixeldq");
     rd->zframe = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "zeroframe");
+    rd->dcurrent = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "average_dark_current");
 
     /* Validate numpy array types */
     if (get_ramp_data_new_validate(rd)) {
@@ -1754,6 +1759,7 @@ get_ramp_data_new_validate(
             (NPY_FLOAT==PyArray_TYPE(rd->err)) &&
             (NPY_UBYTE == PyArray_TYPE(rd->groupdq)) &&
             (NPY_UINT32 == PyArray_TYPE(rd->pixeldq)) &&
+            (NPY_FLOAT==PyArray_TYPE(rd->dcurrent)) &&
             (NPY_FLOAT==PyArray_TYPE(rd->gain)) &&
             (NPY_FLOAT==PyArray_TYPE(rd->rnoise))
          )) {
@@ -1799,14 +1805,19 @@ static void
 get_ramp_data_endianness(
         struct ramp_data * rd)
 {
+    /* XXX Endianness is now handled in the python code
+           before entering the extension */
+
     /* Set getter functions based on type, dimensions, and endianness */
     rd->get_data = get_float4;
     rd->get_err = get_float4;
 
     rd->get_pixeldq = get_uint32_2;
 
+    rd->get_dcurrent = get_float2;
     rd->get_gain = get_float2;
     rd->get_rnoise = get_float2;
+
     rd->get_zframe = get_float3;
 
 # if 0
@@ -2580,7 +2591,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     seg->slope = pr->data[idx] / timing;
 
     pden = (timing * pr->gain);
-    seg->var_p = pr->median_rate / pden;
+    seg->var_p = pr->median_rate / pden + pr->dcurrent;
 
     /* Segment read noise variance */
     rnum = pr->rnoise / timing;
@@ -2625,7 +2636,9 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     /* Segment Poisson variance */
     if (pr->median_rate > 0.) {
         pden = (rd->group_time * pr->gain);
-        seg->var_p = pr->median_rate / pden;
+        seg->var_p = pr->median_rate / pden + pr->dcurrent;
+    } else {
+        seg->var_p = pr->dcurrent;
     }
 
     /* Segment read noise variance */
@@ -2784,7 +2797,9 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     /* Segment Poisson variance */
     if (pr->median_rate > 0.) {
         pden = (rd->group_time * pr->gain * (seglen - 1.));
-        seg->var_p = pr->median_rate / pden;
+        seg->var_p = pr->median_rate / pden + pr->dcurrent;
+    } else {
+        seg->var_p = pr->dcurrent;
     }
 
     /* Segment read noise variance */

@@ -334,7 +334,7 @@ def jp_2326_test_setup():
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-    dark_current = np.zeros((nrows, ncols))
+    dark_current = np.zeros((nrows, ncols), dtype=np.float32)
 
     data[0, :, 0, 0] = ramp.copy()
     gdq[0, :, 0, 0] = dq.copy()
@@ -351,7 +351,6 @@ def jp_2326_test_setup():
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 1000.0
 
     return ramp_data, gain, rnoise
-
 
 def test_miri_ramp_dnu_at_ramp_beginning():
     """
