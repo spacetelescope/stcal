@@ -30,6 +30,13 @@ ramp_fitting
 Bug Fixes
 ---------
 
+jump
+~~~~
+
+- Updated the shower flagging code to mask reference pixels, require a minimum
+  number of groups to trigger the detection, and use all integrations to determine
+  the median value. [#248]
+
 ramp_fitting
 ~~~~~~~~~~~~
 
