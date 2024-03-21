@@ -490,16 +490,18 @@ def test_find_faint_extended_sigclip():
     nint, ngrps, ncols, nrows = 101, 6, 30, 30
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.int32)
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-    gdq, num_showers = find_faint_extended(data, gdq, readnoise, 1, 100,
+    gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, 1, 100,
                                            snr_threshold=1.3,
                                            min_shower_area=20, inner=1,
                                            outer=2, sat_flag=2, jump_flag=4,
-                                           ellipse_expand=1.1, num_grps_masked=3)
+                                           ellipse_expand=1.1, num_grps_masked=3,
+                                           dqflags=DQFLAGS)
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside
     assert (np.all(gdq[0, 1, 22, 14:23] == 0))
