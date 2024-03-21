@@ -258,7 +258,7 @@ def test_flag_large_events_groupedsnowball():
     cube[0, 2, 3, 4] = DQFLAGS["SATURATED"]
     cube[0, 2, 4, 3] = DQFLAGS["SATURATED"]
     cube[0, 2, 3, 2] = DQFLAGS["SATURATED"]
-    flag_large_events(
+    outgdq, num_snowballs = flag_large_events(
         cube,
         DQFLAGS["JUMP_DET"],
         DQFLAGS["SATURATED"],
@@ -270,10 +270,9 @@ def test_flag_large_events_groupedsnowball():
         min_sat_radius_extend=0.5,
         sat_expand=1.1,
     )
-    from astropy.io import fits
-    fits.writeto("new_cube_after.fits", cube, overwrite=True)
-    assert cube[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
-    assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
+
+    assert outgdq[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
+    assert outgdq[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
 
 
 def test_flag_large_events_withsnowball_noextension():
