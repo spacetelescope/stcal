@@ -64,7 +64,7 @@ from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, f
 
 @boundscheck(False)
 @wraparound(False)
-@cdivision(True)
+#@cdivision(True)
 cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
                                            float[:] t_bar,
                                            float[:] tau,
@@ -140,7 +140,7 @@ cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
 
 @boundscheck(False)
 @wraparound(False)
-@cdivision(True)
+#@cdivision(True)
 cpdef inline float[:, :] _fill_pixel_values(float[:, :] pixel,
                                             float[:] resultants,
                                             float[:, :] fixed,
@@ -225,7 +225,7 @@ cdef inline float _threshold(Thresh thresh, float slope):
 
 @boundscheck(False)
 @wraparound(False)
-@cdivision(True)
+#@cdivision(True)
 cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
     """
     Compute the correction factor for the variance used by a statistic
@@ -249,7 +249,7 @@ cdef inline float _correction(float[:] t_bar, RampIndex ramp, float slope):
 
 @boundscheck(False)
 @wraparound(False)
-@cdivision(True)
+#@cdivision(True)
 cdef inline float _statstic(float local_slope,
                             float var_read_noise,
                             float t_bar_diff_sqr,
@@ -296,7 +296,7 @@ cdef inline float _statstic(float local_slope,
     print("_statstic")
     print(local_slope, var_read_noise, t_bar_diff_sqr, var_slope_coeff, slope, correct, delta, var)
 
-    return delta / sqrt(var + correct)
+    return delta / sqrtf(var + correct)
 
 
 @boundscheck(False)
@@ -396,7 +396,7 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
 
 @boundscheck(False)
 @wraparound(False)
-@cdivision(True)
+#@cdivision(True)
 cdef inline JumpFits fit_jumps(float[:] resultants,
                                int[:] dq,
                                float read_noise,
