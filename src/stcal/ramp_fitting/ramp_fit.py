@@ -19,8 +19,9 @@ import numpy as np
 from astropy import units as u
 
 from . import (
-    gls_fit,  # used only if algorithm is "GLS"
-    ols_fit,  # used only if algorithm is "OLS"
+    gls_fit,    # used only if algorithm is "GLS"
+    likely_fit, # used only if algorithm is "LIKLEY"
+    ols_fit,    # used only if algorithm is "OLS"
     ramp_fit_class,
 )
 
@@ -127,6 +128,7 @@ def ramp_fit(
     algorithm : str
         'OLS' specifies that ordinary least squares should be used;
         'GLS' specifies that generalized least squares should be used.
+        'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
         'optimal' specifies that optimal weighting should be used;
@@ -208,6 +210,7 @@ def ramp_fit_data(
     algorithm : str
         'OLS' specifies that ordinary least squares should be used;
         'GLS' specifies that generalized least squares should be used.
+        'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
         'optimal' specifies that optimal weighting should be used;
@@ -244,6 +247,11 @@ def ramp_fit_data(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
         )
         opt_info = None
+    elif algorithm.upper() == "LIKELY":
+        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
+            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
+        )
+        gls_opt_info = None
     else:
         # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
