@@ -4,6 +4,16 @@ import pytest
 from stcal.ramp_fitting.ramp_fit import ramp_fit_class, ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 
+################## DEBUG ##################
+#                  HELP!!
+import ipdb
+import sys
+
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from general_funcs import DELIM, dbg_print, array_string
+
+################## DEBUG ##################
+
 test_dq_flags = {
     "GOOD": 0,
     "DO_NOT_USE": 1,
@@ -145,3 +155,11 @@ def test_basic_ramp():
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
+
+    data = cube[0][0, 0, 0]
+    ddiff = (ramp_data.data[0, ngroups-1, 0, 0] - ramp_data.data[0, 0, 0, 0])
+    check = ddiff / float(ngroups-1)
+    check = check / ramp_data.group_time
+    tol = 1.e-5
+    diff = abs(data - check)
+    assert diff < tol
