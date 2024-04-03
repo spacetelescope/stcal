@@ -138,6 +138,9 @@ def create_blank_ramp_data(dims, var, tm):
 
 
 def test_basic_ramp():
+    """
+    Test a basic ramp with a linear progression up the ramp.
+    """
     nints, ngroups, nrows, ncols = 1, 10, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
