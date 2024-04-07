@@ -1140,8 +1140,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
             # Suppress harmless arithmetic warnings for now
             warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-            var_p4[num_int, :, rlo:rhi, :] = (den_p3 * med_rates[rlo:rhi, :]) + \
-                                             ramp_data.average_dark_current[rlo:rhi, :]
+            var_p4[num_int, :, rlo:rhi, :] = den_p3 * (med_rates[rlo:rhi, :] +
+                                             ramp_data.average_dark_current[rlo:rhi, :])
 
             # Find the segment variance due to read noise and convert back to DN
             var_r4[num_int, :, rlo:rhi, :] = num_r3 * den_r3 / gain_sect**2
