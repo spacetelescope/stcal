@@ -24,11 +24,11 @@ test_dq_flags = {
 }
 
 GOOD = test_dq_flags["GOOD"]
-DO_NOT_USE = test_dq_flags["DO_NOT_USE"]
-JUMP_DET = test_dq_flags["JUMP_DET"]
-SATURATED = test_dq_flags["SATURATED"]
-NO_GAIN_VALUE = test_dq_flags["NO_GAIN_VALUE"]
-UNRELIABLE_SLOPE = test_dq_flags["UNRELIABLE_SLOPE"]
+DNU = test_dq_flags["DO_NOT_USE"]
+JMP = test_dq_flags["JUMP_DET"]
+SAT = test_dq_flags["SATURATED"]
+NGV = test_dq_flags["NO_GAIN_VALUE"]
+USLOPE = test_dq_flags["UNRELIABLE_SLOPE"]
 
 DELIM = "-" * 70
 
@@ -165,4 +165,72 @@ def test_basic_ramp():
     check = check / ramp_data.group_time
     tol = 1.e-5
     diff = abs(data - check)
+    assert diff < tol
+
+    # Check against OLS.
+    ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
+
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data1.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes1, cube1, ols_opt1, gls_opt1 = ramp_fit_data(
+        ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data1 = cube1[0][0, 0, 0]
+    diff = abs(data - data1)
+    assert diff < tol
+
+
+def flagged_ramp_data():
+    nints, ngroups, nrows, ncols = 1, 20, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+    ramp_data.data[0, 10:, 0, 0] += 150.  # Add a jump.
+
+    # Create segments in the ramp, including a jump and saturation at the end.
+    dq = np.array([GOOD] * ngroups)
+    dq[2] = DNU
+    dq[17:] = SAT
+    dq[10] = JMP
+    ramp_data.groupdq[0, :, 0, 0] = dq
+
+    return ramp_data, gain2d, rnoise2d
+
+
+def test_flagged_ramp():
+    """
+    Test flagged ramp.
+    """
+    ramp_data, gain2d, rnoise2d = flagged_ramp_data()
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data = cube[0][0, 0, 0]
+
+    # Check against OLS.
+    ramp_data, gain2d, rnoise2d = flagged_ramp_data()
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data1 = cube[0][0, 0, 0]
+
+    tol = 1.e-5
+    diff = abs(data - data1)
     assert diff < tol

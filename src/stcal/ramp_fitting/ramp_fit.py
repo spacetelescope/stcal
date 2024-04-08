@@ -79,6 +79,9 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     if "zero_frame" in model.meta.exposure and model.meta.exposure.zero_frame:
         ramp_data.zeroframe = model.zeroframe
 
+    if hasattr(model.meta.exposure, "read_pattern"):
+        ramp_data.read_pattern = [list(reads) for reads in model.meta.exposure.read_pattern]
+
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
