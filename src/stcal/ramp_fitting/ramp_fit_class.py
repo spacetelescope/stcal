@@ -16,6 +16,7 @@ class RampData:
 
         # Meta information
         self.instrument_name = None
+        self.read_pattern = None
 
         self.frame_time = None
         self.group_time = None
