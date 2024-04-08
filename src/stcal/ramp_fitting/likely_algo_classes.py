@@ -9,6 +9,17 @@ class IntegInfo:
     def __init__(self, nints, nrows, ncols):
         """
         Initialize output arrays.
+
+        Parameters
+        ----------
+        nints : int
+            The number of integrations in the data.
+
+        nrows : int
+            The number of rows in the data.
+
+        ncols : int
+            The number of columns in the data.
         """
         dims = (nints, nrows, ncols)
         self.data = np.zeros(shape=dims, dtype=np.float32)
@@ -29,16 +40,35 @@ class IntegInfo:
     def get_results(self, result, integ, row):
         """
         Capture the ramp fitting computation.
+
+        Parameters
+        ----------
+        result : Ramp_Result
+            Holds computed ramp fitting information.  XXX - rename
+
+        integ : int
+            The current integration being operated on.
+
+        row : int
+            The current row being operated on.
         """
         self.data[integ, row, :] = result.countrate
         self.err[integ, row, :] = result.chisq
 
 
 class ImageInfo:
-    """
-    Storage for the observation information for ramp fitting computations.
-    """
     def __init__(self, nrows, ncols):
+        """
+        Storage for the observation information for ramp fitting computations.
+
+        Parameters
+        ----------
+        nrows : int
+            The number of rows in the data.
+
+        ncols : int
+            The number of columns in the data.
+        """
         dims = (nrows, ncols)
         self.data = np.zeros(shape=dims, dtype=np.float32)
 
@@ -50,15 +80,17 @@ class ImageInfo:
         self.err = np.zeros(shape=dims, dtype=np.float32)
 
     def prepare_info(self):
+        """
+        Package the data to be returned from ramp fitting.
+        """
         return (self.data, self.idq, self.var_poisson, self.var_rnoise, self.err)
 
 
 class Ramp_Result:
-    """
-    Contains the ramp fitting results.
-    """
     def __init__(self):
-
+        """
+        Contains the ramp fitting results.
+        """
         self.countrate = None
         self.chisq = None
         self.uncert = None
@@ -78,6 +110,9 @@ class Ramp_Result:
         self.uncert_oneomit = None
 
     def __repr__(self):
+        """
+        Return string of information about the class.
+        """
         ostring = f"countrate = \n{self.countrate}"
         ostring += f"\nchisq = \n{self.chisq}"
         ostring += f"\nucert = \n{self.uncert}"
@@ -108,22 +143,20 @@ class Ramp_Result:
         fewer omitted resultant differences to get the correct values
         without double-coundint omissions.
 
-        Arguments:
-        1. diffs2use [a 2D array matching self.countrate_oneomit in
-                      shape with zero for resultant differences that
-                      were masked and one for differences that were
-                      not masked]
-
         This function replaces the relevant entries of
         self.countrate_twoomit, self.chisq_twoomit,
         self.uncert_twoomit, self.countrate_oneomit, and
         self.chisq_oneomit in place.  It does not return a value.
 
+        Parameters
+        ----------
+        diffs2use : ndarray
+            A 2D array matching self.countrate_oneomit in shape with zero
+            for resultant differences that were masked and one for
+            differences that were not masked.
         """
-
         # replace entries that would be nan (from trying to
         # doubly exclude read differences) with the global fits.
-
         omit = diffs2use == 0
         ones = np.ones(diffs2use.shape)
 
@@ -155,15 +188,17 @@ class Covar:
         the covariance matrix of the resultant differences, and the time
         intervals between the resultant midpoints.
 
-        Arguments:
-        1. readtimes [list of values or lists for the times of reads.  If
-                      a list of lists, times for reads that are averaged
-                      together to produce a resultant.]
-        Optional arguments:
-        2. pedestal  [boolean: does the covariance matrix include the terms
-                      for the first resultant?  This is needed if fitting
-                      for the pedestal (i.e. the reset value).  Default
-                      False. ]
+        Parameters
+        ----------
+        readtimes : list
+            List of values or lists for the times of reads.  If a list of
+            lists, times for reads that are averaged together to produce
+            a resultant.
+
+        pedestal : boolean
+            Does the covariance matrix include the terms for the first
+            resultant?  This is needed if fitting for the pedestal (i.e.
+            the reset value).  Optional parameter Default: False.
         """
         # Equations (4) and (11) in paper 1.
         mean_t, tau, N, delta_t = self._compute_means_and_taus(readtimes, pedestal)
@@ -182,6 +217,21 @@ class Covar:
             self._compute_pedestal(mean_t, tau, N, delta_t)
 
     def _compute_means_and_taus(self, readtimes, pedestal):
+        """
+        Computes the means and taus of defined in EQNs 4 and 11 in paper 1.
+
+        Parameters
+        ----------
+        readtimes : list
+            List of values or lists for the times of reads.  If a list of
+            lists, times for reads that are averaged together to produce
+            a resultant.
+
+        pedestal : boolean
+            Does the covariance matrix include the terms for the first
+            resultant?  This is needed if fitting for the pedestal (i.e.
+            the reset value).
+        """
         mean_t = []  # mean time of the resultant as defined in the paper
         tau = []  # variance-weighted mean time of the resultant
         N = []  # Number of reads per resultant
@@ -219,6 +269,23 @@ class Covar:
         return mean_t, tau, N, delta_t
 
     def _compute_alphas_and_betas(self, mean_t, tau, N, delta_t):
+        """
+        Computes the means and taus of defined in EQNs 28 and 29 in paper 1.
+
+        Parameters
+        ----------
+        mean_t : ndarray
+            The means of the reads for each group.
+
+        tau : ndarray
+            Intermediate computation.
+
+        N : ndarray
+            The number of reads in each group.
+
+        delta_t : ndarray
+            The group differences of integration ramps.
+        """
         self.alpha_readnoise = 1 / N[:-1] + 1 / (N[1:]) * delta_t**2
         self.beta_readnoise = -1 / (N[1:-1] * delta_t[1:] * delta_t[:-1])
 
@@ -226,6 +293,23 @@ class Covar:
         self.beta_phnoise = (mean_t[1:-1] - tau[1:-1]) / (delta_t[1:] * delta_t[:-1])
 
     def _compute_pedestal(self, mean_t, tau, N, delta_t):
+        """
+        Computes the means and taus of defined in EQNs 28 and 29 in paper 1.
+
+        Parameters
+        ----------
+        mean_t : ndarray
+            The means of the reads for each group.
+
+        tau : ndarray
+            Intermediate computation.
+
+        N : ndarray
+            The number of reads in each group.
+
+        delta_t : ndarray
+            The group differences of integration ramps.
+        """
         # If we want the reset value we need to include the first
         # resultant.  These are the components of the variance and
         # covariance for the first resultant.
@@ -246,23 +330,31 @@ class Covar:
         Calculate the bias in the best-fit count rate from estimating the
         covariance matrix.  This calculation is derived in the paper.
 
-        Section 5 of paper 1.
+        Section 5 of paper 1.  XXX Not sure when to use this method.
 
         Arguments:
-        1. countrates [array of count rates at which the bias is desired]
-        2. sig [float, single read noise]
-        3. cvec [weight vector on resultant differences for initial
-                 estimation of count rate for the covariance matrix.
-                 Will be renormalized inside this function.]
-        Optional argument:
-        4. da [float, fraction of the count rate plus sig**2 to use for finite
-               difference estimate of the derivative.  Default 1e-7.]
+        Parameters
+        ----------
+        countrates : ndarray
+            Array of count rates at which the bias is desired.
 
-        Returns:
-        1. bias [array, bias of the best-fit count rate from using cvec
-                 plus the observed resultants to estimate the covariance
-                 matrix]
+        sig : float
+            Single read noise]
 
+        cvec : ndarray
+            Weight vector on resultant differences for initial estimation
+            of count rate for the covariance matrix. Will be renormalized
+            inside this function.
+
+        da : float
+            Fraction of the count rate plus sig**2 to use for finite difference
+            estimate of the derivative.  Optional parameter.  Default 1e-7.
+
+        Returns
+        -------
+        bias : ndarray
+            Bias of the best-fit count rate from using cvec plus the observed
+            resultants to estimate the covariance matrix.
         """
         if self.pedestal:
             raise ValueError(

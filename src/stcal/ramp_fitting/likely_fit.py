@@ -30,7 +30,9 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def likely_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
+def likely_ramp_fit(
+    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
+):
     """
     Setup the inputs to ols_ramp_fit with and without multiprocessing. The
     inputs will be sliced into the number of cores that are being used for
@@ -83,12 +85,12 @@ def likely_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weight
 
     nints, ngroups, nrows, ncols = ramp_data.data.shape
 
-    # XXX Maybe make this more general.  Since groups are evenly space
-    #     in JWST, the readtimes are simply uniformly spaced times based
-    #     on group time.  With the knowledge of frame time and the number
-    #     of frames, this may be able to be more general.  Ask someone
-    #     about this.
-    readtimes = [(k+1) * ramp_data.group_time for k in range(ngroups)]
+    if ramp_data.read_pattern is None:
+        # XXX Not sure if this is the right way to do things.
+        readtimes = [(k + 1) * ramp_data.group_time for k in range(ngroups)]
+    else:
+        readtimes = read_data.read_pattern
+
     covar = Covar(readtimes)
     integ_class = IntegInfo(nints, nrows, ncols)
 
@@ -97,7 +99,8 @@ def likely_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weight
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
 
         for row in range(nrows):
-            result = fit_ramps(diff[:, row], covar, readnoise_2d[row])
+            d2use = determine_diffs2use(ramp_data, integ, row, diff[:, row])
+            result = fit_ramps(diff[:, row], covar, readnoise_2d[row], diffs2use=d2use)
             integ_class.get_results(result, integ, row)
 
     integ_info = integ_class.prepare_info()
@@ -105,13 +108,73 @@ def likely_ramp_fit(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weight
     return image_info, integ_info, opt_info
 
 
-def inital_countrateguess(Cov, diffs, diffs2use):
+def determine_diffs2use(ramp_data, integ, row, diffs):
+    """
+    Compute the diffs2use mask based on DQ flags of a row.
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+
+    integ : int
+        The current integration being processed.
+
+    row : int
+        The current row being processed.
+
+    diffs : ndarray
+        The group differences of the data array for a given integration and row
+        (ngroups-1, ncols).
+
+    Returns
+    -------
+    d2use : ndarray
+        A boolean array definined the segmented ramps for each pixel in a row.
+        (ngroups-1, ncols)
+    """
+    _, ngroups, _, ncols = ramp_data.data.shape
+    dq = np.zeros(shape=(ngroups, ncols), dtype=np.uint8)
+    dq[:, :] = ramp_data.groupdq[integ, :, row, :]
+    d2use = np.ones(shape=diffs.shape, dtype=np.uint8)
+
+    # The JUMP_DET is handled different than other group DQ flags.
+    jmp = np.uint8(ramp_data.flags_jump_det)
+    other_flags = ~jmp
+
+    # Find all non-jump flags
+    oflags_locs = np.zeros(shape=dq.shape, dtype=np.uint8)
+    wh_of = np.where(np.bitwise_and(dq, other_flags))
+    oflags_locs[wh_of] = 1
+
+    # Find all jump flags
+    jmp_locs = np.zeros(shape=dq.shape, dtype=np.uint8)
+    wh_j = np.where(np.bitwise_and(dq, jmp))
+    jmp_locs[wh_j] = 1
+
+    del wh_of, wh_j
+
+    # Based on flagging, exclude differences associated with flagged groups.
+
+    # If a jump occurs at group k, then the difference
+    # group[k] - group[k-1] is excluded.
+    d2use[jmp_locs[1:, :]==1] = 0
+
+    # If a non-jump flag occurs at group k, then the differences
+    # group[k+1] - group[k] and group[k] - group[k-1] are excluded.
+    d2use[oflags_locs[1:, :]==1] = 0
+    d2use[oflags_locs[:-1, :]==1] = 0
+
+    return d2use
+
+
+def inital_countrateguess(covar, diffs, diffs2use):
     """
     Compute the initial count rate.
 
     Parameters
     ----------
-    Cov : Covar
+    covar : Covar
         The class that computes and contains the covariance matrix info.
 
     diffs : ndarray
@@ -119,30 +182,25 @@ def inital_countrateguess(Cov, diffs, diffs2use):
 
     diffs2use : ndarray
         Boolean mask determining with group differences to use (ngroups-1, ncols).
+
+    Returns
+    -------
+    countrateguess : ndarray
+        The initial count rate.
     """
     # initial guess for count rate is the average of the unmasked
     # group differences unless otherwise specified.
-    if Cov.pedestal:
+    if covar.pedestal:
         num = np.sum((diffs * diffs2use)[1:], axis=0)
         den = np.sum(diffs2use[1:], axis=0)
-        countrateguess = num / den
-        '''
-        countrateguess = np.sum((diffs * diffs2use)[1:], axis=0) / np.sum(
-            diffs2use[1:], axis=0
-        )
-        '''
     else:
         num = np.sum((diffs * diffs2use), axis=0)
         den = np.sum(diffs2use, axis=0)
-        countrateguess = num / den
-        '''
-        countrateguess = np.sum((diffs * diffs2use), axis=0) / np.sum(
-            diffs2use, axis=0
-        )
-        '''
+
+    countrateguess = num / den
     countrateguess *= countrateguess > 0
 
-    return countrateguess 
+    return countrateguess
 
 
 # RAMP FITTING BEGIN
@@ -192,7 +250,7 @@ def fit_ramps(
 
     resetsig : float or ndarray
         Uncertainties on the reset values.  Irrelevant unless covar.pedestal is True.
-        Optional, default np.inf, i.e., reset values have flat priors.  
+        Optional, default np.inf, i.e., reset values have flat priors.
 
     rescale : boolean
         Scale the covariance matrix internally to avoid possible
@@ -204,11 +262,6 @@ def fit_ramps(
     result : Ramp_Result
         Holds computed ramp fitting information.  XXX - rename
     """
-    # XXX
-    # this needs to be refactored into a well written function,
-    # instead of meandering crap, hundreds of lines long.  The
-    # next function is at line 544.
-
     if diffs2use is None:
         # Use all diffs
         diffs2use = np.ones(diffs.shape, np.uint8)
@@ -227,7 +280,7 @@ def fit_ramps(
     beta = beta * diffs2use[1:] * diffs2use[:-1]
 
     # All definitions and formulas here are in the paper.
-    # --- Till line 284: Paper 1 section 4
+    # --- Till line 237: Paper 1 section 4
     theta = compute_thetas(ndiffs, npix, alpha, beta)  # EQNs 38-40
     phi = compute_phis(ndiffs, npix, alpha, beta)  # EQNs 41-43
 
@@ -240,10 +293,30 @@ def fit_ramps(
     ThetaD = compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask)  # EQN 48
 
     dB, dC, A, B, C = matrix_computations(
-        ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD)
+        ndiffs,
+        npix,
+        sgn,
+        diff_mask,
+        diffs2use,
+        beta,
+        phi,
+        Phi,
+        PhiD,
+        theta,
+        Theta,
+        ThetaD,
+    )
 
-    result = get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig)
+    result = get_ramp_result(
+        dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig
+    )
     # --- Beginning at line 250: Paper 1 section 4
+
+    # =============================================================================
+    # =============================================================================
+    # =============================================================================
+    # XXX Refactor the below section.  In fact the whole thing should be moved to
+    #     another function, which itself should be refactored.
 
     # The code below computes the best chi squared, best-fit slope,
     # and its uncertainty leaving out each group difference in
@@ -356,7 +429,10 @@ def fit_ramps(
         result.fill_masked_reads(diffs2use)
 
     return result
+
+
 # RAMP FITTING END
+
 
 def compute_abs(countrateguess, rnoise, covar, rescale):
     """
@@ -407,6 +483,7 @@ def compute_abs(countrateguess, rnoise, covar, rescale):
     beta /= scale
 
     return alpha, beta, scale
+
 
 def compute_thetas(ndiffs, npix, alpha, beta):
     """
@@ -495,6 +572,7 @@ def compute_Phis(ndiffs, npix, beta, phi, sgn):
     for i in range(ndiffs - 2, -1, -1):
         Phi[i] = Phi[i + 1] * beta[i] + sgn[i + 1] * beta[i] * phi[i + 2]
     return Phi
+
 
 def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
     """
@@ -600,7 +678,8 @@ def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):
 
 
 def matrix_computations(
-        ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD):
+    ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD
+):
     """
     Computing matrix computations needed for ramp fitting.
     EQNs 61-63, 71, 75
@@ -646,15 +725,19 @@ def matrix_computations(
     Returns
     -------
     dB : ndarray
+        Intermediate computation.
 
     dC : ndarray
+        Intermediate computation.
 
     A : ndarray
+        Intermediate computation.
 
     B : ndarray
+        Intermediate computation.
 
     C : ndarray
-
+        Intermediate computation.
     """
     beta_extended = np.ones((ndiffs, npix))
     beta_extended[1:] = beta
@@ -669,7 +752,9 @@ def matrix_computations(
     # {\cal A}, {\cal B}, {\cal C} in the paper
 
     # EQNs 61-63
-    A = 2 * np.sum(diff_mask * sgn / theta[-1] * beta_extended * phi[1:] * ThetaD[:-1], axis=0)
+    A = 2 * np.sum(
+        diff_mask * sgn / theta[-1] * beta_extended * phi[1:] * ThetaD[:-1], axis=0
+    )
     A += np.sum(diff_mask**2 * theta[:-1] * phi[1:] / theta[ndiffs], axis=0)
 
     B = np.sum(diff_mask * dC, axis=0)
@@ -678,14 +763,62 @@ def matrix_computations(
     return dB, dC, A, B, C
 
 
-def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, Cov, resetval, resetsig):
+def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig):
+    """
+    Use intermediate computations to fit the ramp and save the results.
+
+    Parameters
+    ----------
+    dB : ndarray
+        Intermediate computation.
+
+    dC : ndarray
+        Intermediate computation.
+
+    A : ndarray
+        Intermediate computation.
+
+    B : ndarray
+        Intermediate computation.
+
+    C : ndarray
+        Intermediate computation.
+
+    rescale : boolean
+        Scale the covariance matrix internally to avoid possible
+        overflow/underflow problems for long ramps.
+        Optional, default is True.
+
+    phi : ndarray
+        Intermediate computation.
+
+    theta : ndarray
+        Intermediate computation.
+
+    covar : Covar
+        The class that computes and contains the covariance matrix info.
+
+    resetval : float or ndarray
+        Priors on the reset values.  Irrelevant unless pedestal is True.  If an
+        ndarray, it has dimensions (ncols).
+        Opfional, default is 0.
+
+    resetsig : float or ndarray
+        Uncertainties on the reset values.  Irrelevant unless covar.pedestal is True.
+        Optional, default np.inf, i.e., reset values have flat priors.
+
+    Returns
+    -------
+    result : Ramp_Result
+        The results of the ramp fitting for a given row of pixels in an integration.
+    """
     result = Ramp_Result()
 
     # Finally, save the best-fit count rate, chi squared, uncertainty
     # in the count rate, and the weights used to combine the
     # groups.
 
-    if not Cov.pedestal:
+    if not covar.pedestal:
         result.countrate = B / C
         result.chisq = (A - B**2 / C) / scale
         result.uncert = np.sqrt(scale / C)
@@ -695,7 +828,7 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, Cov, resetval, resetsig)
     # in the paper.
 
     else:
-        dt = Cov.mean_t[0]
+        dt = covar.mean_t[0]
         Cinv_11 = theta[0] * phi[1] / theta[ndiffs]
 
         # Calculate the pedestal and slope using the equations in the paper.
@@ -722,6 +855,7 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, Cov, resetval, resetsig)
 
 ################################################################################
 ################################## DEBUG #######################################
+
 
 def dbg_print_info(group_time, readtimes, data, diff):
     print(DELIM)
