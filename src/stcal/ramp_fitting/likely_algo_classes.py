@@ -53,7 +53,9 @@ class IntegInfo:
             The current row being operated on.
         """
         self.data[integ, row, :] = result.countrate
-        self.err[integ, row, :] = result.chisq
+        # self.err[integ, row, :] = result.chisq
+        # self.err[integ, row, :] = result.uncert
+        self.err[integ, row, :] = result.stderr
 
 
 class ImageInfo:
@@ -92,6 +94,7 @@ class Ramp_Result:
         Contains the ramp fitting results.
         """
         self.countrate = None
+        self.stderr = None
         self.chisq = None
         self.uncert = None
         self.weights = None

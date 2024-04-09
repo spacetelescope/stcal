@@ -819,7 +819,10 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
     # groups.
 
     if not covar.pedestal:
-        result.countrate = B / C
+        invC = 1 / C
+        # result.countrate = B / C
+        result.countrate = B * invC
+        result.stderr = np.sqrt(invC)
         result.chisq = (A - B**2 / C) / scale
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
@@ -839,6 +842,7 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
         a = B / C - b * dC[0] / C / dt
         result.pedestal = b
         result.countrate = a
+        result.stderr = np.sqrt(C)
         result.chisq = A + a**2 * C + b**2 / dt**2 * Cinv_11
         result.chisq += -2 * b / dt * dB[0] - 2 * a * B + 2 * a * b / dt * dC[0]
         result.chisq /= scale
