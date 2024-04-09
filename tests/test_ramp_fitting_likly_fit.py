@@ -139,7 +139,8 @@ def create_blank_ramp_data(dims, var, tm):
 
 def test_basic_ramp():
     """
-    Test a basic ramp with a linear progression up the ramp.
+    Test a basic ramp with a linear progression up the ramp.  Compare the
+    integration results from the LIKELY algorithm to the OLS algorithm.
     """
     nints, ngroups, nrows, ncols = 1, 10, 1, 1
     rnval, gval = 10.0, 5.0
@@ -151,6 +152,7 @@ def test_basic_ramp():
 
     ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
 
+    # Create a simple linear ramp.
     ramp = np.array(list(range(ngroups))) * 20 + 10
     ramp_data.data[0, :, 0, 0] = ramp
 
@@ -210,7 +212,9 @@ def flagged_ramp_data():
 
 def test_flagged_ramp():
     """
-    Test flagged ramp.
+    Test flagged ramp.  The flags will cause segments, as well as ramp
+    truncation.  Compare the integration results from the LIKELY algorithm
+    to the OLS algorithm.
     """
     ramp_data, gain2d, rnoise2d = flagged_ramp_data()
 
@@ -234,3 +238,20 @@ def test_flagged_ramp():
     tol = 1.e-5
     diff = abs(data - data1)
     assert diff < tol
+
+# -----------------------------------------------------------------
+
+
+def dbg_print_cube_pix(cube, pix):
+    # (self.data, self.idq, self.var_poisson, self.var_rnoise, self.err)
+    da, dq, vp, vr, er = cube
+    row, col = pix
+    print(" ")
+    print(DELIM)
+    print(f"Data = {da[:, row, col]}")
+    print(f"DQ   = {dq[:, row, col]}")
+    print(f"VP   = {vp[:, row, col]}")
+    print(f"VR   = {vr[:, row, col]}")
+    print(f"ERR  = {er[:, row, col]}")
+    print(DELIM)
+
