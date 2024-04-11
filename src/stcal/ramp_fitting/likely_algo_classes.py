@@ -24,7 +24,7 @@ class IntegInfo:
         dims = (nints, nrows, ncols)
         self.data = np.zeros(shape=dims, dtype=np.float32)
 
-        self.idq = np.zeros(shape=dims, dtype=np.uint32)
+        self.dq = np.zeros(shape=dims, dtype=np.uint32)
 
         self.var_poisson = np.zeros(shape=dims, dtype=np.float32)
         self.var_rnoise = np.zeros(shape=dims, dtype=np.float32)
@@ -35,7 +35,7 @@ class IntegInfo:
         """
         Arrange output arrays as a tuple, which the ramp fit step expects.
         """
-        return (self.data, self.idq, self.var_poisson, self.var_rnoise, self.err)
+        return (self.data, self.dq, self.var_poisson, self.var_rnoise, self.err)
 
     def get_results(self, result, integ, row):
         """
@@ -53,9 +53,7 @@ class IntegInfo:
             The current row being operated on.
         """
         self.data[integ, row, :] = result.countrate
-        # self.err[integ, row, :] = result.chisq
-        # self.err[integ, row, :] = result.uncert
-        self.err[integ, row, :] = result.stderr
+        self.err[integ, row, :] = result.uncert
 
 
 class ImageInfo:
@@ -74,7 +72,7 @@ class ImageInfo:
         dims = (nrows, ncols)
         self.data = np.zeros(shape=dims, dtype=np.float32)
 
-        self.idq = np.zeros(shape=dims, dtype=np.uint32)
+        self.dq = np.zeros(shape=dims, dtype=np.uint32)
 
         self.var_poisson = np.zeros(shape=dims, dtype=np.float32)
         self.var_rnoise = np.zeros(shape=dims, dtype=np.float32)
@@ -85,7 +83,7 @@ class ImageInfo:
         """
         Package the data to be returned from ramp fitting.
         """
-        return (self.data, self.idq, self.var_poisson, self.var_rnoise, self.err)
+        return (self.data, self.dq, self.var_poisson, self.var_rnoise, self.err)
 
 
 class Ramp_Result:
@@ -94,7 +92,6 @@ class Ramp_Result:
         Contains the ramp fitting results.
         """
         self.countrate = None
-        self.stderr = None
         self.chisq = None
         self.uncert = None
         self.weights = None

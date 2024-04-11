@@ -93,9 +93,12 @@ def likely_ramp_fit(
 
     covar = Covar(readtimes)
     integ_class = IntegInfo(nints, nrows, ncols)
+    # image_class = ImageInfo(nrows, ncols)
 
     for integ in range(nints):
         data = ramp_data.data[integ, :, :, :]
+        gdq = ramp_data.groupdq[integ, :, :, :].copy()
+        pdq = ramp_data.pixeldq[:, :].copy()
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
 
         for row in range(nrows):
@@ -103,7 +106,15 @@ def likely_ramp_fit(
             result = fit_ramps(diff[:, row], covar, readnoise_2d[row], diffs2use=d2use)
             integ_class.get_results(result, integ, row)
 
+        pdq = utils.dq_compress_sect(ramp_data, integ, gdq, pdq)
+        integ_class.dq[integ, :, :] = pdq
+
+        del gdq
+
     integ_info = integ_class.prepare_info()
+
+    # XXX Need to combine integration info into image info.
+    # final_pixeldq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
     return image_info, integ_info, opt_info
 
@@ -822,7 +833,6 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
         invC = 1 / C
         # result.countrate = B / C
         result.countrate = B * invC
-        result.stderr = np.sqrt(invC)
         result.chisq = (A - B**2 / C) / scale
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
@@ -842,7 +852,6 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
         a = B / C - b * dC[0] / C / dt
         result.pedestal = b
         result.countrate = a
-        result.stderr = np.sqrt(C)
         result.chisq = A + a**2 * C + b**2 / dt**2 * Cinv_11
         result.chisq += -2 * b / dt * dB[0] - 2 * a * B + 2 * a * b / dt * dC[0]
         result.chisq /= scale

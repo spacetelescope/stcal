@@ -224,6 +224,7 @@ def test_flagged_ramp():
     )
 
     data = cube[0][0, 0, 0]
+    dq = cube[1][0, 0, 0]
 
     # Check against OLS.
     ramp_data, gain2d, rnoise2d = flagged_ramp_data()
@@ -233,20 +234,84 @@ def test_flagged_ramp():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    data1 = cube[0][0, 0, 0]
+    data_ols = cube[0][0, 0, 0]
+    dq_ols = cube[1][0, 0, 0]
 
     tol = 1.e-5
-    diff = abs(data - data1)
+    diff = abs(data - data_ols)
     assert diff < tol
+    assert dq == dq_ols
+
+
+def random_ramp_data():
+    nints, ngroups, nrows, ncols = 1, 10, 1, 1
+    rnval, gval = 10.0, 5.0
+    # frame_time, nframes, groupgap = 10.736, 4, 1
+    frame_time, nframes, groupgap = 1., 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    ramp = np.array([153., 307., 457., 604., 1853., 2002., 2159., 2308., 2459., 2601.])
+    ramp_data.data[0, :, 0, 0] = ramp
+
+    # Create a jump.
+    dq = np.array([GOOD] * ngroups)
+    dq[4] = JMP
+    ramp_data.groupdq[0, :, 0, 0] = dq
+
+    return ramp_data, gain2d, rnoise2d
+
+
+def test_random_ramp():
+    """
+    Created a slope with a base slope of 150., with random Poisson noise with lambda
+    5.0.  At group 4 is a jump of 1100.0.
+    Compare the integration results from the LIKELY algorithm to the OLS algorithm.
+    """
+    print(" ")  # XXX
+    ramp_data, gain2d, rnoise2d = random_ramp_data()
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    # dbg_print_cube_pix(cube, (0, 0), "LIKELY:")
+
+    data = cube[0][0, 0, 0]
+    dq = cube[1][0, 0, 0]
+    err = cube[-1][0, 0, 0]
+
+    # Check against OLS.
+    ramp_data, gain2d, rnoise2d = random_ramp_data()
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    # dbg_print_cube_pix(cube, (0, 0), "OLS:")
+
+    data_ols = cube[0][0, 0, 0]
+    dq_ols = cube[1][0, 0, 0]
+    err_ols = cube[-1][0, 0, 0]
+
 
 # -----------------------------------------------------------------
 
 
-def dbg_print_cube_pix(cube, pix):
+def dbg_print_cube_pix(cube, pix, label=None):
     # (self.data, self.idq, self.var_poisson, self.var_rnoise, self.err)
     da, dq, vp, vr, er = cube
     row, col = pix
     print(" ")
+    if label is not None:
+        print(DELIM)
+        print(label)
     print(DELIM)
     print(f"Data = {da[:, row, col]}")
     print(f"DQ   = {dq[:, row, col]}")
