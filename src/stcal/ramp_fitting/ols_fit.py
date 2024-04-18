@@ -1140,7 +1140,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
             # Suppress harmless arithmetic warnings for now
             warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-            var_p4[num_int, :, rlo:rhi, :] = den_p3 * (med_rates[rlo:rhi, :] +
+            var_p4[num_int, :, rlo:rhi, :] = den_p3 * (np.maximum(med_rates[rlo:rhi, :], 0) +
                                              ramp_data.average_dark_current[rlo:rhi, :])
 
             # Find the segment variance due to read noise and convert back to DN
@@ -1178,11 +1178,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
         var_p3[var_p3 > utils.LARGE_VARIANCE_THRESHOLD] = 0.0
-        med_rate_mask = med_rates <= 0.0
-        var_p3[:, med_rate_mask] = 0.0
         warnings.resetwarnings()
 
-        var_p4[num_int, :, med_rate_mask] = ramp_data.average_dark_current[med_rate_mask][..., np.newaxis]
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
         inv_var_both4[num_int, :, :, :] = 1.0 / var_both4[num_int, :, :, :]
 
@@ -1498,7 +1495,6 @@ def ramp_fit_overall(
     # Some contributions to these vars may be NaN as they are from ramps
     # having PIXELDQ=DO_NOT_USE
     var_p2[np.isnan(var_p2)] = 0.0
-    var_p2[med_rates <= 0.0] = 0.0
     var_r2[np.isnan(var_r2)] = 0.0
 
     # Suppress, then re-enable, harmless arithmetic warning
