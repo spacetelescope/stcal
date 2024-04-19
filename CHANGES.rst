@@ -9,7 +9,11 @@ Changes to API
 Bug Fixes
 ---------
 
-- 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Fix a bug in Poisson variance calculation visible when providing an average
+  dark current value. [#255]
 
 1.7.0 (2024-03-25)
 ==================
