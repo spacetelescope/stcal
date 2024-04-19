@@ -252,6 +252,39 @@ def test_neg_med_rates_single_integration_multi_segment_optional():
     np.testing.assert_allclose(neg_ramp_poisson, np.zeros(3), tol)
 
 
+def test_neg_with_avgdark():
+    """
+    In the case where an average dark current was provided, make sure the negative ramp has negative slope,
+    the Poisson variance is the expected value, readnoise is non-zero  and the ERR array is bigger than the RNOISE.
+    """
+    nints, ngroups, nrows, ncols = 1, 10, 1, 1
+    rnoise_val, gain_val = 10.0, 1.0
+    nframes, gtime, dtime = 1, 1.0, 1
+    dims = (nints, ngroups, nrows, ncols)
+    var = (rnoise_val, gain_val)
+    tm = (nframes, gtime, dtime)
+    ramp_data, rnoise, gain = setup_inputs(dims, var, tm)
+
+    # Set up negative ramp
+    neg_ramp = np.array([k + 1 for k in range(ngroups)])
+    nslope = -0.5
+    neg_ramp = neg_ramp * nslope
+    ramp_data.data[0, :, 0, 0] = neg_ramp
+    ramp_data.average_dark_current[:] = 1.0
+
+    # Run ramp fit on RampData
+    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    slopes, cube, optional, gls_dummy = ramp_fit_data(
+        ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        )
+
+    sdata, sdq, svp, svr, serr = slopes
+    assert sdata[0, 0] < 0.0
+    np.testing.assert_almost_equal(svp[0,0], 0.11, 2)
+    assert svr[0, 0] != 0.0
+    np.testing.assert_almost_equal(np.sqrt(svp[0,0] + svr[0,0]), serr[0,0], 2)
+
+
 def test_utils_dq_compress_final():
     """
     If there is any integration that has usable data, the DO_NOT_USE flag
