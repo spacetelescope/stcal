@@ -1178,6 +1178,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         # Huge variances correspond to non-existing segments, so are reset to 0
         #  to nullify their contribution.
         var_p3[var_p3 > utils.LARGE_VARIANCE_THRESHOLD] = 0.0
+        var_p4[var_p4 > utils.LARGE_VARIANCE_THRESHOLD] = 0.0
         warnings.resetwarnings()
 
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
