@@ -1587,48 +1587,80 @@ def setup_inputs(dims, var, tm):
 
     return ramp_data, rnoise, gain
 
-def create_test_2seg_obs(readnoise, num_ints, num_grps1, num_grps2, ncols,
-                             nrows, tm, rate=0, Poisson=True, grptime=2.77,
-                             gain=4.0, bias=3000, sat_group=0, sat_value=100000):
-        nframes, gtime, dtime = tm
-        rng = np.random.default_rng()
-        outcube1a = np.zeros(shape=(num_ints, num_grps1 + num_grps2, ncols, nrows), dtype=np.float32)
-        outcube1 = np.random.normal(loc=0.0, scale=readnoise / np.sqrt(2),
-                                    size=(num_ints, num_grps1 + num_grps2 + 1, ncols, ncols))
-        if rate > 0:
-            pvalues = grptime * rate + (rng.poisson(lam=gain * rate * grptime,
-                                                    size=(num_ints, num_grps1 + num_grps2, ncols,
-                                                          nrows)) - gain * rate * grptime) / gain
-            for intg in range(num_ints):
-                outcube1a[intg, 0, :, :] = outcube1[intg, 0, :, :]
-                for grp in range(1, num_grps1 + num_grps2):
-                    outcube1a[intg, grp, :, :] = outcube1[intg, grp, :, :] + np.sum(pvalues[intg, 0:grp, :, :], axis=0)
-            outcube1f = outcube1a
-        else:
-            outcube1f = outcube1
-        outdata = outcube1f + bias
-        #        print("cube mean values", np.mean(outdata[0,:,:,:], axis=(2, 3)))
-        outgdq = np.zeros_like(outdata, dtype=np.uint8)
-        outgdq[:, 0, :, :] = 1
-        outgdq[:, -1, :, :] = 1
-        if num_grps2 > 0:
-            outgdq[:, num_grps1, :, :] = 4
-        if sat_group > 0:
-            outgdq[:, sat_group:, :, :] = 2
-            outdata[:, sat_group:, :, :] = sat_value
-        pixdq = np.zeros(shape=(ncols, nrows), dtype=np.int32)
-        err = np.ones(shape=(num_ints, num_grps1 + num_grps2 + 1, nrows, ncols), dtype=np.float32)
-        ramp_data = RampData()
-        dark_current = np.zeros((nrows, ncols))
-        ramp_data.set_arrays(
-            data=outdata, err=err, groupdq=outgdq, pixeldq=pixdq, average_dark_current=dark_current)
-        ramp_data.set_meta(
-            name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0,
-            nframes=nframes, drop_frames1=None)
-        ramp_data.set_dqflags(dqflags)
-        readnoise_array = np.ones_like(pixdq) * readnoise
-        gain_array = np.ones_like(pixdq) * gain
-        return ramp_data, readnoise_array, gain_array
+
+def create_test_2seg_obs(
+        readnoise, num_ints, num_grps1, num_grps2, ncols,
+        nrows, tm, rate=0, Poisson=True, grptime=2.77,
+        gain=4.0, bias=3000, sat_group=0, sat_value=100000.
+):
+    """
+    """
+    # Set up data
+    nframes, gtime, dtime = tm
+    rng = np.random.default_rng()
+
+    dims = (num_ints, num_grps1 + num_grps2, ncols, nrows)
+    outcube1a = np.zeros(shape=dims, dtype=np.float32)
+
+    scale = readnoise / np.sqrt(2)
+    dims = (num_ints, num_grps1 + num_grps2 + 1, ncols, ncols)
+    outcube1 = np.random.normal(loc=0.0, scale=scale, size=dims)
+
+    size = (num_ints, num_grps1 + num_grps2, ncols, nrows)
+    if rate > 0:
+        rng = rng.poisson(lam=gain * rate * grptime, size=size)
+        pvalues = grptime * rate + (rng - gain * rate * grptime) / gain
+        for intg in range(num_ints):
+            outcube1a[intg, 0, :, :] = outcube1[intg, 0, :, :]
+            for grp in range(1, num_grps1 + num_grps2):
+                outcube1a[intg, grp, :, :] = outcube1[intg, grp, :, :] + \
+                                             np.sum(pvalues[intg, 0:grp, :, :], axis=0)
+        outcube1f = outcube1a
+    else:
+        outcube1f = outcube1
+    outdata = outcube1f + bias
+    outdata = outdata.astype(np.float32)
+
+    # Set up group DQ array
+    outgdq = np.zeros_like(outdata, dtype=np.uint8)
+    outgdq[:, 0, :, :] = DNU
+    outgdq[:, -1, :, :] = DNU
+    if num_grps2 > 0:
+        outgdq[:, num_grps1, :, :] = JUMP
+    if sat_group > 0:
+        outgdq[:, sat_group:, :, :] = SAT
+        outdata[:, sat_group:, :, :] = sat_value
+
+    # Set up pixel DQ array
+    pixdq = np.zeros(shape=(ncols, nrows), dtype=np.uint32)
+
+    # Set up err array
+    dims = (num_ints, num_grps1 + num_grps2 + 1, nrows, ncols)
+    err = np.ones(shape=dims, dtype=np.float32)
+
+    ramp_data = RampData()
+    dark_current = np.zeros((nrows, ncols), dtype=np.float32)
+    ramp_data.set_arrays(
+        data=outdata,
+        err=err,
+        groupdq=outgdq,
+        pixeldq=pixdq,
+        average_dark_current=dark_current)
+    ramp_data.set_meta(
+        name="MIRI",
+        frame_time=dtime,
+        group_time=gtime,
+        groupgap=0,
+        nframes=nframes,
+        drop_frames1=None)
+    ramp_data.set_dqflags(dqflags)
+
+    # Set up variance arrays
+    dims = (nrows, ncols)
+    readnoise_array = np.ones(shape=dims, dtype=np.float32) * readnoise
+    gain_array = np.ones(shape=dims, dtype=np.float32) * gain
+
+    return ramp_data, readnoise_array, gain_array
 
 
 # -----------------------------------------------------------------------------
