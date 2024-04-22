@@ -30,8 +30,9 @@ JUMP = dqflags["JUMP_DET"]
 # -----------------------------------------------------------------------------
 #                           Test Suite
 
-# @pytest.mark.skip(reason="The arrays created by this test are of the wrong type.")
 def test_long_integration():
+    """
+    """
     nints, nrows, ncols = 1, 1, 1
     rnoise_val, gain_val = 0.1, 40.0
     nframes, gtime, ftime = 1, 3, 3
@@ -1638,6 +1639,7 @@ def create_test_2seg_obs(
     dims = (num_ints, num_grps1 + num_grps2 + 1, nrows, ncols)
     err = np.ones(shape=dims, dtype=np.float32)
 
+    # Set up RampData class
     ramp_data = RampData()
     dark_current = np.zeros((nrows, ncols), dtype=np.float32)
     ramp_data.set_arrays(
