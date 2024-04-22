@@ -615,6 +615,9 @@ static void
 print_ramp_data_types(struct ramp_data * rd, int line);
 
 static void
+print_rd_type_info(struct ramp_data * rd);
+
+static void
 print_segment_list(npy_intp nints, struct segment_list * segs, int line);
 
 static void
@@ -2223,9 +2226,10 @@ print_rd_type_info(struct ramp_data * rd) {
     print_delim();
     print_npy_types();
     dbg_ols_print("data = %d (%d)\n", PyArray_TYPE(rd->data), NPY_FLOAT);
+    dbg_ols_print("err  = %d (%d)\n", PyArray_TYPE(rd->err), NPY_FLOAT);
     dbg_ols_print("gdq  = %d (%d)\n", PyArray_TYPE(rd->groupdq), NPY_UBYTE);
     dbg_ols_print("pdq  = %d (%d)\n", PyArray_TYPE(rd->pixeldq), NPY_UINT32);
-    dbg_ols_print("err  = %d (%d)\n", PyArray_TYPE(rd->err), NPY_FLOAT);
+    dbg_ols_print("dcur = %d (%d)\n", PyArray_TYPE(rd->dcurrent), NPY_FLOAT);
     dbg_ols_print("gain = %d (%d)\n", PyArray_TYPE(rd->gain), NPY_FLOAT);
     dbg_ols_print("rn   = %d (%d)\n", PyArray_TYPE(rd->rnoise), NPY_FLOAT);
     print_delim();
@@ -2634,7 +2638,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     seg->slope = pr->data[idx] / timing;
 
     pden = (timing * pr->gain);
-    seg->var_p = (pr->median_rate pr->dcurrent) / pden;
+    seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
 
     /* Segment read noise variance */
     rnum = pr->rnoise / timing;
@@ -2679,7 +2683,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     /* Segment Poisson variance */
     if (pr->median_rate > 0.) {
         pden = (rd->group_time * pr->gain);
-        seg->var_p = (pr->median_rate pr->dcurrent) / pden;
+        seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
     } else {
         seg->var_p = pr->dcurrent;
     }
@@ -2840,7 +2844,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     /* Segment Poisson variance */
     if (pr->median_rate > 0.) {
         pden = (rd->group_time * pr->gain * (seglen - 1.));
-        seg->var_p = (pr->median_rate pr->dcurrent) / pden;
+        seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
     } else {
         seg->var_p = pr->dcurrent;
     }
@@ -3486,7 +3490,10 @@ print_npy_types() {
     printf("NPY_BYTE = %d\n",NPY_BYTE);
     printf("NPY_UBYTE = %d\n",NPY_UBYTE);
     printf("NPY_SHORT = %d\n",NPY_SHORT);
+    printf("NPY_INT = %d\n",NPY_INT);
+    printf("NPY_UINT = %d\n",NPY_UINT);
 
+    printf("NPY_FLOAT = %d\n",NPY_FLOAT);
     printf("NPY_DOUBLE = %d\n",NPY_DOUBLE);
 
     printf("NPY_VOID = %d\n",NPY_VOID);

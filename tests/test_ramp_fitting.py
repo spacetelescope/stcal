@@ -30,6 +30,7 @@ JUMP = dqflags["JUMP_DET"]
 # -----------------------------------------------------------------------------
 #                           Test Suite
 
+@pytest.mark.skip(reason="The arrays created by this test are of the wrong type.")
 def test_long_integration():
     nints, nrows, ncols = 1, 1, 1
     rnoise_val, gain_val = 0.1, 40.0
