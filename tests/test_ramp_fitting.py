@@ -30,7 +30,7 @@ JUMP = dqflags["JUMP_DET"]
 # -----------------------------------------------------------------------------
 #                           Test Suite
 
-@pytest.mark.skip(reason="The arrays created by this test are of the wrong type.")
+# @pytest.mark.skip(reason="The arrays created by this test are of the wrong type.")
 def test_long_integration():
     nints, nrows, ncols = 1, 1, 1
     rnoise_val, gain_val = 0.1, 40.0
@@ -38,14 +38,18 @@ def test_long_integration():
     tm = (nframes, gtime, ftime)
     num_grps1 = 301
     num_grps2 = 20
-    ramp_data, rnoise_array, gain_array = create_test_2seg_obs(rnoise_val, nints, num_grps1, num_grps2, ncols,
-                                                               nrows, tm, rate=0, Poisson=True, grptime=gtime,
-                                                               gain=gain_val, bias=0)
+
+    ramp_data, rnoise_array, gain_array = create_test_2seg_obs(
+        rnoise_val, nints, num_grps1, num_grps2, ncols, nrows, tm, rate=0,
+        Poisson=True, grptime=gtime, gain=gain_val, bias=0)
+
     ramp_data.data[0, 291:, 0, 0] = 320 * 3
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
-    ramp_data, buffsize, save_opt, rnoise_array, gain_array, algo, wt, ncores, dqflags)
+        ramp_data, buffsize, save_opt, rnoise_array, gain_array,
+        algo, wt, ncores, dqflags)
+
     np.testing.assert_almost_equal(slopes[0], .65, 2)
 
 
