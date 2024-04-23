@@ -13,7 +13,11 @@ ramp_fitting
 ~~~~~~~~~~~~
 
 - Fix a bug in Poisson variance calculation visible when providing an average
-  dark current value. [#255]
+  dark current value in which the specified dark current was not converted to the
+  appropriate units for pixels with negative slopes.  This resulted in
+  incorrect SCI, ERR, and VAR_POISSON values. Also required revising the approach
+  for catching all-zero variance cases when average dark current was not
+  specified. [#255]
 
 1.7.0 (2024-03-25)
 ==================
