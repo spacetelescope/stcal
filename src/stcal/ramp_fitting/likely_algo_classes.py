@@ -94,6 +94,8 @@ class Ramp_Result:
         self.countrate = None
         self.chisq = None
         self.uncert = None
+        self.var_poisson = None
+        self.var_rdnoise = None
         self.weights = None
         self.pedestal = None
         self.uncert_pedestal = None

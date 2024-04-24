@@ -214,6 +214,19 @@ def inital_countrateguess(covar, diffs, diffs2use):
     return countrateguess
 
 
+'''
+def fit_ramps(
+        diffs,
+        Cov,
+        sig,
+        countrateguess=None,
+        diffs2use=None,
+        detect_jumps=False,
+        resetval=0,
+        resetsig=np.inf,
+        rescale=True,
+        dn_scale=10):
+'''
 # RAMP FITTING BEGIN
 def fit_ramps(
     diffs,
@@ -836,6 +849,15 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
         result.chisq = (A - B**2 / C) / scale
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
+
+        result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
+        result.var_poisson += 2 * np.sum(
+                result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
+
+        '''
+        result.var_rdnoise = np.sum(result.weights**2*alpha_readnoise, axis=0)
+        result.var_rdnoise += 2*np.sum(result.weights[1:]*result.weights[:-1]*beta_readnoise, axis=0)
+        '''
 
     # If we are computing the pedestal, then we use the other formulas
     # in the paper.
