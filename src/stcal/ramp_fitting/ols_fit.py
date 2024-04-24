@@ -661,9 +661,9 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    use_c = False
+    # use_c = False
     # use_c = True
-    # use_c = ramp_data.dbg_run_c_code
+    use_c = ramp_data.dbg_run_c_code
     if use_c:
         print(" ")
         print("=" * 80)
@@ -689,6 +689,11 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
         if gain_bswap:
             gain_2d.newbyteorder('S').byteswap(inplace=True)
 
+        c_diff = c_end - c_start
+        print('-' * 80)
+        print(f"    **** Total C time: {c_diff}")
+        print('-' * 80)
+
         return image_info, integ_info, opt_info
 
     # XXX start python time
@@ -702,8 +707,10 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
     # XXX end python time
     p_end = time.time()
-    if use_c:
-        c_python_time_comparison(c_start, c_end, p_start, p_end)
+    p_diff = p_end - p_start
+    print('-' * 80)
+    print(f"    **** Total Python time: {p_diff}")
+    print('-' * 80)
 
     return image_info, integ_info, opt_info
 

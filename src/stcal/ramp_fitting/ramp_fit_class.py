@@ -39,13 +39,15 @@ class RampData:
         # One group ramp suppression for saturated ramps after 0th group.
         self.suppress_one_group_ramps = False
 
+        # C code debugging switch.
+        self.dbg_run_c_code = False
+
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
 
         self.current_integ = -1
 
     def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current):
-        self.dbg_run_c_code = False
         """
         Set the arrays needed for ramp fitting.
 
