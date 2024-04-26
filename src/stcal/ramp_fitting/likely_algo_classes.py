@@ -54,6 +54,8 @@ class IntegInfo:
         """
         self.data[integ, row, :] = result.countrate
         self.err[integ, row, :] = result.uncert
+        self.var_poisson[integ, row, :] = result.var_poisson
+        self.var_rnoise[integ, row, :] = result.var_rnoise
 
 
 class ImageInfo:
@@ -95,7 +97,7 @@ class Ramp_Result:
         self.chisq = None
         self.uncert = None
         self.var_poisson = None
-        self.var_rdnoise = None
+        self.var_rnoise = None
         self.weights = None
         self.pedestal = None
         self.uncert_pedestal = None

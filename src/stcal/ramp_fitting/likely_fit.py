@@ -238,6 +238,7 @@ def fit_ramps(
     resetval=0,
     resetsig=np.inf,
     rescale=True,
+    dn_scale=10.,
 ):
     """
     Function fit_ramps on a row of pixels.  Fits ramps to read differences
@@ -281,6 +282,9 @@ def fit_ramps(
         overflow/underflow problems for long ramps.
         Optional, default is True.
 
+    dn_scale : XXX
+        XXX
+
     Returns
     -------
     result : Ramp_Result
@@ -294,8 +298,12 @@ def fit_ramps(
     if countrateguess is None:
         countrateguess = inital_countrateguess(covar, diffs, diffs2use)
 
-    alpha, beta, scale = compute_abs(countrateguess, rnoise, covar, rescale)
-    ndiffs, npix = alpha.shape
+    alpha_tuple, beta_tuple, scale = compute_abs(
+        countrateguess, rnoise, covar, rescale, diffs, dn_scale)
+    alpha, alpha_phnoise, alpha_readnoise = alpha_tuple 
+    beta, beta_phnoise, beta_readnoise = beta_tuple 
+
+    ndiffs, npix = diffs.shape
 
     # Mask group differences that should be ignored.  This is half
     # of what we need to do to mask these group differences; the
@@ -332,7 +340,8 @@ def fit_ramps(
     )
 
     result = get_ramp_result(
-        dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig
+        dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig,
+        alpha_phnoise, alpha_readnoise, beta_phnoise, beta_readnoise
     )
     # --- Beginning at line 250: Paper 1 section 4
 
@@ -458,7 +467,7 @@ def fit_ramps(
 # RAMP FITTING END
 
 
-def compute_abs(countrateguess, rnoise, covar, rescale):
+def compute_abs(countrateguess, rnoise, covar, rescale, diffs, dn_scale):
     """
     Compute alpha, beta, and scale needed for ramp fit.
     Elements of the covariance matrix.
@@ -478,6 +487,12 @@ def compute_abs(countrateguess, rnoise, covar, rescale):
     rescale : bool
         Determination to rescale covariance matrix.
 
+    diffs : ndarray
+        The group differences of the data (ngroups-1, nrows, ncols).
+
+    dn_scale : XXX
+        XXX
+
     Returns
     -------
     alpha : ndarray
@@ -490,23 +505,57 @@ def compute_abs(countrateguess, rnoise, covar, rescale):
         Overflow/underflow prevention scale.
 
     """
-    alpha = countrateguess * covar.alpha_phnoise[:, np.newaxis]
-    alpha += rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
-    beta = countrateguess * covar.beta_phnoise[:, np.newaxis]
-    beta += rnoise**2 * covar.beta_readnoise[:, np.newaxis]
+    alpha_phnoise = countrateguess * covar.alpha_phnoise[:, np.newaxis]
+    alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
+    alpha = alpha_phnoise + alpha_readnoise
 
-    # rescale the covariance matrix to a determinant of order 1 to
+    beta_phnoise = countrateguess * covar.beta_phnoise[:, np.newaxis]
+    beta_readnoise = rnoise**2 * covar.beta_readnoise[:, np.newaxis]
+    beta = beta_phnoise + beta_readnoise 
+
+    ndiffs, npix = diffs.shape
+
+    # Rescale the covariance matrix to a determinant of 1 to
     # avoid possible overflow/underflow.  The uncertainty and chi
-    # squared value will need to be scaled back later.
+    # squared value will need to be scaled back later.  Note that
+    # theta[-1] is the determinant of the covariance matrix.
+    #
+    # The method below uses the fact that if all alpha and beta
+    # are multiplied by f, theta[i] is multiplied by f**i.  Keep
+    # a running track of these factors to construct the scale at
+    # the end, and keep scaling throughout so that we never risk
+    # overflow or underflow.
+
     if rescale:
-        scale = np.exp(np.mean(np.log(alpha), axis=0))
+        # scale = np.exp(np.mean(np.log(alpha), axis=0))
+        theta = np.ones((ndiffs + 1, npix))
+        theta[1] = alpha[0]
+
+        scale = theta[0] * 1
+        for i in range(2, ndiffs + 1):
+            theta[i] = alpha[i-1] / scale * theta[i-1] - beta[i-2]**2 / scale**2 * theta[i-2]
+
+            # Scaling every ten steps in safe for alpha up to 1e20
+            # or so and incurs a negligible computational cost for
+            # the fractional power.
+
+            if i % int(dn_scale) == 0 or i == ndiffs:
+                f = theta[i]**(1/i)
+                scale *= f
+                tmp = theta[i] / f
+                theta[i-1] /= tmp
+                theta[i-2] /= (tmp / f)
+                theta[i] = 1
     else:
         scale = 1
 
     alpha /= scale
     beta /= scale
 
-    return alpha, beta, scale
+    alpha_tuple = (alpha, alpha_phnoise, alpha_readnoise)
+    beta_tuple = (beta, beta_phnoise, beta_readnoise)
+
+    return alpha_tuple, beta_tuple, scale
 
 
 def compute_thetas(ndiffs, npix, alpha, beta):
@@ -787,7 +836,9 @@ def matrix_computations(
     return dB, dC, A, B, C
 
 
-def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig):
+def get_ramp_result(
+        dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig,
+        alpha_phnoise, alpha_readnoise, beta_phnoise, beta_readnoise):
     """
     Use intermediate computations to fit the ramp and save the results.
 
@@ -831,6 +882,11 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
         Uncertainties on the reset values.  Irrelevant unless covar.pedestal is True.
         Optional, default np.inf, i.e., reset values have flat priors.
 
+    alpha_phnoise :
+    alpha_readnoise :
+    beta_phnoise :
+    beta_readnoise :
+
     Returns
     -------
     result : Ramp_Result
@@ -854,10 +910,9 @@ def get_ramp_result(dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsi
         result.var_poisson += 2 * np.sum(
                 result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
 
-        '''
-        result.var_rdnoise = np.sum(result.weights**2*alpha_readnoise, axis=0)
-        result.var_rdnoise += 2*np.sum(result.weights[1:]*result.weights[:-1]*beta_readnoise, axis=0)
-        '''
+        result.var_rdnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
+        result.var_rdnoise += 2 * np.sum(
+                result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0)
 
     # If we are computing the pedestal, then we use the other formulas
     # in the paper.
