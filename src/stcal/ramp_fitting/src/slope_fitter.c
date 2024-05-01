@@ -2149,7 +2149,6 @@ ols_slope_fit_pixels(
         struct rate_product * rate_prod,
         struct rateint_product * rateint_prod)
 {
-    int ret = 0;
     npy_intp row, col;
 
     for (row = 0; row < rd->nrows; ++row) {
@@ -2158,21 +2157,17 @@ ols_slope_fit_pixels(
 
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
-                ret = 1;
-                goto END;
+                return 1;
             }
 
             /* Save fitted pixel data for output packaging */
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
-                ret = 1;
-                goto END;
+                return 1;
             }
-            // goto END; /* XXX REMOVED THIS!!! */
         }
     }
 
-END:
-    return ret;
+    return 0;
 }
 
 static void
