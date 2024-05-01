@@ -6,3 +6,4 @@ Package Index
 
    jump/index.rst
    ramp_fitting/index.rst
+   alignment/index.rst

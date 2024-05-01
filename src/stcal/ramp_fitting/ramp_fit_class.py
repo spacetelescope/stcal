@@ -1,13 +1,12 @@
 class RampData:
     def __init__(self):
-        """
-        Creates an internal ramp fit class.
-        """
+        """Creates an internal ramp fit class."""
         # Arrays from the data model
         self.data = None
         self.err = None
         self.groupdq = None
         self.pixeldq = None
+        self.average_dark_current = None
 
         # Meta information
         self.instrument_name = None
@@ -26,6 +25,7 @@ class RampData:
         self.flags_unreliable_slope = None
 
         # ZEROFRAME
+        self.zframe_mat = None
         self.zframe_locs = None
         self.zframe_cnt = 0
         self.zeroframe = None
@@ -42,7 +42,7 @@ class RampData:
 
         self.current_integ = -1
 
-    def set_arrays(self, data, err, groupdq, pixeldq):
+    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current):
         """
         Set the arrays needed for ramp fitting.
 
@@ -63,15 +63,19 @@ class RampData:
         pixeldq : ndarray (uint32)
             4-D array containing the pixel data quality information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
+
+        average_dark_current : ndarray (float32)
+            2-D array containing the average dark current. It has
+            dimensions (nrows, ncols)
         """
         # Get arrays from the data model
         self.data = data
         self.err = err
         self.groupdq = groupdq
         self.pixeldq = pixeldq
+        self.average_dark_current = average_dark_current
 
-    def set_meta(self, name, frame_time, group_time, groupgap,
-                 nframes, drop_frames1=None):
+    def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """
         Set the metainformation needed for ramp fitting.
 
@@ -96,7 +100,6 @@ class RampData:
             The number of frames dropped at the beginning of every integration.
             May not be used in some pipelines, so is defaulted to NoneType.
         """
-
         # Get meta information
         self.instrument_name = name
 
@@ -180,7 +183,6 @@ class RampData:
         print(f"groupdq : \n{self.groupdq}")
         print(f"pixeldq : \n{self.pixeldq}")
         print("-" * 80)
-
 
     def dbg_print_pixel_info(self, row, col):
         print("-" * 80)

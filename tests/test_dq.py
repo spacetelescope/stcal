@@ -1,7 +1,7 @@
-import pytest
 import importlib
-
 from contextlib import nullcontext
+
+import pytest
 
 try:
     import stdatamodels  # noqa: F401
@@ -11,17 +11,13 @@ else:
     HAS_STDATAMODELS = True
 
 
-@pytest.mark.parametrize("name", ("dqflags", "dynamicdq", "basic_utils"))
+@pytest.mark.parametrize("name", ["dqflags", "dynamicdq", "basic_utils"])
 def test_deprecation(name):
     error = (
         nullcontext()
         if HAS_STDATAMODELS
-        else pytest.raises(
-            ImportError, match=f"{name} has been moved to stdatamodels.{name},.*"
-        )
+        else pytest.raises(ImportError, match=f"{name} has been moved to stdatamodels.{name},.*")
     )
 
-    with pytest.warns(
-        DeprecationWarning, match=f"{name} has been moved to stdatamodels.{name},.*"
-    ), error:
+    with pytest.warns(DeprecationWarning, match=f"{name} has been moved to stdatamodels.{name},.*"), error:
         importlib.import_module(f"stcal.{name}")
