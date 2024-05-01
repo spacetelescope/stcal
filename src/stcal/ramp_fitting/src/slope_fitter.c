@@ -1823,7 +1823,7 @@ static int
 get_ramp_data_new_validate(
         struct ramp_data * rd)
 {
-    char * msg;
+    char * msg = NULL;
 
     /* Validate the types for each of the ndarrays */
     if (!(
