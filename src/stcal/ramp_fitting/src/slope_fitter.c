@@ -939,11 +939,11 @@ clean_rate_product(
         struct rate_product * rate_prod)  /* Rate product data structure */
 {
     /* Free all arrays */
-    PyDataMem_FREE(rate_prod->slope);
-    PyDataMem_FREE(rate_prod->dq);
-    PyDataMem_FREE(rate_prod->var_poisson);
-    PyDataMem_FREE(rate_prod->var_rnoise);
-    PyDataMem_FREE(rate_prod->var_err);
+    Py_XDECREF(rate_prod->slope);
+    Py_XDECREF(rate_prod->dq);
+    Py_XDECREF(rate_prod->var_poisson);
+    Py_XDECREF(rate_prod->var_rnoise);
+    Py_XDECREF(rate_prod->var_err);
 
     /* Zero out any memory */
     memset(rate_prod, 0, sizeof(*rate_prod));
@@ -962,11 +962,11 @@ clean_rateint_product(
         struct rateint_product * rateint_prod)  /* Rateints product data structure */
 {
     /* Free all arrays */
-    PyDataMem_FREE(rateint_prod->slope);
-    PyDataMem_FREE(rateint_prod->dq);
-    PyDataMem_FREE(rateint_prod->var_poisson);
-    PyDataMem_FREE(rateint_prod->var_rnoise);
-    PyDataMem_FREE(rateint_prod->var_err);
+    Py_XDECREF(rateint_prod->slope);
+    Py_XDECREF(rateint_prod->dq);
+    Py_XDECREF(rateint_prod->var_poisson);
+    Py_XDECREF(rateint_prod->var_rnoise);
+    Py_XDECREF(rateint_prod->var_err);
 
     /* Zero out any memory */
     memset(rateint_prod, 0, sizeof(*rateint_prod));
