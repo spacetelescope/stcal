@@ -1089,43 +1089,65 @@ create_opt_res(
 
     /* Note fortran = 0 */
     opt_res->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->slope) {
+        goto FAILED_ALLOC;
+    }
+
     opt_res->sigslope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->sigslope) {
+        goto FAILED_ALLOC;
+    }
 
     opt_res->var_p = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->var_p) {
+        goto FAILED_ALLOC;
+    }
+
     opt_res->var_r = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->var_r) {
+        goto FAILED_ALLOC;
+    }
 
     opt_res->yint = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->yint) {
+        goto FAILED_ALLOC;
+    }
+
     opt_res->sigyint = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->sigyint) {
+        goto FAILED_ALLOC;
+    }
 
     opt_res->weights = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->weights) {
+        goto FAILED_ALLOC;
+    }
 
-    /* XXX These dimensions are incorrect */
     pdims[0] = rd->nints;
     pdims[1] = rd->nrows;
     pdims[2] = rd->ncols;
     opt_res->pedestal = (PyArrayObject*)PyArray_EMPTY(pnd, pdims, NPY_FLOAT, fortran);
+    if (!opt_res->pedestal) {
+        goto FAILED_ALLOC;
+    }
 
     /* XXX */
     //->cr_mag = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
     opt_res->cr_mag = (PyArrayObject*)Py_None;
 
-    if (
-            (Py_None==(PyObject*)opt_res->slope) ||
-            (Py_None==(PyObject*)opt_res->sigslope) ||
-            (Py_None==(PyObject*)opt_res->var_p) ||
-            (Py_None==(PyObject*)opt_res->var_r) ||
-            (Py_None==(PyObject*)opt_res->yint) ||
-            (Py_None==(PyObject*)opt_res->sigyint) ||
-            (Py_None==(PyObject*)opt_res->pedestal) ||
-            (Py_None==(PyObject*)opt_res->weights)
-        )
-    {
-        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
-        err_ols_print("%s\n", msg);
-        return 1;
-    }
-
     return 0;
+
+FAILED_ALLOC:
+    Py_XDECREF(opt_res->slope);
+    Py_XDECREF(opt_res->sigslope);
+    Py_XDECREF(opt_res->var_p);
+    Py_XDECREF(opt_res->var_r);
+    Py_XDECREF(opt_res->yint);
+    Py_XDECREF(opt_res->sigyint);
+    Py_XDECREF(opt_res->pedestal);
+    Py_XDECREF(opt_res->weights);
+
+    return 1;
 }
 
 /*
@@ -2200,16 +2222,20 @@ package_results(
     PyObject * opt_res = Py_None;
     PyObject * result = Py_None;
 
+    /* XXX Check return value */
     image_info = Py_BuildValue("(NNNNN)", 
         rate->slope, rate->dq, rate->var_poisson, rate->var_rnoise, rate->var_err);
 
+    /* XXX Check return value */
     cube_info = Py_BuildValue("(NNNNN)", 
         rateints->slope, rateints->dq, rateints->var_poisson, rateints->var_rnoise, rateints->var_err);
 
     if (rd->save_opt) {
+        /* XXX Check return value */
         opt_res = build_opt_res(rd);
     }
 
+    /* XXX Check return value */
     result = Py_BuildValue("(NNN)", image_info, cube_info, opt_res);
 
     return result;
