@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define PY_ARRAY_UNIQUE_SYMBOL _jwst_cube_blot_numpy_api
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
 
