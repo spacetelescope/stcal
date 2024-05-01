@@ -769,9 +769,14 @@ ols_slope_fitter(
 
     /* Package up results to be returned */
     result = package_results(&rate_prod, &rateint_prod, rd);
+    if ((NULL==result) || (Py_None==(PyObject*)result)) {
+        goto ERROR;
+    }
 
     goto CLEANUP;
 ERROR:
+    Py_XDECREF(result);
+
     /* Clean up errors */
     clean_rate_product(&rate_prod);
     clean_rateint_product(&rateint_prod);
@@ -2222,23 +2227,35 @@ package_results(
     PyObject * opt_res = Py_None;
     PyObject * result = Py_None;
 
-    /* XXX Check return value */
     image_info = Py_BuildValue("(NNNNN)", 
         rate->slope, rate->dq, rate->var_poisson, rate->var_rnoise, rate->var_err);
-
-    /* XXX Check return value */
-    cube_info = Py_BuildValue("(NNNNN)", 
-        rateints->slope, rateints->dq, rateints->var_poisson, rateints->var_rnoise, rateints->var_err);
-
-    if (rd->save_opt) {
-        /* XXX Check return value */
-        opt_res = build_opt_res(rd);
+    if (!image_info) {
+        goto FAILED_ALLOC;
     }
 
-    /* XXX Check return value */
+    cube_info = Py_BuildValue("(NNNNN)", 
+        rateints->slope, rateints->dq, rateints->var_poisson, rateints->var_rnoise, rateints->var_err);
+    if (!cube_info) {
+        goto FAILED_ALLOC;
+    }
+
+    if (rd->save_opt) {
+        opt_res = build_opt_res(rd);
+        if (!opt_res) {
+            goto FAILED_ALLOC;
+        }
+    }
+
     result = Py_BuildValue("(NNN)", image_info, cube_info, opt_res);
 
     return result;
+
+FAILED_ALLOC:
+    Py_XDECREF(image_info);
+    Py_XDECREF(cube_info);
+    Py_XDECREF(opt_res);
+
+    return NULL;
 }
 
 static void
