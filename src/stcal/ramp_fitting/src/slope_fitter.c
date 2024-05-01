@@ -460,7 +460,7 @@ static void
 get_ramp_data_dimensions(struct ramp_data * rd);
 
 static void
-get_ramp_data_endianness(struct ramp_data * rd);
+get_ramp_data_getters(struct ramp_data * rd);
 
 static int
 compute_median_rate(struct ramp_data * rd, struct pixel_ramp * pr);
@@ -1743,7 +1743,7 @@ get_ramp_data_arrays(
     }
 
     /* Check endianness of the arrays, as well as the dimensions. */
-    get_ramp_data_endianness(rd);
+    get_ramp_data_getters(rd);
     get_ramp_data_dimensions(rd);
 
     return 0;
@@ -1874,13 +1874,15 @@ get_ramp_data_dimensions(
 }
 
 static void
-get_ramp_data_endianness(
+get_ramp_data_getters(
         struct ramp_data * rd)
 {
     /* XXX Endianness is now handled in the python code
            before entering the extension */
 
-    /* Set getter functions based on type, dimensions, and endianness */
+    /* 
+     * Set getter functions based on type and dimensions.
+     */
     rd->get_data = get_float4;
     rd->get_err = get_float4;
 
@@ -1891,18 +1893,6 @@ get_ramp_data_endianness(
     rd->get_rnoise = get_float2;
 
     rd->get_zframe = get_float3;
-
-# if 0
-    /* Byte swapping now handled in python code. */
-    rd->get_data = (PyArray_ISBYTESWAPPED(rd->data)) ? get_float4_swp : get_float4;
-    rd->get_err = (PyArray_ISBYTESWAPPED(rd->err)) ? get_float4_swp : get_float4;
-
-    rd->get_pixeldq = (PyArray_ISBYTESWAPPED(rd->pixeldq)) ? get_uint32_2_swp : get_uint32_2;
-
-    rd->get_gain = (PyArray_ISBYTESWAPPED(rd->gain)) ? get_float2_swp : get_float2;
-    rd->get_rnoise = (PyArray_ISBYTESWAPPED(rd->rnoise)) ? get_float2_swp : get_float2;
-    rd->get_zframe = (PyArray_ISBYTESWAPPED(rd->zframe)) ? get_float3_swp : get_float3;
-#endif
 }
 
 /*
