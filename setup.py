@@ -6,6 +6,8 @@ from setuptools import Extension, setup
 Options.docstrings = True
 Options.annotate = False
 
+# importing these extension modules is tested in `.github/workflows/build.yml`; 
+# when adding new modules here, make sure to add them to the `test_command` entry there
 extensions = [
     Extension(
         "stcal.ramp_fitting.ols_cas22._ramp",
