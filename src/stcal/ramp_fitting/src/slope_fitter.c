@@ -391,9 +391,6 @@ create_rate_product(struct rate_product * rate_prod, struct ramp_data * rd);
 static int
 create_rateint_product(struct rateint_product * rateint_prod, struct ramp_data * rd);
 
-static struct segment_list *
-create_segment_list();
-
 static float
 get_float2(PyArrayObject * obj, npy_intp row,  npy_intp col);
 
@@ -408,10 +405,6 @@ get_float3(
 static uint32_t
 get_uint32_2(
     PyArrayObject * obj, npy_intp row, npy_intp col);
-
-static uint32_t
-get_uint32_4(
-    PyArrayObject * obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
 
 static void
 get_pixel_ramp(
@@ -644,6 +637,7 @@ get_ramp_index(struct ramp_data * rd, npy_intp integ, npy_intp group) {
     return rd->ngroups * integ + group;
 }
 
+/* Translate 3-D (integ, row, col) to a 1-D index. */
 static inline npy_intp
 get_cube_index(struct ramp_data * rd, npy_intp integ, npy_intp row, npy_intp col) {
     return rd->image_sz * integ + rd->ncols * row + col;
@@ -670,6 +664,7 @@ print_delim_char(char c, int len) {
     printf("\n");
 }
 
+/* Used for debugging to determine if a pixel is in a list */
 static inline int
 is_pix_in_list(struct pixel_ramp * pr)
 {
@@ -1114,7 +1109,6 @@ create_opt_res(
 
     return 0;
 
-    /* XXX */
 FAILED_ALLOC:
     Py_XDECREF(opt_res->slope);
     Py_XDECREF(opt_res->sigslope);
@@ -1286,28 +1280,6 @@ FAILED_ALLOC:
 }
 
 /*
- * Create a segment list.  (unused)
- */
-static struct segment_list *
-create_segment_list()
-{
-    struct segment_list * segs = (struct segment_list*)calloc(1, sizeof(*segs));
-    const char * msg = "Couldn't allocate memory for segment list.";
-
-    /* Make sure memory allocation worked */
-    if (NULL==segs) {
-        PyErr_SetString(PyExc_MemoryError, msg);
-        err_ols_print("%s\n", msg);
-        return NULL;
-    }
-
-    /* Ensures the length of the first list is the initial max segment length. */
-    segs->max_segment_length = -1;
-
-    return segs;
-}
-
-/*
  * Compute the median of a sorted array that accounts (ignores) the
  * NaN's at the end of the array.
  */
@@ -1398,22 +1370,6 @@ get_uint32_2(
         npy_intp col)
 {
     return VOID_2_U32(PyArray_GETPTR2(obj, row, col));
-}
-
-/* Get a uint32_t from a 4-D NDARRAY */
-static uint32_t
-get_uint32_4(
-    PyArrayObject * obj,
-    npy_intp integ,
-    npy_intp group,
-    npy_intp row,
-    npy_intp col)
-{
-    uint32_t ans;
-
-    ans = VOID_2_U32(PyArray_GETPTR4(obj, integ, group, row, col));
-
-    return ans;
 }
 
 /*
