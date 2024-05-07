@@ -101,7 +101,6 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
     }
 
 /* Complicated dereferencing and casting using a label. */
-#define VOID_2_DOUBLE(A) (*((double*)(A)))
 #define VOID_2_FLOAT(A) (*((float*)(A)))
 #define VOID_2_REAL(A) (*((real_t*)(A)))
 #define VOID_2_U32(A) (*((uint32_t*)(A)))
@@ -296,28 +295,40 @@ struct pixel_ramp {
     struct pixel_fit * rateints;    /* Cube information */
 }; /* END: struct pixel_ramp */
 
+/*
+ * Intermediate calculations for least squares.
+ */
 struct ols_calcs {
     real_t sumx, sumxx, sumy, sumxy, sumw;
 }; /* END: struct ols_calcs */
 
+/*
+ * The rate product data structure.
+ */
 struct rate_product {
     int is_none;
-    PyArrayObject * slope;
-    PyArrayObject * dq;
-    PyArrayObject * var_poisson;
-    PyArrayObject * var_rnoise;
-    PyArrayObject * var_err;
+    PyArrayObject * slope;          /* Slopes */
+    PyArrayObject * dq;             /* Data quality */
+    PyArrayObject * var_poisson;    /* Poisson variance */
+    PyArrayObject * var_rnoise;     /* Read noise variance */
+    PyArrayObject * var_err;        /* Total variance */
 }; /* END: struct rate_product */
 
+/*
+ * The rateints product data structure.
+ */
 struct rateint_product {
     int is_none;
-    PyArrayObject * slope;
-    PyArrayObject * dq;
-    PyArrayObject * var_poisson;
-    PyArrayObject * var_rnoise;
-    PyArrayObject * var_err;
+    PyArrayObject * slope;          /* Slopes */
+    PyArrayObject * dq;             /* Data quality */
+    PyArrayObject * var_poisson;    /* Poisson variance */
+    PyArrayObject * var_rnoise;     /* Read noise variance */
+    PyArrayObject * var_err;        /* Total variance */
 }; /* END: struct rateint_product */
 
+/*
+ * The optional results product data structure.
+ */
 struct opt_res_product {
     PyArrayObject * slope;      /* Slope of segment */
     PyArrayObject * sigslope;   /* Uncertainty in the segment slope */
@@ -387,22 +398,11 @@ static float
 get_float2(PyArrayObject * obj, npy_intp row,  npy_intp col);
 
 static float
-get_float2_swp(PyArrayObject * obj, npy_intp row,  npy_intp col);
-
-static float
 get_float4(
     PyArrayObject * obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
 
 static float
-get_float4_swp(
-    PyArrayObject * obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
-
-static float
 get_float3(
-    PyArrayObject * obj, npy_intp integ, npy_intp row, npy_intp col);
-
-static float
-get_float3_swp(
     PyArrayObject * obj, npy_intp integ, npy_intp row, npy_intp col);
 
 static uint32_t
@@ -410,15 +410,7 @@ get_uint32_2(
     PyArrayObject * obj, npy_intp row, npy_intp col);
 
 static uint32_t
-get_uint32_2_swp(
-    PyArrayObject * obj, npy_intp row, npy_intp col);
-
-static uint32_t
 get_uint32_4(
-    PyArrayObject * obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
-
-static uint32_t
-get_uint32_4_swp(
     PyArrayObject * obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
 
 static void
@@ -1369,24 +1361,6 @@ get_float2(
     return ans;
 }
 
-/* Get a byteswapped float from a 2-D NDARRAY */
-static float
-get_float2_swp(
-        PyArrayObject * obj,
-        npy_intp row,
-        npy_intp col)
-{
-    union ENDIAN {
-        uint32_t u;
-        float f;
-    } endian;
-
-    endian.f = get_float2(obj, row, col);
-    endian.u = BSWAP32(endian.u);
-
-    return endian.f;
-}
-
 /* Get a float from a 4-D NDARRAY */
 static float
 get_float4(
@@ -1403,26 +1377,6 @@ get_float4(
     return ans;
 }
 
-/* Get a byteswapped float from a 4-D NDARRAY */
-static float
-get_float4_swp(
-    PyArrayObject * obj,
-    npy_intp integ,
-    npy_intp group,
-    npy_intp row,
-    npy_intp col)
-{
-    union ENDIAN {
-        uint32_t u;
-        float f;
-    } endian;
-
-    endian.f = get_float4(obj, integ, group, row, col);
-    endian.u = BSWAP32(endian.u);
-
-    return endian.f;
-}
-
 static float
 get_float3(
         PyArrayObject * obj,
@@ -1437,24 +1391,6 @@ get_float3(
     return ans;
 }
 
-static float
-get_float3_swp(
-        PyArrayObject * obj,
-        npy_intp integ,
-        npy_intp row,
-        npy_intp col)
-{
-    union ENDIAN {
-        uint32_t u;
-        float f;
-    } endian;
-
-    endian.f = get_float3(obj, integ, row, col);
-    endian.u = BSWAP32(endian.u);
-
-    return endian.f;
-}
-
 static uint32_t
 get_uint32_2(
         PyArrayObject * obj,
@@ -1462,15 +1398,6 @@ get_uint32_2(
         npy_intp col)
 {
     return VOID_2_U32(PyArray_GETPTR2(obj, row, col));
-}
-
-static uint32_t
-get_uint32_2_swp(
-        PyArrayObject * obj,
-        npy_intp row,
-        npy_intp col)
-{
-    return BSWAP32(VOID_2_U32(PyArray_GETPTR2(obj, row, col)));
 }
 
 /* Get a uint32_t from a 4-D NDARRAY */
@@ -1486,20 +1413,6 @@ get_uint32_4(
 
     ans = VOID_2_U32(PyArray_GETPTR4(obj, integ, group, row, col));
 
-    return ans;
-}
-
-/* Get a byteswapped uint32_t from a 4-D NDARRAY */
-static uint32_t
-get_uint32_4_swp(
-    PyArrayObject * obj,
-    npy_intp integ,
-    npy_intp group,
-    npy_intp row,
-    npy_intp col)
-{
-    uint32_t ans = get_uint32_4(obj, integ, group, row, col);
-    ans = BSWAP32(ans);
     return ans;
 }
 
