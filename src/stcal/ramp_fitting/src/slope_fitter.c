@@ -2820,10 +2820,14 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     }
 }
 
+/*
+ * Save off the optional results calculations in the
+ * optional results product.
+ */
 static int
 save_opt_res(
-        struct opt_res_product * opt_res,
-        struct ramp_data * rd)
+        struct opt_res_product * opt_res, /* The optional results product */
+        struct ramp_data * rd)            /* The ramp data */
 {
     void * ptr = NULL;
     npy_intp integ, segnum, row, col, idx;
@@ -2917,20 +2921,22 @@ save_opt_res(
 
                     current = next;
                     segnum++;
-                }
-            }
-        }
-    }
+                } /* Segment list loop */
+            } /* Column loop */
+        } /* Row loop */
+    } /* Integration loop */
 
     return 0;
 }
 
-/* XXX Can this fail? */
+/*
+ * Save off the ramp fit computations to the output products.
+ */
 static int
 save_ramp_fit(
-        struct rateint_product * rateint_prod,
-        struct rate_product * rate_prod,
-        struct pixel_ramp * pr)
+        struct rateint_product * rateint_prod,  /* The rateints product */
+        struct rate_product * rate_prod,        /* The rate product */
+        struct pixel_ramp * pr)                 /* The pixel ramp data */
 {
     void * ptr = NULL;
     npy_intp integ;
@@ -3018,12 +3024,12 @@ save_ramp_fit(
 /* Compute the signal to noise ratio of the segment. */
 static int
 segment_snr(
-        real_t * snr,
-        npy_intp integ,
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        int segnum)
+        real_t * snr,               /* The signal to noise ratio for a segment */
+        npy_intp integ,             /* The intergration number */
+        struct ramp_data * rd,      /* The ramp data */
+        struct pixel_ramp * pr,     /* The pixel ramp data */
+        struct simple_ll_node * seg,/* The integration segment */
+        int segnum)                 /* The segment number */
 {
     npy_intp idx_s, idx_e;
     real_t data, num, den, S, start, end, sqrt_den = 0.;
@@ -3050,7 +3056,7 @@ segment_snr(
 /* Compute the weighting power based on the SNR. */
 static real_t
 snr_power(
-        real_t snr)
+        real_t snr)  /* The signal to noise ratio of a segment */
 {
     if (snr < 5.) {
         return  0.;
