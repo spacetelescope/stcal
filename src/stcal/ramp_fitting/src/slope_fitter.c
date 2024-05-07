@@ -2531,11 +2531,11 @@ ramp_fit_pixel_integration_fit_slope_seg(
  */
 static int
 ramp_fit_pixel_integration_fit_slope_seg_default(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        npy_intp integ,
-        int segnum)
+        struct ramp_data * rd,      /* The ramp data */
+        struct pixel_ramp * pr,     /* The pixel ramp data */
+        struct simple_ll_node * seg,/* The integration segment */
+        npy_intp integ,             /* The integration number */
+        int segnum)                 /* Teh segment number */
 {
     int ret = 0;
     real_t snr, power;
@@ -2555,13 +2555,17 @@ ramp_fit_pixel_integration_fit_slope_seg_default(
     return ret;
 }
 
+/*
+ * Fit slope for the special case of an integration
+ * segment of length 1.
+ */
 static int
 ramp_fit_pixel_integration_fit_slope_seg_len1(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        npy_intp integ,
-        int segnum)
+        struct ramp_data * rd,      /* The ramp data */
+        struct pixel_ramp * pr,     /* The pixel ramp data */
+        struct simple_ll_node * seg,/* The ingtegration segment */
+        npy_intp integ,             /* The integration number */
+        int segnum)                 /* The segment integration */
 {
     npy_intp idx;
     real_t timing = rd->group_time;
@@ -2589,7 +2593,6 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     rden = 6.;  /* seglen * seglen * seglen - seglen; where siglen = 2 */
     rden = rden * pr->gain * pr->gain;
     seg->var_r = rnum / rden;
-    //seg->var_e = 1.;
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
@@ -2600,13 +2603,17 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     return 0;
 }
 
+/*
+ * Fit slope for the special case of an integration
+ * segment of length 2.
+ */
 static int
 ramp_fit_pixel_integration_fit_slope_seg_len2(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        npy_intp integ,
-        int segnum)
+        struct ramp_data * rd,      /* The ramp data */
+        struct pixel_ramp * pr,     /* The pixel ramp data */
+        struct simple_ll_node * seg,/* The integration segment */
+        npy_intp integ,             /* The integration number */
+        int segnum)                 /* The segment number */
 {
     npy_intp idx;
     real_t data_diff, _2nd_read, data0, data1, rnum, rden, pden;
@@ -2673,12 +2680,12 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
  */
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        npy_intp integ,
-        int segnum,
-        real_t power)
+        struct ramp_data * rd,          /* The ramp data */
+        struct pixel_ramp * pr,         /* The pixel ramp data */
+        struct simple_ll_node * seg,    /* The integration ramp */
+        npy_intp integ,                 /* The integration number */
+        int segnum,                     /* The segment number */
+        real_t power)                   /* The power of the segment */
 {
     struct ols_calcs ols = {0};
     
@@ -2698,13 +2705,13 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted(
  */
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        struct ols_calcs * ols,
-        npy_intp integ,
-        int segnum,
-        real_t power)
+        struct ramp_data * rd,          /* The ramp data */
+        struct pixel_ramp * pr,         /* The pixel ramp data */
+        struct simple_ll_node * seg,    /* The intgration segment */
+        struct ols_calcs * ols,         /* Intermediate calculations */
+        npy_intp integ,                 /* The integration number */
+        int segnum,                     /* The segment number */
+        real_t power)                   /* The power of the segment */
 {
     npy_intp idx, group;
     real_t mid, weight, invrn2, invmid, data, xval, xwt;
@@ -2755,13 +2762,13 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
  */
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct simple_ll_node * seg,
-        struct ols_calcs * ols,
-        npy_intp integ,
-        int segnum,
-        real_t power)
+        struct ramp_data * rd,      /* The ramp data */
+        struct pixel_ramp * pr,     /* The pixel ramp data */
+        struct simple_ll_node * seg,/* The integration segment */
+        struct ols_calcs * ols,     /* Intermediate calculations */
+        npy_intp integ,             /* The integration number */
+        int segnum,                 /* The segment number */
+        real_t power)               /* The power of the segment */
 {
     real_t slope, num, den, invden, rnum=0., rden=0., pden=0., seglen;
     real_t sumx=ols->sumx, sumxx=ols->sumxx, sumy=ols->sumy,
