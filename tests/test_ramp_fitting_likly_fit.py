@@ -4,15 +4,6 @@ import pytest
 from stcal.ramp_fitting.ramp_fit import ramp_fit_class, ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 
-################## DEBUG ##################
-#                  HELP!!
-import ipdb
-import sys
-
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import DELIM, dbg_print, array_string
-
-################## DEBUG ##################
 
 test_dq_flags = {
     "GOOD": 0,
@@ -184,7 +175,49 @@ def test_basic_ramp():
     diff = abs(data - data1)
     assert diff < tol
 
-    dbg_print_cubel_cube1(cube, cube1)
+
+def test_basic_ramp_2integ():
+    """
+    Test a basic ramp with a linear progression up the ramp.  Compare the
+    integration results from the LIKELY algorithm to the OLS algorithm.
+    """
+    nints, ngroups, nrows, ncols = 2, 10, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+    ramp_data.data[1, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    tol = 1.e-5
+
+    # Check against OLS.
+    ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
+
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data1.data[0, :, 0, 0] = ramp
+    ramp_data1.data[1, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes1, cube1, ols_opt1, gls_opt1 = ramp_fit_data(
+        ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
+    )
+
+    # dbg_print_slope_slope1(slopes, slopes1, (0, 0))
+    # dbg_print_cube_cube1(cube, cube1, (0, 0))
+
 
 
 def flagged_ramp_data():
@@ -244,8 +277,6 @@ def test_flagged_ramp():
     assert diff < tol
     assert dq == dq_ols
 
-    dbg_print_cubel_cube1(cube, cube1)
-
 
 def random_ramp_data():
     nints, ngroups, nrows, ncols = 1, 10, 1, 1
@@ -285,8 +316,6 @@ def test_random_ramp():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    # dbg_print_cube_pix(cube, (0, 0), "LIKELY:")
-
     data = cube[0][0, 0, 0]
     dq = cube[1][0, 0, 0]
     err = cube[-1][0, 0, 0]
@@ -303,48 +332,37 @@ def test_random_ramp():
     dq_ols = cube[1][0, 0, 0]
     err_ols = cube[-1][0, 0, 0]
 
-    dbg_print_cubel_cube1(cube, cube1)
-
 
 # -----------------------------------------------------------------
-def dbg_print_cubel_cube1(cube, cube1):
-    print(" ")
-    print(DELIM)
-    d_l = cube[0][0, 0, 0]
-    d_o = cube1[0][0, 0, 0]
-    print(f"data LIK = {d_l}")
-    print(f"data OLS = {d_o}\n")
-
-    vp_l = cube[2][0, 0, 0]
-    vp_o = cube1[2][0, 0, 0]
-    print(f"var_poisson LIK = {vp_l}")
-    print(f"var_poisson OLS = {vp_o}\n")
-
-    vr_l = cube[3][0, 0, 0]
-    vr_o = cube1[3][0, 0, 0]
-    print(f"var_rnoise LIK = {vr_l}")
-    print(f"var_rnoise OLS = {vr_o}\n")
-
-    er_l = cube[4][0, 0, 0]
-    er_o = cube1[4][0, 0, 0]
-    print(f"err LIK = {er_l}")
-    print(f"err OLS = {er_o}")
-    print(DELIM)
-
-
-def dbg_print_cube_pix(cube, pix, label=None):
-    # (self.data, self.idq, self.var_poisson, self.var_rnoise, self.err)
-    da, dq, vp, vr, er = cube
+def dbg_print_slope_slope1(slope, slope1, pix):
+    data, dq, vp, vr, err = slope
+    data1, dq1, vp1, vr1, err1 = slope1
     row, col = pix
+
     print(" ")
-    if label is not None:
-        print(DELIM)
-        print(label)
     print(DELIM)
-    print(f"Data = {da[:, row, col]}")
-    print(f"DQ   = {dq[:, row, col]}")
-    print(f"VP   = {vp[:, row, col]}")
-    print(f"VR   = {vr[:, row, col]}")
-    print(f"ERR  = {er[:, row, col]}")
+    print("Slope Information:")
+    print(f"    Pixel = ({row}, {col})")
+
+    print(f"data LIK = {data[row, col]}")
+    print(f"data OLS = {data1[row, col]}")
+
     print(DELIM)
 
+
+def dbg_print_cube_cube1(cube, cube1, pix):
+    data, dq, vp, vr, err = cube
+    data1, dq1, vp1, vr1, err1 = cube1
+    row, col = pix
+    nints = data1.shape[0]
+
+    print(" ")
+    print(DELIM)
+    print("Cube Information:")
+    print(f"    Pixel = ({row}, {col})")
+    print(f"    Number of Integrations = {nints}")
+
+    print(f"data LIK = {data[:, row, col]}")
+    print(f"data OLS = {data1[:, row, col]}")
+
+    print(DELIM)

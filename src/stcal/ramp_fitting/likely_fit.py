@@ -9,17 +9,10 @@ from multiprocessing import cpu_count
 import numpy as np
 
 from . import ramp_fit_class, utils
-from .likely_algo_classes import IntegInfo, ImageInfo, Ramp_Result, Covar
+from .likely_algo_classes import IntegInfo, Ramp_Result, Covar
 
-################## DEBUG ##################
-#                  HELP!!
-import ipdb
-import sys
 
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import DELIM, dbg_print, array_string
-
-################## DEBUG ##################
+DELIM = '=' * 80
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -93,7 +86,6 @@ def likely_ramp_fit(
 
     covar = Covar(readtimes)
     integ_class = IntegInfo(nints, nrows, ncols)
-    # image_class = ImageInfo(nrows, ncols)
 
     for integ in range(nints):
         data = ramp_data.data[integ, :, :, :]
@@ -112,11 +104,56 @@ def likely_ramp_fit(
         del gdq
 
     integ_info = integ_class.prepare_info()
-
-    # XXX Need to combine integration info into image info.
-    # final_pixeldq = utils.dq_compress_final(integ_class.dq, ramp_data)
+    image_info = compute_image_info(integ_class, ramp_data)
 
     return image_info, integ_info, opt_info
+
+
+def compute_image_info(integ_class, ramp_data):
+    """
+    Compute the diffs2use mask based on DQ flags of a row.
+
+    Parameters
+    ----------
+    integ_class : IntegInfo
+        Contains the rateints product calculations.
+
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+
+    Returns
+    -------
+    image_info : tuple
+        The list of arrays for the rate product. 
+    """
+    if integ_class.data.shape[0] == 1:
+        data = integ_class.data[0, :, :]
+        dq = integ_class.dq[0, :, :]
+        var_p = integ_class.var_poisson[0, :, :]
+        var_r = integ_class.var_rnoise[0, :, :]
+        var_e = integ_class.err[0, :, :]
+        return (data, dq, var_p, var_r, var_e)
+
+    dq = utils.dq_compress_final(integ_class.dq, ramp_data)
+
+    inv_vp = 1.  / integ_class.var_poisson
+    var_p = 1. / inv_vp.sum(axis=0)
+
+    inv_vr = 1.  / integ_class.var_rnoise
+    var_r = 1. / inv_vr.sum(axis=0)
+
+    inv_err = 1.  / integ_class.err
+    err = 1. / inv_err.sum(axis=0)
+
+    inv_err2 = 1. / (integ_class.err**2)
+    err2 = 1. / inv_err2.sum(axis=0)
+
+    slope = integ_class.data * inv_err2
+    slope = slope.sum(axis=0) * err2
+
+    # Compute NaNs.
+
+    return (slope, dq, var_p, var_r, err)
 
 
 def determine_diffs2use(ramp_data, integ, row, diffs):
@@ -960,3 +997,7 @@ def dbg_print_info(group_time, readtimes, data, diff):
     print(DELIM)
     print(f"diff = {array_string(diff[:, 0, 0])}")
     print(DELIM)
+
+
+def array_string(arr, prec=4):
+    return np.array2string(arr, precision=prec, max_line_width=np.nan, separator=", ")

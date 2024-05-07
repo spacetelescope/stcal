@@ -58,36 +58,6 @@ class IntegInfo:
         self.var_rnoise[integ, row, :] = result.var_rnoise
 
 
-class ImageInfo:
-    def __init__(self, nrows, ncols):
-        """
-        Storage for the observation information for ramp fitting computations.
-
-        Parameters
-        ----------
-        nrows : int
-            The number of rows in the data.
-
-        ncols : int
-            The number of columns in the data.
-        """
-        dims = (nrows, ncols)
-        self.data = np.zeros(shape=dims, dtype=np.float32)
-
-        self.dq = np.zeros(shape=dims, dtype=np.uint32)
-
-        self.var_poisson = np.zeros(shape=dims, dtype=np.float32)
-        self.var_rnoise = np.zeros(shape=dims, dtype=np.float32)
-
-        self.err = np.zeros(shape=dims, dtype=np.float32)
-
-    def prepare_info(self):
-        """
-        Package the data to be returned from ramp fitting.
-        """
-        return (self.data, self.dq, self.var_poisson, self.var_rnoise, self.err)
-
-
 class Ramp_Result:
     def __init__(self):
         """
