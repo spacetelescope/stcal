@@ -646,26 +646,6 @@ print_uint32_array(uint32_t * arr, int len, int ret);
 /*                        Static Inline Functions                            */
 /* ------------------------------------------------------------------------- */
 
-/* Translate 2-D (row, col) to a 1-D index. */
-static inline npy_intp
-get_index2(struct ramp_data * rd, npy_intp row, npy_intp col) {
-    return rd->ncols * row + col;
-}
-
-/* Translate 3-D (group, row, col) to a 1-D index. */
-static inline npy_intp
-get_index3(struct ramp_data * rd, npy_intp group, npy_intp row, npy_intp col) {
-    return rd->image_sz * group + rd->ncols * row + col;
-}
-
-/* Translate 4-D (integ, group, row, col) to a 1-D index. */
-static inline npy_intp
-get_index4(struct ramp_data * rd, npy_intp integ,
-           npy_intp group, npy_intp row, npy_intp col)
-{
-    return rd->cube_sz * integ + rd->image_sz * group + rd->ncols * row + col;
-}
-
 /* Translate 2-D (integ, group) to a 1-D index. */
 static inline npy_intp
 get_ramp_index(struct ramp_data * rd, npy_intp integ, npy_intp group) {
