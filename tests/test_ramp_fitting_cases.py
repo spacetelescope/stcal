@@ -22,7 +22,7 @@ from stcal.ramp_fitting.ramp_fit_class import RampData
 
 DELIM = "-" * 80
 
-# single group intergrations fail in the GLS fitting
+# single group integrations fail in the GLS fitting
 # so, keep the two method test separate and mark GLS test as
 # expected to fail.  Needs fixing, but the fix is not clear
 # to me. [KDG - 19 Dec 2018]

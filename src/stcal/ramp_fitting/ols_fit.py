@@ -662,24 +662,19 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
         The tuple of computed optional results arrays for fitting.
     """
     # use_c = False
-    # use_c = True
-    use_c = ramp_data.dbg_run_c_code
+    use_c = True
+    # use_c = ramp_data.dbg_run_c_code
     if use_c:
-        print(" ")
-        print("=" * 80)
         c_start = time.time()
 
         ramp_data, gain_2d, readnoise_2d, bswap = endianness_handler(ramp_data, gain_2d, readnoise_2d)
 
         if ramp_data.drop_frames1 is None:
             ramp_data.drop_frames1 = 0
-        print("    ---------------- Entering C Code ----------------")
         image_info, integ_info, opt_info = ols_slope_fitter(
                 ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
-        print("    ----------------  Return C Code  ----------------")
 
         c_end = time.time()
-        print("=" * 80)
 
         # Read noise is used after STCAL ramp fitting for the CHARGELOSS
         # processing, so make sure it works right for there.
@@ -690,27 +685,18 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
             gain_2d.newbyteorder('S').byteswap(inplace=True)
 
         c_diff = c_end - c_start
-        print('-' * 80)
-        print(f"    **** Total C time: {c_diff}")
-        print('-' * 80)
 
         return image_info, integ_info, opt_info
 
     # XXX start python time
     p_start = time.time()
 
-    print("\n");
-    print("    ---------------- Entering Python Code ----------------")
     image_info, integ_info, opt_info = ols_ramp_fit_single_python(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
-    print("    ----------------  Return Python Code  ----------------")
 
     # XXX end python time
     p_end = time.time()
     p_diff = p_end - p_start
-    print('-' * 80)
-    print(f"    **** Total Python time: {p_diff}")
-    print('-' * 80)
 
     return image_info, integ_info, opt_info
 

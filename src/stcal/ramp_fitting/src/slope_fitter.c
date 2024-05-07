@@ -1142,6 +1142,7 @@ create_opt_res(
 
     return 0;
 
+    /* XXX */
 FAILED_ALLOC:
     Py_XDECREF(opt_res->slope);
     Py_XDECREF(opt_res->sigslope);
@@ -1222,23 +1223,40 @@ create_rate_product(
     dims[1] = rd->ncols;
 
     rate->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    rate->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
-    rate->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    rate->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    rate->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rate->slope) {
+        goto FAILED_ALLOC;
+    }
 
-    if ((Py_None==(PyObject*)rate->slope) ||
-        (Py_None==(PyObject*)rate->dq) ||
-        (Py_None==(PyObject*)rate->var_poisson) ||
-        (Py_None==(PyObject*)rate->var_rnoise) ||
-        (Py_None==(PyObject*)rate->var_err))
-    {
-        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
-        err_ols_print("%s\n", msg);
-        return 1;
+    rate->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
+    if (Py_None==(PyObject*)rate->dq) {
+        goto FAILED_ALLOC;
+    }
+
+    rate->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rate->var_poisson) {
+        goto FAILED_ALLOC;
+    }
+
+    rate->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rate->var_rnoise) {
+        goto FAILED_ALLOC;
+    }
+
+    rate->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rate->var_err) {
+        goto FAILED_ALLOC;
     }
 
     return 0;
+
+FAILED_ALLOC:
+    Py_XDECREF(rate->slope);
+    Py_XDECREF(rate->dq);
+    Py_XDECREF(rate->var_poisson);
+    Py_XDECREF(rate->var_rnoise);
+    Py_XDECREF(rate->var_err);
+
+    return 1;
 }
 
 /*
@@ -1259,23 +1277,40 @@ create_rateint_product(
     dims[2] = rd->ncols;
 
     rateint->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    rateint->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
-    rateint->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    rateint->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    rateint->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rateint->slope) {
+        goto FAILED_ALLOC;
+    }
 
-    if ((Py_None==(PyObject*)rateint->slope) ||
-        (Py_None==(PyObject*)rateint->dq) ||
-        (Py_None==(PyObject*)rateint->var_poisson) ||
-        (Py_None==(PyObject*)rateint->var_rnoise) ||
-        (Py_None==(PyObject*)rateint->var_err))
-    {
-        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
-        err_ols_print("%s\n", msg);
-        return 1;
+    rateint->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
+    if (Py_None==(PyObject*)rateint->dq) {
+        goto FAILED_ALLOC;
+    }
+
+    rateint->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rateint->var_poisson) {
+        goto FAILED_ALLOC;
+    }
+
+    rateint->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rateint->var_rnoise) {
+        goto FAILED_ALLOC;
+    }
+
+    rateint->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (Py_None==(PyObject*)rateint->var_err) {
+        goto FAILED_ALLOC;
     }
 
     return 0;
+
+FAILED_ALLOC:
+    Py_XDECREF(rateint->slope);
+    Py_XDECREF(rateint->dq);
+    Py_XDECREF(rateint->var_poisson);
+    Py_XDECREF(rateint->var_rnoise);
+    Py_XDECREF(rateint->var_err);
+
+    return 1;
 }
 
 /*

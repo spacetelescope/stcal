@@ -19,6 +19,8 @@ ramp_fitting
   for catching all-zero variance cases when average dark current was not
   specified. [#255]
 
+- Refactor ramp fitting using a C extension to improve performance. [#156]
+
 1.7.0 (2024-03-25)
 ==================
 
@@ -34,8 +36,6 @@ ramp_fitting
 ~~~~~~~~~~~~
 
 - Switch multiprocessing method to ``fork_server``. [#249]
-
-- Refactor ramp fitting using a C extension to improve performance. [#156]
 
 Bug Fixes
 ---------
