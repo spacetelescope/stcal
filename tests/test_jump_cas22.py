@@ -565,3 +565,36 @@ def test_jump_dq_set(jump_data):
 
         # Check that dq flags for jumps are only set if the jump is marked
         assert set(np.where(pixel_dq == JUMP_DET)[0]) == set(fit["jumps"])
+
+
+def test_bad_pixel(jump_data):
+    af = {
+        'dq': np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=np.int32),
+        'read_noise': 9.03978443145752,
+        'read_pattern': [
+             [1],
+             [2, 3],
+             [5, 6, 7],
+             [10, 11, 12, 13],
+             [15, 16, 17, 18, 19, 20],
+             [21, 22, 23, 24, 25, 26],
+             [27, 28, 29, 30, 31, 32],
+             [33, 34, 35, 36, 37, 38],
+             [39, 40, 41, 42, 43],
+             [44]
+         ],
+        'read_time': 3.04,
+        'resultants': np.array([173.4077 , 190.37126, 199.78105, 218.60869, 209.14429, 212.88101,
+               209.07907, 220.35812, 220.32977, 233.49586], dtype=np.float32),
+        'use_jump': True,
+    }
+    result = fit_ramps(
+        af['resultants'][:, np.newaxis],
+        af['dq'][:, np.newaxis],
+        np.array([af['read_noise']], dtype='f4'),
+        af['read_time'],
+        af['read_pattern'],
+        af['use_jump'],
+    )
+    print(result)
+    np.testing.assert_allclose(result.parameters, [[0., 0.26193526]])
