@@ -78,13 +78,19 @@ def likely_ramp_fit(
 
     nints, ngroups, nrows, ncols = ramp_data.data.shape
 
+    if ngroups < 2:
+        raise ValueError(
+            "Likelihood fit requires at least 2 groups."
+        )
+
     if ramp_data.read_pattern is None:
         # XXX Not sure if this is the right way to do things.
         readtimes = [(k + 1) * ramp_data.group_time for k in range(ngroups)]
+        # readtimes = [(k + 1) for k in range(ngroups)]
     else:
         readtimes = read_data.read_pattern
 
-    covar = Covar(readtimes)
+    covar = Covar(readtimes)  # XXX Choice of pedestal not given
     integ_class = IntegInfo(nints, nrows, ncols)
 
     for integ in range(nints):
@@ -251,19 +257,6 @@ def inital_countrateguess(covar, diffs, diffs2use):
     return countrateguess
 
 
-'''
-def fit_ramps(
-        diffs,
-        Cov,
-        sig,
-        countrateguess=None,
-        diffs2use=None,
-        detect_jumps=False,
-        resetval=0,
-        resetsig=np.inf,
-        rescale=True,
-        dn_scale=10):
-'''
 # RAMP FITTING BEGIN
 def fit_ramps(
     diffs,
@@ -362,18 +355,8 @@ def fit_ramps(
     ThetaD = compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask)  # EQN 48
 
     dB, dC, A, B, C = matrix_computations(
-        ndiffs,
-        npix,
-        sgn,
-        diff_mask,
-        diffs2use,
-        beta,
-        phi,
-        Phi,
-        PhiD,
-        theta,
-        Theta,
-        ThetaD,
+        ndiffs, npix, sgn, diff_mask, diffs2use, beta,
+        phi, Phi, PhiD, theta, Theta, ThetaD,
     )
 
     result = get_ramp_result(
@@ -935,6 +918,7 @@ def get_ramp_result(
     # in the count rate, and the weights used to combine the
     # groups.
 
+    # XXX pedestal is always False.
     if not covar.pedestal:
         invC = 1 / C
         # result.countrate = B / C
@@ -947,8 +931,8 @@ def get_ramp_result(
         result.var_poisson += 2 * np.sum(
                 result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
 
-        result.var_rdnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
-        result.var_rdnoise += 2 * np.sum(
+        result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
+        result.var_rnoise += 2 * np.sum(
                 result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0)
 
     # If we are computing the pedestal, then we use the other formulas
