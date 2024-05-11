@@ -234,7 +234,8 @@ class Covar:
                 tau += [times]
                 N += [1]
 
-        # readtimes is a list of lists, so mean_t is the list of each  mean of each list.
+        # readtimes is a list of lists, so mean_t is the list of each
+        # mean of each list.
         mean_t = np.array(mean_t)
         tau = np.array(tau)
         N = np.array(N)
@@ -260,7 +261,7 @@ class Covar:
         delta_t : ndarray
             The group differences of integration ramps.
         """
-        self.alpha_readnoise = 1 / N[:-1] + 1 / (N[1:]) * delta_t**2
+        self.alpha_readnoise = (1 / N[:-1] + 1 / N[1:]) / delta_t**2
         self.beta_readnoise = -1 / (N[1:-1] * delta_t[1:] * delta_t[:-1])
 
         self.alpha_phnoise = (tau[:-1] + tau[1:] - 2 * mean_t[:-1]) / delta_t**2
