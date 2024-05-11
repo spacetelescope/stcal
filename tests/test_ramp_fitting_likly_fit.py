@@ -304,9 +304,10 @@ def random_ramp_data():
 @pytest.mark.skip(reason="Not sure what expected value is.")
 def test_random_ramp():
     """
-    Created a slope with a base slope of 150., with random Poisson noise with lambda
-    5.0.  At group 4 is a jump of 1100.0.
-    Compare the integration results from the LIKELY algorithm to the OLS algorithm.
+    Created a slope with a base slope of 150., with random Poisson
+    noise with lambda 5.0.  At group 4 is a jump of 1100.0.
+    Compare the integration results from the LIKELY algorithm
+    to the OLS algorithm.
     """
     print(" ")  # XXX
     ramp_data, gain2d, rnoise2d = random_ramp_data()
@@ -333,6 +334,128 @@ def test_random_ramp():
     err_ols = cube[-1][0, 0, 0]
 
 
+def test_long_ramp():
+    nints, ngroups, nrows, ncols = 1, 200, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data = cube[0][0, 0, 0]
+    ddiff = (ramp_data.data[0, ngroups-1, 0, 0] - ramp_data.data[0, 0, 0, 0])
+    check = ddiff / float(ngroups-1)
+    check = check / ramp_data.group_time
+    tol = 1.e-5
+    diff = abs(data - check)
+    assert diff < tol
+
+    # Check against OLS.
+    ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
+
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data1.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes1, cube1, ols_opt1, gls_opt1 = ramp_fit_data(
+        ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data1 = cube1[0][0, 0, 0]
+    diff = abs(data - data1)
+    assert diff < tol
+
+
+@pytest.mark.parametrize("ngroups", [3, 2])
+@pytest.mark.parametrize("nframes", [1, 2, 4, 8])
+def test_short_integrations(ngroups, nframes):
+    """
+    Check short 3 and 2 group integrations.
+    """
+    nints, nrows, ncols = 1, 1, 1
+    rnval, gval = 10.0, 5.0
+    # frame_time, nframes, groupgap = 10.736, 4, 1
+    frame_time, groupgap = 10.736, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data = cube[0][0, 0, 0]
+    ddiff = (ramp_data.data[0, ngroups-1, 0, 0] - ramp_data.data[0, 0, 0, 0])
+    check = ddiff / float(ngroups-1)
+    check = check / ramp_data.group_time
+    tol = 1.e-5
+    diff = abs(data - check)
+    assert diff < tol
+
+    # Check against OLS.
+    ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
+
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data1.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes1, cube1, ols_opt1, gls_opt1 = ramp_fit_data(
+        ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data1 = cube1[0][0, 0, 0]
+    diff = abs(data - data1)
+    assert diff < tol
+
+
+def test_1group():
+    """
+    The number of groups must be greater than 1, so make sure an
+    exception is raised where ngroups == 1.
+    """
+    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    with pytest.raises(ValueError):
+        slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+            ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
+            "optimal", ncores, test_dq_flags
+        )
+
+
+# -----------------------------------------------------------------
 # -----------------------------------------------------------------
 def dbg_print_slope_slope1(slope, slope1, pix):
     data, dq, vp, vr, err = slope
