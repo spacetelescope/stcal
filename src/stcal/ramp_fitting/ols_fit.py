@@ -661,9 +661,9 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    use_c = False
+    # use_c = False
     # use_c = True  # XXX Change to default as False
-    # use_c = ramp_data.dbg_run_c_code
+    use_c = ramp_data.dbg_run_c_code
     if use_c:
         c_start = time.time()
 
