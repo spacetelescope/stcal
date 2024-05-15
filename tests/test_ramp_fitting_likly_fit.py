@@ -160,6 +160,7 @@ def test_basic_ramp():
     diff = abs(data - check)
     assert diff < tol
 
+
     # Check against OLS.
     ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
 
@@ -201,8 +202,6 @@ def test_basic_ramp_2integ():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    tol = 1.e-5
-
     # Check against OLS.
     ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
 
@@ -215,9 +214,11 @@ def test_basic_ramp_2integ():
         ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
     )
 
-    # dbg_print_slope_slope1(slopes, slopes1, (0, 0))
-    # dbg_print_cube_cube1(cube, cube1, (0, 0))
-
+    tol = 1.e-5
+    data = cube[0][0, 0, 0]
+    data1 = cube1[0][0, 0, 0]
+    diff = abs(data - data1)
+    assert diff < tol
 
 
 def flagged_ramp_data():
@@ -281,8 +282,8 @@ def test_flagged_ramp():
 def random_ramp_data():
     nints, ngroups, nrows, ncols = 1, 10, 1, 1
     rnval, gval = 10.0, 5.0
-    # frame_time, nframes, groupgap = 10.736, 4, 1
-    frame_time, nframes, groupgap = 1., 1, 0
+    frame_time, nframes, groupgap = 10.736, 5, 2
+    # frame_time, nframes, groupgap = 1., 1, 0
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval
@@ -290,6 +291,9 @@ def random_ramp_data():
 
     ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
 
+    # A randomly generated ramp by setting up a ramp that has a slope of 150.
+    # with some randomly added Poisson values, with lambda=5., and a jump
+    # at group 4.
     ramp = np.array([153., 307., 457., 604., 1853., 2002., 2159., 2308., 2459., 2601.])
     ramp_data.data[0, :, 0, 0] = ramp
 
@@ -309,8 +313,8 @@ def test_random_ramp():
     Compare the integration results from the LIKELY algorithm
     to the OLS algorithm.
     """
-    print(" ")  # XXX
     ramp_data, gain2d, rnoise2d = random_ramp_data()
+    dbg_print_basic_ramp(ramp_data)
 
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
@@ -325,13 +329,16 @@ def test_random_ramp():
     ramp_data, gain2d, rnoise2d = random_ramp_data()
 
     save_opt, algo, ncores = False, "OLS", "none"
-    slopes, cube1, ols_opt, gls_opt = ramp_fit_data(
+    slopes1, cube1, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    data_ols = cube[0][0, 0, 0]
-    dq_ols = cube[1][0, 0, 0]
-    err_ols = cube[-1][0, 0, 0]
+    data_ols = cube1[0][0, 0, 0]
+    dq_ols = cube1[1][0, 0, 0]
+    err_ols = cube1[-1][0, 0, 0]
+
+    ddiff = abs(data - data_ols)
+    # XXX Finish
 
 
 def test_long_ramp():
@@ -456,10 +463,77 @@ def test_1group():
 
 
 # -----------------------------------------------------------------
+#                              DEBUG
 # -----------------------------------------------------------------
-def dbg_print_slope_slope1(slope, slope1, pix):
+def dbg_print_basic_ramp(ramp_data, pix=(0, 0)):
+    row, col = pix
+    nints = ramp_data.data.shape[0]
+    data = ramp_data.data[:, :, row, col]
+    dq = ramp_data.groupdq[:, :, row, col]
+
+    print(" ")
+    print(DELIM)
+    print(f"Data Shape: {ramp_data.data.shape}")
+    print(DELIM)
+    print("Data:")
+    for integ in range(nints):
+        arr_str = np.array2string(data[integ, :], max_line_width=np.nan, separator=", ")
+        print(f"[{integ}] {arr_str}")
+    print(DELIM)
+
+    print("DQ:")
+    for integ in range(nints):
+        arr_str = np.array2string(dq[integ, :], max_line_width=np.nan, separator=", ")
+        print(f"[{integ}] {arr_str}")
+    print(DELIM)
+
+
+def dbg_print_slopes(slope, pix=(0, 0), label=None):
     data, dq, vp, vr, err = slope
-    data1, dq1, vp1, vr1, err1 = slope1
+    row, col = pix
+
+    print(" ")
+    print(DELIM)
+    if label is not None:
+        print("Slope Information: ({label})")
+    else:
+        print("Slope Information:")
+    print(f"    Pixel = ({row}, {col})")
+
+    print(f"data = {data[row, col]}")
+    print(f"dq = {dq[row, col]}")
+    print(f"vp = {vp[row, col]}")
+    print(f"vr = {vr[row, col]}\n")
+
+    print(DELIM)
+
+
+def dbg_print_cube(cube, pix=(0, 0), label=None):
+    data, dq, vp, vr, err = cube
+    data1, dq1, vp1, vr1, err1 = cube1
+    row, col = pix
+    nints = data1.shape[0]
+
+    print(" ")
+    print(DELIM)
+    if label is not None:
+        print("Cube Information: ({label})")
+    else:
+        print("Cube Information:")
+    print(f"    Pixel = ({row}, {col})")
+    print(f"    Number of Integrations = {nints}")
+
+    print(f"data = {data[:, row, col]}")
+    print(f"dq = {dq[:, row, col]}")
+    print(f"vp = {vp[:, row, col]}")
+    print(f"vr = {vr[:, row, col]}")
+
+    print(DELIM)
+
+
+def dbg_print_slope_slope1(slopes, slopes1, pix):
+    data, dq, vp, vr, err = slopes
+    data1, dq1, vp1, vr1, err1 = slopes1
     row, col = pix
 
     print(" ")
@@ -468,7 +542,16 @@ def dbg_print_slope_slope1(slope, slope1, pix):
     print(f"    Pixel = ({row}, {col})")
 
     print(f"data LIK = {data[row, col]}")
-    print(f"data OLS = {data1[row, col]}")
+    print(f"data OLS = {data1[row, col]}\n")
+
+    # print(f"dq LIK = {dq[row, col]}")
+    # print(f"dq OLS = {dq1[row, col]}\n")
+
+    print(f"vp LIK = {vp[row, col]}")
+    print(f"vp OLS = {vp1[row, col]}\n")
+
+    print(f"vr LIK = {vr[row, col]}")
+    print(f"vr OLS = {vr1[row, col]}\n")
 
     print(DELIM)
 
@@ -486,6 +569,15 @@ def dbg_print_cube_cube1(cube, cube1, pix):
     print(f"    Number of Integrations = {nints}")
 
     print(f"data LIK = {data[:, row, col]}")
-    print(f"data OLS = {data1[:, row, col]}")
+    print(f"data OLS = {data1[:, row, col]}\n")
+
+    # print(f"dq LIK = {dq[:, row, col]}")
+    # print(f"dq OLS = {dq1[:, row, col]}\n")
+
+    print(f"vp LIK = {vp[:, row, col]}")
+    print(f"vp OLS = {vp1[:, row, col]}\n")
+
+    print(f"vr LIK = {vr[:, row, col]}")
+    print(f"vr OLS = {vr1[:, row, col]}\n")
 
     print(DELIM)
