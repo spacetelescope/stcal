@@ -685,18 +685,18 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
             gain_2d.newbyteorder('S').byteswap(inplace=True)
 
         c_diff = c_end - c_start
+        log.info(f"Ramp Fitting C Time: {c_diff}")
 
         return image_info, integ_info, opt_info
 
-    # XXX start python time
     p_start = time.time()
 
     image_info, integ_info, opt_info = ols_ramp_fit_single_python(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
 
-    # XXX end python time
     p_end = time.time()
     p_diff = p_end - p_start
+    log.info(f"Ramp Fitting Python Time: {c_diff}")
 
     return image_info, integ_info, opt_info
 
@@ -722,7 +722,6 @@ def handle_array_endianness(arr, sys_order):
     arr_order = arr.dtype.byteorder
     bswap = False
     if (arr_order == ">" and sys_order == "<") or (arr_order == "<" and sys_order == ">"):
-        # XXX figure how to change the dtype when the bytes swap
         arr.newbyteorder('S').byteswap(inplace=True)
         bswap = True
 
