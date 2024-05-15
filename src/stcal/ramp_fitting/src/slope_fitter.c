@@ -26,7 +26,12 @@ pip install -e .
 /*                               TYPEDEFs                                    */
 /* ------------------------------------------------------------------------- */
 
-/* Toggle internal arrays from float to doubles */
+/* 
+ * Toggle internal arrays from float to doubles.  The REAL_IS_DOUBLE is used
+ * for preprocessor switches in the code.  If a developer prefers to use a
+ * float for internal arrays, this macro can be set to zero to switch from
+ * double to float.
+ */
 #define REAL_IS_DOUBLE 1
 #if REAL_IS_DOUBLE
 typedef double real_t;
@@ -78,7 +83,12 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 /* Pointers should be set to NULL once freed. */
 #define SET_FREE(X) if (X) {free(X); (X) = NULL;}
 
-/* Ensure all allocated memory gets deallocated properly. */
+/* 
+ * Wraps the clean_ramp_data function.  Ensure all allocated
+ * memory gets deallocated properly for the ramp_data data
+ * structure, as well as the allocation allocation for the
+ * data structure itself.
+ */
 #define FREE_RAMP_DATA(RD) \
     if (RD) { \
         clean_ramp_data(rd); \
@@ -86,14 +96,24 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
         (RD) = NULL; \
     }
 
-/* Ensure all allocated memory gets deallocated properly. */
+/* 
+ * Wraps the clean_pixel_ramp function.  Ensure all allocated
+ * memory gets deallocated properly for the pixel_ramp data
+ * structure, as well as the allocation allocation for the
+ * data structure itself.
+ */
 #define FREE_PIXEL_RAMP(PR) \
     if (PR) { \
         clean_pixel_ramp(PR); \
         SET_FREE(PR); \
     }
 
-/* Ensure all allocated memory gets deallocated properly. */
+/* 
+ * Wraps the clean_segment_list function.  Ensure all allocated
+ * memory gets deallocated properly for the segment_list data
+ * structure, as well as the allocation allocation for the
+ * data structure itself.
+ */
 #define FREE_SEGS_LIST(N, S) \
     if (S) { \
         clean_segment_list(N, S); \
@@ -149,8 +169,8 @@ struct ramp_data {
 
     /* The 4-D arrays with dimensions (nints, ngroups, nrows, ncols) */
     PyArrayObject * data;       /* The 4-D science data */
-    PyArrayObject * err;        /* The 4-D science data */
-    PyArrayObject * groupdq;    /* The group DQ array */
+    PyArrayObject * err;        /* The 4-D err data */
+    PyArrayObject * groupdq;    /* The 4-D group DQ array */
 
     /* The 2-D arrays with dimensions (nrows, ncols) */
     PyArrayObject * pixeldq;    /* The 2-D pixel DQ array */
@@ -278,7 +298,7 @@ struct pixel_ramp {
 
     /* Timing bool */
     uint8_t * is_zframe;    /* Boolean to use ZEROFRAME */
-    uint8_t * is_0th;       /* XXX Boolean to use ZEROFRAME */
+    uint8_t * is_0th;       /* Boolean to use zeroeth group timing*/
 
     /* C computed values */
     real_t median_rate;  /* The median rate of the pixel */
@@ -706,8 +726,8 @@ ols_slope_fitter(
         PyObject * args)    /* The arguments for the C extension */
 {
     PyObject * result = Py_None;
-    struct ramp_data * rd = NULL; /* XXX Maybe make as stack variable */
-    struct pixel_ramp * pr = NULL; /* XXX Maybe make as stack variable */
+    struct ramp_data * rd = NULL;
+    struct pixel_ramp * pr = NULL;
     struct rate_product rate_prod = {0};
     struct rateint_product rateint_prod = {0};
 
@@ -724,12 +744,13 @@ ols_slope_fitter(
         goto ERROR;
     }
 
-    /* Process the ramp data during ramp fitting */
+    /* Prepare the pixel ramp data structure */
     pr = create_pixel_ramp(rd);
     if (NULL==pr) {
         goto ERROR;
     }
 
+    /* Fit ramps for each pixel */
     if (ols_slope_fit_pixels(rd, pr, &rate_prod, &rateint_prod)) {
         goto ERROR;
     }
