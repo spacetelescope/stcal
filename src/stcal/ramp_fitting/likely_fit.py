@@ -85,6 +85,7 @@ def likely_ramp_fit(
 
     if ramp_data.read_pattern is None:
         # XXX Not sure if this is the right way to do things.
+        #     The group time maybe should be used at the end, rather than here.
         readtimes = [(k + 1) * ramp_data.group_time for k in range(ngroups)]
         # readtimes = [(k + 1) for k in range(ngroups)]
     else:
