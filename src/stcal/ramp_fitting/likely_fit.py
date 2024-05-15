@@ -101,7 +101,7 @@ def likely_ramp_fit(
 
         for row in range(nrows):
             d2use = determine_diffs2use(ramp_data, integ, row, diff[:, row])
-            result = fit_ramps(diff[:, row], covar, readnoise_2d[row], diffs2use=d2use)
+            result = fit_ramps(diff[:, row], covar, gain_2d[row], readnoise_2d[row], diffs2use=d2use)
             integ_class.get_results(result, integ, row)
 
         pdq = utils.dq_compress_sect(ramp_data, integ, gdq, pdq)
@@ -261,6 +261,7 @@ def inital_countrateguess(covar, diffs, diffs2use):
 def fit_ramps(
     diffs,
     covar,
+    gain,
     rnoise,
     countrateguess=None,
     diffs2use=None,
@@ -283,8 +284,11 @@ def fit_ramps(
     covar : Covar
         The class that computes and contains the covariance matrix info.
 
+    gain : ndarray
+        The gain (ncols,)
+
     rnoise : ndarray
-        The read noise (ncols,).  XXX - the name should be changed.
+        The read noise (ncols,)
 
     countrateguess : ndarray
         Count rate estimates used to estimate the covariance matrix.
@@ -329,7 +333,7 @@ def fit_ramps(
         countrateguess = inital_countrateguess(covar, diffs, diffs2use)
 
     alpha_tuple, beta_tuple, scale = compute_abs(
-        countrateguess, rnoise, covar, rescale, diffs, dn_scale)
+        countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale)
     alpha, alpha_phnoise, alpha_readnoise = alpha_tuple 
     beta, beta_phnoise, beta_readnoise = beta_tuple 
 
@@ -487,7 +491,7 @@ def fit_ramps(
 # RAMP FITTING END
 
 
-def compute_abs(countrateguess, rnoise, covar, rescale, diffs, dn_scale):
+def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
     """
     Compute alpha, beta, and scale needed for ramp fit.
     Elements of the covariance matrix.
@@ -498,8 +502,11 @@ def compute_abs(countrateguess, rnoise, covar, rescale, diffs, dn_scale):
     countrateguess : ndarray
         Initial guess (ncols,)
 
+    gain : ndarray
+        Gain (ncols,)
+
     rnoise : ndarray
-        Readnoise (ncols,)
+        Read noise (ncols,)
 
     covar : Covar
         The class that computes and contains the covariance matrix info.
@@ -525,11 +532,11 @@ def compute_abs(countrateguess, rnoise, covar, rescale, diffs, dn_scale):
         Overflow/underflow prevention scale.
 
     """
-    alpha_phnoise = countrateguess * covar.alpha_phnoise[:, np.newaxis]
+    alpha_phnoise = countrateguess / gain * covar.alpha_phnoise[:, np.newaxis]
     alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
     alpha = alpha_phnoise + alpha_readnoise
 
-    beta_phnoise = countrateguess * covar.beta_phnoise[:, np.newaxis]
+    beta_phnoise = countrateguess / gain * covar.beta_phnoise[:, np.newaxis]
     beta_readnoise = rnoise**2 * covar.beta_readnoise[:, np.newaxis]
     beta = beta_phnoise + beta_readnoise 
 
@@ -553,7 +560,8 @@ def compute_abs(countrateguess, rnoise, covar, rescale, diffs, dn_scale):
 
         scale = theta[0] * 1
         for i in range(2, ndiffs + 1):
-            theta[i] = alpha[i-1] / scale * theta[i-1] - beta[i-2]**2 / scale**2 * theta[i-2]
+            theta[i] = alpha[i-1] / scale * theta[i-1] \
+                       - beta[i-2]**2 / scale**2 * theta[i-2]
 
             # Scaling every ten steps in safe for alpha up to 1e20
             # or so and incurs a negligible computational cost for
