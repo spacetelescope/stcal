@@ -677,7 +677,10 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
         c_end = time.time()
 
         # Read noise is used after STCAL ramp fitting for the CHARGELOSS
-        # processing, so make sure it works right for there.
+        # processing, so make sure it works right for there.  In other words
+        # if they got byteswapped for the C extension, they need to be
+        # byteswapped back to properly work in python once returned from
+        # ramp fitting.
         rn_bswap, gain_bswap = bswap
         if rn_bswap:
             readnoise_2d.newbyteorder('S').byteswap(inplace=True)
@@ -730,8 +733,11 @@ def handle_array_endianness(arr, sys_order):
 
 def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     """
-    Check all arrays for endianness against the system endianness, so when used by the C
-    extension, the endianness is correct.
+    Check all arrays for endianness against the system endianness,
+    so when used by the C extension, the endianness is correct.  Numpy
+    ndarrays can be in any byte order and is handled transparently to the
+    user.  The arrays in the C extension are expected to be in byte order
+    on the system which the ramp fitting is being run.
 
     Parameters
     ----------
@@ -757,6 +763,9 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     """
     sys_order = "<" if sys.byteorder=="little" else ">"
 
+    # If the gain and/or readnoise arrays are byteswapped before going
+    # into the C extension, then that needs to be noted and byteswapped
+    # when returned from the C extension.
     gain_2d, gain_bswap = handle_array_endianness(gain_2d, sys_order)
     readnoise_2d, rn_bswap = handle_array_endianness(readnoise_2d, sys_order)
 
