@@ -965,7 +965,8 @@ clean_rateint_product(
 }
 
 /*
- * Clean any allocated memory in a segment list.
+ * Clean any allocated memory in a segment list.  This is implemented
+ * as linked lists, so walk the list and free each node in the list.
  */
 static void
 clean_segment_list(
@@ -978,10 +979,11 @@ clean_segment_list(
 
     /* 
      * Clean each list for each integration.   Each integration for
-     * each pixel is segmented.
+     * each pixel is segmented.  For each integration, there is a
+     * linked list of segments, so walk the linked lists and free
+     * each node in each list.
      */
     for (integ=0; integ < nints; ++integ) {
-        /* Walk the list and free each node. */
         current = segs[integ].head;
         while (current) {
             next = current->flink;
@@ -990,7 +992,7 @@ clean_segment_list(
             current = next;
         }
 
-        /* Zero out any memory. */
+        /* Zero the memory for the integration list structure. */
         memset(&(segs[integ]), 0, sizeof(segs[integ]));
     }
 }
@@ -1010,6 +1012,7 @@ compute_integration_segments(
     npy_intp idx, start, end;
     int in_seg=0;
 
+    /* If the whole integration is saturated, then no valid slope. */
     if (groupdq[0] & rd->sat) {
         pr->rateints[integ].dq |= rd->dnu;
         pr->rateints[integ].dq |= rd->sat;
@@ -1050,9 +1053,10 @@ compute_integration_segments(
     }
 
     /*
-     * If any segment has more than one group, all one group ramps are discarded.
-     * If the longest group ramp is one, then only the first first one group segment
-     * is used and all subsequent one group segments are discarded.
+     * If any segment has more than one group, all one group ramps are
+     * discarded.  If the longest segment has length one, then only
+     * the first first one group segment is used and all subsequent
+     * one group segments are discarded.
      */
     prune_segment_list(&(pr->segs[integ]));
 
@@ -1396,7 +1400,15 @@ get_uint32_2(
 
 /*
  * From the ramp data structure get all the information needed for a pixel to
- * fit a ramp for that pixel.
+ * fit a ramp for that pixel.  The ramp data structure points to PyObjects for
+ * ndarrays.  The data from these arrays are retrieved from this data structure
+ * and put in simple arrays, indexed by nints and ngroups.  The internal
+ * structure for each pixel is now a simple array of length nints*ngroups and
+ * is nothing more than each integration of length ngroups concatenated together,
+ * in order from the 0th integration to the last integration.
+ *
+ * Integration level flag data is also computed, as well as setting flags
+ * to use the 0th frame timing, rather than group time, or use the ZEROFRAME.
  */
 static void
 get_pixel_ramp(
