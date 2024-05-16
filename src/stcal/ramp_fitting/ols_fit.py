@@ -699,7 +699,7 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
     p_end = time.time()
     p_diff = p_end - p_start
-    log.info(f"Ramp Fitting Python Time: {c_diff}")
+    log.info(f"Ramp Fitting Python Time: {p_diff}")
 
     return image_info, integ_info, opt_info
 
