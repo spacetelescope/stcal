@@ -9,6 +9,11 @@ Changes to API
 Bug Fixes
 ---------
 
+jump
+~~~~
+
+- Catch some additional warnings about all-NaN slices. [#258]
+
 ramp_fitting
 ~~~~~~~~~~~~
 
