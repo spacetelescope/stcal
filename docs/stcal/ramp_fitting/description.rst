@@ -149,21 +149,27 @@ the least-squares fit is calculated with the first and last samples. In most pra
 cases, the data will fall somewhere in between, where the weighting is scaled between the
 two extremes.
 
-The signal-to-noise ratio :math:`S` used for weighting selection is calculated from the
-last sample as:
+
+For segment :math:`k` of length :math:`n`, which includes groups :math:`[g_{k}, ...,
+g_{k+n-1}]`, the signal-to-noise ratio :math:`S` used for weighting selection is
+calculated from the last sample as:
 
 .. math::
     S = \frac{data \times gain} { \sqrt{(read\_noise)^2 + (data \times gain) } } \,,
 
+where :math:`data = g_{k+n-1} - g_{k}`.
+
 The weighting for a sample :math:`i` is given as:
 
 .. math::
-    w_i = (i - i_{midpoint})^P \,,
+    w_i = \frac{ [(i - i_{midpoint}) / i_{midpoint}]^P }{ (read\_noise)^2 } \,,
 
-where :math:`i_{midpoint}` is the the sample number of the midpoint of the sequence, and
-:math:`P` is the exponent applied to weights, determined by the value of :math:`S`. Fixsen
-et al. 2000 found that defining a small number of P values to apply to values of S was
-sufficient; they are given as:
+where  :math:`i_{midpoint} = \frac{n-1}{2}` and :math:`i = 0, 1, ..., n-1`.
+
+
+is the the sample number of the midpoint of the sequence, and :math:`P` is the exponent
+applied to weights, determined by the value of :math:`S`. Fixsen et al. 2000 found that
+defining a small number of P values to apply to values of S was sufficient; they are given as:
 
 +-------------------+------------------------+----------+
 | Minimum S         | Maximum S              | P        |
@@ -185,12 +191,14 @@ Segment-specific Computations
 +++++++++++++++++++++++++++++
 The variance of the slope of a segment due to read noise is:
 
-.. math::
-   var^R_{s} = \frac{12 \ R^2 }{ (ngroups_{s}^3 - ngroups_{s})(tgroup^2) } \,,
+.. math::  
+   var^R_{s} = \frac{12 \ R^2 }{ (ngroups_{s}^3 - ngroups_{s})(tgroup^2)(gain^2) } \,,
 
-where :math:`R` is the noise in the difference between 2 frames,
-:math:`ngroups_{s}` is the number of groups in the segment, and :math:`tgroup` is the group
-time in seconds (from the keyword TGROUP).
+where :math:`R` is the noise in the difference between 2 frames, 
+:math:`ngroups_{s}` is the number of groups in the segment, and :math:`tgroup` is the group 
+time in seconds (from the keyword TGROUP).  The divide by gain converts to
+:math:`DN`.  For the special case where as segment has length 1, the
+:math:`ngroups_{s}` is set to :math:`2`.
 
 The variance of the slope in a segment due to Poisson noise is:
 
@@ -258,10 +266,10 @@ The combined variance of the slope is the sum of the variances:
 The square-root of the combined variance is stored in the ERR array of the output product.
 
 The overall slope depends on the slope and the combined variance of the slope of each integration's
-segments, and hence is a sum over integrations and segments:
+segments, so is a sum over integration values computed from the segements:
 
-.. math::
-    slope_{o} = \frac{ \sum_{i,s}{ \frac{slope_{i,s}} {var^C_{i,s}}}} { \sum_{i,s}{ \frac{1} {var^C_{i,s}}}}
+.. math::    
+    slope_{o} = \frac{ \sum_{i}{ \frac{slope_{i}} {var^C_{i}}}} { \sum_{i}{ \frac{1} {var^C_{i}}}}
 
 
 .. _ramp_error_propagation:
