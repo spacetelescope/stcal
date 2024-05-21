@@ -9,8 +9,8 @@ log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(
-    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, n_pix_grow_sat=1, zframe=None, read_pattern=None
-):
+    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, nframes,
+    n_pix_grow_sat=1, zframe=None, read_pattern=None):
     """
     Short Summary
     -------------
@@ -42,6 +42,9 @@ def flag_saturated_pixels(
     dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, AD_FLOOR, NO_SAT_CHECK
+
+    nframes : int
+        Number of frames per group.
 
     n_pix_grow_sat : int
         Number of pixels that each flagged saturated pixel should be 'grown',
@@ -95,6 +98,19 @@ def flag_saturated_pixels(
             # for saturation, the flag is set in the current plane
             # and all following planes.
             np.bitwise_or(gdq[ints, group:, :, :], flagarray, gdq[ints, group:, :, :])
+
+            if group == 2 and nframes > 1:
+                # Look for pixels for which SATURATION is set in group 3. If the count
+                # value in group 1 is less than 1/10 of the value that would be required
+                # to trigger SATURATION (i.e., it isn't obviously a very bright source),
+                # then also set the SATURATION flag for this pixel in group 2.
+                saturation_in_goup3 = np.where(gdq[:, 2, ...] == saturated, True, False)
+                if np.any(saturation_in_goup3):
+                    sat_nints, _, _ = np.shape(saturation_in_goup3)
+                    for ni in range(sat_nints):
+                        satgp3mask = saturation_in_goup3[ni]
+                        gdq[ni, 1][satgp3mask] = np.where(data[ni, 0][satgp3mask] < sat_thresh/10.,
+                                                            saturated, gdq[ni, 1][satgp3mask])
 
             # for A/D floor, the flag is only set of the current plane
             np.bitwise_or(gdq[ints, group, :, :], flaglowarray, gdq[ints, group, :, :])
