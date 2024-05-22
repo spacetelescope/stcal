@@ -20,11 +20,12 @@ def test_basic_saturation_flagging():
     pdq = np.zeros((20, 20)).astype("uint32")
     sat_thresh = np.ones((20, 20)) * 100000.0
     sat_dq = np.zeros((20, 20)).astype("uint32")
+    nframes = 3
 
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
     data[0, 1, 5, 5] = 20000
-    data[0, 2, 5, 5] = 40000
+    data[0, 2, 5, 5] = 60000
     data[0, 3, 5, 5] = 60000  # Signal reaches saturation limit
     data[0, 4, 5, 5] = 62000
 
@@ -32,7 +33,7 @@ def test_basic_saturation_flagging():
     satvalue = 60000
     sat_thresh[5, 5] = satvalue
 
-    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS)
+    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes)
 
     # Make sure that groups with signal > saturation limit get flagged
     satindex = np.argmax(data[0, :, 5, 5] == satvalue)
@@ -49,6 +50,7 @@ def test_read_pattern_saturation_flagging():
     pdq = np.zeros((20, 20)).astype("uint32")
     sat_thresh = np.ones((20, 20)) * 100000.0
     sat_dq = np.zeros((20, 20)).astype("uint32")
+    nframes = 3
 
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
@@ -70,7 +72,7 @@ def test_read_pattern_saturation_flagging():
     read_pattern = [[1], [2], [3, 4, 5, 6, 7, 8, 9, 10], [11], [12], [13]]
 
     gdq, pdq, _ = flag_saturated_pixels(
-        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern
+        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes, read_pattern=read_pattern
     )
 
     # Make sure that groups after the third get flagged
@@ -88,6 +90,7 @@ def test_no_sat_check_at_limit():
     pdq = np.zeros((10, 10)).astype("uint32")
     sat_thresh = np.ones((10, 10)) * 50000.0
     sat_dq = np.zeros((10, 10)).astype("uint32")
+    nframes = 3
 
     # Add ramp values that are flat-lined at the A-to-D limit,
     # which is well above the sat_thresh of 50,000.
@@ -101,7 +104,7 @@ def test_no_sat_check_at_limit():
     sat_dq[5, 5] = DQFLAGS["NO_SAT_CHECK"]
 
     # Run the saturation flagging
-    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, 1)
+    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes, 1)
 
     # Make sure that no groups for the flat-lined pixel and all
     # of its neighbors are flagged as saturated.
@@ -122,6 +125,7 @@ def test_adjacent_pixel_flagging():
     pdq = np.zeros((5, 5)).astype("uint32")
     sat_thresh = np.ones((5, 5)) * 60000  # sat. thresh is 60000
     sat_dq = np.zeros((5, 5)).astype("uint32")
+    nframes = 3
 
     nints, ngroups, nrows, ncols = data.shape
 
@@ -131,7 +135,7 @@ def test_adjacent_pixel_flagging():
     data[0, 0, 0, 1] = 62000
     data[0, 0, 3, 3] = 62000
 
-    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS)
+    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes)
 
     sat_locs = np.where(np.bitwise_and(gdq, DQFLAGS["SATURATED"]) == DQFLAGS["SATURATED"])
 
@@ -180,6 +184,7 @@ def test_zero_frame():
     darr3 = [10579.0, 10594.0, 10620.0, 10583.0, 10621.0]
     zarr = [11800.0, 10500.0, 10579.0]
     rarr = [11795.0, 11795.0, 60501.0]
+    nframes = 1
 
     nints, ngroups, nrows, ncols = 2, len(darr1), 1, len(zarr)
     dims = nints, ngroups, nrows, ncols
@@ -209,7 +214,7 @@ def test_zero_frame():
 
     atod_limit = 65535.0  # Hard DN limit of 16-bit A-to-D converter
 
-    gdq, pdq, zframe = flag_saturated_pixels(data, gdq, pdq, ref, rdq, atod_limit, dqflags, 0, zfrm)
+    gdq, pdq, zframe = flag_saturated_pixels(data, gdq, pdq, ref, rdq, atod_limit, dqflags, nframes, 0, zfrm)
 
     # Check DQ flags
     cdq = np.array([dqflags["SATURATED"]] * ngroups)
