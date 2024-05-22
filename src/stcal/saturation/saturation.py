@@ -109,8 +109,9 @@ def flag_saturated_pixels(
                     sat_nints, _, _ = np.shape(saturation_in_goup3)
                     for ni in range(sat_nints):
                         satgp3mask = saturation_in_goup3[ni]
-                        gdq[ni, 1][satgp3mask] = np.where(data[ni, 0][satgp3mask] < sat_thresh/10.,
-                                                            saturated, gdq[ni, 1][satgp3mask])
+                        gp1mask = np.where(data[ni, 0][satgp3mask] < sat_thresh/10., True, False)
+                        if np.any(gp1mask):
+                            gdq[ni, 1, ...] = np.where(gp1mask, saturated, gdq[ni, 1, ...])
 
             # for A/D floor, the flag is only set of the current plane
             np.bitwise_or(gdq[ints, group, :, :], flaglowarray, gdq[ints, group, :, :])

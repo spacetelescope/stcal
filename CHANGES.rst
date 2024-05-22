@@ -9,7 +9,10 @@ Changes to API
 Bug Fixes
 ---------
 
-- 
+saturation
+~~~~~~~~~~
+
+- Adds a check for saturation bias in group 2 for nframes > 1. [#259]
 
 1.7.1 (2024-05-21)
 ==================
