@@ -104,7 +104,7 @@ def test_no_sat_check_at_limit():
     sat_dq[5, 5] = DQFLAGS["NO_SAT_CHECK"]
 
     # Run the saturation flagging
-    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes, 1)
+    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes, n_pix_grow_sat=1)
 
     # Make sure that no groups for the flat-lined pixel and all
     # of its neighbors are flagged as saturated.
@@ -214,7 +214,7 @@ def test_zero_frame():
 
     atod_limit = 65535.0  # Hard DN limit of 16-bit A-to-D converter
 
-    gdq, pdq, zframe = flag_saturated_pixels(data, gdq, pdq, ref, rdq, atod_limit, dqflags, nframes, 0, zfrm)
+    gdq, pdq, zframe = flag_saturated_pixels(data, gdq, pdq, ref, rdq, atod_limit, dqflags, nframes, n_pix_grow_sat=0, zframe=zfrm)
 
     # Check DQ flags
     cdq = np.array([dqflags["SATURATED"]] * ngroups)
