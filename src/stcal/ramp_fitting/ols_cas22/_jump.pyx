@@ -55,7 +55,7 @@ fit_jumps : function
 """
 
 from cython cimport boundscheck, cdivision, wraparound
-from libc.math cimport NAN, fmaxf, isnan, log10, sqrt
+from libc.math cimport NAN, fmaxf, isnan, log10, sqrtf
 from libcpp cimport bool
 
 from stcal.ramp_fitting.ols_cas22._jump cimport JUMP_DET, FixedOffsets, JumpFits, PixelOffsets, Thresh
@@ -291,7 +291,7 @@ cdef inline float _statstic(float local_slope,
     cdef float delta = local_slope - slope
     cdef float var = (var_read_noise + slope * var_slope_coeff) / t_bar_diff_sqr
 
-    return delta / sqrt(var + correct)
+    return delta / sqrtf(var + correct)
 
 
 @boundscheck(False)

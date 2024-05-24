@@ -1,4 +1,40 @@
-1.6.2 (unreleased)
+1.7.2 (unreleased)
+==================
+
+Changes to API
+--------------
+
+- 
+
+Bug Fixes
+---------
+
+- 
+
+1.7.1 (2024-05-21)
+==================
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Catch some additional warnings about all-NaN slices. [#258]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Fix a bug in Poisson variance calculation visible when providing an average
+  dark current value in which the specified dark current was not converted to the
+  appropriate units for pixels with negative slopes.  This resulted in
+  incorrect SCI, ERR, and VAR_POISSON values. Also required revising the approach
+  for catching all-zero variance cases when average dark current was not
+  specified. [#255]
+
+- Refactor ramp fitting using a C extension to improve performance. [#156]
+
+1.7.0 (2024-03-25)
 ==================
 
 Changes to API
@@ -17,6 +53,26 @@ ramp_fitting
 Bug Fixes
 ---------
 
+jump
+~~~~
+
+- Updated the shower flagging code to mask reference pixels, require a minimum
+  number of groups to trigger the detection, and use all integrations to determine
+  the median value. [#248]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changed the data type of three variables that are used in measuring
+  the jump free segments of integrations. The variables were uint8 and
+  they would yield wrong results for integrations with more than 256
+  groups. [#251]
+
+- Use ``sqrtf`` instead of ``sqrt`` in ols_cas22 ramp fitting with
+  jump detection to avoid small numerical errors on different systems
+  due to a cast to/from double. [#252]
+
+
 Other
 -----
 
@@ -27,6 +83,9 @@ jump
   when the number of groups is above a threshold, use single pass
   outlier flagging rather than the iterative flagging. [#242]
 
+- Use ``sqrtf`` instead of ``sqrt`` in ols_cas22 ramp fitting with
+  jump detection to avoid small numerical errors on different systems
+  due to a cast to/from double. [#252]
 
 1.6.1 (2024-02-29)
 ==================

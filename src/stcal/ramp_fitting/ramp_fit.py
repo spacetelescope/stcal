@@ -172,6 +172,9 @@ def ramp_fit(
     # data models.
     ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
 
+    if algorithm.upper() == "OLS_C":
+        ramp_data.dbg_run_c_code = True
+
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
     )
@@ -242,6 +245,7 @@ def ramp_fit_data(
         )
         opt_info = None
     else:
+        # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
         nframes = ramp_data.nframes
