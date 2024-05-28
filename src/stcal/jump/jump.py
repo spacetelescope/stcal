@@ -465,7 +465,7 @@ def detect_jumps(
 
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-            fits.writeto("ingdq.fits", gdq)
+#            fits.writeto("ingdq.fits", gdq)
             gdq, total_snowballs = flag_large_events(
                 gdq,
                 jump_flag,

@@ -545,11 +545,9 @@ def test_inside_ellipes5():
 #@pytest.mark.skip(" used for local testing")
 def test_flag_persist_groups():
 #   gdq = fits.getdata("persistgdq.fits")
-    hdul = fits.open("../../../notebooks/garden_snowball_00_dark_current.fits")
-    hdul.info()
-    gdq = hdul['GROUPDQ'].data
-#    gdq = np.zeros(shape=(2,2,2,2))
-    print(gdq.shape[0])
+    gdq = fits.getdata("../../../notebooks/ingdq.fits")
+#    gdq = hdul['GROUPDQ'].data
+    print(gdq.shape)
 #    gdq = gdq[:, 0:10, :, :]
     gdqout, total_snowballs = flag_large_events(
         gdq,
@@ -564,7 +562,7 @@ def test_flag_persist_groups():
         sat_expand=1.1,
         mask_persist_grps_next_int=True,
         persist_grps_flagged=0)
-    fits.writeto("gdqout.fits",gdqout,overwrite=True)
+    fits.writeto("../../../notebooks/gdqout.fits", gdqout, overwrite=True)
 def test_calc_num_slices():
     n_rows = 20
     max_available_cores = 10
