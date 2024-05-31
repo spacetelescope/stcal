@@ -10,7 +10,7 @@ log.setLevel(logging.DEBUG)
 
 def flag_saturated_pixels(
     data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags,
-    n_pix_grow_sat=1, zframe=None, read_pattern=None, nframes=None):
+    n_pix_grow_sat=1, zframe=None, read_pattern=None):
     """
     Short Summary
     -------------
@@ -53,9 +53,6 @@ def flag_saturated_pixels(
     read_pattern : List[List[float or int]] or None
         The times or indices of the frames composing each group.
 
-    nframes : int
-        Number of frames per group.
-
     Returns
     -------
     gdq : int, 4D array
@@ -87,7 +84,20 @@ def flag_saturated_pixels(
             plane = data[ints, group, :, :]
 
             if read_pattern is not None:
-                nframes = None   # make sure the code does not go through this AND the nframes check
+                if group == 2:
+                    # Identify groups which we wouldn't expect to saturate by the third group,
+                    # on the basis of the first group
+                    mask = data[ints, 0, ...] / np.mean(read_pattern[0]) * read_pattern[2][-1] < sat_thresh
+
+                    # Identify groups with suspiciously large values in the second group
+                    mask &= data[ints, 1, ...] > sat_thresh / len(read_pattern[1])
+
+                    # Identify groups that are saturated in the third group
+                    mask &= np.where(gdq[ints, 2, :, :] & saturated, True, False)
+
+                    # Flag the 2nd group for the pixels passing that gauntlet
+                    gdq[ints, 1][mask] |= saturated
+
                 dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
                 dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
             else:
@@ -98,21 +108,6 @@ def flag_saturated_pixels(
             # for saturation, the flag is set in the current plane
             # and all following planes.
             np.bitwise_or(gdq[ints, group:, :, :], flagarray, gdq[ints, group:, :, :])
-
-            if nframes is not None:
-                if group == 2 and nframes > 1:
-                    # Look for pixels for which SATURATION is set in group 3. If the count
-                    # value in group 1 is less than 1/10 of the value that would be required
-                    # to trigger SATURATION (i.e., it isn't obviously a very bright source),
-                    # then also set the SATURATION flag for this pixel in group 2.
-                    saturation_in_goup3 = np.where(gdq[:, 2, ...] == saturated, True, False)
-                    if np.any(saturation_in_goup3):
-                        sat_nints, _, _ = np.shape(saturation_in_goup3)
-                        for ni in range(sat_nints):
-                            satgp3mask = saturation_in_goup3[ni]
-                            gp1mask = np.where(data[ni, 0][satgp3mask] < sat_thresh/10., True, False)
-                            if np.any(gp1mask):
-                                gdq[ni, 1, ...] = np.where(gp1mask, saturated, gdq[ni, 1, ...])
 
             # for A/D floor, the flag is only set of the current plane
             np.bitwise_or(gdq[ints, group, :, :], flaglowarray, gdq[ints, group, :, :])

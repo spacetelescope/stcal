@@ -20,7 +20,6 @@ def test_basic_saturation_flagging():
     pdq = np.zeros((20, 20)).astype("uint32")
     sat_thresh = np.ones((20, 20)) * 100000.0
     sat_dq = np.zeros((20, 20)).astype("uint32")
-    nframes = 3
 
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
@@ -34,33 +33,6 @@ def test_basic_saturation_flagging():
     sat_thresh[5, 5] = satvalue
 
     gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS)
-
-    # Make sure that groups with signal > saturation limit get flagged
-    satindex = np.argmax(data[0, :, 5, 5] == satvalue)
-    assert np.all(gdq[0, satindex:, 5, 5] == DQFLAGS["SATURATED"])
-
-
-def test_nframes_saturation_flagging():
-    # Create inputs, data, and saturation maps
-    data = np.zeros((1, 5, 20, 20)).astype("float32")
-    gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
-    pdq = np.zeros((20, 20)).astype("uint32")
-    sat_thresh = np.ones((20, 20)) * 100000.0
-    sat_dq = np.zeros((20, 20)).astype("uint32")
-    nframes = 3
-
-    # Add ramp values up to the saturation limit
-    data[0, 0, 5, 5] = 0
-    data[0, 1, 5, 5] = 20000
-    data[0, 2, 5, 5] = 60000
-    data[0, 3, 5, 5] = 60000  # Signal reaches saturation limit
-    data[0, 4, 5, 5] = 62000
-
-    # Set saturation value in the saturation model
-    satvalue = 60000
-    sat_thresh[5, 5] = satvalue
-
-    gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, nframes=nframes)
 
     # Make sure that groups with signal > saturation limit get flagged
     satindex = np.argmax(data[0, :, 5, 5] == satvalue)
@@ -81,7 +53,7 @@ def test_read_pattern_saturation_flagging():
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
     data[0, 1, 5, 5] = 20000
-    data[0, 2, 5, 5] = 40000
+    data[0, 2, 5, 5] = 60000
     data[0, 3, 5, 5] = 60000  # Signal reaches saturation limit
     data[0, 4, 5, 5] = 62000
 
