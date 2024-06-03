@@ -1,6 +1,11 @@
 1.7.2 (unreleased)
 ==================
 
+General
+-------
+
+- build with Numpy 2.0 release candidate [#260]
+
 Changes to API
 --------------
 
