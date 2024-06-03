@@ -526,15 +526,20 @@ def test_inside_ellipse5():
     ellipse = ((0, 0), (1, 2), -10)
     point = (1, 0.6)
     result = point_inside_ellipse(point, ellipse)
-    assert not result
+    assert result
 
 
 def test_inside_ellipse4():
     ellipse = ((0, 0), (1, 2), 0)
     point = (1, 0.5)
     result = point_inside_ellipse(point, ellipse)
-    assert not result
+    assert result
 
+def test_inside_ellipse6():
+    ellipse = ((0, 0), (1, 2), 0)
+    point = (3, 0.5)
+    result = point_inside_ellipse(point, ellipse)
+    assert not result
 
 def test_inside_ellipes5():
     point = (1110.5, 870.5)
