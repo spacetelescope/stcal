@@ -542,7 +542,7 @@ def test_inside_ellipes5():
     result = point_inside_ellipse(point, ellipse)
     assert result
 
-#@pytest.mark.skip(" used for local testing")
+@pytest.mark.skip(" used for local testing")
 def test_flag_persist_groups():
 #   gdq = fits.getdata("persistgdq.fits")
     gdq = fits.getdata("../../../notebooks/ingdq.fits")

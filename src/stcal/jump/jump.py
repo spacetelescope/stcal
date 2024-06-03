@@ -837,9 +837,8 @@ def make_snowballs(
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
-                if ((point_inside_ellipse(sat[0], jump)
-                    and jump not in snowballs)):
-                         snowballs.append(jump)
+                if ((point_inside_ellipse(sat[0], jump) and jump not in snowballs)):
+                    snowballs.append(jump)
             if group < num_groups - 1:
                 # Is there saturation inside the jump in the next group?
                 for next_sat in next_sat_ellipses:
@@ -863,7 +862,6 @@ def make_snowballs(
 
 def point_inside_ellipse(point, ellipse):
     delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
-#    minor_axis = min(ellipse[1][0], ellipse[1][1])
     major_axis = max(ellipse[1][0], ellipse[1][1])
 
     return delta_center < major_axis
