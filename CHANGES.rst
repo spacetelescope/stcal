@@ -15,8 +15,8 @@ Bug Fixes
 ---------
 jump
 ~~~~
-- Flag asymmetrical snowballs that are missed by the current code (JP-3638). The was changed to
-  not require that the center of the snowball jump ellipse contains a saturated
+- Flag asymmetrical snowballs that are missed by the current code (JP-3638). This was changed to
+  not require that the center of the snowball jump ellipse is a saturated
   pixel. [#261]
 - 
 
