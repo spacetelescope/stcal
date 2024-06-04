@@ -12,7 +12,7 @@ from astropy.convolution import convolve
 
 from . import constants
 from . import twopoint_difference as twopt
-from astropy.io import fits
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -465,7 +465,6 @@ def detect_jumps(
 
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
-#            fits.writeto("ingdq.fits", gdq)
             gdq, total_snowballs = flag_large_events(
                 gdq,
                 jump_flag,

@@ -9,7 +9,7 @@ import sys
 
 import numpy as np
 
-#from .slope_fitter import ols_slope_fitter  # c extension
+from .slope_fitter import ols_slope_fitter  # c extension
 from . import ramp_fit_class, utils
 
 
