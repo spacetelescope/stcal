@@ -1,4 +1,5 @@
 import logging
+from scipy.spatial import ConvexHull
 import multiprocessing
 import time
 import warnings
@@ -14,7 +15,6 @@ from astropy.convolution import convolve
 from . import constants
 from . import twopoint_difference as twopt
 
-import shapely.geometry
 import skimage.draw
 import skimage.measure
 
@@ -301,10 +301,8 @@ def detect_jumps(
         )
         # remove redundant bits in pixels that have jump flagged but were
         # already flagged as do_not_use or saturated.
-        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
-            dqflags['DO_NOT_USE']
-        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
-            dqflags['SATURATED']
+        gdq[gdq == np.bitwise_or(dqflags["DO_NOT_USE"], dqflags["JUMP_DET"])] = dqflags["DO_NOT_USE"]
+        gdq[gdq == np.bitwise_or(dqflags["SATURATED"], dqflags["JUMP_DET"])] = dqflags["SATURATED"]
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
             gdq, total_snowballs = flag_large_events(
@@ -363,9 +361,9 @@ def detect_jumps(
             slices.insert(
                 i,
                 (
-                    data[:, :, i * yinc: (i + 1) * yinc, :],
-                    gdq[:, :, i * yinc: (i + 1) * yinc, :].copy(),
-                    readnoise_2d[i * yinc: (i + 1) * yinc, :],
+                    data[:, :, i * yinc : (i + 1) * yinc, :],
+                    gdq[:, :, i * yinc : (i + 1) * yinc, :].copy(),
+                    readnoise_2d[i * yinc : (i + 1) * yinc, :],
                     rejection_thresh,
                     three_grp_thresh,
                     four_grp_thresh,
@@ -390,9 +388,9 @@ def detect_jumps(
         slices.insert(
             n_slices - 1,
             (
-                data[:, :, (n_slices - 1) * yinc: n_rows, :],
-                gdq[:, :, (n_slices - 1) * yinc: n_rows, :].copy(),
-                readnoise_2d[(n_slices - 1) * yinc: n_rows, :],
+                data[:, :, (n_slices - 1) * yinc : n_rows, :],
+                gdq[:, :, (n_slices - 1) * yinc : n_rows, :].copy(),
+                readnoise_2d[(n_slices - 1) * yinc : n_rows, :],
                 rejection_thresh,
                 three_grp_thresh,
                 four_grp_thresh,
@@ -436,15 +434,15 @@ def detect_jumps(
             stddev = np.zeros((nrows, ncols), dtype=np.float32)
         for resultslice in real_result:
             if len(real_result) == k + 1:  # last result
-                gdq[:, :, k * yinc: n_rows, :] = resultslice[0]
+                gdq[:, :, k * yinc : n_rows, :] = resultslice[0]
                 if only_use_ints:
-                    stddev[:, k * yinc: n_rows, :] = resultslice[4]
+                    stddev[:, k * yinc : n_rows, :] = resultslice[4]
                 else:
-                    stddev[k * yinc: n_rows, :] = resultslice[4]
+                    stddev[k * yinc : n_rows, :] = resultslice[4]
             else:
-                gdq[:, :, k * yinc: (k + 1) * yinc, :] = resultslice[0]
+                gdq[:, :, k * yinc : (k + 1) * yinc, :] = resultslice[0]
                 if only_use_ints:
-                    stddev[:, k * yinc: (k + 1) * yinc, :] = resultslice[4]
+                    stddev[:, k * yinc : (k + 1) * yinc, :] = resultslice[4]
                 else:
                     stddev[k * yinc : (k + 1) * yinc, :] = resultslice[4]
             row_below_gdq[:, :, :] = resultslice[1]
@@ -465,10 +463,8 @@ def detect_jumps(
             k += 1
         # remove redundant bits in pixels that have jump flagged but were
         # already flagged as do_not_use or saturated.
-        gdq[gdq == np.bitwise_or(dqflags['DO_NOT_USE'], dqflags['JUMP_DET'])] = \
-            dqflags['DO_NOT_USE']
-        gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
-            dqflags['SATURATED']
+        gdq[gdq == np.bitwise_or(dqflags["DO_NOT_USE"], dqflags["JUMP_DET"])] = dqflags["DO_NOT_USE"]
+        gdq[gdq == np.bitwise_or(dqflags["SATURATED"], dqflags["JUMP_DET"])] = dqflags["SATURATED"]
 
         #  This is the flag that controls the flagging of snowballs.
         if expand_large_events:
@@ -620,8 +616,10 @@ def flag_large_events(
                     persist_jumps,
                 )
             else:
-                log.info(f' In integration {integration}, number of snowballs ' +
-                         f'in each group = {n_showers_grp}')
+                log.info(
+                    f" In integration {integration}, number of snowballs "
+                    + f"in each group = {n_showers_grp}"
+                )
 
                 snowballs = jump_ellipses
             n_showers_grp.append(len(snowballs))
@@ -645,14 +643,23 @@ def flag_large_events(
         for intg in range(1, nints):
             if persist_grps_flagged >= 1:
                 last_grp_flagged = min(persist_grps_flagged, ngrps)
-                gdq[intg, 1:last_grp_flagged, :, :] = np.bitwise_or(gdq[intg, 1:last_grp_flagged, :, :],
-                                                                    np.repeat(persist_jumps[intg - 1, np.newaxis, :, :],
-                                                                    last_grp_flagged - 1, axis=0))
+                gdq[intg, 1:last_grp_flagged, :, :] = np.bitwise_or(
+                    gdq[intg, 1:last_grp_flagged, :, :],
+                    np.repeat(persist_jumps[intg - 1, np.newaxis, :, :], last_grp_flagged - 1, axis=0),
+                )
     return gdq, total_snowballs
 
+
 def extend_saturation(
-    cube, grp, sat_ellipses, sat_flag, jump_flag, min_sat_radius_extend, persist_jumps,
-    expansion=2, max_extended_radius=200
+    cube,
+    grp,
+    sat_ellipses,
+    sat_flag,
+    jump_flag,
+    min_sat_radius_extend,
+    persist_jumps,
+    expansion=2,
+    max_extended_radius=200,
 ):
     ngroups, nrows, ncols = cube.shape
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
@@ -761,6 +768,7 @@ def extend_ellipses(
     diff_cube = out_gdq_cube - gdq_cube
     return out_gdq_cube, num_ellipses
 
+
 def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
     # For a given DQ plane it will use the list of snowballs to create expanded circles of pixels with
     # the jump flag set.
@@ -783,6 +791,7 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
         plane = np.bitwise_or(plane, jump_circle)
 
     return plane, num_circles
+
 
 def find_last_grp(grp, ngrps, num_grps_masked):
     """
@@ -807,14 +816,89 @@ def find_last_grp(grp, ngrps, num_grps_masked):
     last_grp = min(grp + num_grps_masked, ngrps)
     return last_grp
 
+
+def minimum_bounding_rectangle(points: numpy.ndarray) -> numpy.ndarray:
+    """
+    Find the smallest bounding rectangle for a set of points.
+    Returns a set of points representing the corners of the bounding box.
+    https://stackoverflow.com/questions/13542855/algorithm-to-find-the-minimum-area-rectangle-for-given-points-in-order-to-comput
+
+    :param points: an nx2 matrix of coordinates
+    :rval: an nx2 matrix of coordinates
+    """
+    pi2 = numpy.pi / 2.0
+
+    # get the convex hull for the points
+    hull_points = points[ConvexHull(points).vertices]
+
+    # calculate edge angles
+    edges = numpy.zeros((len(hull_points) - 1, 2))
+    edges = hull_points[1:] - hull_points[:-1]
+
+    angles = numpy.zeros(len(edges))
+    angles = numpy.arctan2(edges[:, 1], edges[:, 0])
+
+    angles = numpy.abs(numpy.mod(angles, pi2))
+    angles = numpy.unique(angles)
+
+    # find rotation matrices
+    # XXX both work
+    rotations = numpy.vstack(
+        [numpy.cos(angles), numpy.cos(angles - pi2), numpy.cos(angles + pi2), numpy.cos(angles)]
+    ).T
+    #     rotations = numpy.vstack([
+    #         numpy.cos(angles),
+    #         -numpy.sin(angles),
+    #         numpy.sin(angles),
+    #         numpy.cos(angles)]).T
+    rotations = rotations.reshape((-1, 2, 2))
+
+    # apply rotations to the hull
+    rot_points = numpy.dot(rotations, hull_points.T)
+
+    # find the bounding points
+    min_x = numpy.nanmin(rot_points[:, 0], axis=1)
+    max_x = numpy.nanmax(rot_points[:, 0], axis=1)
+    min_y = numpy.nanmin(rot_points[:, 1], axis=1)
+    max_y = numpy.nanmax(rot_points[:, 1], axis=1)
+
+    # find the box with the best area
+    areas = (max_x - min_x) * (max_y - min_y)
+    best_idx = numpy.argmin(areas)
+
+    # return the best box
+    x1 = max_x[best_idx]
+    x2 = min_x[best_idx]
+    y1 = max_y[best_idx]
+    y2 = min_y[best_idx]
+    r = rotations[best_idx]
+
+    rval = numpy.zeros((4, 2))
+    rval[0] = numpy.dot([x1, y2], r)
+    rval[1] = numpy.dot([x2, y2], r)
+    rval[2] = numpy.dot([x2, y1], r)
+    rval[3] = numpy.dot([x1, y1], r)
+
+    return rval
+
+
+def area_of_polygon(xy: numpy.ndarray) -> float:
+    """
+    apply shoelace algorithm on collection of xy vertex pairs
+    https://stackoverflow.com/questions/24467972/calculate-area-of-polygon-given-x-y-coordinates
+    """
+    return 0.5 * numpy.abs(
+        numpy.dot(xy[:, 0], numpy.roll(xy[:, 1], 1)) - numpy.dot(xy[:, 1], numpy.roll(xy[:, 0], 1))
+    )
+
+
 def find_circles(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing circle parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
-    contours = [shapely.geometry.Polygon(con) for con in skimage.measure.find_contours(pixels)]
-    bigcontours = [con for con in contours if con.area > min_area]
-    circles = [Circle.from_points(numpy.stack(con.exterior.xy, axis=1)) for con in bigcontours]
-    return circles
+    contours = skimage.measure.find_contours(pixels)
+    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
+    return [Circle.from_points(con) for con in bigcontours]
 
 
 def find_ellipses(dqplane, bitmask, min_area):
@@ -823,22 +907,19 @@ def find_ellipses(dqplane, bitmask, min_area):
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
 
-    contours = [shapely.geometry.Polygon(con) for con in skimage.measure.find_contours(pixels)]
-    bigcontours = [con for con in contours if con.area > min_area]
+    contours = skimage.measure.find_contours(pixels)
+    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
     rectangles = [
-        numpy.flip(numpy.stack(con.minimum_rotated_rectangle.exterior.xy, axis=1), axis=1)
-        for con in bigcontours
+        minimum_bounding_rectangle(con) for con in bigcontours
     ]
-    ellipses = [
+    return [
         (
             numpy.mean(rectangle[[0, 2], :], axis=0),
             numpy.hypot(*numpy.diff(rectangle[[0, 1, 2], :], axis=0)),
-            numpy.degrees(numpy.arctan2(*numpy.flip(numpy.diff(rectangle[[3, 0], :], axis=0)[0])))
+            numpy.degrees(numpy.arctan2(*numpy.flip(numpy.diff(rectangle[[3, 0], :], axis=0)[0]))),
         )
         for rectangle in rectangles
     ]
-
-    return ellipses
 
 
 def make_snowballs(
@@ -932,7 +1013,7 @@ def find_faint_extended(
     min_shower_area=40,
     inner=1,
     outer=2,
-    donotuse_flag = 1,
+    donotuse_flag=1,
     sat_flag=2,
     jump_flag=4,
     ellipse_expand=1.1,
@@ -1151,9 +1232,10 @@ def find_faint_extended(
                 expansion=ellipse_expand,
                 expand_by_ratio=True,
                 num_grps_masked=num_grps_masked,
-                max_extended_radius=max_extended_radius
+                max_extended_radius=max_extended_radius,
             )
     return gdq, total_showers
+
 
 def find_first_good_group(int_gdq, do_not_use):
     ngrps = int_gdq.shape[0]
@@ -1166,6 +1248,7 @@ def find_first_good_group(int_gdq, do_not_use):
             first_good_group = grp
             break
     return first_good_group
+
 
 def calc_num_slices(n_rows, max_cores, max_available):
     n_slices = 1

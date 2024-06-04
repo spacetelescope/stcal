@@ -18,7 +18,6 @@ dependencies = [
     "gwcs >= 0.18.1",
     "scikit-image",
     "scipy >=1.7.2",
-    "shapely",
     "numpy >=1.21.2",
 ]
 dynamic = [
