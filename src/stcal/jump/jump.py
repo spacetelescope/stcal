@@ -747,7 +747,6 @@ def extend_ellipses(
         center = (round(ceny), round(cenx))
         axes = (round(axis1 / 2), round(axis2 / 2))
         color = (0, 0, 4)
-        warnings.warn(ELLIPSE_PACKAGE_WARNING)
         ellipse = skimage.draw.ellipse(*center, *axes, rotation=alpha)
         image[ellipse] = color
         jump_ellipse = image[:, :, 2]
@@ -776,7 +775,6 @@ def extend_snowballs(plane, snowballs, sat_flag, jump_flag, expansion=1.5):
         center = (round(ceny), round(cenx))
         extend_radius = round(jump_radius * expansion)
         color = (0, 0, 4)
-        warnings.warn(ELLIPSE_PACKAGE_WARNING)
         disk = skimage.draw.disk(center, extend_radius)
         image[disk] = color
         jump_circle = image[:, :, 2]

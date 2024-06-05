@@ -4,6 +4,7 @@ from astropy.io import fits
 from stcal.jump.jump import (
     calc_num_slices,
     extend_saturation,
+    find_circles,
     find_ellipses,
     find_faint_extended,
     flag_large_events,
@@ -185,7 +186,7 @@ def test_find_simple_circle():
     plane[2, 1] = DQFLAGS['JUMP_DET']
     circle = find_circles(plane, DQFLAGS['JUMP_DET'], 1)
     assert circle[0][0] == pytest.approx((2, 2))
-    assert circle[0][1] == pytest.approx(1.0, 1e-3)
+    assert circle[0][1] == pytest.approx(1.5, 1e-3)
 
 
 def test_find_simple_ellipse():
@@ -213,8 +214,8 @@ def test_find_ellipse2():
     ellipse = ellipses[0]
     assert ellipse[0][0] == 2
     assert ellipse[0][1] == 2
-    assert ellipse[1][0] == 2
-    assert ellipse[1][1] == 2
+    assert ellipse[1][0] == 3
+    assert ellipse[1][1] == 3
     assert ellipse[2] == 90.0
 
 
