@@ -16,7 +16,7 @@ dependencies = [
     "asdf >=2.15.0",
     "astropy >=5.0.4",
     "gwcs >= 0.18.1",
-    "scikit-image",
+    "scikit-image>=0.18.0",
     "scipy >=1.7.2",
     "numpy >=1.21.2",
 ]
