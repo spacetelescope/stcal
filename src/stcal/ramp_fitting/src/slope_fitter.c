@@ -3486,7 +3486,7 @@ print_npy_types() {
     printf("NPY_DOUBLE = %d\n",NPY_DOUBLE);
 
     printf("NPY_VOID = %d\n",NPY_VOID);
-    printf("NPY_NTYPES = %d\n",NPY_NTYPES);
+    printf("NPY_NTYPES_LEGACY = %d\n",NPY_NTYPES_LEGACY);
     printf("NPY_NOTYPE = %d\n",NPY_NOTYPE);
     /*
     NPY_SHORT
