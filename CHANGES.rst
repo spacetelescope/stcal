@@ -1,5 +1,10 @@
-1.7.1 (unreleased)
+1.7.2 (unreleased)
 ==================
+
+General
+-------
+
+- build with Numpy 2.0 release candidate [#260]
 
 Changes to API
 --------------
@@ -8,6 +13,19 @@ Changes to API
 
 Bug Fixes
 ---------
+
+- 
+
+1.7.1 (2024-05-21)
+==================
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Catch some additional warnings about all-NaN slices. [#258]
 
 ramp_fitting
 ~~~~~~~~~~~~
@@ -18,6 +36,8 @@ ramp_fitting
   incorrect SCI, ERR, and VAR_POISSON values. Also required revising the approach
   for catching all-zero variance cases when average dark current was not
   specified. [#255]
+
+- Refactor ramp fitting using a C extension to improve performance. [#156]
 
 1.7.0 (2024-03-25)
 ==================

@@ -240,7 +240,9 @@ def find_crs(
                 first_diffs = np.diff(dat, axis=1)
 
                 if total_usable_diffs >= min_diffs_single_pass:
+                    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
                     median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
+                    warnings.resetwarnings()
                     # calculate sigma for each pixel
                     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / nframes)
                     # reset sigma so pixels with 0 read noise are not flagged as jumps

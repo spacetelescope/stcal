@@ -5,10 +5,13 @@ import multiprocessing
 import time
 import warnings
 from multiprocessing import cpu_count
+import sys
 
 import numpy as np
 
+from .slope_fitter import ols_slope_fitter  # c extension
 from . import ramp_fit_class, utils
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -658,6 +661,164 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
+    # use_c = False
+    # use_c = True  # XXX Change to default as False
+    use_c = ramp_data.dbg_run_c_code
+    if use_c:
+        c_start = time.time()
+
+        ramp_data, gain_2d, readnoise_2d, bswap = endianness_handler(ramp_data, gain_2d, readnoise_2d)
+
+        if ramp_data.drop_frames1 is None:
+            ramp_data.drop_frames1 = 0
+        image_info, integ_info, opt_info = ols_slope_fitter(
+                ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
+
+        c_end = time.time()
+
+        # Read noise is used after STCAL ramp fitting for the CHARGELOSS
+        # processing, so make sure it works right for there.  In other words
+        # if they got byteswapped for the C extension, they need to be
+        # byteswapped back to properly work in python once returned from
+        # ramp fitting.
+        rn_bswap, gain_bswap = bswap
+        if rn_bswap:
+            readnoise_2d.newbyteorder('S').byteswap(inplace=True)
+        if gain_bswap:
+            gain_2d.newbyteorder('S').byteswap(inplace=True)
+
+        c_diff = c_end - c_start
+        log.info(f"Ramp Fitting C Time: {c_diff}")
+
+        return image_info, integ_info, opt_info
+
+    p_start = time.time()
+
+    image_info, integ_info, opt_info = ols_ramp_fit_single_python(
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
+
+    p_end = time.time()
+    p_diff = p_end - p_start
+    log.info(f"Ramp Fitting Python Time: {p_diff}")
+
+    return image_info, integ_info, opt_info
+
+
+def handle_array_endianness(arr, sys_order):
+    """
+    Determines if the array byte order is the same as the system byte order.  If
+    it is not, then byteswap the array.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The array whose endianness to check against the system endianness.
+
+    sys_order : str
+        The system order ("<" is little endian, while ">" is big endian).
+
+    Return
+    ------
+    arr : ndarray
+        The ndarray in the correct byte order
+    """
+    arr_order = arr.dtype.byteorder
+    bswap = False
+    if (arr_order == ">" and sys_order == "<") or (arr_order == "<" and sys_order == ">"):
+        arr.newbyteorder('S').byteswap(inplace=True)
+        bswap = True
+
+    return arr, bswap
+
+
+def endianness_handler(ramp_data, gain_2d, readnoise_2d):
+    """
+    Check all arrays for endianness against the system endianness,
+    so when used by the C extension, the endianness is correct.  Numpy
+    ndarrays can be in any byte order and is handled transparently to the
+    user.  The arrays in the C extension are expected to be in byte order
+    on the system which the ramp fitting is being run.
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Carries ndarrays needing checked and possibly byte swapped.
+
+    gain_2d : ndarray
+        An ndarray needing checked and possibly byte swapped.
+
+    readnoise_2d : ndarray
+        An ndarray needing checked and possibly byte swapped.
+
+    Return
+    ------
+    ramp_data : RampData
+        Carries ndarrays checked and possibly byte swapped.
+
+    gain_2d : ndarray
+        An ndarray checked and possibly byte swapped.
+
+    readnoise_2d : ndarray
+        An ndarray checked and possibly byte swapped.
+    """
+    sys_order = "<" if sys.byteorder=="little" else ">"
+
+    # If the gain and/or readnoise arrays are byteswapped before going
+    # into the C extension, then that needs to be noted and byteswapped
+    # when returned from the C extension.
+    gain_2d, gain_bswap = handle_array_endianness(gain_2d, sys_order)
+    readnoise_2d, rn_bswap = handle_array_endianness(readnoise_2d, sys_order)
+
+    ramp_data.data, _ = handle_array_endianness(ramp_data.data, sys_order)
+    ramp_data.err, _ = handle_array_endianness(ramp_data.err, sys_order)
+    ramp_data.average_dark_current , _ = handle_array_endianness(ramp_data.average_dark_current, sys_order)
+    ramp_data.groupdq, _ = handle_array_endianness(ramp_data.groupdq, sys_order)
+    ramp_data.pixeldq, _ = handle_array_endianness(ramp_data.pixeldq, sys_order)
+
+    return ramp_data, gain_2d, readnoise_2d, (rn_bswap, gain_bswap)
+    
+
+
+def ols_ramp_fit_single_python(
+        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
+    """
+    Fit a ramp using ordinary least squares. Calculate the count rate for each
+    pixel in all data cube sections and all integrations, equal to the weighted
+    slope for all sections (intervals between cosmic rays) of the pixel's ramp
+    divided by the effective integration time.
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+
+    buffsize : int
+        The working buffer size
+
+    save_opt : bool
+        Whether to return the optional output model
+
+    readnoise_2d : ndarray
+        The read noise of each pixel
+
+    gain_2d : ndarray
+        The gain of each pixel
+
+    weighting : str
+        'optimal' is the only valid value
+
+    Return
+    ------
+    image_info : tuple
+        The tuple of computed ramp fitting arrays.
+
+    integ_info : tuple
+        The tuple of computed integration fitting arrays.
+
+    opt_info : tuple
+        The tuple of computed optional results arrays for fitting.
+    """
+    # MAIN
     tstart = time.time()
 
     if not ramp_data.suppress_one_group_ramps:
@@ -683,6 +844,8 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
         log.warning("will be calculated as the value of that 1 group divided by ")
         log.warning("the group exposure time.")
 
+    # import ipdb; ipdb.set_trace()
+
     # In this 'First Pass' over the data, loop over integrations and data
     #   sections to calculate the estimated median slopes, which will be used
     #   to calculate the variances. This is the same method to estimate slopes
@@ -692,6 +855,8 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     fit_slopes_ans = ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting)
     if fit_slopes_ans[0] == "saturated":
         return fit_slopes_ans[1:]
+
+    # import ipdb; ipdb.set_trace()
 
     # In this 'Second Pass' over the data, loop over integrations and data
     #   sections to calculate the variances of the slope using the estimated
@@ -715,6 +880,15 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     )
 
     return image_info, integ_info, opt_info
+
+
+def c_python_time_comparison(c_start, c_end, p_start, p_end):
+    c_diff = c_end - c_start
+    p_diff = p_end - p_start
+    c_div_p = c_diff / p_diff * 100.
+    print(f"{c_diff = }")
+    print(f"{p_diff = }")
+    print(f"{c_div_p = :.4f}%")
 
 
 def discard_miri_groups(ramp_data):
@@ -891,6 +1065,8 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
 
     opt_res = utils.OptRes(n_int, imshape, max_seg, ngroups, save_opt)
 
+    # import ipdb; ipdb.set_trace()
+
     # Get Pixel DQ array from input file. The incoming RampModel has uint32
     #   PIXELDQ, but ramp fitting will update this array here by flagging
     #   the 2D PIXELDQ locations where the ramp data has been previously
@@ -906,7 +1082,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     #   as is done in the jump detection step, except here CR-affected and
     #   saturated groups have already been flagged. The actual, fit, slopes for
     #   each segment are also calculated here.
-
     med_rates = utils.compute_median_rates(ramp_data)
 
     # Loop over data integrations:
@@ -1115,6 +1290,8 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         segs_4,
     ) = utils.alloc_arrays_2(n_int, imshape, max_seg)
 
+    # import ipdb; ipdb.set_trace()
+
     # Loop over data integrations
     for num_int in range(n_int):
         ramp_data.current_integ = num_int
@@ -1144,7 +1321,9 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
                                              ramp_data.average_dark_current[rlo:rhi, :])
 
             # Find the segment variance due to read noise and convert back to DN
-            var_r4[num_int, :, rlo:rhi, :] = num_r3 * den_r3 / gain_sect**2
+            tmpgain = gain_sect**2
+            var_r4_tmp = num_r3 * den_r3 / tmpgain
+            var_r4[num_int, :, rlo:rhi, :] = var_r4_tmp 
 
             # Reset the warnings filter to its original state
             warnings.resetwarnings()
@@ -1172,6 +1351,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         #   variance calculations.
         s_inv_var_p3[num_int, :, :] = (1.0 / var_p4[num_int, :, :, :]).sum(axis=0)
         var_p3[num_int, :, :] = 1.0 / s_inv_var_p3[num_int, :, :]
+
         s_inv_var_r3[num_int, :, :] = (1.0 / var_r4[num_int, :, :, :]).sum(axis=0)
         var_r3[num_int, :, :] = 1.0 / s_inv_var_r3[num_int, :, :]
 
@@ -1184,6 +1364,7 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         warnings.resetwarnings()
 
         var_both4[num_int, :, :, :] = var_r4[num_int, :, :, :] + var_p4[num_int, :, :, :]
+
         inv_var_both4[num_int, :, :, :] = 1.0 / var_both4[num_int, :, :, :]
 
         # Want to retain values in the 4D arrays only for the segments that each
@@ -1327,9 +1508,9 @@ def ramp_fit_overall(
     var_p3, var_r3, var_p4, var_r4, var_both4, var_both3 = variances_ans[:6]
     inv_var_both4, s_inv_var_p3, s_inv_var_r3, s_inv_var_both3 = variances_ans[6:]
 
-    slope_by_var4 = opt_res.slope_seg.copy() / var_both4
+    # import ipdb; ipdb.set_trace()
 
-    del var_both4
+    slope_by_var4 = opt_res.slope_seg.copy() / var_both4
 
     s_slope_by_var3 = slope_by_var4.sum(axis=1)  # sum over segments (not integs)
     s_slope_by_var2 = s_slope_by_var3.sum(axis=0)  # sum over integrations
@@ -1371,6 +1552,8 @@ def ramp_fit_overall(
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
     slope_int = the_num / the_den
+
+    del var_both4
 
     # Adjust DQ flags for NaNs.
     wh_nans = np.isnan(slope_int)
@@ -1959,6 +2142,7 @@ def fit_next_segment(
         )
 
     # CASE: Long enough (semiramp has >2 groups), at end of ramp
+    # XXX The comments says semiramp >2, but checks for length >1.
     wh_check = np.where((l_interval > 1) & (end_locs == ngroups - 1) & (~pixel_done))
     if len(wh_check[0]) > 0:
         f_max_seg = fit_next_segment_long_end_of_ramp(
@@ -2923,6 +3107,9 @@ def fit_short_ngroups(
     ramp_mask_sum : ndarray
         number of channels to fit for each pixel, 1-D int
 
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     Returns
     -------
     f_max_seg : int
@@ -3133,7 +3320,10 @@ def fit_lines(data, mask_2d, rn_sect, gain_sect, ngroups, weighting, gdq_sect_r,
             ramp_data, rn_sect, gain_sect, data_masked, c_mask_2d, xvalues, good_pix
         )
 
-        slope, intercept, sig_slope, sig_intercept = calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy)
+        slope, intercept, sig_slope, sig_intercept = calc_opt_fit(
+                ramp_data, nreads_wtd, sumxx, sumx, sumxy, sumy)
+
+        # import ipdb; ipdb.set_trace()
 
         slope = slope / ramp_data.group_time
 
@@ -3399,7 +3589,7 @@ def calc_unwtd_fit(xvalues, nreads_1d, sumxx, sumx, sumxy, sumy):
     return slope, intercept, sig_slope, sig_intercept, line_fit
 
 
-def calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy):
+def calc_opt_fit(ramp_data, nreads_wtd, sumxx, sumx, sumxy, sumy):
     """
     Do linear least squares fit to data cube in this integration for a single
     semi-ramp for all pixels, using optimally weighted fits to the semi_ramps.
@@ -3409,6 +3599,9 @@ def calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy):
 
     Parameters
     ----------
+    ramp_data : RampData
+        The ramp data needed for processing, specifically flag values.
+
     nreads_wtd : ndarray
         sum of product of data and optimal weight, 1-D float
 
@@ -3445,7 +3638,9 @@ def calc_opt_fit(nreads_wtd, sumxx, sumx, sumxy, sumy):
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-    slope = (nreads_wtd * sumxy - sumx * sumy) / denominator
+    slope_num = nreads_wtd * sumxy - sumx * sumy
+    slope = slope_num / denominator
+
     intercept = (sumxx * sumy - sumx * sumxy) / denominator
     sig_intercept = (sumxx / denominator) ** 0.5
     sig_slope = (nreads_wtd / denominator) ** 0.5  # STD of the slope's fit
@@ -3900,6 +4095,7 @@ def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, 
     # get final valid group for each pixel for this semiramp
     ind_lastnz = fnz + mask_2d_sum - 1
 
+
     # get SCI value of initial good group for semiramp
     data_zero = data_masked[fnz, range(data_masked.shape[1])]
     fnz = 0
@@ -3947,7 +4143,6 @@ def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, 
     num_nz = c_mask_2d.sum(0)  # number of groups in segment
     nrd_prime = (num_nz - 1) / 2.0
     num_nz = 0
-
     # Calculate inverse read noise^2 for use in weights
     # Suppress, then re-enable, harmless arithmetic warning
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
@@ -3972,6 +4167,8 @@ def calc_opt_sums(ramp_data, rn_sect, gain_sect, data_masked, mask_2d, xvalues, 
         c_mask_2d[:, wh_m2d_f] = np.roll(c_mask_2d[:, wh_m2d_f], -1, axis=0)
         xvalues[:, wh_m2d_f] = np.roll(xvalues[:, wh_m2d_f], -1, axis=0)
         wh_m2d_f = np.logical_not(c_mask_2d[0, :])
+
+    # import ipdb; ipdb.set_trace()
 
     # Create weighted sums for Poisson noise and read noise
     nreads_wtd = (wt_h * c_mask_2d).sum(axis=0)  # using optimal weights
