@@ -673,7 +673,7 @@ def extend_saturation(
             alpha = ellipse[2]
             axis1 = min(axis1, max_extended_radius)
             axis2 = min(axis2, max_extended_radius)
-            ellipse_mask = skimage.draw.ellipse(
+            ellipse_rr, ellipse_cc = skimage.draw.ellipse(
                 r=round(ceny),
                 c=round(cenx),
                 r_radius=round(axis1/2),
@@ -681,14 +681,14 @@ def extend_saturation(
                 shape=image.shape,
                 rotation=alpha,
             )
-            image[*ellipse_mask, 2] = 22
+            image[ellipse_rr, ellipse_cc, 2] = 22
             #  Create another non-extended ellipse that is used to create the
             #  persist_jumps for this integration. This will be used to mask groups
             #  in subsequent integrations.
             sat_ellipse = image[:, :, 2]  # extract the Blue plane of the image
             saty, satx = np.where(sat_ellipse == 22)  # find all the ellipse pixels in the ellipse
             outcube[grp:, saty, satx] = sat_flag
-            ellipse_mask = skimage.draw.ellipse(
+            ellipse_rr, ellipse_cc = skimage.draw.ellipse(
                 r=round(ceny),
                 c=round(cenx),
                 r_radius=round(ellipse[1][0] / 2),
@@ -696,7 +696,7 @@ def extend_saturation(
                 shape=persist_image.shape,
                 rotation=alpha,
             )
-            persist_image[*ellipse_mask, 2] = 22
+            persist_image[ellipse_rr, ellipse_cc, 2] = 22
             persist_ellipse = persist_image[:, :, 2]
             persist_saty, persist_satx = np.where(persist_ellipse == 22)
             persist_jumps[persist_saty, persist_satx] = jump_flag
@@ -1207,7 +1207,7 @@ def find_faint_extended(
                 axis1 = min(axis1, max_extended_radius)
                 axis2 = min(axis2, max_extended_radius)
                 alpha = ellipse[2]
-                ellipse_mask = skimage.draw.ellipse(
+                ellipse_rr, ellipse_cc = skimage.draw.ellipse(
                     r=round(ceny),
                     c=round(cenx),
                     r_radius=round(axis1/2),
@@ -1215,7 +1215,7 @@ def find_faint_extended(
                     shape=image.shape,
                     rotation=alpha,
                 )
-                image[*ellipse_mask, 2] = jump_flag
+                image[ellipse_rr, ellipse_cc, 2] = jump_flag
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
