@@ -749,9 +749,8 @@ def extend_ellipses(
         alpha = ellipse[2]
         center = (round(ceny), round(cenx))
         axes = (round(axis1 / 2), round(axis2 / 2))
-        color = (0, 0, 4)
-        ellipse = skimage.draw.ellipse(*center, *axes, rotation=alpha)
-        image[ellipse] = color
+        rr, cc = skimage.draw.ellipse(*center, *axes, shape=image.shape, rotation=alpha)
+        image[rr, cc, 2] = 4
         jump_ellipse = image[:, :, 2]
         ngrps = gdq_cube.shape[1]
         last_grp = find_last_grp(grp, ngrps, num_grps_masked)
@@ -910,8 +909,8 @@ def find_ellipses(dqplane, bitmask, min_area):
     ]
     return [
         (
-            np.mean(rectangle[[0, 2], :], axis=0),
-            np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0)),
+            tuple(np.mean(rectangle[[0, 2], :], axis=0)),
+            tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
             np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
         )
         for rectangle in rectangles
@@ -1164,7 +1163,9 @@ def find_faint_extended(
             ]
             ellipses = [
                 (
-                    np.mean(rectangle[[0, 2], :], axis=0),
+                    tuple(np.mean(rectangle[[0, 2], :], axis=0)),
+                    tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
+                    np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
                 )
                 for rectangle in rectangles
             ]
