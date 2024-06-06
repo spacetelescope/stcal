@@ -396,7 +396,6 @@ def test_flag_large_events_withsnowball():
     assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
     assert cube[0, 2, 3, 6] == DQFLAGS["JUMP_DET"]
 
-
 def test_flag_large_events_groupedsnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
     # cross of saturation surrounding by jump -> snowball
@@ -509,37 +508,6 @@ def test_find_faint_extended():
 
     #  Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
-
-    def test_find_faint_extended():
-        nint, ngrps, ncols, nrows = 1, 66, 5, 5
-        data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
-        gdq = np.zeros_like(data, dtype=np.uint32)
-        pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-        pdq[0, 0] = 1
-        pdq[1, 1] = 2147483648
-        #    pdq = np.zeros(shape=(data.shape[2], data.shape[3]), dtype=np.uint8)
-        gain = 4
-        readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
-        rng = np.random.default_rng(12345)
-        data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
-        data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-        gdq, num_showers = find_faint_extended(
-            data,
-            gdq,
-            pdq,
-            readnoise * np.sqrt(2),
-            1,
-            100,
-            snr_threshold=3,
-            min_shower_area=10,
-            inner=1,
-            outer=2.6,
-            sat_flag=2,
-            jump_flag=4,
-            ellipse_expand=1.1,
-            num_grps_masked=0,
-        )
-
 
 # No shower is found because the event is identical in all ints
 def test_find_faint_extended_sigclip():
