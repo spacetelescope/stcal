@@ -887,20 +887,20 @@ def area_of_polygon(xy: np.ndarray) -> float:
     )
 
 
-def find_circles(dqplane, bitmask, min_area):
+def find_circles(dqplane: np.ndarray, bitmask: np.ndarray, min_area: float) -> list[Circle]:
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing circle parameters.
-    pixels = np.bitwise_and(dqplane, bitmask)
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
     contours = skimage.measure.find_contours(pixels)
     bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
     return [Circle.from_points(con) for con in bigcontours]
 
 
-def find_ellipses(dqplane, bitmask, min_area):
+def find_ellipses(dqplane: np.ndarray, bitmask: np.ndarray, min_area: float) -> list[tuple[float, float], tuple[float, float], float]:
     # Using an input DQ plane this routine will find the groups of pixels with
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
-    pixels = np.bitwise_and(dqplane, bitmask)
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
 
     contours = skimage.measure.find_contours(pixels)
     bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
@@ -909,9 +909,9 @@ def find_ellipses(dqplane, bitmask, min_area):
     ]
     return [
         (
-            tuple(np.mean(rectangle[[0, 2], :], axis=0)),
+            tuple(np.flip(np.mean(rectangle[[0, 2], :], axis=0))),
             tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
-            np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
+            -np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
         )
         for rectangle in rectangles
     ]

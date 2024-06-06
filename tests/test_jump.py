@@ -269,9 +269,9 @@ def test_find_simple_circle():
     plane[1, 2] = DQFLAGS["JUMP_DET"]
     plane[2, 3] = DQFLAGS["JUMP_DET"]
     plane[2, 1] = DQFLAGS["JUMP_DET"]
-    circle = find_circles(plane, DQFLAGS["JUMP_DET"], 1)
-    assert circle[0][0] == pytest.approx((2, 2))
-    assert circle[0][1] == pytest.approx(1.5, 1e-3)
+    circles = find_circles(plane, DQFLAGS["JUMP_DET"], 1)
+    assert circles[0][0] == pytest.approx((2, 2))
+    assert circles[0][1] == pytest.approx(1.5, 1e-3)
 
 
 def test_find_simple_ellipse():
@@ -285,9 +285,9 @@ def test_find_simple_ellipse():
     plane[1, 4] = DQFLAGS["JUMP_DET"]
     plane[2, 4] = DQFLAGS["JUMP_DET"]
     plane[2, 5] = DQFLAGS["JUMP_DET"]
-    ellipse = find_ellipses(plane, DQFLAGS["JUMP_DET"], 1)
-    assert ellipse[0][2] == pytest.approx(-63.435, 1e-3)  # anti-clockwise rotation
-    assert ellipse[0][0] == pytest.approx((2, 3))  # center
+    ellipses = find_ellipses(plane, DQFLAGS["JUMP_DET"], 1)
+    assert ellipses[0][2] == pytest.approx(63.435, 1e-3)  # anti-clockwise rotation
+    assert ellipses[0][0] == pytest.approx((3, 2))  # center
 
 
 def test_find_ellipse2():
@@ -296,12 +296,11 @@ def test_find_ellipse2():
     plane[2, :] = [0, DQFLAGS["JUMP_DET"], DQFLAGS["JUMP_DET"], DQFLAGS["JUMP_DET"], 0]
     plane[3, :] = [0, DQFLAGS["JUMP_DET"], DQFLAGS["JUMP_DET"], DQFLAGS["JUMP_DET"], 0]
     ellipses = find_ellipses(plane, DQFLAGS["JUMP_DET"], 1)
-    ellipse = ellipses[0]
-    assert ellipse[0][0] == 2
-    assert ellipse[0][1] == 2
-    assert ellipse[1][0] == 3
-    assert ellipse[1][1] == 3
-    assert ellipse[2] == -90.0
+    assert ellipses[0][0][0] == 2
+    assert ellipses[0][0][1] == 2
+    assert ellipses[0][1][0] == 3
+    assert ellipses[0][1][1] == 3
+    assert ellipses[0][2] == 90.0
 
 
 def test_extend_saturation_simple():
