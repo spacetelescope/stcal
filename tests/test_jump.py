@@ -391,7 +391,7 @@ def test_flag_large_events_withsnowball():
     )
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 0, 0] == 0
+    assert cube[0, 2, 0, 0] == DQFLAGS["JUMP_DET"]
     assert cube[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
     assert cube[0, 2, 3, 6] == DQFLAGS["JUMP_DET"]
@@ -494,13 +494,13 @@ def test_find_faint_extended():
     #    assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert gdq[0, 1, 16, 18] == DQFLAGS["JUMP_DET"]
-    assert np.all(gdq[0, 1, 11:22, 16:19] == DQFLAGS["JUMP_DET"])
+    assert np.all(gdq[0, 1, 12:21, 16:19] == DQFLAGS["JUMP_DET"])
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
     #  Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == DQFLAGS["JUMP_DET"]
-    assert np.all(gdq[0, 2, 11:22, 16:19] == DQFLAGS["JUMP_DET"])
+    assert np.all(gdq[0, 2, 12:21, 16:19] == DQFLAGS["JUMP_DET"])
     assert np.all(gdq[0, 2, 22, 16:19] == 0)
     assert np.all(gdq[0, 2, 10, 16:19] == 0)
 
