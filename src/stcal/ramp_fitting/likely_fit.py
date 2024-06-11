@@ -4,7 +4,9 @@ import logging
 import multiprocessing
 import time
 import warnings
+
 from multiprocessing import cpu_count
+from pprint import pprint
 
 import numpy as np
 
@@ -83,26 +85,37 @@ def likely_ramp_fit(
             "Likelihood fit requires at least 2 groups."
         )
 
-    if ramp_data.read_pattern is None:
-        # XXX Not sure if this is the right way to do things.
-        #     The group time maybe should be used at the end, rather than here.
-        readtimes = [(k + 1) * ramp_data.group_time for k in range(ngroups)]
-        # readtimes = [(k + 1) for k in range(ngroups)]
-    else:
-        readtimes = read_data.read_pattern
+    readtimes = get_readtimes(ramp_data)
 
-    covar = Covar(readtimes)  # XXX Choice of pedestal not given
+    covar = Covar(readtimes, pedestal=False)  # XXX Choice of pedestal not given
     integ_class = IntegInfo(nints, nrows, ncols)
 
     for integ in range(nints):
         data = ramp_data.data[integ, :, :, :]
         gdq = ramp_data.groupdq[integ, :, :, :].copy()
         pdq = ramp_data.pixeldq[:, :].copy()
+
+        # Eqn (5)
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
 
+        alldiffs2use = np.ones(diff.shape, np.uint8)
+
         for row in range(nrows):
-            d2use = determine_diffs2use(ramp_data, integ, row, diff[:, row])
-            result = fit_ramps(diff[:, row], covar, gain_2d[row], readnoise_2d[row], diffs2use=d2use)
+            # d2use = determine_diffs2use(ramp_data, integ, row, diff[:, row])
+            # XXX Fails for short ramps
+            d2use, countrates = mask_jumps(
+                diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=alldiffs2use[:, row]
+            )                
+
+            # XXX detect_jump needs to be passed here.
+            result = fit_ramps(
+                    diff[:, row],
+                    covar,
+                    gain_2d[row],
+                    readnoise_2d[row],
+                    diffs2use=d2use,
+                    countrateguess=countrates * (countrates > 0),
+                    )
             integ_class.get_results(result, integ, row)
 
         pdq = utils.dq_compress_sect(ramp_data, integ, gdq, pdq)
@@ -114,6 +127,251 @@ def likely_ramp_fit(
     image_info = compute_image_info(integ_class, ramp_data)
 
     return image_info, integ_info, opt_info
+
+
+#BOX START end 301
+def mask_jumps(
+        diffs,
+        Cov,
+        rnoise,
+        gain,
+        threshold_oneomit=20.25,
+        threshold_twoomit=23.8,
+        diffs2use=None):
+
+    """
+
+    Function mask_jumps implements a likelihood-based, iterative jump
+    detection algorithm.
+
+    Arguments:
+    1. diffs [resultant differences]
+    2. Cov [class Covar, holds the covariance matrix information.  Must
+            be based on differences alone (i.e. without the pedestal)]
+    3. rnoise [read noise, 1D array]
+    4. gain [gain, 1D array]
+    Optional arguments:
+    5. threshold_oneomit [float, minimum chisq improvement to exclude 
+                          a single resultant difference.  Default 20.25,
+                          i.e., 4.5 sigma]
+    6. threshold_twoomit [float, minimum chisq improvement to exclude 
+                          two sequential resultant differences.  
+                          Default 23.8, i.e., 4.5 sigma]
+    7. diffs2use [a 2D array of the same shape as d, one for resultant
+                  differences that appear ok and zero for resultant
+                  differences flagged as contaminated.  These flagged
+                  differences will be ignored throughout jump detection,
+                  which will only flag additional differences and
+                  overwrite the data in this array. Default None]
+
+    Returns:
+    1. diffs2use [a 2D array of the same shape as d, one for resultant
+                  differences that appear ok and zero for resultant
+                  differences flagged as contaminated.]
+    2. countrates [a 1D array of the count rates after masking the pixels
+                  and resultants in diffs2use.]
+
+    """
+    # XXX refactor
+    if Cov.pedestal:
+        raise ValueError("Cannot mask jumps with a Covar class that includes a pedestal fit.")
+    
+    # Force a copy of the input array for more efficient memory access.
+    
+    d = diffs * 1  # XXX Change this name!
+    
+    # We can use one-omit searches only where the reads immediately
+    # preceding and following have just one read.  If a readout
+    # pattern has more than one read per resultant but significant
+    # gaps between resultants then a one-omit search might still be a
+    # good idea even with multiple-read resultants.
+
+    oneomit_ok = Cov.Nreads[1:] * Cov.Nreads[:-1] >= 1
+    oneomit_ok[0] = oneomit_ok[-1] = True
+
+    print("-" * 80)
+    print(f"{Cov.Nreads = }")
+    print("-" * 80)
+
+    print("-" * 80)
+    print(f"{oneomit_ok = }")
+    print("-" * 80)
+
+    # Other than that, we need to omit two.  If a resultant has more
+    # than two reads, we need to omit both differences containing it
+    # (one pair of omissions in the differences).
+
+    twoomit_ok = Cov.Nreads[1:-1] > 1
+
+    print("-" * 80)
+    print(f"{twoomit_ok = }")
+    print("-" * 80)
+    
+    # This is the array to return: one for resultant differences to
+    # use, zero for resultant differences to ignore.
+
+    if diffs2use is None:
+        diffs2use = np.ones(d.shape, np.uint8)
+
+    # We need to estimate the covariance matrix.  I'll use the median
+    # here for now to limit problems with the count rate in reads with
+    # jumps (which is what we are looking for) since we'll be using
+    # likelihoods and chi squared; getting the covariance matrix
+    # reasonably close to correct is important.
+    
+    countrateguess = np.median(d, axis=0)[np.newaxis, :]
+    countrateguess *= countrateguess > 0
+
+    # boolean arrays to be used later
+    recheck = np.ones(d.shape[1]) == 1
+    dropped = np.ones(d.shape[1]) == 0
+    
+    for j in range(d.shape[0]):
+
+        # No need for indexing on the first pass.
+        if j == 0:
+            result = fit_ramps(
+                    d,
+                    Cov,
+                    gain,
+                    rnoise,
+                    countrateguess=countrateguess, 
+                    diffs2use=diffs2use,
+                    detect_jumps=True)
+            # Also save the count rates so that we can use them later
+            # for debiasing.
+            countrate = result.countrate*1.
+        else:
+            result = fit_ramps(
+                    d[:, recheck],
+                    Cov,
+                    gain[recheck],
+                    rnoise[recheck],
+                    countrateguess=countrateguess[:, recheck], 
+                    diffs2use=diffs2use[:, recheck],
+                    detect_jumps=True)
+
+        # Chi squared improvements
+        
+        dchisq_two = result.chisq - result.chisq_twoomit
+        dchisq_one = result.chisq - result.chisq_oneomit
+
+        # We want the largest chi squared difference
+
+        print(f"{dchisq_one  = }")
+        print(f"{oneomit_ok.shape = }")
+        print(f"{oneomit_ok = }")
+        print(f"{oneomit_ok[:, np.newaxis] = }")
+        print(f"{dchisq_two  = }")
+        print(f"{twoomit_ok.shape = }")
+        print(f"{twoomit_ok = }")
+        print(f"{twoomit_ok[:, np.newaxis] = }")
+
+        import ipdb; ipdb.set_trace()
+        best_dchisq_one = np.amax(dchisq_one * oneomit_ok[:, np.newaxis], axis=0)
+        best_dchisq_two = np.amax(dchisq_two * twoomit_ok[:, np.newaxis], axis=0)  # XXX HERE
+        
+        # Is the best improvement from dropping one resultant
+        # difference or two?  Two drops will always offer more
+        # improvement than one so penalize them by the respective
+        # thresholds.  Then find the chi squared improvement
+        # corresponding to dropping either one or two reads, whichever
+        # is better, if either exceeded the threshold.
+
+        onedropbetter = (best_dchisq_one - threshold_oneomit > best_dchisq_two - threshold_twoomit)
+        
+        best_dchisq = best_dchisq_one*(best_dchisq_one > threshold_oneomit)*onedropbetter
+        best_dchisq += best_dchisq_two*(best_dchisq_two > threshold_twoomit)*(~onedropbetter)
+
+        # If nothing exceeded the threshold set the improvement to
+        # NaN so that dchisq==best_dchisq is guaranteed to be False.
+        
+        best_dchisq[best_dchisq == 0] = np.nan
+
+        # Now make the masks for which resultant difference(s) to
+        # drop, count the number of ramps affected, and drop them.
+        # If no ramps were affected break the loop.
+
+        dropone = dchisq_one == best_dchisq
+        droptwo = dchisq_two == best_dchisq
+
+        drop = np.any([np.sum(dropone, axis=0),
+                       np.sum(droptwo, axis=0)], axis=0)
+        
+        if np.sum(drop) == 0:
+            break
+
+        # Store the updated counts with omitted reads
+        
+        new_cts = np.zeros(np.sum(recheck))
+        i_d1 = np.sum(dropone, axis=0) > 0
+        new_cts[i_d1] = np.sum(result.countrate_oneomit * dropone, axis=0)[i_d1]
+        i_d2 = np.sum(droptwo, axis=0) > 0
+        new_cts[i_d2] = np.sum(result.countrate_twoomit * droptwo, axis=0)[i_d2]
+
+        # zero out count rates with drops and add their new values back in
+        
+        countrate[recheck] *= drop == 0
+        countrate[recheck] += new_cts
+        
+        # Drop the read (set diffs2use=0) if the boolean array is True.
+        
+        diffs2use[:, recheck] *= ~dropone
+        diffs2use[:-1, recheck] *= ~droptwo
+        diffs2use[1:, recheck] *= ~droptwo
+
+        # No need to repeat this on the entire ramp, only re-search
+        # ramps that had a resultant difference dropped this time.
+
+        dropped[:] = False
+        dropped[recheck] = drop
+        recheck[:] = dropped
+
+        # Do not try to search for bad resultants if we have already
+        # given up on all but one, two, or three resultant differences
+        # in the ramp.  If there are only two left we have no way of
+        # choosing which one is "good".  If there are three left we
+        # run into trouble in case we need to discard two.
+
+        recheck[np.sum(diffs2use, axis=0) <= 3] = False
+
+    return diffs2use, countrate
+#BOX END
+
+
+def get_readtimes(ramp_data):
+    """
+    Get the read times needed to compute the covariance matrices.  If there is
+    already a read_pattern in the ramp_data class, then just get it.  If not, then
+    one needs to be constructed.  If one needs to be constructed it is assumed the
+    groups are evenly spaced in time, as are the frames that make up the group.  If
+    each group has only one frame and no group gap, then a list of the group times
+    is returned.  If nframes > 0, then a list of lists of each frame time in each
+    group is returned with the assumption:
+        group_time = (nframes + groupgap) * frame_time
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+
+    Returns
+    -------
+    readtimes : list
+        A list of frame times for each frame used in the computation of the ramp.
+    """
+    if ramp_data.read_pattern is not None:
+        return ramp_data.read_pattern
+
+    ngroups = ramp_data.data.shape[1]
+    # rtimes = [(k + 1) * ramp_data.group_time for k in range(ngroups)]   # XXX Old
+    tot_frames = ramp_data.nframes + ramp_data.groupgap
+    tot_nreads = np.arange(1, ramp_data.nframes + 1)
+    rtimes = [(tot_nreads + k * tot_frames) * ramp_data.frame_time for k in range(ngroups)]
+
+    # from pprint import pprint; pprint(f"rtimes = {rtimes}")
+
+    return rtimes
 
 
 def compute_image_info(integ_class, ramp_data):
@@ -263,7 +521,7 @@ def fit_ramps(
     diffs,
     covar,
     gain,
-    rnoise,
+    rnoise,  # Referred to as 'sig' in fitramp repo
     countrateguess=None,
     diffs2use=None,
     detect_jumps=False,
@@ -368,6 +626,7 @@ def fit_ramps(
         dC, dB, A, B, C, scale, phi, theta, covar, resetval, resetsig,
         alpha_phnoise, alpha_readnoise, beta_phnoise, beta_readnoise
     )
+
     # --- Beginning at line 250: Paper 1 section 4
 
     # =============================================================================
@@ -936,6 +1195,8 @@ def get_ramp_result(
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
 
+        # XXX VAR
+        # alpha_phnoise = countrateguess / gain * covar.alpha_phnoise[:, np.newaxis]
         result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
         result.var_poisson += 2 * np.sum(
                 result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
