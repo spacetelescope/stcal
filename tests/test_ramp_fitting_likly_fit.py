@@ -3,6 +3,7 @@ import pytest
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_class, ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
+from stcal.ramp_fitting.likely_fit import likely_ramp_fit
 
 
 test_dq_flags = {
@@ -385,14 +386,38 @@ def test_long_ramp():
     assert diff < tol
 
 
-@pytest.mark.skip(reason="Not sure what expected value is.")
-@pytest.mark.parametrize("ngroups", [3, 2])
+def test_2group_ramp():
+    """
+    It's supposed to fail.  The likelihood algorithm needs at least two
+    groups to work.
+    """
+    nints, ngroups, nrows, ncols = 1, 2, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    with pytest.raises(ValueError):
+        image_info, integ_info, opt_info = likely_ramp_fit(
+            ramp_data, 512, save_opt, rnoise2d, gain2d, "optimal", ncores
+        )
+
+
 @pytest.mark.parametrize("nframes", [1, 2, 4, 8])
-def test_short_integrations(ngroups, nframes):
+def test_short_integrations(nframes):
     """
     Check short 3 and 2 group integrations.
     """
-    nints, nrows, ncols = 1, 1, 1
+    nints, ngroups, nrows, ncols = 1, 3, 1, 1
     rnval, gval = 10.0, 5.0
     # frame_time, nframes, groupgap = 10.736, 4, 1
     frame_time, groupgap = 10.736, 1
