@@ -189,23 +189,11 @@ def mask_jumps(
     oneomit_ok = Cov.Nreads[1:] * Cov.Nreads[:-1] >= 1
     oneomit_ok[0] = oneomit_ok[-1] = True
 
-    print("-" * 80)
-    print(f"{Cov.Nreads = }")
-    print("-" * 80)
-
-    print("-" * 80)
-    print(f"{oneomit_ok = }")
-    print("-" * 80)
-
     # Other than that, we need to omit two.  If a resultant has more
     # than two reads, we need to omit both differences containing it
     # (one pair of omissions in the differences).
 
     twoomit_ok = Cov.Nreads[1:-1] > 1
-
-    print("-" * 80)
-    print(f"{twoomit_ok = }")
-    print("-" * 80)
     
     # This is the array to return: one for resultant differences to
     # use, zero for resultant differences to ignore.
@@ -258,16 +246,6 @@ def mask_jumps(
 
         # We want the largest chi squared difference
 
-        print(f"{dchisq_one  = }")
-        print(f"{oneomit_ok.shape = }")
-        print(f"{oneomit_ok = }")
-        print(f"{oneomit_ok[:, np.newaxis] = }")
-        print(f"{dchisq_two  = }")
-        print(f"{twoomit_ok.shape = }")
-        print(f"{twoomit_ok = }")
-        print(f"{twoomit_ok[:, np.newaxis] = }")
-
-        import ipdb; ipdb.set_trace()
         best_dchisq_one = np.amax(dchisq_one * oneomit_ok[:, np.newaxis], axis=0)
         best_dchisq_two = np.amax(dchisq_two * twoomit_ok[:, np.newaxis], axis=0)  # XXX HERE
         
@@ -368,8 +346,6 @@ def get_readtimes(ramp_data):
     tot_frames = ramp_data.nframes + ramp_data.groupgap
     tot_nreads = np.arange(1, ramp_data.nframes + 1)
     rtimes = [(tot_nreads + k * tot_frames) * ramp_data.frame_time for k in range(ngroups)]
-
-    # from pprint import pprint; pprint(f"rtimes = {rtimes}")
 
     return rtimes
 
