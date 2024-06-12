@@ -13,7 +13,11 @@ Changes to API
 
 Bug Fixes
 ---------
-
+jump
+~~~~
+- Flag asymmetrical snowballs that are missed by the current code (JP-3638). This was changed to
+  not require that the center of the snowball jump ellipse is a saturated
+  pixel. [#261]
 - 
 
 1.7.1 (2024-05-21)
