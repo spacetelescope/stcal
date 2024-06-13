@@ -102,12 +102,12 @@ def likely_ramp_fit(
 
         for row in range(nrows):
             # d2use = determine_diffs2use(ramp_data, integ, row, diff[:, row])
-            # XXX Fails for short ramps
+            # XXX Should this be done like this?  Jump detection is done here.
             d2use, countrates = mask_jumps(
                 diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=alldiffs2use[:, row]
             )                
 
-            # XXX detect_jump needs to be passed here.
+            alldiffs2use[:, row] = d2use
             result = fit_ramps(
                     diff[:, row],
                     covar,
@@ -129,7 +129,6 @@ def likely_ramp_fit(
     return image_info, integ_info, opt_info
 
 
-#BOX START end 301
 def mask_jumps(
         diffs,
         Cov,
@@ -140,45 +139,52 @@ def mask_jumps(
         diffs2use=None):
 
     """
-
     Function mask_jumps implements a likelihood-based, iterative jump
     detection algorithm.
 
-    Arguments:
-    1. diffs [resultant differences]
-    2. Cov [class Covar, holds the covariance matrix information.  Must
-            be based on differences alone (i.e. without the pedestal)]
-    3. rnoise [read noise, 1D array]
-    4. gain [gain, 1D array]
-    Optional arguments:
-    5. threshold_oneomit [float, minimum chisq improvement to exclude 
-                          a single resultant difference.  Default 20.25,
-                          i.e., 4.5 sigma]
-    6. threshold_twoomit [float, minimum chisq improvement to exclude 
-                          two sequential resultant differences.  
-                          Default 23.8, i.e., 4.5 sigma]
-    7. diffs2use [a 2D array of the same shape as d, one for resultant
-                  differences that appear ok and zero for resultant
-                  differences flagged as contaminated.  These flagged
-                  differences will be ignored throughout jump detection,
-                  which will only flag additional differences and
-                  overwrite the data in this array. Default None]
+    Parameters
+    ----------
+    diffs : ndarray
+        The group differences of the data array for a given integration and row
+        (ngroups-1, ncols).
 
-    Returns:
-    1. diffs2use [a 2D array of the same shape as d, one for resultant
-                  differences that appear ok and zero for resultant
-                  differences flagged as contaminated.]
-    2. countrates [a 1D array of the count rates after masking the pixels
-                  and resultants in diffs2use.]
+    Cov : Covar
+        The class that computes and contains the covariance matrix info.
+
+    rnoise : ndarray
+        The read noise (ncols,)
+
+    gain : ndarray
+        The gain (ncols,)
+
+    threshold_oneomit : float
+        Minimum chisq improvement to exclude a single resultant difference.
+        Default: 20.25.
+
+    threshold_twoomit : float
+        Minimum chisq improvement to exclude  two sequential resultant differences.  
+        Default 23.8.
+
+    d2use : ndarray
+        A boolean array definined the segmented ramps for each pixel in a row.
+        (ngroups-1, ncols)
+
+    Returns
+    -------
+    d2use : ndarray
+        A boolean array definined the segmented ramps for each pixel in a row.
+        (ngroups-1, ncols)
+
+    countrates : ndarray
+        Count rate estimates used to estimate the covariance matrix.
+        Optional, default is None.
 
     """
-    # XXX refactor
     if Cov.pedestal:
         raise ValueError("Cannot mask jumps with a Covar class that includes a pedestal fit.")
     
     # Force a copy of the input array for more efficient memory access.
-    
-    d = diffs * 1  # XXX Change this name!
+    loc_diff = diffs * 1
     
     # We can use one-omit searches only where the reads immediately
     # preceding and following have just one read.  If a readout
@@ -199,7 +205,7 @@ def mask_jumps(
     # use, zero for resultant differences to ignore.
 
     if diffs2use is None:
-        diffs2use = np.ones(d.shape, np.uint8)
+        diffs2use = np.ones(loc_diff.shape, np.uint8)
 
     # We need to estimate the covariance matrix.  I'll use the median
     # here for now to limit problems with the count rate in reads with
@@ -207,19 +213,19 @@ def mask_jumps(
     # likelihoods and chi squared; getting the covariance matrix
     # reasonably close to correct is important.
     
-    countrateguess = np.median(d, axis=0)[np.newaxis, :]
+    countrateguess = np.median(loc_diff, axis=0)[np.newaxis, :]
     countrateguess *= countrateguess > 0
 
     # boolean arrays to be used later
-    recheck = np.ones(d.shape[1]) == 1
-    dropped = np.ones(d.shape[1]) == 0
+    recheck = np.ones(loc_diff.shape[1]) == 1
+    dropped = np.ones(loc_diff.shape[1]) == 0
     
-    for j in range(d.shape[0]):
+    for j in range(loc_diff.shape[0]):
 
         # No need for indexing on the first pass.
         if j == 0:
             result = fit_ramps(
-                    d,
+                    loc_diff,
                     Cov,
                     gain,
                     rnoise,
@@ -231,7 +237,7 @@ def mask_jumps(
             countrate = result.countrate*1.
         else:
             result = fit_ramps(
-                    d[:, recheck],
+                    loc_diff[:, recheck],
                     Cov,
                     gain[recheck],
                     rnoise[recheck],
@@ -314,7 +320,6 @@ def mask_jumps(
         recheck[np.sum(diffs2use, axis=0) <= 3] = False
 
     return diffs2use, countrate
-#BOX END
 
 
 def get_readtimes(ramp_data):
@@ -605,126 +610,167 @@ def fit_ramps(
 
     # --- Beginning at line 250: Paper 1 section 4
 
-    # =============================================================================
-    # =============================================================================
-    # =============================================================================
-    # XXX Refactor the below section.  In fact the whole thing should be moved to
-    #     another function, which itself should be refactored.
-
-    # The code below computes the best chi squared, best-fit slope,
-    # and its uncertainty leaving out each group difference in
-    # turn.  There are ndiffs possible differences that can be
-    # omitted.
-    #
-    # Then do it omitting two consecutive reads.  There are ndiffs-1
-    # possible pairs of adjacent reads that can be omitted.
-    #
-    # This approach would need to be modified if also fitting the
-    # pedestal, so that condition currently triggers an error.  The
-    # modifications would make the equations significantly more
-    # complicated; the matrix equations to be solved by hand would be
-    # larger.
-
-    # XXX - This needs to get moved into a separate function.  This section should
-    #       be separated anyway, since it's a completely separate function, but the
-    #       code itself should be further broken down, as it's a meandering mess
-    #       also.  Far too complicated for a single function.
-    # Paper II, sections 3.1 and 3.2
     if detect_jumps:
-
-        # The algorithms below do not work if we are computing the
-        # pedestal here.
-
-        if covar.pedestal:
-            raise ValueError(
-                "Cannot use jump detection algorithm when fitting pedestals."
-            )
-
-        # Diagonal elements of the inverse covariance matrix
-
-        Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]
-        Cinv_diag *= diffs2use
-
-        # Off-diagonal elements of the inverse covariance matrix
-        # one spot above and below for the case of two adjacent
-        # differences to be masked
-
-        Cinv_offdiag = -beta * theta[:-2] * phi[2:] / theta[ndiffs]
-
-        # Equations in the paper: best-fit a, b
-        #
-        # Catch warnings in case there are masked group
-        # differences, since these will be overwritten later.  No need
-        # to warn about division by zero here.
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            a = (Cinv_diag * B - dB * dC) / (C * Cinv_diag - dC**2)
-            b = (dB - a * dC) / Cinv_diag
-
-            result.countrate_oneomit = a
-            result.jumpval_oneomit = b
-
-            # Use the best-fit a, b to get chi squared
-
-            result.chisq_oneomit = (
-                A
-                + a**2 * C
-                - 2 * a * B
-                + b**2 * Cinv_diag
-                - 2 * b * dB
-                + 2 * a * b * dC
-            )
-            # invert the covariance matrix of a, b to get the uncertainty on a
-            result.uncert_oneomit = np.sqrt(Cinv_diag / (C * Cinv_diag - dC**2))
-            result.jumpsig_oneomit = np.sqrt(C / (C * Cinv_diag - dC**2))
-
-            result.chisq_oneomit /= scale
-            result.uncert_oneomit *= np.sqrt(scale)
-            result.jumpsig_oneomit *= np.sqrt(scale)
-
-        # Now for two omissions in a row.  This is more work.  Again,
-        # all equations are in the paper.  I first define three
-        # factors that will be used more than once to save a bit of
-        # computational effort.
-
-        cpj_fac = dC[:-1] ** 2 - C * Cinv_diag[:-1]
-        cjck_fac = dC[:-1] * dC[1:] - C * Cinv_offdiag
-        bcpj_fac = B * dC[:-1] - dB[:-1] * C
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            # best-fit a, b, c
-            c = bcpj_fac / cpj_fac - (B * dC[1:] - dB[1:] * C) / cjck_fac
-            c /= cjck_fac / cpj_fac - (dC[1:] ** 2 - C * Cinv_diag[1:]) / cjck_fac
-            b = (bcpj_fac - c * cjck_fac) / cpj_fac
-            a = (B - b * dC[:-1] - c * dC[1:]) / C
-            result.countrate_twoomit = a
-
-            # best-fit chi squared
-            result.chisq_twoomit = (
-                A + a**2 * C + b**2 * Cinv_diag[:-1] + c**2 * Cinv_diag[1:]
-            )
-            result.chisq_twoomit -= 2 * a * B + 2 * b * dB[:-1] + 2 * c * dB[1:]
-            result.chisq_twoomit += (
-                2 * a * b * dC[:-1] + 2 * a * c * dC[1:] + 2 * b * c * Cinv_offdiag
-            )
-            result.chisq_twoomit /= scale
-
-            # uncertainty on the slope from inverting the (a, b, c)
-            # covariance matrix
-            fac = Cinv_diag[1:] * Cinv_diag[:-1] - Cinv_offdiag**2
-            term2 = dC[:-1] * (dC[:-1] * Cinv_diag[1:] - Cinv_offdiag * dC[1:])
-            term3 = dC[1:] * (dC[:-1] * Cinv_offdiag - Cinv_diag[:-1] * dC[1:])
-            result.uncert_twoomit = np.sqrt(fac / (C * fac - term2 + term3))
-            result.uncert_twoomit *= np.sqrt(scale)
-
-        result.fill_masked_reads(diffs2use)
+        result = compute_jump_detects(
+            result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
+        )
 
     return result
-
-
 # RAMP FITTING END
+
+
+def compute_jump_detects(
+    result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
+):
+    """
+    The code below computes the best chi squared, best-fit slope,
+    and its uncertainty leaving out each group difference in
+    turn.  There are ndiffs possible differences that can be
+    omitted.
+
+    Then do it omitting two consecutive reads.  There are ndiffs-1
+    possible pairs of adjacent reads that can be omitted.
+
+    This approach would need to be modified if also fitting the
+    pedestal, so that condition currently triggers an error.  The
+    modifications would make the equations significantly more
+    complicated; the matrix equations to be solved by hand would be
+    larger.
+
+    Paper II, sections 3.1 and 3.2
+
+    Parameters
+    ----------
+    result : Ramp_Result
+        The results of the ramp fitting for a given row of pixels in an integration.
+
+    ndiffs :  int
+        Number of differences.
+
+    diffs2use : ndarray
+        Boolean mask determining with group differences to use (ngroups-1, ncols).
+
+    dC : ndarray
+        Intermediate computation.
+
+    dB : ndarray
+        Intermediate computation.
+
+    A : ndarray
+        Intermediate computation.
+
+    B : ndarray
+        Intermediate computation.
+
+    C : ndarray
+        Intermediate computation.
+
+    scale : ndarray or integer
+        Overflow/underflow prevention scale.
+
+    beta : ndarray
+        Off diagonal of covariance matrix.
+
+    phi : ndarray
+        Intermediate computation.
+
+    theta : ndarray
+        Intermediate computation.
+
+    covar : Covar
+        The class that computes and contains the covariance matrix info.
+
+
+    Returns
+    -------
+    result : Ramp_Result
+        The results of the ramp fitting for a given row of pixels in an integration.
+    """
+    # The algorithms below do not work if we are computing the
+    # pedestal here.
+    if covar.pedestal:
+        raise ValueError(
+            "Cannot use jump detection algorithm when fitting pedestals."
+        )
+
+    # Diagonal elements of the inverse covariance matrix
+    Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]
+    Cinv_diag *= diffs2use
+
+    # Off-diagonal elements of the inverse covariance matrix
+    # one spot above and below for the case of two adjacent
+    # differences to be masked
+    Cinv_offdiag = -beta * theta[:-2] * phi[2:] / theta[ndiffs]
+
+    # Equations in the paper: best-fit a, b
+    #
+    # Catch warnings in case there are masked group
+    # differences, since these will be overwritten later.  No need
+    # to warn about division by zero here.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        a = (Cinv_diag * B - dB * dC) / (C * Cinv_diag - dC**2)
+        b = (dB - a * dC) / Cinv_diag
+
+        result.countrate_oneomit = a
+        result.jumpval_oneomit = b
+
+        # Use the best-fit a, b to get chi squared
+        result.chisq_oneomit = (
+            A
+            + a**2 * C
+            - 2 * a * B
+            + b**2 * Cinv_diag
+            - 2 * b * dB
+            + 2 * a * b * dC
+        )
+
+        # invert the covariance matrix of a, b to get the uncertainty on a
+        result.uncert_oneomit = np.sqrt(Cinv_diag / (C * Cinv_diag - dC**2))
+        result.jumpsig_oneomit = np.sqrt(C / (C * Cinv_diag - dC**2))
+
+        result.chisq_oneomit /= scale
+        result.uncert_oneomit *= np.sqrt(scale)
+        result.jumpsig_oneomit *= np.sqrt(scale)
+
+    # Now for two omissions in a row.  This is more work.  Again,
+    # all equations are in the paper.  I first define three
+    # factors that will be used more than once to save a bit of
+    # computational effort.
+    cpj_fac = dC[:-1] ** 2 - C * Cinv_diag[:-1]
+    cjck_fac = dC[:-1] * dC[1:] - C * Cinv_offdiag
+    bcpj_fac = B * dC[:-1] - dB[:-1] * C
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # best-fit a, b, c
+        c = bcpj_fac / cpj_fac - (B * dC[1:] - dB[1:] * C) / cjck_fac
+        c /= cjck_fac / cpj_fac - (dC[1:] ** 2 - C * Cinv_diag[1:]) / cjck_fac
+        b = (bcpj_fac - c * cjck_fac) / cpj_fac
+        a = (B - b * dC[:-1] - c * dC[1:]) / C
+        result.countrate_twoomit = a
+
+        # best-fit chi squared
+        result.chisq_twoomit = (
+            A + a**2 * C + b**2 * Cinv_diag[:-1] + c**2 * Cinv_diag[1:]
+        )
+        result.chisq_twoomit -= 2 * a * B + 2 * b * dB[:-1] + 2 * c * dB[1:]
+        result.chisq_twoomit += (
+            2 * a * b * dC[:-1] + 2 * a * c * dC[1:] + 2 * b * c * Cinv_offdiag
+        )
+        result.chisq_twoomit /= scale
+
+        # uncertainty on the slope from inverting the (a, b, c)
+        # covariance matrix
+        fac = Cinv_diag[1:] * Cinv_diag[:-1] - Cinv_offdiag**2
+        term2 = dC[:-1] * (dC[:-1] * Cinv_diag[1:] - Cinv_offdiag * dC[1:])
+        term3 = dC[1:] * (dC[:-1] * Cinv_offdiag - Cinv_diag[:-1] * dC[1:])
+        result.uncert_twoomit = np.sqrt(fac / (C * fac - term2 + term3))
+        result.uncert_twoomit *= np.sqrt(scale)
+
+    result.fill_masked_reads(diffs2use)
+
+    return result
 
 
 def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
