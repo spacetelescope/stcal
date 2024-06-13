@@ -101,8 +101,6 @@ def likely_ramp_fit(
         alldiffs2use = np.ones(diff.shape, np.uint8)
 
         for row in range(nrows):
-            # d2use = determine_diffs2use(ramp_data, integ, row, diff[:, row])
-            # XXX Should this be done like this?  Jump detection is done here.
             d2use, countrates = mask_jumps(
                 diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=alldiffs2use[:, row]
             )                
