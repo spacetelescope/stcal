@@ -245,12 +245,16 @@ def ramp_fit_data(
         Object containing optional GLS-specific ramp fitting data for the
         exposure
     """
+    # For the LIKELY algorithm, due to the jump detection portion of the code
+    # a minimum of a four group ramp is needed.
+    ngroups = ramp_data.data.shape[1]
+    likely_min_ngroups = 4
     if algorithm.upper() == "GLS":
         image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
         )
         opt_info = None
-    elif algorithm.upper() == "LIKELY":
+    elif algorithm.upper() == "LIKELY" and ngroups >= likely_min_ngroups:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
         )
@@ -259,6 +263,12 @@ def ramp_fit_data(
         # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
+        # XXX If the LIKELY is selected, log that the "OLS" algorithm is being use
+        #     and note the minimum number of ngroups needed.
+        if algorithm.upper() == "LIKELY" and ngroups < likely_min_ngroups:
+            msg = f"The 'OLS' algorithm is used since the LIKELY algorithm requires {likely_min_ngroups} or more"
+            msg += f"NGROUPS.  The NGROUPS for this data,{ngroups}, is insufficient."
+            log.warning(msg)
         nframes = ramp_data.nframes
         readnoise_2d *= gain_2d / np.sqrt(2.0 * nframes)
 
