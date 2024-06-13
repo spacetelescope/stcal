@@ -160,6 +160,8 @@ def test_basic_ramp():
     tol = 1.e-5
     diff = abs(data - check)
     assert diff < tol
+    slope = slopes[0][0, 0]
+    assert abs(slope - data) < tol
 
 
     # Check against OLS.
@@ -386,12 +388,13 @@ def test_long_ramp():
     assert diff < tol
 
 
-def test_2group_ramp():
+@pytest.mark.parametrize("ngroups", [1, 2])
+def test_too_few_group_ramp(ngroups):
     """
     It's supposed to fail.  The likelihood algorithm needs at least two
     groups to work.
     """
-    nints, ngroups, nrows, ncols = 1, 2, 1, 1
+    nints, nrows, ncols = 1, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 1, 0
 
@@ -413,11 +416,11 @@ def test_2group_ramp():
 
 
 @pytest.mark.parametrize("nframes", [1, 2, 4, 8])
-def test_short_integrations(nframes):
+def test_short_group_ramp(nframes):
     """
-    Check short 3 and 2 group integrations.
+    Test short ramps with various nframes.
     """
-    nints, ngroups, nrows, ncols = 1, 3, 1, 1
+    nints, ngroups, nrows, ncols = 1, 4, 1, 1
     rnval, gval = 10.0, 5.0
     # frame_time, nframes, groupgap = 10.736, 4, 1
     frame_time, groupgap = 10.736, 1
@@ -461,12 +464,8 @@ def test_short_integrations(nframes):
     assert diff < tol
 
 
-def test_1group():
-    """
-    The number of groups must be greater than 1, so make sure an
-    exception is raised where ngroups == 1.
-    """
-    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+def data_small_good_groups():
+    nints, ngroups, nrows, ncols = 1, 10, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
 
@@ -480,12 +479,42 @@ def test_1group():
     ramp = np.array(list(range(ngroups))) * 20 + 10
     ramp_data.data[0, :, 0, 0] = ramp
 
+    dq = np.array([SAT] * ngroups, dtype=np.uint8)
+    ramp_data.groupdq[0, :, 0, 0] = dq
+
+    return ramp_data, gain2d, rnoise2d
+
+
+
+@pytest.mark.parametrize("ngood", [1, 2])
+def test_small_good_groups(ngood):
+    """
+    Test ramps with only one or two good groups.
+    """
+    ramp_data, gain2d, rnoise2d = data_small_good_groups()
+    ramp_data.groupdq[0, :ngood, 0, 0] = GOOD
+
     save_opt, algo, ncores = False, "LIKELY", "none"
-    with pytest.raises(ValueError):
-        slopes, cube, ols_opt, gls_opt = ramp_fit_data(
-            ramp_data, 512, save_opt, rnoise2d, gain2d, algo,
-            "optimal", ncores, test_dq_flags
-        )
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    lik_slope = slopes[0][0, 0]
+
+
+    # Check against OLS.
+    ramp_data1, gain2d1, rnoise2d1 = data_small_good_groups()
+    ramp_data1.groupdq[0, :ngood, 0, 0] = GOOD
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes1, cube1, ols_opt1, gls_opt1 = ramp_fit_data(
+        ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
+    )
+    ols_slope = slopes1[0][0, 0]
+
+    tol = 1.e-4
+    diff = abs(ols_slope - lik_slope)
+    assert diff < tol
 
 
 # -----------------------------------------------------------------
