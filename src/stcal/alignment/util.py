@@ -269,7 +269,7 @@ def _calculate_new_wcs(ref_model, shape, wcs_list, fiducial, crpix=None, transfo
     ----------
     ref_model :
         The reference model to be used when extracting metadata.
-bp
+
     shape : list
         The shape of the new WCS's pixel grid. If `None`, then the output bounding box
         will be used to determine it.
@@ -785,18 +785,30 @@ def reproject(wcs1, wcs2):
         tuple
             Tuple of np.ndarrays including reprojected x and y coordinates.
         """
-        sky = forward_transform(x, y)
-        flat_sky = []
-        for axis in sky:
-            flat_sky.append(axis.flatten())
+        # sky = forward_transform(x, y)
+        # flat_sky = []
+        # for axis in sky:
+        #     flat_sky.append(axis.flatten())
+        # # Filter out RuntimeWarnings due to computed NaNs in the WCS
+        # with warnings.catch_warnings():
+        #     warnings.simplefilter("ignore", RuntimeWarning)
+        #     det = backward_transform(*tuple(flat_sky))
+        # det_reshaped = []
+        # for axis in det:
+        #     det_reshaped.append(axis.reshape(x.shape))
+
+        # return tuple(det_reshaped)
+        shape = np.array(x).shape
+        sky = forward_transform(x, y)   
+        flat_sky = [axis.flatten() for axis in sky]
+        
         # Filter out RuntimeWarnings due to computed NaNs in the WCS
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
-            det = backward_transform(*tuple(flat_sky))
-        det_reshaped = []
-        for axis in det:
-            det_reshaped.append(axis.reshape(x.shape))
+            detector = backward_transform(*tuple(flat_sky))
 
-        return tuple(det_reshaped)
+        if shape == ():
+            return tuple([axis.item() for axis in detector])
+        return tuple([axis.reshape(shape) for axis in detector])
 
     return _reproject

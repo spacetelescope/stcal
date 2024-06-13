@@ -253,7 +253,7 @@ def get_fake_wcs():
     [
         (1000, 2000, np.array(2000), np.array(4000)),  # string input test
         ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
-        pytest.param(1, 2, 3, 4, marks=pytest.mark.xfail),  # expected failure test
+        (1, 2, 2, 4),
     ],
 )
 def test_reproject(x_inp, y_inp, x_expected, y_expected):
