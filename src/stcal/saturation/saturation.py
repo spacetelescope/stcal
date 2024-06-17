@@ -113,12 +113,12 @@ def flag_saturated_pixels(
                     # Identify groups that are saturated in the third group
                     mask &= np.where(gdq[ints, 2, :, :] & saturated, True, False)
 
-                    # now, flag any pixels that border saturated pixels
-                    if n_pix_grow_sat > 0:
-                        mask = adjacent_pixels(mask, saturated, n_pix_grow_sat)
-
                     # Flag the 2nd group for the pixels passing that gauntlet
                     gdq[ints, 1][mask] |= saturated
+
+                    # now, flag any pixels that border saturated pixels
+                    if n_pix_grow_sat > 0:
+                        gdq[ints, 1][mask] = adjacent_pixels(gdq[ints, 1][mask], saturated, n_pix_grow_sat)
 
             # now, flag any pixels that border saturated pixels (not A/D floor pix)
             if n_pix_grow_sat > 0:
