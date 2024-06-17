@@ -118,7 +118,7 @@ def flag_saturated_pixels(
 
                     # now, flag any pixels that border saturated pixels
                     if n_pix_grow_sat > 0:
-                        gdq[ints, 1][mask] = adjacent_pixels(gdq[ints, 1][mask], saturated, n_pix_grow_sat)
+                        gdq[ints, 1, ...] = adjacent_pixels(gdq[ints, 1, ...], saturated, n_pix_grow_sat)
 
             # now, flag any pixels that border saturated pixels (not A/D floor pix)
             if n_pix_grow_sat > 0:
