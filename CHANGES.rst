@@ -4,7 +4,7 @@
 General
 -------
 
-- pin numpy<2 [#265]
+-
 
 Changes to API
 --------------
