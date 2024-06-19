@@ -9,8 +9,8 @@ log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(
-    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, n_pix_grow_sat=1, zframe=None, read_pattern=None
-):
+    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags,
+    n_pix_grow_sat=1, zframe=None, read_pattern=None):
     """
     Short Summary
     -------------
@@ -52,7 +52,6 @@ def flag_saturated_pixels(
 
     read_pattern : List[List[float or int]] or None
         The times or indices of the frames composing each group.
-
 
     Returns
     -------
@@ -101,6 +100,25 @@ def flag_saturated_pixels(
 
             del flagarray
             del flaglowarray
+
+            if read_pattern is not None:
+                if group == 2:
+                    # Identify groups which we wouldn't expect to saturate by the third group,
+                    # on the basis of the first group
+                    mask = data[ints, 0, ...] / np.mean(read_pattern[0]) * read_pattern[2][-1] < sat_thresh
+
+                    # Identify groups with suspiciously large values in the second group
+                    mask &= data[ints, 1, ...] > sat_thresh / len(read_pattern[1])
+
+                    # Identify groups that are saturated in the third group
+                    mask &= np.where(gdq[ints, 2, :, :] & saturated, True, False)
+
+                    # Flag the 2nd group for the pixels passing that gauntlet
+                    gdq[ints, 1][mask] |= saturated
+
+                    # now, flag any pixels that border saturated pixels
+                    if n_pix_grow_sat > 0:
+                        gdq[ints, 1, ...] = adjacent_pixels(gdq[ints, 1, ...], saturated, n_pix_grow_sat)
 
             # now, flag any pixels that border saturated pixels (not A/D floor pix)
             if n_pix_grow_sat > 0:
