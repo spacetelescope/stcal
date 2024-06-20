@@ -591,6 +591,12 @@ def flag_large_events(
             prev_sat = np.bitwise_and(prev_gdq, sat_flag)
             not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
+            if group < ngrps - 1:
+                next_gdq = gdq[integration, group + 1, :, :]
+                next_sat = np.bitwise_and(next_gdq, sat_flag)
+                not_current_sat = np.logical_not(current_sat)
+                next_new_sat = next_sat * not_current_sat
+            next_sat_ellipses = find_ellipses(next_new_sat, sat_flag, min_sat_area)
             sat_ellipses = find_ellipses(new_sat, sat_flag, min_sat_area)
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, min_jump_area)
@@ -603,6 +609,7 @@ def flag_large_events(
                     group,
                     jump_ellipses,
                     sat_ellipses,
+                    next_sat_ellipses,
                     low_threshold,
                     high_threshold,
                     min_sat_radius_extend,
@@ -807,6 +814,7 @@ def make_snowballs(
     group,
     jump_ellipses,
     sat_ellipses,
+    next_sat_ellipses,
     low_threshold,
     high_threshold,
     min_sat_radius,
@@ -822,29 +830,19 @@ def make_snowballs(
     snowballs = []
     num_groups = gdq.shape[1]
     for jump in jump_ellipses:
-        # center of jump should be saturated
-        jump_center = jump[0]
-        if (
-            # if center of the jump ellipse is not saturated in this group and is saturated in
-            # the next group add the jump ellipse to the snowball list
-            group < (num_groups - 1)
-            and gdq[integration, group + 1, round(jump_center[1]), round(jump_center[0])] == sat_flag
-            and gdq[integration, group, round(jump_center[1]), round(jump_center[0])] != sat_flag
-        ) or (
+        if near_edge(jump, low_threshold, high_threshold):
             # if the jump ellipse is near the edge, do not require saturation in the
             # center of the jump ellipse
-            near_edge(jump, low_threshold, high_threshold)
-        ):
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
-                # center of saturation is within the enclosing jump rectangle
-                if (
-                    point_inside_ellipse(sat[0], jump)
-                    and gdq[integration, group, round(jump_center[1]), round(jump_center[0])] == sat_flag
-                    and jump not in snowballs
-                ):
+                if ((point_inside_ellipse(sat[0], jump) and jump not in snowballs)):
                     snowballs.append(jump)
+            if group < num_groups - 1:
+                # Is there saturation inside the jump in the next group?
+                for next_sat in next_sat_ellipses:
+                    if ((point_inside_ellipse(next_sat[0], jump)) and jump not in snowballs):
+                        snowballs.append(jump)
     # extend the saturated ellipses that are larger than the min_sat_radius
     gdq[integration, :, :, :], persist_jumps[integration, :, :] = extend_saturation(
         gdq[integration, :, :, :],
@@ -863,9 +861,9 @@ def make_snowballs(
 
 def point_inside_ellipse(point, ellipse):
     delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
-    minor_axis = min(ellipse[1][0], ellipse[1][1])
+    major_axis = max(ellipse[1][0], ellipse[1][1])
 
-    return delta_center < minor_axis
+    return delta_center < major_axis
 
 
 def near_edge(jump, low_threshold, high_threshold):
