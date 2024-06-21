@@ -98,6 +98,9 @@ def likely_ramp_fit(
         # Eqn (5)
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
 
+        # XXX apply SATURATED and DO_NOT_USE flags here
+        # Possibly use 'def determine_diffs2use(ramp_data, integ, row, diffs):'
+        # Suggested alldiffs2use[gdq[1:] != 0]
         alldiffs2use = np.ones(diff.shape, np.uint8)
 
         for row in range(nrows):
@@ -189,19 +192,16 @@ def mask_jumps(
     # pattern has more than one read per resultant but significant
     # gaps between resultants then a one-omit search might still be a
     # good idea even with multiple-read resultants.
-
     oneomit_ok = Cov.Nreads[1:] * Cov.Nreads[:-1] >= 1
     oneomit_ok[0] = oneomit_ok[-1] = True
 
     # Other than that, we need to omit two.  If a resultant has more
     # than two reads, we need to omit both differences containing it
     # (one pair of omissions in the differences).
-
     twoomit_ok = Cov.Nreads[1:-1] > 1
     
     # This is the array to return: one for resultant differences to
     # use, zero for resultant differences to ignore.
-
     if diffs2use is None:
         diffs2use = np.ones(loc_diff.shape, np.uint8)
 
@@ -210,7 +210,6 @@ def mask_jumps(
     # jumps (which is what we are looking for) since we'll be using
     # likelihoods and chi squared; getting the covariance matrix
     # reasonably close to correct is important.
-    
     countrateguess = np.median(loc_diff, axis=0)[np.newaxis, :]
     countrateguess *= countrateguess > 0
 
@@ -244,12 +243,10 @@ def mask_jumps(
                     detect_jumps=True)
 
         # Chi squared improvements
-        
         dchisq_two = result.chisq - result.chisq_twoomit
         dchisq_one = result.chisq - result.chisq_oneomit
 
         # We want the largest chi squared difference
-
         best_dchisq_one = np.amax(dchisq_one * oneomit_ok[:, np.newaxis], axis=0)
         best_dchisq_two = np.amax(dchisq_two * twoomit_ok[:, np.newaxis], axis=0)  # XXX HERE
         
@@ -259,7 +256,6 @@ def mask_jumps(
         # thresholds.  Then find the chi squared improvement
         # corresponding to dropping either one or two reads, whichever
         # is better, if either exceeded the threshold.
-
         onedropbetter = (best_dchisq_one - threshold_oneomit > best_dchisq_two - threshold_twoomit)
         
         best_dchisq = best_dchisq_one*(best_dchisq_one > threshold_oneomit)*onedropbetter
@@ -267,13 +263,11 @@ def mask_jumps(
 
         # If nothing exceeded the threshold set the improvement to
         # NaN so that dchisq==best_dchisq is guaranteed to be False.
-        
         best_dchisq[best_dchisq == 0] = np.nan
 
         # Now make the masks for which resultant difference(s) to
         # drop, count the number of ramps affected, and drop them.
         # If no ramps were affected break the loop.
-
         dropone = dchisq_one == best_dchisq
         droptwo = dchisq_two == best_dchisq
 
@@ -284,7 +278,6 @@ def mask_jumps(
             break
 
         # Store the updated counts with omitted reads
-        
         new_cts = np.zeros(np.sum(recheck))
         i_d1 = np.sum(dropone, axis=0) > 0
         new_cts[i_d1] = np.sum(result.countrate_oneomit * dropone, axis=0)[i_d1]
@@ -292,19 +285,16 @@ def mask_jumps(
         new_cts[i_d2] = np.sum(result.countrate_twoomit * droptwo, axis=0)[i_d2]
 
         # zero out count rates with drops and add their new values back in
-        
         countrate[recheck] *= drop == 0
         countrate[recheck] += new_cts
         
         # Drop the read (set diffs2use=0) if the boolean array is True.
-        
         diffs2use[:, recheck] *= ~dropone
         diffs2use[:-1, recheck] *= ~droptwo
         diffs2use[1:, recheck] *= ~droptwo
 
         # No need to repeat this on the entire ramp, only re-search
         # ramps that had a resultant difference dropped this time.
-
         dropped[:] = False
         dropped[recheck] = drop
         recheck[:] = dropped
@@ -314,7 +304,6 @@ def mask_jumps(
         # in the ramp.  If there are only two left we have no way of
         # choosing which one is "good".  If there are three left we
         # run into trouble in case we need to discard two.
-
         recheck[np.sum(diffs2use, axis=0) <= 3] = False
 
     return diffs2use, countrate
@@ -380,6 +369,12 @@ def compute_image_info(integ_class, ramp_data):
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
+    # XXX Feedback from Brandt that this may not be correct.
+    #     He provided another way to combine these computations.
+    #
+    # After testing, there doesn't appear to be a difference between
+    # these two compuations.  Manually check.
+    print("**** Old Computations ****")
     inv_vp = 1.  / integ_class.var_poisson
     var_p = 1. / inv_vp.sum(axis=0)
 
@@ -389,11 +384,25 @@ def compute_image_info(integ_class, ramp_data):
     inv_err = 1.  / integ_class.err
     err = 1. / inv_err.sum(axis=0)
 
+    # XXX Allegedly equivalent to the computations below.  Need to check.
     inv_err2 = 1. / (integ_class.err**2)
     err2 = 1. / inv_err2.sum(axis=0)
 
     slope = integ_class.data * inv_err2
     slope = slope.sum(axis=0) * err2
+    '''
+    print("**** New Computations ****")
+    inv_err2 = 1. / (integ_class.err**2)
+    weight = inv_err2 / inv_err2.sum(axis=0)
+    weight2 = weight**2
+
+    err2 = np.sum(integ_class.err**2 * weight2, axis=0)
+
+    err = np.sqrt(err2)
+    var_p = np.sum(integ_class.var_poisson * weight2, axis=0)
+    var_r = np.sum(integ_class.var_rnoise * weight2, axis=0)
+    slope = np.sum(integ_class.data * weight, axis=0)
+    '''
 
     # Compute NaNs.
 
@@ -691,6 +700,9 @@ def compute_jump_detects(
             "Cannot use jump detection algorithm when fitting pedestals."
         )
 
+
+    # XXX need to determine where DQ flagging of JUMP_DET needs to occur.
+
     # Diagonal elements of the inverse covariance matrix
     Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]
     Cinv_diag *= diffs2use
@@ -766,6 +778,7 @@ def compute_jump_detects(
         result.uncert_twoomit = np.sqrt(fac / (C * fac - term2 + term3))
         result.uncert_twoomit *= np.sqrt(scale)
 
+    # XXX Maybe this tells where to mask.
     result.fill_masked_reads(diffs2use)
 
     return result
