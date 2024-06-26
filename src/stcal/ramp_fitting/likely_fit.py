@@ -374,7 +374,10 @@ def compute_image_info(integ_class, ramp_data):
     #
     # After testing, there doesn't appear to be a difference between
     # these two compuations.  Manually check.
-    print("**** Old Computations ****")
+    '''
+    # print("**** Old Computations ****")
+    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
     inv_vp = 1.  / integ_class.var_poisson
     var_p = 1. / inv_vp.sum(axis=0)
 
@@ -390,8 +393,9 @@ def compute_image_info(integ_class, ramp_data):
 
     slope = integ_class.data * inv_err2
     slope = slope.sum(axis=0) * err2
+    warnings.resetwarnings()
     '''
-    print("**** New Computations ****")
+    # print("**** New Computations ****")
     inv_err2 = 1. / (integ_class.err**2)
     weight = inv_err2 / inv_err2.sum(axis=0)
     weight2 = weight**2
@@ -402,7 +406,6 @@ def compute_image_info(integ_class, ramp_data):
     var_p = np.sum(integ_class.var_poisson * weight2, axis=0)
     var_r = np.sum(integ_class.var_rnoise * weight2, axis=0)
     slope = np.sum(integ_class.data * weight, axis=0)
-    '''
 
     # Compute NaNs.
 
@@ -825,6 +828,9 @@ def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
         Overflow/underflow prevention scale.
 
     """
+    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+
     alpha_phnoise = countrateguess / gain * covar.alpha_phnoise[:, np.newaxis]
     alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
     alpha = alpha_phnoise + alpha_readnoise
@@ -832,6 +838,8 @@ def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
     beta_phnoise = countrateguess / gain * covar.beta_phnoise[:, np.newaxis]
     beta_readnoise = rnoise**2 * covar.beta_readnoise[:, np.newaxis]
     beta = beta_phnoise + beta_readnoise 
+
+    warnings.resetwarnings()
 
     ndiffs, npix = diffs.shape
 
@@ -852,6 +860,9 @@ def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
         theta[1] = alpha[0]
 
         scale = theta[0] * 1
+        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+
         for i in range(2, ndiffs + 1):
             theta[i] = alpha[i-1] / scale * theta[i-1] \
                        - beta[i-2]**2 / scale**2 * theta[i-2]
@@ -867,6 +878,8 @@ def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
                 theta[i-1] /= tmp
                 theta[i-2] /= (tmp / f)
                 theta[i] = 1
+
+        warnings.resetwarnings()
     else:
         scale = 1
 
@@ -1225,6 +1238,9 @@ def get_ramp_result(
         # result.countrate = B / C
         result.countrate = B * invC
         result.chisq = (A - B**2 / C) / scale
+        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
 
@@ -1237,6 +1253,8 @@ def get_ramp_result(
         result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
         result.var_rnoise += 2 * np.sum(
                 result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0)
+
+        warnings.resetwarnings()
 
     # If we are computing the pedestal, then we use the other formulas
     # in the paper.
