@@ -223,6 +223,8 @@ def test_basic_ramp_2integ():
     diff = abs(data - data1)
     assert diff < tol
 
+    # dbg_print_slope_slope1(slopes, slopes1, (0, 0))
+
 
 def flagged_ramp_data():
     nints, ngroups, nrows, ncols = 1, 20, 1, 1
