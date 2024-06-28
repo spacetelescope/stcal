@@ -44,7 +44,7 @@ class IntegInfo:
         Parameters
         ----------
         result : Ramp_Result
-            Holds computed ramp fitting information.  XXX - rename
+            Holds computed ramp fitting information.
 
         integ : int
             The current integration being operated on.
@@ -305,7 +305,7 @@ class Covar:
         Calculate the bias in the best-fit count rate from estimating the
         covariance matrix.  This calculation is derived in the paper.
 
-        Section 5 of paper 1.  XXX Not sure when to use this method.
+        Section 5 of paper 1.
 
         Arguments:
         Parameters
