@@ -97,25 +97,30 @@ def likely_ramp_fit(
 
         # Eqn (5)
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
-
-        # XXX apply SATURATED and DO_NOT_USE flags here
-        # Possibly use 'def determine_diffs2use(ramp_data, integ, row, diffs):'
-        # Suggested alldiffs2use[gdq[1:] != 0]
-        alldiffs2use = np.ones(diff.shape, np.uint8)
+        alldiffs2use = np.ones(diff.shape, np.uint8)  # XXX May not be necessary
 
         for row in range(nrows):
+            d2use = determine_diffs2use(ramp_data, integ, row, diff)
             d2use, countrates = mask_jumps(
-                diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=alldiffs2use[:, row]
+                diff[:, row],
+                covar,
+                readnoise_2d[row],
+                gain_2d[row],
+                diffs2use=d2use
             )                
 
-            alldiffs2use[:, row] = d2use
+            alldiffs2use[:, row] = d2use  # XXX May not be necessary
+
+            # XXX According to Brandt feedback
+            # rateguess = countrates * (countrates > 0) * darkrate (ramp_data.average_dark_current?)
+            rateguess = countrates * (countrates > 0)
             result = fit_ramps(
                     diff[:, row],
                     covar,
                     gain_2d[row],
                     readnoise_2d[row],
                     diffs2use=d2use,
-                    countrateguess=countrates * (countrates > 0),
+                    countrateguess=rateguess
                     )
             integ_class.get_results(result, integ, row)
 
@@ -211,6 +216,8 @@ def mask_jumps(
     # likelihoods and chi squared; getting the covariance matrix
     # reasonably close to correct is important.
     countrateguess = np.median(loc_diff, axis=0)[np.newaxis, :]
+
+    # XXX Somehow add the Poisson variance back in.
     countrateguess *= countrateguess > 0
 
     # boolean arrays to be used later
@@ -371,9 +378,6 @@ def compute_image_info(integ_class, ramp_data):
 
     # XXX Feedback from Brandt that this may not be correct.
     #     He provided another way to combine these computations.
-    #
-    # After testing, there doesn't appear to be a difference between
-    # these two compuations.  Manually check.
     '''
     # print("**** Old Computations ****")
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
@@ -387,7 +391,6 @@ def compute_image_info(integ_class, ramp_data):
     inv_err = 1.  / integ_class.err
     err = 1. / inv_err.sum(axis=0)
 
-    # XXX Allegedly equivalent to the computations below.  Need to check.
     inv_err2 = 1. / (integ_class.err**2)
     err2 = 1. / inv_err2.sum(axis=0)
 
@@ -407,7 +410,7 @@ def compute_image_info(integ_class, ramp_data):
     var_r = np.sum(integ_class.var_rnoise * weight2, axis=0)
     slope = np.sum(integ_class.data * weight, axis=0)
 
-    # Compute NaNs.
+    # XXX Compute NaNs.
 
     return (slope, dq, var_p, var_r, err)
 
@@ -440,7 +443,8 @@ def determine_diffs2use(ramp_data, integ, row, diffs):
     _, ngroups, _, ncols = ramp_data.data.shape
     dq = np.zeros(shape=(ngroups, ncols), dtype=np.uint8)
     dq[:, :] = ramp_data.groupdq[integ, :, row, :]
-    d2use = np.ones(shape=diffs.shape, dtype=np.uint8)
+    d2use_tmp = np.ones(shape=diffs.shape, dtype=np.uint8)
+    d2use = d2use_tmp[:, row]
 
     # The JUMP_DET is handled different than other group DQ flags.
     jmp = np.uint8(ramp_data.flags_jump_det)
@@ -1234,12 +1238,12 @@ def get_ramp_result(
 
     # XXX pedestal is always False.
     if not covar.pedestal:
+        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
         invC = 1 / C
         # result.countrate = B / C
         result.countrate = B * invC
         result.chisq = (A - B**2 / C) / scale
-        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
