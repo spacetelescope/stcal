@@ -269,6 +269,14 @@ def test_wcs_bbox_from_shape_2d():
     assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
 
 
+def test_wcs_bbox_from_shape_3d():
+    bb = wcs_bbox_from_shape((3, 32, 2048))
+    assert bb == ((-0.5, 2047.5), (-0.5, 31.5))
+
+    bb = wcs_bbox_from_shape((750, 45, 50))
+    assert bb == ((-0.5, 49.5), (-0.5, 44.5))
+
+
 @pytest.mark.parametrize(
     ("shape", "pixmap_expected_shape"),
     [
