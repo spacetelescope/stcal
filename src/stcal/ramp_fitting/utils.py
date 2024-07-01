@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -167,6 +168,17 @@ class OptRes:
         -------
         None
         """
+        '''
+        if False:
+            print("=" * 80)
+            dbg_print(f"slope         = {slope}")
+            dbg_print(f"intercept     = {intercept}")
+            dbg_print(f"inv_var       = {inv_var}")
+            dbg_print(f"sig_intercept = {sig_intercept}")
+            dbg_print(f"sig_slope     = {sig_slope}")
+            print("=" * 80)
+        '''
+
         self.slope_2d[num_seg[g_pix], g_pix] = slope[g_pix]
 
         if save_opt:
@@ -505,13 +517,13 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         lengths of segments for all pixels in the given data section and
         integration, 3-D int
     """
-    (nreads, asize2, asize1) = gdq_sect.shape
-    npix = asize1 * asize2
-    imshape = (asize2, asize1)
+    (ngroups, nrows, ncols) = gdq_sect.shape
+    npix = nrows * ncols
+    imshape = (nrows, ncols)
 
     # Create integration-specific sections of input arrays for determination
     #   of the variances.
-    gdq_2d = gdq_sect[:, :, :].reshape((nreads, npix))
+    gdq_2d = gdq_sect[:, :, :].reshape((ngroups, npix))
     gain_1d = gain_sect.reshape(npix)
     gdq_2d_nan = gdq_2d.copy()  # group dq with SATS will be replaced by nans
     gdq_2d_nan = gdq_2d_nan.astype(np.float32)
@@ -520,16 +532,16 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
     gdq_2d_nan[np.bitwise_and(gdq_2d, ramp_data.flags_saturated).astype(bool)] = np.nan
 
     # Get lengths of semiramps for all pix [number_of_semiramps, number_of_pix]
-    segs = np.zeros_like(gdq_2d)
+    segs = np.zeros_like(gdq_2d).astype(np.uint16)
 
     # Counter of semiramp for each pixel
-    sr_index = np.zeros(npix, dtype=np.uint8)
+    sr_index = np.zeros(npix, dtype=np.uint16)
     pix_not_done = np.ones(npix, dtype=bool)  # initialize to True
 
-    i_read = 0
+    group = 0
     # Loop over reads for all pixels to get segments (segments per pixel)
-    while i_read < nreads and np.any(pix_not_done):
-        gdq_1d = gdq_2d_nan[i_read, :]
+    while group < ngroups and np.any(pix_not_done):
+        gdq_1d = gdq_2d_nan[group, :]
         wh_good = np.where(gdq_1d == 0)  # good groups
 
         # if this group is good, increment those pixels' segments' lengths
@@ -540,25 +552,25 @@ def calc_slope_vars(ramp_data, rn_sect, gain_sect, gdq_sect, group_time, max_seg
         # Locate any CRs that appear before the first SAT group...
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "invalid value.*", RuntimeWarning)
-            wh_cr = np.where(gdq_2d_nan[i_read, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
+            wh_cr = np.where(gdq_2d_nan[group, :].astype(np.int32) & ramp_data.flags_jump_det > 0)
 
         # ... but not on final read:
-        if len(wh_cr[0]) > 0 and (i_read < nreads - 1):
+        if len(wh_cr[0]) > 0 and (group < ngroups - 1):
             sr_index[wh_cr[0]] += 1
             segs[sr_index[wh_cr], wh_cr] += 1
 
         del wh_cr
 
         # If current group is a NaN, this pixel is done (pix_not_done is False)
-        wh_nan = np.where(np.isnan(gdq_2d_nan[i_read, :]))
+        wh_nan = np.where(np.isnan(gdq_2d_nan[group, :]))
         if len(wh_nan[0]) > 0:
             pix_not_done[wh_nan[0]] = False
 
         del wh_nan
 
-        i_read += 1
+        group += 1
 
-    segs = segs.astype(np.uint8)
+    segs = segs.astype(np.uint16)
     segs_beg = segs[:max_seg, :]  # the leading nonzero lengths
 
     # Create reshaped version [ segs, y, x ] to simplify computation
@@ -1491,7 +1503,8 @@ def compute_median_rates(ramp_data):
         # Reset all saturated groups in the input data array to NaN
         # data_sect[np.bitwise_and(gdq_sect, ramp_data.flags_saturated).astype(bool)] = np.nan
         invalid_flags = ramp_data.flags_saturated | ramp_data.flags_do_not_use
-        data_sect[np.bitwise_and(gdq_sect, invalid_flags).astype(bool)] = np.nan
+        invalid_locs = np.bitwise_and(gdq_sect, invalid_flags).astype(bool)
+        data_sect[invalid_locs] = np.nan
         data_sect = data_sect / group_time
 
         if one_groups_time_adjustment is not None:
@@ -1548,6 +1561,7 @@ def compute_median_rates(ramp_data):
                 first_diffs_sect[0, :, :][wh_min] = data_sect[0, :, :][wh_min]
 
             del wh_min
+
 
         # All first differences affected by saturation and CRs have been set
         #  to NaN, so compute the median of all non-NaN first differences.
