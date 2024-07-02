@@ -1,6 +1,6 @@
 import copy
 import logging
-import pdb
+
 import numpy as np
 from scipy import ndimage
 
@@ -137,6 +137,37 @@ def flag_saturated_pixels(
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, group, :, :], flagarray, gdq[ints, group, :, :])
+
+        # Add an additional pass to look for things saturating in the second group
+        # that can be particularly tricky to identify
+        if ((read_pattern is not None) & (ngroups > 2)):
+            dq2 = gdq[ints, 1, :, :]
+            dq3 = gdq[ints, 2, :, :]
+            
+            # Identify groups which we wouldn't expect to saturate by the third group,
+            # on the basis of the first group
+            scigp1 = data[ints, 0, :, :]
+            mask = scigp1 / np.mean(read_pattern[0]) * read_pattern[2][-1] < sat_thresh
+
+            # Identify groups with suspiciously large values in the second group
+            scigp2 = data[ints, 1, :, :]
+            mask &= scigp2 > sat_thresh / len(read_pattern[1])
+
+            # Identify groups that are saturated in the third group but not yet flagged in the second
+            gp3mask = np.where((np.bitwise_and(dq3, saturated) != 0) & \
+                               (np.bitwise_and(dq2, saturated) == 0), True, False)
+            mask &= gp3mask
+
+            # Flag the 2nd group for the pixels passing that gauntlet
+            flagarray = np.zeros_like(mask,dtype='uint8')
+            flagarray[mask] = saturated
+            # flag any pixels that border these new pixels
+            if n_pix_grow_sat > 0:
+                flagarray = adjacent_pixels(flagarray, saturated, n_pix_grow_sat)
+
+            # Add them to the gdq array
+            np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
+            
 
         # Check ZEROFRAME.
         if zframe is not None:
