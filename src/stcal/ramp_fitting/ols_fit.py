@@ -75,6 +75,7 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
     nrows = ramp_data.data.shape[2]
     num_available_cores = cpu_count()
     number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
+    log.info(f"Number of multiprocessing slices: {number_slices}")
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
@@ -574,6 +575,8 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.start_row = start_row
     ramp_data_slice.num_rows = nrows
 
+    ramp_data_slice.run_c_code = ramp_data.run_c_code
+
     return ramp_data_slice
 
 
@@ -661,9 +664,7 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    # use_c = False
-    # use_c = True  # XXX Change to default as False
-    use_c = ramp_data.dbg_run_c_code
+    use_c = ramp_data.run_c_code
     if use_c:
         c_start = time.time()
 
@@ -671,8 +672,11 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
         if ramp_data.drop_frames1 is None:
             ramp_data.drop_frames1 = 0
+        log.info("Entering C extension")
         image_info, integ_info, opt_info = ols_slope_fitter(
                 ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
+
+        log.info("Returning from C extension")
 
         c_end = time.time()
 
@@ -694,8 +698,10 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
     p_start = time.time()
 
+    log.info("Entering python code")
     image_info, integ_info, opt_info = ols_ramp_fit_single_python(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
+    log.info("Returning from python ")
 
     p_end = time.time()
     p_diff = p_end - p_start
