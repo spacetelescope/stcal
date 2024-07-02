@@ -584,7 +584,6 @@ def update_fits_wcsinfo(datamodel, max_pix_error=0.01, degree=None,
 
     Parameters
     ----------
-
     datamodel : `ImageModel`
         The input data model for imaging or WFSS mode whose ``meta.wcsinfo``
         field should be updated from GWCS. By default, ``datamodel.meta.wcs``
@@ -687,7 +686,6 @@ def update_fits_wcsinfo(datamodel, max_pix_error=0.01, degree=None,
 
     Notes
     -----
-
     Use of this requires a judicious choice of required accuracies.
     Attempts to use higher degrees (~7 or higher) will typically fail due
     to floating point problems that arise with high powers.

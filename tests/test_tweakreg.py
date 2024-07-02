@@ -8,12 +8,12 @@ import pytest
 from astropy.modeling.models import Shift
 from astropy.wcs import WCS
 from gwcs.wcstools import grid_from_bounding_box
-from jwst.datamodels import ModelContainer
 from photutils.segmentation import SourceCatalog, SourceFinder
 from stdatamodels.jwst.datamodels import ImageModel
 
 from stcal.tweakreg import astrometric_utils as amutils
-from stcal.tweakreg.tweakreg import _is_wcs_correction_small, _parse_refcat, _wcs_to_skycoord, tweakreg
+from stcal.tweakreg.tweakreg import _is_wcs_correction_small, _parse_refcat, _wcs_to_skycoord, _construct_wcs_corrector, \
+    relative_align, absolute_align, apply_tweakreg_solution
 from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
@@ -26,7 +26,6 @@ DATADIR = "data"
 # something
 BKG_LEVEL = 0.001
 N_EXAMPLE_SOURCES = 21
-N_CUSTOM_SOURCES = 15
 
 
 @pytest.fixture(scope="module")
@@ -58,11 +57,9 @@ def test_get_catalog(wcsobj):
 def test_create_catalog(wcsobj):
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
-        None,
-        existing_wcs=wcsobj,
+        wcsobj, "2016.0",
         catalog=TEST_CATALOG,
         output=None,
-        epoch="2016.0",
     )
     # check that we got expected number of sources
     assert len(gcat) == EXPECTED_NUM_SOURCES
@@ -77,11 +74,9 @@ def test_create_catalog_graceful_failure(wcsobj):
 
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
-        None,
-        existing_wcs=wcsobj,
+        wcsobj, "2016.0",
         catalog=TEST_CATALOG,
         output=None,
-        epoch="2016.0",
     )
     # check that we got expected number of sources
     assert len(gcat) == 0
@@ -157,12 +152,8 @@ def example_input(example_wcs):
             [0.1, 0.6, 0.1],
         ]
     m0.meta.observation.date = "2019-01-01T00:00:00"
-
-    m1 = m0.copy()
-    # give each a unique filename
     m0.meta.filename = "some_file_0.fits"
-    m1.meta.filename = "some_file_1.fits"
-    return ModelContainer([m0, m1])
+    return m0
 
 
 @pytest.mark.usefixtures("_jail")
@@ -199,87 +190,65 @@ def make_source_catalog(data):
 
 
 @pytest.mark.parametrize("with_shift", [True, False])
-def test_tweakreg_main(example_input, with_shift):
+def test_relative_align(example_input, with_shift):
     """
     A simplified unit test for basic operation of the TweakRegStep
     when run with or without a small shift in the input image sources
     """
+    shifted = example_input.copy()
+    shifted.meta.filename = "some_file_1.fits"
     if with_shift:
         # shift 9 pixels so that the sources in one of the 2 images
         # appear at different locations (resulting in a correct wcs update)
-        example_input[1].data[:-9] = example_input[1].data[9:]
-        example_input[1].data[-9:] = BKG_LEVEL
+        shifted.data[:-9] = example_input.data[9:]
+        shifted.data[-9:] = BKG_LEVEL
 
     # assign images to different groups (so they are aligned to each other)
-    example_input[0].meta.group_id = "a"
-    example_input[1].meta.group_id = "b"
+    example_input.meta.group_id = "a"
+    shifted.meta.group_id = "b"
 
     # create source catalogs
-    source_catalogs = [make_source_catalog(m.data) for m in example_input]
+    models = [example_input, shifted]
+    source_catalogs = [make_source_catalog(m.data) for m in models]
 
-    # run the step on the example input modified above
-    result = tweakreg(example_input, source_catalogs)
+    # construct correctors from the catalogs
+    correctors = [_construct_wcs_corrector(m, cat) for m, cat in zip(models, source_catalogs)]
 
-    # check that step completed
-    for model in result:
-        assert model.meta.cal_step.tweakreg == "COMPLETE"
+    # relative alignment of images to each other (if more than one group)
+    correctors, local_align_failed = relative_align(correctors)
+
+    # update the wcs in the models
+    for (model, corrector) in zip(models, correctors):
+
+        apply_tweakreg_solution(model, corrector, TEST_CATALOG,
+                                sip_approx=True, sip_degree=3, sip_max_pix_error=0.1,
+                                sip_max_inv_pix_error=0.1, sip_inv_degree=3,
+                                sip_npoints=12)
 
     # and that the wcses differ by a small amount due to the shift above
     # by projecting one point through each wcs and comparing the difference
-    abs_delta = abs(result[1].meta.wcs(0, 0)[0] - result[0].meta.wcs(0, 0)[0])
+    abs_delta = abs(models[1].meta.wcs(0, 0)[0] - models[0].meta.wcs(0, 0)[0])
     if with_shift:
         assert abs_delta > 1E-5
     else:
         assert abs_delta < 1E-12
 
-
-@pytest.mark.parametrize("with_shift", [True, False])
-def test_sip_approx(example_input, with_shift):
-    """
-    Test the output FITS WCS.
-    """
-    if with_shift:
-        # shift 9 pixels so that the sources in one of the 2 images
-        # appear at different locations (resulting in a correct wcs update)
-        example_input[1].data[:-9] = example_input[1].data[9:]
-        example_input[1].data[-9:] = BKG_LEVEL
-
-    # assign images to different groups (so they are aligned to each other)
-    example_input[0].meta.group_id = "a"
-    example_input[1].meta.group_id = "b"
-
-    # create source catalogs
-    source_catalogs = [make_source_catalog(m.data) for m in example_input]
-
-    # run the step on the example input modified above
-    result = tweakreg(example_input, source_catalogs,
-                      sip_approx=True, sip_degree=3, sip_max_pix_error=0.1,
-                      sip_max_inv_pix_error=0.1, sip_inv_degree=3,
-                      sip_npoints=12)
-
-    # output wcs differs by a small amount due to the shift above:
-    # project one point through each wcs and compare the difference
-    abs_delta = abs(result[1].meta.wcs(0, 0)[0] - result[0].meta.wcs(0, 0)[0])
-    if with_shift:
-        assert abs_delta > 1E-5
-    else:
-        assert abs_delta < 1E-12
-
+    # also test SIP approximation keywords
     # the first wcs is identical to the input and
     # does not have SIP approximation keywords --
     # they are normally set by assign_wcs
-    assert np.allclose(result[0].meta.wcs(0, 0)[0], example_input[0].meta.wcs(0, 0)[0])
+    assert np.allclose(models[0].meta.wcs(0, 0)[0], example_input.meta.wcs(0, 0)[0])
     for key in ["ap_order", "bp_order"]:
-        assert key not in result[0].meta.wcsinfo.instance
+        assert key not in models[0].meta.wcsinfo.instance
 
     # for the second, SIP approximation should be present
     for key in ["ap_order", "bp_order"]:
-        assert result[1].meta.wcsinfo.instance[key] == 3
+        assert models[1].meta.wcsinfo.instance[key] == 3
 
     # evaluate fits wcs and gwcs for the approximation, make sure they agree
-    wcs_info = result[1].meta.wcsinfo.instance
-    grid = grid_from_bounding_box(result[1].meta.wcs.bounding_box)
-    gwcs_ra, gwcs_dec = result[1].meta.wcs(*grid)
+    wcs_info = models[1].meta.wcsinfo.instance
+    grid = grid_from_bounding_box(models[1].meta.wcs.bounding_box)
+    gwcs_ra, gwcs_dec = models[1].meta.wcs(*grid)
     fits_wcs = WCS(wcs_info)
     fitswcs_res = fits_wcs.pixel_to_world(*grid)
 
