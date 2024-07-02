@@ -1,6 +1,6 @@
 import copy
 import logging
-
+import pdb
 import numpy as np
 from scipy import ndimage
 
@@ -81,16 +81,11 @@ def flag_saturated_pixels(
     sat_thresh[no_sat_check_mask] = atod_limit + 1
 
     for ints in range(nints):
+        # Work forward through the groups for initial pass at saturation
         for group in range(ngroups):
             plane = data[ints, group, :, :]
 
-            if read_pattern is not None:
-                dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
-                dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
-            else:
-                dilution_factor = 1
-
-            flagarray, flaglowarray = plane_saturation(plane, sat_thresh * dilution_factor, dqflags)
+            flagarray, flaglowarray = plane_saturation(plane, sat_thresh, dqflags)
 
             # for saturation, the flag is set in the current plane
             # and all following planes.
@@ -107,6 +102,41 @@ def flag_saturated_pixels(
                 gdq_slice = copy.copy(gdq[ints, group, :, :]).astype(int)
 
                 gdq[ints, group, :, :] = adjacent_pixels(gdq_slice, saturated, n_pix_grow_sat)
+
+        # Work backward through the groups for a second pass at saturation
+        # This is to flag things that actually saturated in prior groups but
+        # were not obvious because of group averaging
+        for group in range(ngroups-2, -1, -1):
+            plane = data[ints, group, :, :]
+            thisdq = gdq[ints, group, :, :]
+            nextdq = gdq[ints, group + 1, :, :]
+
+            # Determine the dilution factor due to group averaging
+            if read_pattern is not None:
+                dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
+                dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
+            else:
+                dilution_factor = 1
+
+            # Find where this plane looks like it might saturate given the dilution factor
+            flagarray, _ = plane_saturation(plane, sat_thresh * dilution_factor, dqflags)
+
+            # Find the overlap of where this plane looks like it might saturate, was not currently
+            # flagged as saturating, and the next group had saturation flagged.
+            indx = np.where((np.bitwise_and(flagarray, saturated) != 0) & \
+                            (np.bitwise_and(thisdq, saturated) == 0) & \
+                            (np.bitwise_and(nextdq, saturated) != 0))
+
+            # Reset flag array to only pixels passing this gauntlet
+            flagarray[:] = 0
+            flagarray[indx] = 2
+            
+            # Grow the newly-flagged saturating pixels
+            if n_pix_grow_sat > 0:
+                flagarray = adjacent_pixels(flagarray, saturated, n_pix_grow_sat)
+
+            # Add them to the gdq array
+            np.bitwise_or(gdq[ints, group, :, :], flagarray, gdq[ints, group, :, :])
 
         # Check ZEROFRAME.
         if zframe is not None:
