@@ -80,7 +80,7 @@ def test_create_catalog_graceful_failure(wcsobj):
 
 
 def fake_correctors(offset):
-    path = Path(__file__).parent / "data" / "mosaic_long_i2d_gwcs.asdf"
+    path = Path(__file__).parent / DATADIR / WCS_NAME
     with asdf.open(path) as af:
         wcs = af.tree["wcs"]
 
@@ -117,58 +117,3 @@ def test_is_wcs_correction_small(offset, is_good):
     """
     correctors = fake_correctors(offset)
     assert _is_wcs_correction_small(correctors) == is_good
-
-
-@pytest.fixture()
-def example_wcs():
-    path = Path(__file__).parent / "data" / "nrcb1-wcs.asdf"
-    with asdf.open(path, lazy_load=False) as af:
-        return af.tree["wcs"]
-
-
-# @pytest.fixture()
-# def example_input(example_wcs):
-#     m0 = ImageModel((512, 512))
-
-#     # add a wcs and wcsinfo
-#     m0.meta.wcs = example_wcs
-#     m0.meta.wcsinfo = _wcsinfo_from_wcs_transform(example_wcs)
-#     m0.meta.wcsinfo.v3yangle = 0.0
-#     m0.meta.wcsinfo.vparity = -1
-
-#     # and a few 'sources'
-#     m0.data[:] = BKG_LEVEL
-#     n_sources = N_EXAMPLE_SOURCES  # a few more than default minobj
-#     rng = np.random.default_rng(26)
-#     xs = rng.choice(50, n_sources, replace=False) * 8 + 10
-#     ys = rng.choice(50, n_sources, replace=False) * 8 + 10
-#     for y, x in zip(ys, xs):
-#         m0.data[y-1:y+2, x-1:x+2] = [
-#             [0.1, 0.6, 0.1],
-#             [0.6, 0.8, 0.6],
-#             [0.1, 0.6, 0.1],
-#         ]
-#     m0.meta.observation.date = "2019-01-01T00:00:00"
-#     m0.meta.filename = "some_file_0.fits"
-#     return m0
-
-
-# @pytest.mark.usefixtures("_jail")
-# def test_parse_refcat(example_input):
-#     """
-#     Ensure absolute catalog write creates a file and respects self.output_dir
-#     """
-
-#     OUTDIR = Path("outdir")
-#     Path.mkdir(OUTDIR)
-
-#     correctors = fake_correctors(0.0)
-#     _parse_refcat(TEST_CATALOG,
-#                   example_input,
-#                   correctors,
-#                   save_abs_catalog=True,
-#                   output_dir=OUTDIR)
-
-#     expected_outfile = OUTDIR / "fit_gaiadr3_ref.ecsv"
-
-#     assert Path.exists(expected_outfile)
