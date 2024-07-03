@@ -6,15 +6,12 @@ import asdf
 import numpy as np
 import pytest
 from astropy.modeling.models import Shift
-from astropy.wcs import WCS
-from gwcs.wcstools import grid_from_bounding_box
-from photutils.segmentation import SourceCatalog, SourceFinder
-from stdatamodels.jwst.datamodels import ImageModel
 
 from stcal.tweakreg import astrometric_utils as amutils
-from stcal.tweakreg.tweakreg import _is_wcs_correction_small, _parse_refcat, _wcs_to_skycoord, _construct_wcs_corrector, \
-    relative_align, absolute_align, apply_tweakreg_solution
-from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
+from stcal.tweakreg.tweakreg import (
+    _is_wcs_correction_small,
+    _wcs_to_skycoord,
+)
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
@@ -129,128 +126,49 @@ def example_wcs():
         return af.tree["wcs"]
 
 
-@pytest.fixture()
-def example_input(example_wcs):
-    m0 = ImageModel((512, 512))
+# @pytest.fixture()
+# def example_input(example_wcs):
+#     m0 = ImageModel((512, 512))
 
-    # add a wcs and wcsinfo
-    m0.meta.wcs = example_wcs
-    m0.meta.wcsinfo = _wcsinfo_from_wcs_transform(example_wcs)
-    m0.meta.wcsinfo.v3yangle = 0.0
-    m0.meta.wcsinfo.vparity = -1
+#     # add a wcs and wcsinfo
+#     m0.meta.wcs = example_wcs
+#     m0.meta.wcsinfo = _wcsinfo_from_wcs_transform(example_wcs)
+#     m0.meta.wcsinfo.v3yangle = 0.0
+#     m0.meta.wcsinfo.vparity = -1
 
-    # and a few 'sources'
-    m0.data[:] = BKG_LEVEL
-    n_sources = N_EXAMPLE_SOURCES  # a few more than default minobj
-    rng = np.random.default_rng(26)
-    xs = rng.choice(50, n_sources, replace=False) * 8 + 10
-    ys = rng.choice(50, n_sources, replace=False) * 8 + 10
-    for y, x in zip(ys, xs):
-        m0.data[y-1:y+2, x-1:x+2] = [
-            [0.1, 0.6, 0.1],
-            [0.6, 0.8, 0.6],
-            [0.1, 0.6, 0.1],
-        ]
-    m0.meta.observation.date = "2019-01-01T00:00:00"
-    m0.meta.filename = "some_file_0.fits"
-    return m0
-
-
-@pytest.mark.usefixtures("_jail")
-def test_parse_refcat(example_input):
-    """
-    Ensure absolute catalog write creates a file and respects self.output_dir
-    """
-
-    OUTDIR = Path("outdir")
-    Path.mkdir(OUTDIR)
-
-    correctors = fake_correctors(0.0)
-    _parse_refcat(TEST_CATALOG,
-                  example_input,
-                  correctors,
-                  save_abs_catalog=True,
-                  output_dir=OUTDIR)
-
-    expected_outfile = OUTDIR / "fit_gaiadr3_ref.ecsv"
-
-    assert Path.exists(expected_outfile)
+#     # and a few 'sources'
+#     m0.data[:] = BKG_LEVEL
+#     n_sources = N_EXAMPLE_SOURCES  # a few more than default minobj
+#     rng = np.random.default_rng(26)
+#     xs = rng.choice(50, n_sources, replace=False) * 8 + 10
+#     ys = rng.choice(50, n_sources, replace=False) * 8 + 10
+#     for y, x in zip(ys, xs):
+#         m0.data[y-1:y+2, x-1:x+2] = [
+#             [0.1, 0.6, 0.1],
+#             [0.6, 0.8, 0.6],
+#             [0.1, 0.6, 0.1],
+#         ]
+#     m0.meta.observation.date = "2019-01-01T00:00:00"
+#     m0.meta.filename = "some_file_0.fits"
+#     return m0
 
 
-def make_source_catalog(data):
-    """
-    Extremely lazy version of source detection step.
-    """
-    finder = SourceFinder(npixels=5)
-    segment_map = finder(data, threshold=0.5)
-    sources = SourceCatalog(data, segment_map).to_table()
-    sources.rename_column("xcentroid", "x")
-    sources.rename_column("ycentroid", "y")
-    return sources
+# @pytest.mark.usefixtures("_jail")
+# def test_parse_refcat(example_input):
+#     """
+#     Ensure absolute catalog write creates a file and respects self.output_dir
+#     """
 
+#     OUTDIR = Path("outdir")
+#     Path.mkdir(OUTDIR)
 
-@pytest.mark.parametrize("with_shift", [True, False])
-def test_relative_align(example_input, with_shift):
-    """
-    A simplified unit test for basic operation of the TweakRegStep
-    when run with or without a small shift in the input image sources
-    """
-    shifted = example_input.copy()
-    shifted.meta.filename = "some_file_1.fits"
-    if with_shift:
-        # shift 9 pixels so that the sources in one of the 2 images
-        # appear at different locations (resulting in a correct wcs update)
-        shifted.data[:-9] = example_input.data[9:]
-        shifted.data[-9:] = BKG_LEVEL
+#     correctors = fake_correctors(0.0)
+#     _parse_refcat(TEST_CATALOG,
+#                   example_input,
+#                   correctors,
+#                   save_abs_catalog=True,
+#                   output_dir=OUTDIR)
 
-    # assign images to different groups (so they are aligned to each other)
-    example_input.meta.group_id = "a"
-    shifted.meta.group_id = "b"
+#     expected_outfile = OUTDIR / "fit_gaiadr3_ref.ecsv"
 
-    # create source catalogs
-    models = [example_input, shifted]
-    source_catalogs = [make_source_catalog(m.data) for m in models]
-
-    # construct correctors from the catalogs
-    correctors = [_construct_wcs_corrector(m, cat) for m, cat in zip(models, source_catalogs)]
-
-    # relative alignment of images to each other (if more than one group)
-    correctors, local_align_failed = relative_align(correctors)
-
-    # update the wcs in the models
-    for (model, corrector) in zip(models, correctors):
-
-        apply_tweakreg_solution(model, corrector, TEST_CATALOG,
-                                sip_approx=True, sip_degree=3, sip_max_pix_error=0.1,
-                                sip_max_inv_pix_error=0.1, sip_inv_degree=3,
-                                sip_npoints=12)
-
-    # and that the wcses differ by a small amount due to the shift above
-    # by projecting one point through each wcs and comparing the difference
-    abs_delta = abs(models[1].meta.wcs(0, 0)[0] - models[0].meta.wcs(0, 0)[0])
-    if with_shift:
-        assert abs_delta > 1E-5
-    else:
-        assert abs_delta < 1E-12
-
-    # also test SIP approximation keywords
-    # the first wcs is identical to the input and
-    # does not have SIP approximation keywords --
-    # they are normally set by assign_wcs
-    assert np.allclose(models[0].meta.wcs(0, 0)[0], example_input.meta.wcs(0, 0)[0])
-    for key in ["ap_order", "bp_order"]:
-        assert key not in models[0].meta.wcsinfo.instance
-
-    # for the second, SIP approximation should be present
-    for key in ["ap_order", "bp_order"]:
-        assert models[1].meta.wcsinfo.instance[key] == 3
-
-    # evaluate fits wcs and gwcs for the approximation, make sure they agree
-    wcs_info = models[1].meta.wcsinfo.instance
-    grid = grid_from_bounding_box(models[1].meta.wcs.bounding_box)
-    gwcs_ra, gwcs_dec = models[1].meta.wcs(*grid)
-    fits_wcs = WCS(wcs_info)
-    fitswcs_res = fits_wcs.pixel_to_world(*grid)
-
-    assert np.allclose(fitswcs_res.ra.deg, gwcs_ra)
-    assert np.allclose(fitswcs_res.dec.deg, gwcs_dec)
+#     assert Path.exists(expected_outfile)

@@ -1,5 +1,4 @@
 import logging
-from copy import deepcopy
 
 import numpy as np
 from gwcs.wcstools import grid_from_bounding_box

@@ -8,12 +8,11 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.time import Time
-from stdatamodels import DataModel
 from tweakwcs.correctors import JWSTWCSCorrector
 from tweakwcs.imalign import align_wcs
 from tweakwcs.matchutils import XYXYMatch
 
-from stcal.alignment import update_fits_wcsinfo, update_s_region_imaging, wcs_from_footprints
+from stcal.alignment import SupportsDataWithWcs, wcs_from_footprints
 
 from .astrometric_utils import create_astrometric_catalog
 
@@ -116,7 +115,7 @@ def relative_align(correctors: list[JWSTWCSCorrector],
         if not local_align_failed and not is_small:
             if align_to_abs_refcat:
                 warning_msg += " Skipping relative alignment (stage 1)..."
-                warnings.warn(warning_msg)
+                warnings.warn(warning_msg, stacklevel=1)
             else:
                 raise TweakregError(warning_msg)
 
@@ -125,7 +124,7 @@ def relative_align(correctors: list[JWSTWCSCorrector],
 
 def absolute_align(correctors: list[JWSTWCSCorrector],
                    abs_refcat: str,
-                   ref_image: DataModel,
+                   ref_image: SupportsDataWithWcs,
                    save_abs_catalog: bool = False,
                    abs_catalog_output_dir: str | None = None,
                    abs_searchrad: float = 6.0,
@@ -136,7 +135,6 @@ def absolute_align(correctors: list[JWSTWCSCorrector],
                    abs_fitgeometry: str = "rshift",
                    abs_nclip: int = 3,
                    abs_sigma: float = 3.0,
-                   n_groups: int = 1,
                    local_align_failed: bool = False,) -> list[JWSTWCSCorrector]:
 
     if abs_separation <= _SQRT2 * abs_tolerance:
@@ -202,12 +200,12 @@ def absolute_align(correctors: list[JWSTWCSCorrector],
             msg += "At least one exposure is required to align images \
                     to an absolute reference catalog. Alignment to an \
                     absolute reference catalog will not be performed."
-            if local_align_failed or n_groups == 1:
+            if local_align_failed:
                 msg += " Nothing to do. Skipping 'TweakRegStep'..."
                 raise TweakregError(msg) from None
-            warnings.warn(msg)
+            warnings.warn(msg, stacklevel=1)
         else:
-            raise e
+            raise
 
     except RuntimeError as e:
         msg = e.args[0]
@@ -218,72 +216,18 @@ def absolute_align(correctors: list[JWSTWCSCorrector],
                     adjust 'tolerance' and/or 'separation' parameters. \
                     Alignment to an absolute reference catalog will \
                     not be performed."
-            if local_align_failed or n_groups == 1:
+            if local_align_failed:
                 msg += "Skipping 'TweakRegStep'..."
                 raise TweakregError(msg) from None
-            else:
-                warnings.warn(msg)
+            warnings.warn(msg, stacklevel=1)
         else:
-            raise e
+            raise
 
     return correctors
 
 
-def apply_tweakreg_solution(image_model: DataModel,
-                            corrector: JWSTWCSCorrector,
-                            abs_refcat: str,
-                            align_to_abs_refcat: bool = False,
-                            sip_approx: bool = True,
-                            sip_max_pix_error: float = 0.01,
-                            sip_degree: int | None = None,
-                            sip_max_inv_pix_error: float = 0.01,
-                            sip_inv_degree: int | None = None,
-                            sip_npoints: int = 12,
-                            ) -> DataModel:
-
-    # retrieve fit status and update wcs if fit is successful:
-    if ("fit_info" in corrector.meta and
-            "SUCCESS" in corrector.meta["fit_info"]["status"]):
-
-        # Update/create the WCS .name attribute with information
-        # on this astrometric fit as the only record that it was
-        # successful:
-        if align_to_abs_refcat:
-            # NOTE: This .name attrib agreed upon by the JWST Cal
-            #       Working Group.
-            #       Current value is merely a place-holder based
-            #       on HST conventions. This value should also be
-            #       translated to the FITS WCSNAME keyword
-            #       IF that is what gets recorded in the archive
-            #       for end-user searches.
-            corrector.wcs.name = f"FIT-LVL3-{abs_refcat}"
-
-        image_model.meta.wcs = corrector.wcs
-        update_s_region_imaging(image_model)
-
-        # Also update FITS representation in input exposures for
-        # subsequent reprocessing by the end-user.
-        if sip_approx:
-            try:
-                update_fits_wcsinfo(
-                    image_model,
-                    max_pix_error=sip_max_pix_error,
-                    degree=sip_degree,
-                    max_inv_pix_error=sip_max_inv_pix_error,
-                    inv_degree=sip_inv_degree,
-                    npoints=sip_npoints,
-                    crpix=None
-                )
-            except (ValueError, RuntimeError) as e:
-                msg = f"Failed to update 'meta.wcsinfo' with FITS SIP \
-                    approximation. Reported error is: \n {e.args[0]}"
-                warnings.warn(msg)
-
-    return image_model
-
-
 def _parse_refcat(abs_refcat: str,
-                  ref_model: DataModel,
+                  ref_model: SupportsDataWithWcs,
                   correctors: list,
                   save_abs_catalog: bool = False,
                   output_dir: str | None = None) -> Table:
@@ -320,7 +264,7 @@ def _parse_refcat(abs_refcat: str,
             output=output_name,
         )
 
-    if Path.isfile(abs_refcat):
+    if Path.is_file(Path(abs_refcat)):
         return Table.read(abs_refcat)
 
     msg = f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be \
@@ -349,7 +293,7 @@ def _is_wcs_correction_small(correctors,
             # Large corrections are typically a result of source
             # mis-matching or poorly-conditioned fit. Skip such models.
             msg = f"WCS has been tweaked by more than {10 * tolerance} arcsec"
-            warnings.warn(msg)
+            warnings.warn(msg, stacklevel=1)
             return False
     return True
 
@@ -375,8 +319,8 @@ def _filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[float]) -
     return catalog[mask]
 
 
-def _construct_wcs_corrector(image_model: DataModel,
-                             catalog: Table) -> JWSTWCSCorrector:
+def construct_wcs_corrector(image_model: SupportsDataWithWcs,
+                            catalog: Table) -> JWSTWCSCorrector:
     """
     pre-compute skycoord here so we can later use it
     to check for a small wcs correction.
