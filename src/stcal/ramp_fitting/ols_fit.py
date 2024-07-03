@@ -672,11 +672,11 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
         if ramp_data.drop_frames1 is None:
             ramp_data.drop_frames1 = 0
-        log.info("Entering C extension")
+        log.debug("Entering C extension")
         image_info, integ_info, opt_info = ols_slope_fitter(
                 ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
 
-        log.info("Returning from C extension")
+        log.debug("Returning from C extension")
 
         c_end = time.time()
 
@@ -698,10 +698,10 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
     p_start = time.time()
 
-    log.info("Entering python code")
+    log.debug("Entering python code")
     image_info, integ_info, opt_info = ols_ramp_fit_single_python(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
-    log.info("Returning from python ")
+    log.debug("Returning from python ")
 
     p_end = time.time()
     p_diff = p_end - p_start
