@@ -7,6 +7,7 @@ import numpy as np
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
 from scipy import ndimage
+from skimage.util import view_as_windows
 import gwcs
 
 from stcal.alignment.util import wcs_bbox_from_shape
@@ -14,6 +15,14 @@ from stcal.alignment.util import wcs_bbox_from_shape
 import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+
+
+def medfilt(arr, kern_size):
+    # scipy.signal.medfilt (and many other median filters) have undefined behavior
+    # for nan inputs. See: https://github.com/scipy/scipy/issues/4800
+    padded = np.pad(arr, [[k // 2] for k in kern_size])
+    windows = view_as_windows(padded, kern_size, np.ones(len(kern_size), dtype='int'))
+    return np.nanmedian(windows, axis=np.arange(-len(kern_size), 0))
 
 
 def compute_weight_threshold(weight, maskpt):
