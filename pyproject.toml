@@ -24,6 +24,9 @@ dynamic = [
     "version"
 ]
 
+[project.license]
+file = "LICENSE"
+
 [project.optional-dependencies]
 docs = [
     'numpydoc',
