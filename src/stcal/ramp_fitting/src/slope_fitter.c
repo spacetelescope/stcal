@@ -2617,8 +2617,13 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
 
     seg->slope = pr->data[idx] / timing;
 
+    /* Segment Poisson variance */
     pden = (timing * pr->gain);
-    seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
+    if (pr->median_rate > 0.) {
+        seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
+    } else {
+        seg->var_p = (pr->dcurrent)/pden;
+    }
 
     /* Segment read noise variance */
     rnum = pr->rnoise / timing;
@@ -2664,11 +2669,11 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     seg->slope = data_diff / rd->group_time;
 
     /* Segment Poisson variance */
+    pden = (rd->group_time * pr->gain);
     if (pr->median_rate > 0.) {
-        pden = (rd->group_time * pr->gain);
         seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
     } else {
-        seg->var_p = pr->dcurrent;
+        seg->var_p = (pr->dcurrent)/pden;
     }
 
     /* Segment read noise variance */
@@ -2825,11 +2830,11 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     seglen = (float)seg->length;
 
     /* Segment Poisson variance */
+    pden = (rd->group_time * pr->gain * (seglen - 1.));
     if (pr->median_rate > 0.) {
-        pden = (rd->group_time * pr->gain * (seglen - 1.));
         seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
     } else {
-        seg->var_p = pr->dcurrent;
+        seg->var_p = (pr->dcurrent) / pden;
     }
 
     /* Segment read noise variance */
