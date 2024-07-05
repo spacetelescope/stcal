@@ -2365,7 +2365,7 @@ ramp_fit_pixel(
         pr->rate.dq |= rd->sat;
     }
 
-    if ((pr->median_rate > 0.) && (pr->rate.var_poisson > 0.)) {
+    if (pr->rate.var_poisson > 0.) {
         pr->rate.var_poisson = 1. / pr->rate.var_poisson;
     }
     if ((pr->rate.var_poisson >= LARGE_VARIANCE_THRESHOLD)
@@ -2479,7 +2479,7 @@ ramp_fit_pixel_integration_fit_slope(
         // DBG_DEFAULT_SEG; /* XXX */
 
         invvar_r += (1. / current->var_r);
-        if (pr->median_rate > 0.) {
+	if (current->var_p > 0.) {
             invvar_p += (1. / current->var_p);
         }
 
@@ -2488,7 +2488,7 @@ ramp_fit_pixel_integration_fit_slope(
     }
 
     /* Get rateints computations */
-    if (pr->median_rate > 0.) {
+    if (invvar_p > 0.) {
         pr->rateints[integ].var_poisson = 1. / invvar_p;
     }
 
@@ -2520,7 +2520,7 @@ ramp_fit_pixel_integration_fit_slope(
     // DBG_INTEG_INFO;  /* XXX */
 
     /* Get rate pre-computations */
-    if (pr->median_rate > 0.) {
+    if (invvar_p > 0.) {
         pr->rate.var_poisson += invvar_p;
     }
     pr->rate.var_rnoise += invvar_r;
