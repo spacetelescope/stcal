@@ -20,6 +20,14 @@ ramp_fitting
 - Fix bugs in the C algorithm Poisson variance calculation when provided with
   an average dark current. [#269]
 
+=======
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- When OLS_C was selected as the ramp fitting algorithm with multiprocessing, the C
+  extension was not called.  The old python code was called.  This bug has been fixed,
+  so the C extension is properly run when selecting multiprocessing. [#268]
 
 1.7.2 (2024-06-12)
 ==================
