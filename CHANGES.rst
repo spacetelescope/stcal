@@ -1,4 +1,4 @@
-1.7.3 (unreleased)
+1.7.4 (unreleased)
 ==================
 
 General
@@ -14,16 +14,19 @@ Changes to API
 Bug Fixes
 ---------
 
+- 
+
+1.7.3 (2024-07-05)
+==================
+
+Bug Fixes
+---------
+
 ramp_fitting
 ~~~~~~~~~~~~
 
 - Fix bugs in the C algorithm Poisson variance calculation when provided with
   an average dark current. [#269]
-
-=======
-
-ramp_fitting
-~~~~~~~~~~~~
 
 - When OLS_C was selected as the ramp fitting algorithm with multiprocessing, the C
   extension was not called.  The old python code was called.  This bug has been fixed,
