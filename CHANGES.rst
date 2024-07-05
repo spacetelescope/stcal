@@ -14,6 +14,13 @@ Changes to API
 Bug Fixes
 ---------
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Fix bugs in the C algorithm Poisson variance calculation when provided with
+  an average dark current. [#269]
+
+=======
 
 ramp_fitting
 ~~~~~~~~~~~~
