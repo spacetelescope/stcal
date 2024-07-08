@@ -47,6 +47,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable", None),
     "gwcs": ("https://gwcs.readthedocs.io/en/latest/", None),
     "astropy": ("https://docs.astropy.org/en/stable/", None),
+    "tweakwcs": ("https://tweakwcs.readthedocs.io/en/latest/", None),
 }
 
 extensions = [

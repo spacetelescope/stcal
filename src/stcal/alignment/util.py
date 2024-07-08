@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 import gwcs
 import numpy as np
@@ -31,6 +31,7 @@ __all__ = [
 ]
 
 
+@runtime_checkable
 class SupportsDataWithWcs(Protocol):
     _asdf: AsdfFile
 
@@ -671,7 +672,7 @@ def wcs_from_footprints(
 
 def update_s_region_imaging(model: SupportsDataWithWcs, center=True):
     """
-    Update the ``S_REGION`` keyword using ``WCS.footprint``.
+    Update the ``S_REGION`` keyword using the WCS footprint.
 
     Parameters
     ----------
