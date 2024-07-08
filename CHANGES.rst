@@ -1,7 +1,179 @@
-1.5.3 (unreleased)
+1.7.4 (unreleased)
 ==================
 
+General
+-------
+
+-
+
+Changes to API
+--------------
+
 - 
+
+Bug Fixes
+---------
+
+- 
+
+1.7.3 (2024-07-05)
+==================
+
+Bug Fixes
+---------
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Fix bugs in the C algorithm Poisson variance calculation when provided with
+  an average dark current. [#269]
+
+- When OLS_C was selected as the ramp fitting algorithm with multiprocessing, the C
+  extension was not called.  The old python code was called.  This bug has been fixed,
+  so the C extension is properly run when selecting multiprocessing. [#268]
+
+1.7.2 (2024-06-12)
+==================
+
+General
+-------
+
+- build with Numpy 2.0 release candidate [#260]
+
+Bug Fixes
+---------
+
+jump
+~~~~
+- Flag asymmetrical snowballs that are missed by the current code (JP-3638). This was changed to
+  not require that the center of the snowball jump ellipse is a saturated
+  pixel. [#261]
+
+1.7.1 (2024-05-21)
+==================
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Catch some additional warnings about all-NaN slices. [#258]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Fix a bug in Poisson variance calculation visible when providing an average
+  dark current value in which the specified dark current was not converted to the
+  appropriate units for pixels with negative slopes.  This resulted in
+  incorrect SCI, ERR, and VAR_POISSON values. Also required revising the approach
+  for catching all-zero variance cases when average dark current was not
+  specified. [#255]
+
+- Refactor ramp fitting using a C extension to improve performance. [#156]
+
+1.7.0 (2024-03-25)
+==================
+
+Changes to API
+--------------
+
+jump
+~~~~
+
+- Switch multiprocessing method to ``fork_server``. [#249]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Switch multiprocessing method to ``fork_server``. [#249]
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Updated the shower flagging code to mask reference pixels, require a minimum
+  number of groups to trigger the detection, and use all integrations to determine
+  the median value. [#248]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Changed the data type of three variables that are used in measuring
+  the jump free segments of integrations. The variables were uint8 and
+  they would yield wrong results for integrations with more than 256
+  groups. [#251]
+
+- Use ``sqrtf`` instead of ``sqrt`` in ols_cas22 ramp fitting with
+  jump detection to avoid small numerical errors on different systems
+  due to a cast to/from double. [#252]
+
+
+Other
+-----
+
+jump
+~~~~
+
+- Enable the use of multiple integrations to find outliers. Also,
+  when the number of groups is above a threshold, use single pass
+  outlier flagging rather than the iterative flagging. [#242]
+
+- Use ``sqrtf`` instead of ``sqrt`` in ols_cas22 ramp fitting with
+  jump detection to avoid small numerical errors on different systems
+  due to a cast to/from double. [#252]
+
+1.6.1 (2024-02-29)
+==================
+
+Changes to API
+--------------
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Add ``average_dark_current`` to calculations of poisson variance. [#243]
+
+1.6.0 (2024-02-15)
+==================
+
+Changes to API
+--------------
+
+jump
+~~~~
+
+- Add in the flagging of groups in the integration after a snowball
+  occurs. The saturated core of the snowball gets flagged as jump
+  for a number of groups passed in as a parameter [#238]
+
+Bug Fixes
+---------
+
+jump
+~~~~
+
+- Fixed the computation of the number of rows per slice for multiprocessing, which
+  was causing different results when running the step with multiprocess [#239]
+
+- Fix the code to at least always flag the group with the shower and the requested
+  groups after the primary shower. [#237]
+
+Other
+-----
+
+jump
+~~~~
+
+- Reorganize jump docs between the jwst and stcal repos. [#240]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Reorganize ramp_fitting docs between the jwst and stcal repos. [#240]
+
 
 1.5.2 (2023-12-13)
 ==================
@@ -24,7 +196,7 @@ Other
 - Enable automatic linting and code style checks [#187]
 
 ramp_fitting
-------------
+~~~~~~~~~~~~
 
 - Refactor Casertano, et.al, 2022 uneven ramp fitting and incorporate the matching
   jump detection algorithm into it. [#215]
@@ -84,13 +256,16 @@ jump
   within a group. [#207]
 
 - Added more allowable selections for the number of cores to use for
-  multiprocessing [#183].
+  multiprocessing [#183]
+
+- Fixed the computation of the number of rows per slice for multiprocessing,
+  which caused different results when running the step with multiprocess [#239]
 
 ramp_fitting
 ~~~~~~~~~~~~
 
 - Added more allowable selections for the number of cores to use for
-  multiprocessing [#183].
+  multiprocessing [#183]
 
 - Updating variance computation for invalid integrations, as well as
   updating the median rate computation by excluding groups marked as

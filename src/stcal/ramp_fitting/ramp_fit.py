@@ -53,10 +53,16 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     """
     ramp_data = ramp_fit_class.RampData()
 
-    if isinstance(model.data, u.Quantity):
-        ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq, model.pixeldq)
+    if not hasattr(model, 'average_dark_current'):
+        dark_current_array = np.zeros_like(model.pixeldq)
     else:
-        ramp_data.set_arrays(model.data, model.err, model.groupdq, model.pixeldq)
+        dark_current_array = model.average_dark_current
+
+    if isinstance(model.data, u.Quantity):
+        ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq,
+                             model.pixeldq, dark_current_array)
+    else:
+        ramp_data.set_arrays(model.data, model.err, model.groupdq, model.pixeldq, dark_current_array)
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     drop_frames1 = model.meta.exposure.drop_frames1 if hasattr(model, "drop_frames1") else None
@@ -166,6 +172,9 @@ def ramp_fit(
     # data models.
     ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
 
+    if algorithm.upper() == "OLS_C":
+        ramp_data.run_c_code = True
+
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
     )
@@ -236,6 +245,7 @@ def ramp_fit_data(
         )
         opt_info = None
     else:
+        # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
         nframes = ramp_data.nframes

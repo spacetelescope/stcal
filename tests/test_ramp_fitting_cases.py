@@ -1,6 +1,7 @@
 import inspect
 from pathlib import Path
 
+import pytest
 import numpy as np
 import numpy.testing as npt
 
@@ -41,6 +42,8 @@ SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
 
 
+# -----------------------------------------------------------------------------
+#                           Test Suite
 def test_pix_0():
     """
     CASE A: segment has >2 groups, at end of ramp.
@@ -236,6 +239,7 @@ def test_pix_4():
     NOTE:
         There are small differences in the slope computation due to architectural
         differences of C and python.
+        Switching to doubles from floats in the C code fixed this problem.
 
 --------------------------------------------------------------------------------
 *** [2627] Segment 2, Integration 0 ***
@@ -279,7 +283,6 @@ Debug - [slope_fitter.c:2633] seg->slope = 1.014447927475
 """
 
 
-# @pytest.mark.skip(reason="C architecture gives small differences for slope.")
 def test_pix_5():
     """
     CASE B: segment has >2 groups, not at end of ramp.
@@ -305,17 +308,12 @@ def test_pix_5():
         ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
 
-    # XXX see the note above for the differences in C and python testing values.
     # Set truth values for PRIMARY results:
-    p_true_p = [1.076075, JUMP, 0.16134359, 0.00227273, 0.02375903]
-    # p_true_c = [1.076122522354126, JUMP, 0.16134359, 0.00227273, 0.02375903]  # To be used with C
-    p_true = p_true_p
+    p_true = [1.076075, JUMP, 0.16134359, 0.00227273, 0.02375903]
 
     # Set truth values for OPTIONAL results:
-    oslope_p = [1.2799551, 1.0144024]
-    # oslope_c = [1.2799551, 1.0144479]  # To be used with C
     o_true = [
-        oslope_p,
+        [1.2799551, 1.0144024],
         [18.312422, 9.920552],
         [0.00606061, 0.00363636],
         [0.10691562, 0.03054732],
@@ -786,9 +784,10 @@ def create_blank_ramp_data(dims, var, timing, ts_name="NIRSpec"):
     err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
+    dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq)
+    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name=ts_name,
         frame_time=frame_time,
