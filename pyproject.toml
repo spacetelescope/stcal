@@ -14,7 +14,9 @@ classifiers = [
 ]
 dependencies = [
     "astropy >=5.0.4",
+    "drizzle>=1.15.0",
     "scipy >=1.7.2",
+    "scikit-image>=0.19",
     "numpy >=1.21.2",
     "opencv-python-headless >=4.6.0.66",
     "asdf >=2.15.0",
