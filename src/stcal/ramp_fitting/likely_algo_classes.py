@@ -131,6 +131,7 @@ class Ramp_Result:
         """
         # replace entries that would be nan (from trying to
         # doubly exclude read differences) with the global fits.
+        # XXX Maybe here flag JUMP_DET
         omit = diffs2use == 0
         ones = np.ones(diffs2use.shape)
 
