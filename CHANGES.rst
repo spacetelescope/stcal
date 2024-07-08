@@ -4,7 +4,7 @@
 General
 -------
 
--
+- Add TweakReg submodule. [#267]
 
 Changes to API
 --------------
