@@ -2,8 +2,7 @@
 name = 'stcal'
 description = 'STScI tools and algorithms used in calibration pipelines'
 readme = 'README.md'
-requires-python = '>=3.9'
-license = { file = 'LICENSE' }
+requires-python = '>=3.10'
 authors = [{ name = 'STScI', email = 'help@stsci.edu' }]
 classifiers = [
     'Intended Audience :: Science/Research',
@@ -14,7 +13,7 @@ classifiers = [
 dependencies = [
     'astropy >=5.0.4',
     'scipy >=1.6.0',
-    'numpy >=1.20',
+    'numpy >=1.21.2',
     'opencv-python-headless >=4.6.0.66',
     'asdf >=2.15.0',
     'gwcs >= 0.18.1',
