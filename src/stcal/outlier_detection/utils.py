@@ -18,8 +18,23 @@ log.setLevel(logging.DEBUG)
 
 
 def medfilt(arr, kern_size):
-    # scipy.signal.medfilt (and many other median filters) have undefined behavior
-    # for nan inputs. See: https://github.com/scipy/scipy/issues/4800
+    """
+    scipy.signal.medfilt (and many other median filters) have undefined behavior
+    for nan inputs. See: https://github.com/scipy/scipy/issues/4800
+
+    Parameters
+    ----------
+    arr : numpy.ndarray
+        The input array
+
+    kern_size : list of int
+        List of kernel dimensions, length must be equal to arr.ndim.
+
+    Returns
+    -------
+    filtered_arr : numpy.ndarray
+        Input array median filtered with a kernel of size kern_size
+    """
     padded = np.pad(arr, [[k // 2] for k in kern_size])
     windows = view_as_windows(padded, kern_size, np.ones(len(kern_size), dtype='int'))
     return np.nanmedian(windows, axis=np.arange(-len(kern_size), 0))
@@ -42,7 +57,6 @@ def compute_weight_threshold(weight, maskpt):
     float
         The weight threshold for this integration.
     '''
-
     # necessary in order to assure that mask gets applied correctly
     if hasattr(weight, '_mask'):
         del weight._mask
@@ -84,18 +98,20 @@ def _absolute_subtract(array, tmp, out):
     return tmp, out
 
 
+# TODO add tests
 def flag_cr(
     sci_data,
     sci_err,
     blot_data,
     snr1,
-    snr2,
-    scale1,
-    scale2,
-    backg,
+    snr2,  # FIXME: unused for resample_data=False
+    scale1,  # FIXME: unused for resample_data=False
+    scale2,  # FIXME: unused for resample_data=False
+    backg,  # FIXME: unused for resample_data=False
     resample_data,
 ):
-    """Masks outliers in science image by updating DQ in-place
+    """
+    Masks outliers in science image by updating DQ in-place
 
     Mask blemishes in dithered data by comparing a science image
     with a model image and the derivative of the model image.
@@ -204,6 +220,7 @@ def gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio):
     return outsci
 
 
+# TODO tests, duplicate in resample, resample_utils
 def calc_gwcs_pixmap(in_wcs, out_wcs, shape):
     """ Return a pixel grid map from input frame to output frame.
     """
@@ -217,6 +234,7 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, shape):
     return pixmap
 
 
+# TODO tests, duplicate in resample, assign_wcs, resample_utils
 def reproject(wcs1, wcs2):
     """
     Given two WCSs or transforms return a function which takes pixel
