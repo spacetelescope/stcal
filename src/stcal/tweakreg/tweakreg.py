@@ -40,7 +40,7 @@ class TweakregError(BaseException):
     pass
 
 
-def relative_align(correctors: list[JWSTWCSCorrector],
+def relative_align(correctors: list,
                    searchrad: float = 2.0,
                    separation: float = 1.0,
                    use2dhist: bool = True,
@@ -54,7 +54,7 @@ def relative_align(correctors: list[JWSTWCSCorrector],
                    nclip: int = 3,
                    sigma: float = 3.0,
                    align_to_abs_refcat: bool = False,
-                   ) -> tuple[list[JWSTWCSCorrector], bool]:
+                   ) -> tuple[list, bool]:
 
     if separation <= _SQRT2 * tolerance:
         msg = "Parameter 'separation' must be larger than 'tolerance' by at \
@@ -124,7 +124,7 @@ def relative_align(correctors: list[JWSTWCSCorrector],
     return correctors, local_align_failed
 
 
-def absolute_align(correctors: list[JWSTWCSCorrector],
+def absolute_align(correctors: list,
                    abs_refcat: str,
                    ref_image: SupportsDataWithWcs,
                    save_abs_catalog: bool = False,
@@ -137,7 +137,7 @@ def absolute_align(correctors: list[JWSTWCSCorrector],
                    abs_fitgeometry: str = "rshift",
                    abs_nclip: int = 3,
                    abs_sigma: float = 3.0,
-                   local_align_failed: bool = False,) -> list[JWSTWCSCorrector]:
+                   local_align_failed: bool = False,) -> list:
 
     if abs_separation <= _SQRT2 * abs_tolerance:
         msg = "Parameter 'abs_separation' must be larger than 'abs_tolerance' by at \

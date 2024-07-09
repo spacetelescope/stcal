@@ -24,10 +24,13 @@ from stcal.tweakreg.tweakreg import (
 )
 
 # Define input GWCS specification to be used for these tests
-#WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
-WCS_NAME = "nrcb1-wcs.asdf"
+WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
 EXPECTED_NUM_SOURCES = 2469
 EXPECTED_RADIUS = 0.02564497890604383
+
+# more recent WCS with a defined input frame is necessary for some tests
+WCS_NAME_2 = "nrcb1-wcs.asdf"
+
 TEST_CATALOG = "GAIADR3"
 CATALOG_FNAME = "ref_cat.ecsv"
 DATADIR = "data"
@@ -40,6 +43,13 @@ N_EXAMPLE_SOURCES = 21
 @pytest.fixture(scope="module")
 def wcsobj():
     path = Path(__file__).parent / DATADIR / WCS_NAME
+    with asdf.open(path, lazy_load=False) as asdf_file:
+        return asdf_file.tree["wcs"]
+
+
+@pytest.fixture(scope="module")
+def wcsobj2():
+    path = Path(__file__).parent / DATADIR / WCS_NAME_2
     with asdf.open(path, lazy_load=False) as asdf_file:
         return asdf_file.tree["wcs"]
 
@@ -102,7 +112,7 @@ def fake_correctors(offset):
     step.transform = step.transform | Shift(offset) & Shift(offset)
     twcs.bounding_box = wcs.bounding_box
 
-    class FakeCorrector(WCSCorrector):
+    class FakeCorrector:
         def __init__(self, wcs, original_skycoord):
             self.wcs = wcs
             self._original_skycoord = original_skycoord
@@ -182,8 +192,8 @@ class MinimalDataWithWCS(SupportsDataWithWcs):
 
 
 @pytest.fixture(scope="module")
-def datamodel(wcsobj, group_id=None):
-    return MinimalDataWithWCS(wcsobj, group_id=group_id)
+def datamodel(wcsobj2, group_id=None):
+    return MinimalDataWithWCS(wcsobj2, group_id=group_id)
 
 
 def test_parse_refcat(datamodel):
@@ -227,9 +237,9 @@ def input_catalog(datamodel):
 
 
 @pytest.fixture(scope="module")
-def example_input(wcsobj):
+def example_input(wcsobj2):
 
-    m0 = MinimalDataWithWCS(wcsobj)
+    m0 = MinimalDataWithWCS(wcsobj2)
     m0.data[:] = BKG_LEVEL
     n_sources = N_EXAMPLE_SOURCES
     rng = np.random.default_rng(26)
