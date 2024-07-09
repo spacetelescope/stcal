@@ -73,9 +73,33 @@ def compute_weight_threshold(weight, maskpt):
     return weight_threshold
 
 
-def _abs_deriv(array):
+def _valid_abs_deriv(array):
     """Take the absolute derivate of a numpy array."""
-    # TODO is there a more efficient way to do this?
+    out = np.zeros_like(array)  # use same dtype as input
+
+    # compute row-wise absolute diffference
+    d = np.abs(np.diff(array, axis=0))
+    out[1:] = d  # no need to do max yet
+    # since these are absolute differences |r0-r1| = |r1-r0|
+    # make a view of the target portion of the array
+    v = out[:-1]
+    # compute an in-place maximum
+    np.putmask(v, d > v, d)
+
+    # compute col-wise absolute difference
+    d = np.abs(np.diff(array, axis=1))
+    v = out[:, 1:]
+    np.putmask(v, d > v, d)
+    v = out[:, :-1]
+    np.putmask(v, d > v, d)
+    return out
+
+
+def _abs_deriv(array):
+    # FIXME this assumes off-edge pixels are 0
+    # FIXME this upcasts to float64
+    # FIXME _valid_abs_deriv fixes the above issues and is more efficient
+    # but fixing the bugs will likely change the output
     tmp = np.zeros(array.shape, dtype=np.float64)
     out = np.zeros(array.shape, dtype=np.float64)
 
@@ -166,7 +190,6 @@ def flag_resampled_crs(
         return flag_crs(sci_data, sci_err, blot_data, snr1)
     err_data = np.nan_to_num(sci_err)
 
-    # TODO this could be optimized to not make as many temporary arrays...
     blot_deriv = _abs_deriv(blot_data)
     diff_noise = np.abs(sci_data - blot_data - backg)
 

@@ -12,18 +12,26 @@ from stcal.outlier_detection.utils import (
 
 
 @pytest.mark.parametrize("shape,diff", [
-    ([5, 5], 100),
-    ([7, 7], 200),
+    ([5, 7], 100),
+    ([17, 13], -200),
 ])
-def test_abs_deriv(shape, diff):
+def test_abs_deriv_single_value(shape, diff):
     arr = np.zeros(shape)
     # put diff at the center
     np.put(arr, arr.size // 2, diff)
     # since abs_deriv with a single non-zero value is the same as a
     # convolution with a 3x3 cross kernel use it to test the result
-    expected = scipy.signal.convolve2d(arr, [[0, 1, 0], [1, 1, 1], [0, 1, 0]], mode='same')
+    expected = scipy.signal.convolve2d(np.abs(arr), [[0, 1, 0], [1, 1, 1], [0, 1, 0]], mode='same')
     result = _abs_deriv(arr)
     np.testing.assert_allclose(result, expected)
+
+
+@pytest.mark.skip(reason="_abs_deriv has edge effects due to treating off-edge pixels as 0")
+@pytest.mark.parametrize("nrows,ncols", [(5, 5), (7, 11), (17, 13)])
+def test_abs_deriv_range(nrows, ncols):
+    arr = np.arange(nrows * ncols).reshape(nrows, ncols)
+    result = _abs_deriv(arr)
+    np.testing.assert_allclose(result, ncols)
 
 
 @pytest.mark.parametrize("shape,mean,maskpt,expected", [
