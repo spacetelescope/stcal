@@ -75,6 +75,7 @@ def compute_weight_threshold(weight, maskpt):
 
 def _abs_deriv(array):
     """Take the absolute derivate of a numpy array."""
+    # TODO is there a more efficient way to do this?
     tmp = np.zeros(array.shape, dtype=np.float64)
     out = np.zeros(array.shape, dtype=np.float64)
 
@@ -99,15 +100,27 @@ def _absolute_subtract(array, tmp, out):
 
 
 # TODO add tests
-def flag_cr(
+def flag_crs(
+    sci_data,
+    sci_err,
+    blot_data,
+    snr,
+):
+    # straightforward detection of outliers for non-dithered data since
+    # err_data includes all noise sources (photon, read, and flat for baseline)
+    return np.greater(np.abs(sci_data - blot_data), snr * np.nan_to_num(sci_err))
+
+
+# TODO add tests
+def flag_resampled_crs(
     sci_data,
     sci_err,
     blot_data,
     snr1,
-    snr2,  # FIXME: unused for resample_data=False
-    scale1,  # FIXME: unused for resample_data=False
-    scale2,  # FIXME: unused for resample_data=False
-    backg,  # FIXME: unused for resample_data=False
+    snr2,
+    scale1,
+    scale2,
+    backg,
     resample_data,
 ):
     """
@@ -149,39 +162,31 @@ def flag_cr(
     However, this is not currently needed, as CubeModels are only passed in for
     TSO data, where resampling is always False.
     """
+    if not resample_data:
+        return flag_crs(sci_data, sci_err, blot_data, snr1)
     err_data = np.nan_to_num(sci_err)
 
-    # create the outlier mask
-    if resample_data:  # dithered outlier detection
-        blot_deriv = _abs_deriv(blot_data)
-        diff_noise = np.abs(sci_data - blot_data - backg)
+    # TODO this could be optimized to not make as many temporary arrays...
+    blot_deriv = _abs_deriv(blot_data)
+    diff_noise = np.abs(sci_data - blot_data - backg)
 
-        # Create a boolean mask based on a scaled version of
-        # the derivative image (dealing with interpolating issues?)
-        # and the standard n*sigma above the noise
-        threshold1 = scale1 * blot_deriv + snr1 * err_data
-        mask1 = np.greater(diff_noise, threshold1)
+    # Create a boolean mask based on a scaled version of
+    # the derivative image (dealing with interpolating issues?)
+    # and the standard n*sigma above the noise
+    threshold1 = scale1 * blot_deriv + snr1 * err_data
+    mask1 = np.greater(diff_noise, threshold1)
 
-        # Smooth the boolean mask with a 3x3 boxcar kernel
-        kernel = np.ones((3, 3), dtype=int)
-        mask1_smoothed = ndimage.convolve(mask1, kernel, mode='nearest')
+    # Smooth the boolean mask with a 3x3 boxcar kernel
+    kernel = np.ones((3, 3), dtype=int)
+    mask1_smoothed = ndimage.convolve(mask1, kernel, mode='nearest')
 
-        # Create a 2nd boolean mask based on the 2nd set of
-        # scale and threshold values
-        threshold2 = scale2 * blot_deriv + snr2 * err_data
-        mask2 = np.greater(diff_noise, threshold2)
+    # Create a 2nd boolean mask based on the 2nd set of
+    # scale and threshold values
+    threshold2 = scale2 * blot_deriv + snr2 * err_data
+    mask2 = np.greater(diff_noise, threshold2)
 
-        # Final boolean mask
-        cr_mask = mask1_smoothed & mask2
-
-    else:  # stack outlier detection
-        diff_noise = np.abs(sci_data - blot_data)
-
-        # straightforward detection of outliers for non-dithered data since
-        # err_data includes all noise sources (photon, read, and flat for baseline)
-        cr_mask = np.greater(diff_noise, snr1 * err_data)
-
-    return cr_mask
+    # Final boolean mask
+    return mask1_smoothed & mask2
 
 
 # FIXME (or fixed) interp and sinscl were "options" only when provided
@@ -228,7 +233,6 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, shape):
     log.debug("Bounding box from data shape: {}".format(bb))
 
     grid = gwcs.wcstools.grid_from_bounding_box(bb)
-    # TODO does stcal reproject work?
     pixmap = np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
 
     return pixmap
