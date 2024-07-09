@@ -53,12 +53,11 @@ def relative_align(correctors: list,
                    fitgeometry: str = "rshift",
                    nclip: int = 3,
                    sigma: float = 3.0,
-                   align_to_abs_refcat: bool = False,
-                   ) -> tuple[list, bool]:
+                   ) -> list:
 
     if separation <= _SQRT2 * tolerance:
-        msg = "Parameter 'separation' must be larger than 'tolerance' by at \
-            least a factor of sqrt(2) to avoid source confusion."
+        msg = ("Parameter 'separation' must be larger than 'tolerance' by at "
+                "least a factor of sqrt(2) to avoid source confusion.")
         raise TweakregError(msg)
 
     # align images:
@@ -83,18 +82,15 @@ def relative_align(correctors: list,
             nclip=nclip,
             sigma=(sigma, "rmse")
         )
-        local_align_failed = False
 
     except ValueError as e:
         msg = e.args[0]
         if (msg == "Too few input images (or groups of images) with "
                 "non-empty catalogs."):
-            local_align_failed = True
-            if not align_to_abs_refcat:
-                msg += "At least two exposures are required for image alignment. Nothing to do."
-                raise TweakregError(msg) from None
-        else:
-            raise
+            msg += ("At least two exposures are required for "
+                    "image alignment. Nothing to do.")
+            raise TweakregError(msg) from None
+        raise
 
     except RuntimeError as e:
         msg = e.args[0]
@@ -113,15 +109,12 @@ def relative_align(correctors: list,
                                             tolerance,
                                             xoffset,
                                             yoffset)
-        warning_msg = "".join([str(mess.message) for mess in w])
-        if not local_align_failed and not is_small:
-            if align_to_abs_refcat:
-                warning_msg += " Skipping relative alignment (stage 1)..."
-                warnings.warn(warning_msg, stacklevel=1)
-            else:
-                raise TweakregError(warning_msg)
+        msg = "".join([str(mess.message) for mess in w])
+        if not is_small:
+            msg += " Skipping relative alignment..."
+            raise TweakregError(msg)
 
-    return correctors, local_align_failed
+    return correctors
 
 
 def absolute_align(correctors: list,
@@ -136,12 +129,12 @@ def absolute_align(correctors: list,
                    abs_minobj: int = 15,
                    abs_fitgeometry: str = "rshift",
                    abs_nclip: int = 3,
-                   abs_sigma: float = 3.0,
-                   local_align_failed: bool = False,) -> list:
+                   abs_sigma: float = 3.0,) -> list:
 
     if abs_separation <= _SQRT2 * abs_tolerance:
-        msg = "Parameter 'abs_separation' must be larger than 'abs_tolerance' by at \
-            least a factor of sqrt(2) to avoid source confusion."
+        msg = ("Parameter 'abs_separation' must be larger than "
+               "'abs_tolerance' "
+               "by at least a factor of sqrt(2) to avoid source confusion.")
         raise TweakregError(msg)
 
     ref_cat = _parse_refcat(abs_refcat,
@@ -153,9 +146,9 @@ def absolute_align(correctors: list,
     # Check that there are enough GAIA sources for a reliable/valid fit
     num_ref = len(ref_cat)
     if num_ref < abs_minobj:
-        msg = f"Not enough sources ({num_ref}) in the reference catalog \
-            for the single-group alignment step to perform a fit. \
-            Skipping alignment to the input reference catalog!"
+        msg = (f"Not enough sources ({num_ref}) in the reference catalog "
+            "for the single-group alignment step to perform a fit. "
+            "Skipping alignment to the input reference catalog!")
         raise TweakregError(msg)
 
     # align images:
@@ -199,31 +192,23 @@ def absolute_align(correctors: list,
         msg = e.args[0]
         if (msg == "Too few input images (or groups of images) with "
                 "non-empty catalogs."):
-            msg += "At least one exposure is required to align images \
-                    to an absolute reference catalog. Alignment to an \
-                    absolute reference catalog will not be performed."
-            if local_align_failed:
-                msg += " Nothing to do. Skipping 'TweakRegStep'..."
-                raise TweakregError(msg) from None
-            warnings.warn(msg, stacklevel=1)
-        else:
-            raise
+            msg += ("At least one exposure is required to align images "
+                    "to an absolute reference catalog. Alignment to an "
+                    "absolute reference catalog will not be performed.")
+            raise TweakregError(msg) from None
+        raise
 
     except RuntimeError as e:
         msg = e.args[0]
         if msg.startswith("Number of output coordinates exceeded allocation"):
             # we need at least two exposures to perform image alignment
-            msg += "Multiple sources within specified tolerance \
-                    matched to a single reference source. Try to \
-                    adjust 'tolerance' and/or 'separation' parameters. \
-                    Alignment to an absolute reference catalog will \
-                    not be performed."
-            if local_align_failed:
-                msg += "Skipping 'TweakRegStep'..."
-                raise TweakregError(msg) from None
-            warnings.warn(msg, stacklevel=1)
-        else:
-            raise
+            msg += ("Multiple sources within specified tolerance "
+                    "matched to a single reference source. Try to "
+                    "adjust 'tolerance' and/or 'separation' parameters. "
+                    "Alignment to an absolute reference catalog will "
+                    "not be performed.")
+            raise TweakregError(msg) from None
+        raise
 
     return correctors
 
@@ -269,9 +254,9 @@ def _parse_refcat(abs_refcat: str | Path,
     if Path.is_file(Path(abs_refcat)):
         return Table.read(abs_refcat)
 
-    msg = f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be \
-            a path to an existing file name or one of the supported \
-            reference catalogs: {_SINGLE_GROUP_REFCAT_STR}."
+    msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
+            "a path to an existing file name or one of the supported "
+            f"reference catalogs: {_SINGLE_GROUP_REFCAT_STR}.")
     raise ValueError(msg)
 
 

@@ -25,6 +25,7 @@ __all__ = [
     "compute_fiducial",
     "calc_rotation_matrix",
     "update_s_region_imaging",
+    "update_s_region_keyword",
     "wcs_from_footprints",
     "reproject",
     "SupportsDataWithWcs"

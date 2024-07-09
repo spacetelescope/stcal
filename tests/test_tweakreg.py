@@ -272,8 +272,7 @@ def test_relative_align(example_input, input_catalog, with_shift):
         cat1["y"] -= 9
 
     correctors = [construct_wcs_corrector(dm, cat) for (dm, cat) in zip([m0, m1], [input_catalog, cat1], strict=True)]
-    result, local_align_failed = relative_align(correctors, minobj=5)
-    assert not local_align_failed
+    result = relative_align(correctors, minobj=5)
 
     # ensure wcses differ by a small amount due to the shift above
     # by projecting one point through each wcs and comparing the difference
