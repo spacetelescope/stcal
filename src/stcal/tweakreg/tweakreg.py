@@ -228,7 +228,7 @@ def absolute_align(correctors: list[JWSTWCSCorrector],
     return correctors
 
 
-def _parse_refcat(abs_refcat: str,
+def _parse_refcat(abs_refcat: str | Path,
                   ref_model: SupportsDataWithWcs,
                   correctors: list,
                   save_abs_catalog: bool = False,
@@ -246,7 +246,7 @@ def _parse_refcat(abs_refcat: str,
     else:
         output_name = None
 
-    abs_refcat = abs_refcat.strip()
+    abs_refcat = str(abs_refcat).strip()
     gaia_cat_name = abs_refcat.upper()
     if gaia_cat_name in SINGLE_GROUP_REFCAT:
 

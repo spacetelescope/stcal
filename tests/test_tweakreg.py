@@ -1,23 +1,35 @@
 """Test astrometric utility functions for alignment"""
 from copy import deepcopy
+import copy
 from pathlib import Path
 
 import asdf
 import numpy as np
 import pytest
 from astropy.modeling.models import Shift
+from astropy.table import Table
+from tweakwcs.correctors import WCSCorrector
 
 from stcal.tweakreg import astrometric_utils as amutils
+from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
+from stcal.alignment.util import SupportsDataWithWcs
 from stcal.tweakreg.tweakreg import (
     _is_wcs_correction_small,
+    construct_wcs_corrector,
     _wcs_to_skycoord,
+    relative_align,
+    absolute_align,
+    TweakregError,
+    _parse_refcat
 )
 
 # Define input GWCS specification to be used for these tests
-WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
+#WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
+WCS_NAME = "nrcb1-wcs.asdf"
 EXPECTED_NUM_SOURCES = 2469
 EXPECTED_RADIUS = 0.02564497890604383
 TEST_CATALOG = "GAIADR3"
+CATALOG_FNAME = "ref_cat.ecsv"
 DATADIR = "data"
 
 # something
@@ -28,8 +40,8 @@ N_EXAMPLE_SOURCES = 21
 @pytest.fixture(scope="module")
 def wcsobj():
     path = Path(__file__).parent / DATADIR / WCS_NAME
-    with asdf.open(path) as asdf_file:
-        return asdf_file["wcs"]
+    with asdf.open(path, lazy_load=False) as asdf_file:
+        return asdf_file.tree["wcs"]
 
 
 def test_radius(wcsobj):
@@ -90,7 +102,7 @@ def fake_correctors(offset):
     step.transform = step.transform | Shift(offset) & Shift(offset)
     twcs.bounding_box = wcs.bounding_box
 
-    class FakeCorrector:
+    class FakeCorrector(WCSCorrector):
         def __init__(self, wcs, original_skycoord):
             self.wcs = wcs
             self._original_skycoord = original_skycoord
@@ -117,3 +129,158 @@ def test_is_wcs_correction_small(offset, is_good):
     """
     correctors = fake_correctors(offset)
     assert _is_wcs_correction_small(correctors) == is_good
+
+
+def test_expected_fails_bad_separation():
+
+    correctors = fake_correctors(0.0)
+    separation = 1.0
+    tolerance = 1.0
+    with pytest.raises(TweakregError):
+        relative_align(correctors,
+                       separation=separation,
+                       tolerance=tolerance)
+
+    with pytest.raises(TweakregError):
+        absolute_align(correctors, "GAIADR3", None,
+                       abs_separation=separation,
+                       abs_tolerance=tolerance)
+
+
+class AttrDict(dict):
+    """Hack to be able to treat wcsinfo dict as an object so attributes
+    can be accessed"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    @property
+    def instance(self):
+        return self
+
+
+class Metadata:
+
+    def __init__(self, wcs, epoch, group_id=None):
+        self.wcs = wcs
+        self.observation = AttrDict({"date": epoch})
+        wcsinfo = _wcsinfo_from_wcs_transform(wcs)
+        wcsinfo["v3yangle"] = 0.0
+        wcsinfo["vparity"] = 1
+        self.wcsinfo = AttrDict(wcsinfo)
+        self.group_id = group_id
+
+
+class MinimalDataWithWCS(SupportsDataWithWcs):
+
+    def __init__(self, wcs, epoch="2016-01-01T00:00:00.0", group_id=None):
+        self.meta = Metadata(wcs, epoch, group_id=group_id)
+        self.data = np.zeros((512, 512))
+
+    def to_flat_dict():
+        pass
+
+
+@pytest.fixture(scope="module")
+def datamodel(wcsobj, group_id=None):
+    return MinimalDataWithWCS(wcsobj, group_id=group_id)
+
+
+def test_parse_refcat(datamodel):
+
+    wcsobj = datamodel.meta.wcs
+    correctors = fake_correctors(0.0)
+
+    # Get radius and fiducial
+    radius, fiducial = amutils.compute_radius(wcsobj)
+
+    # Get the catalog
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], sr=radius,
+                              catalog=TEST_CATALOG)
+
+    # save refcat to file
+    cat.write(Path.cwd() / CATALOG_FNAME, format="ascii.ecsv", overwrite=True)
+
+    # parse refcat from file
+    refcat = _parse_refcat(Path.cwd() / CATALOG_FNAME, datamodel, correctors)
+    assert isinstance(refcat, Table)
+
+    # find refcat from web
+    refcat = _parse_refcat(TEST_CATALOG, datamodel, correctors)
+    assert isinstance(refcat, Table)
+
+
+@pytest.fixture(scope="module")
+def input_catalog(datamodel):
+    """Get catalog from gaia, transform it to x,y in the image frame,
+    use it as an input catalog"""
+    # Get radius and fiducial
+    w = datamodel.meta.wcs
+    radius, fiducial = amutils.compute_radius(w)
+
+    # Get the catalog
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], sr=radius,
+                              catalog=TEST_CATALOG)
+
+    x, y = w.world_to_pixel(cat["ra"], cat["dec"])
+    return Table({"x": x, "y": y})
+
+
+@pytest.fixture(scope="module")
+def example_input(wcsobj):
+
+    m0 = MinimalDataWithWCS(wcsobj)
+    m0.data[:] = BKG_LEVEL
+    n_sources = N_EXAMPLE_SOURCES
+    rng = np.random.default_rng(26)
+    xs = rng.choice(50, n_sources, replace=False) * 8 + 10
+    ys = rng.choice(50, n_sources, replace=False) * 8 + 10
+    for y, x in zip(ys, xs):
+        m0.data[y-1:y+2, x-1:x+2] = [
+            [0.1, 0.6, 0.1],
+            [0.6, 0.8, 0.6],
+            [0.1, 0.6, 0.1],
+        ]
+
+    m1 = copy.deepcopy(m0)
+    # give each a unique filename
+    m0.meta.filename = "some_file_0.fits"
+    m0.meta.group_id = "a"
+    m1.meta.filename = "some_file_1.fits"
+    m1.meta.group_id = "b"
+    return [m0, m1]
+
+
+@pytest.mark.parametrize("with_shift", [True, False])
+def test_relative_align(example_input, input_catalog, with_shift):
+
+    [m0, m1] = example_input
+    cat1 = copy.deepcopy(input_catalog)
+    if with_shift:
+        m1.data[:-9] = m0.data[9:]
+        m1.data[-9:] = BKG_LEVEL
+        cat1["y"] -= 9
+
+    correctors = [construct_wcs_corrector(dm, cat) for (dm, cat) in zip([m0, m1], [input_catalog, cat1], strict=True)]
+    result, local_align_failed = relative_align(correctors, minobj=5)
+    assert not local_align_failed
+
+    # ensure wcses differ by a small amount due to the shift above
+    # by projecting one point through each wcs and comparing the difference
+    abs_delta = abs(result[1].wcs(0, 0)[0] - result[0].wcs(0, 0)[0])
+    if with_shift:
+        assert abs_delta > 1E-5
+    else:
+        assert abs_delta < 1E-12
+
+
+def test_absolute_align(example_input, input_catalog):
+
+    correctors = [construct_wcs_corrector(dm, input_catalog) for dm in example_input]
+
+    result = absolute_align(correctors, TEST_CATALOG, example_input[0], abs_minobj=5)
+    for res in result:
+        assert res.meta["group_id"] == 987654
+
+    abs_delta = abs(result[1].wcs(0, 0)[0] - result[0].wcs(0, 0)[0])
+    assert abs_delta < 1E-12
