@@ -11,7 +11,7 @@ image catalogs using the corrected WCS will align on the sky.
 Source Catalogs
 ---------------
 The input catalog must be in a format automatically recognized by
-:py:meth:`~astropy.table.Table.read`. The catalog must contain
+`~astropy.table.Table.read`. The catalog must contain
 either ``'x'`` and ``'y'`` or ``'xcentroid'`` and ``'ycentroid'`` columns which
 indicate source *image* coordinates (in pixels). Pixel coordinates are
 0-indexed. An optional column in the catalog is the ``'weight'`` column,
@@ -58,7 +58,7 @@ file. A user-supplied catalog must contain ``'RA'`` and ``'DEC'`` columns
 indicating reference source world coordinates (in degrees). An optional column
 in the catalog is the ``'weight'`` column, which when present, will be used
 in fitting. The catalog must be in a format automatically recognized by
-:py:meth:`~astropy.table.Table.read`.
+`~astropy.table.Table.read`.
 
 Grouping
 --------
@@ -170,7 +170,7 @@ are passed into the `~stcal.tweakreg.absolute_align` function.
 * ``abs_refcat``: String indicating what astrometric catalog should be used.
   Currently supported options: 'GAIADR1', 'GAIADR2', 'GAIADR3', a path to an existing
   reference catalog, `None`, or `''`. See
-  :py:data:`stcal.tweakreg.tweakreg.SINGLE_GROUP_REFCAT`
+  `stcal.tweakreg.tweakreg.SINGLE_GROUP_REFCAT`
   for an up-to-date list of supported built-in reference catalogs.
 
   When ``abs_refcat`` is `None` or an empty string, alignment to the

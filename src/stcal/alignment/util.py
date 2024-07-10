@@ -733,7 +733,7 @@ def update_s_region_keyword(model: SupportsDataWithWcs, footprint):
     ----------
     model :
         The input model
-    footprint : numpy.array
+    footprint :
         A 4x2 numpy array containing the coordinates of the vertices of the footprint.
 
     Returns

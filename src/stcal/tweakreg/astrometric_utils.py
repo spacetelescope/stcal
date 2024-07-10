@@ -182,7 +182,7 @@ def get_catalog(ra, dec, epoch=2016.0, sr=0.1, catalog="GAIADR3"):
 
     Returns
     -------
-    csv : CSV object
+    csv : `~astropy.table.Table`
         CSV object of returned sources with all columns as provided by catalog
 
     """
