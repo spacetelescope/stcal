@@ -96,6 +96,7 @@ def test_flag_resampled_crs():
     backg = 0.0
     resample = True
     crs = flag_resampled_crs(sci, err, blot, snr1, snr2, scale1, scale2, backg, resample)
+    ys, xs = np.where(crs)
     np.testing.assert_equal(ys, 2)
     np.testing.assert_equal(xs, 3)
 
