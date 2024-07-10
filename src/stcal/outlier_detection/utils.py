@@ -104,8 +104,29 @@ def flag_crs(
     blot_data,
     snr,
 ):
-    # straightforward detection of outliers for non-dithered data since
-    # err_data includes all noise sources (photon, read, and flat for baseline)
+    """
+    Straightforward detection of outliers for non-dithered data since
+    err_data includes all noise sources (photon, read, and flat for baseline).
+
+    Parameters
+    ----------
+    sci_data : numpy.ndarray
+        "Science" data possibly containing outliers.
+
+    sci_err : numpy.ndarray
+        Error estimates for sci_data.
+
+    blot_data : numpy.ndarray
+        Reference data used to detect outliers.
+
+    snr : float
+        Signal-to-noise ratio used during detection.
+
+    Returns
+    -------
+    cr_mask ; numpy.ndarray
+        Boolean array where outliers (CRs) are true.
+    """
     return np.greater(np.abs(sci_data - blot_data), snr * np.nan_to_num(sci_err))
 
 
@@ -121,43 +142,44 @@ def flag_resampled_crs(
     resample_data,
 ):
     """
-    Masks outliers in science image by updating DQ in-place
-
-    Mask blemishes in dithered data by comparing a science image
-    with a model image and the derivative of the model image.
+    Detect outliers (CRs) using resampled reference data.
 
     Parameters
     ----------
 
-    FIXME: update these
+    sci_data : numpy.ndarray
+        "Science" data possibly containing outliers
 
-    sci_image : ~jwst.datamodels.ImageModel
-        the science data. Can also accept a CubeModel, but only if
-        resample_data is False
+    sci_err : numpy.ndarray
+        Error estimates for sci_data
 
-    blot_array : np.ndarray
-        the blotted median image of the dithered science frames.
+    blot_data : numpy.ndarray
+        Reference data used to detect outliers. If this reference data
+        was generated through resampling resample_data should be True.
 
-    snr : str
-        Signal-to-noise ratio
+    snr1 : float
+        Signal-to-noise ratio threshold used prior to smoothing.
 
-    scale : str
-        scaling factor applied to the derivative
+    snr2 : float
+        Signal-to-noise ratio threshold used after smoothing.
+
+    scale1 : float
+        Scale used prior to smoothing.
+
+    scale2 : float
+        Scale used after smoothing.
 
     backg : float
-        Background value (scalar) to subtract
+        Scalar background to subtract from the difference.
 
     resample_data : bool
-        Boolean to indicate whether blot_image is created from resampled,
-        dithered data or not
+        If False skip the resampled data algorithm and instead call
+        `flag_crs` with a limited set of these parameters.
 
-    Notes
-    -----
-    Accepting a CubeModel for sci_image and blot_image with resample_data=True
-    appears to be a relatively simple extension, as the only thing that explicitly
-    relies on the dimensionality is the kernel, which could be generalized.
-    However, this is not currently needed, as CubeModels are only passed in for
-    TSO data, where resampling is always False.
+    Returns
+    -------
+    cr_mask ; numpy.ndarray
+        boolean array where outliers (CRs) are true
     """
     if not resample_data:
         return flag_crs(sci_data, sci_err, blot_data, snr1)
@@ -185,25 +207,43 @@ def flag_resampled_crs(
     return mask1_smoothed & mask2
 
 
-def gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio):
+def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
     """
-    Resample the output/resampled image to recreate an input image based on
-    the input image's world coordinate system
+    Resample the median data to recreate an input image based on
+    the blot wcs.
 
     Parameters
     ----------
-    median_model : `~stdatamodels.jwst.datamodels.JwstDataModel`
+    median_data : numpy.ndarray
+        The data to blot.
+
+    median_wcs : gwcs.WCS
+        The wcs for the median data.
+
+    blot_shape : sequence of ints
+        The target blot data shape.
+
+    blot_wcs : gwcs.WCS
+        The target/blotted wcs.
+
+    pix_ratio : float
+        Pixel ratio.
+
+    Returns
+    -------
+    blotted : numpy.ndarray
+        The blotted median data.
 
     blot_img : datamodel
         Datamodel containing header and WCS to define the 'blotted' image
     """
     # Compute the mapping between the input and output pixel coordinates
-    pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_data.shape)
+    pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_shape)
     log.debug("Pixmap shape: {}".format(pixmap[:, :, 0].shape))
-    log.debug("Sci shape: {}".format(blot_data.shape))
-    log.info('Blotting {} <-- {}'.format(blot_data.shape, median_data.shape))
+    log.debug("Sci shape: {}".format(blot_shape))
+    log.info('Blotting {} <-- {}'.format(blot_shape, median_data.shape))
 
-    outsci = np.zeros(blot_data.shape, dtype=np.float32)
+    outsci = np.zeros(blot_shape, dtype=np.float32)
 
     # Currently tblot cannot handle nans in the pixmap, so we need to give some
     # other value.  -1 is not optimal and may have side effects.  But this is
@@ -217,7 +257,24 @@ def gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio):
 
 
 def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
-    """ Return a pixel grid map from input frame to output frame.
+    """
+    Return a pixel grid map from input frame to output frame.
+
+    Parameters
+    ----------
+    in_wcs : gwcs.WCS
+        Input/source wcs.
+
+    out_wcs : gwcs.WCS
+        Output/projected wcs.
+
+    in_shape : sequence of ints
+        Input shape used to compute the input bounding box.
+
+    Returns
+    -------
+    pixmap : numpy.ndarray
+        Computed pixmap.
     """
     bb = wcs_bbox_from_shape(in_shape)
     log.debug("Bounding box from data shape: {}".format(bb))
@@ -228,14 +285,15 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
 
 def reproject(wcs1, wcs2):
     """
-    Given two WCSs or transforms return a function which takes pixel
-    coordinates in the first WCS or transform and computes them in the second
-    one. It performs the forward transformation of ``wcs1`` followed by the
+    Given two WCSs return a function which takes pixel
+    coordinates in wcs1 and computes them in wcs2.
+
+    It performs the forward transformation of ``wcs1`` followed by the
     inverse of ``wcs2``.
 
     Parameters
     ----------
-    wcs1, wcs2 : `~astropy.wcs.WCS` or `~gwcs.wcs.WCS`
+    wcs1, wcs2 : gwcs.WCS
         WCS objects that have `pixel_to_world_values` and `world_to_pixel_values`
         methods.
 

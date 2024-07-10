@@ -108,15 +108,15 @@ def test_gwcs_blot():
 
     median_data = np.arange(100, dtype=np.float32).reshape((10, 10))
     median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
-    blot_data = np.zeros((5, 5), dtype=np.float32)
+    blot_shape = (5, 5)
     blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
     pix_ratio = 1.0
 
-    blotted = gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio)
+    blotted = gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio)
     # since the median data is larger and the wcs are equivalent the blot
     # will window the data to the shape of the blot data
-    assert blotted.shape == blot_data.shape
-    np.testing.assert_equal(blotted, median_data[:blot_data.shape[0], :blot_data.shape[1]])
+    assert blotted.shape == blot_shape
+    np.testing.assert_equal(blotted, median_data[:blot_shape[0], :blot_shape[1]])
 
 
 def test_calc_gwcs_pixmap():
