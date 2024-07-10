@@ -1,12 +1,19 @@
 import warnings
 
+import gwcs
 import pytest
 import numpy as np
 import scipy.signal
+from astropy.modeling import models
 
 from stcal.outlier_detection.utils import (
     _abs_deriv,
     compute_weight_threshold,
+    flag_crs,
+    flag_resampled_crs,
+    gwcs_blot,
+    calc_gwcs_pixmap,
+    reproject,
     medfilt,
 )
 
@@ -26,7 +33,7 @@ def test_abs_deriv_single_value(shape, diff):
     np.testing.assert_allclose(result, expected)
 
 
-@pytest.mark.skip(reason="_abs_deriv has edge effects due to treating off-edge pixels as 0")
+@pytest.mark.skip(reason="_abs_deriv has edge effects due to treating off-edge pixels as 0: see JP-3683")
 @pytest.mark.parametrize("nrows,ncols", [(5, 5), (7, 11), (17, 13)])
 def test_abs_deriv_range(nrows, ncols):
     arr = np.arange(nrows * ncols).reshape(nrows, ncols)
@@ -63,6 +70,79 @@ def test_compute_weight_threshold_zeros():
     arr[:5, :5] = 42
     result = compute_weight_threshold(arr, 0.5)
     np.testing.assert_allclose(result, 21)
+
+
+def test_flag_crs():
+    sci = np.zeros((10, 10), dtype=np.float32)
+    err = np.ones_like(sci)
+    blot = np.zeros_like(sci)
+    # add a cr
+    sci[2, 3] = 10
+    crs = flag_crs(sci, err, blot, 1)
+    ys, xs = np.where(crs)
+    np.testing.assert_equal(ys, 2)
+    np.testing.assert_equal(xs, 3)
+
+
+def test_flag_resampled_crs():
+    sci = np.zeros((10, 10), dtype=np.float32)
+    err = np.ones_like(sci)
+    blot = np.zeros_like(sci)
+    # add a cr
+    sci[2, 3] = 10
+
+    snr1, snr2 = 5, 4
+    scale1, scale2 = 1.2, 0.7
+    backg = 0.0
+    resample = True
+    crs = flag_resampled_crs(sci, err, blot, snr1, snr2, scale1, scale2, backg, resample)
+    np.testing.assert_equal(ys, 2)
+    np.testing.assert_equal(xs, 3)
+
+
+def test_gwcs_blot():
+    # set up a very simple wcs that scales by 1x
+    output_frame = gwcs.Frame2D(name="world")
+    forward_transform = models.Scale(1) & models.Scale(1)
+
+    median_data = np.arange(100, dtype=np.float32).reshape((10, 10))
+    median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    blot_data = np.zeros((5, 5), dtype=np.float32)
+    blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    pix_ratio = 1.0
+
+    blotted = gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio)
+    # since the median data is larger and the wcs are equivalent the blot
+    # will window the data to the shape of the blot data
+    assert blotted.shape == blot_data.shape
+    np.testing.assert_equal(blotted, median_data[:blot_data.shape[0], :blot_data.shape[1]])
+
+
+def test_calc_gwcs_pixmap():
+    # generate 2 wcses with different scales
+    output_frame = gwcs.Frame2D(name="world")
+    in_transform = models.Scale(1) & models.Scale(1)
+    out_transform = models.Scale(2) & models.Scale(2)
+    in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
+    out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
+    in_shape = (3, 4)
+    pixmap = calc_gwcs_pixmap(in_wcs, out_wcs, in_shape)
+    # we expect given the 2x scale difference to have a pixmap
+    # with pixel coordinates / 2
+    # use mgrid to generate these coordinates (and reshuffle to match the pixmap)
+    expected = np.swapaxes(np.mgrid[:4, :3] / 2., 0, 2)
+    np.testing.assert_equal(pixmap, expected)
+
+
+def test_reproject():
+    # generate 2 wcses with different scales
+    output_frame = gwcs.Frame2D(name="world")
+    wcs1 = gwcs.WCS(models.Scale(1) & models.Scale(1), output_frame=output_frame)
+    wcs2 = gwcs.WCS(models.Scale(2) & models.Scale(2), output_frame=output_frame)
+    project = reproject(wcs1, wcs2)
+    pys, pxs = project(np.array([3]), np.array([1]))
+    np.testing.assert_equal(pys, 1.5)
+    np.testing.assert_equal(pxs, 0.5)
 
 
 @pytest.mark.parametrize("shape,kern_size", [

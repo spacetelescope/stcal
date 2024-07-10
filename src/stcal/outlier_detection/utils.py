@@ -73,32 +73,7 @@ def compute_weight_threshold(weight, maskpt):
     return weight_threshold
 
 
-def _valid_abs_deriv(array):
-    """Take the absolute derivate of a numpy array."""
-    out = np.zeros_like(array)  # use same dtype as input
-
-    # compute row-wise absolute diffference
-    d = np.abs(np.diff(array, axis=0))
-    out[1:] = d  # no need to do max yet
-    # since these are absolute differences |r0-r1| = |r1-r0|
-    # make a view of the target portion of the array
-    v = out[:-1]
-    # compute an in-place maximum
-    np.putmask(v, d > v, d)
-
-    # compute col-wise absolute difference
-    d = np.abs(np.diff(array, axis=1))
-    v = out[:, 1:]
-    np.putmask(v, d > v, d)
-    v = out[:, :-1]
-    np.putmask(v, d > v, d)
-    return out
-
-
 def _abs_deriv(array):
-    # FIXME this assumes off-edge pixels are 0
-    # FIXME this upcasts to float64
-    # FIXME _valid_abs_deriv fixes the above issues and is more efficient
     # but fixing the bugs will likely change the output
     tmp = np.zeros(array.shape, dtype=np.float64)
     out = np.zeros(array.shape, dtype=np.float64)
@@ -123,7 +98,6 @@ def _absolute_subtract(array, tmp, out):
     return tmp, out
 
 
-# TODO add tests
 def flag_crs(
     sci_data,
     sci_err,
@@ -135,7 +109,6 @@ def flag_crs(
     return np.greater(np.abs(sci_data - blot_data), snr * np.nan_to_num(sci_err))
 
 
-# TODO add tests
 def flag_resampled_crs(
     sci_data,
     sci_err,
@@ -212,10 +185,6 @@ def flag_resampled_crs(
     return mask1_smoothed & mask2
 
 
-# FIXME (or fixed) interp and sinscl were "options" only when provided
-# as part of the step spec (which becomes outlierpars). As neither was
-# in the spec (and providing unknown arguments causes an error), these
-# were never configurable and always defaulted to linear and 1.0
 def gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio):
     """
     Resample the output/resampled image to recreate an input image based on
@@ -229,7 +198,6 @@ def gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio):
         Datamodel containing header and WCS to define the 'blotted' image
     """
     # Compute the mapping between the input and output pixel coordinates
-    # TODO stcal.alignment.resample_utils.calc_pixmap does not work here
     pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_data.shape)
     log.debug("Pixmap shape: {}".format(pixmap[:, :, 0].shape))
     log.debug("Sci shape: {}".format(blot_data.shape))
@@ -248,20 +216,16 @@ def gwcs_blot(median_data, median_wcs, blot_data, blot_wcs, pix_ratio):
     return outsci
 
 
-# TODO tests, duplicate in resample, resample_utils
-def calc_gwcs_pixmap(in_wcs, out_wcs, shape):
+def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     """ Return a pixel grid map from input frame to output frame.
     """
-    bb = wcs_bbox_from_shape(shape)
+    bb = wcs_bbox_from_shape(in_shape)
     log.debug("Bounding box from data shape: {}".format(bb))
 
     grid = gwcs.wcstools.grid_from_bounding_box(bb)
-    pixmap = np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
-
-    return pixmap
+    return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
 
 
-# TODO tests, duplicate in resample, assign_wcs, resample_utils
 def reproject(wcs1, wcs2):
     """
     Given two WCSs or transforms return a function which takes pixel
