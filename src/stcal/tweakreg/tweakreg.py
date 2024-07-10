@@ -33,7 +33,8 @@ _SQRT2 = math.sqrt(2.0)
 SINGLE_GROUP_REFCAT = ["GAIADR3", "GAIADR2", "GAIADR1"]
 _SINGLE_GROUP_REFCAT_STR = _oxford_or_str_join(SINGLE_GROUP_REFCAT)
 
-__all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT"]
+__all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT",
+           "filter_catalog_by_bounding_box"]
 
 
 class TweakregError(BaseException):
@@ -290,7 +291,7 @@ def _wcs_to_skycoord(wcs):
     return SkyCoord(ra=ra, dec=dec, unit="deg")
 
 
-def _filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[float]) -> Table:
+def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[float]) -> Table:
     """
     Given a catalog of x,y positions, only return sources that fall
     inside the bounding box.
@@ -312,10 +313,8 @@ def construct_wcs_corrector(image_model: SupportsDataWithWcs,
     pre-compute skycoord here so we can later use it
     to check for a small wcs correction.
     """
-    catalog = _filter_catalog_by_bounding_box(
-        catalog,
-        image_model.meta.wcs.bounding_box
-    )
+    catalog = filter_catalog_by_bounding_box(
+        catalog, image_model.meta.wcs.bounding_box)
 
     wcs = image_model.meta.wcs
     refang = image_model.meta.wcsinfo.instance
