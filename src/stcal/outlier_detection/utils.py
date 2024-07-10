@@ -17,6 +17,17 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
+__all__ = [
+    "medfilt",
+    "compute_weight_threshold",
+    "flag_crs",
+    "flag_resampled_crs",
+    "gwcs_blot",
+    "calc_gwcs_pixmap",
+    "reproject",
+]
+
+
 def medfilt(arr, kern_size):
     """
     scipy.signal.medfilt (and many other median filters) have undefined behavior
@@ -124,7 +135,7 @@ def flag_crs(
 
     Returns
     -------
-    cr_mask ; numpy.ndarray
+    cr_mask : numpy.ndarray
         Boolean array where outliers (CRs) are true.
     """
     return np.greater(np.abs(sci_data - blot_data), snr * np.nan_to_num(sci_err))
@@ -178,7 +189,7 @@ def flag_resampled_crs(
 
     Returns
     -------
-    cr_mask ; numpy.ndarray
+    cr_mask : numpy.ndarray
         boolean array where outliers (CRs) are true
     """
     if not resample_data:
@@ -217,13 +228,13 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
     median_data : numpy.ndarray
         The data to blot.
 
-    median_wcs : gwcs.WCS
+    median_wcs : gwcs.wcs.WCS
         The wcs for the median data.
 
-    blot_shape : sequence of ints
+    blot_shape : list of int
         The target blot data shape.
 
-    blot_wcs : gwcs.WCS
+    blot_wcs : gwcs.wcs.WCS
         The target/blotted wcs.
 
     pix_ratio : float
@@ -262,13 +273,13 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
 
     Parameters
     ----------
-    in_wcs : gwcs.WCS
+    in_wcs : gwcs.wcs.WCS
         Input/source wcs.
 
-    out_wcs : gwcs.WCS
+    out_wcs : gwcs.wcs.WCS
         Output/projected wcs.
 
-    in_shape : sequence of ints
+    in_shape : list of int
         Input shape used to compute the input bounding box.
 
     Returns
@@ -293,13 +304,13 @@ def reproject(wcs1, wcs2):
 
     Parameters
     ----------
-    wcs1, wcs2 : gwcs.WCS
+    wcs1, wcs2 : gwcs.wcs.WCS
         WCS objects that have `pixel_to_world_values` and `world_to_pixel_values`
         methods.
 
     Returns
     -------
-    _reproject : func
+    _reproject :
         Function to compute the transformations.  It takes x, y
         positions in ``wcs1`` and returns x, y positions in ``wcs2``.
     """

@@ -9,4 +9,4 @@ Outlier Detection Utils
 
    description.rst
 
-.. automodapi:: stcal.outlier_detection
+.. automodapi:: stcal.outlier_detection.utils
