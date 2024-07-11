@@ -116,7 +116,7 @@ def flag_crs(
 ):
     """
     Straightforward detection of outliers for non-dithered data since
-    err_data includes all noise sources (photon, read, and flat for baseline).
+    sci_err includes all noise sources (photon, read, and flat for baseline).
 
     Parameters
     ----------
