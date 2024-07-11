@@ -85,7 +85,6 @@ def compute_weight_threshold(weight, maskpt):
 
 
 def _abs_deriv(array):
-    # but fixing the bugs will likely change the output
     tmp = np.zeros(array.shape, dtype=np.float64)
     out = np.zeros(array.shape, dtype=np.float64)
 
