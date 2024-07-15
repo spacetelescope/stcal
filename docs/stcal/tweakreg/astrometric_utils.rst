@@ -9,4 +9,4 @@ set of images.
 .. currentmodule:: stcal.tweakreg.astrometric_utils
 
 .. automodapi:: stcal.tweakreg.astrometric_utils
-   :include-all-objects:
+   :noindex:
