@@ -159,7 +159,7 @@ def test_wcs_from_footprints():
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
 
-    wcs = wcs_from_footprints([dm_1, dm_2])
+    wcs = wcs_from_footprints([wcs_1, wcs_2], wcs_1, dm_1.meta.wcsinfo)
 
     # check that all elements of footprint match the *vertices* of the new combined WCS
     assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
@@ -312,7 +312,7 @@ def test_update_s_region_keyword(model, footprint, expected_s_region, expected_l
     """
     Test that S_REGION keyword is being properly populated with the coordinate values.
     """
-    update_s_region_keyword(model, footprint)
+    update_s_region_keyword(model.meta.wcsinfo, footprint)
     assert model.meta.wcsinfo.s_region == expected_s_region
     assert expected_log_info in caplog.text
 
@@ -361,6 +361,7 @@ def test_update_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, 2.5),
         *model.meta.wcs(2.5, -0.5),
     ]
-    update_s_region_imaging(model, center=False)
+    shape = data.shape if data is not None else None
+    update_s_region_imaging(model.meta.wcs, model.meta.wcsinfo, shape=shape, center=False)
     updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
     assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords, expected_s_region_coords))

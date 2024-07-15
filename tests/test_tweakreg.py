@@ -8,11 +8,10 @@ import numpy as np
 import pytest
 from astropy.modeling.models import Shift
 from astropy.table import Table
-from tweakwcs.correctors import WCSCorrector
+from astropy.time import Time
 
 from stcal.tweakreg import astrometric_utils as amutils
 from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
-from stcal.alignment.util import SupportsDataWithWcs
 from stcal.tweakreg.tweakreg import (
     _is_wcs_correction_small,
     construct_wcs_corrector,
@@ -56,7 +55,7 @@ def wcsobj2():
 
 def test_radius(wcsobj):
     # compute radius
-    radius, fiducial = amutils.compute_radius(wcsobj)
+    radius, _ = amutils.compute_radius(wcsobj)
 
     # check results
     np.testing.assert_allclose(radius, EXPECTED_RADIUS, rtol=1e-6)
@@ -152,7 +151,10 @@ def test_expected_fails_bad_separation():
                        tolerance=tolerance)
 
     with pytest.raises(TweakregError):
-        absolute_align(correctors, "GAIADR3", None,
+        absolute_align(correctors, "GAIADR3",
+                       None,
+                       None,
+                       None,
                        abs_separation=separation,
                        abs_tolerance=tolerance)
 
@@ -181,7 +183,7 @@ class Metadata:
         self.group_id = group_id
 
 
-class MinimalDataWithWCS(SupportsDataWithWcs):
+class MinimalDataWithWCS:
 
     def __init__(self, wcs, epoch="2016-01-01T00:00:00.0", group_id=None):
         self.meta = Metadata(wcs, epoch, group_id=group_id)
@@ -212,11 +214,12 @@ def test_parse_refcat(datamodel):
     cat.write(Path.cwd() / CATALOG_FNAME, format="ascii.ecsv", overwrite=True)
 
     # parse refcat from file
-    refcat = _parse_refcat(Path.cwd() / CATALOG_FNAME, datamodel, correctors)
+    epoch = Time(datamodel.meta.observation.date).decimalyear
+    refcat = _parse_refcat(Path.cwd() / CATALOG_FNAME, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
     assert isinstance(refcat, Table)
 
     # find refcat from web
-    refcat = _parse_refcat(TEST_CATALOG, datamodel, correctors)
+    refcat = _parse_refcat(TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
     assert isinstance(refcat, Table)
 
 
@@ -287,7 +290,13 @@ def test_absolute_align(example_input, input_catalog):
 
     correctors = [construct_wcs_corrector(dm, input_catalog) for dm in example_input]
 
-    result = absolute_align(correctors, TEST_CATALOG, example_input[0], abs_minobj=5)
+    ref_model = example_input[0]
+    result = absolute_align(correctors,
+                            TEST_CATALOG,
+                            ref_wcs=ref_model.meta.wcs,
+                            ref_wcsinfo=ref_model.meta.wcsinfo,
+                            epoch=Time(ref_model.meta.observation.date).decimalyear,
+                            abs_minobj=5)
     for res in result:
         assert res.meta["group_id"] == 987654
 

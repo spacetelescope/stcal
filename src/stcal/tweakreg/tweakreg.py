@@ -3,16 +3,20 @@ from __future__ import annotations
 import math
 import warnings
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import astropy.units as u
+
+if TYPE_CHECKING:
+    import gwcs
+    from astropy.time import Time
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
-from astropy.time import Time
 from tweakwcs.correctors import JWSTWCSCorrector
 from tweakwcs.imalign import align_wcs
 from tweakwcs.matchutils import XYXYMatch
 
-from stcal.alignment import SupportsDataWithWcs, wcs_from_footprints
+from stcal.alignment import wcs_from_footprints
 
 from .astrometric_utils import create_astrometric_catalog
 
@@ -120,7 +124,9 @@ def relative_align(correctors: list,
 
 def absolute_align(correctors: list,
                    abs_refcat: str,
-                   ref_image: SupportsDataWithWcs,
+                   ref_wcs: gwcs.WCS,
+                   ref_wcsinfo: dict,
+                   epoch: str | Time,
                    save_abs_catalog: bool = False,
                    abs_catalog_output_dir: str | None = None,
                    abs_searchrad: float = 6.0,
@@ -139,8 +145,10 @@ def absolute_align(correctors: list,
         raise TweakregError(msg)
 
     ref_cat = _parse_refcat(abs_refcat,
-                            ref_image,
                             correctors,
+                            ref_wcs,
+                            ref_wcsinfo,
+                            epoch,
                             save_abs_catalog=save_abs_catalog,
                             output_dir=abs_catalog_output_dir)
 
@@ -215,8 +223,10 @@ def absolute_align(correctors: list,
 
 
 def _parse_refcat(abs_refcat: str | Path,
-                  ref_model: SupportsDataWithWcs,
                   correctors: list,
+                  wcs: gwcs.WCS,
+                  wcsinfo: dict,
+                  epoch: str | Time,
                   save_abs_catalog: bool = False,
                   output_dir: str | None = None) -> Table:
     """
@@ -236,14 +246,12 @@ def _parse_refcat(abs_refcat: str | Path,
     gaia_cat_name = abs_refcat.upper()
     if gaia_cat_name in SINGLE_GROUP_REFCAT:
 
-        epoch = Time(ref_model.meta.observation.date).decimalyear
-
         # combine all aligned wcs to compute a new footprint to
         # filter the absolute catalog sources
         combined_wcs = wcs_from_footprints(
-            None,
-            refmodel=ref_model,
-            wcs_list=[corrector.wcs for corrector in correctors],
+                        [corrector.wcs for corrector in correctors],
+                        ref_wcs=wcs,
+                        ref_wcsinfo=wcsinfo,
         )
 
         return create_astrometric_catalog(
@@ -256,8 +264,8 @@ def _parse_refcat(abs_refcat: str | Path,
         return Table.read(abs_refcat)
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
-            "a path to an existing file name or one of the supported "
-            f"reference catalogs: {_SINGLE_GROUP_REFCAT_STR}.")
+           "a path to an existing file name or one of the supported "
+           f"reference catalogs: {_SINGLE_GROUP_REFCAT_STR}.")
     raise ValueError(msg)
 
 
