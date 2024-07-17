@@ -21,6 +21,7 @@ dqflags = {
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
     "SATURATED": 2**1,  # Pixel saturated during exposure.
     "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "CHARGELOSS":       2**7,   # Charge migration (was RESERVED_4)
     "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
     "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
 }
@@ -29,6 +30,7 @@ GOOD = dqflags["GOOD"]
 DNU = dqflags["DO_NOT_USE"]
 SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
+CHRGL = dqflags["CHARGELOSS"]
 
 
 # -----------------------------------------------------------------------------
@@ -1559,6 +1561,40 @@ def test_refcounter():
     assert b_err == a_err
     assert b_pdq == a_pdq
     assert b_dc == a_dc
+
+
+def test_chargeloss():
+    nints, ngroups, nrows, ncols = 1, 10, 1, 4
+    rnval, gval = 0.7071, 1.
+    # frame_time, nframes, groupgap = 1., 1, 0
+    frame_time, nframes, groupgap = 10.6, 1, 0
+    group_time = 10.6
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.run_c_code = True  # Need to make this default in future
+    base = 15.
+    arr = [(k+1) * base for k in range(ngroups)]
+
+    print(" ")
+    print(f"DNU + CHRGL = {DNU + CHRGL}")
+    # Populate ramps with a variety of flags
+    # (0, 0)
+    ramp.data[0, :, 0, 0] = np.array(arr)
+    # (0, 1)
+    ramp.data[0, :, 0, 1] = np.array(arr)
+    ramp.groupdq[0, 4:, 0, 1] = DNU + CHRGL
+    # (0, 2)
+    ramp.data[0, :, 0, 2] = np.array(arr)
+    ramp.groupdq[0, 4:, 0, 2] = SAT
+    # (0, 3)
+    ramp.data[0, :, 0, 3] = np.array(arr)
+
+    ramp.dbg_print_info()  # XXX
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
 
 
 # -----------------------------------------------------------------------------
