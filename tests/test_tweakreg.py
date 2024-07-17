@@ -1,6 +1,6 @@
 """Test astrometric utility functions for alignment"""
-from copy import deepcopy
 import copy
+from copy import deepcopy
 from pathlib import Path
 
 import asdf
@@ -11,21 +11,20 @@ from astropy.table import Table
 from astropy.time import Time
 
 from stcal.tweakreg import astrometric_utils as amutils
-from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 from stcal.tweakreg.tweakreg import (
-    _is_wcs_correction_small,
-    construct_wcs_corrector,
-    _wcs_to_skycoord,
-    relative_align,
-    absolute_align,
     TweakregError,
-    _parse_refcat
+    _is_wcs_correction_small,
+    _parse_refcat,
+    _wcs_to_skycoord,
+    absolute_align,
+    construct_wcs_corrector,
+    relative_align,
 )
+from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
 EXPECTED_NUM_SOURCES = 2469
-EXPECTED_RADIUS = 0.02564497890604383
 
 # more recent WCS with a defined input frame is necessary for some tests
 WCS_NAME_2 = "nrcb1-wcs.asdf"
@@ -58,6 +57,7 @@ def test_radius(wcsobj):
     radius, _ = amutils.compute_radius(wcsobj)
 
     # check results
+    EXPECTED_RADIUS = 0.02564497890604383
     np.testing.assert_allclose(radius, EXPECTED_RADIUS, rtol=1e-6)
 
 
@@ -66,7 +66,7 @@ def test_get_catalog(wcsobj):
     radius, fiducial = amutils.compute_radius(wcsobj)
 
     # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], sr=radius,
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
                               catalog=TEST_CATALOG)
 
     assert len(cat) == EXPECTED_NUM_SOURCES
@@ -207,7 +207,7 @@ def test_parse_refcat(datamodel):
     radius, fiducial = amutils.compute_radius(wcsobj)
 
     # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], sr=radius,
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
                               catalog=TEST_CATALOG)
 
     # save refcat to file
@@ -215,7 +215,11 @@ def test_parse_refcat(datamodel):
 
     # parse refcat from file
     epoch = Time(datamodel.meta.observation.date).decimalyear
-    refcat = _parse_refcat(Path.cwd() / CATALOG_FNAME, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
+    refcat = _parse_refcat(Path.cwd() / CATALOG_FNAME,
+                           correctors,
+                           datamodel.meta.wcs,
+                           datamodel.meta.wcsinfo,
+                           epoch)
     assert isinstance(refcat, Table)
 
     # find refcat from web
@@ -232,7 +236,7 @@ def input_catalog(datamodel):
     radius, fiducial = amutils.compute_radius(w)
 
     # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], sr=radius,
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
                               catalog=TEST_CATALOG)
 
     x, y = w.world_to_pixel(cat["ra"], cat["dec"])
@@ -248,7 +252,7 @@ def example_input(wcsobj2):
     rng = np.random.default_rng(26)
     xs = rng.choice(50, n_sources, replace=False) * 8 + 10
     ys = rng.choice(50, n_sources, replace=False) * 8 + 10
-    for y, x in zip(ys, xs):
+    for y, x in zip(ys, xs, strict=False):
         m0.data[y-1:y+2, x-1:x+2] = [
             [0.1, 0.6, 0.1],
             [0.6, 0.8, 0.6],
@@ -274,7 +278,11 @@ def test_relative_align(example_input, input_catalog, with_shift):
         m1.data[-9:] = BKG_LEVEL
         cat1["y"] -= 9
 
-    correctors = [construct_wcs_corrector(dm, cat) for (dm, cat) in zip([m0, m1], [input_catalog, cat1], strict=True)]
+    correctors = [construct_wcs_corrector(dm.meta.wcs,
+                                          dm.meta.wcsinfo,
+                                          cat,
+                                          dm.meta.group_id) for (dm, cat) in \
+                                          zip([m0, m1], [input_catalog, cat1], strict=True)]
     result = relative_align(correctors, minobj=5)
 
     # ensure wcses differ by a small amount due to the shift above
@@ -288,7 +296,10 @@ def test_relative_align(example_input, input_catalog, with_shift):
 
 def test_absolute_align(example_input, input_catalog):
 
-    correctors = [construct_wcs_corrector(dm, input_catalog) for dm in example_input]
+    correctors = [construct_wcs_corrector(dm.meta.wcs,
+                                          dm.meta.wcsinfo,
+                                          input_catalog,
+                                          dm.meta.group_id) for dm in example_input]
 
     ref_model = example_input[0]
     result = absolute_align(correctors,

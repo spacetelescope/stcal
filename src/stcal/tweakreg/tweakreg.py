@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import astropy.units as u
 
 if TYPE_CHECKING:
+    import astropy
     import gwcs
-    from astropy.time import Time
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from tweakwcs.correctors import JWSTWCSCorrector
@@ -124,9 +124,9 @@ def relative_align(correctors: list,
 
 def absolute_align(correctors: list,
                    abs_refcat: str,
-                   ref_wcs: gwcs.WCS,
+                   ref_wcs: gwcs.wcs.WCS,
                    ref_wcsinfo: dict,
-                   epoch: str | Time,
+                   epoch: str | astropy.time.Time,
                    save_abs_catalog: bool = False,
                    abs_catalog_output_dir: str | None = None,
                    abs_searchrad: float = 6.0,
@@ -224,9 +224,9 @@ def absolute_align(correctors: list,
 
 def _parse_refcat(abs_refcat: str | Path,
                   correctors: list,
-                  wcs: gwcs.WCS,
+                  wcs: gwcs.wcs.WCS,
                   wcsinfo: dict,
-                  epoch: str | Time,
+                  epoch: str | astropy.time.Time,
                   save_abs_catalog: bool = False,
                   output_dir: str | None = None) -> Table:
     """
@@ -315,19 +315,20 @@ def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[float]) ->
     return catalog[mask]
 
 
-def construct_wcs_corrector(image_model: SupportsDataWithWcs,
-                            catalog: Table) -> JWSTWCSCorrector:
+def construct_wcs_corrector(wcs: gwcs.WCS,
+                            wcsinfo: dict,
+                            catalog: Table,
+                            group_id: str,) -> JWSTWCSCorrector:
     """
     pre-compute skycoord here so we can later use it
     to check for a small wcs correction.
     """
     catalog = filter_catalog_by_bounding_box(
-        catalog, image_model.meta.wcs.bounding_box)
+        catalog, wcs.bounding_box)
 
-    wcs = image_model.meta.wcs
-    refang = image_model.meta.wcsinfo.instance
+    refang = wcsinfo.instance
     return JWSTWCSCorrector(
-        wcs=image_model.meta.wcs,
+        wcs=wcs,
         wcsinfo={"roll_ref": refang["roll_ref"],
                  "v2_ref": refang["v2_ref"],
                  "v3_ref": refang["v3_ref"]},
@@ -335,7 +336,7 @@ def construct_wcs_corrector(image_model: SupportsDataWithWcs,
         meta={
             "catalog": catalog,
             "name": catalog.meta.get("name"),
-            "group_id": image_model.meta.group_id,
+            "group_id": group_id,
             "original_skycoord": _wcs_to_skycoord(wcs),
         }
     )

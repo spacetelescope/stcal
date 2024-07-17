@@ -89,7 +89,7 @@ def create_astrometric_catalog(
         fiducial[0],
         fiducial[1],
         epoch=epoch,
-        sr=radius,
+        search_radius=radius,
         catalog=catalog)
     if len(ref_dict) == 0:
         return ref_dict
@@ -158,22 +158,28 @@ def compute_radius(wcs):
     return radius, fiducial
 
 
-def get_catalog(ra, dec, epoch=2016.0, sr=0.1, catalog="GAIADR3"):
+def get_catalog(
+    right_ascension,
+    declination,
+    epoch=2016.0,
+    search_radius=0.1,
+    catalog="GAIADR3"
+):
     """Extract catalog from VO web service.
 
     Parameters
     ----------
-    ra : float
+    right_ascension : float
         Right Ascension (RA) of center of field-of-view (in decimal degrees)
 
-    dec : float
+    declination : float
         Declination (Dec) of center of field-of-view (in decimal degrees)
 
     epoch : float, optional
         Reference epoch used to update the coordinates for proper motion
         (in decimal year). Default: 2016.0
 
-    sr : float, optional
+    search_radius : float, optional
         Search radius (in decimal degrees) from field-of-view center to use
         for sources from catalog.  Default: 0.1 degrees
 
@@ -191,7 +197,14 @@ def get_catalog(ra, dec, epoch=2016.0, sr=0.1, catalog="GAIADR3"):
     headers = {"Content-Type": "text/csv"}
     fmt = "CSV"
 
-    spec = spec_str.format(ra, dec, epoch, sr, fmt, catalog)
+    spec = spec_str.format(
+        right_ascension,
+        declination,
+        epoch,
+        search_radius,
+        fmt,
+        catalog
+    )
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     rawcat = requests.get(service_url, headers=headers, timeout=TIMEOUT)
     r_contents = rawcat.content.decode()  # convert from bytes to a String
