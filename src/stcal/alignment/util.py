@@ -3,6 +3,10 @@ from __future__ import annotations
 
 import functools
 import logging
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
 
 import gwcs
 import numpy as np
@@ -24,12 +28,28 @@ __all__ = [
     "update_s_region_keyword",
     "wcs_from_footprints",
     "reproject",
+    "Wcsinfo"
 ]
+
+
+@runtime_checkable
+class Wcsinfo(Protocol):
+    wcsaxes: int
+    ra_ref: float
+    dec_ref: float
+    v3yangle: float
+    vparity: int
+    roll_ref: float
+    s_region: str
+
+    @property
+    def instance(self):
+        ...
 
 
 def _calculate_fiducial_from_spatial_footprint(
     spatial_footprint: np.ndarray,
-) -> np.ndarray:
+) -> tuple:
     """
     Calculates the fiducial coordinates from a given spatial footprint.
 
@@ -59,10 +79,10 @@ def _calculate_fiducial_from_spatial_footprint(
 
 
 def _generate_tranform(
-    wcs: gwcs.WCS,
-    wcsinfo: dict,
-    ref_fiducial: np.array,
-    pscale_ratio: int | None = None,
+    wcs: gwcs.wcs.WCS,
+    wcsinfo: dict | Wcsinfo,
+    ref_fiducial: np.ndarray,
+    pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
     transform: astmodels.Model | None = None,
@@ -108,12 +128,14 @@ def _generate_tranform(
     transform : ~astropy.modeling.Model
         An :py:mod:`~astropy` model containing the transform between frames.
     """
+    if not isinstance(wcsinfo, dict):
+        wcsinfo = wcsinfo.instance
     if transform is None:
         sky_axes = wcs._get_axes_indices().tolist()  # noqa: SLF001
-        v3yangle = np.deg2rad(wcsinfo.v3yangle)
-        vparity = wcsinfo.vparity
+        v3yangle = np.deg2rad(wcsinfo["v3yangle"])
+        vparity = wcsinfo["vparity"]
         if rotation is None:
-            roll_ref = np.deg2rad(wcsinfo.roll_ref)
+            roll_ref = np.deg2rad(wcsinfo["roll_ref"])
         else:
             roll_ref = np.deg2rad(rotation) + (vparity * v3yangle)
 
@@ -134,7 +156,8 @@ def _generate_tranform(
     return transform
 
 
-def _get_axis_min_and_bounding_box(wcs_list, ref_wcs):
+def _get_axis_min_and_bounding_box(wcs_list: list[gwcs.wcs.WCS],
+                                   ref_wcs: gwcs.wcs.WCS) -> tuple:
     """
     Calculates axis minimum values and bounding box.
 
@@ -172,7 +195,9 @@ def _get_axis_min_and_bounding_box(wcs_list, ref_wcs):
     return (axis_min_values, output_bounding_box)
 
 
-def _calculate_fiducial(wcs_list, bounding_box, crval=None):
+def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
+                        bounding_box: Sequence | None,
+                        crval: list | None = None) -> np.ndarray:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -182,7 +207,7 @@ def _calculate_fiducial(wcs_list, bounding_box, crval=None):
     wcs_list : list
         A list of WCS objects.
 
-    bounding_box : tuple, or list, optional
+    bounding_box : tuple, or list
         The bounding box over which the WCS is valid. It can be a either tuple of tuples
         or a list of lists of size 2 where each element represents a range of
         (low, high) values. The bounding_box is in the order of the axes, axes_order.
@@ -210,7 +235,10 @@ def _calculate_fiducial(wcs_list, bounding_box, crval=None):
     return fiducial
 
 
-def _calculate_offsets(fiducial, wcs, axis_min_values, crpix):
+def _calculate_offsets(fiducial: np.ndarray,
+                       wcs: gwcs.wcs.WCS | None,
+                       axis_min_values: np.ndarray | None,
+                       crpix: Sequence | None) -> astmodels.Model:
     """
     Calculates the offsets to the transform.
 
@@ -250,7 +278,13 @@ def _calculate_offsets(fiducial, wcs, axis_min_values, crpix):
     return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(-offset2, name="crpix2")
 
 
-def _calculate_new_wcs(wcs, shape, wcs_list, fiducial, crpix=None, transform=None):
+def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
+                       shape: list | None,
+                       wcs_list: list[gwcs.wcs.WCS],
+                       fiducial: np.ndarray,
+                       crpix: tuple | None = None,
+                       transform: astmodels.Model | None = None,
+                       ) -> gwcs.wcs.WCS:
     """
     Calculates a new WCS object based on the combined WCS objects provided.
 
@@ -309,7 +343,7 @@ def _calculate_new_wcs(wcs, shape, wcs_list, fiducial, crpix=None, transform=Non
     return wcs_new
 
 
-def _validate_wcs_list(wcs_list):
+def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
     """
     Validates wcs_list.
 
@@ -346,11 +380,13 @@ def _validate_wcs_list(wcs_list):
     return True
 
 
-def wcsinfo_from_model(wcsinfo: dict, reference_frame: str) -> dict[str, np.ndarray | str | bool]:
+def wcsinfo_from_model(wcsinfo: dict | Wcsinfo,
+                       reference_frame: str,
+                       ) -> dict[str, np.ndarray | str | bool]:
     """
     Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
 
-    What is this actually doing? it looks badly named, as it requires the input 
+    What is this actually doing? it looks badly named, as it requires the input
     model to have its own wcsinfo already. It seems to just be setting defaults
     in wcsinfo if they are None, then making the wcsinfo["PC"] matrix
 
@@ -368,6 +404,8 @@ def wcsinfo_from_model(wcsinfo: dict, reference_frame: str) -> dict[str, np.ndar
         A dict containing the WCS FITS keywords and corresponding values.
 
     """
+    if not isinstance(wcsinfo, dict):
+        wcsinfo = wcsinfo.instance
     defaults = {
         "CRPIX": 0,
         "CRVAL": 0,
@@ -375,7 +413,7 @@ def wcsinfo_from_model(wcsinfo: dict, reference_frame: str) -> dict[str, np.ndar
         "CTYPE": "",
         "CUNIT": u.Unit(""),
     }
-    wcsaxes = wcsinfo.wcsaxes
+    wcsaxes = wcsinfo["wcsaxes"]
     wcsinfo = {"WCSAXES": wcsaxes}
     for key in ["CRPIX", "CRVAL", "CDELT", "CTYPE", "CUNIT"]:
         val = []
@@ -460,7 +498,7 @@ def compute_scale(
     return np.sqrt(xscale * yscale)
 
 
-def compute_fiducial(wcslist: list, bounding_box: tuple | list | None = None) -> np.ndarray:
+def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
@@ -551,16 +589,16 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
 def wcs_from_footprints(
     wcs_list: list[gwcs.WCS],
     ref_wcs: gwcs.WCS,
-    ref_wcsinfo: dict,
-    transform=None,
-    bounding_box=None,
-    pscale_ratio=None,
-    pscale=None,
-    rotation=None,
-    shape=None,
-    crpix=None,
-    crval=None,
-):
+    ref_wcsinfo: dict | Wcsinfo,
+    transform: astmodels.Model | None = None,
+    bounding_box: Sequence | None = None,
+    pscale_ratio: float | None = None,
+    pscale: float | None = None,
+    rotation: float | None = None,
+    shape: Sequence | None = None,
+    crpix: Sequence| None = None,
+    crval: Sequence | None = None,
+) -> gwcs.WCS:
     """
     Create a WCS from a list of input datamodels.
 
@@ -639,6 +677,8 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
+    if not isinstance(ref_wcsinfo, dict):
+        ref_wcsinfo = ref_wcsinfo.instance
     _validate_wcs_list(wcs_list)
 
     fiducial = _calculate_fiducial(wcs_list=wcs_list, bounding_box=bounding_box, crval=crval)
@@ -651,7 +691,7 @@ def wcs_from_footprints(
         pscale_ratio=pscale_ratio,
         pscale=pscale,
         rotation=rotation,
-        ref_fiducial=np.array([ref_wcsinfo.ra_ref, ref_wcsinfo.dec_ref]),
+        ref_fiducial=np.array([ref_wcsinfo["ra_ref"], ref_wcsinfo["dec_ref"]]),
         transform=transform,
     )
 
@@ -665,7 +705,10 @@ def wcs_from_footprints(
     )
 
 
-def update_s_region_imaging(wcs, wcsinfo, shape=None, center=True):
+def update_s_region_imaging(wcs: gwcs.wcs.WCS,
+                            wcsinfo: dict | Wcsinfo,
+                            shape: Sequence | None = None,
+                            center: bool | None = None) -> dict:
     """
     Update the ``S_REGION`` keyword using the WCS footprint.
 
@@ -685,6 +728,8 @@ def update_s_region_imaging(wcs, wcsinfo, shape=None, center=True):
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
     """
+    if not isinstance(wcsinfo, dict):
+        wcsinfo = wcsinfo.instance
     bbox = wcs.bounding_box
     if shape is None and bbox is None:
         msg = "If wcs.bounding_box is not specified, shape must be provided."
@@ -715,7 +760,7 @@ def update_s_region_imaging(wcs, wcsinfo, shape=None, center=True):
     return wcsinfo
 
 
-def wcs_bbox_from_shape(shape):
+def wcs_bbox_from_shape(shape: Sequence) -> tuple:
     """Create a bounding box from the shape of the data.
 
     This is appropriate to attach to a wcs object
@@ -733,7 +778,8 @@ def wcs_bbox_from_shape(shape):
     return (-0.5, shape[-1] - 0.5), (-0.5, shape[-2] - 0.5)
 
 
-def update_s_region_keyword(wcsinfo, footprint):
+def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
+                            footprint: np.ndarray) -> None:
     """Update the S_REGION keyword.
 
     Parameters
@@ -755,12 +801,15 @@ def update_s_region_keyword(wcsinfo, footprint):
     if "nan" in s_region:
         # do not update s_region if there are NaNs.
         log.info("There are NaNs in s_region, S_REGION not updated.")
-    else:
+        return
+    if not isinstance(wcsinfo, dict):
         wcsinfo.s_region = s_region
-        log.info("Update S_REGION to %s", wcsinfo.s_region)
+    else:
+        wcsinfo["s_region"] = s_region
+    log.info("Update S_REGION to %s", s_region)
 
 
-def reproject(wcs1, wcs2):
+def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
     Given two WCSs or transforms return a function which takes pixel
     coordinates in the first WCS or transform and computes them in pixel coordinates

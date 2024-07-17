@@ -10,6 +10,8 @@ import astropy.units as u
 if TYPE_CHECKING:
     import astropy
     import gwcs
+
+    from stcal.alignment import Wcsinfo
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from tweakwcs.correctors import JWSTWCSCorrector
@@ -20,22 +22,9 @@ from stcal.alignment import wcs_from_footprints
 
 from .astrometric_utils import create_astrometric_catalog
 
-
-def _oxford_or_str_join(str_list):
-    nelem = len(str_list)
-    if not nelem:
-        return "N/A"
-    str_list = list(map(repr, str_list))
-    if nelem == 1:
-        return str_list
-    if nelem == 2:
-        return str_list[0] + " or " + str_list[1]
-    return ", ".join(map(repr, str_list[:-1])) + ", or " + repr(str_list[-1])
-
-
 _SQRT2 = math.sqrt(2.0)
 SINGLE_GROUP_REFCAT = ["GAIADR3", "GAIADR2", "GAIADR1"]
-_SINGLE_GROUP_REFCAT_STR = _oxford_or_str_join(SINGLE_GROUP_REFCAT)
+_SINGLE_GROUP_REFCAT_STR = ",".join(SINGLE_GROUP_REFCAT)
 
 __all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT",
            "filter_catalog_by_bounding_box"]
@@ -125,7 +114,7 @@ def relative_align(correctors: list,
 def absolute_align(correctors: list,
                    abs_refcat: str,
                    ref_wcs: gwcs.wcs.WCS,
-                   ref_wcsinfo: dict,
+                   ref_wcsinfo: dict | Wcsinfo,
                    epoch: str | astropy.time.Time,
                    save_abs_catalog: bool = False,
                    abs_catalog_output_dir: str | None = None,
@@ -235,6 +224,7 @@ def _parse_refcat(abs_refcat: str | Path,
     and if the latter, retrieve that catalog from the Web.
     If desired, save the reference catalog in the specified directory.
     """
+    abs_refcat = str(abs_refcat).strip()
     if save_abs_catalog:
         root = f"fit_{abs_refcat.lower()}_ref.ecsv"
         output_name = Path(root) if output_dir is None \
@@ -242,7 +232,6 @@ def _parse_refcat(abs_refcat: str | Path,
     else:
         output_name = None
 
-    abs_refcat = str(abs_refcat).strip()
     gaia_cat_name = abs_refcat.upper()
     if gaia_cat_name in SINGLE_GROUP_REFCAT:
 
@@ -260,7 +249,7 @@ def _parse_refcat(abs_refcat: str | Path,
             output=output_name,
         )
 
-    if Path.is_file(Path(abs_refcat)):
+    if Path(abs_refcat).is_file():
         return Table.read(abs_refcat)
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
@@ -299,7 +288,7 @@ def _wcs_to_skycoord(wcs):
     return SkyCoord(ra=ra, dec=dec, unit="deg")
 
 
-def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[float]) -> Table:
+def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[tuple]) -> Table:
     """
     Given a catalog of x,y positions, only return sources that fall
     inside the bounding box.
@@ -316,17 +305,26 @@ def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[float]) ->
 
 
 def construct_wcs_corrector(wcs: gwcs.WCS,
-                            wcsinfo: dict,
+                            refang: dict | Wcsinfo,
                             catalog: Table,
                             group_id: str,) -> JWSTWCSCorrector:
     """
     pre-compute skycoord here so we can later use it
     to check for a small wcs correction.
+
+    Parameters
+    ----------
+    wcs : `gwcs.WCS`
+        WCS object to be corrected.
+
+    refang : dict
+        Dictionary containing WCSreference angles.
     """
+    if not isinstance(refang, dict):
+        refang = refang.instance
     catalog = filter_catalog_by_bounding_box(
         catalog, wcs.bounding_box)
 
-    refang = wcsinfo.instance
     return JWSTWCSCorrector(
         wcs=wcs,
         wcsinfo={"roll_ref": refang["roll_ref"],

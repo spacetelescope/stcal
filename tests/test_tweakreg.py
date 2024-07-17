@@ -189,9 +189,6 @@ class MinimalDataWithWCS:
         self.meta = Metadata(wcs, epoch, group_id=group_id)
         self.data = np.zeros((512, 512))
 
-    def to_flat_dict():
-        pass
-
 
 @pytest.fixture(scope="module")
 def datamodel(wcsobj2, group_id=None):
@@ -279,7 +276,7 @@ def test_relative_align(example_input, input_catalog, with_shift):
         cat1["y"] -= 9
 
     correctors = [construct_wcs_corrector(dm.meta.wcs,
-                                          dm.meta.wcsinfo,
+                                          dm.meta.wcsinfo.instance,
                                           cat,
                                           dm.meta.group_id) for (dm, cat) in \
                                           zip([m0, m1], [input_catalog, cat1], strict=True)]
@@ -297,7 +294,7 @@ def test_relative_align(example_input, input_catalog, with_shift):
 def test_absolute_align(example_input, input_catalog):
 
     correctors = [construct_wcs_corrector(dm.meta.wcs,
-                                          dm.meta.wcsinfo,
+                                          dm.meta.wcsinfo.instance,
                                           input_catalog,
                                           dm.meta.group_id) for dm in example_input]
 

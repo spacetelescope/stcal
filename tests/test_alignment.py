@@ -10,6 +10,7 @@ from gwcs import coordinate_frames as cf
 
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
+    Wcsinfo,
     _validate_wcs_list,
     compute_fiducial,
     compute_scale,
@@ -70,7 +71,7 @@ def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
     )
 
 
-class WcsInfo:
+class WcsInfo(Wcsinfo):
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle):
         self.ra_ref = ra_ref
         self.dec_ref = dec_ref
@@ -83,6 +84,22 @@ class WcsInfo:
         self.vparity = -1
         self.wcsaxes = 2
         self.s_region = ""
+        self.instance = self.instance()
+
+    def instance(self):
+        return {
+            "ra_ref": self.ra_ref,
+            "dec_ref": self.dec_ref,
+            "ctype1": self.ctype1,
+            "ctype2": self.ctype2,
+            "v2_ref": self.v2_ref,
+            "v3_ref": self.v3_ref,
+            "v3yangle": self.v3yangle,
+            "roll_ref": self.roll_ref,
+            "vparity": self.vparity,
+            "wcsaxes": self.wcsaxes,
+            "s_region": self.s_region,
+        }
 
 
 class Coordinates:
@@ -364,4 +381,6 @@ def test_update_s_region_imaging(model, bounding_box, data):
     shape = data.shape if data is not None else None
     update_s_region_imaging(model.meta.wcs, model.meta.wcsinfo, shape=shape, center=False)
     updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
-    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords, expected_s_region_coords))
+    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords,
+                                                expected_s_region_coords,
+                                                strict=False))
