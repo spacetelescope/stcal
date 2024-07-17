@@ -1050,6 +1050,7 @@ compute_integration_segments(
     uint32_t * groupdq = pr->groupdq + integ * pr->ngroups;
     npy_intp idx, start, end;
     int in_seg=0;
+    struct segment_list * segs = &(pr->segs[integ]);
 
     /* If the whole integration is saturated, then no valid slope. */
     if (groupdq[0] & rd->sat) {
@@ -1076,7 +1077,7 @@ compute_integration_segments(
             if (in_seg) {
                 /* The end of a segment is detected. */
                 end = idx;
-                if (add_segment_to_list(&(pr->segs[integ]), start, end)) {
+                if (add_segment_to_list(segs, start, end)) {
                     return 1;
                 }
                 in_seg = 0;
@@ -1086,7 +1087,7 @@ compute_integration_segments(
     /* The last segment of the integration is at the end of the integration */
     if (in_seg) {
         end = idx;
-        if (add_segment_to_list(&(pr->segs[integ]), start, end)) {
+        if (add_segment_to_list(segs, start, end)) {
             return 1;
         }
     }
@@ -1097,7 +1098,7 @@ compute_integration_segments(
      * the first first one group segment is used and all subsequent
      * one group segments are discarded.
      */
-    prune_segment_list(&(pr->segs[integ]));
+    prune_segment_list(segs);
 
     return ret;
 }
