@@ -25,6 +25,7 @@ class RampData:
         self.flags_saturated = None
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
+        self.flags_chargeloss = None
 
         # ZEROFRAME
         self.zframe_mat = None
@@ -131,6 +132,7 @@ class RampData:
         self.flags_saturated = dqflags["SATURATED"]
         self.flags_no_gain_val = dqflags["NO_GAIN_VALUE"]
         self.flags_unreliable_slope = dqflags["UNRELIABLE_SLOPE"]
+        self.flags_chargeloss = dqflags["CHARGELOSS"]
 
     def dbg_print_types(self):
         # Arrays from the data model
@@ -199,6 +201,16 @@ class RampData:
             print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
         # print(f"    err :\n{self.err[:, :, row, col]}")
         # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
+
+    def dbg_print_info(self):
+        print(" ")
+        nints, ngroups, nrows, ncols = self.data.shape
+        for row in range(nrows):
+            for col in range(ncols):
+                print("=" * 80)
+                print(f"**** Pixel ({row}, {col}) ****")
+                self.dbg_print_pixel_info(row, col)
+        print("=" * 80)
 
     def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):
         fd.write("def create_ramp_data_pixel():\n")
