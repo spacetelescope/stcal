@@ -17,6 +17,7 @@ dqflags = {
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
     "SATURATED": 2**1,  # Pixel saturated during exposure.
     "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "CHARGELOSS":       2**7,   # Charge migration (was RESERVED_4)
     "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
     "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
 }
@@ -25,6 +26,7 @@ GOOD = dqflags["GOOD"]
 DNU = dqflags["DO_NOT_USE"]
 SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
+CHRGL = dqflags["CHARGELOSS"]
 
 
 # -----------------------------------------------------------------------------
@@ -1497,6 +1499,66 @@ def test_one_group():
     assert abs(serr[0, 0] - cerr[0, 0, 0]) < tol
 
 
+def test_compute_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert compute_num_slices("none", n_rows, max_available_cores) == 1
+    assert compute_num_slices("half", n_rows, max_available_cores) == 5
+    assert compute_num_slices("3", n_rows, max_available_cores) == 3
+    assert compute_num_slices("7", n_rows, max_available_cores) == 7
+    assert compute_num_slices("21", n_rows, max_available_cores) == 10
+    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
+    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("one", n_rows, max_available_cores) == 1
+    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("all", n_rows, max_available_cores) == 10
+    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
+    n_rows = 9
+    assert compute_num_slices("21", n_rows, max_available_cores) == 9
+
+
+def test_chargeloss():
+    nints, ngroups, nrows, ncols = 1, 10, 1, 4
+    rnval, gval = 0.7071, 1.
+    # frame_time, nframes, groupgap = 1., 1, 0
+    frame_time, nframes, groupgap = 10.6, 1, 0
+    group_time = 10.6
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.run_c_code = True  # Need to make this default in future
+    base = 15.
+    arr = [(k+1) * base for k in range(ngroups)]
+
+    print(" ")
+    print(f"DNU + CHRGL = {DNU + CHRGL}")
+    # Populate ramps with a variety of flags
+    # (0, 0)
+    ramp.data[0, :, 0, 0] = np.array(arr)
+    # (0, 1)
+    ramp.data[0, :, 0, 1] = np.array(arr)
+    ramp.groupdq[0, 4:, 0, 1] = DNU + CHRGL
+    # (0, 2)
+    ramp.data[0, :, 0, 2] = np.array(arr)
+    ramp.groupdq[0, 4:, 0, 2] = SAT
+    # (0, 3)
+    ramp.data[0, :, 0, 3] = np.array(arr)
+
+    ramp.dbg_print_info()  # XXX
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
+
+
+# -----------------------------------------------------------------------------
+#                           Set up functions
+
+
 def create_blank_ramp_data(dims, var, tm):
     """
     Create empty RampData classes, as well as gain and read noise arrays,
@@ -1529,28 +1591,6 @@ def create_blank_ramp_data(dims, var, tm):
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnval
 
     return ramp_data, gain, rnoise
-
-
-def test_compute_num_slices():
-    n_rows = 20
-    max_available_cores = 10
-    assert compute_num_slices("none", n_rows, max_available_cores) == 1
-    assert compute_num_slices("half", n_rows, max_available_cores) == 5
-    assert compute_num_slices("3", n_rows, max_available_cores) == 3
-    assert compute_num_slices("7", n_rows, max_available_cores) == 7
-    assert compute_num_slices("21", n_rows, max_available_cores) == 10
-    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
-    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("one", n_rows, max_available_cores) == 1
-    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("all", n_rows, max_available_cores) == 10
-    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
-    n_rows = 9
-    assert compute_num_slices("21", n_rows, max_available_cores) == 9
-
-
-# -----------------------------------------------------------------------------
-#                           Set up functions
 
 
 def setup_inputs(dims, var, tm):
