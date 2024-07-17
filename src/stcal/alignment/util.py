@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    import astropy
+    import numpy  # noqa: ICN001 this is the only way Sphinx can find ndarray
+
 import gwcs
 import numpy as np
 from astropy import units as u
@@ -48,7 +51,7 @@ class Wcsinfo(Protocol):
 
 
 def _calculate_fiducial_from_spatial_footprint(
-    spatial_footprint: np.ndarray,
+    spatial_footprint: numpy.ndarray,
 ) -> tuple:
     """
     Calculates the fiducial coordinates from a given spatial footprint.
@@ -81,7 +84,7 @@ def _calculate_fiducial_from_spatial_footprint(
 def _generate_tranform(
     wcs: gwcs.wcs.WCS,
     wcsinfo: dict | Wcsinfo,
-    ref_fiducial: np.ndarray,
+    ref_fiducial: numpy.ndarray,
     pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
@@ -197,7 +200,7 @@ def _get_axis_min_and_bounding_box(wcs_list: list[gwcs.wcs.WCS],
 
 def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
                         bounding_box: Sequence | None,
-                        crval: list | None = None) -> np.ndarray:
+                        crval: list | None = None) -> numpy.ndarray:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -235,9 +238,9 @@ def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
     return fiducial
 
 
-def _calculate_offsets(fiducial: np.ndarray,
+def _calculate_offsets(fiducial: numpy.ndarray,
                        wcs: gwcs.wcs.WCS | None,
-                       axis_min_values: np.ndarray | None,
+                       axis_min_values: numpy.ndarray | None,
                        crpix: Sequence | None) -> astmodels.Model:
     """
     Calculates the offsets to the transform.
@@ -281,7 +284,7 @@ def _calculate_offsets(fiducial: np.ndarray,
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                        shape: list | None,
                        wcs_list: list[gwcs.wcs.WCS],
-                       fiducial: np.ndarray,
+                       fiducial: numpy.ndarray,
                        crpix: tuple | None = None,
                        transform: astmodels.Model | None = None,
                        ) -> gwcs.wcs.WCS:
@@ -382,7 +385,7 @@ def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
 
 def wcsinfo_from_model(wcsinfo: dict | Wcsinfo,
                        reference_frame: str,
-                       ) -> dict[str, np.ndarray | str | bool]:
+                       ) -> dict[str, numpy.ndarray | str | bool]:
     """
     Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
 
@@ -434,8 +437,8 @@ def wcsinfo_from_model(wcsinfo: dict | Wcsinfo,
 
 
 def compute_scale(
-    wcs: gwcs.WCS,
-    fiducial: tuple | np.ndarray,
+    wcs: gwcs.wcs.WCS,
+    fiducial: tuple | numpy.ndarray,
     disp_axis: int | None = None,
     pscale_ratio: float | None = None,
 ) -> float:
@@ -498,7 +501,8 @@ def compute_scale(
     return np.sqrt(xscale * yscale)
 
 
-def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.ndarray:
+def compute_fiducial(wcslist: list,
+                     bounding_box: Sequence | None = None) -> numpy.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
@@ -587,18 +591,18 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
 
 
 def wcs_from_footprints(
-    wcs_list: list[gwcs.WCS],
-    ref_wcs: gwcs.WCS,
+    wcs_list: list[gwcs.wcs.WCS],
+    ref_wcs: gwcs.wcs.WCS,
     ref_wcsinfo: dict | Wcsinfo,
-    transform: astmodels.Model | None = None,
+    transform: astropy.modeling.models.Model | None = None,
     bounding_box: Sequence | None = None,
     pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
     shape: Sequence | None = None,
-    crpix: Sequence| None = None,
+    crpix: Sequence | None = None,
     crval: Sequence | None = None,
-) -> gwcs.WCS:
+) -> gwcs.wcs.WCS:
     """
     Create a WCS from a list of input datamodels.
 
@@ -779,7 +783,7 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
 
 
 def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
-                            footprint: np.ndarray) -> None:
+                            footprint: numpy.ndarray) -> None:
     """Update the S_REGION keyword.
 
     Parameters
@@ -855,7 +859,7 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
             raise TypeError(msg)
         return backward_transform
 
-    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
+    def _reproject(x: float | numpy.ndarray, y: float | numpy.ndarray) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 
