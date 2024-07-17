@@ -184,9 +184,10 @@ struct ramp_data {
 
     /*
      * Group and Pixel flags: 
-     * DO_NOT USE, JUMP_DET, SATURATED, NO_GAIN_VALUE, UNRELIABLE_SLOPE
+     * DO_NOT USE, JUMP_DET, SATURATED, NO_GAIN_VALUE, UNRELIABLE_SLOPE,
+     * CHARGELOSS, and a user defined "invalid" flag.
      */
-    uint32_t dnu, jump, sat, ngval, uslope, invalid;
+    uint32_t dnu, jump, sat, ngval, uslope, chargeloss, invalid;
 
     /* 
      * This is used only if the save_opt is non-zero, i.e., the option to
@@ -275,6 +276,7 @@ struct integ_gdq_stats {
     int cnt_dnu_sat;    /* SATURATED | DO_NOT_USE count */
     int cnt_good;       /* GOOD count */
     int jump_det;       /* Boolean for JUMP_DET */
+    int chargeloss;     /* Boolean for CHARGELOSS */
 }; /* END: struct integ_gdq_stats */
 
 /*
@@ -518,6 +520,9 @@ py_ramp_data_get_int(PyObject * rd, const char * attr);
 
 static int
 ramp_fit_pixel(struct ramp_data * rd, struct pixel_ramp * pr);
+
+static int
+ramp_fit_pixel_rnoise_chargeloss(struct ramp_data * rd, struct pixel_ramp * pr);
 
 static int
 ramp_fit_pixel_integration(
@@ -1484,6 +1489,9 @@ get_pixel_ramp_integration(
     if (pr->groupdq[idx] & rd->jump) {
         pr->stats[integ].jump_det = 1;
     }
+    if (pr->groupdq[idx] & rd->chargeloss) {
+        pr->stats[integ].chargeloss = 1;
+    }
     if (0==pr->groupdq[idx]) {
         pr->stats[integ].cnt_good++;
     } else if (pr->groupdq[idx] & rd->dnu) {
@@ -1703,6 +1711,7 @@ get_ramp_data_meta(
     rd->sat = py_ramp_data_get_int(Py_ramp_data, "flags_saturated");
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
+    rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
     rd->invalid = rd->dnu | rd->sat;
 
     /* Get float meta data */
@@ -2111,6 +2120,10 @@ ols_slope_fit_pixels(
                 return 1;
             }
 
+            if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
+                return 1;
+            }
+
             /* Save fitted pixel data for output packaging */
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
                 return 1;
@@ -2395,6 +2408,29 @@ ramp_fit_pixel(
 
 END:
     return ret;
+}
+
+static int
+ramp_fit_pixel_rnoise_chargeloss(
+        struct ramp_data * rd,  /* The ramp data */
+        struct pixel_ramp * pr) /* The pixel ramp data */
+{
+    int ret = 0;
+    int is_chargeless = 0;
+    npy_intp integ;
+    
+    for (integ=0; integ < pr->nints; ++integ) {
+        if (0 == pr->stats[integ].chargeloss) {
+            continue;
+        }
+         /*  segment list */
+         /*  Swap segment list */
+         /*  Compute segments */
+         /*  Compute integration read noise */
+         /*  Swap and clean segment list */
+    }
+
+    return 0;
 }
 
 /*
