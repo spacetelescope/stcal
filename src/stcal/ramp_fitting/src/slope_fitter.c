@@ -403,7 +403,8 @@ clean_segment_list(npy_intp nints, struct segment_list * segs);
 
 static int
 compute_integration_segments(
-    struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+    struct ramp_data * rd, struct pixel_ramp * pr, struct segment_list * segs,
+    npy_intp integ);
 
 static int
 create_opt_res(struct opt_res_product * opt_res, struct ramp_data * rd);
@@ -1044,13 +1045,13 @@ static int
 compute_integration_segments(
         struct ramp_data * rd,  /* Ramp fitting data */
         struct pixel_ramp * pr, /* Pixel ramp fitting data */
+        struct segment_list * segs,
         npy_intp integ)         /* Current integration */
 {
     int ret = 0;
     uint32_t * groupdq = pr->groupdq + integ * pr->ngroups;
     npy_intp idx, start, end;
     int in_seg=0;
-    struct segment_list * segs = &(pr->segs[integ]);
 
     /* If the whole integration is saturated, then no valid slope. */
     if (groupdq[0] & rd->sat) {
@@ -2493,7 +2494,7 @@ ramp_fit_pixel_integration(
 {
     int ret = 0;
 
-    if (compute_integration_segments(rd, pr, integ)) {
+    if (compute_integration_segments(rd, pr, &(pr->segs[integ]), integ)) {
         ret = 1;
         goto END;
     }
