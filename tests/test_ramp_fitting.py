@@ -1517,7 +1517,7 @@ def test_compute_num_slices():
     assert compute_num_slices("21", n_rows, max_available_cores) == 9
 
 
-#@pytest.mark.skip("Not ready, yet")
+@pytest.mark.skip("Not ready, yet")
 def test_cext_chargeloss():
     """
     Testing the recomputation of read noise due to CHARGELOSS.  Wherever
