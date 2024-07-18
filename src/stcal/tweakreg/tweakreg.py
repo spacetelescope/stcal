@@ -214,7 +214,7 @@ def absolute_align(correctors: list,
 def _parse_refcat(abs_refcat: str | Path,
                   correctors: list,
                   wcs: gwcs.wcs.WCS,
-                  wcsinfo: dict,
+                  wcsinfo: dict | Wcsinfo,
                   epoch: str | astropy.time.Time,
                   save_abs_catalog: bool = False,
                   output_dir: str | None = None) -> Table:

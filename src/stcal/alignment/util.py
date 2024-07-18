@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     import astropy
-    import numpy  # noqa: ICN001 this is the only way Sphinx can find ndarray
+    import numpy  # noqa: ICN001  needed to work around Sphinx type hint bug
 
 import gwcs
 import numpy as np
@@ -35,7 +35,6 @@ __all__ = [
 ]
 
 
-@runtime_checkable
 class Wcsinfo(Protocol):
     wcsaxes: int
     ra_ref: float
@@ -46,25 +45,25 @@ class Wcsinfo(Protocol):
     s_region: str
 
     @property
-    def instance(self):
+    def instance(self: Wcsinfo) -> dict:
         ...
 
 
 def _calculate_fiducial_from_spatial_footprint(
-    spatial_footprint: numpy.ndarray,
+    spatial_footprint: np.ndarray,
 ) -> tuple:
     """
     Calculates the fiducial coordinates from a given spatial footprint.
 
     Parameters
     ----------
-    spatial_footprint : numpy.ndarray
+    spatial_footprint : np.ndarray
         A 2xN array containing the world coordinates of the WCS footprint's
         bounding box, where N is the number of bounding box positions.
 
     Returns
     -------
-    lon_fiducial, lat_fiducial : numpy.ndarray, numpy.ndarray
+    lon_fiducial, lat_fiducial : np.ndarray, np.ndarray
         The world coordinates of the fiducial point in the output coordinate frame.
     """
     lon, lat = spatial_footprint
@@ -84,7 +83,7 @@ def _calculate_fiducial_from_spatial_footprint(
 def _generate_tranform(
     wcs: gwcs.wcs.WCS,
     wcsinfo: dict | Wcsinfo,
-    ref_fiducial: numpy.ndarray,
+    ref_fiducial: np.ndarray,
     pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
@@ -176,7 +175,7 @@ def _get_axis_min_and_bounding_box(wcs_list: list[gwcs.wcs.WCS],
     -------
     tuple
         A tuple containing two elements:
-            1 - a :py:class:`numpy.ndarray` with the minimum value in each axis;
+            1 - a :py:class:`np.ndarray` with the minimum value in each axis;
             2 - a tuple containing the bounding box region in the format
             ((x0_lower, x0_upper), (x1_lower, x1_upper)).
     """
@@ -194,13 +193,12 @@ def _get_axis_min_and_bounding_box(wcs_list: list[gwcs.wcs.WCS],
         # populate output_bounding_box
         output_bounding_box.append((axis_min, axis_max))
 
-    output_bounding_box = tuple(output_bounding_box)
     return (axis_min_values, output_bounding_box)
 
 
 def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
                         bounding_box: Sequence | None,
-                        crval: list | None = None) -> numpy.ndarray:
+                        crval: Sequence | None = None) -> np.ndarray:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -224,7 +222,7 @@ def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
 
     Returns
     -------
-    fiducial : numpy.ndarray
+    fiducial : np.ndarray
         A two-elements array containing the world coordinate of the fiducial point.
     """
     fiducial = compute_fiducial(wcs_list, bounding_box=bounding_box)
@@ -238,22 +236,22 @@ def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
     return fiducial
 
 
-def _calculate_offsets(fiducial: numpy.ndarray,
+def _calculate_offsets(fiducial: np.ndarray,
                        wcs: gwcs.wcs.WCS | None,
-                       axis_min_values: numpy.ndarray | None,
+                       axis_min_values: np.ndarray | None,
                        crpix: Sequence | None) -> astmodels.Model:
     """
     Calculates the offsets to the transform.
 
     Parameters
     ----------
-    fiducial : numpy.ndarray
+    fiducial : np.ndarray
         A two-elements containing the world coordinates of the fiducial point.
 
     wcs : ~gwcs.wcs.WCS
         A WCS object. It will be used to determine the
 
-    axis_min_values : numpy.ndarray
+    axis_min_values : np.ndarray
         A two-elements array containing the minimum pixel value for each axis.
 
     crpix : list or tuple
@@ -275,6 +273,9 @@ def _calculate_offsets(fiducial: numpy.ndarray,
         offset1, offset2 = wcs.backward_transform(*fiducial)
         offset1 -= axis_min_values[0]
         offset2 -= axis_min_values[1]
+    elif crpix is None:
+        msg = "If crpix is not provided, fiducial, wcs, and axis_min_values must be provided."
+        raise ValueError(msg)
     else:
         offset1, offset2 = crpix
 
@@ -282,10 +283,10 @@ def _calculate_offsets(fiducial: numpy.ndarray,
 
 
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
-                       shape: list | None,
+                       shape: Sequence | None,
                        wcs_list: list[gwcs.wcs.WCS],
-                       fiducial: numpy.ndarray,
-                       crpix: tuple | None = None,
+                       fiducial: np.ndarray,
+                       crpix: Sequence | None = None,
                        transform: astmodels.Model | None = None,
                        ) -> gwcs.wcs.WCS:
     """
@@ -303,7 +304,7 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
     wcs_list : list
         A list containing WCS objects.
 
-    fiducial : numpy.ndarray
+    fiducial : np.ndarray
         A two-elements array containing the location on the sky in some standard
         coordinate system.
 
@@ -385,7 +386,7 @@ def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
 
 def wcsinfo_from_model(wcsinfo: dict | Wcsinfo,
                        reference_frame: str,
-                       ) -> dict[str, numpy.ndarray | str | bool]:
+                       ) -> dict[str, np.ndarray | str | bool]:
     """
     Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
 
@@ -438,7 +439,7 @@ def wcsinfo_from_model(wcsinfo: dict | Wcsinfo,
 
 def compute_scale(
     wcs: gwcs.wcs.WCS,
-    fiducial: tuple | numpy.ndarray,
+    fiducial: tuple | np.ndarray,
     disp_axis: int | None = None,
     pscale_ratio: float | None = None,
 ) -> float:
@@ -523,7 +524,7 @@ def compute_fiducial(wcslist: list,
 
     Returns
     -------
-    fiducial : numpy.ndarray
+    fiducial : np.ndarray
         A two-elements array containing the world coordinates of the fiducial point
         in the combined output coordinate frame.
 
@@ -657,7 +658,7 @@ def wcs_from_footprints(
         provided.
 
     shape : tuple of int, None
-        Shape of the image (data array) using ``numpy.ndarray`` convention
+        Shape of the image (data array) using ``np.ndarray`` convention
         (``ny`` first and ``nx`` second). This value will be assigned to
         ``pixel_shape`` and ``array_shape`` properties of the returned
         WCS object.
@@ -739,7 +740,7 @@ def update_s_region_imaging(wcs: gwcs.wcs.WCS,
         msg = "If wcs.bounding_box is not specified, shape must be provided."
         raise ValueError(msg)
 
-    if bbox is None:
+    if shape is not None and bbox is None:
         bbox = wcs_bbox_from_shape(shape)
         wcs.bounding_box = bbox
 
@@ -772,7 +773,7 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
     Parameters
     ----------
     shape : tuple
-        The shape attribute from a `numpy.ndarray` array
+        The shape attribute from a `np.ndarray` array
 
     Returns
     -------
@@ -783,7 +784,7 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
 
 
 def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
-                            footprint: numpy.ndarray) -> None:
+                            footprint: np.ndarray) -> None:
     """Update the S_REGION keyword.
 
     Parameters
@@ -859,7 +860,7 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
             raise TypeError(msg)
         return backward_transform
 
-    def _reproject(x: float | numpy.ndarray, y: float | numpy.ndarray) -> tuple:
+    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 
