@@ -596,6 +596,9 @@ save_ramp_fit(struct rateint_product * rateint_prod, struct rate_product * rate_
     struct pixel_ramp * pr);
 
 static real_t
+segment_len1_timing(struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+
+static real_t
 segment_rnoise_default(struct ramp_data * rd, struct pixel_ramp * pr, real_t seglen);
 
 static real_t
@@ -2776,9 +2779,11 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
         int segnum)                 /* The segment integration */
 {
     npy_intp idx;
-    real_t timing = rd->group_time;
-    real_t pden, rnum, rden, tmp;
+    // real_t timing = rd->group_time;
+    real_t timing = segment_len1_timing(rd, pr, integ);
+    real_t pden, tmp;
 
+#if 0
     /* Check for special cases */
     if (!rd->suppress1g) {
         if (pr->is_0th[integ]) {
@@ -2787,6 +2792,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
             timing = rd->frame_time;
         }
     }
+#endif
 
     idx = get_ramp_index(rd, integ, seg->start);
 
@@ -2814,10 +2820,26 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
 }
 
 static real_t
+segment_len1_timing(
+        struct ramp_data * rd,  /* The ramp data */
+        struct pixel_ramp * pr, /* The pixel ramp data */
+        npy_intp integ)         /* The current integration */
+{
+    if (!rd->suppress1g) {
+        if (pr->is_0th[integ]) {
+            return rd->one_group_time;
+        } else if (pr->is_zframe[integ]) {
+            return rd->frame_time;
+        }
+    }
+    return rd->group_time;
+}
+
+static real_t
 segment_rnoise_len1(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        real_t timing)
+        struct ramp_data * rd,  /* The ramp data */
+        struct pixel_ramp * pr, /* The pixel ramp data */
+        real_t timing)          /* The first group timing */
 {
     real_t rnum, rden;
 
@@ -2842,7 +2864,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
         int segnum)                 /* The segment number */
 {
     npy_intp idx;
-    real_t data_diff, _2nd_read, data0, data1, rnum, rden, pden;
+    real_t data_diff, _2nd_read, data0, data1, pden;
     real_t sqrt2 = 1.41421356;  /* The square root of 2 */
     real_t tmp, wt;
 
@@ -2899,8 +2921,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
 
 static real_t
 segment_rnoise_len2(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr)
+        struct ramp_data * rd,  /* The ramp data */
+        struct pixel_ramp * pr) /* The pixel ramp data */
 {
     real_t rnum, rden;
 
@@ -3007,7 +3029,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
         int segnum,                 /* The segment number */
         real_t power)               /* The power of the segment */
 {
-    real_t slope, num, den, invden, rnum=0., rden=0., pden=0., seglen;
+    real_t slope, num, den, invden, pden=0., seglen;
     real_t sumx=ols->sumx, sumxx=ols->sumxx, sumy=ols->sumy,
           sumxy=ols->sumxy, sumw=ols->sumw;
 
