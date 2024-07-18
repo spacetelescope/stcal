@@ -1563,8 +1563,25 @@ def test_refcounter():
     assert b_dc == a_dc
 
 
-@pytest.mark.skip("Not ready, yet")
-def test_chargeloss():
+#@pytest.mark.skip("Not ready, yet")
+def test_cext_chargeloss():
+    """
+    Testing the recomputation of read noise due to CHARGELOSS.  Wherever
+    the CHARGELOSS flag is set, ramp fitting is run using the CHARGELOSS
+    flag as a segmenter.  Once ramp fitting is run, the CHARGELOSS and the
+    DO_NOT_USE flags are removed and each integration is re-segmented.  With
+    the resegmentation, the readnoise is recalculated.
+
+    There are four pixels:
+    0. A clean ramp.
+    1. A jump at group 3 (zero based) and CHARGELOSS starting at group 7.
+    2. A jump at group 3 (zero based) and SATURATED starting at group 7.
+    3. A jump at group 3 (zero based).
+
+    Except for the read hoise all values in pixel 1 should be equal to  pixel
+    2, but the read noise should be equal to pixel 3.
+    The slope should be the same for all pixels.
+    """
     nints, ngroups, nrows, ncols = 1, 10, 1, 4
     rnval, gval = 0.7071, 1.
     # frame_time, nframes, groupgap = 1., 1, 0
@@ -1576,26 +1593,44 @@ def test_chargeloss():
     base = 15.
     arr = [(k+1) * base for k in range(ngroups)]
 
-    print(" ")
-    print(f"DNU + CHRGL = {DNU + CHRGL}")
     # Populate ramps with a variety of flags
     # (0, 0)
     ramp.data[0, :, 0, 0] = np.array(arr)
     # (0, 1)
     ramp.data[0, :, 0, 1] = np.array(arr)
-    ramp.groupdq[0, 4:, 0, 1] = DNU + CHRGL
+    ramp.groupdq[0, 7:, 0, 1] = DNU + CHRGL
+    ramp.groupdq[0, 3, 0, 1] = JUMP
     # (0, 2)
     ramp.data[0, :, 0, 2] = np.array(arr)
-    ramp.groupdq[0, 4:, 0, 2] = SAT
+    ramp.groupdq[0, 7:, 0, 2] = SAT
+    ramp.groupdq[0, 3, 0, 2] = JUMP
     # (0, 3)
     ramp.data[0, :, 0, 3] = np.array(arr)
-
-    ramp.dbg_print_info()  # XXX
+    ramp.groupdq[0, 3, 0, 3] = JUMP
 
     save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
+
+    sdata, sdq, svp, svr, serr = slopes
+
+    assert sdata[0, 1] == sdata[0, 0]
+    assert sdata[0, 1] == sdata[0, 2]
+    assert sdata[0, 1] == sdata[0, 3]
+
+    assert svp[0, 1] != svp[0, 0]
+    assert svp[0, 1] == svp[0, 2]
+    assert svp[0, 1] != svp[0, 3]
+
+    assert serr[0, 1] != serr[0, 0]
+    assert serr[0, 1] == serr[0, 2]
+    assert serr[0, 1] != serr[0, 3]
+
+    # Readnoise comparisons
+    assert svr[0, 1] != svr[0, 0]
+    assert svr[0, 1] != svr[0, 2]
+    assert svr[0, 1] == svr[0, 3]
 
 
 # -----------------------------------------------------------------------------

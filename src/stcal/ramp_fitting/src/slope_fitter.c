@@ -532,7 +532,7 @@ ramp_fit_pixel(struct ramp_data * rd, struct pixel_ramp * pr);
 static int
 ramp_fit_pixel_rnoise_chargeloss(struct ramp_data * rd, struct pixel_ramp * pr);
 
-static int
+static double
 ramp_fit_pixel_rnoise_chargeloss_segs(
     struct ramp_data * rd, struct pixel_ramp * pr,
     struct segment_list * segs, npy_intp integ);
@@ -2510,19 +2510,21 @@ ramp_fit_pixel_rnoise_chargeloss(
         struct pixel_ramp * pr) /* The pixel ramp data */
 {
     int ret = 0;
-    int is_chargeless = 0;
+    int is_chargeloss = 0;
     npy_intp integ;
     struct segment_list segs;
-
-    return 0;  /* XXX */
+    real_t invvar_r, evar_r=0.;
 
     memset(&segs, 0, sizeof(segs));
     
     for (integ=0; integ < pr->nints; ++integ) {
         if (0 == pr->stats[integ].chargeloss) {
+            invvar_r = 1. / pr->rateints[integ].var_rnoise;
+            evar_r += invvar_r; /* Exposure level read noise */
             continue;
         }
-        /* XXX CHARGELOSS */
+        is_chargeloss = 1;
+
         /*  Remove chargeloss and do not use */
         ramp_fit_pixel_rnoise_chargeloss_remove(rd, pr, integ);
 
@@ -2533,18 +2535,31 @@ ramp_fit_pixel_rnoise_chargeloss(
             goto END;
         }
         /*  Compute integration read noise */
-        ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
+        invvar_r = ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
+        evar_r += invvar_r; /* Exposure level read noise */
 
         /*  Clean segment list */
         clean_segment_list_basic(&segs);
     }
+    if (!is_chargeloss) {
+        return 0;
+    }
+
+    // if (pr->rate.var_rnoise > 0.) {
+    if (evar_r > 0.) {
+        // pr->rate.var_rnoise = 1. / pr->rate.var_rnoise;
+        pr->rate.var_rnoise = 1. / evar_r;
+    }
+    if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
+        pr->rate.var_rnoise = 0.;
+    }
 
 END:
-    /* XXX clean list */
+    clean_segment_list_basic(&segs); /* Just in case */
     return ret;
 }
 
-static int
+static double
 ramp_fit_pixel_rnoise_chargeloss_segs(
         struct ramp_data * rd,
         struct pixel_ramp * pr,
@@ -2552,9 +2567,28 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
         npy_intp integ)
 {
     struct simple_ll_node * current = NULL;
-    struct simple_ll_node * next = NULL;
+    real_t svar_r, invvar_r=0., timing = 0., seglen;
 
-    /* XXX SEGMENT */
+    /* Compute readnoise for new segments */
+    for (current = segs->head; current; current = current->flink) {
+        if (1==current->length) {
+            timing = segment_len1_timing(rd, pr, integ);
+            svar_r = segment_rnoise_len1(rd, pr, timing);
+        } else if (1==current->length) {
+            svar_r = segment_rnoise_len2(rd, pr);
+        } else {
+            seglen = (real_t)current->length;
+            svar_r = segment_rnoise_default(rd, pr, seglen);
+        }
+        invvar_r += (1. / svar_r);
+    }
+
+    pr->rateints[integ].var_rnoise = 1. / invvar_r;
+    if (pr->rateints[integ].var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
+        pr->rateints[integ].var_rnoise = 0.;
+    }
+
+    return invvar_r;
 }
 
 static void
@@ -2570,6 +2604,7 @@ ramp_fit_pixel_rnoise_chargeloss_remove(
     for (group=0; group<pr->ngroups; ++group) {
         idx = get_ramp_index(rd, integ, group);
         if (rd->chargeloss & pr->groupdq[idx]) {
+            /* It is assumed that DO_NOT_USE also needs to be removed */
             pr->groupdq[idx] ^= dnu_chg;
         }
     }
@@ -2657,13 +2692,13 @@ ramp_fit_pixel_integration_fit_slope(
         // DBG_DEFAULT_SEG; /* XXX */
 
         invvar_r += (1. / current->var_r);
-	if (current->var_p > 0.) {
+	    if (current->var_p > 0.) {
             invvar_p += (1. / current->var_p);
         }
 
         invvar_e += (1. / current->var_e);
         slope_i_num += (current->slope / current->var_e);
-    }
+    } /* for loop */
 
     /* Get rateints computations */
     if (invvar_p > 0.) {
@@ -2779,20 +2814,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
         int segnum)                 /* The segment integration */
 {
     npy_intp idx;
-    // real_t timing = rd->group_time;
     real_t timing = segment_len1_timing(rd, pr, integ);
     real_t pden, tmp;
-
-#if 0
-    /* Check for special cases */
-    if (!rd->suppress1g) {
-        if (pr->is_0th[integ]) {
-            timing = rd->one_group_time;
-        } else if (pr->is_zframe[integ]) {
-            timing = rd->frame_time;
-        }
-    }
-#endif
 
     idx = get_ramp_index(rd, integ, seg->start);
 
