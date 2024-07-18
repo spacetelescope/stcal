@@ -401,6 +401,9 @@ clean_rateint_product(struct rateint_product * rateint_prod);
 static void
 clean_segment_list(npy_intp nints, struct segment_list * segs);
 
+static void
+clean_segment_list_basic(struct segment_list * segs);
+
 static int
 compute_integration_segments(
     struct ramp_data * rd, struct pixel_ramp * pr, struct segment_list * segs,
@@ -530,6 +533,15 @@ static int
 ramp_fit_pixel_rnoise_chargeloss(struct ramp_data * rd, struct pixel_ramp * pr);
 
 static int
+ramp_fit_pixel_rnoise_chargeloss_segs(
+    struct ramp_data * rd, struct pixel_ramp * pr,
+    struct segment_list * segs, npy_intp integ);
+
+static void
+ramp_fit_pixel_rnoise_chargeloss_remove(
+    struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+
+static int
 ramp_fit_pixel_integration(
     struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
 
@@ -583,6 +595,15 @@ static int
 save_ramp_fit(struct rateint_product * rateint_prod, struct rate_product * rate_prod,
     struct pixel_ramp * pr);
 
+static real_t
+segment_rnoise_default(struct ramp_data * rd, struct pixel_ramp * pr, real_t seglen);
+
+static real_t
+segment_rnoise_len1(struct ramp_data * rd, struct pixel_ramp * pr, real_t timing);
+
+static real_t
+segment_rnoise_len2(struct ramp_data * rd, struct pixel_ramp * pr);
+
 static int
 segment_snr(
     real_t * snr, npy_intp integ, struct ramp_data * rd,
@@ -633,6 +654,9 @@ print_rd_type_info(struct ramp_data * rd);
 
 static void
 print_segment_list(npy_intp nints, struct segment_list * segs, int line);
+
+static void
+print_segment_list_basic(struct segment_list * segs, int line);
 
 static void
 print_segment_list_integ(npy_intp integ, struct segment_list * segs, int line);
@@ -1035,6 +1059,23 @@ clean_segment_list(
         /* Zero the memory for the integration list structure. */
         memset(&(segs[integ]), 0, sizeof(segs[integ]));
     }
+}
+
+static void
+clean_segment_list_basic(
+        struct segment_list * segs)
+{
+    struct simple_ll_node * current = NULL;
+    struct simple_ll_node * next = NULL;
+
+    current = segs->head;
+    while(current) {
+        next = current->flink;
+        memset(current, 0, sizeof(*current));
+        SET_FREE(current);
+        current = next;
+    }
+    memset(segs, 0, sizeof(*segs));
 }
 
 /*
@@ -2468,19 +2509,67 @@ ramp_fit_pixel_rnoise_chargeloss(
     int ret = 0;
     int is_chargeless = 0;
     npy_intp integ;
+    struct segment_list segs;
+
+    return 0;  /* XXX */
+
+    memset(&segs, 0, sizeof(segs));
     
     for (integ=0; integ < pr->nints; ++integ) {
         if (0 == pr->stats[integ].chargeloss) {
             continue;
         }
-         /*  segment list */
-         /*  Swap segment list */
-         /*  Compute segments */
-         /*  Compute integration read noise */
-         /*  Swap and clean segment list */
+        /* XXX CHARGELOSS */
+        /*  Remove chargeloss and do not use */
+        ramp_fit_pixel_rnoise_chargeloss_remove(rd, pr, integ);
+
+        /*  Compute segments */
+        if (compute_integration_segments(rd, pr, &segs, integ)) {
+            clean_segment_list_basic(&segs);
+            ret = 1;
+            goto END;
+        }
+        /*  Compute integration read noise */
+        ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
+
+        /*  Clean segment list */
+        clean_segment_list_basic(&segs);
     }
 
-    return 0;
+END:
+    /* XXX clean list */
+    return ret;
+}
+
+static int
+ramp_fit_pixel_rnoise_chargeloss_segs(
+        struct ramp_data * rd,
+        struct pixel_ramp * pr,
+        struct segment_list * segs,
+        npy_intp integ)
+{
+    struct simple_ll_node * current = NULL;
+    struct simple_ll_node * next = NULL;
+
+    /* XXX SEGMENT */
+}
+
+static void
+ramp_fit_pixel_rnoise_chargeloss_remove(
+        struct ramp_data * rd,  /* The ramp data */
+        struct pixel_ramp * pr, /* The pixel ramp data */
+        npy_intp integ)        
+{
+    uint8_t  dnu_chg = rd->dnu | rd->chargeloss;
+    npy_intp group;
+    int32_t idx;
+
+    for (group=0; group<pr->ngroups; ++group) {
+        idx = get_ramp_index(rd, integ, group);
+        if (rd->chargeloss & pr->groupdq[idx]) {
+            pr->groupdq[idx] ^= dnu_chg;
+        }
+    }
 }
 
 /*
@@ -2712,11 +2801,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     }
 
     /* Segment read noise variance */
-    rnum = pr->rnoise / timing;
-    rnum = 12. * rnum * rnum;
-    rden = 6.;  /* seglen * seglen * seglen - seglen; where siglen = 2 */
-    rden = rden * pr->gain * pr->gain;
-    seg->var_r = rnum / rden;
+    seg->var_r = segment_rnoise_len1(rd, pr, timing);
+
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
@@ -2725,6 +2811,22 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     }
 
     return 0;
+}
+
+static real_t
+segment_rnoise_len1(
+        struct ramp_data * rd,
+        struct pixel_ramp * pr,
+        real_t timing)
+{
+    real_t rnum, rden;
+
+    rnum = pr->rnoise / timing;
+    rnum = 12. * rnum * rnum;
+    rden = 6.;  /* seglen * seglen * seglen - seglen; where siglen = 2 */
+    rden = rden * pr->gain * pr->gain;
+
+    return rnum / rden;
 }
 
 /*
@@ -2763,11 +2865,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     }
 
     /* Segment read noise variance */
-    rnum = pr->rnoise / rd->group_time;
-    rnum = 12. * rnum * rnum;
-    rden = 6.; // seglen * seglen * seglen - seglen; where siglen = 2
-    rden = rden * pr->gain * pr->gain;
-    seg->var_r = rnum / rden;
+    seg->var_r = segment_rnoise_len2(rd, pr);
 
     /* Segment total variance */
     // seg->var_e = 2. * pr->rnoise * pr->rnoise;  /* XXX Is this right? */
@@ -2797,6 +2895,21 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     }
 
     return 0;
+}
+
+static real_t
+segment_rnoise_len2(
+        struct ramp_data * rd,
+        struct pixel_ramp * pr)
+{
+    real_t rnum, rden;
+
+    rnum = pr->rnoise / rd->group_time;
+    rnum = 12. * rnum * rnum;
+    rden = 6.; // seglen * seglen * seglen - seglen; where siglen = 2
+    rden = rden * pr->gain * pr->gain;
+
+    return rnum / rden;
 }
 
 /*
@@ -2913,7 +3026,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     seg->yint = (sumxx * sumy - sumx * sumxy) * invden;
     seg->sigyint = sqrt(sumxx * invden);
 
-    seglen = (float)seg->length;
+    seglen = (real_t)seg->length;
 
     /* Segment Poisson variance */
     pden = (rd->group_time * pr->gain * (seglen - 1.));
@@ -2924,16 +3037,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     }
 
     /* Segment read noise variance */
-    if ((pr->gain <= 0.) || (isnan(pr->gain))) {
-        seg->var_r = 0.;
-    } else {
-        rnum = pr->rnoise / rd->group_time;
-        rnum = 12. * rnum * rnum;
-        rden = seglen * seglen * seglen - seglen;
-
-        rden = rden * pr->gain * pr->gain;
-        seg->var_r = rnum / rden;
-    }
+    seg->var_r = segment_rnoise_default(rd, pr, seglen);
 
     /* Segment total variance */
     seg->var_e = seg->var_p + seg->var_r;
@@ -2942,6 +3046,25 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
         seg->weight = 1. / seg->var_e;
         seg->weight *= seg->weight;
     }
+}
+
+static real_t
+segment_rnoise_default(
+        struct ramp_data * rd,      /* The ramp data */
+        struct pixel_ramp * pr,     /* The pixel ramp data */
+        real_t seglen)              /* The segment length */
+{
+    real_t rnum, rden;
+
+    if ((pr->gain <= 0.) || (isnan(pr->gain))) {
+        return  0.;
+    }
+    rnum = pr->rnoise / rd->group_time;
+    rnum = 12. * rnum * rnum;
+    rden = seglen * seglen * seglen - seglen;
+
+    rden = rden * pr->gain * pr->gain;
+    return rnum / rden;
 }
 
 /*
@@ -3249,6 +3372,21 @@ print_segment_list(
                 indent, indent, current->start, current->end, current->length);
             current = next;
         }
+    }
+    print_delim();
+}
+
+static void
+print_segment_list_basic(
+        struct segment_list * segs,
+        int line)
+{
+    struct simple_ll_node * current;
+
+    print_delim();
+    dbg_ols_print("[%d] %zd segments\n", line, segs->size);
+    for (current=segs->head; current; current=current->flink) {
+        dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
     }
     print_delim();
 }
