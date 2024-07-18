@@ -1563,7 +1563,6 @@ def test_refcounter():
     assert b_dc == a_dc
 
 
-#@pytest.mark.skip("Not ready, yet")
 def test_cext_chargeloss():
     """
     Testing the recomputation of read noise due to CHARGELOSS.  Wherever
