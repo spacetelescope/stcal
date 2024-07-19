@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 import gwcs
 import numpy as np
-from astropy import units as u
 from astropy import wcs as fitswcs
 from astropy.coordinates import SkyCoord
 from astropy.modeling import models as astmodels
@@ -465,9 +464,9 @@ def compute_scale(
     if spectral:
         # Assuming scale doesn't change with wavelength
         # Assuming disp_axis is consistent with DataModel.meta.wcsinfo.dispersion.direction
-        return yscale if disp_axis == 1 else xscale
+        return float(yscale) if disp_axis == 1 else float(xscale)
 
-    return np.sqrt(xscale * yscale)
+    return float(np.sqrt(xscale * yscale))
 
 
 def compute_fiducial(wcslist: list,

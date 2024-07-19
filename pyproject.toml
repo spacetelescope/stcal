@@ -196,6 +196,19 @@ convention = "numpy"
 [tool.ruff.lint.flake8-annotations]
 ignore-fully-untyped = true  # Turn of annotation checking for fully untyped code
 
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "astropy.*",
+    "gwcs.*",
+    "tweakwcs.*",
+]
+ignore_missing_imports = true
+
 [tool.cython-lint]
 max-line-length = 110
 
