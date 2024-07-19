@@ -1064,20 +1064,28 @@ clean_segment_list(
     }
 }
 
+/*
+ * Clean the memory of a segment list.  Free each node and zero
+ * out all elements.
+ */
 static void
 clean_segment_list_basic(
-        struct segment_list * segs)
+        struct segment_list * segs) /* The segment list to clean */
 {
     struct simple_ll_node * current = NULL;
     struct simple_ll_node * next = NULL;
 
     current = segs->head;
+
+    /* Zero and free memory allocated for each node in list  */
     while(current) {
         next = current->flink;
         memset(current, 0, sizeof(*current));
         SET_FREE(current);
         current = next;
     }
+
+    /* Zero the memory of the data structure */
     memset(segs, 0, sizeof(*segs));
 }
 
@@ -2504,6 +2512,9 @@ END:
     return ret;
 }
 
+/*
+ * Recompute read noise variance for ramps with the CHARGELOSS flag.
+ */
 static int
 ramp_fit_pixel_rnoise_chargeloss(
         struct ramp_data * rd,  /* The ramp data */
@@ -2515,10 +2526,12 @@ ramp_fit_pixel_rnoise_chargeloss(
     struct segment_list segs;
     real_t invvar_r, evar_r=0.;
 
+    /* Remove any left over junk in the memory, just in case */
     memset(&segs, 0, sizeof(segs));
     
     for (integ=0; integ < pr->nints; ++integ) {
         if (0 == pr->stats[integ].chargeloss) {
+            /* No CHARGELOSS flag in integration */
             invvar_r = 1. / pr->rateints[integ].var_rnoise;
             evar_r += invvar_r; /* Exposure level read noise */
             continue;
@@ -2542,12 +2555,12 @@ ramp_fit_pixel_rnoise_chargeloss(
         clean_segment_list_basic(&segs);
     }
     if (!is_chargeloss) {
+        /* No CHARGELOSS flag in pixel */
         return 0;
     }
 
-    // if (pr->rate.var_rnoise > 0.) {
+    /* Capture recomputed exposure level read noise variance */
     if (evar_r > 0.) {
-        // pr->rate.var_rnoise = 1. / pr->rate.var_rnoise;
         pr->rate.var_rnoise = 1. / evar_r;
     }
     if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
@@ -2559,6 +2572,10 @@ END:
     return ret;
 }
 
+/*
+ * With the newly computed segements after removing the CHARGELOSS
+ * flag, recompute the read noise variance for each segment.
+ */
 static double
 ramp_fit_pixel_rnoise_chargeloss_segs(
         struct ramp_data * rd,
@@ -2583,6 +2600,7 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
         invvar_r += (1. / svar_r);
     }
 
+    /* Capture recomputed integration level read noise variance */
     pr->rateints[integ].var_rnoise = 1. / invvar_r;
     if (pr->rateints[integ].var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
         pr->rateints[integ].var_rnoise = 0.;
@@ -2591,11 +2609,14 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
     return invvar_r;
 }
 
+/*
+ * Unflag CHARGELOSS and DO_NOT_USE flag for groups flagged as CHARGELOSS.
+ */
 static void
 ramp_fit_pixel_rnoise_chargeloss_remove(
         struct ramp_data * rd,  /* The ramp data */
         struct pixel_ramp * pr, /* The pixel ramp data */
-        npy_intp integ)        
+        npy_intp integ)         /* The current integration */
 {
     uint8_t  dnu_chg = rd->dnu | rd->chargeloss;
     npy_intp group;
@@ -2842,6 +2863,9 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     return 0;
 }
 
+/*
+ * For the special case of a one length segment, compute the timing.
+ */
 static real_t
 segment_len1_timing(
         struct ramp_data * rd,  /* The ramp data */
@@ -2858,6 +2882,9 @@ segment_len1_timing(
     return rd->group_time;
 }
 
+/*
+ * For the special case of a one length segment, compute the read noise variance.
+ */
 static real_t
 segment_rnoise_len1(
         struct ramp_data * rd,  /* The ramp data */
@@ -2942,6 +2969,9 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     return 0;
 }
 
+/*
+ * For the special case of a two length segment, compute the read noise variance.
+ */
 static real_t
 segment_rnoise_len2(
         struct ramp_data * rd,  /* The ramp data */
@@ -3093,6 +3123,9 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     }
 }
 
+/*
+ * Default segment computation read noise variance.
+ */
 static real_t
 segment_rnoise_default(
         struct ramp_data * rd,      /* The ramp data */
