@@ -50,7 +50,7 @@ intersphinx_mapping = {
     "tweakwcs": ("https://tweakwcs.readthedocs.io/en/latest/", None),
 }
 
-nitpick_ignore = [("py:class", "optional")]
+nitpick_ignore = [("py:class", "optional"), ("py:class", "np.ndarray")]
 
 extensions = [
     "pytest_doctestplus.sphinx.doctestplus",

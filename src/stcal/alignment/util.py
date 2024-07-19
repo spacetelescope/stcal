@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     import astropy
-    import numpy  # noqa: ICN001  needed to work around Sphinx type hint bug
 
 import gwcs
 import numpy as np
@@ -70,7 +69,7 @@ def wcsinfo_to_dict(wcsinfo: Wcsinfo) -> dict:
 
 
 def _calculate_fiducial_from_spatial_footprint(
-    spatial_footprint: numpy.ndarray,
+    spatial_footprint: np.ndarray,
 ) -> tuple:
     """
     Calculates the fiducial coordinates from a given spatial footprint.
@@ -103,7 +102,7 @@ def _calculate_fiducial_from_spatial_footprint(
 def _generate_tranform(
     wcs: gwcs.wcs.WCS,
     wcsinfo: dict | Wcsinfo,
-    ref_fiducial: numpy.ndarray,
+    ref_fiducial: np.ndarray,
     pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
@@ -139,7 +138,7 @@ def _generate_tranform(
         provided. If `None`, the rotation angle is extracted from the
         reference model's ``meta.wcsinfo.roll_ref``.
 
-    ref_fiducial : numpy.array
+    ref_fiducial : np.array
         A two-elements array containing the world coordinates of the fiducial point.
 
     transform : ~astropy.modeling.Model
@@ -218,7 +217,7 @@ def _get_axis_min_and_bounding_box(wcs_list: list[gwcs.wcs.WCS],
 
 def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
                         bounding_box: Sequence | None,
-                        crval: Sequence | None = None) -> numpy.ndarray:
+                        crval: Sequence | None = None) -> np.ndarray:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -256,9 +255,9 @@ def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
     return fiducial
 
 
-def _calculate_offsets(fiducial: numpy.ndarray,
+def _calculate_offsets(fiducial: np.ndarray,
                        wcs: gwcs.wcs.WCS | None,
-                       axis_min_values: numpy.ndarray | None,
+                       axis_min_values: np.ndarray | None,
                        crpix: Sequence | None) -> astmodels.Model:
     """
     Calculates the offsets to the transform.
@@ -305,7 +304,7 @@ def _calculate_offsets(fiducial: numpy.ndarray,
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                        shape: Sequence | None,
                        wcs_list: list[gwcs.wcs.WCS],
-                       fiducial: numpy.ndarray,
+                       fiducial: np.ndarray,
                        crpix: Sequence | None = None,
                        transform: astmodels.Model | None = None,
                        ) -> gwcs.wcs.WCS:
@@ -406,7 +405,7 @@ def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
 
 def compute_scale(
     wcs: gwcs.wcs.WCS,
-    fiducial: tuple | numpy.ndarray,
+    fiducial: tuple | np.ndarray,
     disp_axis: int | None = None,
     pscale_ratio: float | None = None,
 ) -> float:
@@ -470,7 +469,7 @@ def compute_scale(
 
 
 def compute_fiducial(wcslist: list,
-                     bounding_box: Sequence | None = None) -> numpy.ndarray:
+                     bounding_box: Sequence | None = None) -> np.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
@@ -751,7 +750,7 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
 
 
 def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
-                            footprint: numpy.ndarray) -> None:
+                            footprint: np.ndarray) -> None:
     """Update the S_REGION keyword.
 
     Parameters
@@ -827,7 +826,7 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
             raise TypeError(msg)
         return backward_transform
 
-    def _reproject(x: float | numpy.ndarray, y: float | numpy.ndarray) -> tuple:
+    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 
