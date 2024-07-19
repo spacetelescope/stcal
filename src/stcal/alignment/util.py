@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -31,12 +31,13 @@ __all__ = [
     "update_s_region_keyword",
     "wcs_from_footprints",
     "reproject",
-    "Wcsinfo"
+    "Wcsinfo",
+    "wcsinfo_to_dict",
 ]
 
 
+@runtime_checkable
 class Wcsinfo(Protocol):
-    wcsaxes: int
     ra_ref: float
     dec_ref: float
     v3yangle: float
@@ -44,13 +45,33 @@ class Wcsinfo(Protocol):
     roll_ref: float
     s_region: str
 
-    @property
-    def instance(self: Wcsinfo) -> dict:
-        ...
+
+def wcsinfo_to_dict(wcsinfo: Wcsinfo) -> dict:
+    """
+    Convert a WCSInfo object to a dictionary.
+
+    Parameters
+    ----------
+    wcsinfo : Wcsinfo
+        A WCSInfo object.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the WCS FITS keywords and corresponding values.
+    """
+    return {
+        "ra_ref": wcsinfo.ra_ref,
+        "dec_ref": wcsinfo.dec_ref,
+        "v3yangle": wcsinfo.v3yangle,
+        "vparity": wcsinfo.vparity,
+        "roll_ref": wcsinfo.roll_ref,
+        "s_region": wcsinfo.s_region,
+    }
 
 
 def _calculate_fiducial_from_spatial_footprint(
-    spatial_footprint: np.ndarray,
+    spatial_footprint: numpy.ndarray,
 ) -> tuple:
     """
     Calculates the fiducial coordinates from a given spatial footprint.
@@ -83,7 +104,7 @@ def _calculate_fiducial_from_spatial_footprint(
 def _generate_tranform(
     wcs: gwcs.wcs.WCS,
     wcsinfo: dict | Wcsinfo,
-    ref_fiducial: np.ndarray,
+    ref_fiducial: numpy.ndarray,
     pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,
@@ -130,8 +151,8 @@ def _generate_tranform(
     transform : ~astropy.modeling.Model
         An :py:mod:`~astropy` model containing the transform between frames.
     """
-    if not isinstance(wcsinfo, dict):
-        wcsinfo = wcsinfo.instance
+    if isinstance(wcsinfo, Wcsinfo):
+        wcsinfo = wcsinfo_to_dict(wcsinfo)
     if transform is None:
         sky_axes = wcs._get_axes_indices().tolist()  # noqa: SLF001
         v3yangle = np.deg2rad(wcsinfo["v3yangle"])
@@ -198,7 +219,7 @@ def _get_axis_min_and_bounding_box(wcs_list: list[gwcs.wcs.WCS],
 
 def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
                         bounding_box: Sequence | None,
-                        crval: Sequence | None = None) -> np.ndarray:
+                        crval: Sequence | None = None) -> numpy.ndarray:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -236,9 +257,9 @@ def _calculate_fiducial(wcs_list: list[gwcs.wcs.WCS],
     return fiducial
 
 
-def _calculate_offsets(fiducial: np.ndarray,
+def _calculate_offsets(fiducial: numpy.ndarray,
                        wcs: gwcs.wcs.WCS | None,
-                       axis_min_values: np.ndarray | None,
+                       axis_min_values: numpy.ndarray | None,
                        crpix: Sequence | None) -> astmodels.Model:
     """
     Calculates the offsets to the transform.
@@ -285,7 +306,7 @@ def _calculate_offsets(fiducial: np.ndarray,
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                        shape: Sequence | None,
                        wcs_list: list[gwcs.wcs.WCS],
-                       fiducial: np.ndarray,
+                       fiducial: numpy.ndarray,
                        crpix: Sequence | None = None,
                        transform: astmodels.Model | None = None,
                        ) -> gwcs.wcs.WCS:
@@ -384,62 +405,9 @@ def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
     return True
 
 
-def wcsinfo_from_model(wcsinfo: dict | Wcsinfo,
-                       reference_frame: str,
-                       ) -> dict[str, np.ndarray | str | bool]:
-    """
-    Creates a dict {wcs_keyword: array_of_values} pairs from a datamodel.
-
-    What is this actually doing? it looks badly named, as it requires the input
-    model to have its own wcsinfo already. It seems to just be setting defaults
-    in wcsinfo if they are None, then making the wcsinfo["PC"] matrix
-
-    Parameters
-    ----------
-    wcsinfo : dict
-        The input wcsinfo dict.
-
-    reference_frame : str
-        The reference frame of the input model.
-
-    Returns
-    -------
-    wcsinfo : dict
-        A dict containing the WCS FITS keywords and corresponding values.
-
-    """
-    if not isinstance(wcsinfo, dict):
-        wcsinfo = wcsinfo.instance
-    defaults = {
-        "CRPIX": 0,
-        "CRVAL": 0,
-        "CDELT": 1.0,
-        "CTYPE": "",
-        "CUNIT": u.Unit(""),
-    }
-    wcsaxes = wcsinfo["wcsaxes"]
-    wcsinfo = {"WCSAXES": wcsaxes}
-    for key in ["CRPIX", "CRVAL", "CDELT", "CTYPE", "CUNIT"]:
-        val = []
-        for ax in range(1, wcsaxes + 1):
-            k = (key + f"{ax}").lower()
-            v = getattr(wcsinfo, k, defaults[key])
-            val.append(v)
-        wcsinfo[key] = np.array(val)
-
-    pc = np.zeros((wcsaxes, wcsaxes), dtype=np.float32)
-    for i in range(1, wcsaxes + 1):
-        for j in range(1, wcsaxes + 1):
-            pc[i - 1, j - 1] = getattr(wcsinfo, f"pc{i}_{j}", 1)
-    wcsinfo["PC"] = pc
-    wcsinfo["RADESYS"] = reference_frame
-    wcsinfo["has_cd"] = False
-    return wcsinfo
-
-
 def compute_scale(
     wcs: gwcs.wcs.WCS,
-    fiducial: tuple | np.ndarray,
+    fiducial: tuple | numpy.ndarray,
     disp_axis: int | None = None,
     pscale_ratio: float | None = None,
 ) -> float:
@@ -682,8 +650,8 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-    if not isinstance(ref_wcsinfo, dict):
-        ref_wcsinfo = ref_wcsinfo.instance
+    if isinstance(ref_wcsinfo, Wcsinfo):
+        ref_wcsinfo = wcsinfo_to_dict(ref_wcsinfo)
     _validate_wcs_list(wcs_list)
 
     fiducial = _calculate_fiducial(wcs_list=wcs_list, bounding_box=bounding_box, crval=crval)
@@ -733,8 +701,8 @@ def update_s_region_imaging(wcs: gwcs.wcs.WCS,
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
     """
-    if not isinstance(wcsinfo, dict):
-        wcsinfo = wcsinfo.instance
+    if isinstance(wcsinfo, Wcsinfo):
+        wcsinfo = wcsinfo_to_dict(wcsinfo)
     bbox = wcs.bounding_box
     if shape is None and bbox is None:
         msg = "If wcs.bounding_box is not specified, shape must be provided."
@@ -784,7 +752,7 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
 
 
 def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
-                            footprint: np.ndarray) -> None:
+                            footprint: numpy.ndarray) -> None:
     """Update the S_REGION keyword.
 
     Parameters
@@ -807,7 +775,7 @@ def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
         # do not update s_region if there are NaNs.
         log.info("There are NaNs in s_region, S_REGION not updated.")
         return
-    if not isinstance(wcsinfo, dict):
+    if isinstance(wcsinfo, Wcsinfo):
         wcsinfo.s_region = s_region
     else:
         wcsinfo["s_region"] = s_region
@@ -860,7 +828,7 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
             raise TypeError(msg)
         return backward_transform
 
-    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
+    def _reproject(x: float | numpy.ndarray, y: float | numpy.ndarray) -> tuple:
         """
         Reprojects the input coordinates from one WCS to another.
 

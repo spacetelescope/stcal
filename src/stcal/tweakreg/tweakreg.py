@@ -11,14 +11,13 @@ if TYPE_CHECKING:
     import astropy
     import gwcs
 
-    from stcal.alignment import Wcsinfo
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from tweakwcs.correctors import JWSTWCSCorrector
 from tweakwcs.imalign import align_wcs
 from tweakwcs.matchutils import XYXYMatch
 
-from stcal.alignment import wcs_from_footprints
+from stcal.alignment import Wcsinfo, wcs_from_footprints, wcsinfo_to_dict
 
 from .astrometric_utils import create_astrometric_catalog
 
@@ -320,8 +319,8 @@ def construct_wcs_corrector(wcs: gwcs.WCS,
     refang : dict
         Dictionary containing WCSreference angles.
     """
-    if not isinstance(refang, dict):
-        refang = refang.instance
+    if isinstance(refang, Wcsinfo):
+        refang = wcsinfo_to_dict(refang)
     catalog = filter_catalog_by_bounding_box(
         catalog, wcs.bounding_box)
 
