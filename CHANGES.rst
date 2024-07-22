@@ -1,4 +1,4 @@
-1.7.4 (unreleased)
+1.8.0 (unreleased)
 ==================
 
 General
