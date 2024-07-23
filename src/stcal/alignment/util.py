@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -25,50 +25,39 @@ __all__ = [
     "compute_scale",
     "compute_fiducial",
     "calc_rotation_matrix",
-    "update_s_region_imaging",
-    "update_s_region_keyword",
+    "compute_s_region_imaging",
+    "compute_s_region_keyword",
     "wcs_from_footprints",
     "reproject",
-    "Wcsinfo",
-    "wcsinfo_to_dict",
 ]
 
 
-class Wcsinfo(Protocol):
-    ra_ref: float
-    dec_ref: float
-    v3yangle: float
-    vparity: int
-    roll_ref: float
-    v2_ref: float
-    v3_ref: float
-    s_region: str
+WCSINFO_REQUIRED_KEYS = {"ra_ref", "dec_ref", "v3yangle", "vparity",
+                         "roll_ref", "v2_ref", "v3_ref"}
 
 
-def wcsinfo_to_dict(wcsinfo: Wcsinfo) -> dict:
+def _validate_wcsinfo(wcsinfo: dict) -> None:
     """
-    Convert a WCSInfo object to a dictionary.
+    Validate the wcsinfo dictionary.
 
     Parameters
     ----------
-    wcsinfo : Wcsinfo
-        A WCSInfo object.
+    wcsinfo : dict
+        A dictionary containing the WCS FITS keywords and corresponding values.
 
     Returns
     -------
-    dict
-        A dictionary containing the WCS FITS keywords and corresponding values.
+    bool or Exception
+        If wcsinfo is valid, returns True. Otherwise, it will raise an error.
+
+    Raises
+    ------
+    ValueError
+        Raised when wcsinfo does not contain the required keys.
     """
-    return {
-        "ra_ref": wcsinfo.ra_ref,
-        "dec_ref": wcsinfo.dec_ref,
-        "v3yangle": wcsinfo.v3yangle,
-        "vparity": wcsinfo.vparity,
-        "roll_ref": wcsinfo.roll_ref,
-        "v2_ref": wcsinfo.v2_ref,
-        "v3_ref": wcsinfo.v3_ref,
-        "s_region": wcsinfo.s_region,
-    }
+    if not WCSINFO_REQUIRED_KEYS.issubset(wcsinfo.keys()):
+        msg = f"Expected 'wcsinfo' to contain the following keys: {WCSINFO_REQUIRED_KEYS}."
+        raise ValueError(msg)
 
 
 def _calculate_fiducial_from_spatial_footprint(
@@ -104,7 +93,7 @@ def _calculate_fiducial_from_spatial_footprint(
 
 def _generate_tranform(
     wcs: gwcs.wcs.WCS,
-    wcsinfo: dict | Wcsinfo,
+    wcsinfo: dict,
     ref_fiducial: np.ndarray,
     pscale_ratio: float | None = None,
     pscale: float | None = None,
@@ -152,8 +141,6 @@ def _generate_tranform(
     transform : ~astropy.modeling.Model
         An :py:mod:`~astropy` model containing the transform between frames.
     """
-    if not isinstance(wcsinfo, dict):
-        wcsinfo = wcsinfo_to_dict(wcsinfo)
     if transform is None:
         sky_axes = wcs._get_axes_indices().tolist()  # noqa: SLF001
         v3yangle = np.deg2rad(wcsinfo["v3yangle"])
@@ -563,7 +550,7 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
 def wcs_from_footprints(
     wcs_list: list[gwcs.wcs.WCS],
     ref_wcs: gwcs.wcs.WCS,
-    ref_wcsinfo: dict | Wcsinfo,
+    ref_wcsinfo: dict,
     transform: astropy.modeling.models.Model | None = None,
     bounding_box: Sequence | None = None,
     pscale_ratio: float | None = None,
@@ -651,8 +638,7 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-    if not isinstance(ref_wcsinfo, dict):
-        ref_wcsinfo = wcsinfo_to_dict(ref_wcsinfo)
+    _validate_wcsinfo(ref_wcsinfo)
     _validate_wcs_list(wcs_list)
 
     fiducial = _calculate_fiducial(wcs_list=wcs_list, bounding_box=bounding_box, crval=crval)
@@ -679,10 +665,9 @@ def wcs_from_footprints(
     )
 
 
-def update_s_region_imaging(wcs: gwcs.wcs.WCS,
-                            wcsinfo: dict | Wcsinfo,
-                            shape: Sequence | None = None,
-                            center: bool | None = None) -> dict:
+def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
+                             shape: Sequence | None = None,
+                             center: bool | None = None) -> str:
     """
     Update the ``S_REGION`` keyword using the WCS footprint.
 
@@ -691,9 +676,6 @@ def update_s_region_imaging(wcs: gwcs.wcs.WCS,
     wcs : ~gwcs.wcs.WCS
         The WCS object.
 
-    wcsinfo : dict
-        A dictionary containing the WCS FITS keywords and corresponding values.
-
     shape : tuple, optional
         Shape of input model data array. Used to compute the bounding box if not
         provided in the WCS object, and required in that case. The default is None.
@@ -701,9 +683,12 @@ def update_s_region_imaging(wcs: gwcs.wcs.WCS,
     center : bool, optional
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
+
+    Returns
+    -------
+    s_region : str
+        String containing the S_REGION object.
     """
-    if not isinstance(wcsinfo, dict):
-        wcsinfo = wcsinfo_to_dict(wcsinfo)
     bbox = wcs.bounding_box
     if shape is None and bbox is None:
         msg = "If wcs.bounding_box is not specified, shape must be provided."
@@ -730,8 +715,7 @@ def update_s_region_imaging(wcs: gwcs.wcs.WCS,
         footprint[0][negative_ind] = 360 + footprint[0][negative_ind]
 
     footprint = footprint.T
-    update_s_region_keyword(wcsinfo, footprint)
-    return wcsinfo
+    return compute_s_region_keyword(footprint)
 
 
 def wcs_bbox_from_shape(shape: Sequence) -> tuple:
@@ -752,15 +736,11 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
     return (-0.5, shape[-1] - 0.5), (-0.5, shape[-2] - 0.5)
 
 
-def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
-                            footprint: np.ndarray) -> None:
+def compute_s_region_keyword(footprint: np.ndarray) -> str:
     """Update the S_REGION keyword.
 
     Parameters
     ----------
-    wcsinfo : dict
-        A dictionary containing the WCS FITS keywords and corresponding values.
-
     footprint :
         A 4x2 numpy array containing the coordinates of the vertices of the footprint.
 
@@ -775,12 +755,9 @@ def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
     if "nan" in s_region:
         # do not update s_region if there are NaNs.
         log.info("There are NaNs in s_region, S_REGION not updated.")
-        return
-    if not isinstance(wcsinfo, dict):
-        wcsinfo.s_region = s_region
-    else:
-        wcsinfo["s_region"] = s_region
+        return ""
     log.info("Update S_REGION to %s", s_region)
+    return s_region
 
 
 def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:

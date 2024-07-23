@@ -17,7 +17,7 @@ from tweakwcs.correctors import JWSTWCSCorrector
 from tweakwcs.imalign import align_wcs
 from tweakwcs.matchutils import XYXYMatch
 
-from stcal.alignment import Wcsinfo, wcs_from_footprints, wcsinfo_to_dict
+from stcal.alignment import wcs_from_footprints
 
 from .astrometric_utils import create_astrometric_catalog
 
@@ -113,7 +113,7 @@ def relative_align(correctors: list,
 def absolute_align(correctors: list,
                    abs_refcat: str,
                    ref_wcs: gwcs.wcs.WCS,
-                   ref_wcsinfo: dict | Wcsinfo,
+                   ref_wcsinfo: dict,
                    epoch: str | astropy.time.Time,
                    save_abs_catalog: bool = False,
                    abs_catalog_output_dir: str | None = None,
@@ -213,7 +213,7 @@ def absolute_align(correctors: list,
 def _parse_refcat(abs_refcat: str | Path,
                   correctors: list,
                   wcs: gwcs.wcs.WCS,
-                  wcsinfo: dict | Wcsinfo,
+                  wcsinfo: dict,
                   epoch: str | astropy.time.Time,
                   save_abs_catalog: bool = False,
                   output_dir: str | None = None) -> Table:
@@ -304,7 +304,7 @@ def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[tuple]) ->
 
 
 def construct_wcs_corrector(wcs: gwcs.WCS,
-                            refang: dict | Wcsinfo,
+                            refang: dict,
                             catalog: Table,
                             group_id: str,) -> JWSTWCSCorrector:
     """
@@ -319,8 +319,6 @@ def construct_wcs_corrector(wcs: gwcs.WCS,
     refang : dict
         Dictionary containing WCSreference angles.
     """
-    if not isinstance(refang, dict):
-        refang = wcsinfo_to_dict(refang)
     catalog = filter_catalog_by_bounding_box(
         catalog, wcs.bounding_box)
 

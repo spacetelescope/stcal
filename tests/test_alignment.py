@@ -10,13 +10,12 @@ from gwcs import coordinate_frames as cf
 
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
-    Wcsinfo,
     _validate_wcs_list,
     compute_fiducial,
     compute_scale,
     reproject,
-    update_s_region_imaging,
-    update_s_region_keyword,
+    compute_s_region_imaging,
+    compute_s_region_keyword,
     wcs_bbox_from_shape,
     wcs_from_footprints,
 )
@@ -71,7 +70,10 @@ def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
     )
 
 
-class WcsInfo(Wcsinfo):
+class WcsInfo():
+    """
+    JWST-like wcsinfo object
+    """
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle):
         self.ra_ref = ra_ref
         self.dec_ref = dec_ref
@@ -115,6 +117,7 @@ class MetaData:
 
 
 class DataModel:
+    """JWST-like datamodel object"""
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
         self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
@@ -176,7 +179,7 @@ def test_wcs_from_footprints():
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
 
-    wcs = wcs_from_footprints([wcs_1, wcs_2], wcs_1, dm_1.meta.wcsinfo)
+    wcs = wcs_from_footprints([wcs_1, wcs_2], wcs_1, dm_1.meta.wcsinfo.instance)
 
     # check that all elements of footprint match the *vertices* of the new combined WCS
     assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
@@ -325,11 +328,11 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
         ),
     ],
 )
-def test_update_s_region_keyword(model, footprint, expected_s_region, expected_log_info, caplog):
+def test_compute_s_region_keyword(model, footprint, expected_s_region, expected_log_info, caplog):
     """
     Test that S_REGION keyword is being properly populated with the coordinate values.
     """
-    update_s_region_keyword(model.meta.wcsinfo, footprint)
+    model.meta.wcsinfo.s_region = compute_s_region_keyword(footprint)
     assert model.meta.wcsinfo.s_region == expected_s_region
     assert expected_log_info in caplog.text
 
@@ -365,7 +368,7 @@ def test_wcs_bbox_from_shape(shape, expected_bbox):
         ),
     ],
 )
-def test_update_s_region_imaging(model, bounding_box, data):
+def test_compute_s_region_imaging(model, bounding_box, data):
     """
     Test that S_REGION keyword is being properly updated with the coordinates
     corresponding to the footprint (same as WCS(bounding box)).
@@ -379,7 +382,7 @@ def test_update_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, -0.5),
     ]
     shape = data.shape if data is not None else None
-    update_s_region_imaging(model.meta.wcs, model.meta.wcsinfo, shape=shape, center=False)
+    model.meta.wcsinfo.s_region = compute_s_region_imaging(model.meta.wcs, shape=shape, center=False)
     updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
     assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords,
                                                 expected_s_region_coords,
