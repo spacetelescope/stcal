@@ -319,7 +319,7 @@ def construct_wcs_corrector(wcs: gwcs.WCS,
     refang : dict
         Dictionary containing WCSreference angles.
     """
-    if isinstance(refang, Wcsinfo):
+    if not isinstance(refang, dict):
         refang = wcsinfo_to_dict(refang)
     catalog = filter_catalog_by_bounding_box(
         catalog, wcs.bounding_box)

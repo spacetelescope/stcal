@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -34,13 +34,14 @@ __all__ = [
 ]
 
 
-@runtime_checkable
 class Wcsinfo(Protocol):
     ra_ref: float
     dec_ref: float
     v3yangle: float
     vparity: int
     roll_ref: float
+    v2_ref: float
+    v3_ref: float
     s_region: str
 
 
@@ -64,6 +65,8 @@ def wcsinfo_to_dict(wcsinfo: Wcsinfo) -> dict:
         "v3yangle": wcsinfo.v3yangle,
         "vparity": wcsinfo.vparity,
         "roll_ref": wcsinfo.roll_ref,
+        "v2_ref": wcsinfo.v2_ref,
+        "v3_ref": wcsinfo.v3_ref,
         "s_region": wcsinfo.s_region,
     }
 
@@ -149,7 +152,7 @@ def _generate_tranform(
     transform : ~astropy.modeling.Model
         An :py:mod:`~astropy` model containing the transform between frames.
     """
-    if isinstance(wcsinfo, Wcsinfo):
+    if not isinstance(wcsinfo, dict):
         wcsinfo = wcsinfo_to_dict(wcsinfo)
     if transform is None:
         sky_axes = wcs._get_axes_indices().tolist()  # noqa: SLF001
@@ -648,7 +651,7 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-    if isinstance(ref_wcsinfo, Wcsinfo):
+    if not isinstance(ref_wcsinfo, dict):
         ref_wcsinfo = wcsinfo_to_dict(ref_wcsinfo)
     _validate_wcs_list(wcs_list)
 
@@ -699,7 +702,7 @@ def update_s_region_imaging(wcs: gwcs.wcs.WCS,
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
     """
-    if isinstance(wcsinfo, Wcsinfo):
+    if not isinstance(wcsinfo, dict):
         wcsinfo = wcsinfo_to_dict(wcsinfo)
     bbox = wcs.bounding_box
     if shape is None and bbox is None:
@@ -773,7 +776,7 @@ def update_s_region_keyword(wcsinfo: dict | Wcsinfo,
         # do not update s_region if there are NaNs.
         log.info("There are NaNs in s_region, S_REGION not updated.")
         return
-    if isinstance(wcsinfo, Wcsinfo):
+    if not isinstance(wcsinfo, dict):
         wcsinfo.s_region = s_region
     else:
         wcsinfo["s_region"] = s_region
