@@ -32,34 +32,6 @@ __all__ = [
 ]
 
 
-WCSINFO_REQUIRED_KEYS = {"ra_ref", "dec_ref", "v3yangle", "vparity",
-                         "roll_ref", "v2_ref", "v3_ref"}
-
-
-def _validate_wcsinfo(wcsinfo: dict) -> None:
-    """
-    Validate the wcsinfo dictionary.
-
-    Parameters
-    ----------
-    wcsinfo : dict
-        A dictionary containing the WCS FITS keywords and corresponding values.
-
-    Returns
-    -------
-    bool or Exception
-        If wcsinfo is valid, returns True. Otherwise, it will raise an error.
-
-    Raises
-    ------
-    ValueError
-        Raised when wcsinfo does not contain the required keys.
-    """
-    if not WCSINFO_REQUIRED_KEYS.issubset(wcsinfo.keys()):
-        msg = f"Expected 'wcsinfo' to contain the following keys: {WCSINFO_REQUIRED_KEYS}."
-        raise ValueError(msg)
-
-
 def _calculate_fiducial_from_spatial_footprint(
     spatial_footprint: np.ndarray,
 ) -> tuple:
@@ -638,7 +610,6 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-    _validate_wcsinfo(ref_wcsinfo)
     _validate_wcs_list(wcs_list)
 
     fiducial = _calculate_fiducial(wcs_list=wcs_list, bounding_box=bounding_box, crval=crval)
@@ -750,7 +721,7 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str:
         String containing the S_REGION object.
     """
     s_region = "POLYGON ICRS  {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f}".format(
-        *footprint.flatten()
+       *footprint.flatten()
     )
     if "nan" in s_region:
         # do not update s_region if there are NaNs.
