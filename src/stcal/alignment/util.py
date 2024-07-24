@@ -638,7 +638,7 @@ def wcs_from_footprints(
 
 def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
                              shape: Sequence | None = None,
-                             center: bool | None = None) -> str:
+                             center: bool = True) -> str:
     """
     Update the ``S_REGION`` keyword using the WCS footprint.
 
@@ -687,6 +687,25 @@ def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
 
     footprint = footprint.T
     return compute_s_region_keyword(footprint)
+
+
+# def compute_s_region_imaging(wcs: gwcs.wcs.WCS, shape: Sequence) -> str:
+
+#     bbox = wcs.bounding_box
+#     if bbox is None:
+#         bbox = wcs_bbox_from_shape(shape)
+#         wcs.bounding_box = bbox
+
+#     footprint = wcs.footprint(bbox, center=True, axis_type="spatial").T
+#     footprint = footprint[:2, :]
+
+#     # Make sure RA values are all positive
+#     negative_ind = footprint[0] < 0
+#     if negative_ind.any():
+#         footprint[0][negative_ind] = 360 + footprint[0][negative_ind]
+
+#     footprint = footprint.T
+#     return compute_s_region_keyword(footprint)
 
 
 def wcs_bbox_from_shape(shape: Sequence) -> tuple:
