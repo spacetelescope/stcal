@@ -221,6 +221,7 @@ struct ramp_data {
     real_t effintim;                /* Effective integration time */
     real_t one_group_time;          /* Time for ramps with only 0th good group */
     weight_t weight;                /* The weighting for OLS */
+    int run_chargeloss;             /* Boolean to run chargeloss */
 }; /* END: struct ramp_data */
 
 /*
@@ -681,7 +682,7 @@ static void
 print_uint8_array(uint8_t * arr, int len, int ret, int line);
 
 static void
-print_uint32_array(uint32_t * arr, int len, int ret);
+print_uint32_array(uint32_t * arr, int len, int ret, int line);
 /* ========================================================================= */
 
 /* ========================================================================= */
@@ -725,14 +726,18 @@ print_delim_char(char c, int len) {
 static inline int
 is_pix_in_list(struct pixel_ramp * pr)
 {
-    // (1014, 422),
+    /* Pixel list */
+    // JP-3669 - (28, 1738)
+    // const int len = 5;
     const int len = 1;
     npy_intp rows[len];
     npy_intp cols[len];
     int k;
 
-    rows[0] = 1014;
-    cols[0] = 422;
+    return 0;
+
+    rows[0] = 28;
+    cols[0] = 1738;
 
     for (k=0; k<len; ++k) {
         if (pr->row==rows[k] && pr->col==cols[k]) {
@@ -1238,6 +1243,8 @@ FAILED_ALLOC:
     Py_XDECREF(opt_res->sigyint);
     Py_XDECREF(opt_res->pedestal);
     Py_XDECREF(opt_res->weights);
+    PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+    err_ols_print("%s\n", msg);
 
     return 1;
 }
@@ -1344,6 +1351,8 @@ FAILED_ALLOC:
     Py_XDECREF(rate->var_poisson);
     Py_XDECREF(rate->var_rnoise);
     Py_XDECREF(rate->var_err);
+    PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+    err_ols_print("%s\n", msg);
 
     return 1;
 }
@@ -1401,6 +1410,8 @@ FAILED_ALLOC:
     Py_XDECREF(rateint->var_poisson);
     Py_XDECREF(rateint->var_rnoise);
     Py_XDECREF(rateint->var_err);
+    PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+    err_ols_print("%s\n", msg);
 
     return 1;
 }
@@ -1810,6 +1821,7 @@ get_ramp_data_meta(
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
     rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
+    rd->run_chargeloss = py_ramp_data_get_int(Py_ramp_data, "run_chargeloss");
     rd->invalid = rd->dnu | rd->sat;
 
     /* Get float meta data */
@@ -2088,7 +2100,6 @@ median_rate_integration(
     real_t * loc_integ = (real_t*)calloc(pr->ngroups, sizeof(*loc_integ));
     const char * msg = "Couldn't allocate memory for integration median rate.";
     npy_intp k, loc_integ_len;
-    int nan_cnt;
 
     /* Make sure memory allocation worked */
     if (NULL==loc_integ) {
@@ -2108,7 +2119,7 @@ median_rate_integration(
     }
 
     /* Sort first differences with NaN's based on DQ flags */
-    nan_cnt = median_rate_integration_sort(loc_integ, int_dq, rd, pr);
+    median_rate_integration_sort(loc_integ, int_dq, rd, pr);
 
     /* 
      * Get the NaN median using the sorted first differences.  Note that the
@@ -2211,6 +2222,8 @@ ols_slope_fit_pixels(
 {
     npy_intp row, col;
 
+    dbg_ols_print("run_chargeloss = %d\n", rd->run_chargeloss);
+
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
             get_pixel_ramp(pr, rd, row, col);
@@ -2220,8 +2233,19 @@ ols_slope_fit_pixels(
                 return 1;
             }
 
-            if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
-                return 1;
+            if (rd->run_chargeloss) {
+                if (is_pix_in_list(pr)) {
+                    print_delim();
+                    dbg_ols_print("    Pixel: (%ld, %ld)\n", pr->row, pr->col);
+                    dbg_ols_print("var_rnoise = %.12f\n", pr->rate.var_rnoise);
+                }
+                if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
+                    return 1;
+                }
+                if (is_pix_in_list(pr)) {
+                    dbg_ols_print("var_rnoise = %.12f\n", pr->rate.var_rnoise);
+                    print_delim();
+                }
             }
 
             /* Save fitted pixel data for output packaging */
@@ -2528,12 +2552,21 @@ ramp_fit_pixel_rnoise_chargeloss(
 
     /* Remove any left over junk in the memory, just in case */
     memset(&segs, 0, sizeof(segs));
-    
+
+    if (is_pix_in_list(pr)) {
+        print_delim();
+    }
+
     for (integ=0; integ < pr->nints; ++integ) {
         if (0 == pr->stats[integ].chargeloss) {
+            if (is_pix_in_list(pr)) {
+                dbg_ols_print("Integ %ld, var_rnoise = %.12f\n", integ, pr->rateints[integ].var_rnoise);
+            }
             /* No CHARGELOSS flag in integration */
-            invvar_r = 1. / pr->rateints[integ].var_rnoise;
-            evar_r += invvar_r; /* Exposure level read noise */
+            if (pr->rateints[integ].var_rnoise > 0.) {
+                invvar_r = 1. / pr->rateints[integ].var_rnoise;
+                evar_r += invvar_r; /* Exposure level read noise */
+            }
             continue;
         }
         is_chargeloss = 1;
@@ -2548,6 +2581,9 @@ ramp_fit_pixel_rnoise_chargeloss(
             goto END;
         }
         /*  Compute integration read noise */
+        if (is_pix_in_list(pr)) {
+            dbg_ols_print("Integ %ld, var_rnoise = %.12f\n", integ, pr->rateints[integ].var_rnoise);
+        }
         invvar_r = ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
         evar_r += invvar_r; /* Exposure level read noise */
 
@@ -2562,6 +2598,10 @@ ramp_fit_pixel_rnoise_chargeloss(
     /* Capture recomputed exposure level read noise variance */
     if (evar_r > 0.) {
         pr->rate.var_rnoise = 1. / evar_r;
+    }
+    if (is_pix_in_list(pr)) {
+        dbg_ols_print("var_rnoise = %.12f\n", integ, pr->rate.var_rnoise);
+        print_delim();
     }
     if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
         pr->rate.var_rnoise = 0.;
@@ -2588,16 +2628,24 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
 
     /* Compute readnoise for new segments */
     for (current = segs->head; current; current = current->flink) {
+        if (is_pix_in_list(pr)) {
+            dbg_ols_print("    Length %d\n", current->length);
+        }
         if (1==current->length) {
             timing = segment_len1_timing(rd, pr, integ);
             svar_r = segment_rnoise_len1(rd, pr, timing);
-        } else if (1==current->length) {
+        } else if (2==current->length) {
             svar_r = segment_rnoise_len2(rd, pr);
         } else {
             seglen = (real_t)current->length;
             svar_r = segment_rnoise_default(rd, pr, seglen);
         }
-        invvar_r += (1. / svar_r);
+        if (is_pix_in_list(pr)) {
+            dbg_ols_print("    (s:%ld, e%ld) svar_r = %.12f\n", current->start, current->end, svar_r);
+        }
+        if (svar_r > 0.) {
+            invvar_r += (1. / svar_r);
+        }
     }
 
     /* Capture recomputed integration level read noise variance */
@@ -3586,8 +3634,10 @@ print_uint8_array(uint8_t * arr, int len, int ret, int line) {
 }
 
 static void
-print_uint32_array(uint32_t * arr, int len, int ret) {
+print_uint32_array(uint32_t * arr, int len, int ret, int line) {
     int k;
+
+    printf("[%d] ", line);
 
     if (len < 1) {
         printf("[void]");
