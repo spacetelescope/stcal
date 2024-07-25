@@ -173,7 +173,7 @@ def ramp_fit(
     ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
 
     if algorithm.upper() == "OLS_C":
-        ramp_data.dbg_run_c_code = True
+        ramp_data.run_c_code = True
 
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags

@@ -40,7 +40,7 @@ class RampData:
         self.suppress_one_group_ramps = False
 
         # C code debugging switch.
-        self.dbg_run_c_code = False
+        self.run_c_code = False
 
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
