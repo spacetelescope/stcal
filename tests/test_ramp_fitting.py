@@ -1607,6 +1607,8 @@ def test_cext_chargeloss():
     ramp.data[0, :, 0, 3] = np.array(arr)
     ramp.groupdq[0, 3, 0, 3] = JUMP
 
+    ramp.orig_gdq = ramp.groupdq.copy()
+
     save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags

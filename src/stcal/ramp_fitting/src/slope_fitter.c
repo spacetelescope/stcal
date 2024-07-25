@@ -2255,17 +2255,8 @@ ols_slope_fit_pixels(
             }
 
             if (rd->run_chargeloss) {
-                if (is_pix_in_list(pr)) {
-                    print_delim();
-                    dbg_ols_print("    Pixel: (%ld, %ld)\n", pr->row, pr->col);
-                    dbg_ols_print("var_rnoise = %.12f\n", pr->rate.var_rnoise);
-                }
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
                     return 1;
-                }
-                if (is_pix_in_list(pr)) {
-                    dbg_ols_print("var_rnoise = %.12f\n", pr->rate.var_rnoise);
-                    print_delim();
                 }
             }
 
@@ -2574,15 +2565,8 @@ ramp_fit_pixel_rnoise_chargeloss(
     /* Remove any left over junk in the memory, just in case */
     memset(&segs, 0, sizeof(segs));
 
-    if (is_pix_in_list(pr)) {
-        print_delim();
-    }
-
     for (integ=0; integ < pr->nints; ++integ) {
         if (0 == pr->stats[integ].chargeloss) {
-            if (is_pix_in_list(pr)) {
-                dbg_ols_print("Integ %ld, var_rnoise = %.12f\n", integ, pr->rateints[integ].var_rnoise);
-            }
             /* No CHARGELOSS flag in integration */
             if (pr->rateints[integ].var_rnoise > 0.) {
                 invvar_r = 1. / pr->rateints[integ].var_rnoise;
@@ -2602,9 +2586,6 @@ ramp_fit_pixel_rnoise_chargeloss(
             goto END;
         }
         /*  Compute integration read noise */
-        if (is_pix_in_list(pr)) {
-            dbg_ols_print("Integ %ld, var_rnoise = %.12f\n", integ, pr->rateints[integ].var_rnoise);
-        }
         invvar_r = ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
         evar_r += invvar_r; /* Exposure level read noise */
 
@@ -2619,10 +2600,6 @@ ramp_fit_pixel_rnoise_chargeloss(
     /* Capture recomputed exposure level read noise variance */
     if (evar_r > 0.) {
         pr->rate.var_rnoise = 1. / evar_r;
-    }
-    if (is_pix_in_list(pr)) {
-        dbg_ols_print("var_rnoise = %.12f\n", pr->rate.var_rnoise);
-        print_delim();
     }
     if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
         pr->rate.var_rnoise = 0.;
@@ -2649,9 +2626,6 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
 
     /* Compute readnoise for new segments */
     for (current = segs->head; current; current = current->flink) {
-        if (is_pix_in_list(pr)) {
-            dbg_ols_print("    Length %zd\n", current->length);
-        }
         if (1==current->length) {
             timing = segment_len1_timing(rd, pr, integ);
             svar_r = segment_rnoise_len1(rd, pr, timing);
@@ -2660,9 +2634,6 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
         } else {
             seglen = (real_t)current->length;
             svar_r = segment_rnoise_default(rd, pr, seglen);
-        }
-        if (is_pix_in_list(pr)) {
-            dbg_ols_print("    (s:%ld, e%ld) svar_r = %.12f\n", current->start, current->end, svar_r);
         }
         if (svar_r > 0.) {
             invvar_r += (1. / svar_r);
@@ -3018,16 +2989,6 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     /* Segment total variance */
     // seg->var_e = 2. * pr->rnoise * pr->rnoise;  /* XXX Is this right? */
     seg->var_e = seg->var_p + seg->var_r;
-#if 0
-    if (is_pix_in_list(pr)) {
-        tmp = sqrt2 * pr->rnoise;
-        dbg_ols_print("rnoise     = %.10f\n", pr->rnoise);
-        dbg_ols_print("seg->var_s = %.10f\n", tmp);
-        dbg_ols_print("seg->var_p = %.10f\n", seg->var_p);
-        dbg_ols_print("seg->var_r = %.10f\n", seg->var_r);
-        dbg_ols_print("seg->var_e = %.10f\n", seg->var_e);
-    }
-#endif
 
     if (rd->save_opt) {
         seg->sigslope = sqrt2 * pr->rnoise;
