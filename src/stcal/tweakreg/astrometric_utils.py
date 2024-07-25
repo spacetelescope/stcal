@@ -137,13 +137,6 @@ def create_astrometric_catalog(
     return ref_table
 
 
-"""
-
-Utility functions for creating an astrometric reference catalog.
-
-"""
-
-
 def compute_radius(wcs):
     """Compute the radius from the center to the furthest edge of the WCS."""
     fiducial = compute_fiducial([wcs], wcs.bounding_box)

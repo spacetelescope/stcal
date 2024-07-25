@@ -638,7 +638,7 @@ def wcs_from_footprints(
 
 def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
                              shape: Sequence | None = None,
-                             center: bool = True) -> str:
+                             center: bool = True) -> str | None:
     """
     Update the ``S_REGION`` keyword using the WCS footprint.
 
@@ -689,25 +689,6 @@ def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
     return compute_s_region_keyword(footprint)
 
 
-# def compute_s_region_imaging(wcs: gwcs.wcs.WCS, shape: Sequence) -> str:
-
-#     bbox = wcs.bounding_box
-#     if bbox is None:
-#         bbox = wcs_bbox_from_shape(shape)
-#         wcs.bounding_box = bbox
-
-#     footprint = wcs.footprint(bbox, center=True, axis_type="spatial").T
-#     footprint = footprint[:2, :]
-
-#     # Make sure RA values are all positive
-#     negative_ind = footprint[0] < 0
-#     if negative_ind.any():
-#         footprint[0][negative_ind] = 360 + footprint[0][negative_ind]
-
-#     footprint = footprint.T
-#     return compute_s_region_keyword(footprint)
-
-
 def wcs_bbox_from_shape(shape: Sequence) -> tuple:
     """Create a bounding box from the shape of the data.
 
@@ -726,7 +707,7 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
     return (-0.5, shape[-1] - 0.5), (-0.5, shape[-2] - 0.5)
 
 
-def compute_s_region_keyword(footprint: np.ndarray) -> str:
+def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
     """Update the S_REGION keyword.
 
     Parameters
@@ -745,7 +726,7 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str:
     if "nan" in s_region:
         # do not update s_region if there are NaNs.
         log.info("There are NaNs in s_region, S_REGION not updated.")
-        return ""
+        return None
     log.info("Update S_REGION to %s", s_region)
     return s_region
 

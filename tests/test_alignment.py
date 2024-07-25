@@ -12,10 +12,10 @@ from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _validate_wcs_list,
     compute_fiducial,
-    compute_scale,
-    reproject,
     compute_s_region_imaging,
     compute_s_region_keyword,
+    compute_scale,
+    reproject,
     wcs_bbox_from_shape,
     wcs_from_footprints,
 )
@@ -70,7 +70,7 @@ def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
     )
 
 
-class WcsInfo():
+class WcsInfo:
     """
     JWST-like wcsinfo object
     """
@@ -323,7 +323,7 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),
             np.array([[1.0, 2.0], [3.0, np.nan], [5.0, 6.0], [7.0, 8.0]]),
-            "",
+        None,
             "There are NaNs in s_region, S_REGION not updated.",
         ),
     ],
