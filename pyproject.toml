@@ -19,7 +19,7 @@ dependencies = [
     "opencv-python-headless >=4.6.0.66",
     "asdf >=2.15.0",
     "gwcs >= 0.18.1",
-    "tweakwcs >=0.8.6",
+    "tweakwcs >=0.8.8",
     "requests >=2.22",
 ]
 dynamic = [
