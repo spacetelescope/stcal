@@ -10,6 +10,9 @@ class RampData:
         self.pixeldq = None
         self.average_dark_current = None
 
+        # Needed for CHARGELOSS recomputation
+        self.orig_gdq = None
+
         # Meta information
         self.instrument_name = None
 
@@ -42,13 +45,15 @@ class RampData:
 
         # C code debugging switch.
         self.run_c_code = False
+        self.run_chargeloss = True
+        # self.run_chargeloss = False
 
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
 
         self.current_integ = -1
 
-    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current):
+    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current, orig_gdq=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -80,6 +85,8 @@ class RampData:
         self.groupdq = groupdq
         self.pixeldq = pixeldq
         self.average_dark_current = average_dark_current
+
+        self.orig_gdq = orig_gdq
 
     def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """
