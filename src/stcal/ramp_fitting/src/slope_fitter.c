@@ -176,6 +176,8 @@ struct ramp_data {
     PyArrayObject * err;        /* The 4-D err data */
     PyArrayObject * groupdq;    /* The 4-D group DQ array */
 
+    PyArrayObject * orig_gdq;   /* The 4-D group DQ array */
+
     /* The 2-D arrays with dimensions (nrows, ncols) */
     PyArrayObject * pixeldq;    /* The 2-D pixel DQ array */
     PyArrayObject * gain;       /* The 2-D gain array */
@@ -294,8 +296,9 @@ struct pixel_ramp {
     npy_intp ngroups; /* The number of integrations and groups per integration */
     ssize_t ramp_sz;  /* The total size of the 2-D arrays */
 
-    real_t * data;      /* The 2-D ramp data (nints, ngroups) */
-    uint32_t * groupdq; /* The group DQ pixel array */
+    real_t * data;          /* The 2-D ramp data (nints, ngroups) */
+    uint32_t * groupdq;     /* The group DQ pixel array */
+    uint32_t * orig_gdq;    /* The copy of the original group DQ pixel array */
 
     uint32_t pixeldq; /* The pixel DQ pixel */
     real_t gain;      /* The pixel gain */
@@ -408,7 +411,7 @@ clean_segment_list_basic(struct segment_list * segs);
 static int
 compute_integration_segments(
     struct ramp_data * rd, struct pixel_ramp * pr, struct segment_list * segs,
-    npy_intp integ);
+    int chargeloss, npy_intp integ);
 
 static int
 create_opt_res(struct opt_res_product * opt_res, struct ramp_data * rd);
@@ -947,6 +950,7 @@ clean_pixel_ramp(
     /* Free all internal arrays */
     SET_FREE(pr->data);
     SET_FREE(pr->groupdq);
+    SET_FREE(pr->orig_gdq);
     SET_FREE(pr->rateints);
     SET_FREE(pr->stats);
     SET_FREE(pr->is_zframe);
@@ -1102,16 +1106,23 @@ static int
 compute_integration_segments(
         struct ramp_data * rd,  /* Ramp fitting data */
         struct pixel_ramp * pr, /* Pixel ramp fitting data */
-        struct segment_list * segs,
+        struct segment_list * segs, /* Segment list */
+        int chargeloss,         /* Chargeloss compuation boolean */
         npy_intp integ)         /* Current integration */
 {
     int ret = 0;
-    uint32_t * groupdq = pr->groupdq + integ * pr->ngroups;
+    uint32_t * groupdq = NULL;
     npy_intp idx, start, end;
     int in_seg=0;
 
+    if (chargeloss) {
+        groupdq = pr->orig_gdq + integ * pr->ngroups;
+    } else {
+        groupdq = pr->groupdq + integ * pr->ngroups;
+    }
+
     /* If the whole integration is saturated, then no valid slope. */
-    if (groupdq[0] & rd->sat) {
+    if ( (!chargeloss) && (groupdq[0] & rd->sat)) {
         pr->rateints[integ].dq |= rd->dnu;
         pr->rateints[integ].dq |= rd->sat;
         pr->rateints[integ].slope = NAN;
@@ -1275,6 +1286,10 @@ create_pixel_ramp(
     /* Allocate array data */
     pr->data = (real_t*)calloc(pr->ramp_sz, sizeof(pr->data[0]));
     pr->groupdq = (uint32_t*)calloc(pr->ramp_sz, sizeof(pr->groupdq[0]));
+
+    if (((PyObject*)rd->orig_gdq) != Py_None) {
+        pr->orig_gdq = (uint32_t*)calloc(pr->ramp_sz, sizeof(pr->orig_gdq[0]));
+    }
 
     /* This is an array of integrations for the fit for each integration */
     pr->rateints = (struct pixel_fit*)calloc(pr->nints, sizeof(pr->rateints[0]));
@@ -1593,6 +1608,11 @@ get_pixel_ramp_integration(
     pr->groupdq[idx] = VOID_2_U8(PyArray_GETPTR4(
         rd->groupdq, integ, group, row, col));
 
+    if (((PyObject*)rd->orig_gdq) != Py_None) {
+        pr->orig_gdq[idx] = VOID_2_U8(PyArray_GETPTR4(
+            rd->orig_gdq, integ, group, row, col));
+    }
+
     /* Compute group DQ statistics */
     if (pr->groupdq[idx] & rd->jump) {
         pr->stats[integ].jump_det = 1;
@@ -1779,6 +1799,7 @@ get_ramp_data_arrays(
     /* Get numpy arrays */
     rd->data = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "data");
     rd->groupdq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "groupdq");
+    rd->orig_gdq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "orig_gdq");
     rd->err = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "err");
     rd->pixeldq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "pixeldq");
     rd->zframe = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "zeroframe");
@@ -2575,7 +2596,7 @@ ramp_fit_pixel_rnoise_chargeloss(
         ramp_fit_pixel_rnoise_chargeloss_remove(rd, pr, integ);
 
         /*  Compute segments */
-        if (compute_integration_segments(rd, pr, &segs, integ)) {
+        if (compute_integration_segments(rd, pr, &segs, 1, integ)) {
             clean_segment_list_basic(&segs);
             ret = 1;
             goto END;
@@ -2600,7 +2621,7 @@ ramp_fit_pixel_rnoise_chargeloss(
         pr->rate.var_rnoise = 1. / evar_r;
     }
     if (is_pix_in_list(pr)) {
-        dbg_ols_print("var_rnoise = %.12f\n", integ, pr->rate.var_rnoise);
+        dbg_ols_print("var_rnoise = %.12f\n", pr->rate.var_rnoise);
         print_delim();
     }
     if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
@@ -2629,7 +2650,7 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
     /* Compute readnoise for new segments */
     for (current = segs->head; current; current = current->flink) {
         if (is_pix_in_list(pr)) {
-            dbg_ols_print("    Length %d\n", current->length);
+            dbg_ols_print("    Length %zd\n", current->length);
         }
         if (1==current->length) {
             timing = segment_len1_timing(rd, pr, integ);
@@ -2672,10 +2693,17 @@ ramp_fit_pixel_rnoise_chargeloss_remove(
 
     for (group=0; group<pr->ngroups; ++group) {
         idx = get_ramp_index(rd, integ, group);
+#if 0
         if (rd->chargeloss & pr->groupdq[idx]) {
             /* It is assumed that DO_NOT_USE also needs to be removed */
             pr->groupdq[idx] ^= dnu_chg;
         }
+#else
+        if (rd->chargeloss & pr->orig_gdq[idx]) {
+            /* It is assumed that DO_NOT_USE also needs to be removed */
+            pr->orig_gdq[idx] ^= dnu_chg;
+        }
+#endif
     }
 }
 
@@ -2690,7 +2718,7 @@ ramp_fit_pixel_integration(
 {
     int ret = 0;
 
-    if (compute_integration_segments(rd, pr, &(pr->segs[integ]), integ)) {
+    if (compute_integration_segments(rd, pr, &(pr->segs[integ]), 0, integ)) {
         ret = 1;
         goto END;
     }
