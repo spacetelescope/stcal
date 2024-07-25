@@ -1,10 +1,10 @@
-1.7.4 (unreleased)
+1.8.0 (unreleased)
 ==================
 
 General
 -------
 
--
+- Add TweakReg submodule. [#267]
 
 Changes to API
 --------------

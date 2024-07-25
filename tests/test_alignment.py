@@ -12,10 +12,10 @@ from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _validate_wcs_list,
     compute_fiducial,
+    compute_s_region_imaging,
+    compute_s_region_keyword,
     compute_scale,
     reproject,
-    update_s_region_imaging,
-    update_s_region_keyword,
     wcs_bbox_from_shape,
     wcs_from_footprints,
 )
@@ -71,6 +71,9 @@ def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
 
 
 class WcsInfo:
+    """
+    JWST-like wcsinfo object
+    """
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle):
         self.ra_ref = ra_ref
         self.dec_ref = dec_ref
@@ -83,6 +86,22 @@ class WcsInfo:
         self.vparity = -1
         self.wcsaxes = 2
         self.s_region = ""
+        self.instance = self.instance()
+
+    def instance(self):
+        return {
+            "ra_ref": self.ra_ref,
+            "dec_ref": self.dec_ref,
+            "ctype1": self.ctype1,
+            "ctype2": self.ctype2,
+            "v2_ref": self.v2_ref,
+            "v3_ref": self.v3_ref,
+            "v3yangle": self.v3yangle,
+            "roll_ref": self.roll_ref,
+            "vparity": self.vparity,
+            "wcsaxes": self.wcsaxes,
+            "s_region": self.s_region,
+        }
 
 
 class Coordinates:
@@ -98,6 +117,7 @@ class MetaData:
 
 
 class DataModel:
+    """JWST-like datamodel object"""
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
         self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
@@ -159,7 +179,7 @@ def test_wcs_from_footprints():
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
 
-    wcs = wcs_from_footprints([dm_1, dm_2])
+    wcs = wcs_from_footprints([wcs_1, wcs_2], wcs_1, dm_1.meta.wcsinfo.instance)
 
     # check that all elements of footprint match the *vertices* of the new combined WCS
     assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
@@ -269,6 +289,14 @@ def test_wcs_bbox_from_shape_2d():
     assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
 
 
+def test_wcs_bbox_from_shape_3d():
+    bb = wcs_bbox_from_shape((3, 32, 2048))
+    assert bb == ((-0.5, 2047.5), (-0.5, 31.5))
+
+    bb = wcs_bbox_from_shape((750, 45, 50))
+    assert bb == ((-0.5, 49.5), (-0.5, 44.5))
+
+
 @pytest.mark.parametrize(
     ("shape", "pixmap_expected_shape"),
     [
@@ -295,16 +323,16 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),
             np.array([[1.0, 2.0], [3.0, np.nan], [5.0, 6.0], [7.0, 8.0]]),
-            "",
+        None,
             "There are NaNs in s_region, S_REGION not updated.",
         ),
     ],
 )
-def test_update_s_region_keyword(model, footprint, expected_s_region, expected_log_info, caplog):
+def test_compute_s_region_keyword(model, footprint, expected_s_region, expected_log_info, caplog):
     """
     Test that S_REGION keyword is being properly populated with the coordinate values.
     """
-    update_s_region_keyword(model, footprint)
+    model.meta.wcsinfo.s_region = compute_s_region_keyword(footprint)
     assert model.meta.wcsinfo.s_region == expected_s_region
     assert expected_log_info in caplog.text
 
@@ -340,7 +368,7 @@ def test_wcs_bbox_from_shape(shape, expected_bbox):
         ),
     ],
 )
-def test_update_s_region_imaging(model, bounding_box, data):
+def test_compute_s_region_imaging(model, bounding_box, data):
     """
     Test that S_REGION keyword is being properly updated with the coordinates
     corresponding to the footprint (same as WCS(bounding box)).
@@ -353,6 +381,9 @@ def test_update_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, 2.5),
         *model.meta.wcs(2.5, -0.5),
     ]
-    update_s_region_imaging(model, center=False)
+    shape = data.shape if data is not None else None
+    model.meta.wcsinfo.s_region = compute_s_region_imaging(model.meta.wcs, shape=shape, center=False)
     updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
-    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords, expected_s_region_coords))
+    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords,
+                                                expected_s_region_coords,
+                                                strict=False))
