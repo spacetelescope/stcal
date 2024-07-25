@@ -9,7 +9,7 @@ General
 Changes to API
 --------------
 
-- 
+- replace usage of ``opencv-python`` with analagous functionality from ``scikit-image`` [#138]
 
 Bug Fixes
 ---------

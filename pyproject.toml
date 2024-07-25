@@ -13,12 +13,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "asdf >=2.15.0",
     "astropy >=5.0.4",
+    "gwcs >= 0.18.1",
+    "scikit-image>=0.18.0",
     "scipy >=1.7.2",
     "numpy >=1.21.2",
-    "opencv-python-headless >=4.6.0.66",
-    "asdf >=2.15.0",
-    "gwcs >= 0.18.1",
 ]
 dynamic = [
     "version",
