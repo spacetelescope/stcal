@@ -1616,20 +1616,6 @@ def test_cext_chargeloss():
 
     sdata, sdq, svp, svr, serr = slopes
 
-    print(" ")
-    print(DELIM)
-    print("test_cext_chargeloss")
-    print(DELIM)
-    print("Slopes")
-    print(sdata)
-    print(DELIM)
-    print("Read Noise")
-    print(svr)
-    print(DELIM)
-    print("Poisson")
-    print(svp)
-    print(DELIM)
-
     # Comopare slopes
     assert sdata[0, 1] == sdata[0, 0]
     assert sdata[0, 1] == sdata[0, 2]
