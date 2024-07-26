@@ -149,7 +149,6 @@ def flag_resampled_crs(
     scale1,
     scale2,
     backg,
-    resample_data,
 ):
     """
     Detect outliers (CRs) using resampled reference data.
@@ -164,8 +163,7 @@ def flag_resampled_crs(
         Error estimates for sci_data
 
     blot_data : numpy.ndarray
-        Reference data used to detect outliers. If this reference data
-        was generated through resampling resample_data should be True.
+        Reference data used to detect outliers.
 
     snr1 : float
         Signal-to-noise ratio threshold used prior to smoothing.
@@ -182,17 +180,11 @@ def flag_resampled_crs(
     backg : float
         Scalar background to subtract from the difference.
 
-    resample_data : bool
-        If False skip the resampled data algorithm and instead call
-        `flag_crs` with a limited set of these parameters.
-
     Returns
     -------
     cr_mask : numpy.ndarray
         boolean array where outliers (CRs) are true
     """
-    if not resample_data:
-        return flag_crs(sci_data, sci_err, blot_data, snr1)
     err_data = np.nan_to_num(sci_err)
 
     blot_deriv = _abs_deriv(blot_data)
