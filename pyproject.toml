@@ -211,6 +211,7 @@ module = [
     "stdatamodels.*",
     "asdf.*",
     "scipy.*",
+    "drizzle.*",
     # don't complain about the installed c parts of this library
     "stcal.ramp_fitting.ols_cas22._fit",
     "stcal.ramp_fitting.ols_cas22._jump",
