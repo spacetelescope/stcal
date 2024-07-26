@@ -730,17 +730,16 @@ static inline int
 is_pix_in_list(struct pixel_ramp * pr)
 {
     /* Pixel list */
-    // JP-3669 - (28, 1738)
-    // const int len = 5;
+    // JP-3669 - (1804, 173)
     const int len = 1;
     npy_intp rows[len];
     npy_intp cols[len];
     int k;
 
-    return 0;
+    return 0;  /* XXX Null function */
 
-    rows[0] = 28;
-    cols[0] = 1738;
+    rows[0] = 1804;
+    cols[0] = 173;
 
     for (k=0; k<len; ++k) {
         if (pr->row==rows[k] && pr->col==cols[k]) {
@@ -2243,10 +2242,13 @@ ols_slope_fit_pixels(
 {
     npy_intp row, col;
 
-    dbg_ols_print("run_chargeloss = %d\n", rd->run_chargeloss);
+    // dbg_ols_print("run_chargeloss = %d\n", rd->run_chargeloss);
 
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
+
+            // dbg_ols_print("Running (%ld, %ld)\r", row, col);
+
             get_pixel_ramp(pr, rd, row, col);
 
             /* Compute ramp fitting */
@@ -2561,21 +2563,41 @@ ramp_fit_pixel_rnoise_chargeloss(
     npy_intp integ;
     struct segment_list segs;
     real_t invvar_r, evar_r=0.;
+    const char * msg = "pr->orig_gdq is NULL.";
 
     /* Remove any left over junk in the memory, just in case */
     memset(&segs, 0, sizeof(segs));
 
+    if (is_pix_in_list(pr)) {
+        print_delim();
+        dbg_ols_print("    Pixel (%ld, %ld) [Beginning]\n", pr->row, pr->col);
+    }
+
     for (integ=0; integ < pr->nints; ++integ) {
+        if (is_pix_in_list(pr)) {
+            dbg_ols_print(" ---- Integration %ld ----\n", integ);
+        }
         if (0 == pr->stats[integ].chargeloss) {
             /* No CHARGELOSS flag in integration */
             if (pr->rateints[integ].var_rnoise > 0.) {
                 invvar_r = 1. / pr->rateints[integ].var_rnoise;
                 evar_r += invvar_r; /* Exposure level read noise */
             }
+            if (is_pix_in_list(pr)) {
+                dbg_ols_print("pr->rateints[%ld].var_rnoise %.12f\n", integ, pr->rateints[integ].var_rnoise);
+                dbg_ols_print("invvar_r = %.12f\n", invvar_r);
+                dbg_ols_print("evar_r = %.12f\n", evar_r);
+            }
             continue;
         }
         is_chargeloss = 1;
 
+        if (NULL == pr->orig_gdq) {
+            PyErr_SetString(PyExc_MemoryError, msg);
+            err_ols_print("%s\n", msg);
+            ret = 1;
+            goto END;
+        }
         /*  Remove chargeloss and do not use */
         ramp_fit_pixel_rnoise_chargeloss_remove(rd, pr, integ);
 
@@ -2589,6 +2611,12 @@ ramp_fit_pixel_rnoise_chargeloss(
         invvar_r = ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
         evar_r += invvar_r; /* Exposure level read noise */
 
+        if (is_pix_in_list(pr)) {
+            dbg_ols_print("pr->rateints[%ld].var_rnoise %.12f\n", integ, pr->rateints[integ].var_rnoise);
+            dbg_ols_print("invvar_r = %.12f\n", invvar_r);
+            dbg_ols_print("evar_r = %.12f\n", evar_r);
+        }
+
         /*  Clean segment list */
         clean_segment_list_basic(&segs);
     }
@@ -2601,11 +2629,18 @@ ramp_fit_pixel_rnoise_chargeloss(
     if (evar_r > 0.) {
         pr->rate.var_rnoise = 1. / evar_r;
     }
+    if (is_pix_in_list(pr)) {
+        dbg_ols_print("Recomputed pr->rate.var_rnoise = %.12f\n", pr->rate.var_rnoise);
+    }
     if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
         pr->rate.var_rnoise = 0.;
     }
 
 END:
+    if (is_pix_in_list(pr)) {
+        dbg_ols_print("    Chargeloss Ending\n");
+        print_delim();
+    }
     clean_segment_list_basic(&segs); /* Just in case */
     return ret;
 }
@@ -2664,17 +2699,10 @@ ramp_fit_pixel_rnoise_chargeloss_remove(
 
     for (group=0; group<pr->ngroups; ++group) {
         idx = get_ramp_index(rd, integ, group);
-#if 0
-        if (rd->chargeloss & pr->groupdq[idx]) {
-            /* It is assumed that DO_NOT_USE also needs to be removed */
-            pr->groupdq[idx] ^= dnu_chg;
-        }
-#else
         if (rd->chargeloss & pr->orig_gdq[idx]) {
             /* It is assumed that DO_NOT_USE also needs to be removed */
             pr->orig_gdq[idx] ^= dnu_chg;
         }
-#endif
     }
 }
 
