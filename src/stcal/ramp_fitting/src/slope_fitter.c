@@ -2242,8 +2242,6 @@ ols_slope_fit_pixels(
 {
     npy_intp row, col;
 
-    // dbg_ols_print("run_chargeloss = %d\n", rd->run_chargeloss);
-
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
 
@@ -2568,25 +2566,12 @@ ramp_fit_pixel_rnoise_chargeloss(
     /* Remove any left over junk in the memory, just in case */
     memset(&segs, 0, sizeof(segs));
 
-    if (is_pix_in_list(pr)) {
-        print_delim();
-        dbg_ols_print("    Pixel (%ld, %ld) [Beginning]\n", pr->row, pr->col);
-    }
-
     for (integ=0; integ < pr->nints; ++integ) {
-        if (is_pix_in_list(pr)) {
-            dbg_ols_print(" ---- Integration %ld ----\n", integ);
-        }
         if (0 == pr->stats[integ].chargeloss) {
             /* No CHARGELOSS flag in integration */
             if (pr->rateints[integ].var_rnoise > 0.) {
                 invvar_r = 1. / pr->rateints[integ].var_rnoise;
                 evar_r += invvar_r; /* Exposure level read noise */
-            }
-            if (is_pix_in_list(pr)) {
-                dbg_ols_print("pr->rateints[%ld].var_rnoise %.12f\n", integ, pr->rateints[integ].var_rnoise);
-                dbg_ols_print("invvar_r = %.12f\n", invvar_r);
-                dbg_ols_print("evar_r = %.12f\n", evar_r);
             }
             continue;
         }
@@ -2611,12 +2596,6 @@ ramp_fit_pixel_rnoise_chargeloss(
         invvar_r = ramp_fit_pixel_rnoise_chargeloss_segs(rd, pr, &segs, integ);
         evar_r += invvar_r; /* Exposure level read noise */
 
-        if (is_pix_in_list(pr)) {
-            dbg_ols_print("pr->rateints[%ld].var_rnoise %.12f\n", integ, pr->rateints[integ].var_rnoise);
-            dbg_ols_print("invvar_r = %.12f\n", invvar_r);
-            dbg_ols_print("evar_r = %.12f\n", evar_r);
-        }
-
         /*  Clean segment list */
         clean_segment_list_basic(&segs);
     }
@@ -2629,18 +2608,11 @@ ramp_fit_pixel_rnoise_chargeloss(
     if (evar_r > 0.) {
         pr->rate.var_rnoise = 1. / evar_r;
     }
-    if (is_pix_in_list(pr)) {
-        dbg_ols_print("Recomputed pr->rate.var_rnoise = %.12f\n", pr->rate.var_rnoise);
-    }
     if (pr->rate.var_rnoise >= LARGE_VARIANCE_THRESHOLD) {
         pr->rate.var_rnoise = 0.;
     }
 
 END:
-    if (is_pix_in_list(pr)) {
-        dbg_ols_print("    Chargeloss Ending\n");
-        print_delim();
-    }
     clean_segment_list_basic(&segs); /* Just in case */
     return ret;
 }
