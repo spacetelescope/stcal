@@ -85,6 +85,7 @@ def compute_weight_threshold(weight, maskpt):
 
 
 def _abs_deriv(array):
+    """Take the absolute derivate of a numpy array."""
     tmp = np.zeros(array.shape, dtype=np.float64)
     out = np.zeros(array.shape, dtype=np.float64)
 
