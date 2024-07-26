@@ -85,7 +85,15 @@ def compute_weight_threshold(weight, maskpt):
 
 
 def _abs_deriv(array):
-    """Take the absolute derivate of a numpy array."""
+    """
+    Do not use this function.
+
+    Take the absolute derivative of a numpy array.
+
+    This function assumes off-edge pixel values are 0
+    and leads to erroneous derivative values and should
+    likely not be used.
+    """
     tmp = np.zeros(array.shape, dtype=np.float64)
     out = np.zeros(array.shape, dtype=np.float64)
 
@@ -103,6 +111,11 @@ def _abs_deriv(array):
 
 
 def _absolute_subtract(array, tmp, out):
+    """
+    Do not use this function.
+
+    A helper function for _abs_deriv.
+    """
     tmp = np.abs(array - tmp)
     out = np.maximum(tmp, out)
     tmp = tmp * 0.
