@@ -1517,7 +1517,6 @@ def test_compute_num_slices():
     assert compute_num_slices("21", n_rows, max_available_cores) == 9
 
 
-# @pytest.mark.skip("Not ready, yet")
 def test_cext_chargeloss():
     """
     Testing the recomputation of read noise due to CHARGELOSS.  Wherever
@@ -1574,20 +1573,6 @@ def test_cext_chargeloss():
     )
 
     sdata, sdq, svp, svr, serr = slopes
-
-    print(" ")
-    print(DELIM)
-    print("test_cext_chargeloss")
-    print(DELIM)
-    print("Slopes")
-    print(sdata)
-    print(DELIM)
-    print("Read Noise")
-    print(svr)
-    print(DELIM)
-    print("Poisson")
-    print(svp)
-    print(DELIM)
 
     # Comopare slopes
     assert sdata[0, 1] == sdata[0, 0]
