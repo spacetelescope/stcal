@@ -9,7 +9,8 @@ General
 Changes to API
 --------------
 
-- 
+- Add ``outlier_detection`` submodule with ``utils`` included
+  from jwst. [#270] 
 
 Bug Fixes
 ---------
