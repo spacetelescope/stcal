@@ -193,9 +193,7 @@ def find_crs(
         # compute 'ratio' for each group. this is the value that will be
         # compared to 'threshold' to classify jumps. subtract the median of
         # first_diffs from first_diffs, take the absolute value and divide by sigma.
-        e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
-        ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
-                    sigma[np.newaxis, np.newaxis, :, :]
+
         # Test to see if there are enough groups to use sigma clipping
         if (only_use_ints and nints >= minimum_sigclip_groups) or \
            (not only_use_ints and total_groups >= minimum_sigclip_groups):
@@ -259,6 +257,7 @@ def find_crs(
                     jump_mask = np.logical_and(masked_ratio.mask, np.logical_not(first_diffs_masked.mask))
                     gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                                      np.uint8(dqflags["JUMP_DET"]))
+                    del e_jump, ratio, masked_ratio
                 else:  # low number of diffs requires iterative flagging
                     # calculate the differences between adjacent groups (first diffs)
                     # use mask on data, so the results will have sat/donotuse groups masked
@@ -354,9 +353,14 @@ def find_crs(
                              gdq[:, 1:, all_crs_row[j], all_crs_col[j]],
                             dqflags["JUMP_DET"] * np.invert(pix_cr_mask),
                         )
+                    del e_jump, ratio, masked_ratio
+
     cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
     num_primary_crs = len(cr_group)
     if flag_4_neighbors:  # iterate over each 'jump' pixel
+        e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
+        ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
+                    sigma[np.newaxis, np.newaxis, :, :]
         for j in range(len(cr_group)):
             ratio_this_pix = ratio_all[cr_integ[j], cr_group[j] - 1, cr_row[j], cr_col[j]]
 
