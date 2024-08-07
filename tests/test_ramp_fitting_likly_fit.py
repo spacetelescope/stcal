@@ -183,6 +183,37 @@ def test_basic_ramp():
     dbg_print_slope_slope1(slopes, slopes1, (0, 0))
 
 
+@pytest.mark.skip(reason="Incompatible ndarray shapes.")
+def test_basic_ramp_multi_pixel():
+    """
+    Test a basic ramp with a linear progression up the ramp.  Compare the
+    integration results from the LIKELY algorithm to the OLS algorithm.
+    """
+    nints, ngroups, nrows, ncols = 1, 10, 2, 2
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+    ramp_data.data[0, :, 0, 1] = ramp
+    ramp_data.data[0, :, 1, 0] = ramp
+    ramp_data.data[0, :, 1, 1] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+
+
+
 def test_basic_ramp_2integ():
     """
     Test a basic ramp with a linear progression up the ramp.  Compare the
@@ -532,6 +563,46 @@ def test_small_good_groups(ngood):
         print(f"diff = {diff}")
 
 
+def test_jump_detect():
+    nints, ngroups, nrows, ncols = 1, 10, 2, 2
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 5, 2
+    # frame_time, nframes, groupgap = 1., 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a ramp with a jump to see if it gets detected.
+    base, cr, jump_loc = 15., 1000., 6
+    ramp = np.array([(k+1) * base for k in range(ngroups)])
+    ramp_data.data[0, :, 0, 1] = ramp
+    if nrows > 1:
+        ramp_data.data[0, :, 1, 0] = ramp
+    ramp[jump_loc:] += cr
+    ramp_data.data[0, :, 0, 0] = ramp
+    ramp[jump_loc-1] += cr
+    if nrows > 1:
+        ramp_data.data[0, :, 1, 1] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data, dq, vp, vr, err = slopes
+    slope_est = base / ramp_data.group_time
+
+    tol = 1.e-4
+    assert abs(data[0, 0] - slope_est) < tol
+    assert dq[0, 0] == JMP
+    assert dq[0, 1] == GOOD
+    assert dq[1, 0] == GOOD
+    assert dq[1, 1] == JMP
+
+
 # -----------------------------------------------------------------
 #                              DEBUG
 # -----------------------------------------------------------------
@@ -651,3 +722,7 @@ def dbg_print_cube_cube1(cube, cube1, pix):
     print(f"vr OLS = {vr1[:, row, col]}\n")
 
     print(DELIM)
+
+
+def array_string(arr, prec=4):
+    return np.array2string(arr, precision=prec, max_line_width=np.nan, separator=", ")
