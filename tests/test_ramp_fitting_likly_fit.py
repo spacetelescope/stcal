@@ -179,11 +179,7 @@ def test_basic_ramp():
     diff = abs(data - data1)
     assert diff < tol
 
-    print("Here")
-    dbg_print_slope_slope1(slopes, slopes1, (0, 0))
 
-
-@pytest.mark.skip(reason="Incompatible ndarray shapes.")
 def test_basic_ramp_multi_pixel():
     """
     Test a basic ramp with a linear progression up the ramp.  Compare the
@@ -211,7 +207,25 @@ def test_basic_ramp_multi_pixel():
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
+    ramp_data1, gain2d1, rnoise2d1 = create_blank_ramp_data(dims, var, tm)
 
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data1.data[0, :, 0, 0] = ramp
+    ramp_data1.data[0, :, 0, 1] = ramp
+    ramp_data1.data[0, :, 1, 0] = ramp
+    ramp_data1.data[0, :, 1, 1] = ramp
+
+    save_opt, algo, ncores = False, "OLS", "none"
+    slopes1, cube1, ols_opt1, gls_opt1 = ramp_fit_data(
+        ramp_data1, 512, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores, test_dq_flags
+    )
+
+    data, dq, vp, vr, err = slopes
+    data1, dq1, vp1, vr1, err1 = slopes1
+
+    tol = 1.e-4
+    np.testing.assert_allclose(data, data1, tol)
 
 
 def test_basic_ramp_2integ():
