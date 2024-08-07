@@ -15,15 +15,6 @@ from . import ramp_fit_class, utils
 from .likely_algo_classes import IntegInfo, Ramp_Result, Covar
 
 
-################## DEBUG ################## 
-#                  HELP!!
-import sys
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from general_funcs import dbg_print, \
-                          array_string
-################## DEBUG ################## 
-
-
 DELIM = "=" * 80
 
 log = logging.getLogger(__name__)
