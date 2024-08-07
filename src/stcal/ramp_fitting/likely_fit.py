@@ -115,15 +115,11 @@ def likely_ramp_fit(
             )
 
 
-            '''
             # XXX SET JUMP_DET
             # Set jump detection flags
             jump_locs = d2use_copy ^ d2use
             jump_locs[jump_locs > 0] = ramp_data.flags_jump_det
-            print(f"Row: {row} {jump_locs.shape = }")
-            # XXX Need to figure out how to put flags in gdq
-            # gdq |= jump_locs
-            '''
+            gdq[1:, row, :] |= jump_locs
 
             alldiffs2use[:, row] = d2use  # XXX May not be necessary
 
