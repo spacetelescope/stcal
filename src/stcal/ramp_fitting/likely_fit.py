@@ -105,8 +105,6 @@ def likely_ramp_fit(
                 diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=d2use
             )
 
-
-            # XXX SET JUMP_DET
             # Set jump detection flags
             jump_locs = d2use_copy ^ d2use
             jump_locs[jump_locs > 0] = ramp_data.flags_jump_det
@@ -114,8 +112,6 @@ def likely_ramp_fit(
 
             alldiffs2use[:, row] = d2use  # XXX May not be necessary
 
-            # XXX According to Brandt feedback
-            # rateguess = countrates * (countrates > 0) * darkrate (ramp_data.average_dark_current?)
             rateguess = countrates * (countrates > 0) + ramp_data.average_dark_current[row, :]
             result = fit_ramps(
                 diff[:, row],
@@ -223,7 +219,6 @@ def mask_jumps(
     # reasonably close to correct is important.
     countrateguess = np.median(loc_diff, axis=0)[np.newaxis, :]
 
-    # XXX Somehow add the Poisson variance back in.
     countrateguess *= countrateguess > 0
 
     # boolean arrays to be used later
@@ -264,7 +259,7 @@ def mask_jumps(
         best_dchisq_one = np.amax(dchisq_one * oneomit_ok[:, np.newaxis], axis=0)
         best_dchisq_two = np.amax(
             dchisq_two * twoomit_ok[:, np.newaxis], axis=0
-        )  # XXX HERE Is this where JUMP_DET is set?
+        )
 
         # Is the best improvement from dropping one resultant
         # difference or two?  Two drops will always offer more
@@ -392,29 +387,6 @@ def compute_image_info(integ_class, ramp_data):
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
-    # XXX Feedback from Brandt that this may not be correct.
-    #     He provided another way to combine these computations.
-    """
-    # print("**** Old Computations ****")
-    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-    inv_vp = 1.  / integ_class.var_poisson
-    var_p = 1. / inv_vp.sum(axis=0)
-
-    inv_vr = 1.  / integ_class.var_rnoise
-    var_r = 1. / inv_vr.sum(axis=0)
-
-    inv_err = 1.  / integ_class.err
-    err = 1. / inv_err.sum(axis=0)
-
-    inv_err2 = 1. / (integ_class.err**2)
-    err2 = 1. / inv_err2.sum(axis=0)
-
-    slope = integ_class.data * inv_err2
-    slope = slope.sum(axis=0) * err2
-    warnings.resetwarnings()
-    """
-    # print("**** New Computations ****")
     inv_err2 = 1.0 / (integ_class.err**2)
     weight = inv_err2 / inv_err2.sum(axis=0)
     weight2 = weight**2
@@ -425,8 +397,6 @@ def compute_image_info(integ_class, ramp_data):
     var_p = np.sum(integ_class.var_poisson * weight2, axis=0)
     var_r = np.sum(integ_class.var_rnoise * weight2, axis=0)
     slope = np.sum(integ_class.data * weight, axis=0)
-
-    # XXX Compute NaNs.
 
     return (slope, dq, var_p, var_r, err)
 
@@ -602,7 +572,6 @@ def fit_ramps(
     if countrateguess is None:
         countrateguess = inital_countrateguess(covar, diffs, diffs2use)
 
-    # XXX Maybe use a better name for this function, like compute_alphas_betas
     alpha_tuple, beta_tuple, scale = compute_alphas_betas(
         countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale
     )
@@ -748,8 +717,6 @@ def compute_jump_detects(
     if covar.pedestal:
         raise ValueError("Cannot use jump detection algorithm when fitting pedestals.")
 
-    # XXX need to determine where DQ flagging of JUMP_DET needs to occur.
-
     # Diagonal elements of the inverse covariance matrix
     Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]
     Cinv_diag *= diffs2use
@@ -825,7 +792,6 @@ def compute_jump_detects(
         result.uncert_twoomit = np.sqrt(fac / (C * fac - term2 + term3))
         result.uncert_twoomit *= np.sqrt(scale)
 
-    # XXX Maybe this tells where to mask.
     result.fill_masked_reads(diffs2use)
 
     return result
@@ -1299,15 +1265,12 @@ def get_ramp_result(
         warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
         invC = 1 / C
-        # result.countrate = B / C
         result.countrate = B * invC
         result.chisq = (A - B**2 / C) / scale
 
         result.uncert = np.sqrt(scale / C)
         result.weights = dC / C
 
-        # XXX VAR
-        # alpha_phnoise = countrateguess / gain * covar.alpha_phnoise[:, np.newaxis]
         result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
         result.var_poisson += 2 * np.sum(
             result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0

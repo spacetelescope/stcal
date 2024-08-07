@@ -12,6 +12,11 @@ Changes to API
 - Add ``outlier_detection`` submodule with ``utils`` included
   from jwst. [#270] 
 
+ramp_fitting
+~~~~~~~~~~~~
+
+- Add the likelihood algorithm to ramp fitting.[#278]
+
 Bug Fixes
 ---------
 
