@@ -334,11 +334,14 @@ def test_flagged_ramp():
     dbg_print_slope_slope1(slopes, slopes1, (0, 0))
 
 
-def random_ramp_data():
+def test_random_ramp():
+    """
+    Created a slope with a base slope of 150., with random Poisson
+    noise with lambda 5.0.  At group 4 is a jump of 1100.0.
+    """
     nints, ngroups, nrows, ncols = 1, 10, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 5, 2
-    # frame_time, nframes, groupgap = 1., 1, 0
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval
@@ -352,51 +355,28 @@ def random_ramp_data():
     ramp = np.array([153., 307., 457., 604., 1853., 2002., 2159., 2308., 2459., 2601.])
     ramp_data.data[0, :, 0, 0] = ramp
 
-    # Create a jump.
+    # Create a jump, but don't mark it to make sure it gets detected.
     dq = np.array([GOOD] * ngroups)
-    dq[4] = JMP
     ramp_data.groupdq[0, :, 0, 0] = dq
-
-    return ramp_data, gain2d, rnoise2d
-
-
-@pytest.mark.skip(reason="Not sure what expected value is.")
-def test_random_ramp():
-    """
-    Created a slope with a base slope of 150., with random Poisson
-    noise with lambda 5.0.  At group 4 is a jump of 1100.0.
-    Compare the integration results from the LIKELY algorithm
-    to the OLS algorithm.
-    """
-    ramp_data, gain2d, rnoise2d = random_ramp_data()
-    dbg_print_basic_ramp(ramp_data)
 
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
     )
 
-    data = cube[0][0, 0, 0]
-    dq = cube[1][0, 0, 0]
-    err = cube[-1][0, 0, 0]
+    data, dq, vp, vr, err = slopes
+    tol = 1.e-4
 
-    # Check against OLS.
-    ramp_data, gain2d, rnoise2d = random_ramp_data()
-
-    save_opt, algo, ncores = False, "OLS", "none"
-    slopes1, cube1, ols_opt, gls_opt = ramp_fit_data(
-        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
-    )
-
-    data_ols = cube1[0][0, 0, 0]
-    dq_ols = cube1[1][0, 0, 0]
-    err_ols = cube1[-1][0, 0, 0]
-
-    ddiff = abs(data - data_ols)
-    # XXX Finish
+    assert abs(data[0, 0] - 1.9972216) < tol
+    assert dq[0, 0] == JMP
+    assert abs(vp[0, 0] - 0.00064461) < tol
+    assert abs(vr[0, 0] - 0.00018037) < tol
 
 
 def test_long_ramp():
+    """
+    Test a long ramp with hundreds of groups.
+    """
     nints, ngroups, nrows, ncols = 1, 200, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
@@ -578,6 +558,10 @@ def test_small_good_groups(ngood):
 
 
 def test_jump_detect():
+    """
+    Create a simple ramp with a (2, 2) image that has a jump in two
+    different ramps and the computed slopes are still close.
+    """
     nints, ngroups, nrows, ncols = 1, 10, 2, 2
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 5, 2
@@ -611,6 +595,9 @@ def test_jump_detect():
 
     tol = 1.e-4
     assert abs(data[0, 0] - slope_est) < tol
+    assert abs(data[0, 1] - slope_est) < tol
+    assert abs(data[1, 0] - slope_est) < tol
+    assert abs(data[1, 1] - slope_est) < tol
     assert dq[0, 0] == JMP
     assert dq[0, 1] == GOOD
     assert dq[1, 0] == GOOD
