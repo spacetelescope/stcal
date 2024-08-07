@@ -3,6 +3,7 @@
 import logging
 import multiprocessing
 import time
+import sys
 import warnings
 
 from multiprocessing import cpu_count
@@ -12,6 +13,15 @@ import numpy as np
 
 from . import ramp_fit_class, utils
 from .likely_algo_classes import IntegInfo, Ramp_Result, Covar
+
+
+################## DEBUG ################## 
+#                  HELP!!
+import sys
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from general_funcs import dbg_print, \
+                          array_string
+################## DEBUG ################## 
 
 
 DELIM = "=" * 80
@@ -99,15 +109,27 @@ def likely_ramp_fit(
 
         for row in range(nrows):
             d2use = determine_diffs2use(ramp_data, integ, row, diff)
+            d2use_copy = d2use.copy()  # Use to flag jumps
             d2use, countrates = mask_jumps(
                 diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=d2use
             )
+
+
+            '''
+            # XXX SET JUMP_DET
+            # Set jump detection flags
+            jump_locs = d2use_copy ^ d2use
+            jump_locs[jump_locs > 0] = ramp_data.flags_jump_det
+            print(f"Row: {row} {jump_locs.shape = }")
+            # XXX Need to figure out how to put flags in gdq
+            # gdq |= jump_locs
+            '''
 
             alldiffs2use[:, row] = d2use  # XXX May not be necessary
 
             # XXX According to Brandt feedback
             # rateguess = countrates * (countrates > 0) * darkrate (ramp_data.average_dark_current?)
-            rateguess = countrates * (countrates > 0) + ramp_data.average_dark_current
+            rateguess = countrates * (countrates > 0) + ramp_data.average_dark_current[row, :]
             result = fit_ramps(
                 diff[:, row],
                 covar,
@@ -222,7 +244,6 @@ def mask_jumps(
     dropped = np.ones(loc_diff.shape[1]) == 0
 
     for j in range(loc_diff.shape[0]):
-
         # No need for indexing on the first pass.
         if j == 0:
             result = fit_ramps(
@@ -594,7 +615,8 @@ def fit_ramps(
     if countrateguess is None:
         countrateguess = inital_countrateguess(covar, diffs, diffs2use)
 
-    alpha_tuple, beta_tuple, scale = compute_abs(
+    # XXX Maybe use a better name for this function, like compute_alphas_betas
+    alpha_tuple, beta_tuple, scale = compute_alphas_betas(
         countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale
     )
     alpha, alpha_phnoise, alpha_readnoise = alpha_tuple
@@ -822,7 +844,7 @@ def compute_jump_detects(
     return result
 
 
-def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
+def compute_alphas_betas(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
     """
     Compute alpha, beta, and scale needed for ramp fit.
     Elements of the covariance matrix.
@@ -865,6 +887,8 @@ def compute_abs(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
     """
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+
+    # import ipdb; ipdb.set_trace()
 
     alpha_phnoise = countrateguess / gain * covar.alpha_phnoise[:, np.newaxis]
     alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
