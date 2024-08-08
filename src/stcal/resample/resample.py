@@ -892,7 +892,7 @@ class ResampleSingle(ResampleBase):
             log.info(f"Saved resampled model to {file_name}")
             return file_name
 
-    def resample(self):
+    def run(self):
         """Resample many inputs to many outputs where outputs have a common frame.
 
         Coadd only different detectors of the same exposure, i.e. map NRCA5 and
@@ -913,7 +913,7 @@ class ResampleSingle(ResampleBase):
 
             # Determine output file type from input exposure filenames
             # Use this for defining the output filename
-            output_filename = self.resampled_output_name_from_input_name(
+            output_filename = self.build_output_name_from_input_name(
                 exposure[0].meta.filename
             )
 
