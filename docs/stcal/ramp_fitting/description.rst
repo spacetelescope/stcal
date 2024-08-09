@@ -347,8 +347,9 @@ The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of th
 differences.  Because the covariance matrix is tridiagonal, the  computational
 complexity from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed derivation
 and computations implemented, refer to 
-`Brandt (2024) <https://arxiv.org/abs/2309.08753>`_.  The Poisson and read noise 
-variance computations are based on equations (27) and (28), defining
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`_ and
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`_.
+The Poisson and read noise  computations are based on equations (27) and (28), defining
 :math:`\alpha_i`, the diagonal of :math:`C`, and :math:`\beta_i`, the off diagonal.
 
 This algorithm runs ramp fitting twice.  The first run allows for a first
