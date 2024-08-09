@@ -362,7 +362,8 @@ def get_readtimes(ramp_data):
 
 def compute_image_info(integ_class, ramp_data):
     """
-    Compute the diffs2use mask based on DQ flags of a row.
+    Compute all integrations into a single image of rates,
+    variances, and DQ flags.
 
     Parameters
     ----------
