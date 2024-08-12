@@ -3,6 +3,7 @@
 import logging
 import multiprocessing
 import time
+import scipy
 import sys
 import warnings
 
@@ -16,6 +17,7 @@ from .likely_algo_classes import IntegInfo, Ramp_Result, Covar
 
 
 DELIM = "=" * 80
+SQRT2 = 1.41421356
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -96,21 +98,36 @@ def likely_ramp_fit(
 
         # Eqn (5)
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
-        alldiffs2use = np.ones(diff.shape, np.uint8)  # XXX May not be necessary
+        alldiffs2use = np.ones(diff.shape, np.uint8)
 
         for row in range(nrows):
             d2use = determine_diffs2use(ramp_data, integ, row, diff)
             d2use_copy = d2use.copy()  # Use to flag jumps
-            d2use, countrates = mask_jumps(
-                diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=d2use
-            )
+            if ramp_data.nsig is not None:
+                threshold_oneomit = ramp_data.nsig**2
+                # pval = scipy.special.erfc(ramp_data.nsig/2**0.5)
+                pval = scipy.special.erfc(ramp_data.nsig/SQRT2)
+                threshold_twoomit = scipy.stats.chi2.isf(pval, 2)
+                if np.isinf(threshold_twoomit):
+                    threshold_twoomit = threshold_oneomit + 10
+                d2use, countrates = mask_jumps(
+                    diff[:, row], covar, readnoise_2d[row], gain_2d[row],
+                    threshold_oneomit=threshold_oneomit,
+                    threshold_twoomit=threshold_twoomit,
+                    diffs2use=d2use
+                )
+            else:
+                d2use, countrates = mask_jumps(
+                    diff[:, row], covar, readnoise_2d[row], gain_2d[row],
+                    diffs2use=d2use
+                )
 
             # Set jump detection flags
             jump_locs = d2use_copy ^ d2use
             jump_locs[jump_locs > 0] = ramp_data.flags_jump_det
             gdq[1:, row, :] |= jump_locs
 
-            alldiffs2use[:, row] = d2use  # XXX May not be necessary
+            alldiffs2use[:, row] = d2use
 
             rateguess = countrates * (countrates > 0) + ramp_data.average_dark_current[row, :]
             result = fit_ramps(
@@ -388,16 +405,18 @@ def compute_image_info(integ_class, ramp_data):
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
-    inv_err2 = 1.0 / (integ_class.err**2)
-    weight = inv_err2 / inv_err2.sum(axis=0)
-    weight2 = weight**2
+    slope = np.median(integ_class.data, axis=0)
+    for _ in range(2):
+        rate_scale = slope[np.newaxis, :] / integ_class.data
+        rate_scale[(~np.isfinite(rate_scale)) | (rate_scale < 0)] = 0
+        all_var_p = integ_class.var_poisson * rate_scale
+        weight = 1/(all_var_p + integ_class.var_rnoise)
+        weight /= np.sum(weight, axis=0)[np.newaxis, :]
+        slope = np.sum(integ_class.data*weight, axis=0)
 
-    err2 = np.sum(integ_class.err**2 * weight2, axis=0)
-
-    err = np.sqrt(err2)
-    var_p = np.sum(integ_class.var_poisson * weight2, axis=0)
-    var_r = np.sum(integ_class.var_rnoise * weight2, axis=0)
-    slope = np.sum(integ_class.data * weight, axis=0)
+    var_p = np.sum(all_var_p * weight**2, axis=0)
+    var_r = np.sum(integ_class.var_rnoise * weight**2, axis=0)
+    err = np.sqrt(var_p + var_r)
 
     return (slope, dq, var_p, var_r, err)
 
