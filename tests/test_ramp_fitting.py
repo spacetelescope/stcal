@@ -1616,17 +1616,17 @@ def test_cext_chargeloss():
 
     sdata, sdq, svp, svr, serr = slopes
 
-    # Comopare slopes
+    # Compare slopes
     assert sdata[0, 1] == sdata[0, 0]
     assert sdata[0, 1] == sdata[0, 2]
     assert sdata[0, 1] == sdata[0, 3]
 
-    # Comopare Poisson variances
+    # Compare Poisson variances
     assert svp[0, 1] != svp[0, 0]
     assert svp[0, 1] == svp[0, 2]
     assert svp[0, 1] != svp[0, 3]
 
-    # Comopare total variances
+    # Compare total variances
     assert serr[0, 1] != serr[0, 0]
     assert serr[0, 1] == serr[0, 2]
     assert serr[0, 1] != serr[0, 3]
