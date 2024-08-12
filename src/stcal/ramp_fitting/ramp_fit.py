@@ -30,7 +30,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
-def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
+def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=False):
     """
     Create an internal ramp fit class from a data model.
 
@@ -59,10 +59,11 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
         dark_current_array = model.average_dark_current
 
     orig_gdq = None
-    wh_chargeloss = np.where(np.bitwise_and(model.groupdq.astype(np.uint32), dqflags['CHARGELOSS']))
-    if len(wh_chargeloss[0]) > 0:
-        orig_gdq = model.groupdq.copy()
-    del wh_chargeloss
+    if algorithm.upper() == "OLS_C":
+        wh_chargeloss = np.where(np.bitwise_and(model.groupdq.astype(np.uint32), dqflags['CHARGELOSS']))
+        if len(wh_chargeloss[0]) > 0:
+            orig_gdq = model.groupdq.copy()
+        del wh_chargeloss
 
     if isinstance(model.data, u.Quantity):
         ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq,
@@ -182,7 +183,7 @@ def ramp_fit(
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
-    ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
+    ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
     if algorithm.upper() == "OLS_C":
         ramp_data.run_c_code = True
