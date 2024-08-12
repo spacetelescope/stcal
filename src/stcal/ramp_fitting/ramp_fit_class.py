@@ -78,6 +78,11 @@ class RampData:
         average_dark_current : ndarray (float32)
             2-D array containing the average dark current. It has
             dimensions (nrows, ncols)
+
+        orig_gdq : ndarray
+            4-D array containing a copy of the original group DQ array.  Since
+            the group DQ array can be modified during ramp fitting, this keeps
+            around the original group DQ flags passed to ramp fitting.
         """
         # Get arrays from the data model
         self.data = data
