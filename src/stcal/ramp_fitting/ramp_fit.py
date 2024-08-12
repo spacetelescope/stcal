@@ -97,6 +97,8 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     if hasattr(model.meta.exposure, "read_pattern"):
         ramp_data.read_pattern = [list(reads) for reads in model.meta.exposure.read_pattern]
 
+    # XXX If LIKELY, then make sure `nsig` gets set
+
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
