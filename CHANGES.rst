@@ -27,7 +27,7 @@ ramp_fitting
 ~~~~~~~~~~~~
 
 - Move the CHARGELOSS read noise variance recalculation from the JWST step
-  code to the C extension to simply the code and improve performance.[#275]
+  code to the C extension to simplify the code and improve performance.[#275]
 
 Changes to API
 --------------
