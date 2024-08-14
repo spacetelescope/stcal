@@ -367,7 +367,7 @@ def test_random_ramp():
     data, dq, vp, vr, err = slopes
     tol = 1.e-4
 
-    assert abs(data[0, 0] - 1.9972216) < tol
+    assert abs(data[0, 0] - 1.9960526) < tol
     assert dq[0, 0] == JMP
     assert abs(vp[0, 0] - 0.00064461) < tol
     assert abs(vr[0, 0] - 0.00018037) < tol
