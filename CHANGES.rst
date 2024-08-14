@@ -1,4 +1,22 @@
-1.8.0 (unreleased)
+1.8.1 (unreleased)
+==================
+
+General
+-------
+
+- 
+
+Changes to API
+--------------
+
+- 
+
+Bug Fixes
+---------
+
+- 
+
+1.8.0 (2024-08-14)
 ==================
 
 General
@@ -11,11 +29,6 @@ Changes to API
 
 - Add ``outlier_detection`` submodule with ``utils`` included
   from jwst. [#270] 
-
-Bug Fixes
----------
-
-- 
 
 1.7.3 (2024-07-05)
 ==================
