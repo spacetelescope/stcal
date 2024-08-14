@@ -91,6 +91,8 @@ def likely_ramp_fit(
     covar = Covar(readtimes, pedestal=False)  # XXX Choice of pedestal not given
     integ_class = IntegInfo(nints, nrows, ncols)
 
+    readnoise_2d = readnoise_2d / SQRT2
+
     for integ in range(nints):
         data = ramp_data.data[integ, :, :, :]
         gdq = ramp_data.groupdq[integ, :, :, :].copy()
@@ -1226,10 +1228,10 @@ def get_ramp_result(
 
     Parameters
     ----------
-    dB : ndarray
+    dC : ndarray
         Intermediate computation.
 
-    dC : ndarray
+    dB : ndarray
         Intermediate computation.
 
     A : ndarray
@@ -1241,10 +1243,10 @@ def get_ramp_result(
     C : ndarray
         Intermediate computation.
 
-    rescale : boolean
-        Scale the covariance matrix internally to avoid possible
+    rescale : float
+        Factor applied to each element of the covariance matrix to
+        normalize its determinant in order to avoid possible
         overflow/underflow problems for long ramps.
-        Optional, default is True.
 
     phi : ndarray
         Intermediate computation.
