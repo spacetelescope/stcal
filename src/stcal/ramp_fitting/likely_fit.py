@@ -54,10 +54,6 @@ def likely_ramp_fit(
     gain_2d : ndarray
         gain for all pixels
 
-    algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
-        'GLS' specifies that generalized least squares should be used.
-
     weighting : str
         'optimal' specifies that optimal weighting should be used;
          currently the only weighting supported.
