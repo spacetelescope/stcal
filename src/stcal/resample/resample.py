@@ -15,11 +15,7 @@ from drizzle.utils import calc_pixmap
 import psutil
 from spherical_geometry.polygon import SphericalPolygon
 
-from stdatamodels.dqflags import interpret_bit_flags
-from stdatamodels.jwst.datamodels.dqflags import pixel
-
-from stdatamodels.jwst import datamodels
-from stdatamodels.jwst.library.basic_utils import bytes2human
+from astropy.nddata.bitmask import interpret_bit_flags
 
 from .utils import get_tmeasure, build_mask
 
@@ -44,6 +40,43 @@ _SUPPORTED_CUSTOM_WCS_PARS = [
     'crval',
     'rotation',
 ]
+
+
+# FIXME: temporarily copied here to avoid this import:
+# from stdatamodels.jwst.library.basic_utils import bytes2human
+def bytes2human(n):
+    """Convert bytes to human-readable format
+
+    Taken from the `psutil` library which references
+    http://code.activestate.com/recipes/578019
+
+    Parameters
+    ----------
+    n : int
+        Number to convert
+
+    Returns
+    -------
+    readable : str
+        A string with units attached.
+
+    Examples
+    --------
+    >>> bytes2human(10000)
+        '9.8K'
+
+    >>> bytes2human(100001221)
+        '95.4M'
+    """
+    symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+    prefix = {}
+    for i, s in enumerate(symbols):
+        prefix[s] = 1 << (i + 1) * 10
+    for s in reversed(symbols):
+        if n >= prefix[s]:
+            value = float(n) / prefix[s]
+            return '%.1f%s' % (value, s)
+    return "%sB" % n
 
 
 def _resample_range(data_shape, bbox=None):
@@ -125,10 +158,13 @@ class ResampleBase(abc.ABC):
     """
     resample_suffix = 'i2d'
     resample_file_ext = '.fits'
+    n_arrays_per_output = 2  # #flt-point arrays in the output (data, weight, var, err, etc.)
+    dq_flag_name_map = {}
 
     def __init__(self, input_models,
                  pixfrac=1.0, kernel="square", fillval=0.0, wht_type="ivm",
                  good_bits=0, output_wcs=None, wcs_pars=None,
+                 data_type=np.float64, enable_ctx=True,
                  in_memory=True, allowed_memory=None, **kwargs):
         """
         Parameters
@@ -152,6 +188,9 @@ class ResampleBase(abc.ABC):
                 deleted from memory. Default value is `True` to keep
                 all products in memory.
         """
+        self._data_type = data_type
+        self._enable_ctx = enable_ctx
+
         self._output_model = None
         self._output_filename = None
         self._output_wcs = None
@@ -319,8 +358,6 @@ class ResampleBase(abc.ABC):
             return
 
         allowed_memory = float(allowed_memory)
-        # make a small image model to get the dtype
-        dtype = datamodels.ImageModel((1, 1)).data.dtype
 
         # get the available memory
         available_memory = psutil.virtual_memory().available + psutil.swap_memory().total
@@ -329,7 +366,8 @@ class ResampleBase(abc.ABC):
         npix = npix = np.prod(self._output_array_shape)
         nmodels = len(self._input_models)
         nconpl = nmodels // 32 + (1 if nmodels % 32 else 0)
-        required_memory = npix * (3 * dtype.itemsize + nconpl * 4)
+        n_arr = self.n_arrays_per_output + 2  # 2 comes from pixmap
+        required_memory = npix * (n_arr * self._data_type.itemsize + nconpl * 4)
 
         # compare used to available
         used_fraction = required_memory / available_memory
@@ -384,11 +422,6 @@ class ResampleBase(abc.ABC):
             if not all:
                 break
 
-    def blend_output_metadata(self, output_model):
-        # TODO: Not sure about funct. signature and also I don't like it needs
-        # to open input files again
-        pass
-
     def build_driz_weight(self, model, weight_type=None, good_bits=None):
         """Create a weight map for use by drizzle
         """
@@ -397,15 +430,22 @@ class ResampleBase(abc.ABC):
         if weight_type and weight_type.startswith('ivm'):
             weight_type = weight_type.strip()
             selective_median = weight_type.startswith('ivm-smed')
-
-            bitvalue = interpret_bit_flags(good_bits, mnemonic_map=pixel)
+            bitvalue = interpret_bit_flags(
+                good_bits,
+                flag_name_map=self.dq_flag_name_map
+            )
             if bitvalue is None:
                 bitvalue = 0
-            saturation = pixel['SATURATED']
 
-            if selective_median and not (bitvalue & saturation):
-                selective_median = False
-                weight_type = 'ivm'
+            # disable selective median if SATURATED flag is included
+            # in good_bits:
+            try:
+                saturation = self.dq_flag_name_map['SATURATED']
+                if selective_median and not (bitvalue & saturation):
+                    selective_median = False
+                    weight_type = 'ivm'
+            except AttributeError:
+                pass
 
             if (model.hasattr("var_rnoise") and model.var_rnoise is not None and
                     model.var_rnoise.shape == model.data.shape):
@@ -608,18 +648,6 @@ class ResampleCoAdd(ResampleBase):
 
         return kwargs
 
-    def blend_output_metadata(self, output_model):
-        pass
-
-    def extra_pre_resample_setup(self):
-        pass
-
-    def post_process_resample_model(self, data_model, driz_init_kwargs, add_image_kwargs):
-        pass
-
-    def finalize_resample(self):
-        pass
-
     def _create_new_output_model(self):
         # this probably needs to be an abstract class.
         # also this is mostly needed for "single" drizzle.
@@ -669,19 +697,180 @@ class ResampleCoAdd(ResampleBase):
         self._output_model.data = resample_results.out_img
 
         self.update_exposure_times()
-        self.finalize_resample()
+        self._finish_variance_processing()
 
         self._output_model.meta.resample.weight_type = self.weight_type
         self._output_model.meta.resample.pointings = len(self._input_models.group_names)
         # TODO: also store the number of images added in total: ncoadds?
 
-        self.blend_output_metadata(self._output_model)
+        self.final_post_processing()
 
         self._output_model.write(self._output_filename, overwrite=True)
 
         if self._close_output and not self.in_memory:
             self.close_model(self._output_model)
             self._output_model = None
+
+    def _setup_variance_data(self):
+        self._var_rnoise_sum = np.full(self._output_array_shape, np.nan)
+        self._var_poisson_sum = np.full(self._output_array_shape, np.nan)
+        self._var_flat_sum = np.full(self._output_array_shape, np.nan)
+        # self._total_weight_var_rnoise = np.zeros(self._output_array_shape)
+        self._total_weight_var_poisson = np.zeros(self._output_array_shape)
+        self._total_weight_var_flat = np.zeros(self._output_array_shape)
+
+    def _resample_variance_data(self, data_model, driz_init_kwargs, add_image_kwargs):
+        log.info("Resampling variance components")
+
+        # create resample objects for the three variance arrays:
+        driz_init_kwargs = {
+            'kernel': self.kernel,
+            'fillval': np.nan,
+            'out_shape': self._output_array_shape,
+            # 'exptime': 1.0,
+            'no_ctx': True,
+        }
+        driz_rnoise = Drizzle(**driz_init_kwargs)
+        driz_poisson = Drizzle(**driz_init_kwargs)
+        driz_flat = Drizzle(**driz_init_kwargs)
+
+        # Resample read-out noise and compute weight map for variance arrays
+        if self._check_var_array(data_model, 'var_rnoise'):
+            data = np.sqrt(data_model.var_rnoise)
+            driz_rnoise.add_image(data, **add_image_kwargs)
+            var = driz_rnoise.out_img
+            np.square(var, out=var)
+
+            weight_mask = var > 0
+
+            # Set the weight for the image from the weight type
+            if self.weight_type == "ivm":
+                weight_mask = var > 0
+                weight = np.ones(self._output_array_shape)
+                weight[weight_mask] = np.reciprocal(var[weight_mask])
+                weight_mask &= (weight > 0.0)
+                # Add the inverse of the resampled variance to a running sum.
+                # Update only pixels (in the running sum) with valid new values:
+                self._var_rnoise_sum[weight_mask] = np.nansum(
+                    [
+                        self._var_rnoise_sum[weight_mask],
+                        weight[weight_mask]
+                    ],
+                    axis=0
+                )
+            elif self.weight_type == "exptime":
+                weight = np.full(
+                    self._output_array_shape,
+                    get_tmeasure(data_model)[0],
+                )
+                weight_mask = np.ones(self._output_array_shape, dtype=bool)
+                self._var_rnoise_sum = np.nansum(
+                    [self._var_rnoise_sum, weight],
+                    axis=0
+                )
+            else:
+                weight = np.ones(self._output_array_shape)
+                weight_mask = np.ones(self._output_array_shape, dtype=bool)
+                self._var_rnoise_sum = np.nansum(
+                    [self._var_rnoise_sum, weight],
+                    axis=0
+                )
+        else:
+            weight = np.ones(self._output_array_shape)
+            weight_mask = np.ones(self._output_array_shape, dtype=bool)
+
+        if self._check_var_array(data_model, 'var_poisson'):
+            data = np.sqrt(data_model.var_poisson)
+            driz_poisson.add_image(data, **add_image_kwargs)
+            var = driz_poisson.out_img
+            np.square(var, out=var)
+
+            mask = (var > 0) & weight_mask
+
+            # Add the inverse of the resampled variance to a running sum.
+            # Update only pixels (in the running sum) with valid new values:
+            self._var_poisson_sum[mask] = np.nansum(
+                [
+                    self._var_poisson_sum[mask],
+                    var[mask] * weight[mask] * weight[mask]
+                ],
+                axis=0
+            )
+            self._total_weight_var_poisson[mask] += weight[mask]
+
+        if self._check_var_array(data_model, 'var_flat'):
+            data = np.sqrt(data_model.var_flat)
+            driz_flat.add_image(data, **add_image_kwargs)
+            var = driz_flat.out_img
+            np.square(var, out=var)
+
+            mask = (var > 0) & weight_mask
+
+            # Add the inverse of the resampled variance to a running sum.
+            # Update only pixels (in the running sum) with valid new values:
+            self._var_flat_sum[mask] = np.nansum(
+                [
+                    self._var_flat_sum[mask],
+                    var[mask] * weight[mask] * weight[mask]
+                ],
+                axis=0
+            )
+            self._total_weight_var_flat[mask] += weight[mask]
+
+    def final_post_processing(self):
+        pass
+
+    def _finish_variance_processing(self):
+        # We now have a sum of the weighted resampled variances.
+        # Divide by the total weights, squared, and set in the output model.
+        # Zero weight and missing values are NaN in the output.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value*", RuntimeWarning)
+            warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
+
+            odt = self._output_model.data.dtype
+
+            # readout noise
+            np.reciprocal(self._var_rnoise_sum, out=self._var_rnoise_sum)
+            self._output_model.var_rnoise = self._var_rnoise_sum.astype(dtype=odt)
+
+            # Poisson noise
+            for _ in range(2):
+                np.divide(
+                    self._var_poisson_sum,
+                    self._total_weight_var_poisson,
+                    out=self._var_poisson_sum
+                )
+            self._output_model.var_poisson = self._var_poisson_sum.astype(dtype=odt)
+
+            # flat's noise
+            for _ in range(2):
+                np.divide(
+                    self._var_flat_sum,
+                    self._total_weight_var_flat,
+                    out=self._var_flat_sum
+                )
+            self._output_model.var_flat = self._var_flat_sum.astype(dtype=odt)
+
+            # compute total error:
+            vars = np.array(
+                [
+                    self._var_rnoise_sum,
+                    self._var_poisson_sum,
+                    self._var_flat_sum,
+                ]
+            )
+            all_nan_mask = np.any(np.isnan(vars), axis=0)
+            self._output_model.err = np.sqrt(np.nansum(vars, axis=0)).astype(dtype=odt)
+            self._output_model.err[all_nan_mask] = np.nan
+
+        del vars
+        del self._var_rnoise_sum
+        del self._var_poisson_sum
+        del self._var_flat_sum
+        # del self._total_weight_var_rnoise
+        del self._total_weight_var_poisson
+        del self._total_weight_var_flat
 
     def run(self):
         """Resample and coadd many inputs to a single output.
@@ -736,7 +925,7 @@ class ResampleCoAdd(ResampleBase):
             max_ctx_id=ncoadds + ninputs,
         )
 
-        self.extra_pre_resample_setup()
+        self._setup_variance_data()
 
         log.info("Resampling science data")
         for img in self._input_models:
@@ -793,7 +982,7 @@ class ResampleCoAdd(ResampleBase):
 
             driz_data.add_image(in_data, **add_image_kwargs)
 
-            self.post_process_resample_model(img, None, add_image_kwargs)
+            self._resample_variance_data(img, None, add_image_kwargs)
 
         # TODO: see what to do about original update_exposure_times()
 
@@ -888,7 +1077,7 @@ class ResampleSingle(ResampleBase):
             return output_model
         else:
             output_model.write(file_name, overwrite=True)
-            self.close_model(output_model.close)
+            self.close_model(output_model)
             log.info(f"Saved resampled model to {file_name}")
             return file_name
 
