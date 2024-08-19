@@ -1686,12 +1686,11 @@ get_ramp_data(
             PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
             FREE_RAMP_DATA(rd);
-            return NULL;
+            goto END;
         }
     }
 
 END:
-    // Py_XDECREF(Py_ramp_data); /* XXX Probably should be here */
     return rd;
 }
 
