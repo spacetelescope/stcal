@@ -1557,7 +1557,7 @@ get_pixel_ramp(
 {
     npy_intp integ, group;
     ssize_t idx = 0, integ_idx;
-    real_t zframe;
+    real_t zframe, crmag;
 
     get_pixel_ramp_zero(pr);
     get_pixel_ramp_meta(pr, rd, row, col);
@@ -1569,6 +1569,10 @@ get_pixel_ramp(
         integ_idx = idx;
         for (group = 0; group < pr->ngroups; ++group) {
             get_pixel_ramp_integration(pr, rd, row, col, integ, group, idx);
+            if ((group>0) && (pr->groupdq[idx] & rd->jump)) {
+                crmag = pr->data[idx] - pr->data[idx-1];
+                dbg_ols_print("Row: %ld, Group: %ld, crmag = %.4f\n", row, group, crmag);
+            }
             idx++;
         }
         /* Check for 0th group and ZEROFRAME */
