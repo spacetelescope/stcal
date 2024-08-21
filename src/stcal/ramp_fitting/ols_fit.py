@@ -731,7 +731,7 @@ def handle_array_endianness(arr, sys_order):
     arr_order = arr.dtype.byteorder
     bswap = False
     if (arr_order == ">" and sys_order == "<") or (arr_order == "<" and sys_order == ">"):
-        arr.newbyteorder('S').byteswap(inplace=True)
+        arr.view(arr.dtype.newbyteorder('S')).byteswap(inplace=True)
         bswap = True
 
     return arr, bswap
