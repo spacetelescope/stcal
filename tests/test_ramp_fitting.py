@@ -1,7 +1,11 @@
 import pytest
 import numpy as np
+
+import sys
+
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
+from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # c extension
 from stcal.ramp_fitting.utils import compute_num_slices
 
 
@@ -1497,6 +1501,70 @@ def test_one_group():
     assert abs(serr[0, 0] - cerr[0, 0, 0]) < tol
 
 
+def test_compute_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert compute_num_slices("none", n_rows, max_available_cores) == 1
+    assert compute_num_slices("half", n_rows, max_available_cores) == 5
+    assert compute_num_slices("3", n_rows, max_available_cores) == 3
+    assert compute_num_slices("7", n_rows, max_available_cores) == 7
+    assert compute_num_slices("21", n_rows, max_available_cores) == 10
+    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
+    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("one", n_rows, max_available_cores) == 1
+    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("all", n_rows, max_available_cores) == 10
+    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
+    n_rows = 9
+    assert compute_num_slices("21", n_rows, max_available_cores) == 9
+
+
+def test_refcounter():
+    """
+    Get reference of objects before and after C-extension to ensure
+    they are the same.
+    """
+    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+    # frame_time, nframes, groupgap = 10.736, 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.data[0, 0, 0, 0] = 105.31459
+
+    b_data = sys.getrefcount(ramp.data)
+    b_dq = sys.getrefcount(ramp.groupdq)
+    b_err = sys.getrefcount(ramp.err)
+    b_pdq = sys.getrefcount(ramp.pixeldq)
+    b_dc = sys.getrefcount(ramp.average_dark_current)
+
+    wt, opt = "optimal", False
+    image, integ, opt= ols_slope_fitter(ramp, gain, rnoise, wt, opt)
+
+    a_data = sys.getrefcount(ramp.data)
+    a_dq = sys.getrefcount(ramp.groupdq)
+    a_err = sys.getrefcount(ramp.err)
+    a_pdq = sys.getrefcount(ramp.pixeldq)
+    a_dc = sys.getrefcount(ramp.average_dark_current)
+
+    # Verify reference counts are not affected by the C-extension, indicating
+    # memory will be properly managed.
+    assert b_data == a_data
+    assert b_dq == a_dq
+    assert b_err == a_err
+    assert b_pdq == a_pdq
+    assert b_dc == a_dc
+
+
+# -----------------------------------------------------------------------------
+#                           Set up functions
+
+
 def create_blank_ramp_data(dims, var, tm):
     """
     Create empty RampData classes, as well as gain and read noise arrays,
@@ -1529,28 +1597,6 @@ def create_blank_ramp_data(dims, var, tm):
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnval
 
     return ramp_data, gain, rnoise
-
-
-def test_compute_num_slices():
-    n_rows = 20
-    max_available_cores = 10
-    assert compute_num_slices("none", n_rows, max_available_cores) == 1
-    assert compute_num_slices("half", n_rows, max_available_cores) == 5
-    assert compute_num_slices("3", n_rows, max_available_cores) == 3
-    assert compute_num_slices("7", n_rows, max_available_cores) == 7
-    assert compute_num_slices("21", n_rows, max_available_cores) == 10
-    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
-    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("one", n_rows, max_available_cores) == 1
-    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("all", n_rows, max_available_cores) == 10
-    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
-    n_rows = 9
-    assert compute_num_slices("21", n_rows, max_available_cores) == 9
-
-
-# -----------------------------------------------------------------------------
-#                           Set up functions
 
 
 def setup_inputs(dims, var, tm):
