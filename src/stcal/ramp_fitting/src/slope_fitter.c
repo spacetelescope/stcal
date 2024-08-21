@@ -218,6 +218,8 @@ struct ramp_data {
     int save_opt;                   /* Save optional results value */
     int max_num_segs;               /* Max number of segments over all ramps. */
     struct simple_ll_node ** segs;  /* The segment list for each ramp. */
+    int max_num_crs;                /* Max number of segments over all ramps. */
+    struct cr_node ** crs;          /* The segment list for each ramp. */
     real_t * pedestal;              /* The pedestal computed for each ramp. */
 
     /* Meta data */
@@ -285,6 +287,20 @@ struct segment_list {
     npy_intp max_segment_length;    /* The max group length of a segment */
 }; /* END: struct segment_list */
 
+
+/* Cosmic ray node for linked list */
+struct cr_node {
+    struct cr_node * flink; /* Next cosmic ray. */
+    real_t crmag;           /* The magnitude of the cosmic ray. */
+};
+
+/* The list structure for cosmic rays. */
+struct cr_list {
+    struct cr_node * head;  /* The head node of the list */
+    struct cr_node * tail;  /* The tail node of the list */
+    ssize_t size;           /* The size of the list */
+};
+
 /*
  * For each integration, count how many groups had certain flags set.
  */
@@ -328,6 +344,11 @@ struct pixel_ramp {
     /* This needs to be an array for each integration */
     ssize_t max_num_segs;           /* Max number of segments in an integration */
     struct segment_list * segs;     /* Array of integration segments */
+
+    /* XXX CRs */
+    /* This needs to be an array for each integration */
+    ssize_t max_crs;
+    struct cr_list * crs;
 
     struct integ_gdq_stats * stats; /* Array of integration GDQ stats */
 
@@ -423,6 +444,12 @@ static int
 compute_integration_segments(
     struct ramp_data * rd, struct pixel_ramp * pr, struct segment_list * segs,
     int chargeloss, npy_intp integ);
+
+static int
+cr_list_add(struct cr_list * crs, real_t crmag);
+
+static void
+cr_list_clean(struct cr_list * crs);
 
 static int
 create_opt_res(struct opt_res_product * opt_res, struct ramp_data * rd);
@@ -634,6 +661,13 @@ snr_power(real_t snr);
 /* ------------------------------------------------------------------------- */
 /*                            Debug Functions                                */
 /* ------------------------------------------------------------------------- */
+static void
+print_cr_pixel(struct pixel_ramp * pr, int line);
+
+static void
+print_cr_pixel_integ(
+        struct pixel_ramp * pr, struct cr_list * crs, npy_intp integ, int line);
+
 static void
 print_real_array(char * label, real_t * arr, int len, int ret, int line);
 
@@ -953,6 +987,8 @@ static void
 clean_pixel_ramp(
         struct pixel_ramp * pr)  /* Ramp fitting data for a pixel. */
 {
+    npy_intp integ; 
+
     if (NULL == pr) {
         return;  /* Nothing to do */
     }
@@ -968,6 +1004,12 @@ clean_pixel_ramp(
 
     /* Clean up the allocated memory for the linked lists. */
     FREE_SEGS_LIST(pr->nints, pr->segs);
+    
+    /* XXX Clean CR list */
+    for (integ=0; integ < pr->nints; ++integ) {
+        cr_list_clean(&(pr->crs[integ]));
+    }
+    SET_FREE(pr->crs);
 }
 
 /* Cleans up the ramp data structure */
@@ -978,6 +1020,8 @@ clean_ramp_data(
     npy_intp idx;
     struct simple_ll_node * current;
     struct simple_ll_node * next;
+    struct cr_node * cr_current;
+    struct cr_node * cr_next;
 
     Py_XDECREF(rd->data);
     Py_XDECREF(rd->groupdq);
@@ -998,14 +1042,24 @@ clean_ramp_data(
                 SET_FREE(current);
                 current = next;
             }
-        }
-    }
+
+            /* CR list */
+            cr_current = rd->crs[idx];
+            if (cr_current) {
+                cr_next = cr_current->flink;
+                SET_FREE(cr_current);
+                cr_current = cr_next;
+            }
+        } /* for loop */
+    } /* if (rd->segs) */
+
     SET_FREE(rd->segs);
     SET_FREE(rd->pedestal);
+    SET_FREE(rd->crs);
 }
 
 /*
- * Cleans up the rate producte data structure.
+ * Cleans up the rate product data structure.
  */
 static void
 clean_rate_product(
@@ -1182,6 +1236,56 @@ compute_integration_segments(
     return ret;
 }
 
+static int
+cr_list_add(
+        struct cr_list * crs,
+        real_t crmag)
+{
+    struct cr_node * new_node = (struct cr_node*)calloc(1, sizeof(*new_node));
+    const char * msg = "Couldn't allocate memory for cosmic ray node.";
+
+    if (NULL==new_node){
+        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+        err_ols_print("%s\n", msg);
+        return 1;
+    }
+
+    new_node->crmag = crmag;
+
+    if (0==crs->size) {
+        crs->head = new_node;
+        crs->tail = new_node;
+        crs->size = 1;
+    } else {
+        crs->tail->flink = new_node;
+        crs->tail = new_node;
+        crs->size++;
+    }
+
+    return 0;
+}
+
+static void
+cr_list_clean(
+        struct cr_list * crs)
+{
+    struct cr_node *current=NULL, *next=NULL;
+
+    if (NULL==crs) {
+        return;
+    }
+
+    current = crs->head;
+    while(current) {
+        next = current->flink;
+        memset(current, 0, sizeof(*current));
+        SET_FREE(current);
+        current = next;
+    }
+
+    memset(crs, 0, sizeof(*crs));
+}
+
 /*
  * Create the optional results class to be returned from ramp fitting.
  */
@@ -1246,9 +1350,12 @@ create_opt_res(
         goto FAILED_ALLOC;
     }
 
-    /* XXX */
-    //->cr_mag = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
-    opt_res->cr_mag = (PyArrayObject*)Py_None;
+    /* cr_mag has different dimensions */
+    dims[1] = rd->max_num_crs;
+    opt_res->cr_mag = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (!opt_res->cr_mag) {
+        goto FAILED_ALLOC;
+    }
 
     return 0;
 
@@ -1264,8 +1371,7 @@ FAILED_ALLOC:
     Py_XDECREF(opt_res->sigyint);
     Py_XDECREF(opt_res->pedestal);
     Py_XDECREF(opt_res->weights);
-    PyErr_SetString(PyExc_MemoryError, (const char*)msg);
-    err_ols_print("%s\n", msg);
+    Py_XDECREF(opt_res->cr_mag);
 
     return 1;
 }
@@ -1305,13 +1411,14 @@ create_pixel_ramp(
     pr->rateints = (struct pixel_fit*)calloc(pr->nints, sizeof(pr->rateints[0]));
     pr->stats = (struct integ_gdq_stats*)calloc(pr->nints, sizeof(pr->stats[0]));
     pr->segs = (struct segment_list*)calloc(pr->nints, sizeof(pr->segs[0]));
+    pr->crs = (struct cr_list*)calloc(pr->nints, sizeof(pr->crs[0]));
 
     pr->is_zframe = calloc(pr->nints, sizeof(pr->is_zframe[0]));
     pr->is_0th = calloc(pr->nints, sizeof(pr->is_0th[0]));
 
     if ((NULL==pr->data) || (NULL==pr->groupdq) ||  (NULL==pr->rateints) ||
         (NULL==pr->segs) || (NULL==pr->stats) || (NULL==pr->is_zframe) ||
-        (NULL==pr->is_0th)) 
+        (NULL==pr->is_0th) || (NULL==pr->crs))
     {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
         PyErr_SetString(PyExc_MemoryError, (const char*)msg);
@@ -1567,14 +1674,18 @@ get_pixel_ramp(
         current_integration = integ;
         memset(&(pr->stats[integ]), 0, sizeof(pr->stats[integ]));
         integ_idx = idx;
+        cr_list_clean(&(pr->crs[integ]));
         for (group = 0; group < pr->ngroups; ++group) {
             get_pixel_ramp_integration(pr, rd, row, col, integ, group, idx);
-            if ((group>0) && (pr->groupdq[idx] & rd->jump)) {
+
+            /* Capture CR magnitudes of optional results product is requested */
+            if (rd->save_opt && (group>0) && (pr->groupdq[idx] & rd->jump)) {
                 crmag = pr->data[idx] - pr->data[idx-1];
-                dbg_ols_print("Row: %ld, Group: %ld, crmag = %.4f\n", row, group, crmag);
+                cr_list_add(&(pr->crs[integ]), crmag);
             }
             idx++;
         }
+        pr->max_crs = (pr->max_crs < pr->crs[integ].size) ? pr->crs[integ].size : pr->max_crs;
         /* Check for 0th group and ZEROFRAME */
         if (!rd->suppress1g) {
             if ((1==pr->stats[integ].cnt_good) && (0==pr->groupdq[integ_idx])) {
@@ -1718,16 +1829,28 @@ get_pixel_ramp_integration_segments_and_pedestal(
     npy_intp idx, idx_pr;
     real_t fframe, int_slope;
 
-    /* Add list to ramp data structure */
+    /* Add segment list to ramp data structure */
     idx = get_cube_index(rd, integ, pr->row, pr->col);
     rd->segs[idx] = pr->segs[integ].head;
     if (pr->segs[integ].size > rd->max_num_segs) {
         rd->max_num_segs = pr->segs[integ].size;
     }
 
-    /* Remove list from pixel ramp data structure */
+    /* Remove segment list from pixel ramp data structure */
     pr->segs[integ].head = NULL;
     pr->segs[integ].tail = NULL;
+    pr->segs[integ].size = 0;
+
+    /* Add CR list to ramp data structure */
+    rd->crs[idx] = pr->crs[integ].head;
+    if (pr->crs[integ].size > rd->max_num_crs) {
+        rd->max_num_crs = pr->crs[integ].size;
+    }
+
+    /* Remove CR list from pixel ramp data structure */
+    pr->crs[integ].head = NULL;
+    pr->crs[integ].tail = NULL;
+    pr->crs[integ].size = 0;
 
     /* Get pedestal */
     if (pr->rateints[integ].dq & rd->sat) {
@@ -1787,6 +1910,7 @@ get_ramp_data(
     if (rd->save_opt) {
         rd->max_num_segs = -1;
         rd->segs = (struct simple_ll_node **)calloc(rd->cube_sz, sizeof(rd->segs[0]));
+        rd->crs = (struct cr_node **)calloc(rd->cube_sz, sizeof(rd->segs[0]));
         rd->pedestal = (real_t*)calloc(rd->cube_sz, sizeof(rd->pedestal[0]));
 
         if ((NULL==rd->segs) || (NULL==rd->pedestal)){
@@ -2298,8 +2422,8 @@ ols_slope_fit_pixels(
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
                 return 1;
             }
-        }
-    }
+        } /* col loop */
+    } /* row loop */
 
     return 0;
 }
@@ -3228,9 +3352,11 @@ save_opt_res(
         struct ramp_data * rd)            /* The ramp data */
 {
     void * ptr = NULL;
-    npy_intp integ, segnum, row, col, idx;
+    npy_intp integ, crnum, segnum, row, col, idx;
     struct simple_ll_node * current;
     struct simple_ll_node * next;
+    struct cr_node * cr_current;
+    struct cr_node * cr_next;
 #if REAL_IS_DOUBLE
     float float_tmp;
 #endif
@@ -3321,6 +3447,22 @@ save_opt_res(
                     current = next;
                     segnum++;
                 } /* Segment list loop */
+
+                crnum = 0;
+                cr_current = rd->crs[idx];
+                while(cr_current) {
+                    cr_next = cr_current->flink;
+
+                    ptr = PyArray_GETPTR4(opt_res->cr_mag, integ, crnum, row, col);
+#if REAL_IS_DOUBLE
+                    float_tmp = (float) cr_current->crmag;
+                    memcpy(ptr, &(float_tmp), sizeof(float_tmp));
+#else
+                    memcpy(ptr, &(cr_current->crmag), sizeof(cr_current->crmag));
+#endif
+                    cr_current = cr_next;
+                    crnum++;
+                } /* CR list loop */
             } /* Column loop */
         } /* Row loop */
     } /* Integration loop */
@@ -3774,6 +3916,36 @@ print_real_array(char * label, real_t * arr, int len, int ret, int line) {
     }
     return;
 }
+
+static void
+print_cr_pixel(struct pixel_ramp * pr, int line)
+{
+    npy_intp integ;
+
+    for (integ=0; integ<pr->nints; integ++)
+    {
+        print_cr_pixel_integ(pr, &(pr->crs[integ]), integ, line);
+    }
+}
+
+static void
+print_cr_pixel_integ(
+        struct pixel_ramp * pr, struct cr_list * crs, npy_intp integ, int line)
+{
+    struct cr_node * node = NULL;
+
+    printf("[%d] Pixel (%ld, %ld) Integ %ld, CRs:", line, pr->row, pr->col, integ);
+    if (0==crs->size) {
+        printf(" (null)\n");
+    }
+
+    for (node=crs->head; node; ) {
+        printf(" %.4f", node->crmag);
+        node = node->flink;
+    }
+    printf("\n");
+}
+
 
 /*
  * This prints an integer array.  If the 'ret' value is non-zero,
