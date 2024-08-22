@@ -101,7 +101,27 @@ class ResampleModelIO(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def get_model_meta(self, file_name, fields):
+    def get_model_attr_value(self, model, attribute_name):
+        ...
+
+    @abc.abstractmethod
+    def set_model_attr_value(self, model, attribute_name, value):
+        ...
+
+    @abc.abstractmethod
+    def get_model_meta(self, model, attributes):
+        ...
+
+    @abc.abstractmethod
+    def set_model_meta(self, model, attributes):
+        ...
+
+    @abc.abstractmethod
+    def get_model_array(self, model, array_name):
+        ...
+
+    @abc.abstractmethod
+    def set_model_array(self, model, array_name, data):
         ...
 
     @abc.abstractmethod
@@ -113,11 +133,11 @@ class ResampleModelIO(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def write_model(self, model, file_name):
+    def write_model(self, model, file_name, **kwargs):
         ...
 
     @abc.abstractmethod
-    def new_model(self, image_shape=None, file_name=None):
+    def new_model(self, image_shape=None, file_name=None, copy_meta_from=None):
         """ Return a new model for the resampled output """
         ...
 
@@ -164,7 +184,7 @@ class ResampleBase(abc.ABC):
     def __init__(self, input_models,
                  pixfrac=1.0, kernel="square", fillval=0.0, wht_type="ivm",
                  good_bits=0, output_wcs=None, wcs_pars=None,
-                 data_type=np.float64, enable_ctx=True,
+                 enable_ctx=True,
                  in_memory=True, allowed_memory=None, **kwargs):
         """
         Parameters
@@ -188,7 +208,6 @@ class ResampleBase(abc.ABC):
                 deleted from memory. Default value is `True` to keep
                 all products in memory.
         """
-        self._data_type = data_type
         self._enable_ctx = enable_ctx
 
         self._output_model = None
@@ -202,7 +221,7 @@ class ResampleBase(abc.ABC):
         # input models
         self._input_models = input_models
         # a lightweight data model with meta from first input model but no data.
-        # it will be updated by 'load_input_meta()' below
+        # it will be updated by 'prload_input_meta()' below
         self._first_model_meta = None
 
         # resample parameters
@@ -237,19 +256,26 @@ class ResampleBase(abc.ABC):
         self._warn_extra_kwargs(ukwargs)
 
         # load meta necessary for output WCS (and other) computations:
-        self.load_input_meta(
-            all=self._output_model is None and output_wcs is None
+        self.preload_input_meta(
+            wcs1=True,
+            filename=self._output_model is None,
+            s_region=output_wcs is None,
         )
 
         # computed average pixel scale of the first input image:
         input_pscale0 = np.rad2deg(
-            np.sqrt(_compute_image_pixel_area(self._input_wcs_list[0]))
+            np.sqrt(_compute_image_pixel_area(self._input_img1_wcs))
         )
 
         # compute output pixel scale, WCS, set-up output model
         if self._output_model:
-            self._output_wcs = deepcopy(self._output_model.meta.wcs)
-            self._output_array_shape = self._output_model.data.shape
+            self._output_wcs = deepcopy(
+                self.get_model_attr_value(self._output_model, "wcs")
+            )
+            self._output_array_shape = self.get_model_array(
+                self._output_model,
+                "data"
+            ).shape
             # TODO: extract any useful info from the output image before we close it:
             # if meta has pixel scale, populate it from there, if not:
             self._output_pixel_scale = np.rad2deg(
@@ -362,12 +388,18 @@ class ResampleBase(abc.ABC):
         # get the available memory
         available_memory = psutil.virtual_memory().available + psutil.swap_memory().total
 
+        # determine data type of the output model:
+        out_model = self.new_model((2, 2))
+        data = self.get_model_array(out_model)
+        data_type = data.dtype
+        del data, out_model
+
         # compute the output array size
         npix = npix = np.prod(self._output_array_shape)
         nmodels = len(self._input_models)
         nconpl = nmodels // 32 + (1 if nmodels % 32 else 0)
         n_arr = self.n_arrays_per_output + 2  # 2 comes from pixmap
-        required_memory = npix * (n_arr * self._data_type.itemsize + nconpl * 4)
+        required_memory = npix * (n_arr * data_type.itemsize + nconpl * 4)
 
         # compare used to available
         used_fraction = required_memory / available_memory
@@ -380,52 +412,62 @@ class ResampleBase(abc.ABC):
 
     def _compute_output_wcs(self, **wcs_pars):
         """ returns a diustortion-free WCS object and its pixel scale """
-        owcs = output_wcs_from_input_wcs(self._input_wcs_list, **wcs_pars)
+#        owcs = output_wcs_from_input_wcs(self._input_s_region_list, **wcs_pars)
+        owcs = output_wcs_from_input_wcs([self._input_img1_wcs], **wcs_pars)
         return owcs['output_wcs'], owcs['pscale']
 
-    def load_input_meta(self, all=True):
-        # if 'all=False', load meta from the first image only
+    def preload_input_meta(self, wcs1, filename, s_region):
+        # set-up lists for WCS and file names
+        self._input_img1_wcs = None
+        self._input_s_region_list = []
+        self._input_filename_list = []
 
-        # set-up list for WCS
-        self._input_wcs_list = []
-        self._input_s_region = []
-        self._input_file_names = []
-        self._close_input_models = []
+        # loop over only science exposures in the ModelLibrary
+        # sci_indices = self._input_models.ind_asn_type("science")
+        with self._input_models:
+            for model in self._input_models:
+                # model = self._input_models.borrow(idx)
 
-        for k, model in enumerate(self._input_models):
-            close_model = isinstance(model, str)
-            self._close_input_models.append(close_model)
-            if close_model:
-                self._input_file_names.append(model)
-                model = self.open_model(model)
-                if self.in_memory:
-                    self._input_models[k] = model
-            else:
-                self._input_file_names.append(model.meta.filename)
-            # extract all info needed from *this* model:
-            w = deepcopy(model.meta.wcs)
-            w.array_shape = model.data.shape
-            self._input_wcs_list.append(w)
+                try:
+                    if self.get_model_attr_value(model, "exptype").upper() != "SCIENCE":
+                        self._input_models.shelve(model, modify=False)
+                        continue
+                except AttributeError:
+                    pass
 
-            # extract other useful data
-            #    - S_REGION:
-            self._input_s_region.append(model.meta.wcsinfo.s_region)
+                if self._input_img1_wcs is None and wcs1:
+                    # extract all info needed from *this* model:
+                    self._input_img1_wcs = deepcopy(
+                        self.get_model_attr_value(model, "wcs")
+                    )
+                    self._input_img1_wcs.array_shape = self.get_model_array(
+                        model,
+                        "data"
+                    ).shape
 
-            # store first model's entire meta (except for WCS and data):
-            if self._first_model_meta is None:
-                self._first_model_meta = self.new_model()
-                self._first_model_meta.update(model)
+                if filename:
+                    self._input_filename_list.append(
+                        self.get_model_attr_value(model, "filename")
+                    )
 
-            if close_model and not self.in_memory:
-                self.close_model(model)
+                if s_region:
+                    self._input_s_region_list.append(
+                        self.get_model_attr_value(model, "s_region")
+                    )
 
-            if not all:
-                break
+                self._input_models.shelve(model, modify=False)
+
+        # store first model's entire meta (except for WCS and data):
+        if self._first_model_meta is None:
+            self._first_model_meta = self.new_model(copy_meta_from=model)
 
     def build_driz_weight(self, model, weight_type=None, good_bits=None):
         """Create a weight map for use by drizzle
         """
-        dqmask = build_mask(model.dq, good_bits)
+        data = self.get_model_array(model, "data")
+        dq = self.get_model_array(model, "dq")
+
+        dqmask = build_mask(dq, good_bits)
 
         if weight_type and weight_type.startswith('ivm'):
             weight_type = weight_type.strip()
@@ -447,15 +489,15 @@ class ResampleBase(abc.ABC):
             except AttributeError:
                 pass
 
-            if (model.hasattr("var_rnoise") and model.var_rnoise is not None and
-                    model.var_rnoise.shape == model.data.shape):
+            var_rnoise = self.get_model_array(model, "var_rnoise", default=None)
+            if (var_rnoise is not None and var_rnoise.shape == data.shape):
                 with np.errstate(divide="ignore", invalid="ignore"):
-                    inv_variance = model.var_rnoise**-1
+                    inv_variance = var_rnoise**-1
 
                 inv_variance[~np.isfinite(inv_variance)] = 1
 
                 if weight_type != 'ivm':
-                    ny, nx = inv_variance.shape
+                    ny, nx = data.shape
 
                     # apply a median filter to smooth the weight at saturated
                     # (or high read-out noise) single pixels. keep kernel size
@@ -465,8 +507,8 @@ class ResampleBase(abc.ABC):
                         kernel_size = int(ksz)
                         if not (kernel_size % 2):
                             raise ValueError(
-                                'Kernel size of the median filter in IVM weighting'
-                                ' must be an odd integer.'
+                                'Kernel size of the median filter in IVM '
+                                'weighting must be an odd integer.'
                             )
                     else:
                         kernel_size = 3
@@ -477,7 +519,7 @@ class ResampleBase(abc.ABC):
                         # apply median filter selectively only at
                         # points of partially saturated sources:
                         jumps = np.where(
-                            np.logical_and(model.dq & saturation, dqmask)
+                            np.logical_and(dq & saturation, dqmask)
                         )
                         w2 = kernel_size // 2
                         for r, c in zip(*jumps):
@@ -510,11 +552,11 @@ class ResampleBase(abc.ABC):
             result = inv_variance * dqmask
 
         elif weight_type == 'exptime':
-            exptime = model.meta.exposure.exposure_time
+            exptime = self.get_model_attr_value(model, "exposure_time")
             result = exptime * dqmask
 
         else:
-            result = np.ones(model.data.shape, dtype=model.data.dtype) * dqmask
+            result = np.ones(data.shape, dtype=data.dtype) * dqmask
 
         return result.astype(np.float32)
 
@@ -533,28 +575,42 @@ class ResampleBase(abc.ABC):
         duration = 0.0
         total_exptime = 0.0
         measurement_time_success = []
-        for exposure in self._input_models.models_grouped:
-            total_exposure_time += exposure[0].meta.exposure.exposure_time
-            t, success = get_tmeasure(exposure[0])
+
+        for exposure in self._input_models.group_indices.values():
+            with self._input_models:
+                model0 = self._input_models.borrow(exposure[0])
+                attrs = self.get_model_meta(
+                    model0,
+                    ["exposure_time", "start_time", "end_time", "duration"]
+                )
+
+                t, success = get_tmeasure(model0)
+                self._input_models.shelve(model0, exposure[0])
+
+            total_exposure_time += attrs["exposure_time"]
             measurement_time_success.append(success)
             total_exptime += t
-            exptime_start.append(exposure[0].meta.exposure.start_time)
-            exptime_end.append(exposure[0].meta.exposure.end_time)
-            duration += exposure[0].meta.exposure.duration
+            exptime_start.append(attrs["start_time"])
+            exptime_end.append(attrs["end_time"])
+            duration += attrs["duration"]
 
-        # Update some basic exposure time values based on output_model
-        self._output_model.meta.exposure.exposure_time = total_exposure_time
+        attrs = {
+            # basic exposure time attributes:
+            "exposure_time": total_exposure_time,
+            "start_time": min(exptime_start),
+            "end_time": max(exptime_end),
+            # Update other exposure time keywords:
+            # XPOSURE (identical to the total effective exposure time, EFFEXPTM)
+            "effective_exposure_time": total_exptime,
+            # DURATION (identical to TELAPSE, elapsed time)
+            "duration": duration,
+            "elapsed_exposure_time": duration,
+        }
+
         if not all(measurement_time_success):
-            self._output_model.meta.exposure.measurement_time = total_exptime
-        self._output_model.meta.exposure.start_time = min(exptime_start)
-        self._output_model.meta.exposure.end_time = max(exptime_end)
+            attrs["measurement_time"] = total_exptime
 
-        # Update other exposure time keywords:
-        # XPOSURE (identical to the total effective exposure time, EFFEXPTM)
-        self._output_model.meta.exposure.effective_exposure_time = total_exptime
-        # DURATION (identical to TELAPSE, elapsed time)
-        self._output_model.meta.exposure.duration = duration
-        self._output_model.meta.exposure.elapsed_exposure_time = duration
+        self.set_model_meta(self._output_model, attrs)
 
 
 class ResampleCoAdd(ResampleBase):
@@ -577,6 +633,7 @@ class ResampleCoAdd(ResampleBase):
     def __init__(self, input_models, output, accum=False,
                  pixfrac=1.0, kernel="square", fillval=0.0, wht_type="ivm",
                  good_bits=0, output_wcs=None, wcs_pars=None,
+                 enable_ctx=True, enable_err=True,
                  in_memory=True, allowed_memory=None):
         """
         Parameters
@@ -603,11 +660,20 @@ class ResampleCoAdd(ResampleBase):
         self._accum = accum
 
         super().__init__(
-            input_models,
-            pixfrac, kernel, fillval, wht_type,
-            good_bits, output_wcs, wcs_pars,
-            in_memory, allowed_memory, output=output
+            input_models=input_models,
+            pixfrac=pixfrac,
+            kernel=kernel,
+            fillval=fillval,
+            wht_type=wht_type,
+            good_bits=good_bits,
+            output_wcs=output_wcs,
+            wcs_pars=wcs_pars,
+            enable_ctx=enable_ctx,
+            in_memory=in_memory,
+            allowed_memory=allowed_memory,
+            output=output,
         )
+        self._enable_err = enable_err
 
     def process_kwargs(self, kwargs):
         """ A method called by ``__init__`` to process input kwargs before
@@ -642,7 +708,10 @@ class ResampleCoAdd(ResampleBase):
                     pass
 
         elif output is not None:
-            self._output_filename = output.meta.filename
+            self._output_filename = self.get_model_attr_value(
+                output,
+                "filename"
+            )
             self._output_model = output
             self._close_output = False
 
@@ -651,24 +720,26 @@ class ResampleCoAdd(ResampleBase):
     def _create_new_output_model(self):
         # this probably needs to be an abstract class.
         # also this is mostly needed for "single" drizzle.
-        output_model = self.new_model(None)
+        output_model = self.new_model(
+            None,
+            copy_meta_from=self._first_model_meta
+        )
 
         # update meta data and wcs
-
-        # TODO: don't like this as it means reloading first image (again)
-        output_model.update(self._first_model_meta)
-        output_model.meta.wcs = deepcopy(self._output_wcs)
-
         pix_area = self._output_pixel_scale**2
-        output_model.meta.photometry.pixelarea_steradians = pix_area
-        output_model.meta.photometry.pixelarea_arcsecsq = (
-            pix_area * np.rad2deg(3600)**2
+        self.set_model_meta(
+            output_model,
+            {
+                "wcs": deepcopy(self._output_wcs),
+                "pixelarea_steradians": pix_area,
+                "pixelarea_arcsecsq": pix_area * np.rad2deg(3600)**2,
+            }
         )
 
         return output_model
 
     def build_output_model_name(self):
-        fnames = {f for f in self._input_file_names if f is not None}
+        fnames = {f for f in self._input_filename_list if f is not None}
 
         if not fnames:
             return "resampled_data_{resample_suffix}{resample_file_ext}"
@@ -694,13 +765,19 @@ class ResampleCoAdd(ResampleBase):
         if self._output_filename is None:
             self._output_filename = self.build_output_model_name()
 
-        self._output_model.data = resample_results.out_img
+        self.set_model_array(self._output_model, "data", resample_results.out_img)
 
         self.update_exposure_times()
-        self._finish_variance_processing()
+        if self._enable_err:
+            self._finish_variance_processing()
 
-        self._output_model.meta.resample.weight_type = self.weight_type
-        self._output_model.meta.resample.pointings = len(self._input_models.group_names)
+        self.set_model_meta(
+            self._output_model,
+            {
+                "weight_type": self.weight_type,
+                "pointings": len(self._input_models.group_names),
+            }
+        )
         # TODO: also store the number of images added in total: ncoadds?
 
         self.final_post_processing()
@@ -710,6 +787,9 @@ class ResampleCoAdd(ResampleBase):
         if self._close_output and not self.in_memory:
             self.close_model(self._output_model)
             self._output_model = None
+            return self._output_filename
+
+        return self._output_model
 
     def _setup_variance_data(self):
         self._var_rnoise_sum = np.full(self._output_array_shape, np.nan)
@@ -718,6 +798,27 @@ class ResampleCoAdd(ResampleBase):
         # self._total_weight_var_rnoise = np.zeros(self._output_array_shape)
         self._total_weight_var_poisson = np.zeros(self._output_array_shape)
         self._total_weight_var_flat = np.zeros(self._output_array_shape)
+
+    def _check_var_array(self, data_model, array_name):
+        array_data = self.get_model_array(data_model, array_name, default=None)
+        sci_data = self.get_model_array(data_model, "data", default=None)
+        filename = self.get_model_meta(data_model, "filename")
+
+        if array_data is None or array_data.size == 0:
+            log.debug(
+                f"No data for '{array_name}' for model "
+                f"{repr(filename)}. Skipping ..."
+            )
+            return False
+
+        elif array_data.shape != sci_data.shape:
+            log.warning(
+                f"Data shape mismatch for '{array_name}' for model "
+                f"{repr(filename)}. Skipping ..."
+            )
+            return False
+
+        return True
 
     def _resample_variance_data(self, data_model, driz_init_kwargs, add_image_kwargs):
         log.info("Resampling variance components")
@@ -828,11 +929,15 @@ class ResampleCoAdd(ResampleBase):
             warnings.filterwarnings("ignore", "invalid value*", RuntimeWarning)
             warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
 
-            odt = self._output_model.data.dtype
+            odt = self.get_model_array(self._output_model, "data").dtype
 
             # readout noise
             np.reciprocal(self._var_rnoise_sum, out=self._var_rnoise_sum)
-            self._output_model.var_rnoise = self._var_rnoise_sum.astype(dtype=odt)
+            self.set_model_array(
+                self._output_model,
+                "var_rnoise",
+                self._var_rnoise_sum.astype(dtype=odt)
+            )
 
             # Poisson noise
             for _ in range(2):
@@ -841,7 +946,11 @@ class ResampleCoAdd(ResampleBase):
                     self._total_weight_var_poisson,
                     out=self._var_poisson_sum
                 )
-            self._output_model.var_poisson = self._var_poisson_sum.astype(dtype=odt)
+            self.set_model_array(
+                self._output_model,
+                "var_poisson",
+                self._var_poisson_sum.astype(dtype=odt)
+            )
 
             # flat's noise
             for _ in range(2):
@@ -850,7 +959,11 @@ class ResampleCoAdd(ResampleBase):
                     self._total_weight_var_flat,
                     out=self._var_flat_sum
                 )
-            self._output_model.var_flat = self._var_flat_sum.astype(dtype=odt)
+            self.set_model_array(
+                self._output_model,
+                "var_flat",
+                self._var_flat_sum.astype(dtype=odt)
+            )
 
             # compute total error:
             vars = np.array(
@@ -861,8 +974,13 @@ class ResampleCoAdd(ResampleBase):
                 ]
             )
             all_nan_mask = np.any(np.isnan(vars), axis=0)
-            self._output_model.err = np.sqrt(np.nansum(vars, axis=0)).astype(dtype=odt)
-            self._output_model.err[all_nan_mask] = np.nan
+
+            err = np.sqrt(np.nansum(vars, axis=0)).astype(dtype=odt)
+            err[all_nan_mask] = np.nan
+            self.set_model_array(self._output_model, "err", err)
+            self.set_model_array(self._output_model, "var_rnoise", self._var_rnoise_sum)
+            self.set_model_array(self._output_model, "var_poisson", self._var_poisson_sum)
+            self.set_model_array(self._output_model, "var_flat", self._var_flat_sum)
 
         del vars
         del self._var_rnoise_sum
@@ -895,14 +1013,25 @@ class ResampleCoAdd(ResampleBase):
             self._output_model = self.open_model(self._output_filename)
 
             # get old data:
-            data = self._output_model.data  # use .copy()?
-            wht = self._output_model.wht  # use .copy()?
-            ctx = self._output_model.con  # use .copy()?
-            t_exptime = self._output_model.meta.exptime
+            data = self.get_model_array(self._output_model, "data")
+            wht = self.get_model_array(self._output_model, "wht")
+            if self._enable_ctx:
+                ctx = self.get_model_array(self._output_model, "con")
+            else:
+                ctx = None
+
+            t_exptime = self.get_model_attr_value(
+                self._output_model,
+                "exptime"
+            )
             # TODO: we need something to store total number of images that
             #       have been used to create the resampled output, something
-            #       similar to output_model.meta.resample.pointings
-            ncoadds = self._output_model.meta.resample.ncoadds  # ???? (not sure about name)
+            #       similar to output_model.meta.resample.pointings.
+            #       For now I will call it "ncoadds"
+            ncoadds = self.get_model_attr_value(
+                self._output_model,
+                "ncoadds"
+            )
             self.accum_output_arrays = True
 
         else:
@@ -925,64 +1054,98 @@ class ResampleCoAdd(ResampleBase):
             max_ctx_id=ncoadds + ninputs,
         )
 
-        self._setup_variance_data()
+        if self._enable_err:
+            self._setup_variance_data()
 
         log.info("Resampling science data")
-        for img in self._input_models:
-            input_pixflux_area = img.meta.photometry.pixelarea_steradians
-            if (input_pixflux_area and
-                    'SPECTRAL' not in img.meta.wcs.output_frame.axes_type):
-                img.meta.wcs.array_shape = img.data.shape
-                input_pixel_area = _compute_image_pixel_area(img.meta.wcs)
-                if input_pixel_area is None:
-                    raise ValueError(
-                        "Unable to compute input pixel area from WCS of input "
-                        f"image {repr(img.meta.filename)}."
+
+        # loop over only science exposures in the ModelLibrary
+        # sci_indices = self._input_models.ind_asn_type("science")
+        with self._input_models:
+            for model in self._input_models:
+                # model = self._input_models.borrow(idx)
+
+                try:
+                    if self.get_model_attr_value(model, "exptype").upper() != "SCIENCE":
+                        self._input_models.shelve(model, modify=False)
+                        continue
+                except AttributeError:
+                    pass
+
+                in_data = self.get_model_array(model, "data")
+
+                attrs = self.get_model_meta(
+                    model,
+                    [
+                        "wcs",
+                        "pixelarea_steradians",
+                        "filename",
+                        "level",
+                        "subtracted",
+                        "exposure_time",
+                    ]
+                )
+
+                # Check that input models are 2D images
+                if in_data.ndim != 2:
+                    raise RuntimeError(
+                        f"Input {attrs['filename']} is not a 2D image."
                     )
-                iscale = np.sqrt(input_pixflux_area / input_pixel_area)
-            else:
-                iscale = 1.0
 
-            img.meta.iscale = iscale
+                input_pixflux_area = attrs["pixelarea_steradians"]
+                imwcs = attrs["wcs"]
+                if (input_pixflux_area and
+                        'SPECTRAL' not in imwcs.output_frame.axes_type):
+                    imwcs.array_shape = in_data.shape
+                    input_pixel_area = _compute_image_pixel_area(imwcs)
+                    if input_pixel_area is None:
+                        raise ValueError(
+                            "Unable to compute input pixel area from WCS of input "
+                            f"image {repr(attrs['filename'])}."
+                        )
+                    iscale = np.sqrt(input_pixflux_area / input_pixel_area)
+                else:
+                    iscale = 1.0
 
-            # TODO: should weight_type=None here?
-            in_wht = self.build_driz_weight(
-                img,
-                weight_type=self.weight_type,
-                good_bits=self.good_bits
-            )
+                # TODO: should weight_type=None here?
+                in_wht = self.build_driz_weight(
+                    model,
+                    weight_type=self.weight_type,
+                    good_bits=self.good_bits
+                )
 
-            # apply sky subtraction
-            blevel = img.meta.background.level
-            if not img.meta.background.subtracted and blevel is not None:
-                in_data = img.data - blevel
-            else:
-                in_data = img.data
+                # apply sky subtraction
+                blevel = attrs["level"]
+                if not attrs["subtracted"] and blevel is not None:
+                    in_data = in_data - blevel
 
-            xmin, xmax, ymin, ymax = _resample_range(
-                in_data.shape,
-                img.meta.wcs.bounding_box
-            )
+                xmin, xmax, ymin, ymax = _resample_range(
+                    in_data.shape,
+                    imwcs.bounding_box
+                )
 
-            pixmap = calc_pixmap(wcs_from=img.meta.wcs, wcs_to=self._output_wcs)
+                pixmap = calc_pixmap(wcs_from=imwcs, wcs_to=self._output_wcs)
 
-            add_image_kwargs = {
-                'exptime': img.meta.exposure.exposure_time,
-                'pixmap': pixmap,
-                'scale': iscale,
-                'weight_map': in_wht,
-                'wht_scale': 1.0,
-                'pixfrac': self.pixfrac,
-                'in_units': 'cps',  # TODO: get units from data model
-                'xmin': xmin,
-                'xmax': xmax,
-                'ymin': ymin,
-                'ymax': ymax,
-            }
+                add_image_kwargs = {
+                    'exptime': attrs["exposure_time"],
+                    'pixmap': pixmap,
+                    'scale': iscale,
+                    'weight_map': in_wht,
+                    'wht_scale': 1.0,
+                    'pixfrac': self.pixfrac,
+                    'in_units': 'cps',  # TODO: get units from data model
+                    'xmin': xmin,
+                    'xmax': xmax,
+                    'ymin': ymin,
+                    'ymax': ymax,
+                }
 
-            driz_data.add_image(in_data, **add_image_kwargs)
+                driz_data.add_image(in_data, **add_image_kwargs)
 
-            self._resample_variance_data(img, None, add_image_kwargs)
+                if self._enable_err:
+                    self._resample_variance_data(model, None, add_image_kwargs)
+
+                self._input_models.shelve(model, modify=False)
 
         # TODO: see what to do about original update_exposure_times()
 
@@ -1059,24 +1222,27 @@ class ResampleSingle(ResampleBase):
     def _create_output_template_model(self):
         # this probably needs to be an abstract class.
         # also this is mostly needed for "single" drizzle.
-        self._template_output_model = self.new_model()
-        self._template_output_model.update(self._first_model_meta)
-        self._template_output_model.meta.wcs = deepcopy(self._output_wcs)
-
+        self._template_output_model = self.new_model(
+            copy_meta_from=self._first_model_meta,
+        )
         pix_area = self._output_pixel_scale**2
-        self._template_output_model.meta.photometry.pixelarea_steradians = pix_area
-        self._template_output_model.meta.photometry.pixelarea_arcsecsq = (
-            pix_area * np.rad2deg(3600)**2
+        self.set_model_meta(
+            self._template_output_model,
+            {
+                "wcs": deepcopy(self._output_wcs),
+                "pixelarea_steradians": pix_area,
+                "pixelarea_arcsecsq": pix_area * np.rad2deg(3600)**2,
+            }
         )
 
     def create_output_model_single(self, file_name, resample_results):
         # this probably needs to be an abstract class
-        output_model = self._template_output_model.copy()
-        output_model.data = resample_results.out_img
+        output_model = deepcopy(self._template_output_model)
+        self.set_model_array(output_model, "data", resample_results.out_img)
         if self.in_memory:
             return output_model
         else:
-            output_model.write(file_name, overwrite=True)
+            self.write_model(output_model, file_name, overwrite=True)
             self.close_model(output_model)
             log.info(f"Saved resampled model to {file_name}")
             return file_name
@@ -1090,9 +1256,10 @@ class ResampleSingle(ResampleBase):
 
         Used for outlier detection
         """
-        output_models = []  # ModelContainer()
+        output_models = []
 
-        for exposure in self._input_models.models_grouped:
+        for exposure_indices in self._input_models.group_indices.values():
+
             driz = Drizzle(
                 kernel=self.kernel,
                 fillval=self.fillval,
@@ -1100,87 +1267,112 @@ class ResampleSingle(ResampleBase):
                 max_ctx_id=0
             )
 
-            # Determine output file type from input exposure filenames
-            # Use this for defining the output filename
-            output_filename = self.build_output_name_from_input_name(
-                exposure[0].meta.filename
-            )
-
-            log.info(f"{len(exposure)} exposures to drizzle together")
+            log.info(f"{len(exposure_indices)} exposures to drizzle together")
 
             exptime = None
 
-            for img in exposure:
-                img = self.open_model(img)
-                if exptime is None:
-                    exptime = exposure[0].meta.exposure.exposure_time
+            meta_fields = [
+                "wcs",
+                "pixelarea_steradians",
+                "filename",
+                "level",
+                "subtracted",
+            ]
 
-                # compute image intensity correction due to the difference
-                # between where in the input image
-                # img.meta.photometry.pixelarea_steradians was computed and
-                # the average input pixel area.
+            for idx in exposure_indices:
 
-                input_pixflux_area = img.meta.photometry.pixelarea_steradians
-                if (input_pixflux_area and
-                        'SPECTRAL' not in img.meta.wcs.output_frame.axes_type):
-                    img.meta.wcs.array_shape = img.data.shape
-                    input_pixel_area = _compute_image_pixel_area(img.meta.wcs)
-                    if input_pixel_area is None:
-                        raise ValueError(
-                            "Unable to compute input pixel area from WCS of input "
-                            f"image {repr(img.meta.filename)}."
+                with self._input_models:
+                    model = self._input_models.borrow(idx)
+
+                    in_data = self.get_model_array(model, "data")
+
+                    if exptime is None:
+                        attrs = self.get_model_meta(
+                            model,
+                            meta_fields + ["exposure_time", "filename"]
                         )
-                    iscale = np.sqrt(input_pixflux_area / input_pixel_area)
-                else:
-                    iscale = 1.0
+                    else:
+                        attrs = self.get_model_meta(model, meta_fields)
 
-                # TODO: should weight_type=None here?
-                in_wht = self.build_driz_weight(
-                    img,
-                    weight_type=self.weight_type,
-                    good_bits=self.good_bits
+                    # Check that input models are 2D images
+                    if in_data.ndim != 2:
+                        raise RuntimeError(
+                            f"Input {attrs['filename']} is not a 2D image."
+                        )
+
+                    input_pixflux_area = attrs["pixelarea_steradians"]
+                    imwcs = attrs["wcs"]
+
+                    if exptime is None:
+                        exptime = attrs["exposure_time"]
+                        # Determine output file type from input exposure filenames
+                        # Use this for defining the output filename
+                        output_filename = self.build_output_name_from_input_name(
+                            attrs["filename"]
+                        )
+
+                    # compute image intensity correction due to the difference
+                    # between where in the input image
+                    # img.meta.photometry.pixelarea_steradians was computed and
+                    # the average input pixel area.
+                    if (input_pixflux_area and
+                            'SPECTRAL' not in imwcs.output_frame.axes_type):
+                        imwcs.array_shape = in_data.shape
+                        input_pixel_area = _compute_image_pixel_area(imwcs)
+                        if input_pixel_area is None:
+                            raise ValueError(
+                                "Unable to compute input pixel area from WCS "
+                                f"of input image {repr(attrs['filename'])}."
+                            )
+                        iscale = np.sqrt(input_pixflux_area / input_pixel_area)
+                    else:
+                        iscale = 1.0
+
+                    # TODO: should weight_type=None here?
+                    in_wht = self.build_driz_weight(
+                        model,
+                        weight_type=self.weight_type,
+                        good_bits=self.good_bits
+                    )
+
+                    # apply sky subtraction
+                    blevel = attrs["level"]
+                    if not attrs["subtracted"] and blevel is not None:
+                        in_data = in_data - blevel
+
+                    xmin, xmax, ymin, ymax = _resample_range(
+                        in_data.shape,
+                        imwcs.bounding_box
+                    )
+
+                    pixmap = calc_pixmap(wcs_from=imwcs, wcs_to=self._output_wcs)
+
+                    driz.add_image(
+                        in_data,
+                        exptime=exptime,
+                        pixmap=pixmap,
+                        scale=iscale,
+                        weight_map=in_wht,
+                        wht_scale=1.0,
+                        pixfrac=self.pixfrac,
+                        in_units='cps',  # TODO: get units from data model
+                        xmin=xmin,
+                        xmax=xmax,
+                        ymin=ymin,
+                        ymax=ymax,
+                    )
+
+                    self._input_models.shelve(model, idx, modify=False)
+                    del in_data
+
+                output_models.append(
+                    self.create_output_model_single(
+                        output_filename,
+                        driz
+                    )
                 )
 
-                # apply sky subtraction
-                blevel = img.meta.background.level
-                if not img.meta.background.subtracted and blevel is not None:
-                    data = img.data - blevel
-                else:
-                    data = img.data
-
-                xmin, xmax, ymin, ymax = _resample_range(
-                    data.shape,
-                    img.meta.wcs.bounding_box
-                )
-
-                pixmap = calc_pixmap(wcs_from=img.meta.wcs, wcs_to=self._output_wcs)
-
-                driz.add_image(
-                    data,
-                    exptime=exposure[0].meta.exposure.exposure_time,
-                    pixmap=pixmap,
-                    scale=iscale,
-                    weight_map=in_wht,
-                    wht_scale=1.0,
-                    pixfrac=self.pixfrac,
-                    in_units='cps',  # TODO: get units from data model
-                    xmin=xmin,
-                    xmax=xmax,
-                    ymin=ymin,
-                    ymax=ymax,
-                )
-
-                del data
-                self.close_model(img)
-
-            output_models.append(
-                self.create_output_model_single(
-                    output_filename,
-                    driz
-                )
-            )
-
-        return output_models  # or maybe just a plain list - not ModelContainer?
+        return output_models
 
 
 def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):
