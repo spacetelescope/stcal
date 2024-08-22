@@ -802,7 +802,7 @@ class ResampleCoAdd(ResampleBase):
     def _check_var_array(self, data_model, array_name):
         array_data = self.get_model_array(data_model, array_name, default=None)
         sci_data = self.get_model_array(data_model, "data", default=None)
-        filename = self.get_model_meta(data_model, "filename")
+        filename = self.get_model_attr_value(data_model, "filename")
 
         if array_data is None or array_data.size == 0:
             log.debug(
@@ -837,7 +837,8 @@ class ResampleCoAdd(ResampleBase):
 
         # Resample read-out noise and compute weight map for variance arrays
         if self._check_var_array(data_model, 'var_rnoise'):
-            data = np.sqrt(data_model.var_rnoise)
+            data = self.get_model_array(data_model, "var_rnoise")
+            data = np.sqrt(data)
             driz_rnoise.add_image(data, **add_image_kwargs)
             var = driz_rnoise.out_img
             np.square(var, out=var)
@@ -881,7 +882,8 @@ class ResampleCoAdd(ResampleBase):
             weight_mask = np.ones(self._output_array_shape, dtype=bool)
 
         if self._check_var_array(data_model, 'var_poisson'):
-            data = np.sqrt(data_model.var_poisson)
+            data = self.get_model_array(data_model, "var_poisson")
+            data = np.sqrt(data)
             driz_poisson.add_image(data, **add_image_kwargs)
             var = driz_poisson.out_img
             np.square(var, out=var)
@@ -900,7 +902,8 @@ class ResampleCoAdd(ResampleBase):
             self._total_weight_var_poisson[mask] += weight[mask]
 
         if self._check_var_array(data_model, 'var_flat'):
-            data = np.sqrt(data_model.var_flat)
+            data = self.get_model_array(data_model, "var_flat")
+            data = np.sqrt(data)
             driz_flat.add_image(data, **add_image_kwargs)
             var = driz_flat.out_img
             np.square(var, out=var)
