@@ -687,9 +687,9 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
         # ramp fitting.
         rn_bswap, gain_bswap = bswap
         if rn_bswap:
-            readnoise_2d.newbyteorder('S').byteswap(inplace=True)
+            readnoise_2d.view(readnoise_2d.dtype.newbyteorder('S')).byteswap(inplace=True)
         if gain_bswap:
-            gain_2d.newbyteorder('S').byteswap(inplace=True)
+            gain_2d.view(gain_2d.dtype.newbyteorder('S')).byteswap(inplace=True)
 
         c_diff = c_end - c_start
         log.info(f"Ramp Fitting C Time: {c_diff}")
