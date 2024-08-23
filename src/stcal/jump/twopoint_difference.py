@@ -190,10 +190,6 @@ def find_crs(
         # reset sigma so pxels with 0 readnoise are not flagged as jumps
         sigma[np.where(sigma == 0.)] = np.nan
 
-        # compute 'ratio' for each group. this is the value that will be
-        # compared to 'threshold' to classify jumps. subtract the median of
-        # first_diffs from first_diffs, take the absolute value and divide by sigma.
-
         # Test to see if there are enough groups to use sigma clipping
         if (only_use_ints and nints >= minimum_sigclip_groups) or \
            (not only_use_ints and total_groups >= minimum_sigclip_groups):
@@ -358,6 +354,10 @@ def find_crs(
     cr_integ, cr_group, cr_row, cr_col = np.where(np.bitwise_and(gdq, jump_flag))
     num_primary_crs = len(cr_group)
     if flag_4_neighbors:  # iterate over each 'jump' pixel
+        # compute 'ratio' for each group. this is the value that will be
+        # compared to 'threshold' to classify jumps. subtract the median of
+        # first_diffs from first_diffs, take the absolute value and divide by sigma.
+
         e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
         ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]) / \
                     sigma[np.newaxis, np.newaxis, :, :]
