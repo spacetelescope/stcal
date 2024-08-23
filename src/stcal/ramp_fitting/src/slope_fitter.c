@@ -3,9 +3,13 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
@@ -705,6 +709,30 @@ is_pix_in_list(struct pixel_ramp * pr)
     return 0;
 }
 
+static inline long long
+print_pid_info(long long prev, int line, char * label) {
+    struct rusage res_usage;
+    long long now_time = (long long)time(NULL);
+    long long mem_usage = -1;
+    long long diff = 0;
+    pid_t pid = getpid();
+    // dbg_ols_print("PID:  %d\n", pid);
+
+    getrusage(RUSAGE_SELF, &res_usage);
+    mem_usage =  res_usage.ru_maxrss;
+    if (prev > 0) {
+        diff = mem_usage - prev;
+        dbg_ols_print("[%d] time: %lld, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n",
+            line, now_time, mem_usage, diff, prev, pid, label);
+    } else {
+        dbg_ols_print("[%d] time: %lld, Mem: %lld, diff: %lld, pid: %d  '%s'\n",
+            line, now_time, mem_usage, diff, pid, label);
+    }
+
+    return mem_usage;
+}
+
+
 /* ------------------------------------------------------------------------- */
 /*                            Module Functions                                */
 /* ------------------------------------------------------------------------- */
@@ -899,23 +927,29 @@ clean_ramp_data(
     struct simple_ll_node * current;
     struct simple_ll_node * next;
 
-    if (NULL == rd->segs) {
-        return; /* Nothing to do. */
-    }
+    Py_XDECREF(rd->data);
+    Py_XDECREF(rd->groupdq);
+    Py_XDECREF(rd->err);
+    Py_XDECREF(rd->pixeldq);
+    Py_XDECREF(rd->zframe);
+    Py_XDECREF(rd->dcurrent);
 
-    /*
-     *  For each pixel, check to see if there is any allocated
-     *  memory for the linked list of ramp segments and free them.
-     */
-    for (idx=0; idx < rd->cube_sz; ++idx) {
-        current = rd->segs[idx];
-        if (current) {
-            next = current->flink;
-            SET_FREE(current);
-            current = next;
+    if (rd->segs) {
+        /*
+         *  For each pixel, check to see if there is any allocated
+         *  memory for the linked list of ramp segments and free them.
+         */
+        for (idx=0; idx < rd->cube_sz; ++idx) {
+            current = rd->segs[idx];
+            if (current) {
+                next = current->flink;
+                SET_FREE(current);
+                current = next;
+            }
         }
     }
     SET_FREE(rd->segs);
+    SET_FREE(rd->pedestal);
 }
 
 /*
@@ -1134,6 +1168,9 @@ create_opt_res(
     return 0;
 
 FAILED_ALLOC:
+    PyErr_SetString(PyExc_MemoryError, msg);
+    err_ols_print("%s\n", msg);
+
     Py_XDECREF(opt_res->slope);
     Py_XDECREF(opt_res->sigslope);
     Py_XDECREF(opt_res->var_p);
@@ -1240,6 +1277,9 @@ create_rate_product(
     return 0;
 
 FAILED_ALLOC:
+    PyErr_SetString(PyExc_MemoryError, msg);
+    err_ols_print("%s\n", msg);
+
     Py_XDECREF(rate->slope);
     Py_XDECREF(rate->dq);
     Py_XDECREF(rate->var_poisson);
@@ -1294,6 +1334,9 @@ create_rateint_product(
     return 0;
 
 FAILED_ALLOC:
+    PyErr_SetString(PyExc_MemoryError, msg);
+    err_ols_print("%s\n", msg);
+
     Py_XDECREF(rateint->slope);
     Py_XDECREF(rateint->dq);
     Py_XDECREF(rateint->var_poisson);
@@ -1606,24 +1649,24 @@ get_ramp_data(
         PyObject * args)    /* The C extension module arguments */
 {
     struct ramp_data * rd = calloc(1, sizeof(*rd));  /* Allocate memory */
-    PyObject * Py_ramp_data;
+    PyObject * Py_ramp_data = NULL;
     char * msg = "Couldn't allocate memory for ramp data structure.";
 
     /* Make sure memory allocation worked */
     if (NULL==rd) {
         PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
-        return NULL;
+        goto END;
     }
     
     if (get_ramp_data_parse(&Py_ramp_data, rd, args)) {
         FREE_RAMP_DATA(rd);
-        return NULL;
+        goto END;
     }
 
     if (get_ramp_data_arrays(Py_ramp_data, rd)) {
         FREE_RAMP_DATA(rd);
-        return NULL;
+        goto END;
     }
 
     /* Void function */
@@ -1643,10 +1686,11 @@ get_ramp_data(
             PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
             FREE_RAMP_DATA(rd);
-            return NULL;
+            goto END;
         }
     }
 
+END:
     return rd;
 }
 
@@ -1742,6 +1786,8 @@ get_ramp_data_parse(
         err_ols_print("%s\n", msg);
         return 1;
     }
+
+    /* Note: Freeing 'weight' causes seg fault: 'pointer being freed was not allocated' */
 
     return 0;
 }
@@ -2277,6 +2323,7 @@ py_ramp_data_get_float(
 
     Obj = PyObject_GetAttrString(rd, attr);
     val = (float)PyFloat_AsDouble(Obj);
+    Py_XDECREF(Obj);
 
     return val;
 }
@@ -2295,6 +2342,7 @@ py_ramp_data_get_int(
 
     Obj = PyObject_GetAttrString(rd, attr);
     val = (int)PyLong_AsLong(Obj);
+    Py_XDECREF(Obj);
 
     return val;
 }
