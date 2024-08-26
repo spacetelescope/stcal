@@ -146,20 +146,6 @@ class OutputTooLargeError(RuntimeError):
     """Raised when the output is too large for in-memory instantiation"""
 
 
-def output_wcs_from_input_wcs(input_wcs_list, pixel_scale_ratio=1.0,
-                              pixel_scale=None, output_shape=None,
-                              crpix=None, crval=None, rotation=None):
-    # TODO: should be replaced with a version that lives in stcal and
-    # uses s_region
-    w = deepcopy(input_wcs_list[0])  # this is bad
-    return {
-        'output_wcs': w,
-        'pscale': np.rad2deg(np.sqrt(_compute_image_pixel_area(w))),
-        'pscale_ratio': 1.0,
-        'crpix': None
-    }
-
-
 class ResampleBase(abc.ABC):
     """
     This is the controlling routine for the resampling process.
@@ -334,7 +320,7 @@ class ResampleBase(abc.ABC):
                 wcs_pars["pixel_scale"] = self._output_pixel_scale
                 log.info(f'Computed output pixel scale: {self._output_pixel_scale} arcsec.')
 
-            w, ps = self._compute_output_wcs(**wcs_pars)
+            w, ps = self.compute_output_wcs(**wcs_pars)
             self._output_wcs = w
             self._output_pixel_scale = ps
             self._output_array_shape = self._output_wcs.array_shape
@@ -410,11 +396,9 @@ class ResampleBase(abc.ABC):
                 f'Model cannot be instantiated.'
             )
 
-    def _compute_output_wcs(self, **wcs_pars):
-        """ returns a diustortion-free WCS object and its pixel scale """
-#        owcs = output_wcs_from_input_wcs(self._input_s_region_list, **wcs_pars)
-        owcs = output_wcs_from_input_wcs([self._input_img1_wcs], **wcs_pars)
-        return owcs['output_wcs'], owcs['pscale']
+    def compute_output_wcs(self, **wcs_pars):
+        """ returns a tuple of distortion-free WCS object and its pixel scale """
+        ...
 
     def preload_input_meta(self, wcs1, filename, s_region):
         # set-up lists for WCS and file names
@@ -467,7 +451,7 @@ class ResampleBase(abc.ABC):
         data = self.get_model_array(model, "data")
         dq = self.get_model_array(model, "dq")
 
-        dqmask = build_mask(dq, good_bits)
+        dqmask = build_mask(dq, good_bits, flag_name_map=self.dq_flag_name_map)
 
         if weight_type and weight_type.startswith('ivm'):
             weight_type = weight_type.strip()
@@ -782,7 +766,11 @@ class ResampleCoAdd(ResampleBase):
 
         self.final_post_processing()
 
-        self._output_model.write(self._output_filename, overwrite=True)
+        self.write_model(
+            self._output_model,
+            self._output_filename,
+            overwrite=True
+        )
 
         if self._close_output and not self.in_memory:
             self.close_model(self._output_model)
