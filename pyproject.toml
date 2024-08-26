@@ -2,7 +2,7 @@
 name = "stcal"
 description = "STScI tools and algorithms used in calibration pipelines"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 authors = [
     { name = "STScI", email = "help@stsci.edu" },
 ]
@@ -14,11 +14,15 @@ classifiers = [
 ]
 dependencies = [
     "astropy >=5.0.4",
+    "drizzle>=1.15.0",
     "scipy >=1.7.2",
+    "scikit-image>=0.19",
     "numpy >=1.21.2",
     "opencv-python-headless >=4.6.0.66",
     "asdf >=2.15.0",
     "gwcs >= 0.18.1",
+    "tweakwcs >=0.8.8",
+    "requests >=2.22",
 ]
 dynamic = [
     "version",
@@ -193,6 +197,27 @@ convention = "numpy"
 
 [tool.ruff.lint.flake8-annotations]
 ignore-fully-untyped = true  # Turn of annotation checking for fully untyped code
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "astropy.*",
+    "gwcs.*",
+    "tweakwcs.*",
+    "stdatamodels.*",
+    "asdf.*",
+    "scipy.*",
+    "drizzle.*",
+    # don't complain about the installed c parts of this library
+    "stcal.ramp_fitting.ols_cas22._fit",
+    "stcal.ramp_fitting.ols_cas22._jump",
+    "stcal.ramp_fitting.slope_fitter",
+]
+ignore_missing_imports = true
 
 [tool.cython-lint]
 max-line-length = 110

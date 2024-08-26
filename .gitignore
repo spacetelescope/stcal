@@ -74,6 +74,11 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# auto-generated API docs
+docs/source/api
+docs/api
+.DS_Store
+
 # PyBuilder
 .pybuilder/
 target/
@@ -145,10 +150,6 @@ src/stcal/ramp_fitting/ols_cas22/*.html
 
 # setuptools-scm generated module
 src/stcal/_version.py
-
-# auto-generated API docs
-docs/source/api
-.DS_Store
 
 # VSCode stuff
 .vscode
