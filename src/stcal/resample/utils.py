@@ -1,18 +1,17 @@
 import numpy as np
-from stdatamodels.dqflags import interpret_bit_flags
-from stdatamodels.jwst.datamodels.dqflags import pixel
+from astropy.nddata.bitmask import interpret_bit_flags
 
 __all__ = [
     "build_mask", "get_tmeasure",
 ]
 
 
-def build_mask(dqarr, bitvalue):
+def build_mask(dqarr, bitvalue, flag_name_map=None):
     """Build a bit mask from an input DQ array and a bitvalue flag
 
     In the returned bit mask, 1 is good, 0 is bad
     """
-    bitvalue = interpret_bit_flags(bitvalue, mnemonic_map=pixel)
+    bitvalue = interpret_bit_flags(bitvalue, flag_name_map=flag_name_map)
 
     if bitvalue is None:
         return np.ones(dqarr.shape, dtype=np.uint8)
