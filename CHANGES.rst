@@ -21,6 +21,12 @@ ramp_fitting
 
 - Fixed memory leak in C-extension.[#281]
 
+saturation
+~~~~~~~~~~
+
+- Add option for using the readout pattern information to improve saturation flagging
+  in grouped data. [#283]
+
 1.8.0 (2024-08-14)
 ==================
 
