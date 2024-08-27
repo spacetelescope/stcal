@@ -14,7 +14,11 @@ This PR addresses ...
 
 **Checklist**
 
-- [ ] added entry in `CHANGES.rst` (either in `Bug Fixes` or `Changes to API`)
+- [ ] for a public change, added a [towncrier news fragment](https://towncrier.readthedocs.io/en/stable/tutorial.html#creating-news-fragments) <details><summary>`changes/<PR#>.<changetype>.rst`</summary>
+
+    - ``changes/<PR#>.apichange.rst``: change to public API
+    - ``changes/<PR#>.bugfix.rst``: fixes an issue
+    - ``changes/<PR#>.general.rst``: infrastructure or miscellaneous change
 - [ ] updated relevant tests
 - [ ] updated relevant documentation
 - [ ] updated relevant milestone(s)

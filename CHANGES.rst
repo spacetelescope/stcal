@@ -1,26 +1,3 @@
-1.8.1 (unreleased)
-==================
-
-General
--------
-
-- 
-
-Changes to API
---------------
-
-- 
-
-Bug Fixes
----------
-
-- 
-
-ramp_fitting
-~~~~~~~~~~~~
-
-- Fixed memory leak in C-extension.[#281]
-
 1.8.0 (2024-08-14)
 ==================
 
