@@ -63,6 +63,7 @@ def flag_saturated_pixels(
         updated pixel dq array
     """
     nints, ngroups, nrows, ncols = data.shape
+    dnu = dqflags["DO_NOT_USE"]
     saturated = dqflags["SATURATED"]
     ad_floor = dqflags["AD_FLOOR"]
     no_sat_check = dqflags["NO_SAT_CHECK"]
@@ -113,7 +114,9 @@ def flag_saturated_pixels(
 
             # Determine the dilution factor due to group averaging
             if read_pattern is not None:
+                # Single value dilution factor for this group
                 dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
+                # Broadcast to array size
                 dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
             else:
                 dilution_factor = 1
@@ -122,9 +125,10 @@ def flag_saturated_pixels(
             flagarray, _ = plane_saturation(plane, sat_thresh * dilution_factor, dqflags)
 
             # Find the overlap of where this plane looks like it might saturate, was not currently
-            # flagged as saturating, and the next group had saturation flagged.
+            # flagged as saturation or DO_NOT_USE, and the next group had saturation flagged.
             indx = np.where((np.bitwise_and(flagarray, saturated) != 0) & \
                             (np.bitwise_and(thisdq, saturated) == 0) & \
+                            (np.bitwise_and(thisdq, dnu) == 0) & \
                             (np.bitwise_and(nextdq, saturated) != 0))
 
             # Reset flag array to only pixels passing this gauntlet
@@ -150,6 +154,8 @@ def flag_saturated_pixels(
             mask = scigp1 / np.mean(read_pattern[0]) * read_pattern[2][-1] < sat_thresh
 
             # Identify groups with suspiciously large values in the second group
+            # In the limit of groups with just nframe this just checks if second group
+            # is over the regular saturation limit.
             scigp2 = data[ints, 1, :, :]
             mask &= scigp2 > sat_thresh / len(read_pattern[1])
 
