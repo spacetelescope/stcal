@@ -35,11 +35,10 @@ file = "LICENSE"
 docs = [
     "numpydoc",
     "packaging >=17",
-    "sphinx<7.0.0",
+    "sphinx",
     "sphinx-asdf",
     "sphinx-astropy",
     "sphinx-rtd-theme",
-    "stsci-rtd-theme",
     "tomli; python_version <=\"3.11\"",
 ]
 test = [
