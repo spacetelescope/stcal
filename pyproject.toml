@@ -256,7 +256,7 @@ package = "stcal"
 title_format = "{version} ({project_date})"
 ignore = [".gitkeep"]
 wrap = true
-issue_format = "`#{issue} <https://github.com/spacetelescope/stcal/{issue}>`_"
+issue_format = "`#{issue} <https://github.com/spacetelescope/stcal/issues/{issue}>`_"
 
 [tool.towncrier.fragment.apichange]
 name = "Changes to API"
