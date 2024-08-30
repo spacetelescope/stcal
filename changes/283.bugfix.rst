@@ -1,0 +1,1 @@
+[saturation] Add option for using the readout pattern information to improve saturation flagging in grouped data.
