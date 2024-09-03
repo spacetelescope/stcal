@@ -1577,15 +1577,17 @@ def test_cext_chargeloss():
     2. A jump at group 3 (zero based) and SATURATED starting at group 7.
     3. A jump at group 3 (zero based).
 
-    Except for the read hoise all values in pixel 1 should be equal to  pixel
-    2, but the read noise should be equal to pixel 3.
-    The slope should be the same for all pixels.
+    The slope should be the same for all pixels.  Variances differ.
     """
     nints, ngroups, nrows, ncols = 1, 10, 1, 4
     rnval, gval = 0.7071, 1.
     # frame_time, nframes, groupgap = 1., 1, 0
     frame_time, nframes, groupgap = 10.6, 1, 0
     group_time = 10.6
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
 
     ramp.run_c_code = True  # Need to make this default in future
