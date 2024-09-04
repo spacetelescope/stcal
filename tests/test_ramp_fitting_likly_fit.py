@@ -441,10 +441,9 @@ def test_too_few_group_ramp(ngroups):
     ramp = np.array(list(range(ngroups))) * 20 + 10
     ramp_data.data[0, :, 0, 0] = ramp
 
-    save_opt, algo, ncores = False, "LIKELY", "none"
     with pytest.raises(ValueError):
         image_info, integ_info, opt_info = likely_ramp_fit(
-            ramp_data, 512, save_opt, rnoise2d, gain2d, "optimal", ncores
+            ramp_data, rnoise2d, gain2d
         )
 
 

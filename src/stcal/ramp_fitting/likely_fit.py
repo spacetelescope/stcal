@@ -13,7 +13,7 @@ from pprint import pprint
 import numpy as np
 
 from . import ramp_fit_class, utils
-from .likely_algo_classes import IntegInfo, Ramp_Result, Covar
+from .likely_algo_classes import IntegInfo, RampResult, Covar
 
 
 DELIM = "=" * 80
@@ -28,10 +28,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def likely_ramp_fit(
-    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
-):
+def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     """
+    Invoke ramp fitting using the likelihood algorithm.
+
     Setup the inputs to ols_ramp_fit with and without multiprocessing. The
     inputs will be sliced into the number of cores that are being used for
     multiprocessing. Because the data models cannot be pickled, only numpy
@@ -42,27 +42,11 @@ def likely_ramp_fit(
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
 
-    buffsize : int
-        size of data section (buffer) in bytes (not used)
-
-    save_opt : bool
-       calculate optional fitting results
-
     readnoise_2d : ndarray
         readnoise for all pixels
 
     gain_2d : ndarray
         gain for all pixels
-
-    weighting : str
-        'optimal' specifies that optimal weighting should be used;
-         currently the only weighting supported.
-
-    max_cores : str
-        Number of cores to use for multiprocessing. If set to 'none' (the default),
-        then no multiprocessing will be done. The other allowable values are 'quarter',
-        'half', and 'all'. This is the fraction of cores to use for multi-proc. The
-        total number of cores includes the SMT cores (Hyper Threading for Intel).
 
     Returns
     -------
@@ -79,8 +63,8 @@ def likely_ramp_fit(
 
     nints, ngroups, nrows, ncols = ramp_data.data.shape
 
-    if ngroups < 2:
-        raise ValueError("Likelihood fit requires at least 2 groups.")
+    if ngroups < 4:
+        raise ValueError("Likelihood fit requires at least 4 groups.")
 
     readtimes = get_readtimes(ramp_data)
 
@@ -102,16 +86,15 @@ def likely_ramp_fit(
             d2use = determine_diffs2use(ramp_data, integ, row, diff)
             d2use_copy = d2use.copy()  # Use to flag jumps
             if ramp_data.nsig is not None:
-                threshold_oneomit = ramp_data.nsig**2
-                # pval = scipy.special.erfc(ramp_data.nsig/2**0.5)
+                threshold_one_omit = ramp_data.nsig**2
                 pval = scipy.special.erfc(ramp_data.nsig/SQRT2)
-                threshold_twoomit = scipy.stats.chi2.isf(pval, 2)
-                if np.isinf(threshold_twoomit):
-                    threshold_twoomit = threshold_oneomit + 10
+                threshold_two_omit = scipy.stats.chi2.isf(pval, 2)
+                if np.isinf(threshold_two_omit):
+                    threshold_two_omit = threshold_one_omit + 10
                 d2use, countrates = mask_jumps(
                     diff[:, row], covar, readnoise_2d[row], gain_2d[row],
-                    threshold_oneomit=threshold_oneomit,
-                    threshold_twoomit=threshold_twoomit,
+                    threshold_one_omit=threshold_one_omit,
+                    threshold_two_omit=threshold_two_omit,
                     diffs2use=d2use
                 )
             else:
@@ -134,7 +117,7 @@ def likely_ramp_fit(
                 gain_2d[row],
                 readnoise_2d[row],
                 diffs2use=d2use,
-                countrateguess=rateguess,
+                count_rate_guess=rateguess,
             )
             integ_class.get_results(result, integ, row)
 
@@ -151,11 +134,11 @@ def likely_ramp_fit(
 
 def mask_jumps(
     diffs,
-    Cov,
+    covar,
     rnoise,
     gain,
-    threshold_oneomit=20.25,
-    threshold_twoomit=23.8,
+    threshold_one_omit=20.25,
+    threshold_two_omit=23.8,
     diffs2use=None,
 ):
 
@@ -169,8 +152,8 @@ def mask_jumps(
         The group differences of the data array for a given integration and row
         (ngroups-1, ncols).
 
-    Cov : Covar
-        The class that computes and contains the covariance matrix info.
+    covar : Covar
+        The class instance that computes and contains the covariance matrix info.
 
     rnoise : ndarray
         The read noise (ncols,)
@@ -178,11 +161,11 @@ def mask_jumps(
     gain : ndarray
         The gain (ncols,)
 
-    threshold_oneomit : float
+    threshold_one_omit : float
         Minimum chisq improvement to exclude a single resultant difference.
         Default: 20.25.
 
-    threshold_twoomit : float
+    threshold_two_omit : float
         Minimum chisq improvement to exclude  two sequential resultant differences.
         Default 23.8.
 
@@ -201,7 +184,7 @@ def mask_jumps(
         Optional, default is None.
 
     """
-    if Cov.pedestal:
+    if covar.pedestal:
         raise ValueError(
             "Cannot mask jumps with a Covar class that includes a pedestal fit."
         )
@@ -214,13 +197,13 @@ def mask_jumps(
     # pattern has more than one read per resultant but significant
     # gaps between resultants then a one-omit search might still be a
     # good idea even with multiple-read resultants.
-    oneomit_ok = Cov.Nreads[1:] * Cov.Nreads[:-1] >= 1
-    oneomit_ok[0] = oneomit_ok[-1] = True
+    one_omit_ok = covar.Nreads[1:] * covar.Nreads[:-1] >= 1
+    one_omit_ok[0] = one_omit_ok[-1] = True
 
     # Other than that, we need to omit two.  If a resultant has more
     # than two reads, we need to omit both differences containing it
     # (one pair of omissions in the differences).
-    twoomit_ok = Cov.Nreads[1:-1] > 1
+    two_omit_ok = covar.Nreads[1:-1] > 1
 
     # This is the array to return: one for resultant differences to
     # use, zero for resultant differences to ignore.
@@ -232,9 +215,9 @@ def mask_jumps(
     # jumps (which is what we are looking for) since we'll be using
     # likelihoods and chi squared; getting the covariance matrix
     # reasonably close to correct is important.
-    countrateguess = np.median(loc_diff, axis=0)[np.newaxis, :]
+    count_rate_guess = np.median(loc_diff, axis=0)[np.newaxis, :]
 
-    countrateguess *= countrateguess > 0
+    count_rate_guess *= count_rate_guess > 0
 
     # boolean arrays to be used later
     recheck = np.ones(loc_diff.shape[1]) == 1
@@ -245,10 +228,10 @@ def mask_jumps(
         if j == 0:
             result = fit_ramps(
                 loc_diff,
-                Cov,
+                covar,
                 gain,
                 rnoise,
-                countrateguess=countrateguess,
+                count_rate_guess=count_rate_guess,
                 diffs2use=diffs2use,
                 detect_jumps=True,
             )
@@ -258,22 +241,22 @@ def mask_jumps(
         else:
             result = fit_ramps(
                 loc_diff[:, recheck],
-                Cov,
+                covar,
                 gain[recheck],
                 rnoise[recheck],
-                countrateguess=countrateguess[:, recheck],
+                count_rate_guess=count_rate_guess[:, recheck],
                 diffs2use=diffs2use[:, recheck],
                 detect_jumps=True,
             )
 
         # Chi squared improvements
-        dchisq_two = result.chisq - result.chisq_twoomit
-        dchisq_one = result.chisq - result.chisq_oneomit
+        dchisq_two = result.chisq - result.chisq_two_omit
+        dchisq_one = result.chisq - result.chisq_one_omit
 
         # We want the largest chi squared difference
-        best_dchisq_one = np.amax(dchisq_one * oneomit_ok[:, np.newaxis], axis=0)
+        best_dchisq_one = np.amax(dchisq_one * one_omit_ok[:, np.newaxis], axis=0)
         best_dchisq_two = np.amax(
-            dchisq_two * twoomit_ok[:, np.newaxis], axis=0
+            dchisq_two * two_omit_ok[:, np.newaxis], axis=0
         )
 
         # Is the best improvement from dropping one resultant
@@ -283,14 +266,14 @@ def mask_jumps(
         # corresponding to dropping either one or two reads, whichever
         # is better, if either exceeded the threshold.
         onedropbetter = (
-            best_dchisq_one - threshold_oneomit > best_dchisq_two - threshold_twoomit
+            best_dchisq_one - threshold_one_omit > best_dchisq_two - threshold_two_omit
         )
 
         best_dchisq = (
-            best_dchisq_one * (best_dchisq_one > threshold_oneomit) * onedropbetter
+            best_dchisq_one * (best_dchisq_one > threshold_one_omit) * onedropbetter
         )
         best_dchisq += (
-            best_dchisq_two * (best_dchisq_two > threshold_twoomit) * (~onedropbetter)
+            best_dchisq_two * (best_dchisq_two > threshold_two_omit) * (~onedropbetter)
         )
 
         # If nothing exceeded the threshold set the improvement to
@@ -311,9 +294,9 @@ def mask_jumps(
         # Store the updated counts with omitted reads
         new_cts = np.zeros(np.sum(recheck))
         i_d1 = np.sum(dropone, axis=0) > 0
-        new_cts[i_d1] = np.sum(result.countrate_oneomit * dropone, axis=0)[i_d1]
+        new_cts[i_d1] = np.sum(result.countrate_one_omit * dropone, axis=0)[i_d1]
         i_d2 = np.sum(droptwo, axis=0) > 0
-        new_cts[i_d2] = np.sum(result.countrate_twoomit * droptwo, axis=0)[i_d2]
+        new_cts[i_d2] = np.sum(result.countrate_two_omit * droptwo, axis=0)[i_d2]
 
         # zero out count rates with drops and add their new values back in
         countrate[recheck] *= drop == 0
@@ -342,13 +325,14 @@ def mask_jumps(
 
 def get_readtimes(ramp_data):
     """
-    Get the read times needed to compute the covariance matrices.  If there is
-    already a read_pattern in the ramp_data class, then just get it.  If not, then
-    one needs to be constructed.  If one needs to be constructed it is assumed the
-    groups are evenly spaced in time, as are the frames that make up the group.  If
-    each group has only one frame and no group gap, then a list of the group times
-    is returned.  If nframes > 0, then a list of lists of each frame time in each
-    group is returned with the assumption:
+    Get the read times needed to compute the covariance matrices.
+
+    If there is already a read_pattern in the ramp_data class, then just get it.
+    If not, then one needs to be constructed.  If one needs to be constructed it
+    is assumed the groups are evenly spaced in time, as are the frames that make
+    up the group.  If each group has only one frame and no group gap, then a list
+    of the group times is returned.  If nframes > 0, then a list of lists of each
+    frame time in each group is returned with the assumption:
         group_time = (nframes + groupgap) * frame_time
 
     Parameters
@@ -365,7 +349,6 @@ def get_readtimes(ramp_data):
         return ramp_data.read_pattern
 
     ngroups = ramp_data.data.shape[1]
-    # rtimes = [(k + 1) * ramp_data.group_time for k in range(ngroups)]   # XXX Old
     tot_frames = ramp_data.nframes + ramp_data.groupgap
     tot_nreads = np.arange(1, ramp_data.nframes + 1)
     rtimes = [
@@ -377,7 +360,7 @@ def get_readtimes(ramp_data):
 
 def compute_image_info(integ_class, ramp_data):
     """
-    Compute all integrations into a single image of rates,
+    Combine all integrations into a single image of rates,
     variances, and DQ flags.
 
     Parameters
@@ -480,14 +463,14 @@ def determine_diffs2use(ramp_data, integ, row, diffs):
     return d2use
 
 
-def inital_countrateguess(covar, diffs, diffs2use):
+def inital_count_rate_guess(covar, diffs, diffs2use):
     """
     Compute the initial count rate.
 
     Parameters
     ----------
     covar : Covar
-        The class that computes and contains the covariance matrix info.
+        The class instance that computes and contains the covariance matrix info.
 
     diffs : ndarray
         The group differences of the data (ngroups-1, nrows, ncols).
@@ -497,7 +480,7 @@ def inital_countrateguess(covar, diffs, diffs2use):
 
     Returns
     -------
-    countrateguess : ndarray
+    count_rate_guess : ndarray
         The initial count rate.
     """
     # initial guess for count rate is the average of the unmasked
@@ -509,10 +492,10 @@ def inital_countrateguess(covar, diffs, diffs2use):
         num = np.sum((diffs * diffs2use), axis=0)
         den = np.sum(diffs2use, axis=0)
 
-    countrateguess = num / den
-    countrateguess *= countrateguess > 0
+    count_rate_guess = num / den
+    count_rate_guess *= count_rate_guess > 0
 
-    return countrateguess
+    return count_rate_guess
 
 
 # RAMP FITTING BEGIN
@@ -521,7 +504,7 @@ def fit_ramps(
     covar,
     gain,
     rnoise,  # Referred to as 'sig' in fitramp repo
-    countrateguess=None,
+    count_rate_guess=None,
     diffs2use=None,
     detect_jumps=False,
     resetval=0,
@@ -530,9 +513,11 @@ def fit_ramps(
     dn_scale=10.0,
 ):
     """
-    Function fit_ramps on a row of pixels.  Fits ramps to read differences
-    using the covariance matrix for the read differences as given by the
-    diagonal elements and the off-diagonal elements.
+    Fit ramps on a row of data.
+
+    Fits ramps to read differences using the covariance matrix for
+    the read differences as given by the diagonal elements and the
+    off-diagonal elements.
 
     Parameters
     ----------
@@ -540,7 +525,7 @@ def fit_ramps(
         The group differences of the data (ngroups-1, nrows, ncols).
 
     covar : Covar
-        The class that computes and contains the covariance matrix info.
+        The class instance that computes and contains the covariance matrix info.
 
     gain : ndarray
         The gain (ncols,)
@@ -548,7 +533,7 @@ def fit_ramps(
     rnoise : ndarray
         The read noise (ncols,)
 
-    countrateguess : ndarray
+    count_rate_guess : ndarray
         Count rate estimates used to estimate the covariance matrix.
         Optional, default is None.
 
@@ -574,12 +559,12 @@ def fit_ramps(
         overflow/underflow problems for long ramps.
         Optional, default is True.
 
-    dn_scale : XXX
-        XXX
+    dn_scale : float
+        Scaling factor.
 
     Returns
     -------
-    result : Ramp_Result
+    result : RampResult
         Holds computed ramp fitting information.  XXX - rename
     """
     if diffs2use is None:
@@ -587,11 +572,11 @@ def fit_ramps(
         diffs2use = np.ones(diffs.shape, np.uint8)
 
     # diffs is (ngroups, ncols) of the current row
-    if countrateguess is None:
-        countrateguess = inital_countrateguess(covar, diffs, diffs2use)
+    if count_rate_guess is None:
+        count_rate_guess = inital_count_rate_guess(covar, diffs, diffs2use)
 
     alpha_tuple, beta_tuple, scale = compute_alphas_betas(
-        countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale
+        count_rate_guess, gain, rnoise, covar, rescale, diffs, dn_scale
     )
     alpha, alpha_phnoise, alpha_readnoise = alpha_tuple
     beta, beta_phnoise, beta_readnoise = beta_tuple
@@ -667,6 +652,8 @@ def compute_jump_detects(
     result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
 ):
     """
+    Detect jumps in ramps.
+
     The code below computes the best chi squared, best-fit slope,
     and its uncertainty leaving out each group difference in
     turn.  There are ndiffs possible differences that can be
@@ -685,7 +672,7 @@ def compute_jump_detects(
 
     Parameters
     ----------
-    result : Ramp_Result
+    result : RampResult
         The results of the ramp fitting for a given row of pixels in an integration.
 
     ndiffs :  int
@@ -722,12 +709,12 @@ def compute_jump_detects(
         Intermediate computation.
 
     covar : Covar
-        The class that computes and contains the covariance matrix info.
+        The class instance that computes and contains the covariance matrix info.
 
 
     Returns
     -------
-    result : Ramp_Result
+    result : RampResult
         The results of the ramp fitting for a given row of pixels in an integration.
     """
     # The algorithms below do not work if we are computing the
@@ -754,11 +741,11 @@ def compute_jump_detects(
         a = (Cinv_diag * B - dB * dC) / (C * Cinv_diag - dC**2)
         b = (dB - a * dC) / Cinv_diag
 
-        result.countrate_oneomit = a
-        result.jumpval_oneomit = b
+        result.countrate_one_omit = a
+        result.jumpval_one_omit = b
 
         # Use the best-fit a, b to get chi squared
-        result.chisq_oneomit = (
+        result.chisq_one_omit = (
             A
             + a**2 * C
             - 2 * a * B
@@ -768,12 +755,12 @@ def compute_jump_detects(
         )
 
         # invert the covariance matrix of a, b to get the uncertainty on a
-        result.uncert_oneomit = np.sqrt(Cinv_diag / (C * Cinv_diag - dC**2))
-        result.jumpsig_oneomit = np.sqrt(C / (C * Cinv_diag - dC**2))
+        result.uncert_one_omit = np.sqrt(Cinv_diag / (C * Cinv_diag - dC**2))
+        result.jumpsig_one_omit = np.sqrt(C / (C * Cinv_diag - dC**2))
 
-        result.chisq_oneomit /= scale
-        result.uncert_oneomit *= np.sqrt(scale)
-        result.jumpsig_oneomit *= np.sqrt(scale)
+        result.chisq_one_omit /= scale
+        result.uncert_one_omit *= np.sqrt(scale)
+        result.jumpsig_one_omit *= np.sqrt(scale)
 
     # Now for two omissions in a row.  This is more work.  Again,
     # all equations are in the paper.  I first define three
@@ -790,40 +777,40 @@ def compute_jump_detects(
         c /= cjck_fac / cpj_fac - (dC[1:] ** 2 - C * Cinv_diag[1:]) / cjck_fac
         b = (bcpj_fac - c * cjck_fac) / cpj_fac
         a = (B - b * dC[:-1] - c * dC[1:]) / C
-        result.countrate_twoomit = a
+        result.countrate_two_omit = a
 
         # best-fit chi squared
-        result.chisq_twoomit = (
+        result.chisq_two_omit = (
             A + a**2 * C + b**2 * Cinv_diag[:-1] + c**2 * Cinv_diag[1:]
         )
-        result.chisq_twoomit -= 2 * a * B + 2 * b * dB[:-1] + 2 * c * dB[1:]
-        result.chisq_twoomit += (
+        result.chisq_two_omit -= 2 * a * B + 2 * b * dB[:-1] + 2 * c * dB[1:]
+        result.chisq_two_omit += (
             2 * a * b * dC[:-1] + 2 * a * c * dC[1:] + 2 * b * c * Cinv_offdiag
         )
-        result.chisq_twoomit /= scale
+        result.chisq_two_omit /= scale
 
         # uncertainty on the slope from inverting the (a, b, c)
         # covariance matrix
         fac = Cinv_diag[1:] * Cinv_diag[:-1] - Cinv_offdiag**2
         term2 = dC[:-1] * (dC[:-1] * Cinv_diag[1:] - Cinv_offdiag * dC[1:])
         term3 = dC[1:] * (dC[:-1] * Cinv_offdiag - Cinv_diag[:-1] * dC[1:])
-        result.uncert_twoomit = np.sqrt(fac / (C * fac - term2 + term3))
-        result.uncert_twoomit *= np.sqrt(scale)
+        result.uncert_two_omit = np.sqrt(fac / (C * fac - term2 + term3))
+        result.uncert_two_omit *= np.sqrt(scale)
 
     result.fill_masked_reads(diffs2use)
 
     return result
 
 
-def compute_alphas_betas(countrateguess, gain, rnoise, covar, rescale, diffs, dn_scale):
+def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, dn_scale):
     """
     Compute alpha, beta, and scale needed for ramp fit.
+
     Elements of the covariance matrix.
-    Are these EQNs 32 and 33?
 
     Parameters
     ----------
-    countrateguess : ndarray
+    count_rate_guess : ndarray
         Initial guess (ncols,)
 
     gain : ndarray
@@ -833,7 +820,7 @@ def compute_alphas_betas(countrateguess, gain, rnoise, covar, rescale, diffs, dn
         Read noise (ncols,)
 
     covar : Covar
-        The class that computes and contains the covariance matrix info.
+        The class instance that computes and contains the covariance matrix info.
 
     rescale : bool
         Determination to rescale covariance matrix.
@@ -841,8 +828,8 @@ def compute_alphas_betas(countrateguess, gain, rnoise, covar, rescale, diffs, dn
     diffs : ndarray
         The group differences of the data (ngroups-1, nrows, ncols).
 
-    dn_scale : XXX
-        XXX
+    dn_scale : float
+        Scaling factor.
 
     Returns
     -------
@@ -859,13 +846,11 @@ def compute_alphas_betas(countrateguess, gain, rnoise, covar, rescale, diffs, dn
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-    # import ipdb; ipdb.set_trace()
-
-    alpha_phnoise = countrateguess / gain * covar.alpha_phnoise[:, np.newaxis]
+    alpha_phnoise = count_rate_guess / gain * covar.alpha_phnoise[:, np.newaxis]
     alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
     alpha = alpha_phnoise + alpha_readnoise
 
-    beta_phnoise = countrateguess / gain * covar.beta_phnoise[:, np.newaxis]
+    beta_phnoise = count_rate_guess / gain * covar.beta_phnoise[:, np.newaxis]
     beta_readnoise = rnoise**2 * covar.beta_readnoise[:, np.newaxis]
     beta = beta_phnoise + beta_readnoise
 
@@ -1121,6 +1106,7 @@ def matrix_computations(
 ):
     """
     Computing matrix computations needed for ramp fitting.
+
     EQNs 61-63, 71, 75
 
     Parameters
@@ -1251,7 +1237,7 @@ def get_ramp_result(
         Intermediate computation.
 
     covar : Covar
-        The class that computes and contains the covariance matrix info.
+        The class instance that computes and contains the covariance matrix info.
 
     resetval : float or ndarray
         Priors on the reset values.  Irrelevant unless pedestal is True.  If an
@@ -1269,10 +1255,10 @@ def get_ramp_result(
 
     Returns
     -------
-    result : Ramp_Result
+    result : RampResult
         The results of the ramp fitting for a given row of pixels in an integration.
     """
-    result = Ramp_Result()
+    result = RampResult()
 
     # Finally, save the best-fit count rate, chi squared, uncertainty
     # in the count rate, and the weights used to combine the

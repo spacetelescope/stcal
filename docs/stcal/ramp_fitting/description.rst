@@ -3,8 +3,8 @@ Description
 
 This step determines the mean count rate, in units of counts per second, for
 each pixel by performing a linear fit to the data in the input file.  The default
-is done using the "ordinary least squares" method using based on the Fixsen fitting
-algorithm described by
+method uses "ordinary least squares" based on the Fixsen fitting algorithm
+described by
 `Fixsen et al. (2011) <https://ui.adsabs.harvard.edu/abs/2000PASP..112.1350F>`_.
 
 The count rate for each pixel is determined by a linear fit to the
@@ -18,9 +18,10 @@ saturation flags are found. Pixels are processed simultaneously in blocks
 using the array-based functionality of numpy.  The size of the block depends
 on the image size and the number of groups.
 
-There is a likelihood algorithm implemented based on Timoth Brandt's papers:
+There is a likelihood algorithm implemented based on Timothy Brandt's papers:
 Optimal Fitting and Debiasing for Detectors Read Out Up-the-Ramp
-Likelihood-Based Jump Detection and Cosmic Ray Rejection for Detectors Read Out Up-the-Ramp
+Likelihood-Based Jump Detection and Cosmic Ray Rejection for Detectors Read Out Up-the-Ramp.
+This algorithm is currently in beta phase as an alternative to the OLS method.
 
 .. _ramp_output_products:
 
@@ -323,12 +324,12 @@ product.
 Likelihood Algorithm Details
 ----------------------------
 As an alternative to the OLS algorithm, a likelihood algorithm can be selected
-with for ``--ramp_fitting.algorithm=LIKELY``.  If this algorithm is selected,
-the normal pipeline jump detection algorithm is skipped because this algorithm
-has its own jump detection algorithm.  The jump detection for this algorithm
-requires NGROUPS to be a minimum of four (4).  If NGROUPS :math:`\le` 3, then
-this algorithm is deselected, defaulting to the above described OLS algorithm
-and the normal jump detection pipeline step is run.
+with the step argument ``--ramp_fitting.algorithm=LIKELY``.  If this algorithm
+is selected, the normal pipeline jump detection algorithm is skipped because
+this algorithm has its own jump detection algorithm.  The jump detection for
+this algorithm requires NGROUPS to be a minimum of four (4).  If NGROUPS
+:math:`\le` 3, then this algorithm is deselected, defaulting to the above
+described OLS algorithm and the normal jump detection pipeline step is run.
 
 Each pixel is independently processed, but rather than operate on the each
 group/resultant directly, the likelihood algorithm is based on differences of
@@ -345,10 +346,10 @@ Differentiating, setting to zero, then solving for :math:`a` results in
 
 The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of the
 differences.  Because the covariance matrix is tridiagonal, the  computational
-complexity from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed derivation
+complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed derivation
 and computations implemented, refer to 
 `Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`_ and
-`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`_.
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.
 The Poisson and read noise  computations are based on equations (27) and (28), defining
 :math:`\alpha_i`, the diagonal of :math:`C`, and :math:`\beta_i`, the off diagonal.
 

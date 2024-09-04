@@ -273,7 +273,7 @@ def ramp_fit_data(
         opt_info = None
     elif algorithm.upper() == "LIKELY" and ngroups >= likely_min_ngroups:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
+            ramp_data, readnoise_2d, gain_2d
         )
         gls_opt_info = None
     else:

@@ -43,7 +43,7 @@ class IntegInfo:
 
         Parameters
         ----------
-        result : Ramp_Result
+        result : RampResult
             Holds computed ramp fitting information.
 
         integ : int
@@ -58,7 +58,7 @@ class IntegInfo:
         self.var_rnoise[integ, row, :] = result.var_rnoise
 
 
-class Ramp_Result:
+class RampResult:
     def __init__(self):
         """
         Contains the ramp fitting results.
@@ -73,15 +73,15 @@ class Ramp_Result:
         self.uncert_pedestal = None
         self.covar_countrate_pedestal = None
 
-        self.countrate_twoomit = None
-        self.chisq_twoomit = None
-        self.uncert_twoomit = None
+        self.countrate_two_omit = None
+        self.chisq_two_omit = None
+        self.uncert_two_omit = None
 
-        self.countrate_oneomit = None
-        self.jumpval_oneomit = None
-        self.jumpsig_oneomit = None
-        self.chisq_oneomit = None
-        self.uncert_oneomit = None
+        self.countrate_one_omit = None
+        self.jumpval_one_omit = None
+        self.jumpsig_one_omit = None
+        self.chisq_one_omit = None
+        self.uncert_one_omit = None
 
     def __repr__(self):
         """
@@ -96,36 +96,38 @@ class Ramp_Result:
         ostring += f"\nuncert_pedestal = \n{self.uncert_pedestal}"
         ostring += f"\ncovar_countrate_pedestal = \n{self.covar_countrate_pedestal}\n"
 
-        ostring += f"\ncountrate_twoomit = \n{self.countrate_twoomit}"
-        ostring += f"\nchisq_twoomit = \n{self.chisq_twoomit}"
-        ostring += f"\nuncert_twoomit = \n{self.uncert_twoomit}"
+        ostring += f"\ncountrate_two_omit = \n{self.countrate_two_omit}"
+        ostring += f"\nchisq_two_omit = \n{self.chisq_two_omit}"
+        ostring += f"\nuncert_two_omit = \n{self.uncert_two_omit}"
 
-        ostring += f"\ncountrate_oneomit = \n{self.countrate_oneomit}"
-        ostring += f"\njumpval_oneomit = \n{self.jumpval_oneomit}"
-        ostring += f"\njumpsig_oneomit = \n{self.jumpsig_oneomit}"
-        ostring += f"\nchisq_oneomit = \n{self.chisq_oneomit}"
-        ostring += f"\nuncert_oneomit = \n{self.uncert_oneomit}"
+        ostring += f"\ncountrate_one_omit = \n{self.countrate_one_omit}"
+        ostring += f"\njumpval_one_omit = \n{self.jumpval_one_omit}"
+        ostring += f"\njumpsig_one_omit = \n{self.jumpsig_one_omit}"
+        ostring += f"\nchisq_one_omit = \n{self.chisq_one_omit}"
+        ostring += f"\nuncert_one_omit = \n{self.uncert_one_omit}"
         '''
 
         return ostring
 
     def fill_masked_reads(self, diffs2use):
         """
+        Mask groups to use for ramp fitting.
+
         Replace countrates, uncertainties, and chi squared values that
         are NaN because resultant differences were doubly omitted.
         For these cases, revert to the corresponding values in with
         fewer omitted resultant differences to get the correct values
-        without double-coundint omissions.
+        without double-counting omissions.
 
         This function replaces the relevant entries of
-        self.countrate_twoomit, self.chisq_twoomit,
-        self.uncert_twoomit, self.countrate_oneomit, and
-        self.chisq_oneomit in place.  It does not return a value.
+        self.countrate_two_omit, self.chisq_two_omit,
+        self.uncert_two_omit, self.countrate_one_omit, and
+        self.chisq_one_omit in place.  It does not return a value.
 
         Parameters
         ----------
         diffs2use : ndarray
-            A 2D array matching self.countrate_oneomit in shape with zero
+            A 2D array matching self.countrate_one_omit in shape with zero
             for resultant differences that were masked and one for
             differences that were not masked.
         """
@@ -134,21 +136,21 @@ class Ramp_Result:
         omit = diffs2use == 0
         ones = np.ones(diffs2use.shape)
 
-        self.countrate_oneomit[omit] = (self.countrate * ones)[omit]
-        self.chisq_oneomit[omit] = (self.chisq * ones)[omit]
-        self.uncert_oneomit[omit] = (self.uncert * ones)[omit]
+        self.countrate_one_omit[omit] = (self.countrate * ones)[omit]
+        self.chisq_one_omit[omit] = (self.chisq * ones)[omit]
+        self.uncert_one_omit[omit] = (self.uncert * ones)[omit]
 
         omit = diffs2use[1:] == 0
 
-        self.countrate_twoomit[omit] = (self.countrate_oneomit[:-1])[omit]
-        self.chisq_twoomit[omit] = (self.chisq_oneomit[:-1])[omit]
-        self.uncert_twoomit[omit] = (self.uncert_oneomit[:-1])[omit]
+        self.countrate_two_omit[omit] = (self.countrate_one_omit[:-1])[omit]
+        self.chisq_two_omit[omit] = (self.chisq_one_omit[:-1])[omit]
+        self.uncert_two_omit[omit] = (self.uncert_one_omit[:-1])[omit]
 
         omit = diffs2use[:-1] == 0
 
-        self.countrate_twoomit[omit] = (self.countrate_oneomit[1:])[omit]
-        self.chisq_twoomit[omit] = (self.chisq_oneomit[1:])[omit]
-        self.uncert_twoomit[omit] = (self.uncert_oneomit[1:])[omit]
+        self.countrate_two_omit[omit] = (self.countrate_one_omit[1:])[omit]
+        self.chisq_two_omit[omit] = (self.chisq_one_omit[1:])[omit]
+        self.uncert_two_omit[omit] = (self.uncert_one_omit[1:])[omit]
 
 
 class Covar:
@@ -245,7 +247,7 @@ class Covar:
 
     def _compute_alphas_and_betas(self, mean_t, tau, N, delta_t):
         """
-        Computes the means and taus of defined in EQNs 28 and 29 in paper 1.
+        Computes the means and taus defined in EQNs 28 and 29 in paper 1.
 
         Parameters
         ----------
@@ -269,7 +271,7 @@ class Covar:
 
     def _compute_pedestal(self, mean_t, tau, N, delta_t):
         """
-        Computes the means and taus of defined in EQNs 28 and 29 in paper 1.
+        Computes the means and taus defined in EQNs 28 and 29 in paper 1.
 
         Parameters
         ----------
@@ -303,7 +305,7 @@ class Covar:
     def calc_bias(self, countrates, sig, cvec, da=1e-7):
         """
         Calculate the bias in the best-fit count rate from estimating the
-        covariance matrix.  This calculation is derived in the paper.
+        covariance matrix.
 
         Section 5 of paper 1.
 
@@ -314,7 +316,7 @@ class Covar:
             Array of count rates at which the bias is desired.
 
         sig : float
-            Single read noise]
+            Single read noise.
 
         cvec : ndarray
             Weight vector on resultant differences for initial estimation
