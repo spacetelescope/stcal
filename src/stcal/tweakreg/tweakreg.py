@@ -46,6 +46,7 @@ def relative_align(correctors: list,
                    fitgeometry: str = "rshift",
                    nclip: int = 3,
                    sigma: float = 3.0,
+                   clip_accum: bool = False,
                    ) -> list:
 
     if separation <= _SQRT2 * tolerance:
@@ -73,7 +74,8 @@ def relative_align(correctors: list,
             match=xyxymatch,
             fitgeom=fitgeometry,
             nclip=nclip,
-            sigma=(sigma, "rmse")
+            sigma=(sigma, "rmse"),
+            clip_accum=clip_accum,
         )
 
     except ValueError as e:
@@ -124,7 +126,8 @@ def absolute_align(correctors: list,
                    abs_minobj: int = 15,
                    abs_fitgeometry: str = "rshift",
                    abs_nclip: int = 3,
-                   abs_sigma: float = 3.0,) -> list:
+                   abs_sigma: float = 3.0,
+                   clip_accum: bool = False,) -> list:
 
     if abs_separation <= _SQRT2 * abs_tolerance:
         msg = ("Parameter 'abs_separation' must be larger than "
@@ -183,7 +186,8 @@ def absolute_align(correctors: list,
             match=xyxymatch_gaia,
             fitgeom=abs_fitgeometry,
             nclip=abs_nclip,
-            sigma=(abs_sigma, "rmse")
+            sigma=(abs_sigma, "rmse"),
+            clip_accum=clip_accum,
         )
     except ValueError as e:
         msg = e.args[0]
