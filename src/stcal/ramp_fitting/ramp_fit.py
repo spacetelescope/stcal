@@ -280,7 +280,7 @@ def ramp_fit_data(
         # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
-        # XXX If the LIKELY is selected, log that the "OLS" algorithm is being use
+        # If the LIKELY is selected, log that the "OLS" algorithm is being use
         #     and note the minimum number of ngroups needed.
         if algorithm.upper() == "LIKELY" and ngroups < likely_min_ngroups:
             msg = f"The 'OLS' algorithm is used since the LIKELY algorithm requires {likely_min_ngroups} or more"

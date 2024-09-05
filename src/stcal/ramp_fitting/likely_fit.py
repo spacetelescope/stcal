@@ -878,6 +878,8 @@ def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, 
 
 def compute_thetas(ndiffs, npix, alpha, beta):
     """
+    Computes intermediate theta values for ramp fitting.
+
     EQNs 38-40
 
     Parameters
@@ -907,6 +909,8 @@ def compute_thetas(ndiffs, npix, alpha, beta):
 
 def compute_phis(ndiffs, npix, alpha, beta):
     """
+    Computes intermediate phi values for ramp fitting.
+
     EQNs 41-43
 
     Parameters
@@ -936,6 +940,8 @@ def compute_phis(ndiffs, npix, alpha, beta):
 
 def compute_Phis(ndiffs, npix, beta, phi, sgn):
     """
+    Computes intermediate Phi values for ramp fitting.
+
     EQN 46
 
     Parameters
@@ -1071,7 +1077,7 @@ def matrix_computations(
     ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD
 ):
     """
-    Computing matrix computations needed for ramp fitting.
+    Compute matrix computations needed for ramp fitting.
 
     EQNs 61-63, 71, 75
 
@@ -1203,10 +1209,17 @@ def get_ramp_result(
     covar : Covar
         The class instance that computes and contains the covariance matrix info.
 
-    alpha_phnoise : XXX
-    alpha_readnoise : XXX
-    beta_phnoise : XXX
-    beta_readnoise : XXX
+    alpha_phnoise : ndarray
+        The photon noise contribution to the alphas.
+
+    alpha_readnoise : ndarray
+        The read noise contribution to the alphas.
+
+    beta_phnoise : ndarray
+        The photon noise contribution to the betas.
+
+    beta_readnoise : ndarray
+        The read noise contribution to the betas.
 
     Returns
     -------
