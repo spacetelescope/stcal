@@ -69,7 +69,7 @@ def setup_inputs(dims, gain, rnoise, group_time, frame_time):
     dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
 
-    # Set clas arrays
+    # Set class arrays
     ramp_class.set_arrays(data, err, groupdq, pixeldq, average_dark_current=dark_current)
 
     # Set class meta
