@@ -69,9 +69,6 @@ class RampResult:
         self.var_poisson = None
         self.var_rnoise = None
         self.weights = None
-        self.pedestal = None
-        self.uncert_pedestal = None
-        self.covar_countrate_pedestal = None
 
         self.countrate_two_omit = None
         self.chisq_two_omit = None
@@ -92,9 +89,6 @@ class RampResult:
         ostring += f"\nucert = \n{self.uncert}"
         '''
         ostring += f"\nweights = \n{self.weights}"
-        ostring += f"\npedestal = \n{self.pedestal}"
-        ostring += f"\nuncert_pedestal = \n{self.uncert_pedestal}"
-        ostring += f"\ncovar_countrate_pedestal = \n{self.covar_countrate_pedestal}\n"
 
         ostring += f"\ncountrate_two_omit = \n{self.countrate_two_omit}"
         ostring += f"\nchisq_two_omit = \n{self.chisq_two_omit}"
@@ -158,7 +152,7 @@ class Covar:
     class Covar holding read and photon noise components of alpha and
     beta and the time intervals between the resultant midpoints
     """
-    def __init__(self, readtimes, pedestal=False):
+    def __init__(self, readtimes):
         """
         Compute alpha and beta, the diagonal and off-diagonal elements of
         the covariance matrix of the resultant differences, and the time
@@ -170,16 +164,10 @@ class Covar:
             List of values or lists for the times of reads.  If a list of
             lists, times for reads that are averaged together to produce
             a resultant.
-
-        pedestal : boolean
-            Does the covariance matrix include the terms for the first
-            resultant?  This is needed if fitting for the pedestal (i.e.
-            the reset value).  Optional parameter Default: False.
         """
         # Equations (4) and (11) in paper 1.
-        mean_t, tau, N, delta_t = self._compute_means_and_taus(readtimes, pedestal)
+        mean_t, tau, N, delta_t = self._compute_means_and_taus(readtimes)
 
-        self.pedestal = pedestal
         self.delta_t = delta_t
         self.mean_t = mean_t
         self.tau = tau
@@ -188,11 +176,7 @@ class Covar:
         # Equations (28) and (29) in paper 1.
         self._compute_alphas_and_betas(mean_t, tau, N, delta_t)
 
-        if pedestal:
-            # Equations (32) and (33) in paper 1.
-            self._compute_pedestal(mean_t, tau, N, delta_t)
-
-    def _compute_means_and_taus(self, readtimes, pedestal):
+    def _compute_means_and_taus(self, readtimes):
         """
         Computes the means and taus of defined in EQNs 4 and 11 in paper 1.
 
@@ -202,11 +186,6 @@ class Covar:
             List of values or lists for the times of reads.  If a list of
             lists, times for reads that are averaged together to produce
             a resultant.
-
-        pedestal : boolean
-            Does the covariance matrix include the terms for the first
-            resultant?  This is needed if fitting for the pedestal (i.e.
-            the reset value).
         """
         mean_t = []  # mean time of the resultant as defined in the paper
         tau = []  # variance-weighted mean time of the resultant
@@ -269,39 +248,6 @@ class Covar:
         self.alpha_phnoise = (tau[:-1] + tau[1:] - 2 * mean_t[:-1]) / delta_t**2
         self.beta_phnoise = (mean_t[1:-1] - tau[1:-1]) / (delta_t[1:] * delta_t[:-1])
 
-    def _compute_pedestal(self, mean_t, tau, N, delta_t):
-        """
-        Computes the means and taus defined in EQNs 28 and 29 in paper 1.
-
-        Parameters
-        ----------
-        mean_t : ndarray
-            The means of the reads for each group.
-
-        tau : ndarray
-            Intermediate computation.
-
-        N : ndarray
-            The number of reads in each group.
-
-        delta_t : ndarray
-            The group differences of integration ramps.
-        """
-        # If we want the reset value we need to include the first
-        # resultant.  These are the components of the variance and
-        # covariance for the first resultant.
-        arn = list(self.alpha_readnoise)
-        brn = list(self.beta_readnoise)
-        ahn = list(self.alpha_phnoise)
-        bhn = list(self.beta_phnoise)
-
-        self.alpha_readnoise = np.array([1 / (N[0] * mean_t[0] ** 2)] + arn)
-        self.beta_readnoise = np.array([-1 / (N[0] * mean_t[0] * delta_t[0])] + brn)
-        self.alpha_phnoise = np.array([tau[0] / mean_t[0] ** 2] + ahn)
-        self.beta_phnoise = np.array(
-            [(mean_t[0] - tau[0]) / (mean_t[0] * delta_t[0])] + bhn
-        )
-
     def calc_bias(self, countrates, sig, cvec, da=1e-7):
         """
         Calculate the bias in the best-fit count rate from estimating the
@@ -333,11 +279,6 @@ class Covar:
             Bias of the best-fit count rate from using cvec plus the observed
             resultants to estimate the covariance matrix.
         """
-        if self.pedestal:
-            raise ValueError(
-                "Cannot compute bias with a Covar class that includes a pedestal fit."
-            )
-
         alpha = countrates[np.newaxis, :] * self.alpha_phnoise[:, np.newaxis]
         alpha += sig**2 * self.alpha_readnoise[:, np.newaxis]
         beta = countrates[np.newaxis, :] * self.beta_phnoise[:, np.newaxis]

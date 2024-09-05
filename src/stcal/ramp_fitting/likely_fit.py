@@ -68,7 +68,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
 
     readtimes = get_readtimes(ramp_data)
 
-    covar = Covar(readtimes, pedestal=False)  # XXX Choice of pedestal not given
+    covar = Covar(readtimes)
     integ_class = IntegInfo(nints, nrows, ncols)
 
     readnoise_2d = readnoise_2d / SQRT2
@@ -184,11 +184,6 @@ def mask_jumps(
         Optional, default is None.
 
     """
-    if covar.pedestal:
-        raise ValueError(
-            "Cannot mask jumps with a Covar class that includes a pedestal fit."
-        )
-
     # Force a copy of the input array for more efficient memory access.
     loc_diff = diffs * 1
 
@@ -485,12 +480,8 @@ def inital_count_rate_guess(covar, diffs, diffs2use):
     """
     # initial guess for count rate is the average of the unmasked
     # group differences unless otherwise specified.
-    if covar.pedestal:
-        num = np.sum((diffs * diffs2use)[1:], axis=0)
-        den = np.sum(diffs2use[1:], axis=0)
-    else:
-        num = np.sum((diffs * diffs2use), axis=0)
-        den = np.sum(diffs2use, axis=0)
+    num = np.sum((diffs * diffs2use), axis=0)
+    den = np.sum(diffs2use, axis=0)
 
     count_rate_guess = num / den
     count_rate_guess *= count_rate_guess > 0
@@ -507,8 +498,6 @@ def fit_ramps(
     count_rate_guess=None,
     diffs2use=None,
     detect_jumps=False,
-    resetval=0,
-    resetsig=np.inf,
     rescale=True,
     dn_scale=10.0,
 ):
@@ -544,15 +533,6 @@ def fit_ramps(
     detect_jumps : boolean
         Run jump detection.
         Optional, default is False.
-
-    resetval : float or ndarray
-        Priors on the reset values.  Irrelevant unless pedestal is True.  If an
-        ndarray, it has dimensions (ncols).
-        Opfional, default is 0.
-
-    resetsig : float or ndarray
-        Uncertainties on the reset values.  Irrelevant unless covar.pedestal is True.
-        Optional, default np.inf, i.e., reset values have flat priors.
 
     rescale : boolean
         Scale the covariance matrix internally to avoid possible
@@ -627,8 +607,6 @@ def fit_ramps(
         phi,
         theta,
         covar,
-        resetval,
-        resetsig,
         alpha_phnoise,
         alpha_readnoise,
         beta_phnoise,
@@ -661,12 +639,6 @@ def compute_jump_detects(
 
     Then do it omitting two consecutive reads.  There are ndiffs-1
     possible pairs of adjacent reads that can be omitted.
-
-    This approach would need to be modified if also fitting the
-    pedestal, so that condition currently triggers an error.  The
-    modifications would make the equations significantly more
-    complicated; the matrix equations to be solved by hand would be
-    larger.
 
     Paper II, sections 3.1 and 3.2
 
@@ -717,11 +689,6 @@ def compute_jump_detects(
     result : RampResult
         The results of the ramp fitting for a given row of pixels in an integration.
     """
-    # The algorithms below do not work if we are computing the
-    # pedestal here.
-    if covar.pedestal:
-        raise ValueError("Cannot use jump detection algorithm when fitting pedestals.")
-
     # Diagonal elements of the inverse covariance matrix
     Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]
     Cinv_diag *= diffs2use
@@ -1001,8 +968,7 @@ def compute_Phis(ndiffs, npix, beta, phi, sgn):
 def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
     """
     EQN 4, Paper II
-    This one is defined later in the paper and is used for jump
-    detection and pedestal fitting.
+    This one is defined later in the paper and is used for jump detection.
 
     Parameters
     ----------
@@ -1198,8 +1164,6 @@ def get_ramp_result(
     phi,
     theta,
     covar,
-    resetval,
-    resetsig,
     alpha_phnoise,
     alpha_readnoise,
     beta_phnoise,
@@ -1239,19 +1203,10 @@ def get_ramp_result(
     covar : Covar
         The class instance that computes and contains the covariance matrix info.
 
-    resetval : float or ndarray
-        Priors on the reset values.  Irrelevant unless pedestal is True.  If an
-        ndarray, it has dimensions (ncols).
-        Opfional, default is 0.
-
-    resetsig : float or ndarray
-        Uncertainties on the reset values.  Irrelevant unless covar.pedestal is True.
-        Optional, default np.inf, i.e., reset values have flat priors.
-
-    alpha_phnoise :
-    alpha_readnoise :
-    beta_phnoise :
-    beta_readnoise :
+    alpha_phnoise : XXX
+    alpha_readnoise : XXX
+    beta_phnoise : XXX
+    beta_readnoise : XXX
 
     Returns
     -------
@@ -1264,54 +1219,26 @@ def get_ramp_result(
     # in the count rate, and the weights used to combine the
     # groups.
 
-    # XXX pedestal is always False.
-    if not covar.pedestal:
-        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-        invC = 1 / C
-        result.countrate = B * invC
-        result.chisq = (A - B**2 / C) / scale
+    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+    invC = 1 / C
+    result.countrate = B * invC
+    result.chisq = (A - B**2 / C) / scale
 
-        result.uncert = np.sqrt(scale / C)
-        result.weights = dC / C
+    result.uncert = np.sqrt(scale / C)
+    result.weights = dC / C
 
-        result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
-        result.var_poisson += 2 * np.sum(
-            result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0
-        )
+    result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
+    result.var_poisson += 2 * np.sum(
+        result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0
+    )
 
-        result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
-        result.var_rnoise += 2 * np.sum(
-            result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0
-        )
+    result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
+    result.var_rnoise += 2 * np.sum(
+        result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0
+    )
 
-        warnings.resetwarnings()
-
-    # If we are computing the pedestal, then we use the other formulas
-    # in the paper.
-
-    else:
-        dt = covar.mean_t[0]
-        Cinv_11 = theta[0] * phi[1] / theta[ndiffs]
-
-        # Calculate the pedestal and slope using the equations in the paper.
-        # Do not compute weights for this case.
-
-        b = dB[0] * C * dt - B * dC[0] * dt + dt**2 * C * resetval / resetsig**2
-        b /= C * Cinv_11 - dC[0] ** 2 + dt**2 * C / resetsig**2
-        a = B / C - b * dC[0] / C / dt
-        result.pedestal = b
-        result.countrate = a
-        result.chisq = A + a**2 * C + b**2 / dt**2 * Cinv_11
-        result.chisq += -2 * b / dt * dB[0] - 2 * a * B + 2 * a * b / dt * dC[0]
-        result.chisq /= scale
-
-        # elements of the inverse covariance matrix
-        M = [C, dC[0] / dt, Cinv_11 / dt**2 + 1 / resetsig**2]
-        detM = M[0] * M[-1] - M[1] ** 2
-        result.uncert = np.sqrt(scale * M[-1] / detM)
-        result.uncert_pedestal = np.sqrt(scale * M[0] / detM)
-        result.covar_countrate_pedestal = -scale * M[1] / detM
+    warnings.resetwarnings()
 
     return result
 
