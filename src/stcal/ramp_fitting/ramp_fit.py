@@ -283,7 +283,7 @@ def ramp_fit_data(
         # If the LIKELY is selected, log that the "OLS" algorithm is being use
         #     and note the minimum number of ngroups needed.
         if algorithm.upper() == "LIKELY" and ngroups < likely_min_ngroups:
-            msg = f"The 'OLS' algorithm is used since the LIKELY algorithm requires {likely_min_ngroups} or more"
+            msg = f"The 'OLS' algorithm is used since the LIKELY algorithm requires {likely_min_ngroups} or more "
             msg += f"NGROUPS.  The NGROUPS for this data,{ngroups}, is insufficient."
             log.warning(msg)
         nframes = ramp_data.nframes
