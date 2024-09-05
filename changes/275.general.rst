@@ -1,0 +1,2 @@
+[ramp_fitting] Moving the read noise recalculation due to CHARGELOSS flagging from
+the JWST ramp fit step code into the STCAL ramp fit C-extension.
