@@ -32,11 +32,6 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     """
     Invoke ramp fitting using the likelihood algorithm.
 
-    Setup the inputs to ols_ramp_fit with and without multiprocessing. The
-    inputs will be sliced into the number of cores that are being used for
-    multiprocessing. Because the data models cannot be pickled, only numpy
-    arrays are passed and returned as parameters to ols_ramp_fit.
-
     Parameters
     ----------
     ramp_data : RampData
@@ -85,9 +80,9 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
         for row in range(nrows):
             d2use = determine_diffs2use(ramp_data, integ, row, diff)
             d2use_copy = d2use.copy()  # Use to flag jumps
-            if ramp_data.nsig is not None:
-                threshold_one_omit = ramp_data.nsig**2
-                pval = scipy.special.erfc(ramp_data.nsig/SQRT2)
+            if ramp_data.rejection_threshold is not None:
+                threshold_one_omit = ramp_data.rejection_threshold**2
+                pval = scipy.special.erfc(ramp_data.rejection_threshold/SQRT2)
                 threshold_two_omit = scipy.stats.chi2.isf(pval, 2)
                 if np.isinf(threshold_two_omit):
                     threshold_two_omit = threshold_one_omit + 10

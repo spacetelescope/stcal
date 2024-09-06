@@ -20,7 +20,7 @@ from astropy import units as u
 
 from . import (
     gls_fit,    # used only if algorithm is "GLS"
-    likely_fit, # used only if algorithm is "LIKLEY"
+    likely_fit, # used only if algorithm is "LIKELY"
     ols_fit,    # used only if algorithm is "OLS"
     ramp_fit_class,
 )
@@ -96,8 +96,6 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
 
     if hasattr(model.meta.exposure, "read_pattern"):
         ramp_data.read_pattern = [list(reads) for reads in model.meta.exposure.read_pattern]
-
-    # XXX If LIKELY, then make sure `nsig` gets set
 
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
@@ -280,12 +278,6 @@ def ramp_fit_data(
         # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
-        # If the LIKELY is selected, log that the "OLS" algorithm is being use
-        #     and note the minimum number of ngroups needed.
-        if algorithm.upper() == "LIKELY" and ngroups < likely_min_ngroups:
-            msg = f"The 'OLS' algorithm is used since the LIKELY algorithm requires {likely_min_ngroups} or more "
-            msg += f"NGROUPS.  The NGROUPS for this data,{ngroups}, is insufficient."
-            log.warning(msg)
         nframes = ramp_data.nframes
         readnoise_2d *= gain_2d / np.sqrt(2.0 * nframes)
 
