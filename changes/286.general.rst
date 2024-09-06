@@ -1,4 +1,1 @@
-[tweakreg] Add clip_accum parameter to alignment methods.
-
-
-[tweakreg] Improve handling of catalog web service connectivity issues.
+Add clip_accum parameter to alignment methods.
