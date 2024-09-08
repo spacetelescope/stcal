@@ -1,3 +1,20 @@
+1.8.1 (2024-09-08)
+==================
+
+Bug Fixes
+---------
+
+- Fixed memory leak in C-extension. (`#281
+  <https://github.com/spacetelescope/stcal/issues/281>`_)
+
+
+General
+-------
+
+- use ``towncrier`` to handle changelog entries (`#284
+  <https://github.com/spacetelescope/stcal/issues/284>`_)
+
+
 1.8.0 (2024-08-14)
 ==================
 
