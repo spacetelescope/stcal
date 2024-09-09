@@ -12,6 +12,7 @@ class RampData:
 
         # Needed for CHARGELOSS recomputation
         self.orig_gdq = None
+        self.algorithm = None
 
         # Meta information
         self.instrument_name = None
@@ -144,7 +145,8 @@ class RampData:
         self.flags_saturated = dqflags["SATURATED"]
         self.flags_no_gain_val = dqflags["NO_GAIN_VALUE"]
         self.flags_unreliable_slope = dqflags["UNRELIABLE_SLOPE"]
-        self.flags_chargeloss = dqflags["CHARGELOSS"]
+        if self.algorithm is not None and self.algorithm.upper() == "OLS_C":
+            self.flags_chargeloss = dqflags["CHARGELOSS"]
 
     def dbg_print_types(self):
         # Arrays from the data model

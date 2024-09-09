@@ -91,6 +91,7 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     if "zero_frame" in model.meta.exposure and model.meta.exposure.zero_frame:
         ramp_data.zeroframe = model.zeroframe
 
+    ramp_data.algorithm = algorithm
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
