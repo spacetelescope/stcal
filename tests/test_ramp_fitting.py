@@ -1610,8 +1610,9 @@ def test_cext_chargeloss():
     ramp.groupdq[0, 3, 0, 3] = JUMP
 
     ramp.orig_gdq = ramp.groupdq.copy()
+    ramp.flags_chargeloss = dqflags["CHARGELOSS"]
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS_C"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
