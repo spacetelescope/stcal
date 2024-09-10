@@ -30,7 +30,7 @@ log.setLevel(logging.DEBUG)
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 
-def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
+def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=False):
     """
     Create an internal ramp fit class from a data model.
 
@@ -58,11 +58,24 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     else:
         dark_current_array = model.average_dark_current
 
+    orig_gdq = None
+    if algorithm.upper() == "OLS_C":
+        wh_chargeloss = np.where(np.bitwise_and(model.groupdq.astype(np.uint32), dqflags['CHARGELOSS']))
+        if len(wh_chargeloss[0]) > 0:
+            orig_gdq = model.groupdq.copy()
+        del wh_chargeloss
+
     if isinstance(model.data, u.Quantity):
         ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq,
                              model.pixeldq, dark_current_array)
     else:
-        ramp_data.set_arrays(model.data, model.err, model.groupdq, model.pixeldq, dark_current_array)
+        ramp_data.set_arrays(
+            model.data,
+            model.err,
+            model.groupdq,
+            model.pixeldq,
+            dark_current_array,
+            orig_gdq)
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
     drop_frames1 = model.meta.exposure.drop_frames1 if hasattr(model, "drop_frames1") else None
@@ -78,6 +91,7 @@ def create_ramp_fit_class(model, dqflags=None, suppress_one_group=False):
     if "zero_frame" in model.meta.exposure and model.meta.exposure.zero_frame:
         ramp_data.zeroframe = model.zeroframe
 
+    ramp_data.algorithm = algorithm
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
     ramp_data.num_rows = ramp_data.data.shape[2]
@@ -170,7 +184,7 @@ def ramp_fit(
     # Create an instance of the internal ramp class, using only values needed
     # for ramp fitting from the to remove further ramp fitting dependence on
     # data models.
-    ramp_data = create_ramp_fit_class(model, dqflags, suppress_one_group)
+    ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
     if algorithm.upper() == "OLS_C":
         ramp_data.run_c_code = True

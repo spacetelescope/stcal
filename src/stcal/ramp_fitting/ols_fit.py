@@ -920,6 +920,7 @@ def discard_miri_groups(ramp_data):
     data = ramp_data.data
     err = ramp_data.err
     groupdq = ramp_data.groupdq
+    orig_gdq = ramp_data.orig_gdq
 
     n_int, ngroups, nrows, ncols = data.shape
 
@@ -949,6 +950,8 @@ def discard_miri_groups(ramp_data):
     if num_bad_slices > 0:
         data = data[:, num_bad_slices:, :, :]
         err = err[:, num_bad_slices:, :, :]
+        if orig_gdq is not None:
+            orig_gdq = orig_gdq[:, num_bad_slices:, :, :]
 
     log.info("Number of leading groups that are flagged as DO_NOT_USE: %s", num_bad_slices)
 
@@ -968,6 +971,8 @@ def discard_miri_groups(ramp_data):
         data = data[:, :-1, :, :]
         err = err[:, :-1, :, :]
         groupdq = groupdq[:, :-1, :, :]
+        if orig_gdq is not None:
+            orig_gdq = orig_gdq[:, :-1, :, :]
 
         log.info("MIRI dataset has all pixels in the final group flagged as DO_NOT_USE.")
 
@@ -981,6 +986,8 @@ def discard_miri_groups(ramp_data):
     ramp_data.data = data
     ramp_data.err = err
     ramp_data.groupdq = groupdq
+    if orig_gdq is not None:
+        ramp_data.orig_gdq = orig_gdq
 
     return True
 
