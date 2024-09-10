@@ -1,1 +1,0 @@
-[jump] Fix a logical bug in the jump step for usage of > vs >= per JP-3689.

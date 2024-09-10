@@ -1,3 +1,25 @@
+1.8.2 (2024-09-10)
+==================
+
+Bug Fixes
+---------
+
+- Implement byteorder swap method that is forward-compatible with numpy 2.0 in
+  jwst ramp_fitting. (`#282
+  <https://github.com/spacetelescope/stcal/issues/282>`_)
+- [jump] Fix a logical bug in the jump step for usage of > vs >= per JP-3689.
+  (`#285 <https://github.com/spacetelescope/stcal/issues/285>`_)
+
+
+General
+-------
+
+- [ramp_fitting] Moving the read noise recalculation due to CHARGELOSS flagging
+  from
+  the JWST ramp fit step code into the STCAL ramp fit C-extension. (`#275
+  <https://github.com/spacetelescope/stcal/issues/275>`_)
+
+
 1.8.1 (2024-09-08)
 ==================
 

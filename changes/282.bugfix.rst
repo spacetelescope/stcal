@@ -1,1 +1,0 @@
-Implement byteorder swap method that is forward-compatible with numpy 2.0 in jwst ramp_fitting.
