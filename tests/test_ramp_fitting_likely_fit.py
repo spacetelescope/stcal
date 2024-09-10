@@ -25,73 +25,6 @@ USLOPE = test_dq_flags["UNRELIABLE_SLOPE"]
 DELIM = "-" * 70
 
 
-def setup_inputs(dims, gain, rnoise, group_time, frame_time):
-    """
-    Creates test data for testing.  All ramp data is zero.
-
-    Parameters
-    ----------
-    dims: tuple
-        Four dimensions (nints, ngroups, nrows, ncols)
-
-    gain: float
-        Gain noise
-
-    rnoise: float
-        Read noise
-
-    group_time: float
-        Group time
-
-    frame_time: float
-        Frame time
-
-    Return
-    ------
-    ramp_class: RampClass
-        A RampClass with all zero data.
-
-    gain: ndarray
-        A 2-D array for gain noise for each pixel.
-
-    rnoise: ndarray
-        A 2-D array for read noise for each pixel.
-    """
-    nints, ngroups, nrows, ncols = dims
-
-    ramp_class = ramp_fit_class.RampData()  # Create class
-
-    # Create zero arrays according to dimensions
-    data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
-    err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
-    groupdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
-    pixeldq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-    dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
-
-
-    # Set class arrays
-    ramp_class.set_arrays(data, err, groupdq, pixeldq, average_dark_current=dark_current)
-
-    # Set class meta
-    ramp_class.set_meta(
-        name="MIRI",
-        frame_time=frame_time,
-        group_time=group_time,
-        groupgap=0,
-        nframes=1,
-        drop_frames1=0,
-    )
-
-    # Set class data quality flags
-    ramp_class.set_dqflags(test_dq_flags)
-
-    # Set noise arrays
-    gain = np.ones(shape=(nrows, ncols), dtype=np.float64) * gain
-    rnoise = np.full((nrows, ncols), rnoise, dtype=np.float32)
-
-    return ramp_class, gain, rnoise
-
-
 def create_blank_ramp_data(dims, var, tm):
     """
     Create empty RampData classes, as well as gain and read noise arrays,
@@ -120,8 +53,8 @@ def create_blank_ramp_data(dims, var, tm):
     )
     ramp_data.set_dqflags(test_dq_flags)
 
-    gain = np.ones(shape=(nrows, ncols), dtype=np.float64) * gval
-    rnoise = np.ones(shape=(nrows, ncols), dtype=np.float64) * rnval
+    gain = np.ones(shape=(nrows, ncols), dtype=np.float32) * gval
+    rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnval
 
     return ramp_data, gain, rnoise
 
@@ -494,7 +427,7 @@ def test_short_group_ramp(nframes):
     data1 = cube1[0][0, 0, 0]
     diff = abs(data - data1)
     assert diff < tol
-    dbg_print_slope_slope1(slopes, slopes1, (0, 0))
+    # dbg_print_slope_slope1(slopes, slopes1, (0, 0))
 
 
 def data_small_good_groups():
@@ -601,6 +534,33 @@ def test_jump_detect():
     assert dq[0, 1] == GOOD
     assert dq[1, 0] == GOOD
     assert dq[1, 1] == JMP
+
+
+def test_too_few_groups(caplog):
+    """
+    Ensure 
+    """
+    nints, ngroups, nrows, ncols = 1, 3, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp_data, gain2d, rnoise2d = create_blank_ramp_data(dims, var, tm)
+
+    # Create a simple linear ramp.
+    ramp = np.array(list(range(ngroups))) * 20 + 10
+    ramp_data.data[0, :, 0, 0] = ramp
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
+    )
+
+    expected_log = "ramp fitting algorithm is being changed to OLS_C"
+    assert expected_log in caplog.text
 
 
 # -----------------------------------------------------------------

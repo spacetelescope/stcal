@@ -192,9 +192,6 @@ def ramp_fit(
     # data models.
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
-    if algorithm.upper() == "OLS_C":
-        ramp_data.run_c_code = True
-
     return ramp_fit_data(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
     )
@@ -263,13 +260,22 @@ def ramp_fit_data(
     # For the LIKELY algorithm, due to the jump detection portion of the code
     # a minimum of a four group ramp is needed.
     ngroups = ramp_data.data.shape[1]
-    likely_min_ngroups = 4
+    if algorithm.upper() == "LIKELY" and ngroups < likely_fit.LIKELY_MIN_NGROUPS:
+        log.info(f"When selecting the LIKELY ramp fitting algorithm the"
+                  " ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
+                  " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
+                  " is being changed to OLS_C")
+        algorithm = "OLS_C"
+
+    if algorithm.upper() == "OLS_C":
+        ramp_data.run_c_code = True
+        
     if algorithm.upper() == "GLS":
         image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
         )
         opt_info = None
-    elif algorithm.upper() == "LIKELY" and ngroups >= likely_min_ngroups:
+    elif algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, readnoise_2d, gain_2d
         )

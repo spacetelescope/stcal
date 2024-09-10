@@ -18,11 +18,10 @@ from .likely_algo_classes import IntegInfo, RampResult, Covar
 
 DELIM = "=" * 80
 SQRT2 = 1.41421356
+LIKELY_MIN_NGROUPS = 4
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-
-BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -58,7 +57,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
 
     nints, ngroups, nrows, ncols = ramp_data.data.shape
 
-    if ngroups < 4:
+    if ngroups < LIKELY_MIN_NGROUPS:
         raise ValueError("Likelihood fit requires at least 4 groups.")
 
     readtimes = get_readtimes(ramp_data)
