@@ -19,9 +19,9 @@ using the array-based functionality of numpy.  The size of the block depends
 on the image size and the number of groups.
 
 There is a likelihood algorithm implemented based on Timothy Brandt's papers:
-Optimal Fitting and Debiasing for Detectors Read Out Up-the-Ramp
-Likelihood-Based Jump Detection and Cosmic Ray Rejection for Detectors Read Out Up-the-Ramp.
-This algorithm is currently in beta phase as an alternative to the OLS method.
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__
+and
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.
 
 .. _ramp_output_products:
 
@@ -324,14 +324,15 @@ product.
 Likelihood Algorithm Details
 ----------------------------
 As an alternative to the OLS algorithm, a likelihood algorithm can be selected
-with the step argument ``--ramp_fitting.algorithm=LIKELY``.  If this algorithm
-is selected, the normal pipeline jump detection algorithm is skipped because
-this algorithm has its own jump detection algorithm.  The jump detection for
-this algorithm requires NGROUPS to be a minimum of four (4).  If NGROUPS
-:math:`\le` 3, then this algorithm is deselected, defaulting to the above
-described OLS algorithm and the normal jump detection pipeline step is run.
+with the step argument ``--ramp_fitting.algorithm=LIKELY``.  This algorithm has
+its own algorithm for jump detection.  The normal jump detection algorithm runs
+by default, but can be skipped when selecting the LIKELY algorithm.  This
+algorithm removes jump detection flags and sets jump detection flags.  This jump
+detection algorithm requires a minimum of four (4) NGROUPS.  If the LIKELY
+algorithm is selected for data with NGROUPS less than four, the ramp fitting
+algorithm is changed to OLS_C.
 
-Each pixel is independently processed, but rather than operate on the each
+Each pixel is independently processed, but rather than operate on each
 group/resultant directly, the likelihood algorithm is based on differences of
 the groups/resultants :math:`d_i = r_i - r_{i-1}`.  The model used to determine
 the slope/countrate, :math:`a`, is:
@@ -346,14 +347,14 @@ Differentiating, setting to zero, then solving for :math:`a` results in
 
 The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of the
 differences.  Because the covariance matrix is tridiagonal, the  computational
-complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed derivation
-and computations implemented, refer to 
-`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`_ and
-`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.
-The Poisson and read noise  computations are based on equations (27) and (28), defining
-:math:`\alpha_i`, the diagonal of :math:`C`, and :math:`\beta_i`, the off diagonal.
+complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed
+derivation and computations implemented, refer to the links above.
+The Poisson and read noise  computations are based on equations (27) and (28),
+defining :math:`\alpha_i`, the diagonal of :math:`C`, and :math:`\beta_i`, the
+off diagonal.
 
 This algorithm runs ramp fitting twice.  The first run allows for a first
-approximation for the slope, hence :math:`C`, as well as to take care for any jumps
-in a ramp.  Using this first approximation, ramp fitting is run again without jump
+approximation for the slope.  This first approximation is used to create the
+covariance matrix :math:`C`, as well as to take care for any jumps in a ramp.
+Using this first approximation, ramp fitting is run again without jump
 detection to compute the final slope and variances for each pixel.
