@@ -14,10 +14,10 @@ This PR addresses ...
 
 <!-- if you can't perform these tasks due to permissions, please ask a maintainer to do them -->
 ## Tasks
-- [ ] Does this PR change user-facing code / API? (if not, label with `no-changelog-entry-needed`)
+- [ ] update or add relevant tests
+- [ ] update relevant docstrings and / or `docs/` page
+- [ ] Does this PR change the public API? (if not, label with `no-changelog-entry-needed`)
   - [ ] write news fragment(s) in `changes/`: `echo "changed something" > changes/<PR#>.<changetype>.rst` (see below for change types)
-  - [ ] update or add relevant tests
-  - [ ] update relevant docstrings and / or `docs/` page
   - [ ] run regression tests with this branch installed (`"git+https://github.com/<fork>/stcal@<branch>"`)
     - [ ] [`jwst` regression test](https://github.com/spacetelescope/RegressionTests/actions/workflows/jwst.yml) 
     - [ ] [`romancal` regression test](https://github.com/spacetelescope/RegressionTests/actions/workflows/romancal.yml)
