@@ -16,7 +16,7 @@ This PR addresses ...
 ## Tasks
 - [ ] update or add relevant tests
 - [ ] update relevant docstrings and / or `docs/` page
-- [ ] Does this PR change the public API? (if not, label with `no-changelog-entry-needed`)
+- [ ] Does this PR change any API used downstream? (if not, label with `no-changelog-entry-needed`)
   - [ ] write news fragment(s) in `changes/`: `echo "changed something" > changes/<PR#>.<changetype>.rst` (see below for change types)
   - [ ] run regression tests with this branch installed (`"git+https://github.com/<fork>/stcal@<branch>"`)
     - [ ] [`jwst` regression test](https://github.com/spacetelescope/RegressionTests/actions/workflows/jwst.yml) 
