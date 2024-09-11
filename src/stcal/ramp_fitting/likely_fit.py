@@ -17,7 +17,7 @@ from .likely_algo_classes import IntegInfo, RampResult, Covar
 
 
 DELIM = "=" * 80
-SQRT2 = 1.41421356
+SQRT2 = np.sqrt(2)
 LIKELY_MIN_NGROUPS = 4
 
 log = logging.getLogger(__name__)
@@ -137,8 +137,7 @@ def mask_jumps(
 ):
 
     """
-    Function mask_jumps implements a likelihood-based, iterative jump
-    detection algorithm.
+    Implements a likelihood-based, iterative jump detection algorithm.
 
     Parameters
     ----------
@@ -163,13 +162,13 @@ def mask_jumps(
         Minimum chisq improvement to exclude  two sequential resultant differences.
         Default 23.8.
 
-    d2use : ndarray
+    diffs2use : ndarray
         A boolean array definined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
     Returns
     -------
-    d2use : ndarray
+    dffs2use : ndarray
         A boolean array definined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
@@ -179,7 +178,8 @@ def mask_jumps(
 
     """
     # Force a copy of the input array for more efficient memory access.
-    loc_diff = diffs * 1
+    # loc_diff = diffs * 1
+    loc_diff = diffs
 
     # We can use one-omit searches only where the reads immediately
     # preceding and following have just one read.  If a readout
@@ -452,15 +452,12 @@ def determine_diffs2use(ramp_data, integ, row, diffs):
     return d2use
 
 
-def inital_count_rate_guess(covar, diffs, diffs2use):
+def initial_count_rate_guess(diffs, diffs2use):
     """
     Compute the initial count rate.
 
     Parameters
     ----------
-    covar : Covar
-        The class instance that computes and contains the covariance matrix info.
-
     diffs : ndarray
         The group differences of the data (ngroups-1, nrows, ncols).
 
@@ -547,7 +544,7 @@ def fit_ramps(
 
     # diffs is (ngroups, ncols) of the current row
     if count_rate_guess is None:
-        count_rate_guess = inital_count_rate_guess(covar, diffs, diffs2use)
+        count_rate_guess = initial_count_rate_guess(covar, diffs, diffs2use)
 
     alpha_tuple, beta_tuple, scale = compute_alphas_betas(
         count_rate_guess, gain, rnoise, covar, rescale, diffs, dn_scale
@@ -593,14 +590,10 @@ def fit_ramps(
 
     result = get_ramp_result(
         dC,
-        dB,
         A,
         B,
         C,
         scale,
-        phi,
-        theta,
-        covar,
         alpha_phnoise,
         alpha_readnoise,
         beta_phnoise,
@@ -610,8 +603,11 @@ def fit_ramps(
     # --- Beginning at line 250: Paper 1 section 4
 
     if detect_jumps:
+        # result = compute_jump_detects(
+        #     result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
+        # )
         result = compute_jump_detects(
-            result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
+            result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta
         )
 
     return result
@@ -621,7 +617,7 @@ def fit_ramps(
 
 
 def compute_jump_detects(
-    result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
+    result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta
 ):
     """
     Detect jumps in ramps.
@@ -1155,19 +1151,8 @@ def matrix_computations(
 
 
 def get_ramp_result(
-    dC,
-    dB,
-    A,
-    B,
-    C,
-    scale,
-    phi,
-    theta,
-    covar,
-    alpha_phnoise,
-    alpha_readnoise,
-    beta_phnoise,
-    beta_readnoise,
+    dC, A, B, C, scale, alpha_phnoise, alpha_readnoise,
+    beta_phnoise, beta_readnoise,
 ):
     """
     Use intermediate computations to fit the ramp and save the results.
@@ -1175,9 +1160,6 @@ def get_ramp_result(
     Parameters
     ----------
     dC : ndarray
-        Intermediate computation.
-
-    dB : ndarray
         Intermediate computation.
 
     A : ndarray
@@ -1193,15 +1175,6 @@ def get_ramp_result(
         Factor applied to each element of the covariance matrix to
         normalize its determinant in order to avoid possible
         overflow/underflow problems for long ramps.
-
-    phi : ndarray
-        Intermediate computation.
-
-    theta : ndarray
-        Intermediate computation.
-
-    covar : Covar
-        The class instance that computes and contains the covariance matrix info.
 
     alpha_phnoise : ndarray
         The photon noise contribution to the alphas.

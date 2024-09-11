@@ -250,8 +250,7 @@ class Covar:
 
     def calc_bias(self, countrates, sig, cvec, da=1e-7):
         """
-        Calculate the bias in the best-fit count rate from estimating the
-        covariance matrix.
+        Calculate the bias in the best-fit count rate from estimating the covariance matrix.
 
         Section 5 of paper 1.
 
