@@ -352,9 +352,3 @@ derivation and computations implemented, refer to the links above.
 The Poisson and read noise  computations are based on equations (27) and (28),
 defining :math:`\alpha_i`, the diagonal of :math:`C`, and :math:`\beta_i`, the
 off diagonal.
-
-This algorithm runs ramp fitting twice.  The first run allows for a first
-approximation for the slope.  This first approximation is used to create the
-covariance matrix :math:`C`, as well as to take care for any jumps in a ramp.
-Using this first approximation, ramp fitting is run again without jump
-detection to compute the final slope and variances for each pixel.
