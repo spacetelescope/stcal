@@ -281,11 +281,13 @@ def mask_jumps(
             break
 
         # Store the updated counts with omitted reads
-        new_cts = np.zeros(np.sum(recheck))
-        i_d1 = np.sum(dropone, axis=0) > 0
-        new_cts[i_d1] = np.sum(result.countrate_one_omit * dropone, axis=0)[i_d1]
-        i_d2 = np.sum(droptwo, axis=0) > 0
-        new_cts[i_d2] = np.sum(result.countrate_two_omit * droptwo, axis=0)[i_d2]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            new_cts = np.zeros(np.sum(recheck))
+            i_d1 = np.sum(dropone, axis=0) > 0
+            new_cts[i_d1] = np.sum(result.countrate_one_omit * dropone, axis=0)[i_d1]
+            i_d2 = np.sum(droptwo, axis=0) > 0
+            new_cts[i_d2] = np.sum(result.countrate_two_omit * droptwo, axis=0)[i_d2]
 
         # zero out count rates with drops and add their new values back in
         countrate[recheck] *= drop == 0
