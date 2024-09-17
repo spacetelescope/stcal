@@ -1,9 +1,11 @@
 """Test astrometric utility functions for alignment"""
+
 import copy
 from copy import deepcopy
 from pathlib import Path
 
 import asdf
+import contextlib
 import numpy as np
 import pytest
 from astropy.modeling.models import Shift
@@ -21,6 +23,7 @@ from stcal.tweakreg.tweakreg import (
     relative_align,
 )
 from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
+import requests
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
@@ -36,6 +39,11 @@ DATADIR = "data"
 # something
 BKG_LEVEL = 0.001
 N_EXAMPLE_SOURCES = 21
+
+
+class MockConnectionError:
+    def __init__(self, *args, **kwargs):
+        raise requests.exceptions.ConnectionError
 
 
 @pytest.fixture(scope="module")
@@ -310,3 +318,23 @@ def test_absolute_align(example_input, input_catalog):
 
     abs_delta = abs(result[1].wcs(0, 0)[0] - result[0].wcs(0, 0)[0])
     assert abs_delta < 1E-12
+
+def test_get_catalog_timeout():
+    """Test that get_catalog can raise an exception on timeout."""
+
+    with pytest.raises(Exception) as exec_info:
+        for dt in np.arange(1, 0, -0.01):
+            with contextlib.suppress(requests.exceptions.ConnectionError):
+                amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt)
+    assert exec_info.type == requests.exceptions.Timeout
+
+
+def test_get_catalog_raises_connection_error(monkeypatch):
+    """Test that get_catalog can raise an exception on connection error."""
+
+    monkeypatch.setattr("requests.get", MockConnectionError)
+
+    with pytest.raises(Exception) as exec_info:
+        amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3")
+
+    assert exec_info.type == requests.exceptions.ConnectionError

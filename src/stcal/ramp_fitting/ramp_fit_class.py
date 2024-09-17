@@ -10,6 +10,10 @@ class RampData:
         self.pixeldq = None
         self.average_dark_current = None
 
+        # Needed for CHARGELOSS recomputation
+        self.orig_gdq = None
+        self.algorithm = None
+
         # Meta information
         self.instrument_name = None
 
@@ -25,6 +29,7 @@ class RampData:
         self.flags_saturated = None
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
+        self.flags_chargeloss = None
 
         # ZEROFRAME
         self.zframe_mat = None
@@ -41,13 +46,15 @@ class RampData:
 
         # C code debugging switch.
         self.run_c_code = False
+        self.run_chargeloss = True
+        # self.run_chargeloss = False
 
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
 
         self.current_integ = -1
 
-    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current):
+    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current, orig_gdq=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -72,6 +79,11 @@ class RampData:
         average_dark_current : ndarray (float32)
             2-D array containing the average dark current. It has
             dimensions (nrows, ncols)
+
+        orig_gdq : ndarray
+            4-D array containing a copy of the original group DQ array.  Since
+            the group DQ array can be modified during ramp fitting, this keeps
+            around the original group DQ flags passed to ramp fitting.
         """
         # Get arrays from the data model
         self.data = data
@@ -79,6 +91,8 @@ class RampData:
         self.groupdq = groupdq
         self.pixeldq = pixeldq
         self.average_dark_current = average_dark_current
+
+        self.orig_gdq = orig_gdq
 
     def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """
@@ -131,6 +145,8 @@ class RampData:
         self.flags_saturated = dqflags["SATURATED"]
         self.flags_no_gain_val = dqflags["NO_GAIN_VALUE"]
         self.flags_unreliable_slope = dqflags["UNRELIABLE_SLOPE"]
+        if self.algorithm is not None and self.algorithm.upper() == "OLS_C":
+            self.flags_chargeloss = dqflags["CHARGELOSS"]
 
     def dbg_print_types(self):
         # Arrays from the data model
@@ -199,6 +215,16 @@ class RampData:
             print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
         # print(f"    err :\n{self.err[:, :, row, col]}")
         # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
+
+    def dbg_print_info(self):
+        print(" ")
+        nints, ngroups, nrows, ncols = self.data.shape
+        for row in range(nrows):
+            for col in range(ncols):
+                print("=" * 80)
+                print(f"**** Pixel ({row}, {col}) ****")
+                self.dbg_print_pixel_info(row, col)
+        print("=" * 80)
 
     def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):
         fd.write("def create_ramp_data_pixel():\n")

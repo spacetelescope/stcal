@@ -32,6 +32,7 @@ dqflags = {
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
     "SATURATED": 2**1,  # Pixel saturated during exposure.
     "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "CHARGELOSS": 2**7,   # Charge migration (was RESERVED_4)
     "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
     "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
 }
@@ -40,6 +41,7 @@ GOOD = dqflags["GOOD"]
 DNU = dqflags["DO_NOT_USE"]
 SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
+CHRGL = dqflags["CHARGELOSS"]
 
 
 # -----------------------------------------------------------------------------
