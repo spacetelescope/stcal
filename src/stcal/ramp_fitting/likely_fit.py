@@ -380,17 +380,28 @@ def compute_image_info(integ_class, ramp_data):
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
-    slope = np.median(integ_class.data, axis=0)
+    slope = np.nanmedian(integ_class.data, axis=0)
     for _ in range(2):
         rate_scale = slope[np.newaxis, :] / integ_class.data
         rate_scale[(~np.isfinite(rate_scale)) | (rate_scale < 0)] = 0
         all_var_p = integ_class.var_poisson * rate_scale
         weight = 1/(all_var_p + integ_class.var_rnoise)
-        weight /= np.sum(weight, axis=0)[np.newaxis, :]
-        slope = np.sum(integ_class.data*weight, axis=0)
+        weight /= np.nansum(weight, axis=0)[np.newaxis, :]
+        tmp_slope = integ_class.data * weight
+        all_nan = np.all(np.isnan(tmp_slope), axis=0)
+        slope = np.sum(tmp_slope, axis=0)
+        slope[all_nan] = np.nan
 
-    var_p = np.sum(all_var_p * weight**2, axis=0)
-    var_r = np.sum(integ_class.var_rnoise * weight**2, axis=0)
+    tmp_v = all_var_p * weight**2
+    all_nan = np.all(np.isnan(tmp_v), axis=0)
+    var_p = np.sum(tmp_v, axis=0)
+    var_p[all_nan] = np.nan
+
+    tmp_v = integ_class.var_rnoise * weight**2
+    all_nan = np.all(np.isnan(tmp_v), axis=0)
+    var_r = np.sum(tmp_v, axis=0)
+    var_r[all_nan] = np.nan
+
     err = np.sqrt(var_p + var_r)
 
     return (slope, dq, var_p, var_r, err)
