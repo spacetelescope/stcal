@@ -18,10 +18,9 @@ saturation flags are found. Pixels are processed simultaneously in blocks
 using the array-based functionality of numpy.  The size of the block depends
 on the image size and the number of groups.
 
-There is a likelihood algorithm implemented based on Timothy Brandt's papers:
-`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__
-and
-`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.
+
+There is also a likelihood algorithm implementing an algorithm based on the group
+differences of a ramp.  See the detailed description below.
 
 .. _ramp_output_products:
 
@@ -350,5 +349,10 @@ differences.  Because the covariance matrix is tridiagonal, the  computational
 complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed
 derivation and computations implemented, refer to the links above.
 The Poisson and read noise  computations are based on equations (27) and (28),
-defining :math:`\alpha_i`, the diagonal of :math:`C`, and :math:`\beta_i`, the
-off diagonal.
+in the first link below, defining :math:`\alpha_i`, the diagonal of :math:`C`,
+and :math:`\beta_i`, the off diagonal.
+
+The full details of the algorithm can be found here:
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__
+and
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.
