@@ -60,6 +60,9 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     if ngroups < LIKELY_MIN_NGROUPS:
         raise ValueError("Likelihood fit requires at least 4 groups.")
 
+
+    remove_jump_detection_flags(ramp_data)
+
     readtimes = get_readtimes(ramp_data)
 
     covar = Covar(readtimes)
@@ -393,6 +396,22 @@ def compute_image_info(integ_class, ramp_data):
     return (slope, dq, var_p, var_r, err)
 
 
+def remove_jump_detection_flags(ramp_data):
+    """
+    Remove the JUMP_DET flag from the group DQ array
+
+    Parameters
+    ----------
+    ramp_data : RampData
+        Input data necessary for computing ramp fitting.
+    """
+    jump = ramp_data.flags_jump_det
+    gdq = ramp_data.groupdq
+    wh_jump = np.where(np.bitwise_and(gdq.astype(np.uint32), jump))
+    gdq[wh_jump] -= jump
+    ramp_data.groupdq = gdq
+
+
 def determine_diffs2use(ramp_data, integ, row, diffs):
     """
     Compute the diffs2use mask based on DQ flags of a row.
@@ -418,38 +437,15 @@ def determine_diffs2use(ramp_data, integ, row, diffs):
         A boolean array definined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
     """
+    # import ipdb; ipdb.set_trace()
     _, ngroups, _, ncols = ramp_data.data.shape
     dq = np.zeros(shape=(ngroups, ncols), dtype=np.uint8)
     dq[:, :] = ramp_data.groupdq[integ, :, row, :]
     d2use_tmp = np.ones(shape=diffs.shape, dtype=np.uint8)
     d2use = d2use_tmp[:, row]
 
-    # The JUMP_DET is handled different than other group DQ flags.
-    jmp = np.uint8(ramp_data.flags_jump_det)
-    other_flags = ~jmp
-
-    # Find all non-jump flags
-    oflags_locs = np.zeros(shape=dq.shape, dtype=np.uint8)
-    wh_of = np.where(np.bitwise_and(dq, other_flags))
-    oflags_locs[wh_of] = 1
-
-    # Find all jump flags
-    jmp_locs = np.zeros(shape=dq.shape, dtype=np.uint8)
-    wh_j = np.where(np.bitwise_and(dq, jmp))
-    jmp_locs[wh_j] = 1
-
-    del wh_of, wh_j
-
-    # Based on flagging, exclude differences associated with flagged groups.
-
-    # If a jump occurs at group k, then the difference
-    # group[k] - group[k-1] is excluded.
-    d2use[jmp_locs[1:, :] == 1] = 0
-
-    # If a non-jump flag occurs at group k, then the differences
-    # group[k+1] - group[k] and group[k] - group[k-1] are excluded.
-    d2use[oflags_locs[1:, :] == 1] = 0
-    d2use[oflags_locs[:-1, :] == 1] = 0
+    d2use[dq[1:, :] != 0] = 0
+    d2use[dq[:-1, :] != 0] = 0
 
     return d2use
 
