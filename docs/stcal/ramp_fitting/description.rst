@@ -19,8 +19,9 @@ using the array-based functionality of numpy.  The size of the block depends
 on the image size and the number of groups.
 
 
-There is also a likelihood algorithm implementing an algorithm based on the group
-differences of a ramp.  See the detailed description below.
+There is also a new algorithm available for testing, the likelihood
+algorithm, implementing an algorithm based on the group differences
+of a ramp.  See :ref:`likelihood algorithm <likelihood_algo>`.
 
 .. _ramp_output_products:
 
@@ -320,6 +321,8 @@ that pixel will be flagged as JUMP_DET in the corresponding integration in the
 "rateints" product.  That pixel will also be flagged as JUMP_DET in the "rate"
 product.
 
+.. _likelihood_algo:
+
 Likelihood Algorithm Details
 ----------------------------
 As an alternative to the OLS algorithm, a likelihood algorithm can be selected
@@ -348,11 +351,9 @@ The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of th
 differences.  Because the covariance matrix is tridiagonal, the  computational
 complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed
 derivation and computations implemented, refer to the links above.
-The Poisson and read noise  computations are based on equations (27) and (28),
-in the first link below, defining :math:`\alpha_i`, the diagonal of :math:`C`,
-and :math:`\beta_i`, the off diagonal.
-
-The full details of the algorithm can be found here:
+The Poisson and read noise  computations are based on equations (27) and (28), in
 `Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__
-and
+
+For more details, especially for the jump detection portion in the liklihood
+algorithm, see
 `Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.
