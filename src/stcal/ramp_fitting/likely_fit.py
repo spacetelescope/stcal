@@ -389,17 +389,17 @@ def compute_image_info(integ_class, ramp_data):
         weight /= np.nansum(weight, axis=0)[np.newaxis, :]
         tmp_slope = integ_class.data * weight
         all_nan = np.all(np.isnan(tmp_slope), axis=0)
-        slope = np.sum(tmp_slope, axis=0)
+        slope = np.nansum(tmp_slope, axis=0)
         slope[all_nan] = np.nan
 
     tmp_v = all_var_p * weight**2
     all_nan = np.all(np.isnan(tmp_v), axis=0)
-    var_p = np.sum(tmp_v, axis=0)
+    var_p = np.nansum(tmp_v, axis=0)
     var_p[all_nan] = np.nan
 
     tmp_v = integ_class.var_rnoise * weight**2
     all_nan = np.all(np.isnan(tmp_v), axis=0)
-    var_r = np.sum(tmp_v, axis=0)
+    var_r = np.nansum(tmp_v, axis=0)
     var_r[all_nan] = np.nan
 
     err = np.sqrt(var_p + var_r)
