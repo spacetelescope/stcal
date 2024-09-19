@@ -1,1 +1,0 @@
-[ramp_fitting] Add the likelihood algorithm to ramp fitting.

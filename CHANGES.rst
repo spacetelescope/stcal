@@ -1,3 +1,30 @@
+1.9.0 (2024-09-19)
+==================
+
+Changes to API
+--------------
+
+- [ramp_fitting] Add the likelihood algorithm to ramp fitting. (`#278
+  <https://github.com/spacetelescope/stcal/issues/278>`_)
+
+
+Bug Fixes
+---------
+
+- [saturation] Add option for using the readout pattern information to improve
+  saturation flagging in grouped data. (`#283
+  <https://github.com/spacetelescope/stcal/issues/283>`_)
+
+
+General
+-------
+
+- Add clip_accum parameter to alignment methods. (`#286
+  <https://github.com/spacetelescope/stcal/issues/286>`_)
+- Improve handling of catalog web service connectivity issues. (`#286
+  <https://github.com/spacetelescope/stcal/issues/286>`_)
+
+
 1.8.2 (2024-09-10)
 ==================
 
