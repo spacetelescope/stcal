@@ -64,6 +64,9 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
         wh_chargeloss = np.where(np.bitwise_and(model.groupdq.astype(np.uint32), dqflags['CHARGELOSS']))
         if len(wh_chargeloss[0]) > 0:
             orig_gdq = model.groupdq.copy()
+            ramp_data.run_chargeloss = True
+        else:
+            ramp_data.run_chargeloss = False
         del wh_chargeloss
 
     if isinstance(model.data, u.Quantity):

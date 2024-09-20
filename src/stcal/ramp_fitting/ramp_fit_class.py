@@ -47,8 +47,8 @@ class RampData:
         self.suppress_one_group_ramps = False
 
         # C code debugging switch.
-        self.run_c_code = False
-        self.run_chargeloss = True
+        self.run_c_code = True
+        self.run_chargeloss = False
         # self.run_chargeloss = False
 
         self.one_groups_locs = None  # One good group locations.

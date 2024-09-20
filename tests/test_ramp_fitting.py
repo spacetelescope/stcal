@@ -32,6 +32,8 @@ SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
 CHRGL = dqflags["CHARGELOSS"]
 
+DEFAULT_ALGO = "OLS_C"
+
 
 # -----------------------------------------------------------------------------
 #                           Test Suite
@@ -52,7 +54,7 @@ def test_long_integration():
 
     ramp_data.data[0, 291:, 0, 0] = 320 * 3
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise_array, gain_array,
         algo, wt, ncores, dqflags)
@@ -80,7 +82,7 @@ def base_neg_med_rates_single_integration():
     ramp_data.data[0, :, 0, 0] = neg_ramp
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -163,7 +165,7 @@ def base_neg_med_rates_multi_integrations():
         ramp_data.data[k, :, 0, 0] = neg_ramp * n
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -249,7 +251,7 @@ def base_neg_med_rates_single_integration_multi_segment():
     ramp_data.groupdq[0, 10, 1, 0] = dqflags["JUMP_DET"]
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -296,7 +298,7 @@ def test_neg_with_avgdark():
     ramp_data.average_dark_current[:] = 1.0
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
         )
@@ -345,7 +347,7 @@ def test_utils_dq_compress_final():
     ramp_data.groupdq[0, :, 0, 1] = np.array([dqflags["SATURATED"]] * ngroups)
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, False, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, False, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -424,7 +426,7 @@ def test_miri_ramp_dnu_at_ramp_beginning():
     ramp_data.groupdq[0, 1, 0, 0] = dqflags["DO_NOT_USE"]
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes1, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -446,7 +448,7 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
     ramp_data.groupdq[0, 1, 0, 0] = dqflags["JUMP_DET"]
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes2, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -519,7 +521,7 @@ def test_2_group_cases():
     ramp_data.set_dqflags(dqflags)
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_ALGO, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -593,7 +595,7 @@ def run_one_group_ramp_suppression(nints, suppress):
 
     ramp_data.suppress_one_group_ramps = suppress
 
-    algo = "OLS"
+    algo = DEFAULT_ALGO
     save_opt, ncores, bufsize = False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, dqflags
@@ -870,7 +872,7 @@ def test_zeroframe():
     """
     ramp_data, gain, rnoise = create_zero_frame_data()
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_ALGO, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -989,7 +991,7 @@ def test_only_good_0th_group():
     # Dimensions are (1, 5, 1, 3)
     ramp_data, gain, rnoise = create_only_good_0th_group_data()
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_ALGO, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1038,7 +1040,7 @@ def test_all_sat():
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
     ramp.groupdq[:, 0, :, :] = ramp.flags_saturated
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_ALGO, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1068,7 +1070,7 @@ def test_dq_multi_int_dnu():
     ramp.data[1, :, 0, 0] = np.array(base_arr)
     ramp.groupdq[0, :, 0, 0] = np.array(dq_arr)
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_ALGO, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1165,7 +1167,7 @@ def test_multi_more_cores_than_rows():
                 ramp.data[integ, :, row, col] = bramp
                 bramp = bramp * factor
 
-    bufsize, algo, save_opt, ncores = 512, "OLS", False, "all"
+    bufsize, algo, save_opt, ncores = 512, DEFAULT_ALGO, False, "all"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1316,7 +1318,7 @@ def test_new_saturation():
     """
     ramp, gain, rnoise = get_new_saturation()
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, DEFAULT_ALGO
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1408,7 +1410,7 @@ def test_invalid_integrations():
 
     ramp.suppress_one_group_ramps = True
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, DEFAULT_ALGO
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1472,7 +1474,7 @@ def test_one_group():
 
     ramp.data[0, 0, 0, 0] = 105.31459
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, DEFAULT_ALGO
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1590,7 +1592,8 @@ def test_cext_chargeloss():
     tm = frame_time, nframes, groupgap
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
 
-    ramp.run_c_code = True  # Need to make this default in future
+    ramp.run_chargeloss = True
+    ramp.run_c_code = True
     base = 15.
     arr = [(k+1) * base for k in range(ngroups)]
 
@@ -1671,6 +1674,7 @@ def create_blank_ramp_data(dims, var, tm):
         drop_frames1=None,
     )
     ramp_data.set_dqflags(dqflags)
+    ramp_data.run_chargeloss = False
 
     gain = np.ones(shape=(nrows, ncols), dtype=np.float32) * gval
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnval
