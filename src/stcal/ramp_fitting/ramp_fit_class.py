@@ -49,7 +49,6 @@ class RampData:
         # C code debugging switch.
         self.run_c_code = True
         self.run_chargeloss = False
-        # self.run_chargeloss = False
 
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
