@@ -6,8 +6,8 @@ import pytest
 
 from stcal.outlier_detection.median import (
     DiskAppendableArray,
-    OnDiskMedian,
     MedianComputer,
+    OnDiskMedian,
     nanmedian3D,
 )
 
@@ -56,7 +56,7 @@ def test_disk_appendable_array(tmpdir):
 
 def test_disk_appendable_array_bad_inputs(tmpdir):
 
-    slice_shape = (8,7)
+    slice_shape = (8, 7)
     dtype = "float32"
     tempdir = tmpdir / Path("tmptest")
     fname = "test.bin"
