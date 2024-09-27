@@ -156,7 +156,8 @@ def get_catalog(
     declination,
     epoch=2016.0,
     search_radius=0.1,
-    catalog="GAIADR3"
+    catalog="GAIADR3",
+    timeout=TIMEOUT,
 ):
     """Extract catalog from VO web service.
 
@@ -179,6 +180,9 @@ def get_catalog(
     catalog : str, optional
         Name of catalog to query, as defined by web-service. Default: 'GAIADR3'
 
+    timeout : float, optional
+        Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
+
     Returns
     -------
     csv : `~astropy.table.Table`
@@ -199,7 +203,18 @@ def get_catalog(
         catalog
     )
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
-    rawcat = requests.get(service_url, headers=headers, timeout=TIMEOUT)
+    try:
+        rawcat = requests.get(service_url, headers=headers, timeout=timeout)
+    except requests.exceptions.ConnectionError:
+        raise requests.exceptions.ConnectionError(
+            "Could not connect to the VO API server. Try again later."
+        )
+    except requests.exceptions.Timeout:
+        raise requests.exceptions.Timeout("The request to the VO API server timed out.")
+    except requests.exceptions.RequestException:
+        raise requests.exceptions.RequestException(
+            "There was an unexpected error with the request."
+        )
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     rstr = r_contents.split("\r\n")
     # remove initial line describing the number of sources returned

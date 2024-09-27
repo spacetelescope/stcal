@@ -35,11 +35,10 @@ file = "LICENSE"
 docs = [
     "numpydoc",
     "packaging >=17",
-    "sphinx<7.0.0",
+    "sphinx",
     "sphinx-asdf",
     "sphinx-astropy",
     "sphinx-rtd-theme",
-    "stsci-rtd-theme",
     "tomli; python_version <=\"3.11\"",
 ]
 test = [
@@ -249,3 +248,21 @@ archs = [
     "auto",
     "aarch64",
 ]
+
+[tool.towncrier]
+filename = "CHANGES.rst"
+directory = "changes"
+package = "stcal"
+title_format = "{version} ({project_date})"
+ignore = [".gitkeep"]
+wrap = true
+issue_format = "`#{issue} <https://github.com/spacetelescope/stcal/issues/{issue}>`_"
+
+[tool.towncrier.fragment.apichange]
+name = "Changes to API"
+
+[tool.towncrier.fragment.bugfix]
+name = "Bug Fixes"
+
+[tool.towncrier.fragment.general]
+name = "General"

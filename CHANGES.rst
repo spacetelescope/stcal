@@ -1,20 +1,68 @@
-1.8.1 (unreleased)
+1.9.0 (2024-09-19)
 ==================
-
-General
--------
-
-- 
 
 Changes to API
 --------------
 
-- 
+- [ramp_fitting] Add the likelihood algorithm to ramp fitting. (`#278
+  <https://github.com/spacetelescope/stcal/issues/278>`_)
+
 
 Bug Fixes
 ---------
 
-- 
+- [saturation] Add option for using the readout pattern information to improve
+  saturation flagging in grouped data. (`#283
+  <https://github.com/spacetelescope/stcal/issues/283>`_)
+
+
+General
+-------
+
+- Add clip_accum parameter to alignment methods. (`#286
+  <https://github.com/spacetelescope/stcal/issues/286>`_)
+- Improve handling of catalog web service connectivity issues. (`#286
+  <https://github.com/spacetelescope/stcal/issues/286>`_)
+
+
+1.8.2 (2024-09-10)
+==================
+
+Bug Fixes
+---------
+
+- Implement byteorder swap method that is forward-compatible with numpy 2.0 in
+  jwst ramp_fitting. (`#282
+  <https://github.com/spacetelescope/stcal/issues/282>`_)
+- [jump] Fix a logical bug in the jump step for usage of > vs >= per JP-3689.
+  (`#285 <https://github.com/spacetelescope/stcal/issues/285>`_)
+
+
+General
+-------
+
+- [ramp_fitting] Moving the read noise recalculation due to CHARGELOSS flagging
+  from
+  the JWST ramp fit step code into the STCAL ramp fit C-extension. (`#275
+  <https://github.com/spacetelescope/stcal/issues/275>`_)
+
+
+1.8.1 (2024-09-08)
+==================
+
+Bug Fixes
+---------
+
+- Fixed memory leak in C-extension. (`#281
+  <https://github.com/spacetelescope/stcal/issues/281>`_)
+
+
+General
+-------
+
+- use ``towncrier`` to handle changelog entries (`#284
+  <https://github.com/spacetelescope/stcal/issues/284>`_)
+
 
 1.8.0 (2024-08-14)
 ==================
@@ -23,6 +71,12 @@ General
 -------
 
 - Add TweakReg submodule. [#267]
+
+ramp_fitting
+~~~~~~~~~~~~
+
+- Move the CHARGELOSS read noise variance recalculation from the JWST step
+  code to the C extension to simplify the code and improve performance.[#275]
 
 Changes to API
 --------------

@@ -3,19 +3,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import stsci_rtd_theme
-
 if sys.version_info < (3, 11):
     import tomli as tomllib
 else:
     import tomllib
-
-
-def setup(app):
-    try:
-        app.add_css_file("stsci.css")
-    except AttributeError:
-        app.add_stylesheet("stsci.css")
 
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -74,9 +65,11 @@ autosummary_generate = True
 numpydoc_show_class_members = False
 autoclass_content = "both"
 
-html_theme = "stsci_rtd_theme"
-html_theme_options = {"collapse_navigation": True}
-html_theme_path = [stsci_rtd_theme.get_html_theme_path()]
+html_theme = "sphinx_rtd_theme"
+html_logo = "_static/stsci_pri_combo_mark_white.png"
+html_theme_options = {
+    "collapse_navigation": True,
+}
 html_domain_indices = True
 html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
 html_use_index = True

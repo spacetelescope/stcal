@@ -1,7 +1,11 @@
 import pytest
 import numpy as np
+
+import sys
+
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
+from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # c extension
 from stcal.ramp_fitting.utils import compute_num_slices
 
 
@@ -17,6 +21,7 @@ dqflags = {
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
     "SATURATED": 2**1,  # Pixel saturated during exposure.
     "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "CHARGELOSS": 2**7,   # Charge migration (was RESERVED_4)
     "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
     "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
 }
@@ -25,6 +30,7 @@ GOOD = dqflags["GOOD"]
 DNU = dqflags["DO_NOT_USE"]
 SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
+CHRGL = dqflags["CHARGELOSS"]
 
 
 # -----------------------------------------------------------------------------
@@ -1497,6 +1503,147 @@ def test_one_group():
     assert abs(serr[0, 0] - cerr[0, 0, 0]) < tol
 
 
+def test_compute_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert compute_num_slices("none", n_rows, max_available_cores) == 1
+    assert compute_num_slices("half", n_rows, max_available_cores) == 5
+    assert compute_num_slices("3", n_rows, max_available_cores) == 3
+    assert compute_num_slices("7", n_rows, max_available_cores) == 7
+    assert compute_num_slices("21", n_rows, max_available_cores) == 10
+    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
+    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("one", n_rows, max_available_cores) == 1
+    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("all", n_rows, max_available_cores) == 10
+    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
+    n_rows = 9
+    assert compute_num_slices("21", n_rows, max_available_cores) == 9
+
+
+def test_refcounter():
+    """
+    Get reference of objects before and after C-extension to ensure
+    they are the same.
+    """
+    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+    # frame_time, nframes, groupgap = 10.736, 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.data[0, 0, 0, 0] = 105.31459
+
+    b_data = sys.getrefcount(ramp.data)
+    b_dq = sys.getrefcount(ramp.groupdq)
+    b_err = sys.getrefcount(ramp.err)
+    b_pdq = sys.getrefcount(ramp.pixeldq)
+    b_dc = sys.getrefcount(ramp.average_dark_current)
+
+    wt, opt = "optimal", False
+    image, integ, opt= ols_slope_fitter(ramp, gain, rnoise, wt, opt)
+
+    a_data = sys.getrefcount(ramp.data)
+    a_dq = sys.getrefcount(ramp.groupdq)
+    a_err = sys.getrefcount(ramp.err)
+    a_pdq = sys.getrefcount(ramp.pixeldq)
+    a_dc = sys.getrefcount(ramp.average_dark_current)
+
+    # Verify reference counts are not affected by the C-extension, indicating
+    # memory will be properly managed.
+    assert b_data == a_data
+    assert b_dq == a_dq
+    assert b_err == a_err
+    assert b_pdq == a_pdq
+    assert b_dc == a_dc
+
+
+def test_cext_chargeloss():
+    """
+    Testing the recomputation of read noise due to CHARGELOSS.  Wherever
+    the CHARGELOSS flag is set, ramp fitting is run using the CHARGELOSS
+    flag as a segmenter.  Once ramp fitting is run, the CHARGELOSS and the
+    DO_NOT_USE flags are removed and each integration is re-segmented.  With
+    the resegmentation, the readnoise is recalculated.
+
+    There are four pixels:
+    0. A clean ramp.
+    1. A jump at group 3 (zero based) and CHARGELOSS starting at group 7.
+    2. A jump at group 3 (zero based) and SATURATED starting at group 7.
+    3. A jump at group 3 (zero based).
+
+    The slope should be the same for all pixels.  Variances differ.
+    """
+    nints, ngroups, nrows, ncols = 1, 10, 1, 4
+    rnval, gval = 0.7071, 1.
+    # frame_time, nframes, groupgap = 1., 1, 0
+    frame_time, nframes, groupgap = 10.6, 1, 0
+    group_time = 10.6
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.run_c_code = True  # Need to make this default in future
+    base = 15.
+    arr = [(k+1) * base for k in range(ngroups)]
+
+    # Populate ramps with a variety of flags
+    # (0, 0)
+    ramp.data[0, :, 0, 0] = np.array(arr)
+    # (0, 1)
+    ramp.data[0, :, 0, 1] = np.array(arr)
+    ramp.groupdq[0, 7:, 0, 1] = DNU + CHRGL
+    ramp.groupdq[0, 3, 0, 1] = JUMP
+    # (0, 2)
+    ramp.data[0, :, 0, 2] = np.array(arr)
+    ramp.groupdq[0, 7:, 0, 2] = SAT
+    ramp.groupdq[0, 3, 0, 2] = JUMP
+    # (0, 3)
+    ramp.data[0, :, 0, 3] = np.array(arr)
+    ramp.groupdq[0, 3, 0, 3] = JUMP
+
+    ramp.orig_gdq = ramp.groupdq.copy()
+    ramp.flags_chargeloss = dqflags["CHARGELOSS"]
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS_C"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
+
+    sdata, sdq, svp, svr, serr = slopes
+
+    # Compare slopes
+    assert sdata[0, 1] == sdata[0, 0]
+    assert sdata[0, 1] == sdata[0, 2]
+    assert sdata[0, 1] == sdata[0, 3]
+
+    # Compare Poisson variances
+    assert svp[0, 1] != svp[0, 0]
+    assert svp[0, 1] == svp[0, 2]
+    assert svp[0, 1] != svp[0, 3]
+
+    # Compare total variances
+    assert serr[0, 1] != serr[0, 0]
+    assert serr[0, 1] == serr[0, 2]
+    assert serr[0, 1] != serr[0, 3]
+
+    # Readnoise comparisons
+    assert svr[0, 1] != svr[0, 0]
+    assert svr[0, 1] != svr[0, 2]
+    assert svr[0, 1] == svr[0, 3]
+
+
+# -----------------------------------------------------------------------------
+#                           Set up functions
+
+
 def create_blank_ramp_data(dims, var, tm):
     """
     Create empty RampData classes, as well as gain and read noise arrays,
@@ -1529,28 +1676,6 @@ def create_blank_ramp_data(dims, var, tm):
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnval
 
     return ramp_data, gain, rnoise
-
-
-def test_compute_num_slices():
-    n_rows = 20
-    max_available_cores = 10
-    assert compute_num_slices("none", n_rows, max_available_cores) == 1
-    assert compute_num_slices("half", n_rows, max_available_cores) == 5
-    assert compute_num_slices("3", n_rows, max_available_cores) == 3
-    assert compute_num_slices("7", n_rows, max_available_cores) == 7
-    assert compute_num_slices("21", n_rows, max_available_cores) == 10
-    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
-    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("one", n_rows, max_available_cores) == 1
-    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("all", n_rows, max_available_cores) == 10
-    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
-    n_rows = 9
-    assert compute_num_slices("21", n_rows, max_available_cores) == 9
-
-
-# -----------------------------------------------------------------------------
-#                           Set up functions
 
 
 def setup_inputs(dims, var, tm):
