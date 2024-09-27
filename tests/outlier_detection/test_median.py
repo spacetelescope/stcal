@@ -16,7 +16,7 @@ def test_disk_appendable_array(tmpdir):
 
     slice_shape = (8,7)
     dtype = "float32"
-    tempdir = tmpdir / Path("tmptest")
+    tempdir = Path(tmpdir) / Path("tmptest")
     Path.mkdir(tempdir)
     fname = tempdir / "test.bin"
 
@@ -58,7 +58,7 @@ def test_disk_appendable_array_bad_inputs(tmpdir):
 
     slice_shape = (8, 7)
     dtype = "float32"
-    tempdir = tmpdir / Path("tmptest")
+    tempdir = Path(tmpdir) / Path("tmptest")
     fname = "test.bin"
 
     # test input directory does not exist
@@ -92,7 +92,7 @@ def test_on_disk_median(tmpdir):
     library_length = 3
     frame_shape = (21, 20)
     dtype = "float32"
-    tempdir = tmpdir / Path("tmptest")
+    tempdir = Path(tmpdir) / Path("tmptest")
     Path.mkdir(tempdir)
     shape = (library_length, *frame_shape)
 
@@ -171,7 +171,7 @@ def test_on_disk_median_bad_inputs(tmpdir):
     library_length = 3
     frame_shape = (21, 20)
     dtype = "float32"
-    tempdir = tmpdir / Path("tmptest")
+    tempdir = Path(tmpdir) / Path("tmptest")
     Path.mkdir(tempdir)
     shape = (library_length, *frame_shape)
 

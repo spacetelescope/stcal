@@ -6,6 +6,7 @@ import logging
 import tempfile
 import warnings
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -74,11 +75,12 @@ class MedianComputer:
         self.buffer_size = buffer_size
         self.dtype = dtype
         if self.in_memory:
-            self._median_computer = np.empty(full_shape, dtype=dtype)
+            computer: Any = np.empty(full_shape, dtype=dtype)
         else:
-            self._median_computer = OnDiskMedian(full_shape,
-                                                 dtype=dtype,
-                                                 buffer_size=buffer_size)
+            computer = OnDiskMedian(full_shape,
+                                    dtype=dtype,
+                                    buffer_size=buffer_size)
+        self._median_computer: Any = computer
 
     def append(self: MedianComputer,
                data: np.ndarray,
