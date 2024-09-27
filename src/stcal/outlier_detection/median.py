@@ -38,93 +38,85 @@ def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
         return output_arr
 
 
-def make_median_computer(full_shape: tuple,
-                         in_memory: bool,
-                         buffer_size: int,
-                         dtype: str
-                         ) -> np.ndarray | OnDiskMedian:
+class MedianComputer:
     """
-    Parameters
-    ----------
-    full_shape
-        The shape of the full input dataset.
-
-    in_memory
-        Whether to perform the median computation in memory or using
-        temporary files on disk to save memory.
-
-    buffer_size
-        The buffer size for the median computation, units of bytes.
-        Has no effect if in_memory is True.
-
-    dtype
-        The data type of the input data.
-
-    Returns
-    -------
-    median_computer
-        A pre-allocated array or OnDiskMedian object to hold the input data
-        for median computation.
+    Top-level class to treat median computation uniformly, whether in
+    memory or on disk.
     """
-    if in_memory:
-        # allocate memory for data arrays that go into median
-        median_computer = np.empty(full_shape, dtype=dtype)
-    else:
-        # set up temporary storage for data arrays that go into median
-        median_computer = OnDiskMedian(full_shape,
-                                       dtype=dtype,
-                                       buffer_size=buffer_size)
-    return median_computer
 
+    def __init__(self: MedianComputer,
+                 full_shape: tuple,
+                 in_memory: bool,
+                 buffer_size: int | None = None,
+                 dtype: str | np.dtype = "float32"
+                 ) -> None:
+        """
+        Parameters
+        ----------
+        full_shape
+            The shape of the full input dataset.
 
-def append_to_median_computer(median_computer: np.ndarray | OnDiskMedian,
-                              data: np.ndarray,
-                              idx: int | None = None
-                              ) -> None:
-    """
-    Parameters
-    ----------
-    median_computer
-        The median computer object to which to append data.
+        in_memory
+            Whether to perform the median computation in memory or using
+            temporary files on disk to save memory.
 
-    data
-        The data to append to the median computer.
+        buffer_size
+            The buffer size for the median computation, units of bytes.
+            Has no effect if in_memory is True.
 
-    idx
-        The index at which to append the data. Required if using in-memory
-        median computation.
-    """
-    if isinstance(median_computer, np.ndarray):
-        if idx is None:
-            msg = "Index must be provided when using in-memory median"
-            raise ValueError(msg)
-        # populate pre-allocated memory with the drizzled data
-        median_computer[idx] = data
-    else:
-        # distribute the drizzled data into the temporary storage
-        median_computer.add_image(data)
+        dtype
+            The data type of the input data.
+        """
+        self.full_shape = full_shape
+        self.in_memory = in_memory
+        if buffer_size is None:
+            buffer_size = 0
+        self.buffer_size = buffer_size
+        self.dtype = dtype
+        if self.in_memory:
+            self._median_computer = np.empty(full_shape, dtype=dtype)
+        else:
+            self._median_computer = OnDiskMedian(full_shape,
+                                                 dtype=dtype,
+                                                 buffer_size=buffer_size)
 
+    def append(self: MedianComputer,
+               data: np.ndarray,
+               idx: int | None = None
+               ) -> None:
+        """
+        Parameters
+        ----------
+        data
+            The data to append to the median computer.
 
-def evaluate_median_computer(median_computer: np.ndarray | OnDiskMedian
-                             ) -> np.ndarray:
-    """
-    Parameters
-    ----------
-    median_computer
-        The median computer object to evaluate.
+        idx
+            The index at which to append the data. Required if using in-memory
+            median computation.
+        """
+        if self.in_memory:
+            if idx is None:
+                msg = "Index must be provided when using in-memory median"
+                raise ValueError(msg)
+            # populate pre-allocated memory with the drizzled data
+            self._median_computer[idx] = data
+        else:
+            # distribute the drizzled data into the temporary storage
+            self._median_computer.add_image(data)
 
-    Returns
-    -------
-    median_data
-        The median data computed from the input data.
-    """
-    if isinstance(median_computer, np.ndarray):
-        median_data = nanmedian3D(median_computer)
-        del median_computer
-    else:
-        median_data = median_computer.compute_median()
-        median_computer.cleanup()
-    return median_data
+    def evaluate(self: MedianComputer) -> np.ndarray:
+        """
+        Returns
+        -------
+        median_data
+            The median data computed from the input data.
+        """
+        if self.in_memory:
+            median_data = nanmedian3D(self._median_computer)
+        else:
+            median_data = self._median_computer.compute_median()
+            self._median_computer.cleanup()
+        return median_data
 
 
 class DiskAppendableArray:
@@ -164,7 +156,7 @@ class DiskAppendableArray:
             The full file path in which to store the array
         """
         if len(slice_shape) != 2:
-            msg = f"Invalid slice_shape {slice_shape}. Only 2-D arrays "
+            msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays "
             msg += "are supported."
             raise ValueError(msg)
         self._filename = Path(filename)
