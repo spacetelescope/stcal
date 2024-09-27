@@ -7,6 +7,7 @@ import pytest
 from stcal.outlier_detection.median import (
     DiskAppendableArray,
     OnDiskMedian,
+    MedianComputer,
     nanmedian3D,
 )
 
@@ -148,6 +149,18 @@ def test_on_disk_median(tmpdir):
     # test cleanup of tmpdir and everything else
     assert not Path.exists(median_computer._temp_path)  # noqa: SLF001
     assert len(os.listdir(tempdir)) == 0
+
+
+def test_computer():
+    """Ensure MedianComputer works the same on disk and in memory"""
+    full_shape = (3, 21, 20)
+    comp_memory = MedianComputer(full_shape, True)
+    comp_disk = MedianComputer(full_shape, False)
+    for i in range(full_shape[0]):
+        frame = np.full((21, 20), i, dtype=np.float32)
+        comp_memory.append(frame, i)
+        comp_disk.append(frame, i)
+    assert np.allclose(comp_memory.evaluate(), comp_disk.evaluate())
 
 
 @pytest.mark.filterwarnings(
