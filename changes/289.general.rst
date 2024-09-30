@@ -1,1 +1,3 @@
 [ramp_fitting] Changing the default algorithm for ramp fitting to be ``OLS_C`` for CI tests.
+               It also fixes a bug related to ``RampData.run_chargeloss`` defaulting to 
+               ``True``.  That parameter now defaults to ``False``.
