@@ -45,7 +45,7 @@ class MedianComputer:
     memory or on disk.
     """
 
-    def __init__(self: MedianComputer,
+    def __init__(self,
                  full_shape: tuple,
                  in_memory: bool,
                  buffer_size: int | None = None,
@@ -82,11 +82,13 @@ class MedianComputer:
                                     buffer_size=buffer_size)
         self._median_computer: Any = computer
 
-    def append(self: MedianComputer,
+    def append(self,
                data: np.ndarray,
                idx: int | None = None
                ) -> None:
         """
+        Append data to the median computer.
+
         Parameters
         ----------
         data
@@ -106,8 +108,10 @@ class MedianComputer:
             # distribute the drizzled data into the temporary storage
             self._median_computer.add_image(data)
 
-    def evaluate(self: MedianComputer) -> np.ndarray:
+    def evaluate(self) -> np.ndarray:
         """
+        Compute the median data from the input data.
+
         Returns
         -------
         median_data
@@ -139,7 +143,7 @@ class DiskAppendableArray:
     holding a small spatial segment of the full dataset.
     """
 
-    def __init__(self: DiskAppendableArray,
+    def __init__(self,
                  slice_shape: tuple,
                  dtype: str | np.dtype,
                  filename: str | Path
@@ -169,10 +173,10 @@ class DiskAppendableArray:
         self._append_count = 0
 
     @property
-    def shape(self: DiskAppendableArray) -> tuple:
+    def shape(self) -> tuple:
         return (self._append_count, *self._slice_shape)
 
-    def append(self: DiskAppendableArray, data: np.ndarray) -> None:
+    def append(self, data: np.ndarray) -> None:
         """Add a new slice to the temporary file."""
         if data.shape != self._slice_shape:
             msg = f"Data shape {data.shape} does not match slice shape "
@@ -186,7 +190,7 @@ class DiskAppendableArray:
             data.tofile(f, sep="")
         self._append_count += 1
 
-    def read(self: DiskAppendableArray) -> np.ndarray:
+    def read(self) -> np.ndarray:
         """Read the 3-D array into memory."""
         shp = (self._append_count, *self._slice_shape)
         with Path.open(self._filename, "rb") as f:
@@ -195,7 +199,7 @@ class DiskAppendableArray:
 
 class OnDiskMedian:
 
-    def __init__(self: OnDiskMedian,
+    def __init__(self,
                  shape: tuple,
                  dtype: str | np.dtype = "float32",
                  tempdir: str = "",
@@ -244,10 +248,14 @@ class OnDiskMedian:
         # instantiate a temporary DiskAppendableArray for each section
         self._temp_arrays = self._temparray_setup(dtype)
 
-    def _get_buffer_indices(self: OnDiskMedian,
+    def _get_buffer_indices(self,
                             buffer_size: int = 0
                             ) -> tuple[int, int]:
         """
+        Determine the number of sections and rows per section needed to
+        divide the input data into sections that fit within the specified
+        buffer size.
+
         Parameters
         ----------
         buffer_size
@@ -284,7 +292,7 @@ class OnDiskMedian:
         log.info(msg)
         return nsections, section_nrows
 
-    def _temparray_setup(self: OnDiskMedian,
+    def _temparray_setup(self,
                          dtype: str | np.dtype
                          ) -> list[DiskAppendableArray]:
         """Set up temp file handlers for each spatial section."""
@@ -299,7 +307,7 @@ class OnDiskMedian:
             temp_arrays.append(arr)
         return temp_arrays
 
-    def add_image(self: OnDiskMedian, data: np.ndarray) -> None:
+    def add_image(self, data: np.ndarray) -> None:
         """
         Split resampled model data into spatial sections
         and write to disk.
@@ -316,7 +324,7 @@ class OnDiskMedian:
             arr = self._temp_arrays[i]
             arr.append(data[row1:row2])
 
-    def _validate_data(self: OnDiskMedian, data: np.ndarray) -> None:
+    def _validate_data(self, data: np.ndarray) -> None:
         """Ensure data array being appended has correct shape and dtype."""
         if data.shape != self.frame_shape:
             msg = f"Data shape {data.shape} does not match expected shape "
@@ -327,11 +335,11 @@ class OnDiskMedian:
             msg += f"{self.dtype}"
             raise ValueError(msg)
 
-    def cleanup(self: OnDiskMedian) -> None:
+    def cleanup(self) -> None:
         """Remove the temporary files and directory when finished."""
         self._temp_dir.cleanup()
 
-    def compute_median(self: OnDiskMedian) -> np.ndarray:
+    def compute_median(self) -> np.ndarray:
         """
         Read spatial sections from disk and compute the median across groups
         (median over number of exposures on a per-pixel basis).

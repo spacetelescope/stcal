@@ -14,7 +14,7 @@ from stcal.outlier_detection.median import (
 
 def test_disk_appendable_array(tmpdir):
 
-    slice_shape = (8,7)
+    slice_shape = (8, 7)
     dtype = "float32"
     tempdir = Path(tmpdir) / Path("tmptest")
     Path.mkdir(tempdir)
@@ -23,8 +23,7 @@ def test_disk_appendable_array(tmpdir):
     arr = DiskAppendableArray(slice_shape, dtype, fname)
 
     # check temporary file setup
-    assert str(arr._filename).split("/")[-1] \
-        in os.listdir(tempdir)  # noqa: SLF001
+    assert str(arr._filename).split("/")[-1] in os.listdir(tempdir)  # noqa: SLF001
     assert len(os.listdir(tempdir)) == 1
     assert arr.shape == (0, *slice_shape)
 
