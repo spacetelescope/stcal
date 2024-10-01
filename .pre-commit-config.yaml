@@ -61,9 +61,3 @@ repos:
     rev: "v3.0.1"
     hooks:
       - id: prettier
-
-  - repo: https://github.com/scientific-python/cookie
-    rev: 2023.10.27
-    hooks:
-      - id: sp-repo-review
-        additional_dependencies: ["repo-review[cli]"]
