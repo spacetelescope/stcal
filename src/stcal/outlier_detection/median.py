@@ -115,7 +115,7 @@ class MedianComputer:
             The data to append to the median computer. Must have shape full_shape[1:].
 
         idx
-            The index at which to append the data. Mus be between 0 and full_shape[0].
+            The index at which to append the data. Must be between 0 and full_shape[0].
             Required if using in-memory median computation.
         """
         if self.in_memory:
