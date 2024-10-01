@@ -30,13 +30,13 @@ def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
     Parameters
     ----------
     cube
-        3-dimensional array. Will be modified in-place if overwrite_input is True
+        3-dimensional array. Will be modified in-place if `overwrite_input` is True
     overwrite_input
-        Passed to `np.nanmedian`, if True the input cube will be modified
+        Passed to ``np.nanmedian``, if True the input cube will be modified
 
     Returns
     -------
-    median
+    np.ndarray
         2-dimensional computed median array
     """
     with warnings.catch_warnings():
@@ -78,7 +78,7 @@ class MedianComputer:
 
         buffer_size
             The buffer size for the median computation, units of bytes.
-            Has no effect if in_memory is True.
+            Has no effect if `in_memory` is True.
 
         dtype
             The data type of the input data.
@@ -134,7 +134,7 @@ class MedianComputer:
 
         Returns
         -------
-        median_data
+        np.ndarray
             The median data computed from the input data.
         """
         if self.in_memory:

@@ -101,7 +101,7 @@ norecursedirs = [
 ]
 filterwarnings = [
     "error::ResourceWarning",
-    "error:.*finalize.*:pytest.PytestUnraisableExceptionWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
 ]
 markers = [
     "soctests",
