@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 
 from stcal.outlier_detection.median import (
-    DiskAppendableArray,
     MedianComputer,
-    OnDiskMedian,
+    _DiskAppendableArray,
+    _OnDiskMedian,
     nanmedian3D,
 )
 
@@ -20,7 +20,7 @@ def test_disk_appendable_array(tmpdir):
     Path.mkdir(tempdir)
     fname = tempdir / "test.bin"
 
-    arr = DiskAppendableArray(slice_shape, dtype, fname)
+    arr = _DiskAppendableArray(slice_shape, dtype, fname)
 
     # check temporary file setup
     assert str(arr._filename).split("/")[-1] in os.listdir(tempdir)  # noqa: SLF001
@@ -62,22 +62,22 @@ def test_disk_appendable_array_bad_inputs(tmpdir):
 
     # test input directory does not exist
     with pytest.raises(FileNotFoundError):
-        DiskAppendableArray(slice_shape, dtype, tempdir / fname)
+        _DiskAppendableArray(slice_shape, dtype, tempdir / fname)
 
     # make the input directory
     Path.mkdir(tempdir)
 
     # ensure failure if slice_shape is not 2-D
     with pytest.raises(ValueError, match="slice shape"):
-        DiskAppendableArray((3, 5, 7), dtype, tempdir / fname)
+        _DiskAppendableArray((3, 5, 7), dtype, tempdir / fname)
 
     # ensure failure if dtype is not valid
     with pytest.raises(TypeError):
-        DiskAppendableArray(slice_shape, "float3", tempdir / fname)
+        _DiskAppendableArray(slice_shape, "float3", tempdir / fname)
 
     # ensure failure if pass directory instead of filename
     with pytest.raises(IsADirectoryError):
-        DiskAppendableArray(slice_shape, "float3", tempdir)
+        _DiskAppendableArray(slice_shape, "float3", tempdir)
 
 
 def test_on_disk_median(tmpdir):
@@ -89,7 +89,7 @@ def test_on_disk_median(tmpdir):
     Path.mkdir(tempdir)
     shape = (library_length, *frame_shape)
 
-    median_computer = OnDiskMedian(shape, dtype=dtype, tempdir=tempdir)
+    median_computer = _OnDiskMedian(shape, dtype=dtype, tempdir=tempdir)
 
     # test compute buffer indices
     # buffer size equals size of single input model by default
@@ -166,17 +166,17 @@ def test_on_disk_median_bad_inputs(tmpdir):
     shape = (library_length, *frame_shape)
 
     with pytest.raises(ValueError, match="shape"):
-        OnDiskMedian(frame_shape, dtype=dtype, tempdir=tempdir)
+        _OnDiskMedian(frame_shape, dtype=dtype, tempdir=tempdir)
 
     with pytest.raises(TypeError):
-        OnDiskMedian(shape, dtype="float3", tempdir=tempdir)
+        _OnDiskMedian(shape, dtype="float3", tempdir=tempdir)
 
     with pytest.raises(FileNotFoundError):
-        OnDiskMedian(shape, dtype="float32", tempdir="dne")
+        _OnDiskMedian(shape, dtype="float32", tempdir="dne")
 
     # ensure unreasonable buffer size will get set to minimum reasonable buffer
     min_buffer = np.dtype(dtype).itemsize*frame_shape[1]*library_length
-    median_computer = OnDiskMedian(shape,
+    median_computer = _OnDiskMedian(shape,
                                    dtype=dtype,
                                    tempdir=tempdir,
                                    buffer_size=-1)
@@ -190,7 +190,7 @@ def test_nanmedian3D():
     generator = np.random.default_rng(77)
     cube = generator.normal(size=shp)
     cube[5, 5:7, 5:8] = np.nan
-    med = nanmedian3D(cube)
+    med = nanmedian3D(cube.astype(np.float32))
 
     assert med.dtype == np.float32
     assert np.allclose(med, np.nanmedian(cube, axis=0), equal_nan=True)
