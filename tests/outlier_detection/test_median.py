@@ -12,11 +12,11 @@ from stcal.outlier_detection.median import (
 )
 
 
-def test_disk_appendable_array(tmpdir):
+def test_disk_appendable_array(tmp_path):
 
     slice_shape = (8, 7)
     dtype = "float32"
-    tempdir = Path(tmpdir) / Path("tmptest")
+    tempdir = tmp_path / Path("tmptest")
     Path.mkdir(tempdir)
     fname = tempdir / "test.bin"
 
@@ -28,7 +28,7 @@ def test_disk_appendable_array(tmpdir):
     assert arr.shape == (0, *slice_shape)
 
     # check cwd contains no files
-    assert all(not Path.is_file(Path(f)) for f in os.listdir(tmpdir))
+    assert all(not Path.is_file(Path(f)) for f in os.listdir(tmp_path))
 
     # check expected append failures
     candidate = np.zeros((7, 7), dtype=dtype)
@@ -53,11 +53,11 @@ def test_disk_appendable_array(tmpdir):
     assert np.allclose(arr_in_memory[2], candidate2, equal_nan=True)
 
 
-def test_disk_appendable_array_bad_inputs(tmpdir):
+def test_disk_appendable_array_bad_inputs(tmp_path):
 
     slice_shape = (8, 7)
     dtype = "float32"
-    tempdir = Path(tmpdir) / Path("tmptest")
+    tempdir = tmp_path / Path("tmptest")
     fname = "test.bin"
 
     # test input directory does not exist
@@ -80,12 +80,12 @@ def test_disk_appendable_array_bad_inputs(tmpdir):
         _DiskAppendableArray(slice_shape, "float3", tempdir)
 
 
-def test_on_disk_median(tmpdir):
+def test_on_disk_median(tmp_path):
 
     library_length = 3
     frame_shape = (21, 20)
     dtype = "float32"
-    tempdir = Path(tmpdir) / Path("tmptest")
+    tempdir = tmp_path / Path("tmptest")
     Path.mkdir(tempdir)
     shape = (library_length, *frame_shape)
 
@@ -110,7 +110,7 @@ def test_on_disk_median(tmpdir):
     assert len(os.listdir(median_computer._temp_path)) \
         == library_length  # noqa: SLF001
     # check cwd and parent tempdir contain no files
-    assert all(not Path.is_file(Path(f)) for f in os.listdir(tmpdir))
+    assert all(not Path.is_file(Path(f)) for f in os.listdir(tmp_path))
     assert all(not Path.is_file(Path(f)) for f in os.listdir(tempdir))
 
     # test validate data
@@ -156,12 +156,12 @@ def test_computer():
     assert np.allclose(comp_memory.evaluate(), comp_disk.evaluate())
 
 
-def test_on_disk_median_bad_inputs(tmpdir):
+def test_on_disk_median_bad_inputs(tmp_path):
 
     library_length = 3
     frame_shape = (21, 20)
     dtype = "float32"
-    tempdir = Path(tmpdir) / Path("tmptest")
+    tempdir = tmp_path / Path("tmptest")
     Path.mkdir(tempdir)
     shape = (library_length, *frame_shape)
 
