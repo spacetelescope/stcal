@@ -16,22 +16,36 @@ log.setLevel(logging.DEBUG)
 _ONE_MB = 1 << 20
 
 
+__all__ = ["MedianComputer", "nanmedian3D"]
+
+
 def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
-    """Compute the median of a cube ignoring warnings and with
-    memory efficiency optimizations. np.nanmedian always uses at least 64-bit
-    precision internally, and this is too memory-intensive. Instead, loop over
-    the median calculation to avoid the memory usage of the internal upcasting
-    and temporary array allocation. The additional runtime of this loop is
-    indistinguishable from zero, but this loop cuts overall step memory usage
-    roughly in half for at least one test association.
+    """Compute the nanmedian of a cube.
+
+    This produces identical results to np.nanmedian but is much more
+    memory efficient for large cubes.
+
+    RuntimeWarnings reporting "All-Nan slice" will be ignored.
+
+    Parameters
+    ----------
+    cube
+        3-dimensional array. Will be modified in-place if overwrite_input is True
+    overwrite_input
+        Passed to `np.nanmedian`, if True the input cube will be modified
+
+    Returns
+    -------
+    median
+        2-dimensional computed median array
     """
     with warnings.catch_warnings():
         warnings.filterwarnings(action="ignore",
                                 message="All-NaN slice encountered",
                                 category=RuntimeWarning)
-        output_arr = np.empty(cube.shape[1:], dtype=np.float32)
+        output_arr = np.empty(cube.shape[1:], dtype=cube.dtype)
         for i in range(output_arr.shape[0]):
-            # this for loop looks silly, but see docstring above
+            # np.nanmedian allocates lots of memory; this for loop gets around that
             np.nanmedian(cube[:, i, :],
                          axis=0,
                          overwrite_input=overwrite_input,
@@ -49,7 +63,8 @@ class MedianComputer:
                  full_shape: tuple,
                  in_memory: bool,
                  buffer_size: int | None = None,
-                 dtype: str | np.dtype = "float32"
+                 dtype: str | np.dtype = "float32",
+                 tempdir: str = "",
                  ) -> None:
         """
         Parameters
@@ -67,6 +82,10 @@ class MedianComputer:
 
         dtype
             The data type of the input data.
+
+        tempdir
+            The parent directory in which to create the temporary directory.
+            Default is the current working directory.
         """
         self.full_shape = full_shape
         self.in_memory = in_memory
@@ -77,9 +96,10 @@ class MedianComputer:
         if self.in_memory:
             computer: Any = np.empty(full_shape, dtype=dtype)
         else:
-            computer = OnDiskMedian(full_shape,
+            computer = _OnDiskMedian(full_shape,
                                     dtype=dtype,
-                                    buffer_size=buffer_size)
+                                    buffer_size=buffer_size,
+                                    tempdir=tempdir)
         self._median_computer: Any = computer
 
     def append(self,
@@ -92,7 +112,7 @@ class MedianComputer:
         Parameters
         ----------
         data
-            The data to append to the median computer.
+            The data to append to the median computer. Must have shape full_shape[1:].
 
         idx
             The index at which to append the data. Required if using in-memory
@@ -125,7 +145,7 @@ class MedianComputer:
         return median_data
 
 
-class DiskAppendableArray:
+class _DiskAppendableArray:
     """
     Creates a temporary file to which to append data, in order to perform
     timewise operations on a stack of input images without holding all of them
@@ -152,8 +172,7 @@ class DiskAppendableArray:
         Parameters
         ----------
         slice_shape
-            The shape of the spatial section of input data to be appended
-            to the array.
+            The required shape of each appended slice.
 
         dtype
             The data type of the array. Must be a valid numpy array datatype.
@@ -162,8 +181,7 @@ class DiskAppendableArray:
             The full file path in which to store the array
         """
         if len(slice_shape) != 2:
-            msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays "
-            msg += "are supported."
+            msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays are supported."
             raise ValueError(msg)
         self._filename = Path(filename)
         with Path.open(self._filename, "wb") as f:   # noqa: F841
@@ -177,27 +195,40 @@ class DiskAppendableArray:
         return (self._append_count, *self._slice_shape)
 
     def append(self, data: np.ndarray) -> None:
-        """Add a new slice to the temporary file."""
+        """
+        Add a new slice to the temporary file.
+
+        Parameters
+        ----------
+        data
+            The data to append to the array. Must have shape ``slice_shape``
+            and dtype matching the one provided to ``__init__``.
+        """
         if data.shape != self._slice_shape:
-            msg = f"Data shape {data.shape} does not match slice shape "
-            msg += f"{self._slice_shape}"
+            msg = f"Data shape {data.shape} does not match slice shape {self._slice_shape}"
             raise ValueError(msg)
         if data.dtype != self._dtype:
-            msg = f"Data dtype {data.dtype} does not match array dtype "
-            msg += f"{self._dtype}"
+            msg = f"Data dtype {data.dtype} does not match array dtype {self._dtype}"
             raise ValueError(msg)
         with Path.open(self._filename, "ab") as f:
             data.tofile(f, sep="")
         self._append_count += 1
 
     def read(self) -> np.ndarray:
-        """Read the 3-D array into memory."""
+        """
+        Read the 3-D array into memory.
+
+        Returns
+        -------
+        array
+            The full array stored in the temporary file, shape (append_count, *slice_shape).
+        """
         shp = (self._append_count, *self._slice_shape)
         with Path.open(self._filename, "rb") as f:
             return np.fromfile(f, dtype=self._dtype).reshape(shp)
 
 
-class OnDiskMedian:
+class _OnDiskMedian:
 
     def __init__(self,
                  shape: tuple,
@@ -207,7 +238,7 @@ class OnDiskMedian:
                  ) -> None:
         """
         Set up temporary files to perform operations on a stack of 2-D input
-        arrays along the stacking axis (e.g., a time axis) without
+        arrays along the first dimension (e.g., a time axis) without
         holding all of them in memory. Currently the only supported operation
         is the median.
 
@@ -229,8 +260,7 @@ class OnDiskMedian:
             Default is the size of one input image.
         """
         if len(shape) != 3:
-            msg = f"Invalid input shape {shape}; "
-            msg += "only three-dimensional data are supported."
+            msg = f"Invalid input shape {shape}; only three-dimensional data are supported."
             raise ValueError(msg)
         self._expected_nframes = shape[0]
         self.frame_shape = shape[1:]
@@ -279,23 +309,23 @@ class OnDiskMedian:
 
         if section_nrows <= 0:
             buffer_size = min_buffer_size * self._expected_nframes
-            msg = "Buffer size is too small to hold a single row. "
-            msg += f"Increasing buffer size to {buffer_size / _ONE_MB} MB"
+            msg = ("Buffer size is too small to hold a single row. "
+                   f"Increasing buffer size to {buffer_size / _ONE_MB} MB")
             log.warning(msg)
             section_nrows = 1
         self.buffer_size = buffer_size
 
         nsections = int(np.ceil(imrows / section_nrows))
-        msg = f"Computing median over {self._expected_nframes} "
-        msg += f"groups in {nsections} sections "
-        msg += f"with total memory buffer {buffer_size / _ONE_MB} MB"
+        msg = (f"Computing median over {self._expected_nframes} "
+               f"groups in {nsections} sections "
+               f"with total memory buffer {buffer_size / _ONE_MB} MB")
         log.info(msg)
         return nsections, section_nrows
 
     def _temparray_setup(self,
                          dtype: str | np.dtype
-                         ) -> list[DiskAppendableArray]:
-        """Set up temp file handlers for each spatial section."""
+                         ) -> list[_DiskAppendableArray]:
+        """Set up temp file handlers, one for each section."""
         temp_arrays = []
         for i in range(self.nsections):
             shp = self.slice_shape
@@ -303,18 +333,17 @@ class OnDiskMedian:
                 # last section has whatever shape is left over
                 shp = (self.frame_shape[0] - (self.nsections-1) *
                        self.section_nrows, self.frame_shape[1])
-            arr = DiskAppendableArray(shp, dtype, self._temp_path / f"{i}.bin")
+            arr = _DiskAppendableArray(shp, dtype, self._temp_path / f"{i}.bin")
             temp_arrays.append(arr)
         return temp_arrays
 
     def add_image(self, data: np.ndarray) -> None:
         """
-        Split resampled model data into spatial sections
-        and write to disk.
+        Split data into ``nsections`` sections and write/append each section to
+        the corresponding temporary file.
         """
         if self._n_adds >= self.nsections:
-            msg = "Too many calls to add_image. "
-            msg += f"Expected at most {self.nsections} input models."
+            msg = f"Too many calls to add_image. Expected at most {self.nsections} input models."
             raise IndexError(msg)
         self._validate_data(data)
         self._n_adds += 1
@@ -327,22 +356,30 @@ class OnDiskMedian:
     def _validate_data(self, data: np.ndarray) -> None:
         """Ensure data array being appended has correct shape and dtype."""
         if data.shape != self.frame_shape:
-            msg = f"Data shape {data.shape} does not match expected shape "
-            msg += f"{self.frame_shape}"
+            msg = f"Data shape {data.shape} does not match expected shape {self.frame_shape}."
             raise ValueError(msg)
         if data.dtype != self.dtype:
-            msg = f"Data dtype {data.dtype} does not match expected dtype "
-            msg += f"{self.dtype}"
+            msg = f"Data dtype {data.dtype} does not match expected dtype {self.dtype}."
             raise ValueError(msg)
 
     def cleanup(self) -> None:
-        """Remove the temporary files and directory when finished."""
+        """
+        Remove the temporary files and directory when finished.
+
+        This method should be called when this instance is no longer needed,
+        and the instance should not be used after this method is called.
+        """
         self._temp_dir.cleanup()
 
     def compute_median(self) -> np.ndarray:
         """
-        Read spatial sections from disk and compute the median across groups
-        (median over number of exposures on a per-pixel basis).
+        Compute the median of the previously added data.
+
+        Returns
+        -------
+        median_image
+            2-dimensional array of shape [``imrows``, ``imcols``] containing
+            median values computed across all images previously provided to ``add_image``.
         """
         row_indices = [(i * self.section_nrows,
                         min((i+1) * self.section_nrows, self.frame_shape[0]))

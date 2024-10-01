@@ -80,12 +80,6 @@ def test_disk_appendable_array_bad_inputs(tmpdir):
         DiskAppendableArray(slice_shape, "float3", tempdir)
 
 
-# filter warnings such that "ResourceWarning: Implictly cleaning up" is raised
-# unfortunately need to do this indirectly
-# by finding "finalize" string in PytestUnraisableException
-@pytest.mark.filterwarnings(
-        "error:.*finalize.*:pytest.PytestUnraisableExceptionWarning"
-        )
 def test_on_disk_median(tmpdir):
 
     library_length = 3
@@ -162,9 +156,6 @@ def test_computer():
     assert np.allclose(comp_memory.evaluate(), comp_disk.evaluate())
 
 
-@pytest.mark.filterwarnings(
-        "error:.*finalize.*:pytest.PytestUnraisableExceptionWarning"
-        )
 def test_on_disk_median_bad_inputs(tmpdir):
 
     library_length = 3
