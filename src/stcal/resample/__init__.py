@@ -1,9 +1,8 @@
 from .resample import *
 
 __all__ = [
+    "LibModelAccess",
     "OutputTooLargeError",
-    "ResampleModelIO",
-    "ResampleBase",
-    "ResampleCoAdd",
-    "ResampleSingle"
+    "Resample",
+    "resampled_wcs_from_models",
 ]
