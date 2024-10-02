@@ -209,10 +209,10 @@ class RampData:
 
     def dbg_print_pixel_info(self, row, col):
         print("-" * 80)
-        print(f"    data")
+        print("    data")
         for integ in range(self.data.shape[0]):
             print(f"[{integ}] {self.data[integ, :, row, col]}")
-        print(f"    groupdq")
+        print("    groupdq")
         for integ in range(self.data.shape[0]):
             print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
         # print(f"    err :\n{self.err[:, :, row, col]}")
@@ -280,8 +280,8 @@ class RampData:
 
         # XXX Make this a separate function
         delimiter = "-" * 40
-        fd.write(f"{indent}# {delimiter}\n\n");
-        fd.write(f"{indent}# ({row}, {col})\n\n");
+        fd.write(f"{indent}# {delimiter}\n\n")
+        fd.write(f"{indent}# ({row}, {col})\n\n")
 
         nints = self.data.shape[0]
 

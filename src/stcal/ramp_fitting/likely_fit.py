@@ -1,20 +1,13 @@
 #! /usr/bin/env python
 
 import logging
-import multiprocessing
-import time
-import scipy
-import sys
 import warnings
 
-from multiprocessing import cpu_count
-from pprint import pprint
-
 import numpy as np
+import scipy
 
-from . import ramp_fit_class, utils
-from .likely_algo_classes import IntegInfo, RampResult, Covar
-
+from . import utils
+from .likely_algo_classes import Covar, IntegInfo, RampResult
 
 DELIM = "=" * 80
 SQRT2 = np.sqrt(2)

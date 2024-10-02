@@ -3,12 +3,10 @@ import multiprocessing
 import time
 import warnings
 
-import numpy as np
-import cv2 as cv
 import astropy.stats as stats
-
-from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
+import cv2 as cv
+import numpy as np
+from astropy.convolution import Ring2DKernel, convolve
 
 from . import constants
 from . import twopoint_difference as twopt

@@ -1,20 +1,20 @@
 import warnings
 
 import gwcs
-import pytest
 import numpy as np
+import pytest
 import scipy.signal
 from astropy.modeling import models
 
 from stcal.outlier_detection.utils import (
     _abs_deriv,
+    calc_gwcs_pixmap,
     compute_weight_threshold,
     flag_crs,
     flag_resampled_crs,
     gwcs_blot,
-    calc_gwcs_pixmap,
-    reproject,
     medfilt,
+    reproject,
 )
 
 
