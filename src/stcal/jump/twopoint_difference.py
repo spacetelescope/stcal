@@ -489,7 +489,6 @@ def calc_med_first_diffs(in_first_diffs):
         return np.nan
 
     if first_diffs.ndim == 2:  # in the case where input is a single pixel
-        nansum = np.sum(np.isnan(first_diffs), axis=(0, 1))
         num_usable_diffs = first_diffs.size - np.sum(np.isnan(first_diffs), axis=(0, 1))
         if num_usable_diffs >= 4:  # if 4+, clip largest and return median
             mask = np.ones_like(first_diffs).astype(bool)
@@ -499,7 +498,6 @@ def calc_med_first_diffs(in_first_diffs):
         elif num_usable_diffs == 3:  # if 3, no clipping just return median
             return np.nanmedian(first_diffs)
         elif num_usable_diffs == 2:  # if 2, return diff with minimum abs
-            TEST = np.nanargmin(np.abs(first_diffs))
             diff_min_idx = np.nanargmin(first_diffs)
             location = np.unravel_index(diff_min_idx, first_diffs.shape)
             return first_diffs[location]

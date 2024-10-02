@@ -1479,7 +1479,6 @@ def test_one_group():
     sdata, sdq, svp, svr, serr = slopes
 
     # XXX JP-3121: this is the value from python, which may not be correct
-    chk_data = 1.9618962  
     chk_dq = 0
     chk_var_p = 0.02923839
     chk_var_r = 0.03470363
@@ -1487,7 +1486,6 @@ def test_one_group():
 
 
     # XXX Investigate.  Now python may be wrong.
-    # assert abs(sdata[0, 0] - chk_data) < tol
     assert sdq[0, 0] == chk_dq
     assert abs(svp[0, 0] - chk_var_p) < tol
     assert abs(svr[0, 0] - chk_var_r) < tol
@@ -1581,7 +1579,6 @@ def test_cext_chargeloss():
     rnval, gval = 0.7071, 1.
     # frame_time, nframes, groupgap = 1., 1, 0
     frame_time, nframes, groupgap = 10.6, 1, 0
-    group_time = 10.6
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval

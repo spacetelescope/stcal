@@ -758,7 +758,6 @@ def extend_ellipses(
             saty, satx = np.where(sat_pix == sat_flag)
             jump_ellipse[saty, satx] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
-    diff_cube = out_gdq_cube - gdq_cube
     return out_gdq_cube, num_ellipses
 
 def find_last_grp(grp, ngrps, num_grps_masked):
