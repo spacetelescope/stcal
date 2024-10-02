@@ -645,7 +645,6 @@ def test_5grps_satat4_crat3(setup_cube):
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
     # assert(4 == np.max(out_gdq))  # no CR was found
-    result = out_gdq[0, :, 1, 1]
     assert np.array_equal(
         [0, 0, DQFLAGS['JUMP_DET'], DQFLAGS['SATURATED'], DQFLAGS['SATURATED']],
         out_gdq[0, :, 1, 1])
@@ -758,7 +757,6 @@ def test_median_with_saturation(setup_cube):
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(data, gdq, read_noise, rej_threshold,
                                                      rej_threshold, rej_threshold, nframes,
                                                      False, 200, 10, DQFLAGS)
-    gdq_value = out_gdq[0, :, 1, 1]
     assert (np.array_equal([0, 0, 0, 0, 0, 4, 0, 2, 2, 2], out_gdq[0, :, 1, 1]))
 
 

@@ -291,8 +291,6 @@ class Covar:
         # try to avoid problems with roundoff error
         da_incr = da * (countrates[np.newaxis, :] + sig**2)
 
-        dalpha = da_incr * self.alpha_phnoise[:, np.newaxis]
-        dbeta = da_incr * self.beta_phnoise[:, np.newaxis]
         result_high_a = fit_ramps(z, self, sig, countrateguess=countrates + da_incr)
         # finite difference approximation to dw/da
 
