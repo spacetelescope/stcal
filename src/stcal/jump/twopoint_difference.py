@@ -2,7 +2,6 @@ import logging
 import warnings
 
 import numpy as np
-import warnings
 from astropy import stats
 
 log = logging.getLogger(__name__)

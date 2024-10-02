@@ -19,9 +19,9 @@ import numpy as np
 from astropy import units as u
 
 from . import (
-    gls_fit,    # used only if algorithm is "GLS"
-    likely_fit, # used only if algorithm is "LIKELY"
-    ols_fit,    # used only if algorithm is "OLS"
+    gls_fit,  # used only if algorithm is "GLS"
+    likely_fit,  # used only if algorithm is "LIKELY"
+    ols_fit,  # used only if algorithm is "OLS"
     ramp_fit_class,
 )
 
@@ -261,7 +261,7 @@ def ramp_fit_data(
     # a minimum of a four group ramp is needed.
     ngroups = ramp_data.data.shape[1]
     if algorithm.upper() == "LIKELY" and ngroups < likely_fit.LIKELY_MIN_NGROUPS:
-        log.info(f"When selecting the LIKELY ramp fitting algorithm the"
+        log.info("When selecting the LIKELY ramp fitting algorithm the"
                   " ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
                   " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
                   " is being changed to OLS_C")

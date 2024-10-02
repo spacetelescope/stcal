@@ -1,18 +1,18 @@
 """
 Utility functions for outlier detection routines
 """
-import warnings
 
+import logging
+
+import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
 from scipy import ndimage
 from skimage.util import view_as_windows
-import gwcs
 
 from stcal.alignment.util import wcs_bbox_from_shape
 
-import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
