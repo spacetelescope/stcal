@@ -18,8 +18,8 @@ from astropy.nddata.bitmask import (
     interpret_bit_flags,
 )
 
-from .utils import bytes2human, get_tmeasure
-from ..alignment.util import (
+from stcal.resample.utils import bytes2human, get_tmeasure
+from stcal.alignment.util import (
     compute_scale,
     wcs_bbox_from_shape,
     wcs_from_footprints,
@@ -30,10 +30,11 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 __all__ = [
-    "LibModelAccess",
+    "LibModelAccessBase",
     "OutputTooLargeError",
     "Resample",
     "resampled_wcs_from_models",
+    "UnsupportedWCSError",
 ]
 
 _SUPPORTED_CUSTOM_WCS_PARS = [
@@ -62,7 +63,7 @@ def _resample_range(data_shape, bbox=None):
     return xmin, xmax, ymin, ymax
 
 
-class LibModelAccess(abc.ABC):
+class LibModelAccessBase(abc.ABC):
     # list of model attributes needed by this module. While this is not
     # required, it is helpful for subclasses to check they know how to
     # access these attributes.
@@ -131,8 +132,8 @@ def resampled_wcs_from_models(
     Parameters
     ----------
 
-    input_models : LibModelAccess
-        An object of `LibModelAccess`-derived type.
+    input_models : LibModelAccessBase
+        An object of `LibModelAccessBase`-derived type.
 
     pixel_scale_ratio : float, optional
         Desired pixel scale ratio defined as the ratio of the first model's
@@ -241,6 +242,12 @@ class OutputTooLargeError(RuntimeError):
     """Raised when the output is too large for in-memory instantiation"""
 
 
+class UnsupportedWCSError(RuntimeError):
+    """ Raised when provided output WCS has an unexpected number of axes
+    or has an unsupported structure.
+    """
+
+
 class Resample:
     """
     This is the controlling routine for the resampling process.
@@ -282,9 +289,9 @@ class Resample:
         """
         Parameters
         ----------
-        input_models : LibModelAccess
-            A `LibModelAccess` object allowing iterating over all contained
-            models of interest.
+        input_models : LibModelAccessBase
+            A `LibModelAccessBase`-based object allowing iterating over
+            all contained models of interest.
 
         kwargs : dict
             Other parameters.
@@ -414,8 +421,8 @@ class Resample:
         """
         naxes = output_wcs.output_frame.naxes
         if naxes != 2:
-            raise RuntimeError(
-                "Output WCS needs 2 spatial axes but the "
+            raise UnsupportedWCSError(
+                "Output WCS needs 2 coordinate axes but the "
                 f"supplied WCS has {naxes} axes."
             )
 
@@ -841,7 +848,7 @@ class Resample:
             'fillval': np.nan,
             'out_shape': self._output_array_shape,
             # 'exptime': 1.0,
-            'no_ctx': True,
+            'disable_ctx': True,
         }
         self.driz_rnoise = Drizzle(**driz_init_kwargs)
         self.driz_poisson = Drizzle(**driz_init_kwargs)
