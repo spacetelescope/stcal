@@ -262,8 +262,8 @@ def ramp_fit_data(
     ngroups = ramp_data.data.shape[1]
     if algorithm.upper() == "LIKELY" and ngroups < likely_fit.LIKELY_MIN_NGROUPS:
         log.info("When selecting the LIKELY ramp fitting algorithm the"
-                  " ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
-                  " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
+                  f" ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
+                  f" but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
                   " is being changed to OLS_C")
         algorithm = "OLS_C"
 
