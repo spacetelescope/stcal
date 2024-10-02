@@ -278,6 +278,9 @@ class Covar:
             Bias of the best-fit count rate from using cvec plus the observed
             resultants to estimate the covariance matrix.
         """
+
+        from .likely_fit import fit_ramps
+
         alpha = countrates[np.newaxis, :] * self.alpha_phnoise[:, np.newaxis]
         alpha += sig**2 * self.alpha_readnoise[:, np.newaxis]
         beta = countrates[np.newaxis, :] * self.beta_phnoise[:, np.newaxis]
