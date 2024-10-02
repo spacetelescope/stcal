@@ -3,12 +3,10 @@ import multiprocessing
 import time
 import warnings
 
-import numpy as np
-import cv2 as cv
 import astropy.stats as stats
-
-from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
+import cv2 as cv
+import numpy as np
+from astropy.convolution import Ring2DKernel, convolve
 
 from . import constants
 from . import twopoint_difference as twopt
@@ -760,7 +758,6 @@ def extend_ellipses(
             saty, satx = np.where(sat_pix == sat_flag)
             jump_ellipse[saty, satx] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
-    diff_cube = out_gdq_cube - gdq_cube
     return out_gdq_cube, num_ellipses
 
 def find_last_grp(grp, ngrps, num_grps_masked):
