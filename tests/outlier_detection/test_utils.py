@@ -118,6 +118,30 @@ def test_gwcs_blot():
     np.testing.assert_equal(blotted, median_data[:blot_shape[0], :blot_shape[1]])
 
 
+@pytest.mark.parametrize('fillval', [0.0, np.nan])
+def test_gwcs_blot_fillval(fillval):
+    # set up a very simple wcs that scales by 1x
+    output_frame = gwcs.Frame2D(name="world")
+    forward_transform = models.Scale(1) & models.Scale(1)
+
+    median_shape = (10, 10)
+    median_data = np.arange(100, dtype=np.float32).reshape((10, 10))
+    median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    blot_shape = (20, 20)
+    blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    pix_ratio = 1.0
+
+    blotted = gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs,
+                        pix_ratio, fillval=fillval)
+
+    # since the blot data is larger and the wcs are equivalent the blot
+    # will contain the median data + some fill values
+    assert blotted.shape == blot_shape
+    np.testing.assert_equal(blotted[:median_shape[0], :median_shape[1]], median_data)
+    np.testing.assert_equal(blotted[median_shape[0]:, :], fillval)
+    np.testing.assert_equal(blotted[:, median_shape[1]:], fillval)
+
+
 def test_calc_gwcs_pixmap():
     # generate 2 wcses with different scales
     output_frame = gwcs.Frame2D(name="world")

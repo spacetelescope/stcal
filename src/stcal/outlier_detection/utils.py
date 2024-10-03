@@ -223,7 +223,7 @@ def flag_resampled_crs(
     return mask1_smoothed & mask2
 
 
-def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
+def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=0.0):
     """
     Resample the median data to recreate an input image based on
     the blot wcs.
@@ -236,7 +236,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
     median_wcs : gwcs.wcs.WCS
         The wcs for the median data.
 
-    blot_shape : list of int
+    blot_shape : tuple of int
         The target blot data shape.
 
     blot_wcs : gwcs.wcs.WCS
@@ -244,6 +244,9 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
 
     pix_ratio : float
         Pixel ratio.
+
+    fillval : float, optional
+        Fill value for missing data.
 
     Returns
     -------
@@ -259,7 +262,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
     log.debug("Sci shape: {}".format(blot_shape))
     log.info('Blotting {} <-- {}'.format(blot_shape, median_data.shape))
 
-    outsci = np.zeros(blot_shape, dtype=np.float32)
+    outsci = np.full(blot_shape, fillval, dtype=np.float32)
 
     # Currently tblot cannot handle nans in the pixmap, so we need to give some
     # other value.  -1 is not optimal and may have side effects.  But this is
@@ -267,7 +270,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio):
     # before a change is made.  Preferably, fix tblot in drizzle.
     pixmap[np.isnan(pixmap)] = -1
     tblot(median_data, pixmap, outsci, scale=pix_ratio, kscale=1.0,
-          interp='linear', exptime=1.0, misval=0.0, sinscl=1.0)
+          interp='linear', exptime=1.0, misval=fillval, sinscl=1.0)
 
     return outsci
 
