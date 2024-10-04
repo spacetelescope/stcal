@@ -223,7 +223,9 @@ struct ramp_data {
     real_t effintim;                /* Effective integration time */
     real_t one_group_time;          /* Time for ramps with only 0th good group */
     weight_t weight;                /* The weighting for OLS */
-    int run_chargeloss;             /* Boolean to run chargeloss */
+
+    /* Debug switch */
+    int debug;
 }; /* END: struct ramp_data */
 
 /*
@@ -1841,8 +1843,10 @@ get_ramp_data_meta(
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
     rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
-    rd->run_chargeloss = py_ramp_data_get_int(Py_ramp_data, "run_chargeloss");
     rd->invalid = rd->dnu | rd->sat;
+
+    /* Debugging switch */
+    rd->debug = py_ramp_data_get_int(Py_ramp_data, "debug");
 
     /* Get float meta data */
     rd->group_time = (real_t)py_ramp_data_get_float(Py_ramp_data, "group_time");
@@ -2254,7 +2258,7 @@ ols_slope_fit_pixels(
                 return 1;
             }
 
-            if (rd->run_chargeloss) {
+            if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
                     return 1;
                 }
