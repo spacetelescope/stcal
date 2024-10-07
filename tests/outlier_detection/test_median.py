@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import tracemalloc
 
 import numpy as np
 import pytest
@@ -194,3 +195,41 @@ def test_nanmedian3D():
 
     assert med.dtype == np.float32
     assert np.allclose(med, np.nanmedian(cube, axis=0), equal_nan=True)
+
+
+@pytest.mark.parametrize("in_memory", [True, False])
+def test_memory_computer(in_memory):
+    """
+    Analytically calculate how much memory the median computation
+    is supposed to take, then ensure that the implementation
+    stays near that.
+
+    in_memory=True case allocates the following memory:
+    - one cube size
+    - median array == one frame size
+
+    in_memory=False case allocates the following memory:
+    - one buffer size, which by default is the frame size
+    - median array == one frame size
+    
+    add a half-frame-size buffer to the expected memory usage in both cases
+    """
+    shp = (20, 500, 500)
+    cube_size = np.dtype("float32").itemsize * shp[0] * shp[1] * shp[2] #bytes
+    frame_size = cube_size / shp[0]
+
+    # compute the median while tracking memory usage
+    tracemalloc.start()
+    computer = MedianComputer(shp, in_memory=in_memory)
+    for i in range(shp[0]):
+        frame = np.full(shp[1:], i, dtype=np.float32)
+        computer.append(frame, i)
+        del frame
+    computer.evaluate()
+    _, peak_mem = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    if in_memory:
+        expected_mem = cube_size + frame_size*1.5
+        assert peak_mem < expected_mem
+    else:
+        assert peak_mem < frame_size * 2.5
