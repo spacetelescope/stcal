@@ -225,7 +225,6 @@ def test_neg_med_rates_multi_integration_optional():
     np.testing.assert_allclose(ovp[:, 0, 0, 0], np.zeros(3), tol)
 
 
-# def base_neg_med_rates_single_integration_multi_segment():
 def test_neg_med_rates_single_integration_multi_segment_optional():
     """
     Test a ramp with multiple segments to make sure the right number of
@@ -255,8 +254,6 @@ def test_neg_med_rates_single_integration_multi_segment_optional():
     ramp_data.data[0, 10:, 1, 0] = ramp_data.data[0, 10:, 1, 0] + 50
     ramp_data.groupdq[0, 10, 1, 0] = dqflags["JUMP_DET"]
 
-    ramp_data.debug = True  # XXX debugging switch
-
     # Run ramp fit on RampData
     buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
@@ -264,10 +261,6 @@ def test_neg_med_rates_single_integration_multi_segment_optional():
     )
 
     oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
-
-    print(f"{ovp[0, :, 0, 0] = }")
-    print(f"{ovp[0, :, 1, 0] = }")
-    return 
 
     neg_ramp_poisson = ovp[0, :, 0, 0]
     tol = 1e-6
@@ -1800,6 +1793,16 @@ def create_test_2seg_obs(
 # The functions below are only used for DEBUGGING tests and developing tests. #
 ###############################################################################
 
+def dbg_print(string):
+    """
+    Print string with line number and filename.
+    """
+    import inspect, os
+    cf = inspect.currentframe()
+    line_number = cf.f_back.f_lineno
+    finfo = inspect.getframeinfo(cf.f_back)
+    fname = os.path.basename(finfo.filename)
+    print(f"[{fname}:{line_number}] {string}")
 
 def print_real_check(real, check, label=None):
     import inspect
