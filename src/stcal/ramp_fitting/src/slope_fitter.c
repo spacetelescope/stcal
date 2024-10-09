@@ -1352,7 +1352,7 @@ create_opt_res(
 
     /* cr_mag has different dimensions */
     dims[1] = rd->max_num_crs;
-    opt_res->cr_mag = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->cr_mag = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->cr_mag) {
         goto FAILED_ALLOC;
     }
