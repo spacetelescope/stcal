@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import tracemalloc
 
 import numpy as np
 import pytest
@@ -11,6 +10,7 @@ from stcal.outlier_detection.median import (
     _OnDiskMedian,
     nanmedian3D,
 )
+from tests.helpers import MemoryThreshold
 
 
 def test_disk_appendable_array(tmp_path):
@@ -218,18 +218,17 @@ def test_memory_computer(in_memory):
     cube_size = np.dtype("float32").itemsize * shp[0] * shp[1] * shp[2] #bytes
     frame_size = cube_size / shp[0]
 
-    # compute the median while tracking memory usage
-    tracemalloc.start()
-    computer = MedianComputer(shp, in_memory=in_memory)
-    for i in range(shp[0]):
-        frame = np.full(shp[1:], i, dtype=np.float32)
-        computer.append(frame, i)
-        del frame
-    computer.evaluate()
-    _, peak_mem = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+    # calculate expected memory usage
     if in_memory:
         expected_mem = cube_size + frame_size*1.5
-        assert peak_mem < expected_mem
     else:
-        assert peak_mem < frame_size * 2.5
+        expected_mem = frame_size * 2.5
+
+    # compute the median while tracking memory usage
+    with MemoryThreshold(expected_mem):
+        computer = MedianComputer(shp, in_memory=in_memory)
+        for i in range(shp[0]):
+            frame = np.full(shp[1:], i, dtype=np.float32)
+            computer.append(frame, i)
+            del frame
+        computer.evaluate()
