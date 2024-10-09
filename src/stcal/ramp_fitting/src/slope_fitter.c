@@ -142,6 +142,15 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 #define dbg_ols_print_pixel(PR) \
     printf("[C:%d] Pixel (%ld, %ld)\n", __LINE__, (PR)->row, (PR)->col)
 
+
+#define dbg_pyerr(S) \
+    do { \
+        print_delim(); \
+        dbg_ols_print("%s\n", S); \
+        PyErr_Print(); \
+        print_delim(); \
+    } while(0)
+
 /* ------------------------------------------------------------------------- */
 
 /* ========================================================================= */
@@ -1828,11 +1837,20 @@ get_ramp_data_meta(
         PyObject * Py_ramp_data, /* The RampData class */
         struct ramp_data * rd)   /* The ramp data */
 {
+    PyObject * test = Py_None;
+
     /* Get integer meta data */
     rd->groupgap = py_ramp_data_get_int(Py_ramp_data, "groupgap");
     rd->nframes = py_ramp_data_get_int(Py_ramp_data, "nframes");
     rd->suppress1g = py_ramp_data_get_int(Py_ramp_data, "suppress_one_group_ramps");
-    rd->dropframes = py_ramp_data_get_int(Py_ramp_data, "drop_frames1");
+
+    test = PyObject_GetAttrString(Py_ramp_data, "drop_frames1");
+    if (!test|| (test == Py_None)) {
+        rd->dropframes = 0.;
+    } else {
+        rd->dropframes = py_ramp_data_get_int(Py_ramp_data, "drop_frames1");
+    }
+    Py_XDECREF(test);
 
     rd->ped_tmp = ((rd->nframes + 1) / 2. + rd->dropframes) / (rd->nframes + rd->groupgap);
 
@@ -1842,7 +1860,15 @@ get_ramp_data_meta(
     rd->sat = py_ramp_data_get_int(Py_ramp_data, "flags_saturated");
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
-    rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
+
+    test = PyObject_GetAttrString(Py_ramp_data, "flags_chargeloss");
+    if (!test|| (test == Py_None)) {
+        rd->chargeloss = 0;
+    } else {
+        rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
+    }
+    Py_XDECREF(test);
+
     rd->invalid = rd->dnu | rd->sat;
 
     /* Debugging switch */
