@@ -2,7 +2,7 @@
 name = "stcal"
 description = "STScI tools and algorithms used in calibration pipelines"
 readme = "README.md"
-requires-python = ">=3.10,<=3.13"
+requires-python = ">=3.10,<3.13"
 authors = [
     { name = "STScI", email = "help@stsci.edu" },
 ]
@@ -39,7 +39,7 @@ docs = [
     "sphinx-asdf",
     "sphinx-astropy",
     "sphinx-rtd-theme",
-    "tomli; python_version <=\"3.13\"",
+    "tomli; python_version <=\"3.11\"",
 ]
 test = [
     "psutil",
@@ -205,7 +205,7 @@ convention = "numpy"
 ignore-fully-untyped = true  # Turn of annotation checking for fully untyped code
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 
