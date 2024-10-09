@@ -198,7 +198,7 @@ def test_nanmedian3D():
 
 
 @pytest.mark.parametrize("in_memory", [True, False])
-def test_memory_computer(in_memory):
+def test_memory_computer(in_memory, tmp_path):
     """
     Analytically calculate how much memory the median computation
     is supposed to take, then ensure that the implementation
@@ -226,7 +226,7 @@ def test_memory_computer(in_memory):
 
     # compute the median while tracking memory usage
     with MemoryThreshold(expected_mem):
-        computer = MedianComputer(shp, in_memory=in_memory)
+        computer = MedianComputer(shp, in_memory=in_memory, tempdir=tmp_path)
         for i in range(shp[0]):
             frame = np.full(shp[1:], i, dtype=np.float32)
             computer.append(frame, i)
