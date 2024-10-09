@@ -1846,7 +1846,7 @@ get_ramp_data_meta(
 
     test = PyObject_GetAttrString(Py_ramp_data, "drop_frames1");
     if (!test|| (test == Py_None)) {
-        rd->dropframes = 0.;
+        rd->dropframes = 0;
     } else {
         rd->dropframes = py_ramp_data_get_int(Py_ramp_data, "drop_frames1");
     }
