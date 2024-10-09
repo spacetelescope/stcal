@@ -1,5 +1,10 @@
 import tracemalloc
 
+
+class MemoryThresholdExceeded(Exception):
+    pass
+
+
 class MemoryThreshold:
     """
     Context manager to check peak memory usage against an expected threshold.
@@ -26,7 +31,7 @@ class MemoryThreshold:
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
-        assert peak <= self.expected_usage, (
-            "Peak memory usage exceeded expected usage: "
-            f"{peak / 1024:.2f} KB > {self.expected_usage / 1024:.2f} KB"
-        )
+        if peak > self.expected_usage:
+            msg = ("Peak memory usage exceeded expected usage: "
+                  f"{peak / 1024:.2f} KB > {self.expected_usage / 1024:.2f} KB")
+            raise MemoryThresholdExceeded(msg)

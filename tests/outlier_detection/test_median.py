@@ -10,7 +10,7 @@ from stcal.outlier_detection.median import (
     _OnDiskMedian,
     nanmedian3D,
 )
-from tests.helpers import MemoryThreshold
+from stcal.testing_helpers import MemoryThreshold
 
 
 def test_disk_appendable_array(tmp_path):
