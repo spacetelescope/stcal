@@ -223,7 +223,9 @@ struct ramp_data {
     real_t effintim;                /* Effective integration time */
     real_t one_group_time;          /* Time for ramps with only 0th good group */
     weight_t weight;                /* The weighting for OLS */
-    int run_chargeloss;             /* Boolean to run chargeloss */
+
+    /* Debug switch */
+    int debug;
 }; /* END: struct ramp_data */
 
 /*
@@ -1192,37 +1194,37 @@ create_opt_res(
     dims[3] = rd->ncols;
 
     /* Note fortran = 0 */
-    opt_res->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->slope = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->slope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigslope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->sigslope = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->sigslope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_p = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->var_p = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->var_p) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_r = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->var_r = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->var_r) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->yint = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->yint = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->yint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigyint = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->sigyint = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->sigyint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->weights = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    opt_res->weights = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->weights) {
         goto FAILED_ALLOC;
     }
@@ -1230,13 +1232,13 @@ create_opt_res(
     pdims[0] = rd->nints;
     pdims[1] = rd->nrows;
     pdims[2] = rd->ncols;
-    opt_res->pedestal = (PyArrayObject*)PyArray_EMPTY(pnd, pdims, NPY_FLOAT, fortran);
+    opt_res->pedestal = (PyArrayObject*)PyArray_ZEROS(pnd, pdims, NPY_FLOAT, fortran);
     if (!opt_res->pedestal) {
         goto FAILED_ALLOC;
     }
 
     /* XXX */
-    //->cr_mag = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    //->cr_mag = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     opt_res->cr_mag = (PyArrayObject*)Py_None;
 
     return 0;
@@ -1841,8 +1843,10 @@ get_ramp_data_meta(
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
     rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
-    rd->run_chargeloss = py_ramp_data_get_int(Py_ramp_data, "run_chargeloss");
     rd->invalid = rd->dnu | rd->sat;
+
+    /* Debugging switch */
+    rd->debug = py_ramp_data_get_int(Py_ramp_data, "debug");
 
     /* Get float meta data */
     rd->group_time = (real_t)py_ramp_data_get_float(Py_ramp_data, "group_time");
@@ -2254,7 +2258,7 @@ ols_slope_fit_pixels(
                 return 1;
             }
 
-            if (rd->run_chargeloss) {
+            if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
                     return 1;
                 }
@@ -2477,10 +2481,12 @@ ramp_fit_pixel(
         goto END;
     }
 #if 0
-    print_delim();
-    dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);
-    dbg_ols_print("Median Rate = %.10f\n", pr->median_rate);
-    print_delim();
+    if (rd->debug) {
+        print_delim();
+        dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);
+        dbg_ols_print("Median Rate = %.10f\n", pr->median_rate);
+        print_delim();
+    }
 #endif
 
     /* Clean up any thing from the last pixel ramp */
@@ -3224,6 +3230,7 @@ save_opt_res(
                 while(current) {
                     next = current->flink;
                     //print_segment_opt_res(current, rd, integ, segnum, __LINE__);
+                    /* XXX currentdev */
 
                     ptr = PyArray_GETPTR4(opt_res->slope, integ, segnum, row, col);
 #if REAL_IS_DOUBLE
