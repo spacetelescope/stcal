@@ -1,0 +1,1 @@
+Added the ``crmag`` array to the optional results product in ``ramp_fitting``.
