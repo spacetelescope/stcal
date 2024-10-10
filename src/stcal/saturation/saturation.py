@@ -63,10 +63,10 @@ def flag_saturated_pixels(
         updated pixel dq array
     """
     nints, ngroups, nrows, ncols = data.shape
-    dnu = dqflags["DO_NOT_USE"]
-    saturated = dqflags["SATURATED"]
-    ad_floor = dqflags["AD_FLOOR"]
-    no_sat_check = dqflags["NO_SAT_CHECK"]
+    dnu = int(dqflags["DO_NOT_USE"])
+    saturated = int(dqflags["SATURATED"])
+    ad_floor = int(dqflags["AD_FLOOR"])
+    no_sat_check = int(dqflags["NO_SAT_CHECK"])
 
     # Identify pixels flagged in reference file as NO_SAT_CHECK,
     no_sat_check_mask = np.bitwise_and(sat_dq, no_sat_check) == no_sat_check
