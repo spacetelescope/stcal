@@ -1637,7 +1637,10 @@ def test_cext_chargeloss():
 
 def test_crmag():
     """
-    Do something with the crmag from the optional results product.
+    A basic test with two ramps, one with jumps and one without, then
+    test to make sure the ramp with jumps has non-zero entries in the
+    'crmag' array in the optional results product, while the ramp with
+    no jumps is all zeros.
     """
     nints, ngroups, nrows, ncols = 1, 10, 1, 2
     rnval, gval = 0.7071, 1.
