@@ -91,7 +91,7 @@ class LibModelAccessBase(abc.ABC):
         "elapsed_exposure_time",
 
         "pixelarea_steradians",
-#        "pixelarea_arcsecsq",
+        # "pixelarea_arcsecsq",
 
         "level",  # sky level
         "subtracted",
@@ -266,7 +266,6 @@ class Resample:
     """
     resample_suffix = 'i2d'
     resample_file_ext = '.fits'
-    n_arrays_per_output = 2  # #flt-point arrays in the output (data, weight, var, err, etc.)
 
     # supported output arrays (subclasses can add more):
     output_array_types = {
@@ -310,8 +309,8 @@ class Resample:
         self._accumulate = accumulate
 
         # these are attributes that are used only for information purpose
-        # and are added to created the output_model only if they are not already
-        # present there:
+        # and are added to created the output_model only if they are
+        # not already present there:
         self._pixel_scale_ratio = None
         self._output_pixel_scale = None
 
@@ -394,7 +393,8 @@ class Resample:
         npix = np.prod(self._output_array_shape)
         if not npix:
             raise ValueError(
-                f"Invalid output frame shape: {tuple(self._output_array_shape)}"
+                "Invalid output frame shape: "
+                f"{tuple(self._output_array_shape)}"
             )
 
         # set up output model (arrays, etc.)
@@ -617,7 +617,8 @@ class Resample:
         that there is enough memory to hold the output.
 
         """
-        if allowed_memory is None and "DMODEL_ALLOWED_MEMORY" not in os.environ:
+        if (allowed_memory is None and
+                "DMODEL_ALLOWED_MEMORY" not in os.environ):
             return
 
         allowed_memory = float(allowed_memory)
@@ -695,7 +696,7 @@ class Resample:
                     # apply a median filter to smooth the weight at saturated
                     # (or high read-out noise) single pixels. keep kernel size
                     # small to still give lower weight to extended CRs, etc.
-                    ksz = weight_type[8 if selective_median else 7 :]
+                    ksz = weight_type[8 if selective_median else 7:]
                     if ksz:
                         kernel_size = int(ksz)
                         if not (kernel_size % 2):
@@ -805,7 +806,7 @@ class Resample:
             "start_time": min(self._exptime_start),
             "end_time": max(self._exptime_end),
             # Update other exposure time keywords:
-            # XPOSURE (identical to the total effective exposure time, EFFEXPTM)
+            # XPOSURE (identical to the total effective exposure time,EFFEXPTM)
             "effective_exposure_time": self._total_exposure_time,
             # DURATION (identical to TELAPSE, elapsed time)
             "duration": self._duration,
@@ -1034,7 +1035,8 @@ class Resample:
                 weight[weight_mask] = np.reciprocal(var[weight_mask])
                 weight_mask &= (weight > 0.0)
                 # Add the inverse of the resampled variance to a running sum.
-                # Update only pixels (in the running sum) with valid new values:
+                # Update only pixels (in the running sum) with
+                # valid new values:
                 self._var_rnoise_sum[weight_mask] = np.nansum(
                     [
                         self._var_rnoise_sum[weight_mask],
@@ -1100,18 +1102,21 @@ class Resample:
         # Zero weight and missing values are NaN in the output.
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "invalid value*", RuntimeWarning)
-            warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
+            warnings.filterwarnings(
+                "ignore",
+                "divide by zero*",
+                RuntimeWarning,
+            )
 
             # readout noise
             np.reciprocal(self._var_rnoise_sum, out=self._var_rnoise_sum)
+            v = self._var_rnoise_sum.astype(
+                dtype=self.output_array_types["var_rnoise"]
+            )
             if self._accumulate and self._output_model["var_rnoise"]:
-                self._output_model["var_rnoise"] += self._var_rnoise_sum.astype(
-                    dtype=self.output_array_types["var_rnoise"]
-                )
+                self._output_model["var_rnoise"] += v
             else:
-                self._output_model["var_rnoise"] = self._var_rnoise_sum.astype(
-                    dtype=self.output_array_types["var_rnoise"]
-                )
+                self._output_model["var_rnoise"] = v
 
             # Poisson noise
             for _ in range(2):
@@ -1121,14 +1126,13 @@ class Resample:
                     out=self._var_poisson_sum
                 )
 
+            v = self._var_rnoise_sum.astype(
+                dtype=self.output_array_types["var_poisson"]
+            )
             if self._accumulate and self._output_model["var_poisson"]:
-                self._output_model["var_poisson"] += self._var_rnoise_sum.astype(
-                    dtype=self.output_array_types["var_poisson"]
-                )
+                self._output_model["var_poisson"] += v
             else:
-                self._output_model["var_poisson"] = self._var_rnoise_sum.astype(
-                    dtype=self.output_array_types["var_poisson"]
-                )
+                self._output_model["var_poisson"] = v
 
             # flat's noise
             for _ in range(2):
@@ -1138,14 +1142,13 @@ class Resample:
                     out=self._var_flat_sum
                 )
 
+            v = self._var_rnoise_sum.astype(
+                dtype=self.output_array_types["var_flat"]
+            )
             if self._accumulate and self._output_model["var_flat"]:
-                self._output_model["var_flat"] += self._var_rnoise_sum.astype(
-                    dtype=self.output_array_types["var_flat"]
-                )
+                self._output_model["var_flat"] += v
             else:
-                self._output_model["var_flat"] = self._var_rnoise_sum.astype(
-                    dtype=self.output_array_types["var_flat"]
-                )
+                self._output_model["var_flat"] = v
 
             # free arrays:
             del self._var_rnoise_sum
@@ -1175,7 +1178,8 @@ class Resample:
         self._output_model["err"] = err
 
 
-def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):
+def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
+                         shrink=0):  # noqa: E741
     """
     xmin, xmax, ymin, ymax - integer coordinates of pixel boundaries
     step - distance between points along an edge
@@ -1209,7 +1213,7 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):
     b = np.s_[0:sx]  # bottom edge
     r = np.s_[sx:sx + sy]  # right edge
     t = np.s_[sx + sy:2 * sx + sy]  # top edge
-    l = np.s_[2 * sx + sy:2 * sx + 2 * sy]  # left
+    l = np.s_[2 * sx + sy:2 * sx + 2 * sy]  # noqa: E741  left edge
 
     x[b] = np.linspace(xmin, xmax, sx, False)
     y[b] = ymin
@@ -1233,7 +1237,9 @@ def _compute_image_pixel_area(wcs):
         raise ValueError("WCS must have array_shape attribute set.")
 
     valid_polygon = False
-    spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == 'SPATIAL')[0]
+    spatial_idx = np.where(
+        np.array(wcs.output_frame.axes_type) == 'SPATIAL'
+    )[0]
 
     ny, nx = wcs.array_shape
 
@@ -1253,7 +1259,7 @@ def _compute_image_pixel_area(wcs):
 
     while xmin < xmax and ymin < ymax:
         try:
-            x, y, image_area, center, b, r, t, l = _get_boundary_points(
+            (x, y, image_area, center, b, r, t, l) = _get_boundary_points(
                 xmin=xmin,
                 xmax=xmax,
                 ymin=ymin,
