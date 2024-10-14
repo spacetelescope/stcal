@@ -7,7 +7,7 @@ from stcal.testing_helpers import MemoryThreshold, MemoryThresholdExceeded
 
 def test_memory_threshold():
     with MemoryThreshold("1 KB"):
-        buff = np.empty(200, dtype=np.uint8)
+        buff = np.empty(100, dtype=np.uint8)
 
 
 def test_memory_threshold_exceeded():
