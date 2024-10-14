@@ -23,19 +23,17 @@ class MemoryThreshold:
     end of the with statement.
     """
 
-    def __init__(self, expected_usage, log_units="KB"):
+    def __init__(self, expected_usage):
         """
         Parameters
         ----------
-        expected_usage : int
-            Expected peak memory usage in bytes
-
-        log_units : str, optional
-            Units in which to display memory usage for error message. 
-            Supported are "B", "KB", "MB", "GB". Default is "KB".
+        expected_usage : str
+            Expected peak memory usage expressed as a whitespace-separated string
+            with a number and a memory unit (e.g. "100 KB").
+            Supported units are "B", "KB", "MB", "GB".
         """
-        self.expected_usage = expected_usage
-        self.log_units = log_units
+        expected, self.units = expected_usage.upper().split()
+        self.expected_usage_bytes = float(expected) * MEMORY_UNIT_CONVERSION[self.units]
 
     def __enter__(self):
         tracemalloc.start()
@@ -45,9 +43,9 @@ class MemoryThreshold:
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
-        if peak > self.expected_usage:
-            scaling = MEMORY_UNIT_CONVERSION[self.log_units]
+        if peak > self.expected_usage_bytes:
+            scaling = MEMORY_UNIT_CONVERSION[self.units]
             msg = ("Peak memory usage exceeded expected usage: "
-                  f"{peak / scaling:.2f} {self.log_units} > "
-                  f"{self.expected_usage / scaling:.2f} {self.log_units} ")
+                  f"{peak / scaling:.2f} {self.units} > "
+                  f"{self.expected_usage_bytes / scaling:.2f} {self.units} ")
             raise MemoryThresholdExceeded(msg)
