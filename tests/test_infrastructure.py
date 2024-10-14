@@ -10,7 +10,7 @@ def test_memory_threshold():
         buff = np.empty(200, dtype=np.uint8)
 
 
-def test_memory_threshold_raise():
+def test_memory_threshold_exceeded():
     with pytest.raises(MemoryThresholdExceeded):
         with MemoryThreshold(1000):
             buff = np.empty(2000, dtype=np.uint8)
