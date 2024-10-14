@@ -1,0 +1,4 @@
+Preparing ramp fitting for the upgrade to python 3.13.  In python 3.13, the C-API
+function ``PyLong_AsLong`` raises an exception if the object passed to it is
+``NoneType``.  There are two integer attributes for the ``RampData`` class that
+can be ``NoneType``, so a check for ``NoneType`` for these attributes was added.
