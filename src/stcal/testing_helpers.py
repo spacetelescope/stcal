@@ -1,6 +1,6 @@
 import tracemalloc
 
-MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
+MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3, "TB": 1024 ** 4}
 
 class MemoryThresholdExceeded(Exception):
     pass
@@ -15,7 +15,7 @@ class MemoryThreshold:
         # code that should not exceed expected
 
     If the code in the with statement uses more than the expected_usage
-    memory (in bytes) a ``MemoryThresholdExceeded`` exception
+    memory a ``MemoryThresholdExceeded`` exception
     will be raised.
     
     Note that this class does not prevent allocations beyond the threshold
@@ -30,7 +30,7 @@ class MemoryThreshold:
         expected_usage : str
             Expected peak memory usage expressed as a whitespace-separated string
             with a number and a memory unit (e.g. "100 KB").
-            Supported units are "B", "KB", "MB", "GB".
+            Supported units are "B", "KB", "MB", "GB", "TB".
         """
         expected, self.units = expected_usage.upper().split()
         self.expected_usage_bytes = float(expected) * MEMORY_UNIT_CONVERSION[self.units]

@@ -225,7 +225,7 @@ def test_memory_computer(in_memory, tmp_path):
         expected_mem = frame_size * 2.5
 
     # compute the median while tracking memory usage
-    with MemoryThreshold(expected_mem):
+    with MemoryThreshold(str(expected_mem) + " B"):
         computer = MedianComputer(shp, in_memory=in_memory, tempdir=tmp_path)
         for i in range(shp[0]):
             frame = np.full(shp[1:], i, dtype=np.float32)
