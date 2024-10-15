@@ -241,7 +241,7 @@ def _parse_refcat(abs_refcat: str | Path,
         # combine all aligned wcs to compute a new footprint to
         # filter the absolute catalog sources
         combined_wcs = wcs_from_footprints(
-                        [corrector.wcs for corrector in correctors],
+                        [corrector.wcs.footprint() for corrector in correctors],
                         ref_wcs=wcs,
                         ref_wcsinfo=wcsinfo,
         )

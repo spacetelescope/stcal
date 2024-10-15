@@ -10,7 +10,6 @@ from gwcs import coordinate_frames as cf
 
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
-    _validate_wcs_list,
     compute_fiducial,
     compute_s_region_imaging,
     compute_s_region_keyword,
@@ -132,8 +131,8 @@ def test_compute_fiducial():
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
     wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
-
-    computed_fiducial = compute_fiducial([wcs])
+    footprint = wcs.footprint()
+    computed_fiducial = compute_fiducial([footprint])
 
     assert all(np.isclose(wcs(1, 1), computed_fiducial))
 
@@ -178,8 +177,8 @@ def test_wcs_from_footprints():
     )
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
-
-    wcs = wcs_from_footprints([wcs_1, wcs_2], wcs_1, dm_1.meta.wcsinfo.instance)
+    footprints = [wcs_1.footprint(), wcs_2.footprint()]
+    wcs = wcs_from_footprints(footprints, wcs_1, dm_1.meta.wcsinfo.instance)
 
     # check that all elements of footprint match the *vertices* of the new combined WCS
     assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
@@ -190,44 +189,6 @@ def test_wcs_from_footprints():
     # check that fiducials match their expected coords in the new combined WCS
     assert all(np.isclose(wcs_1(0, 0), wcs(2.5, 1.5)))
     assert all(np.isclose(wcs_2(0, 0), wcs(3.5, 0.5)))
-
-
-def test_validate_wcs_list():
-    shape = (3, 3)  # in pixels
-    fiducial_world = (10, 0)  # in deg
-    pscale = (0.000028, 0.000028)  # in deg/pixel
-
-    dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
-    wcs_1 = dm_1.meta.wcs
-
-    # shift fiducial by one pixel in both directions and create a new WCS
-    fiducial_world = (
-        fiducial_world[0] - 0.000028,
-        fiducial_world[1] - 0.000028,
-    )
-    dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
-    wcs_2 = dm_2.meta.wcs
-
-    wcs_list = [wcs_1, wcs_2]
-
-    assert _validate_wcs_list(wcs_list)
-
-
-@pytest.mark.parametrize(
-    ("wcs_list", "expected_error"),
-    [
-        ([], TypeError),
-        ([1, 2, 3], TypeError),
-        (["1", "2", "3"], TypeError),
-        (["1", None, []], TypeError),
-        ("1", TypeError),
-        (1, ValueError),
-        (None, ValueError),
-    ],
-)
-def test_validate_wcs_list_invalid(wcs_list, expected_error):
-    with pytest.raises(expected_error, match=r".*"):
-        _validate_wcs_list(wcs_list)
 
 
 def get_fake_wcs():
