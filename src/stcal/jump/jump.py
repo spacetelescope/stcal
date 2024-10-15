@@ -60,6 +60,7 @@ def detect_jumps(
     min_diffs_single_pass=10,
     mask_persist_grps_next_int=True,
     persist_grps_flagged=25,
+    max_shower_amplitude=2
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -220,6 +221,8 @@ def detect_jumps(
        then all differences are processed at once.
     min_diffs_single_pass : int
        The minimum number of groups to switch to flagging all outliers in a single pass.
+    max_shower_amplitude : float
+       The maximum possible amplitude for flagged MIRI showers in DN/s
 
     Returns
     -------
@@ -317,6 +320,7 @@ def detect_jumps(
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
+
         if find_showers:
             gdq, num_showers = find_faint_extended(
                 data,
@@ -335,6 +339,7 @@ def detect_jumps(
                 ellipse_expand=extend_ellipse_expand_ratio,
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
+                max_shower_amplitude=max_shower_amplitude
             )
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
@@ -482,6 +487,7 @@ def detect_jumps(
             )
             log.info("Total snowballs = %i", total_snowballs)
             number_extended_events = total_snowballs
+
         if find_showers:
             gdq, num_showers = find_faint_extended(
                 data,
@@ -500,6 +506,7 @@ def detect_jumps(
                 ellipse_expand=extend_ellipse_expand_ratio,
                 num_grps_masked=grps_masked_after_shower,
                 max_extended_radius=max_extended_radius,
+                max_shower_amplitude=max_shower_amplitude
             )
             log.info("Total showers= %i", num_showers)
             number_extended_events = num_showers
@@ -878,6 +885,7 @@ def near_edge(jump, low_threshold, high_threshold):
     )
 
 
+# MIRI cosmic ray showers code
 def find_faint_extended(
     indata,
     ingdq,
@@ -897,6 +905,7 @@ def find_faint_extended(
     num_grps_masked=25,
     max_extended_radius=200,
     min_diffs_for_shower=10,
+    max_shower_amplitude=2,
 ):
     """
     Parameters
@@ -931,6 +940,8 @@ def find_faint_extended(
           The upper limit for the extension of saturation and jump
       minimum_sigclip_groups : int
           The minimum number of groups to use sigma clipping.
+      max_shower_amplitude : float
+          The maximum amplitude of shower artifacts to correct in DN/s
 
 
     Returns
@@ -948,6 +959,7 @@ def find_faint_extended(
     nints = data.shape[0]
     ngrps = data.shape[1]
     num_grps_donotuse = 0
+
     for integ in range(nints):
         for grp in range(ngrps):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], donotuse_flag)):
@@ -1111,6 +1123,39 @@ def find_faint_extended(
                 num_grps_masked=num_grps_masked,
                 max_extended_radius=max_extended_radius
             )
+
+    # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
+    for intg in range(nints):
+        # Approximate pre-shower rates
+        tempdata = indata[intg,:,:,:].copy()
+        # Ignore any groups flagged in the original gdq array
+        tempdata[ingdq[intg,:,:,:] & donotuse_flag != 0] = np.nan
+        tempdata[ingdq[intg,:,:,:] & sat_flag != 0] = np.nan
+        tempdata[ingdq[intg,:,:,:] & jump_flag != 0] = np.nan
+        # Compute group differences
+        diff = np.diff(tempdata,axis=0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
+            image1 = np.nanmedian(diff,axis=0)
+
+        # Approximate post-shower rates
+        tempdata = indata[intg,:,:,:].copy()
+        # Ignore any groups flagged in the shower gdq array
+        tempdata[gdq[intg,:,:,:] & donotuse_flag != 0] = np.nan
+        tempdata[gdq[intg,:,:,:] & sat_flag != 0] = np.nan
+        tempdata[gdq[intg,:,:,:] & jump_flag != 0] = np.nan
+        # Compute group differences
+        diff = np.diff(tempdata,axis=0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
+            image2 = np.nanmedian(diff,axis=0)
+
+        # Revert the group flags to the pre-shower flags for any pixels whose rates
+        # became NaN or changed by more than the amount reasonable for a real CR shower
+        diff = np.abs(image1 - image2)
+        indx = np.where((np.isfinite(diff) == False)|(diff > max_shower_amplitude))
+        gdq[intg,:,indx[0],indx[1]] = ingdq[intg,:,indx[0],indx[1]]
+
     return gdq, total_showers
 
 def find_first_good_group(int_gdq, do_not_use):
