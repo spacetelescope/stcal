@@ -45,3 +45,4 @@ jobs:
       envs: |
         - linux: py311-jwst-cov-xdist
         - linux: py311-romancal-cov-xdist
+      coverage: codecov

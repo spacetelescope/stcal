@@ -9,4 +9,5 @@ Outlier Detection Utils
 
    description.rst
 
+.. automodapi:: stcal.outlier_detection.median
 .. automodapi:: stcal.outlier_detection.utils

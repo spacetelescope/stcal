@@ -48,13 +48,13 @@ class RampData:
 
         # C code debugging switch.
         self.run_c_code = False
-        self.run_chargeloss = True
-        # self.run_chargeloss = False
 
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
 
         self.current_integ = -1
+
+        self.debug = False
 
     def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current, orig_gdq=None):
         """
