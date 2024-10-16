@@ -512,9 +512,8 @@ def wcs_from_footprints(
         containing (RA, Dec) vertices demarcating the footprint of the input WCSs.
 
     ref_wcs :
-        A valid datamodel whose WCS is used as reference for the creation of the output
+        A WCS used as reference for the creation of the output
         coordinate frame, projection, and scaling and rotation transforms.
-        If not supplied the first model in the list is used as ``refmodel``.
 
     ref_wcsinfo : dict
         A dictionary containing the WCS FITS keywords and corresponding values.
@@ -569,7 +568,7 @@ def wcs_from_footprints(
 
     transform = _generate_tranform(
         ref_wcs,
-        wcsinfo=ref_wcsinfo,
+        ref_wcsinfo,
         pscale_ratio=pscale_ratio,
         pscale=pscale,
         rotation=rotation,
