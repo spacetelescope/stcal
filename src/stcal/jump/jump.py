@@ -1136,7 +1136,7 @@ def find_faint_extended(
         diff = np.diff(tempdata,axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
-            image1 = np.nanmedian(diff,axis=0)
+            image1 = np.nanmean(diff,axis=0)
 
         # Approximate post-shower rates
         tempdata = indata[intg,:,:,:].copy()
@@ -1148,7 +1148,7 @@ def find_faint_extended(
         diff = np.diff(tempdata,axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
-            image2 = np.nanmedian(diff,axis=0)
+            image2 = np.nanmean(diff,axis=0)
 
         # Revert the group flags to the pre-shower flags for any pixels whose rates
         # became NaN or changed by more than the amount reasonable for a real CR shower
