@@ -259,7 +259,8 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                        transform: astmodels.Model | None = None,
                        ) -> gwcs.wcs.WCS:
     """
-    Calculates a new WCS object based on the combined WCS objects provided.
+    Calculates a new WCS object based on the combined footprints
+    and reference WCS provided.
 
     Parameters
     ----------
@@ -560,7 +561,10 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-    footprints = [_sregion_to_footprint(s_region) for s_region in footprints if isinstance(s_region, str)]
+
+    footprints = [_sregion_to_footprint(s_region) 
+                  if isinstance(s_region, str) else s_region 
+                  for s_region in footprints]
     fiducial = _calculate_fiducial(footprints, crval=crval)
 
     transform = _generate_tranform(
