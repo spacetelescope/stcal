@@ -179,7 +179,7 @@ def _get_axis_min_and_bounding_box(footprints: list[np.ndarray],
 
 
 def _calculate_fiducial(footprints: list[np.ndarray],
-                        crval: Sequence | None = None) -> np.ndarray:
+                        crval: Sequence | None = None) -> tuple:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -197,15 +197,15 @@ def _calculate_fiducial(footprints: list[np.ndarray],
 
     Returns
     -------
-    fiducial : np.ndarray
-        A two-elements array containing the world coordinate of the fiducial point.
+    fiducial : tuple
+        A tuple containing the world coordinate of the fiducial point.
     """
     if crval is not None:
-        return crval
+        return tuple(crval)
     return compute_fiducial(footprints)
 
 
-def _calculate_offsets(fiducial: np.ndarray,
+def _calculate_offsets(fiducial: tuple,
                        wcs: gwcs.wcs.WCS | None,
                        axis_min_values: np.ndarray | None,
                        crpix: Sequence | None) -> astmodels.Model:
@@ -214,8 +214,8 @@ def _calculate_offsets(fiducial: np.ndarray,
 
     Parameters
     ----------
-    fiducial : np.ndarray
-        A two-elements containing the world coordinates of the fiducial point.
+    fiducial : tuple
+        A tuple containing the world coordinates of the fiducial point.
 
     wcs : ~gwcs.wcs.WCS
         A WCS object. It will be used to determine the
@@ -254,7 +254,7 @@ def _calculate_offsets(fiducial: np.ndarray,
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                        shape: Sequence | None,
                        footprints: list[np.ndarray],
-                       fiducial: np.ndarray,
+                       fiducial: tuple,
                        crpix: Sequence | None = None,
                        transform: astmodels.Model | None = None,
                        ) -> gwcs.wcs.WCS:
@@ -274,8 +274,8 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         A list of numpy arrays each of shape (N, 2) containing the
         (RA, Dec) vertices demarcating the footprint of the input WCSs.
 
-    fiducial : np.ndarray
-        A two-elements array containing the location on the sky in some standard
+    fiducial : tuple
+        A tuple containing the location on the sky in some standard
         coordinate system.
 
     crpix : tuple, optional
@@ -382,7 +382,7 @@ def compute_scale(
     return float(np.sqrt(xscale * yscale))
 
 
-def compute_fiducial(footprints: list[np.ndarray]) -> np.ndarray:
+def compute_fiducial(footprints: list[np.ndarray]) -> tuple:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
@@ -403,8 +403,8 @@ def compute_fiducial(footprints: list[np.ndarray]) -> np.ndarray:
 
     Returns
     -------
-    fiducial : np.ndarray
-        A two-elements array containing the world coordinates of the fiducial point
+    fiducial : tuple
+        A tuple containing the world coordinates of the fiducial point
         in the combined output coordinate frame.
 
     Notes
@@ -459,7 +459,7 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
     return [pc1_1, pc1_2, pc2_1, pc2_2]
 
 
-def sregion_to_footprint(s_region):
+def _sregion_to_footprint(s_region: str) -> np.ndarray:
     """
     Parameters
     ----------
@@ -476,7 +476,7 @@ def sregion_to_footprint(s_region):
 
 
 def wcs_from_footprints(
-    footprints: list[np.ndarray],
+    footprints: list[np.ndarray] | list[str],
     ref_wcs: gwcs.wcs.WCS,
     ref_wcsinfo: dict,
     transform: astropy.modeling.models.Model | None = None,
@@ -504,9 +504,11 @@ def wcs_from_footprints(
 
     Parameters
     ----------
-    footprints : list
-        A list of numpy arrays each of shape (N, 2) containing the
+    footprints : list of np.ndarray or list of str
+        If list elements are numpy arrays, each should have shape (N, 2) and contain
         (RA, Dec) vertices demarcating the footprint of the input WCSs.
+        If list elements are strings, each should be the S_REGION header keyword 
+        containing (RA, Dec) vertices demarcating the footprint of the input WCSs.
 
     ref_wcs :
         A valid datamodel whose WCS is used as reference for the creation of the output
@@ -558,6 +560,7 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
+    footprints = [_sregion_to_footprint(s_region) for s_region in footprints if isinstance(s_region, str)]
     fiducial = _calculate_fiducial(footprints, crval=crval)
 
     transform = _generate_tranform(

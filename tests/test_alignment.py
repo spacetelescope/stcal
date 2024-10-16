@@ -15,6 +15,7 @@ from stcal.alignment.util import (
     compute_s_region_keyword,
     compute_scale,
     reproject,
+    _sregion_to_footprint,
     wcs_bbox_from_shape,
     wcs_from_footprints,
 )
@@ -152,6 +153,19 @@ def test_compute_scale(pscales):
     computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world)
 
     assert np.isclose(expected_scale, computed_scale)
+
+
+def test_sregion_to_footprint():
+    """Test that util._sregion_to_footprint can properly convert an S_REGION
+    string to a list of vertices.
+    """
+    s_region = "POLYGON ICRS  1.000000000 2.000000000 3.000000000 4.000000000 5.000000000 6.000000000 7.000000000 8.000000000"
+    expected_footprint = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
+
+    footprint = _sregion_to_footprint(s_region)
+
+    assert footprint.shape == (4,2)
+    assert np.allclose(footprint, expected_footprint)
 
 
 def test_wcs_from_footprints():
