@@ -60,6 +60,7 @@ def detect_jumps(
     min_diffs_single_pass=10,
     mask_persist_grps_next_int=True,
     persist_grps_flagged=25,
+    mmflashfrac=1.0,
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -221,6 +222,11 @@ def detect_jumps(
     min_diffs_single_pass : int
        The minimum number of groups to switch to flagging all outliers in a single pass.
 
+    mmflashfrac: float
+       Fraction of the array in a given group that has to have a jump detected
+       in order to flag the entire array as a jump.  This is designed to deal with
+       sporadic micrometeorite flashes.
+
     Returns
     -------
     gdq : int, 4D array
@@ -298,46 +304,7 @@ def detect_jumps(
             dqflags['DO_NOT_USE']
         gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
             dqflags['SATURATED']
-        #  This is the flag that controls the flagging of snowballs.
-        if expand_large_events:
-            gdq, total_snowballs = flag_large_events(
-                gdq,
-                jump_flag,
-                sat_flag,
-                min_sat_area=min_sat_area,
-                min_jump_area=min_jump_area,
-                expand_factor=expand_factor,
-                sat_required_snowball=sat_required_snowball,
-                min_sat_radius_extend=min_sat_radius_extend,
-                edge_size=edge_size,
-                sat_expand=sat_expand,
-                max_extended_radius=max_extended_radius,
-                mask_persist_grps_next_int=mask_persist_grps_next_int,
-                persist_grps_flagged=persist_grps_flagged,
-            )
-            log.info("Total snowballs = %i", total_snowballs)
-            number_extended_events = total_snowballs
-        if find_showers:
-            gdq, num_showers = find_faint_extended(
-                data,
-                gdq,
-                pdq,
-                readnoise_2d,
-                frames_per_group,
-                minimum_sigclip_groups,
-                dqflags,
-                snr_threshold=extend_snr_threshold,
-                min_shower_area=extend_min_area,
-                inner=extend_inner_radius,
-                outer=extend_outer_radius,
-                sat_flag=sat_flag,
-                jump_flag=jump_flag,
-                ellipse_expand=extend_ellipse_expand_ratio,
-                num_grps_masked=grps_masked_after_shower,
-                max_extended_radius=max_extended_radius,
-            )
-            log.info("Total showers= %i", num_showers)
-            number_extended_events = num_showers
+
     else:
         yinc = int(n_rows // n_slices)
         slices = []
@@ -463,46 +430,54 @@ def detect_jumps(
         gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
             dqflags['SATURATED']
 
-        #  This is the flag that controls the flagging of snowballs.
-        if expand_large_events:
-            gdq, total_snowballs = flag_large_events(
-                gdq,
-                jump_flag,
-                sat_flag,
-                min_sat_area=min_sat_area,
-                min_jump_area=min_jump_area,
-                expand_factor=expand_factor,
-                sat_required_snowball=sat_required_snowball,
-                min_sat_radius_extend=min_sat_radius_extend,
-                edge_size=edge_size,
-                sat_expand=sat_expand,
-                max_extended_radius=max_extended_radius,
-                mask_persist_grps_next_int=mask_persist_grps_next_int,
-                persist_grps_flagged=persist_grps_flagged,
-            )
-            log.info("Total snowballs = %i", total_snowballs)
-            number_extended_events = total_snowballs
-        if find_showers:
-            gdq, num_showers = find_faint_extended(
-                data,
-                gdq,
-                pdq,
-                readnoise_2d,
-                frames_per_group,
-                minimum_sigclip_groups,
-                dqflags,
-                snr_threshold=extend_snr_threshold,
-                min_shower_area=extend_min_area,
-                inner=extend_inner_radius,
-                outer=extend_outer_radius,
-                sat_flag=sat_flag,
-                jump_flag=jump_flag,
-                ellipse_expand=extend_ellipse_expand_ratio,
-                num_grps_masked=grps_masked_after_shower,
-                max_extended_radius=max_extended_radius,
-            )
-            log.info("Total showers= %i", num_showers)
-            number_extended_events = num_showers
+    #  Look for snowballs in near-IR data
+    if expand_large_events:
+        gdq, total_snowballs = flag_large_events(
+            gdq,
+            jump_flag,
+            sat_flag,
+            min_sat_area=min_sat_area,
+            min_jump_area=min_jump_area,
+            expand_factor=expand_factor,
+            sat_required_snowball=sat_required_snowball,
+            min_sat_radius_extend=min_sat_radius_extend,
+            edge_size=edge_size,
+            sat_expand=sat_expand,
+            max_extended_radius=max_extended_radius,
+            mask_persist_grps_next_int=mask_persist_grps_next_int,
+            persist_grps_flagged=persist_grps_flagged,
+        )
+        log.info("Total snowballs = %i", total_snowballs)
+        number_extended_events = total_snowballs
+
+    # Look for showers in mid-IR data
+    if find_showers:
+        gdq, num_showers = find_faint_extended(
+            data,
+            gdq,
+            pdq,
+            readnoise_2d,
+            frames_per_group,
+            minimum_sigclip_groups,
+            dqflags,
+            snr_threshold=extend_snr_threshold,
+            min_shower_area=extend_min_area,
+            inner=extend_inner_radius,
+            outer=extend_outer_radius,
+            sat_flag=sat_flag,
+            jump_flag=jump_flag,
+            ellipse_expand=extend_ellipse_expand_ratio,
+            num_grps_masked=grps_masked_after_shower,
+            max_extended_radius=max_extended_radius,
+        )
+        log.info("Total showers= %i", num_showers)
+        number_extended_events = num_showers
+
+    # Look for micrometeorite flashes if the triggering
+    # threshold is less than the entire array
+    if (mmflashfrac < 1):
+        gdq = find_micrometeorite_flashes(gdq, jump_flag, mmflashfrac)
+
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
@@ -514,6 +489,43 @@ def detect_jumps(
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
+# Find micrometeorite flashes
+def find_micrometeorite_flashes(gdq, jump_flag, mmflashfrac):
+    """
+    This routine looks for micrometeorite flashes that light up the entire array in a small number
+    of groups.  It does this by looking for cases where greater than mmflash_pct percent
+    of the array is flagged as 'JUMP_DET', and flags the entire array as JUMP_DET in such cases.
+
+    Parameters
+    ----------
+    gdq : int, 4D array
+        Group dq array
+    jump_flag : int
+        DQ flag for jump detection.
+    mmflashfrac : float
+        Fraction of the array that can be flagged as a jump before the entire array
+        will be flagged.
+    Returns
+    -------
+    gdq : int, 4D array
+        Updated group dq array
+
+    """
+    log.info("Looking for micrometeorite flashes")
+
+    nints, ngroups, nrows, ncols = gdq.shape
+
+    npix = nrows * ncols # Number of pixels in array
+    # Loop over integrations
+    for ii in range(0, nints):
+        # Loop over groups
+        for jj in range(0, ngroups):
+            indx = np.where(gdq[ii, jj, :, :] & jump_flag != 0)
+            fraction = float(len(indx[0])) / npix
+            if (fraction > mmflashfrac):
+                gdq[ii, jj, :, :] = gdq[ii, jj, :, :] | jump_flag
+                log.info(f"Detected a micrometeorite flash in integ = {ii}, group = {jj}")
+    return gdq
 
 def flag_large_events(
     gdq,
