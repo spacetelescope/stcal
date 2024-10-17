@@ -14,14 +14,13 @@ from copy import deepcopy
 __all__ = ['SkyStats']
 
 
-class SkyStats():
+class SkyStats:
     """
-    This is a superclass build on top of
-    :py:class:`stsci.imagestats.ImageStats`. Compared to
-    :py:class:`stsci.imagestats.ImageStats`, `SkyStats` has
-    "persistent settings" in the sense that object's parameters need to be
-    set once and these settings will be applied to all subsequent
-    computations on different data.
+    This class is built on top of :py:class:`stsci.imagestats.ImageStats`,
+    deligating its functionality to calls to the ``ImageStats`` object. Compared
+    to :py:class:`stsci.imagestats.ImageStats`, `SkyStats` has "persistent settings"
+    in the sense that object's parameters need to be set once and these settings
+    will be applied to all subsequent computations on different data.
 
     """
 

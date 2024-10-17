@@ -379,6 +379,11 @@ class SkyImage:
             of the image are included automatically. If `stepsize` is `None`,
             bounding polygon will contain only vertices of the image.
 
+        Notes
+        -----
+        The bounding polygon is defined from corners of pixels whereas the pixel
+        coordinates refer to their centers and therefore the lower-left corner
+        is located at (-0.5, -0.5)
         """
         ny, nx = self.image_shape
 
@@ -451,14 +456,6 @@ class SkyImage:
             binwidth=binwidth
         )
 
-    # TODO: due to a bug in the sphere package, see
-    #       https://github.com/spacetelescope/sphere/issues/74
-    #       intersections with polygons formed as union does not work.
-    #       For this reason I re-implement 'calc_sky' below with
-    #       a workaround for the bug.
-    #       The original implementation (now called ``_calc_sky_orig``
-    #       should replace current 'calc_sky' once the bug is fixed.
-    #
     def calc_sky(self, overlap=None, delta=True):
         """
         Compute sky background value.
@@ -494,7 +491,15 @@ None, optional
         polyarea : float
             Area (in srad) of the polygon that bounds data used to compute
             sky statistics.
-
+    
+        Notes
+        -----
+        Due to a bug in the sphere package, see
+        https://github.com/spacetelescope/sphere/issues/74
+        intersections with polygons formed as union does not work.
+        For this reason I re-implement 'calc_sky' below with a workaround for
+        the bug. The original implementation should be used when the bug is
+        fixed.
         """
         if overlap is None:
 
@@ -581,109 +586,6 @@ None, optional
             skyval -= self.sky
 
         return skyval, npix, polyarea
-
-#     def _calc_sky_orig(self, overlap=None, delta=True):
-#         """
-#         Compute sky background value.
-#
-#         Parameters
-#         ----------
-#         overlap : SkyImage, SkyGroup, SphericalPolygon, list of tuples, \
-# None, optional
-#             Another `SkyImage`, `SkyGroup`,
-#             :py:class:`spherical_geometry.polygons.SphericalPolygon`, or
-#             a list of tuples of (RA, DEC) of vertices of a spherical
-#             polygon. This parameter is used to indicate that sky statistics
-#             should computed only in the region of intersection of *this*
-#             image with the polygon indicated by `overlap`. When `overlap` is
-#             `None`, sky statistics will be computed over the entire image.
-#
-#         delta : bool, optional
-#             Should this function return absolute sky value or the difference
-#             between the computed value and the value of the sky stored in the
-#             `sky` property.
-#
-#         Returns
-#         -------
-#         skyval : float, None
-#             Computed sky value (absolute or relative to the `sky` attribute).
-#             If there are no valid data to perform this computations (e.g.,
-#             because this image does not overlap with the image indicated by
-#             `overlap`), `skyval` will be set to `None`.
-#
-#         npix : int
-#             Number of pixels used to compute sky statistics.
-#
-#         polyarea : float
-#             Area (in srad) of the polygon that bounds data used to compute
-#             sky statistics.
-#
-#         """
-#
-#         if overlap is None:
-#
-#             if self._mask is None:
-#                 data = self.image
-#             else:
-#                 data = self.image[self._mask.get_data()]
-#
-#             polyarea = self.poly_area
-#
-#         else:
-#             fill_mask = np.zeros(self.image_shape, dtype=bool)
-#
-#             if isinstance(overlap, (SkyImage, SkyGroup, SphericalPolygon)):
-#                 intersection = self.intersection(overlap)
-#                 polyarea = np.fabs(intersection.area())
-#                 radec = intersection.to_radec()
-#
-#             else:  # assume a list of (ra, dec) tuples:
-#                 radec = []
-#                 polyarea = 0.0
-#                 for r, d in overlap:
-#                     poly = SphericalPolygon.from_radec(r, d)
-#                     polyarea1 = np.fabs(poly.area())
-#                     if polyarea1 == 0.0 or len(r) < 4:
-#                         continue
-#                     polyarea += polyarea1
-#                     radec.append(self.intersection(poly).to_radec())
-#
-#             if polyarea == 0.0:
-#                 return None, 0, 0.0
-#
-#             for ra, dec in radec:
-#                 if len(ra) < 4:
-#                     continue
-#
-#                 # set pixels in 'fill_mask' that are inside a polygon
-#                 # to True:
-#                 x, y = self.wcs_inv(ra, dec)
-#                 poly_vert = list(zip(*[x, y]))
-#
-#                 polygon = region.Polygon(True, poly_vert)
-#                 fill_mask = polygon.scan(fill_mask)
-#
-#             if self._mask is not None:
-#                 fill_mask &= self._mask.get_data()
-#
-#             data = self.image[fill_mask]
-#
-#             if data.size < 1:
-#                 return None, 0, 0.0
-#
-#         # Calculate sky
-#         try:
-#
-#             skyval, npix = self._skystat(data)
-#
-#         except ValueError:
-#
-#             return None, 0, 0.0
-#
-#         if delta:
-#             skyval -= self._sky
-#
-#         return skyval, npix, polyarea
 
     def copy(self):
         """
