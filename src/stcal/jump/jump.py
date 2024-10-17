@@ -301,48 +301,7 @@ def detect_jumps(
             dqflags['DO_NOT_USE']
         gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
             dqflags['SATURATED']
-        #  This is the flag that controls the flagging of snowballs.
-        if expand_large_events:
-            gdq, total_snowballs = flag_large_events(
-                gdq,
-                jump_flag,
-                sat_flag,
-                min_sat_area=min_sat_area,
-                min_jump_area=min_jump_area,
-                expand_factor=expand_factor,
-                sat_required_snowball=sat_required_snowball,
-                min_sat_radius_extend=min_sat_radius_extend,
-                edge_size=edge_size,
-                sat_expand=sat_expand,
-                max_extended_radius=max_extended_radius,
-                mask_persist_grps_next_int=mask_persist_grps_next_int,
-                persist_grps_flagged=persist_grps_flagged,
-            )
-            log.info("Total snowballs = %i", total_snowballs)
-            number_extended_events = total_snowballs
 
-        if find_showers:
-            gdq, num_showers = find_faint_extended(
-                data,
-                gdq,
-                pdq,
-                readnoise_2d,
-                frames_per_group,
-                minimum_sigclip_groups,
-                dqflags,
-                snr_threshold=extend_snr_threshold,
-                min_shower_area=extend_min_area,
-                inner=extend_inner_radius,
-                outer=extend_outer_radius,
-                sat_flag=sat_flag,
-                jump_flag=jump_flag,
-                ellipse_expand=extend_ellipse_expand_ratio,
-                num_grps_masked=grps_masked_after_shower,
-                max_extended_radius=max_extended_radius,
-                max_shower_amplitude=max_shower_amplitude
-            )
-            log.info("Total showers= %i", num_showers)
-            number_extended_events = num_showers
     else:
         yinc = int(n_rows // n_slices)
         slices = []
@@ -468,48 +427,50 @@ def detect_jumps(
         gdq[gdq == np.bitwise_or(dqflags['SATURATED'], dqflags['JUMP_DET'])] = \
             dqflags['SATURATED']
 
-        #  This is the flag that controls the flagging of snowballs.
-        if expand_large_events:
-            gdq, total_snowballs = flag_large_events(
-                gdq,
-                jump_flag,
-                sat_flag,
-                min_sat_area=min_sat_area,
-                min_jump_area=min_jump_area,
-                expand_factor=expand_factor,
-                sat_required_snowball=sat_required_snowball,
-                min_sat_radius_extend=min_sat_radius_extend,
-                edge_size=edge_size,
-                sat_expand=sat_expand,
-                max_extended_radius=max_extended_radius,
-                mask_persist_grps_next_int=mask_persist_grps_next_int,
-                persist_grps_flagged=persist_grps_flagged,
-            )
-            log.info("Total snowballs = %i", total_snowballs)
-            number_extended_events = total_snowballs
+    #  Look for snowballs in near-IR data
+    if expand_large_events:
+        gdq, total_snowballs = flag_large_events(
+            gdq,
+            jump_flag,
+            sat_flag,
+            min_sat_area=min_sat_area,
+            min_jump_area=min_jump_area,
+            expand_factor=expand_factor,
+            sat_required_snowball=sat_required_snowball,
+            min_sat_radius_extend=min_sat_radius_extend,
+            edge_size=edge_size,
+            sat_expand=sat_expand,
+            max_extended_radius=max_extended_radius,
+            mask_persist_grps_next_int=mask_persist_grps_next_int,
+            persist_grps_flagged=persist_grps_flagged,
+        )
+        log.info("Total snowballs = %i", total_snowballs)
+        number_extended_events = total_snowballs
 
-        if find_showers:
-            gdq, num_showers = find_faint_extended(
-                data,
-                gdq,
-                pdq,
-                readnoise_2d,
-                frames_per_group,
-                minimum_sigclip_groups,
-                dqflags,
-                snr_threshold=extend_snr_threshold,
-                min_shower_area=extend_min_area,
-                inner=extend_inner_radius,
-                outer=extend_outer_radius,
-                sat_flag=sat_flag,
-                jump_flag=jump_flag,
-                ellipse_expand=extend_ellipse_expand_ratio,
-                num_grps_masked=grps_masked_after_shower,
-                max_extended_radius=max_extended_radius,
-                max_shower_amplitude=max_shower_amplitude
-            )
-            log.info("Total showers= %i", num_showers)
-            number_extended_events = num_showers
+    # Look for showers in mid-IR data
+    if find_showers:
+        gdq, num_showers = find_faint_extended(
+            data,
+            gdq,
+            pdq,
+            readnoise_2d,
+            frames_per_group,
+            minimum_sigclip_groups,
+            dqflags,
+            snr_threshold=extend_snr_threshold,
+            min_shower_area=extend_min_area,
+            inner=extend_inner_radius,
+            outer=extend_outer_radius,
+            sat_flag=sat_flag,
+            jump_flag=jump_flag,
+            ellipse_expand=extend_ellipse_expand_ratio,
+            num_grps_masked=grps_masked_after_shower,
+            max_extended_radius=max_extended_radius,
+            max_shower_amplitude=max_shower_amplitude
+        )
+        log.info("Total showers= %i", num_showers)
+        number_extended_events = num_showers
+
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
@@ -1126,35 +1087,34 @@ def find_faint_extended(
 
     # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
     for intg in range(nints):
+        # Consider DO_NOT_USE, SATURATION, and JUMP_DET flags
+        invalid_flags = donotuse_flag | sat_flag | jump_flag
+
         # Approximate pre-shower rates
-        tempdata = indata[intg,:,:,:].copy()
+        tempdata = indata[intg, :, :, :].copy()
         # Ignore any groups flagged in the original gdq array
-        tempdata[ingdq[intg,:,:,:] & donotuse_flag != 0] = np.nan
-        tempdata[ingdq[intg,:,:,:] & sat_flag != 0] = np.nan
-        tempdata[ingdq[intg,:,:,:] & jump_flag != 0] = np.nan
+        tempdata[ingdq[intg, :, :, :] & invalid_flags != 0] = np.nan
         # Compute group differences
-        diff = np.diff(tempdata,axis=0)
+        diff = np.diff(tempdata, axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
-            image1 = np.nanmean(diff,axis=0)
+            image1 = np.nanmean(diff, axis=0)
 
         # Approximate post-shower rates
-        tempdata = indata[intg,:,:,:].copy()
+        tempdata = indata[intg, :, :, :].copy()
         # Ignore any groups flagged in the shower gdq array
-        tempdata[gdq[intg,:,:,:] & donotuse_flag != 0] = np.nan
-        tempdata[gdq[intg,:,:,:] & sat_flag != 0] = np.nan
-        tempdata[gdq[intg,:,:,:] & jump_flag != 0] = np.nan
+        tempdata[gdq[intg, :, :, :] & invalid_flags != 0] = np.nan
         # Compute group differences
-        diff = np.diff(tempdata,axis=0)
+        diff = np.diff(tempdata, axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
-            image2 = np.nanmean(diff,axis=0)
+            image2 = np.nanmean(diff, axis=0)
 
         # Revert the group flags to the pre-shower flags for any pixels whose rates
         # became NaN or changed by more than the amount reasonable for a real CR shower
         diff = np.abs(image1 - image2)
-        indx = np.where((np.isfinite(diff) == False)|(diff > max_shower_amplitude))
-        gdq[intg,:,indx[0],indx[1]] = ingdq[intg,:,indx[0],indx[1]]
+        indx = np.where((np.isfinite(diff) == False) | (diff > max_shower_amplitude))
+        gdq[intg, :, indx[0], indx[1]] = ingdq[intg, :, indx[0], indx[1]]
 
     return gdq, total_showers
 
