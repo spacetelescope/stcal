@@ -81,7 +81,8 @@ def compute_weight_threshold(weight, maskpt):
                                sigma=3,
                                maxiters=5,
                                masked=False,
-                               copy=False)
+                               copy=False,
+                               )
     mean_weight = np.mean(weight_masked)
     # Mask pixels where weight falls below maskpt percent
     weight_threshold = mean_weight * maskpt
