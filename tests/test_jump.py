@@ -1,16 +1,18 @@
 import numpy as np
 import pytest
 from astropy.io import fits
+
 from stcal.jump.jump import (
+    area_of_polygon,
     calc_num_slices,
+    detect_jumps,
     extend_saturation,
+    find_circles,
     find_ellipses,
     find_faint_extended,
+    find_last_grp,
     flag_large_events,
     point_inside_ellipse,
-    find_first_good_group,
-    detect_jumps,
-    find_last_grp
 )
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1, "GOOD": 0, "NO_GAIN_VALUE": 8,
@@ -189,6 +191,26 @@ def test_find_simple_ellipse():
     assert ellipse[0][0] == pytest.approx((2.5, 2.0))  # center
 
 
+def test_area_of_polygon():
+    x_1 = np.arange(0, 1, 0.001)
+    polygon_1 = np.array([x_1, np.sqrt(1 - x_1**2)]).T
+    polygon_2 = np.array([[-100, 0], [100, 0], [100, 150], [-100, 150], [-100, 0]])
+    assert area_of_polygon(polygon_1) == pytest.approx(0.26353377782163534, 1e-4)
+    assert area_of_polygon(polygon_2) == 30000.0
+
+
+def test_find_simple_circle():
+    plane = np.zeros(shape=(5, 5), dtype=np.uint8)
+    plane[2, 2] = DQFLAGS["JUMP_DET"]
+    plane[3, 2] = DQFLAGS["JUMP_DET"]
+    plane[1, 2] = DQFLAGS["JUMP_DET"]
+    plane[2, 3] = DQFLAGS["JUMP_DET"]
+    plane[2, 1] = DQFLAGS["JUMP_DET"]
+    circles = find_circles(plane, DQFLAGS["JUMP_DET"], 1)
+    assert circles[0][0] == pytest.approx((2, 2))
+    assert circles[0][1] == pytest.approx(1.5, 1e-3)
+
+
 def test_find_ellipse2():
     plane = np.zeros(shape=(5, 5), dtype=np.uint8)
     plane[1, :] = [0, DQFLAGS["JUMP_DET"], DQFLAGS["JUMP_DET"], DQFLAGS["JUMP_DET"], 0]
@@ -198,8 +220,8 @@ def test_find_ellipse2():
     ellipse = ellipses[0]
     assert ellipse[0][0] == 2
     assert ellipse[0][1] == 2
-    assert ellipse[1][0] == 2
-    assert ellipse[1][1] == 2
+    assert ellipse[1][0] == 3
+    assert ellipse[1][1] == 3
     assert ellipse[2] == 90.0
 
 
@@ -286,7 +308,7 @@ def test_flag_large_events_withsnowball():
     )
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 0, 0] == 0
+    assert cube[0, 2, 0, 0] == DQFLAGS["JUMP_DET"]
     assert cube[0, 2, 1, 0] == DQFLAGS["JUMP_DET"]  # Jump was extended
     assert cube[0, 2, 2, 2] == DQFLAGS["SATURATED"]  # Saturation was extended
     assert cube[0, 2, 3, 6] == DQFLAGS["JUMP_DET"]
@@ -390,13 +412,13 @@ def test_find_faint_extended():
 #    assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert gdq[0, 1, 16, 18] == DQFLAGS['JUMP_DET']
-    assert np.all(gdq[0, 1, 11:22, 16:19] == DQFLAGS["JUMP_DET"])
+    assert np.all(gdq[0, 1, 12:21, 16:19] == DQFLAGS["JUMP_DET"])
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
     #  Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == DQFLAGS['JUMP_DET']
-    assert np.all(gdq[0, 2, 11:22, 16:19] == DQFLAGS["JUMP_DET"])
+    assert np.all(gdq[0, 2, 12:21, 16:19] == DQFLAGS["JUMP_DET"])
     assert np.all(gdq[0, 2, 22, 16:19] == 0)
     assert np.all(gdq[0, 2, 10, 16:19] == 0)
 
@@ -405,85 +427,6 @@ def test_find_faint_extended():
     #  Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
-    def test_find_faint_extended():
-        nint, ngrps, ncols, nrows = 1, 66, 5, 5
-        data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
-        gdq = np.zeros_like(data, dtype=np.uint32)
-        pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-        pdq[0, 0] = 1
-        pdq[1, 1] = 2147483648
-        #    pdq = np.zeros(shape=(data.shape[2], data.shape[3]), dtype=np.uint8)
-        gain = 4
-        readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
-        rng = np.random.default_rng(12345)
-        data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
-        data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-        gdq, num_showers = find_faint_extended(
-            data,
-            gdq,
-            pdq,
-            readnoise * np.sqrt(2),
-            1,
-            100,
-            snr_threshold=3,
-            min_shower_area=10,
-            inner=1,
-            outer=2.6,
-            sat_flag=2,
-            jump_flag=4,
-            ellipse_expand=1.1,
-            num_grps_masked=0,
-        )
-
-
-# No shower is found because the event is identical in all ints
-def test_find_faint_extended_sigclip():
-    nint, ngrps, ncols, nrows = 101, 6, 30, 30
-    data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
-    gdq = np.zeros_like(data, dtype=np.uint8)
-    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
-    gain = 4
-    readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
-    rng = np.random.default_rng(12345)
-    data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
-    data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-    min_shower_area=20
-    gdq, num_showers = find_faint_extended(
-        data,
-        gdq,
-        pdq,
-        readnoise,
-        1,
-        100,
-        DQFLAGS,
-        snr_threshold=1.3,
-        min_shower_area=min_shower_area,
-        inner=1,
-        outer=2,
-        sat_flag=2,
-        jump_flag=4,
-        ellipse_expand=1.1,
-        num_grps_masked=3,
-    )
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside
-    assert num_showers == 0
-    assert np.all(gdq[0, 1, 22, 14:23] == 0)
-    assert np.all(gdq[0, 1, 21, 16:20] == 0)
-    assert np.all(gdq[0, 1, 20, 15:22] == 0)
-    assert np.all(gdq[0, 1, 19, 15:23] == 0)
-    assert np.all(gdq[0, 1, 18, 14:23] == 0)
-    assert np.all(gdq[0, 1, 17, 14:23] == 0)
-    assert np.all(gdq[0, 1, 16, 14:23] == 0)
-    assert np.all(gdq[0, 1, 15, 14:22] == 0)
-    assert np.all(gdq[0, 1, 14, 16:22] == 0)
-    assert np.all(gdq[0, 1, 13, 17:21] == 0)
-    assert np.all(gdq[0, 1, 12, 14:23] == 0)
-    assert np.all(gdq[0, 1, 12:23, 24] == 0)
-    assert np.all(gdq[0, 1, 12:23, 13] == 0)
-
-    #  Check that the flags are not applied in the 3rd group after the event
-    assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 # No shower is found because the event is identical in all ints
 def test_find_faint_extended_sigclip():
