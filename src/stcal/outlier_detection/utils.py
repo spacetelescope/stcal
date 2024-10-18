@@ -85,41 +85,30 @@ def compute_weight_threshold(weight, maskpt):
 
 
 def _abs_deriv(array):
-    """
-    Do not use this function.
+    """Take the absolute derivate of a numpy array."""
+    out = np.zeros_like(array)  # use same dtype as input
 
-    Take the absolute derivative of a numpy array.
+    # make output values nan where input is nan (for floating point input)
+    if np.issubdtype(array.dtype, np.floating):
+        out[np.isnan(array)] = np.nan
 
-    This function assumes off-edge pixel values are 0
-    and leads to erroneous derivative values and should
-    likely not be used.
-    """
-    tmp = np.zeros(array.shape, dtype=np.float64)
-    out = np.zeros(array.shape, dtype=np.float64)
+    # compute row-wise absolute diffference
+    d = np.abs(np.diff(array, axis=0))
+    np.putmask(out[1:], np.isfinite(d), d)  # no need to do max yet
 
-    tmp[1:, :] = array[:-1, :]
-    tmp, out = _absolute_subtract(array, tmp, out)
-    tmp[:-1, :] = array[1:, :]
-    tmp, out = _absolute_subtract(array, tmp, out)
+    # since these are absolute differences |r0-r1| = |r1-r0|
+    # make a view of the target portion of the array
+    v = out[:-1]
+    # compute an in-place maximum
+    np.putmask(v, d > v, d)
 
-    tmp[:, 1:] = array[:, :-1]
-    tmp, out = _absolute_subtract(array, tmp, out)
-    tmp[:, :-1] = array[:, 1:]
-    tmp, out = _absolute_subtract(array, tmp, out)
-
+    # compute col-wise absolute difference
+    d = np.abs(np.diff(array, axis=1))
+    v = out[:, 1:]
+    np.putmask(v, d > v, d)
+    v = out[:, :-1]
+    np.putmask(v, d > v, d)
     return out
-
-
-def _absolute_subtract(array, tmp, out):
-    """
-    Do not use this function.
-
-    A helper function for _abs_deriv.
-    """
-    tmp = np.abs(array - tmp)
-    out = np.maximum(tmp, out)
-    tmp = tmp * 0.
-    return tmp, out
 
 
 def flag_crs(
