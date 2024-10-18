@@ -77,7 +77,11 @@ def compute_weight_threshold(weight, maskpt):
     weight_masked = np.ma.array(weight, mask=np.logical_or(
         mask_zero_weight, mask_nans))
     # Sigma-clip the unmasked data
-    weight_masked = sigma_clip(weight_masked, sigma=3, maxiters=5)
+    weight_masked = sigma_clip(weight_masked,
+                               sigma=3,
+                               maxiters=5,
+                               masked=False,
+                               copy=False)
     mean_weight = np.mean(weight_masked)
     # Mask pixels where weight falls below maskpt percent
     weight_threshold = mean_weight * maskpt
