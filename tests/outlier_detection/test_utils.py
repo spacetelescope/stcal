@@ -33,12 +33,21 @@ def test_abs_deriv_single_value(shape, diff):
     np.testing.assert_allclose(result, expected)
 
 
-@pytest.mark.skip(reason="_abs_deriv has edge effects due to treating off-edge pixels as 0: see JP-3683")
 @pytest.mark.parametrize("nrows,ncols", [(5, 5), (7, 11), (17, 13)])
 def test_abs_deriv_range(nrows, ncols):
     arr = np.arange(nrows * ncols).reshape(nrows, ncols)
     result = _abs_deriv(arr)
     np.testing.assert_allclose(result, ncols)
+
+
+def test_abs_deriv_nan():
+    arr = np.arange(25, dtype='f4').reshape(5, 5)
+    arr[2, 2] = np.nan
+    expect_nan = np.zeros_like(arr, dtype=bool)
+    expect_nan[2, 2] = True
+    result = _abs_deriv(arr)
+    assert np.isnan(result[expect_nan])
+    assert np.all(np.isfinite(result[~expect_nan]))
 
 
 @pytest.mark.parametrize("shape,mean,maskpt,expected", [

@@ -1,0 +1,1 @@
+Fix abs_deriv handling of off-edge and nan values.
