@@ -60,7 +60,7 @@ def detect_jumps(
     min_diffs_single_pass=10,
     mask_persist_grps_next_int=True,
     persist_grps_flagged=25,
-    max_shower_amplitude=2
+    max_shower_amplitude=12
 ):
     """
     This is the high-level controlling routine for the jump detection process.
@@ -222,7 +222,7 @@ def detect_jumps(
     min_diffs_single_pass : int
        The minimum number of groups to switch to flagging all outliers in a single pass.
     max_shower_amplitude : float
-       The maximum possible amplitude for flagged MIRI showers in DN/s
+       The maximum possible amplitude for flagged MIRI showers in DN/group
 
     Returns
     -------
@@ -866,7 +866,7 @@ def find_faint_extended(
     num_grps_masked=25,
     max_extended_radius=200,
     min_diffs_for_shower=10,
-    max_shower_amplitude=2,
+    max_shower_amplitude=6,
 ):
     """
     Parameters
@@ -902,7 +902,7 @@ def find_faint_extended(
       minimum_sigclip_groups : int
           The minimum number of groups to use sigma clipping.
       max_shower_amplitude : float
-          The maximum amplitude of shower artifacts to correct in DN/s
+          The maximum amplitude of shower artifacts to correct in DN/group
 
 
     Returns
@@ -1098,6 +1098,7 @@ def find_faint_extended(
         diff = np.diff(tempdata, axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
             image1 = np.nanmean(diff, axis=0)
 
         # Approximate post-shower rates
@@ -1108,10 +1109,12 @@ def find_faint_extended(
         diff = np.diff(tempdata, axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
+            warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
             image2 = np.nanmean(diff, axis=0)
 
         # Revert the group flags to the pre-shower flags for any pixels whose rates
         # became NaN or changed by more than the amount reasonable for a real CR shower
+        # Note that max_shower_amplitude should now be in DN/group not DN/s
         diff = np.abs(image1 - image2)
         indx = np.where((np.isfinite(diff) == False) | (diff > max_shower_amplitude))
         gdq[intg, :, indx[0], indx[1]] = ingdq[intg, :, indx[0], indx[1]]
