@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from stcal.ramp_fitting.ramp_fit import ramp_fit_class, ramp_fit_data
-from stcal.ramp_fitting.ramp_fit_class import RampData
 from stcal.ramp_fitting.likely_fit import likely_ramp_fit
-
+from stcal.ramp_fitting.ramp_fit import ramp_fit_data
+from stcal.ramp_fitting.ramp_fit_class import RampData
 
 test_dq_flags = {
     "GOOD": 0,
@@ -611,7 +610,7 @@ def dbg_print_slopes(slope, pix=(0, 0), label=None):
 
 def dbg_print_cube(cube, pix=(0, 0), label=None):
     data, dq, vp, vr, err = cube
-    data1, dq1, vp1, vr1, err1 = cube1
+    data1, dq1, vp1, vr1, err1 = cube1  # noqa: F821
     row, col = pix
     nints = data1.shape[0]
 
