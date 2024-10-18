@@ -93,21 +93,22 @@ def _abs_deriv(array):
         out[np.isnan(array)] = np.nan
 
     # compute row-wise absolute diffference
-    d = np.abs(np.diff(array, axis=0))
-    np.putmask(out[1:], np.isfinite(d), d)  # no need to do max yet
+    row_diff = np.abs(np.diff(array, axis=0))
+    np.putmask(out[1:], np.isfinite(row_diff), row_diff)  # no need to do max yet
 
     # since these are absolute differences |r0-r1| = |r1-r0|
     # make a view of the target portion of the array
-    v = out[:-1]
+    row_offset_view = out[:-1]
     # compute an in-place maximum
-    np.putmask(v, d > v, d)
+    np.putmask(row_offset_view, row_diff > row_offset_view, row_diff)
+    del row_diff
 
     # compute col-wise absolute difference
-    d = np.abs(np.diff(array, axis=1))
-    v = out[:, 1:]
-    np.putmask(v, d > v, d)
-    v = out[:, :-1]
-    np.putmask(v, d > v, d)
+    col_diff = np.abs(np.diff(array, axis=1))
+    col_offset_view = out[:, 1:]
+    np.putmask(col_offset_view, col_diff > col_offset_view, col_diff)
+    col_offset_view = out[:, :-1]
+    np.putmask(col_offset_view, col_diff > col_offset_view, col_diff)
     return out
 
 
