@@ -233,6 +233,23 @@ def test_validate_wcs_list():
     assert _validate_wcs_list(wcs_list)
 
 
+@pytest.mark.parametrize(
+    ("wcs_list", "expected_error"),
+    [
+        ([], TypeError),
+        ([1, 2, 3], TypeError),
+        (["1", "2", "3"], TypeError),
+        (["1", None, []], TypeError),
+        ("1", TypeError),
+        (1, ValueError),
+        (None, ValueError),
+    ],
+)
+def test_validate_wcs_list_invalid(wcs_list, expected_error):
+    with pytest.raises(expected_error, match=r".*"):
+        _validate_wcs_list(wcs_list)
+
+
 def get_fake_wcs():
     fake_wcs1 = fitswcs.WCS(
         fits.Header(

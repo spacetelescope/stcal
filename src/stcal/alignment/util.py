@@ -596,6 +596,8 @@ def wcs_from_footprints(
     warnings.warn(msg, DeprecationWarning, stacklevel=2)
     _validate_wcs_list(wcs_list)
     footprints = [w.footprint() for w in wcs_list]
+    if ref_wcs is None:
+        ref_wcs = wcs_list[0]
     return wcs_from_sregions(
         footprints,
         ref_wcs,
@@ -717,7 +719,7 @@ def wcs_from_sregions(
 
     transform = _generate_tranform(
         ref_wcs,
-        ref_wcsinfo,
+        wcsinfo=ref_wcsinfo,
         pscale_ratio=pscale_ratio,
         pscale=pscale,
         rotation=rotation,
