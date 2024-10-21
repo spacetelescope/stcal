@@ -12,6 +12,7 @@ from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _validate_wcs_list,
     compute_fiducial,
+    _compute_fiducial_from_footprints,
     compute_s_region_imaging,
     compute_s_region_keyword,
     compute_scale,
@@ -124,7 +125,8 @@ class DataModel:
         self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
 
-def test_compute_fiducial():
+@pytest.mark.parametrize("footprint", [True, False])
+def test_compute_fiducial(footprint):
     """Test that util.compute_fiducial can properly determine the center of the
     WCS's footprint.
     """
@@ -134,8 +136,11 @@ def test_compute_fiducial():
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
     wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
-    footprint = wcs.footprint()
-    computed_fiducial = compute_fiducial([footprint])
+    if footprint:
+        footprint = wcs.footprint()
+        computed_fiducial = _compute_fiducial_from_footprints([footprint])
+    else:
+        computed_fiducial = compute_fiducial([wcs])
 
     assert all(np.isclose(wcs(1, 1), computed_fiducial))
 

@@ -139,7 +139,7 @@ def create_astrometric_catalog(
 
 def compute_radius(wcs):
     """Compute the radius from the center to the furthest edge of the WCS."""
-    fiducial = compute_fiducial([wcs.footprint(),])
+    fiducial = compute_fiducial([wcs,])
     img_center = SkyCoord(
         ra=fiducial[0] * u.degree,
         dec=fiducial[1] * u.degree)

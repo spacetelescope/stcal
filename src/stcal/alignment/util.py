@@ -205,7 +205,7 @@ def _calculate_fiducial(footprints: list[np.ndarray],
     """
     if crval is not None:
         return tuple(crval)
-    return compute_fiducial(footprints)
+    return _compute_fiducial_from_footprints(footprints)
 
 
 def _calculate_offsets(fiducial: tuple,
@@ -423,7 +423,48 @@ def compute_scale(
     return float(np.sqrt(xscale * yscale))
 
 
-def compute_fiducial(footprints: list[np.ndarray]) -> tuple:
+def compute_fiducial(wcslist: list,
+                     bounding_box: Sequence | None = None) -> np.ndarray:
+    """
+    Calculates the world coordinates of the fiducial point of a list of WCS objects.
+    For a celestial footprint this is the center. For a spectral footprint, it is the
+    beginning of its range.
+    Parameters
+    ----------
+    wcslist : list
+        A list containing all the WCS objects for which the fiducial is to be
+        calculated.
+    bounding_box : tuple, list, None
+        The bounding box over which the WCS is valid. It can be a either tuple of tuples
+        or a list of lists of size 2 where each element represents a range of
+        (low, high) values. The bounding_box is in the order of the axes, axes_order.
+        For two inputs and axes_order(0, 1) the bounding box can be either
+        ((xlow, xhigh), (ylow, yhigh)) or [[xlow, xhigh], [ylow, yhigh]].
+    Returns
+    -------
+    fiducial : np.ndarray
+        A two-elements array containing the world coordinates of the fiducial point
+        in the combined output coordinate frame.
+    Notes
+    -----
+    This function assumes all WCSs have the same output coordinate frame.
+    """
+    axes_types = wcslist[0].output_frame.axes_type
+    spatial_axes = np.array(axes_types) == "SPATIAL"
+    spectral_axes = np.array(axes_types) == "SPECTRAL"
+    footprints = np.hstack([w.footprint(bounding_box=bounding_box).T for w in wcslist])
+    spatial_footprint = footprints[spatial_axes]
+    spectral_footprint = footprints[spectral_axes]
+
+    fiducial = np.empty(len(axes_types))
+    if spatial_footprint.any():
+        fiducial[spatial_axes] = _calculate_fiducial_from_spatial_footprint(spatial_footprint.T)
+    if spectral_footprint.any():
+        fiducial[spectral_axes] = spectral_footprint.min()
+    return fiducial
+
+
+def _compute_fiducial_from_footprints(footprints: list[np.ndarray]) -> tuple:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
