@@ -1,1 +1,0 @@
-Make wcs_from_footprints accept s_regions instead of wcs objects

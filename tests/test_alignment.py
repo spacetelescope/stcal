@@ -10,6 +10,7 @@ from gwcs import coordinate_frames as cf
 
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
+    _validate_wcs_list,
     compute_fiducial,
     compute_s_region_imaging,
     compute_s_region_keyword,
@@ -18,6 +19,7 @@ from stcal.alignment.util import (
     _sregion_to_footprint,
     wcs_bbox_from_shape,
     wcs_from_footprints,
+    wcs_from_sregions
 )
 
 
@@ -168,7 +170,8 @@ def test_sregion_to_footprint():
     assert np.allclose(footprint, expected_footprint)
 
 
-def test_wcs_from_footprints():
+@pytest.mark.parametrize("s_regions", [True, False])
+def test_wcs_from_footprints(s_regions):
     """
     Test that the WCS created from wcs_from_footprints has correct vertice coordinates.
 
@@ -191,8 +194,12 @@ def test_wcs_from_footprints():
     )
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
-    footprints = [wcs_1.footprint(), wcs_2.footprint()]
-    wcs = wcs_from_footprints(footprints, wcs_1, dm_1.meta.wcsinfo.instance)
+    if s_regions:
+        footprints = [wcs_1.footprint(), wcs_2.footprint()]
+        wcs = wcs_from_sregions(footprints, wcs_1, dm_1.meta.wcsinfo.instance)
+    else:
+        wcs_list = [wcs_1, wcs_2]
+        wcs = wcs_from_footprints(wcs_list, wcs_1, dm_1.meta.wcsinfo.instance)
 
     # check that all elements of footprint match the *vertices* of the new combined WCS
     assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
@@ -203,6 +210,27 @@ def test_wcs_from_footprints():
     # check that fiducials match their expected coords in the new combined WCS
     assert all(np.isclose(wcs_1(0, 0), wcs(2.5, 1.5)))
     assert all(np.isclose(wcs_2(0, 0), wcs(3.5, 0.5)))
+
+
+def test_validate_wcs_list():
+    shape = (3, 3)  # in pixels
+    fiducial_world = (10, 0)  # in deg
+    pscale = (0.000028, 0.000028)  # in deg/pixel
+
+    dm_1 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
+    wcs_1 = dm_1.meta.wcs
+
+    # shift fiducial by one pixel in both directions and create a new WCS
+    fiducial_world = (
+        fiducial_world[0] - 0.000028,
+        fiducial_world[1] - 0.000028,
+    )
+    dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
+    wcs_2 = dm_2.meta.wcs
+
+    wcs_list = [wcs_1, wcs_2]
+
+    assert _validate_wcs_list(wcs_list)
 
 
 def get_fake_wcs():
