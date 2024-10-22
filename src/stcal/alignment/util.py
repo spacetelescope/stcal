@@ -429,6 +429,7 @@ def compute_fiducial(wcslist: list,
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
+
     Parameters
     ----------
     wcslist : list
@@ -440,11 +441,13 @@ def compute_fiducial(wcslist: list,
         (low, high) values. The bounding_box is in the order of the axes, axes_order.
         For two inputs and axes_order(0, 1) the bounding box can be either
         ((xlow, xhigh), (ylow, yhigh)) or [[xlow, xhigh], [ylow, yhigh]].
+    
     Returns
     -------
     fiducial : np.ndarray
         A two-elements array containing the world coordinates of the fiducial point
         in the combined output coordinate frame.
+
     Notes
     -----
     This function assumes all WCSs have the same output coordinate frame.
