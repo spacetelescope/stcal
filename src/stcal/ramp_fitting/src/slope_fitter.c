@@ -741,16 +741,17 @@ static inline int
 is_pix_in_list(struct pixel_ramp * pr)
 {
     /* Pixel list */
-    // JP-3669 - (1804, 173)
+    // JP-3771 - (5, 1445)
     const int len = 1;
     npy_intp rows[len];
     npy_intp cols[len];
     int k;
 
-    return 0;  /* XXX Null function */
+    // return 0;  /* XXX Null function */
 
-    rows[0] = 1804;
-    cols[0] = 173;
+    // TODO put handling in here for slicing.
+    rows[0] = 5;
+    cols[0] = 1445;
 
     for (k=0; k<len; ++k) {
         if (pr->row==rows[k] && pr->col==cols[k]) {
@@ -2271,6 +2272,7 @@ ols_slope_fit_pixels(
         struct rateint_product * rateint_prod)  /* The rateints product */
 {
     npy_intp row, col;
+    pid_t pid = getpid(); // XXX Debug
 
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
@@ -2284,10 +2286,21 @@ ols_slope_fit_pixels(
                 return 1;
             }
 
+            // XXX debug here
+            if (is_pix_in_list(pr)) {
+                dbg_ols_print("[%d] rd->orig_gdq = %p\n", pid, rd->orig_gdq);
+                dbg_ols_print("[%d] Py_None = %p\n", pid, Py_None);
+                dbg_ols_print("[%d] (%ld, %ld) Before: vr = %.6f\n",
+                    pid, pr->row, pr->col, pr->rate.var_rnoise);
+            }
             if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
                     return 1;
                 }
+            }
+            if (is_pix_in_list(pr)) {
+                dbg_ols_print("[%d] (%ld, %ld) After: vr = %.6f\n",
+                    pid, pr->row, pr->col, pr->rate.var_rnoise);
             }
 
             /* Save fitted pixel data for output packaging */
