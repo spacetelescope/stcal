@@ -287,10 +287,19 @@ struct segment_list {
     npy_intp max_segment_length;    /* The max group length of a segment */
 }; /* END: struct segment_list */
 
+/*
+ * Below is a simple implementation of a singly linked linked list.  The
+ * implementation has two data structures associated with it.  The cr_node
+ * is the elements of the list to be linked.  The cr_list is the list
+ * keeping track of the head, the tail, and the size of the list.  Each
+ * new node is added to the tail of the list.  The tail parameter makes
+ * this easy, that way you don't have to traverse the list each time to
+ * add a node as the tail.
+ */
 
 /* Cosmic ray node for linked list */
 struct cr_node {
-    struct cr_node * flink; /* Next cosmic ray. */
+    struct cr_node * flink; /* Next cosmic ray (forward link). */
     real_t crmag;           /* The magnitude of the cosmic ray. */
 };
 
@@ -936,13 +945,15 @@ add_segment_to_list(
 
     /* Add segment to list as the tail */
     if (NULL == segs->head) {
+        /* The list is empty, so set the head as the initial node */
         segs->head = seg;
         segs->size = 1;
     } else {
+        /* The list is not empty, so link the new node to the tail */
         segs->tail->flink = seg;
         segs->size++;
     }
-    segs->tail = seg;
+    segs->tail = seg; /* Set the new node as the tail of the list */
 
     /* Is the new segment length the longest segment length? */
     if (seg->length > segs->max_segment_length) {
@@ -1236,10 +1247,23 @@ compute_integration_segments(
     return ret;
 }
 
+/*
+ * Add a cosmic ray magnitude to a linked list.
+ *
+ * When the list is empty, the head is NULL, so when adding the initial
+ * node, make the head point to the new node.  When adding the initial
+ * node, the list will only have one node, so the tail will point to the
+ * intial node as well.
+ *
+ * When the list is not empty, add the new node to the list as the tail.
+ * This has the effect of having an ordered linked list with the head being
+ * the first CR magnitude encountered in an integration ramp and the tail
+ * the last.
+ */
 static int
 cr_list_add(
-        struct cr_list * crs,
-        real_t crmag)
+        struct cr_list * crs, /* Cosmic ray list for integration ramp. */
+        real_t crmag)         /* The cosmic ray magnitude to be added */
 {
     struct cr_node * new_node = (struct cr_node*)calloc(1, sizeof(*new_node));
     const char * msg = "Couldn't allocate memory for cosmic ray node.";
@@ -1253,11 +1277,23 @@ cr_list_add(
     new_node->crmag = crmag;
 
     if (0==crs->size) {
+        /*
+         * The linked list is empty, with no nodes.  Adding a node will make
+         * a list of size 1.  Therefore, the head and the tail are the same.
+         */
         crs->head = new_node;
         crs->tail = new_node;
         crs->size = 1;
     } else {
-        crs->tail->flink = new_node;
+        /*
+         * The linked list is not empty.  Since it is not empty, the list is
+         * updated by adding the new node to the tail of the linked list.  First
+         * make the flink of the tail point to the new node.  This must be done
+         * before adding the new node as the tail to ensure the new node gets
+         * properly linked to the list.  Once the new node has been linked to
+         * the tail, make the new node the tail.
+         */
+        crs->tail->flink = new_node; /* !!! Must be done first !!! */
         crs->tail = new_node;
         crs->size++;
     }
