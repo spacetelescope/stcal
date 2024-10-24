@@ -564,6 +564,13 @@ def slice_ramp_data(ramp_data, start_row, nrows):
         drop_frames1=ramp_data.drop_frames1,
     )
 
+    # For possible CHARGELOSS flagging.
+    if ramp_data.orig_gdq is not None:
+        ogdq = ramp_data.orig_gdq[:, :, start_row : start_row + nrows, :].copy()
+        ramp_data_slice.orig_gdq = ogdq
+    else:
+        ramp_data_slice.orig_gdq = None
+
     # Carry over DQ flags.
     ramp_data_slice.flags_do_not_use = ramp_data.flags_do_not_use
     ramp_data_slice.flags_jump_det = ramp_data.flags_jump_det
