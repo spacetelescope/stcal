@@ -164,11 +164,13 @@ def ols_ramp_fit_multiprocessing(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
 
+    # warnings.filterwarnings("ignore", ".*leaked semaphore objects.*", UserWarning)
     ctx = multiprocessing.get_context("forkserver")
     pool = ctx.Pool(processes=number_slices)
     pool_results = pool.starmap(ols_ramp_fit_single, slices)
     pool.close()
     pool.join()
+    # warnings.resetwarnings()
 
     # Reassemble results
     image_info, integ_info, opt_info = assemble_pool_results(
@@ -577,6 +579,7 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.flags_saturated = ramp_data.flags_saturated
     ramp_data_slice.flags_no_gain_val = ramp_data.flags_no_gain_val
     ramp_data_slice.flags_unreliable_slope = ramp_data.flags_unreliable_slope
+    ramp_data_slice.flags_chargeloss = ramp_data.flags_chargeloss
 
     # Slice info
     ramp_data_slice.start_row = start_row
