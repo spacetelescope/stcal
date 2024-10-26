@@ -233,6 +233,10 @@ struct ramp_data {
     real_t one_group_time;          /* Time for ramps with only 0th good group */
     weight_t weight;                /* The weighting for OLS */
 
+    /* Multiprocessing Slice Data */
+    int start_row;  /* Slice starts at this row in the unsliced data */
+    int num_rows;   /* The number of rows in this slice */
+
     /* Debug switch */
     int debug;
 }; /* END: struct ramp_data */
@@ -738,13 +742,14 @@ print_delim_char(char c, int len) {
 
 /* Used for debugging to determine if a pixel is in a list */
 static inline int
-is_pix_in_list(struct pixel_ramp * pr)
+is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 {
     /* Pixel list */
     // JP-3771 - (5, 1445)
     const int len = 1;
     npy_intp rows[len];
     npy_intp cols[len];
+    npy_intp row, col;
     int k;
 
     // return 0;  /* XXX Null function */
@@ -754,7 +759,8 @@ is_pix_in_list(struct pixel_ramp * pr)
     cols[0] = 1445;
 
     for (k=0; k<len; ++k) {
-        if (pr->row==rows[k] && pr->col==cols[k]) {
+        row = pr->row + rd->start_row;
+        if (row==rows[k] && pr->col==cols[k]) {
             return 1;
         }
     }
@@ -1870,6 +1876,23 @@ get_ramp_data_meta(
     }
     Py_XDECREF(test);
 
+    test = PyObject_GetAttrString(Py_ramp_data, "start_row");
+    if (!test|| (test == Py_None)) {
+        rd->start_row = 0;
+    } else {
+        rd->start_row = py_ramp_data_get_int(Py_ramp_data, "start_row");
+    }
+    Py_XDECREF(test);
+
+    // int num_rows;   /* The number of rows in this slice */
+    test = PyObject_GetAttrString(Py_ramp_data, "num_rows");
+    if (!test|| (test == Py_None)) {
+        rd->num_rows = 0;
+    } else {
+        rd->num_rows = py_ramp_data_get_int(Py_ramp_data, "num_rows");
+    }
+    Py_XDECREF(test);
+
     rd->invalid = rd->dnu | rd->sat;
 
     /* Debugging switch */
@@ -2278,7 +2301,6 @@ ols_slope_fit_pixels(
         for (col = 0; col < rd->ncols; ++col) {
 
             // dbg_ols_print("Running (%ld, %ld)\r", row, col);
-
             get_pixel_ramp(pr, rd, row, col);
 
             /* Compute ramp fitting */
@@ -2286,21 +2308,10 @@ ols_slope_fit_pixels(
                 return 1;
             }
 
-            // XXX debug here
-            if (is_pix_in_list(pr)) {
-                dbg_ols_print("[%d] rd->orig_gdq = %p\n", pid, rd->orig_gdq);
-                dbg_ols_print("[%d] Py_None = %p\n", pid, Py_None);
-                dbg_ols_print("[%d] (%ld, %ld) Before: vr = %.6f\n",
-                    pid, pr->row, pr->col, pr->rate.var_rnoise);
-            }
             if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
                     return 1;
                 }
-            }
-            if (is_pix_in_list(pr)) {
-                dbg_ols_print("[%d] (%ld, %ld) After: vr = %.6f\n",
-                    pid, pr->row, pr->col, pr->rate.var_rnoise);
             }
 
             /* Save fitted pixel data for output packaging */
@@ -2644,9 +2655,10 @@ ramp_fit_pixel_rnoise_chargeloss(
         /*  Clean segment list */
         clean_segment_list_basic(&segs);
     }
+
     if (!is_chargeloss) {
         /* No CHARGELOSS flag in pixel */
-        return 0;
+        goto END;
     }
 
     /* Capture recomputed exposure level read noise variance */
@@ -2716,11 +2728,12 @@ ramp_fit_pixel_rnoise_chargeloss_remove(
 
     for (group=0; group<pr->ngroups; ++group) {
         idx = get_ramp_index(rd, integ, group);
+
         if (rd->chargeloss & pr->orig_gdq[idx]) {
             /* It is assumed that DO_NOT_USE also needs to be removed */
             pr->orig_gdq[idx] ^= dnu_chg;
         }
-    }
+    } /* for group */
 }
 
 /*
