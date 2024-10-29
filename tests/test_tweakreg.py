@@ -244,7 +244,7 @@ def input_catalog(datamodel):
     cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
                               catalog=TEST_CATALOG)
 
-    x, y = w.world_to_pixel(cat["ra"], cat["dec"])
+    x, y = w.world_to_pixel(cat["ra"].value, cat["dec"].value)
     return Table({"x": x, "y": y})
 
 
