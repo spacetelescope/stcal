@@ -136,11 +136,11 @@ def resampled_wcs_from_models(
         An object of `LibModelAccessBase`-derived type.
 
     pixel_scale_ratio : float, optional
-        Desired pixel scale ratio defined as the ratio of the first model's
-        pixel scale computed from this model's WCS at the fiducial point
-        (taken as the ``ref_ra`` and ``ref_dec`` from the ``wcsinfo`` meta
-        attribute of the first input image) to the desired output pixel
-        scale. Ignored when ``pixel_scale`` is specified.
+        Desired pixel scale ratio defined as the ratio of the desired output
+        pixel scale to the first input model's pixel scale computed from this
+        model's WCS at the fiducial point (taken as the ``ref_ra`` and
+        ``ref_dec`` from the ``wcsinfo`` meta attribute of the first input
+        image). Ignored when ``pixel_scale`` is specified.
 
     pixel_scale : float, None, optional
         Desired pixel scale (in degrees) of the output WCS. When provided,
@@ -209,16 +209,16 @@ def resampled_wcs_from_models(
     )
 
     if pixel_scale is None:
-        pixel_scale = pscale_in0 / pixel_scale_ratio
+        pixel_scale = pscale_in0 * pixel_scale_ratio
         log.info(
-            f"Pixel scale ratio (pscale_in / pscale_out): {pixel_scale_ratio}"
+            f"Pixel scale ratio (pscale_out/pscale_in): {pixel_scale_ratio}"
         )
         log.info(f"Computed output pixel scale: {3600 * pixel_scale} arcsec.")
     else:
-        pixel_scale_ratio = pscale_in0 / pixel_scale
+        pixel_scale_ratio = pixel_scale / pscale_in0
         log.info(f"Output pixel scale: {3600 * pixel_scale} arcsec.")
         log.info(
-            "Computed pixel scale ratio (pscale_in / pscale_out): "
+            "Computed pixel scale ratio (pscale_out/pscale_in): "
             f"{pixel_scale_ratio}."
         )
 
@@ -381,7 +381,6 @@ class Resample:
             self._output_pixel_scale = np.rad2deg(
                 np.sqrt(_compute_image_pixel_area(output_wcs))
             )
-            self._pixel_scale_ratio = output_model.get("wcs", None)
             log.info(
                 "Computed output pixel scale: "
                 f"{3600 * self._output_pixel_scale} arcsec."
