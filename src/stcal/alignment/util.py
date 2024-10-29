@@ -394,7 +394,7 @@ def compute_scale(
         msg = "If input WCS is spectral, a disp_axis must be given"
         raise ValueError(msg)
 
-    crpix = np.array(wcs.invert(*fiducial))
+    crpix = np.array(wcs.invert(*fiducial, with_bounding_box=False))
 
     delta = np.zeros_like(crpix)
     spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
@@ -441,7 +441,7 @@ def compute_fiducial(wcslist: list,
         (low, high) values. The bounding_box is in the order of the axes, axes_order.
         For two inputs and axes_order(0, 1) the bounding box can be either
         ((xlow, xhigh), (ylow, yhigh)) or [[xlow, xhigh], [ylow, yhigh]].
-    
+
     Returns
     -------
     fiducial : np.ndarray
@@ -704,7 +704,7 @@ def wcs_from_sregions(
     footprints : list of np.ndarray or list of str
         If list elements are numpy arrays, each should have shape (N, 2) and contain
         (RA, Dec) vertices demarcating the footprint of the input WCSs.
-        If list elements are strings, each should be the S_REGION header keyword 
+        If list elements are strings, each should be the S_REGION header keyword
         containing (RA, Dec) vertices demarcating the footprint of the input WCSs.
 
     ref_wcs :
@@ -756,8 +756,8 @@ def wcs_from_sregions(
         The WCS object corresponding to the combined input footprints.
 
     """
-    footprints = [_sregion_to_footprint(s_region) 
-                  if isinstance(s_region, str) else s_region 
+    footprints = [_sregion_to_footprint(s_region)
+                  if isinstance(s_region, str) else s_region
                   for s_region in footprints]
     fiducial = _calculate_fiducial(footprints, crval=crval)
 
