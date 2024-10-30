@@ -17,7 +17,7 @@ from tweakwcs.correctors import JWSTWCSCorrector
 from tweakwcs.imalign import align_wcs
 from tweakwcs.matchutils import XYXYMatch
 
-from stcal.alignment import wcs_from_footprints
+from stcal.alignment import wcs_from_sregions
 
 from .astrometric_utils import create_astrometric_catalog
 
@@ -240,8 +240,8 @@ def _parse_refcat(abs_refcat: str | Path,
 
         # combine all aligned wcs to compute a new footprint to
         # filter the absolute catalog sources
-        combined_wcs = wcs_from_footprints(
-                        [corrector.wcs for corrector in correctors],
+        combined_wcs = wcs_from_sregions(
+                        [corrector.wcs.footprint() for corrector in correctors],
                         ref_wcs=wcs,
                         ref_wcsinfo=wcsinfo,
         )
