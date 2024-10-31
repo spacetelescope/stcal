@@ -20,7 +20,7 @@ dependencies = [
     "numpy >=1.21.2",
     "opencv-python-headless >=4.6.0.66",
     "asdf >=2.15.0",
-    "gwcs @ git+https://github.com/nden/gwcs.git@inverse-bbox",
+    "gwcs @ git+https://github.com/nden/gwcs.git@84a85d2",#inverse-bbox",
     "tweakwcs >=0.8.8",
     "requests >=2.22",
 ]
