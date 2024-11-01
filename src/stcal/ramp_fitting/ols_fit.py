@@ -214,6 +214,11 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     """
     # Create output arrays for each output tuple.  The input ramp data and
     # slices are needed for this.
+    for result in pool_results:
+        image_slice, integ_slice, opt_slice = result
+        if image_slice is None or integ_slice is None:
+            return None, None, None
+
     image_info, integ_info, opt_info = create_output_info(ramp_data, pool_results, save_opt)
 
     # Loop over the slices and assemble each slice into the main return arrays.
