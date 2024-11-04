@@ -12,12 +12,15 @@ from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _validate_wcs_list,
     compute_fiducial,
+    _compute_fiducial_from_footprints,
     compute_s_region_imaging,
     compute_s_region_keyword,
     compute_scale,
     reproject,
+    _sregion_to_footprint,
     wcs_bbox_from_shape,
     wcs_from_footprints,
+    wcs_from_sregions
 )
 
 
@@ -122,7 +125,8 @@ class DataModel:
         self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
 
-def test_compute_fiducial():
+@pytest.mark.parametrize("footprint", [True, False])
+def test_compute_fiducial(footprint):
     """Test that util.compute_fiducial can properly determine the center of the
     WCS's footprint.
     """
@@ -132,8 +136,11 @@ def test_compute_fiducial():
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
     wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
-
-    computed_fiducial = compute_fiducial([wcs])
+    if footprint:
+        footprint = wcs.footprint()
+        computed_fiducial = _compute_fiducial_from_footprints([footprint])
+    else:
+        computed_fiducial = compute_fiducial([wcs])
 
     assert all(np.isclose(wcs(1, 1), computed_fiducial))
 
@@ -155,7 +162,21 @@ def test_compute_scale(pscales):
     assert np.isclose(expected_scale, computed_scale)
 
 
-def test_wcs_from_footprints():
+def test_sregion_to_footprint():
+    """Test that util._sregion_to_footprint can properly convert an S_REGION
+    string to a list of vertices.
+    """
+    s_region = "POLYGON ICRS  1.000000000 2.000000000 3.000000000 4.000000000 5.000000000 6.000000000 7.000000000 8.000000000"
+    expected_footprint = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
+
+    footprint = _sregion_to_footprint(s_region)
+
+    assert footprint.shape == (4,2)
+    assert np.allclose(footprint, expected_footprint)
+
+
+@pytest.mark.parametrize("s_regions", [True, False])
+def test_wcs_from_footprints(s_regions):
     """
     Test that the WCS created from wcs_from_footprints has correct vertice coordinates.
 
@@ -178,8 +199,12 @@ def test_wcs_from_footprints():
     )
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
-
-    wcs = wcs_from_footprints([wcs_1, wcs_2], wcs_1, dm_1.meta.wcsinfo.instance)
+    if s_regions:
+        footprints = [wcs_1.footprint(), wcs_2.footprint()]
+        wcs = wcs_from_sregions(footprints, wcs_1, dm_1.meta.wcsinfo.instance)
+    else:
+        wcs_list = [wcs_1, wcs_2]
+        wcs = wcs_from_footprints(wcs_list, wcs_1, dm_1.meta.wcsinfo.instance)
 
     # check that all elements of footprint match the *vertices* of the new combined WCS
     assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
