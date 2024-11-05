@@ -1838,7 +1838,8 @@ def dbg_print(string):
     """
     Print string with line number and filename.
     """
-    import inspect, os
+    import inspect
+    import os
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
     finfo = inspect.getframeinfo(cf.f_back)

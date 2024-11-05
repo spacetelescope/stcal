@@ -10,17 +10,17 @@ from gwcs import coordinate_frames as cf
 
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
+    _compute_fiducial_from_footprints,
+    _sregion_to_footprint,
     _validate_wcs_list,
     compute_fiducial,
-    _compute_fiducial_from_footprints,
     compute_s_region_imaging,
     compute_s_region_keyword,
     compute_scale,
     reproject,
-    _sregion_to_footprint,
     wcs_bbox_from_shape,
     wcs_from_footprints,
-    wcs_from_sregions
+    wcs_from_sregions,
 )
 
 
