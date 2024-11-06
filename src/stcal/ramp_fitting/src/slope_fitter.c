@@ -1,7 +1,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>
 
-#include <stdlib.h>
+#include <locale.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -57,6 +57,9 @@ typedef enum {
 
 /* This is mostly used for debugging, but could have other usefulness. */
 static npy_intp current_integration;
+static pid_t g_pid;
+char g_log_name[PATH_MAX];
+FILE * g_log = NULL;
 
 /* 
  * Deals with invalid data.  This is one of the ways the python code dealt with
@@ -86,6 +89,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 
 /* Pointers should be set to NULL once freed. */
 #define SET_FREE(X) if (X) {free(X); (X) = NULL;}
+#define FCLOSE(FD) if (FD) {fclose(FD); (FD) = NULL;}
 
 /* 
  * Wraps the clean_ramp_data function.  Ensure all allocated
@@ -133,8 +137,10 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 /* Print macros to include meta information about the print statement */
 #define ols_base_print(F,L,...) \
     do { \
-        fprintf(F, "%s - [C:%d] ", L, __LINE__); \
-        fprintf(F, __VA_ARGS__); \
+        if (F) { \
+            fprintf(F, "%s - [C:%d::%d] ", L, __LINE__, g_pid); \
+            fprintf(F, __VA_ARGS__); \
+        }\
     } while(0)
 #define dbg_ols_print(...) ols_base_print(stdout, "Debug", __VA_ARGS__)
 #define err_ols_print(...) ols_base_print(stderr, "Error", __VA_ARGS__)
@@ -142,6 +148,12 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 #define dbg_ols_print_pixel(PR) \
     printf("[C:%d] Pixel (%ld, %ld)\n", __LINE__, (PR)->row, (PR)->col)
 
+#define log_ols_print(...) do { \
+    ols_base_print(g_log, "Log", __VA_ARGS__); \
+    if (g_log) { \
+        fflush(g_log); \
+    } \
+} while(0)
 
 #define dbg_pyerr(S) \
     do { \
@@ -150,6 +162,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
         PyErr_Print(); \
         print_delim(); \
     } while(0)
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -364,6 +377,8 @@ struct pixel_ramp {
     /* initialize and clean */
     struct pixel_fit rate;          /* Image information */
     struct pixel_fit * rateints;    /* Cube information */
+
+    pid_t pid;
 }; /* END: struct pixel_ramp */
 
 /*
@@ -828,8 +843,37 @@ print_pid_info(long long prev, int line, char * label) {
 
 
 /* ------------------------------------------------------------------------- */
+/*                              PROC LOGGER                                  */
+/* ------------------------------------------------------------------------- */
+
+void
+set_up_logger() {
+    const char * log_dir = "/Users/kmacdonald/code/stcal/logs";
+    char tbuffer[128];
+    time_t now = time(NULL);
+    struct tm * curr_tm = localtime(&now);
+    int sz;
+    const char * string_fmt = "%Y_%m_%d_%H%M%S";
+
+    memset(tbuffer, 0, 128);
+    strftime(tbuffer, 127, string_fmt, curr_tm);
+
+    sz = snprintf(g_log_name, PATH_MAX-1, "%s/%s_pid_%d_logger.txt",
+            log_dir, tbuffer, g_pid);
+
+    dbg_ols_print("g_log_name = %s\n", g_log_name);
+
+    /* This is a global variable for convenience sake */
+    g_log = fopen(g_log_name, "w");
+
+    return;
+}
+
+/* ------------------------------------------------------------------------- */
 /*                            Module Functions                                */
 /* ------------------------------------------------------------------------- */
+
+#define SET_DEBUGGING do { setlocale(LC_ALL, "en_US"); set_up_logger(); } while(0)
 
 /*
  * This is the entry point into the C extension for ramp fitting.  It gets the
@@ -852,6 +896,10 @@ ols_slope_fitter(
     struct pixel_ramp * pr = NULL;
     struct rate_product rate_prod = {0};
     struct rateint_product rateint_prod = {0};
+
+    g_pid = getpid();
+
+    // SET_DEBUGGING;
 
     /* Allocate, fill, and validate ramp data */
     rd = get_ramp_data(args);
@@ -897,6 +945,7 @@ ERROR:
 CLEANUP:
     FREE_RAMP_DATA(rd);
     FREE_PIXEL_RAMP(pr);
+    FCLOSE(g_log);
 
     return result;
 }
@@ -1878,9 +1927,11 @@ get_pixel_ramp_integration_segments_and_pedestal(
     pr->segs[integ].size = 0;
 
     /* Add CR list to ramp data structure */
-    rd->crs[idx] = pr->crs[integ].head;
-    if (pr->crs[integ].size > rd->max_num_crs) {
-        rd->max_num_crs = pr->crs[integ].size;
+    if (pr->crs[integ].size > 0) {
+        rd->crs[idx] = pr->crs[integ].head;
+        if (pr->crs[integ].size > rd->max_num_crs) {
+            rd->max_num_crs = pr->crs[integ].size;
+        }
     }
 
     /* Remove CR list from pixel ramp data structure */
@@ -1946,7 +1997,7 @@ get_ramp_data(
     if (rd->save_opt) {
         rd->max_num_segs = -1;
         rd->segs = (struct simple_ll_node **)calloc(rd->cube_sz, sizeof(rd->segs[0]));
-        rd->crs = (struct cr_node **)calloc(rd->cube_sz, sizeof(rd->segs[0]));
+        rd->crs = (struct cr_node **)calloc(rd->cube_sz, sizeof(rd->crs[0]));
         rd->pedestal = (real_t*)calloc(rd->cube_sz, sizeof(rd->pedestal[0]));
 
         if ((NULL==rd->segs) || (NULL==rd->pedestal)){
@@ -2134,7 +2185,10 @@ get_ramp_data_dimensions(
     rd->nrows = dims[2];
     rd->ncols = dims[3];
 
-    rd->cube_sz = rd->ncols * rd->nrows * rd->ngroups;
+    // XXX How has this never screwed up before?
+    // rd->cube_sz = rd->ncols * rd->nrows * rd->ngroups;  // XXX OLD
+    rd->cube_sz = rd->ncols * rd->nrows * rd->nints;  // XXX New
+
     rd->image_sz = rd->ncols * rd->nrows;
     rd->ramp_sz = rd->nints * rd->ngroups;
 }
@@ -2440,7 +2494,6 @@ ols_slope_fit_pixels(
         for (col = 0; col < rd->ncols; ++col) {
 
             // dbg_ols_print("Running (%ld, %ld)\r", row, col);
-
             get_pixel_ramp(pr, rd, row, col);
 
             /* Compute ramp fitting */
@@ -3397,8 +3450,6 @@ save_opt_res(
     float float_tmp;
 #endif
 
-    //dbg_ols_print(" **** %s ****\n", __FUNCTION__);
-
     /*
        XXX Possibly use a temporary float value to convert the doubles
            in the ramp_data to floats to be put into the opt_res.
@@ -3420,9 +3471,13 @@ save_opt_res(
                 segnum = 0;
                 current = rd->segs[idx];
                 while(current) {
+                    if (segnum > rd->max_num_segs) {
+                        err_ols_print("(%ld, %ld, %ld) Bad segment loop; breaking ... \n", integ, row, col);
+                        /* XXX Probably raise an exception */
+                        break;
+                    }
                     next = current->flink;
                     //print_segment_opt_res(current, rd, integ, segnum, __LINE__);
-                    /* XXX currentdev */
 
                     ptr = PyArray_GETPTR4(opt_res->slope, integ, segnum, row, col);
 #if REAL_IS_DOUBLE
@@ -3484,21 +3539,27 @@ save_opt_res(
                     segnum++;
                 } /* Segment list loop */
 
-                crnum = 0;
-                cr_current = rd->crs[idx];
-                while(cr_current) {
-                    cr_next = cr_current->flink;
+                if (rd->max_num_crs > 0) {
+                    crnum = 0;
+                    cr_current = rd->crs[idx];
+                    while(cr_current) {
+                        if (crnum > rd->max_num_crs) {
+                            err_ols_print("(%ld, %ld, %ld) Bad CR loop; breaking ... \n", integ, row, col);
+                            break;
+                        }
+                        cr_next = cr_current->flink;
 
-                    ptr = PyArray_GETPTR4(opt_res->cr_mag, integ, crnum, row, col);
+                        ptr = PyArray_GETPTR4(opt_res->cr_mag, integ, crnum, row, col);
 #if REAL_IS_DOUBLE
-                    float_tmp = (float) cr_current->crmag;
-                    memcpy(ptr, &(float_tmp), sizeof(float_tmp));
+                        float_tmp = (float) cr_current->crmag;
+                        memcpy(ptr, &(float_tmp), sizeof(float_tmp));
 #else
-                    memcpy(ptr, &(cr_current->crmag), sizeof(cr_current->crmag));
+                        memcpy(ptr, &(cr_current->crmag), sizeof(cr_current->crmag));
 #endif
-                    cr_current = cr_next;
-                    crnum++;
-                } /* CR list loop */
+                        cr_current = cr_next;
+                        crnum++;
+                    } /* CR list loop */
+                }
             } /* Column loop */
         } /* Row loop */
     } /* Integration loop */
