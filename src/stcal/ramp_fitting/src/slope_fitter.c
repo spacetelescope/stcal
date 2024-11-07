@@ -903,7 +903,7 @@ ols_slope_fitter(
     struct rate_product rate_prod = {0};
     struct rateint_product rateint_prod = {0};
 
-    g_pid = getpid();
+    g_pid = getpid();  /* Global variable to track the PID. */
 
     // SET_DEBUGGING;
 
