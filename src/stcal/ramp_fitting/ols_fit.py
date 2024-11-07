@@ -575,6 +575,14 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.flags_saturated = ramp_data.flags_saturated
     ramp_data_slice.flags_no_gain_val = ramp_data.flags_no_gain_val
     ramp_data_slice.flags_unreliable_slope = ramp_data.flags_unreliable_slope
+    ramp_data_slice.flags_chargeloss = ramp_data.flags_chargeloss
+
+    # For possible CHARGELOSS flagging.
+    if ramp_data.orig_gdq is not None:
+        ogdq = ramp_data.orig_gdq[:, :, start_row : start_row + nrows, :].copy()
+        ramp_data_slice.orig_gdq = ogdq
+    else:
+        ramp_data_slice.orig_gdq = None
 
     # Slice info
     ramp_data_slice.start_row = start_row
