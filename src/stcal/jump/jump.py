@@ -1001,6 +1001,8 @@ def find_faint_extended(
             masked_smoothed_ratio = convolve(masked_ratio.filled(np.nan), ring_2D_kernel)
             #  mask out the pixels that got refilled by the convolution
             masked_smoothed_ratio[dnuy, dnux] = np.nan
+            masked_smoothed_ratio[saty, satx] = np.nan
+            masked_smoothed_ratio[jumpy, jumpx] = np.nan
             nrows = ratio.shape[1]
             ncols = ratio.shape[2]
             extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
