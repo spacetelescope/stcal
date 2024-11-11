@@ -75,6 +75,7 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
     nrows = ramp_data.data.shape[2]
     num_available_cores = cpu_count()
     number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
+    log.info(f"Number of multiprocessing slices: {number_slices}")
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
     #   flagged as DO_NOT_USE, resize the input model arrays to exclude the
@@ -574,6 +575,8 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.start_row = start_row
     ramp_data_slice.num_rows = nrows
 
+    ramp_data_slice.run_c_code = ramp_data.run_c_code
+
     return ramp_data_slice
 
 
@@ -661,9 +664,7 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
-    # use_c = False
-    # use_c = True  # XXX Change to default as False
-    use_c = ramp_data.dbg_run_c_code
+    use_c = ramp_data.run_c_code
     if use_c:
         c_start = time.time()
 
@@ -671,8 +672,11 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
         if ramp_data.drop_frames1 is None:
             ramp_data.drop_frames1 = 0
+        log.debug("Entering C extension")
         image_info, integ_info, opt_info = ols_slope_fitter(
                 ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
+
+        log.debug("Returning from C extension")
 
         c_end = time.time()
 
@@ -683,9 +687,9 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
         # ramp fitting.
         rn_bswap, gain_bswap = bswap
         if rn_bswap:
-            readnoise_2d.newbyteorder('S').byteswap(inplace=True)
+            readnoise_2d.view(readnoise_2d.dtype.newbyteorder('S')).byteswap(inplace=True)
         if gain_bswap:
-            gain_2d.newbyteorder('S').byteswap(inplace=True)
+            gain_2d.view(gain_2d.dtype.newbyteorder('S')).byteswap(inplace=True)
 
         c_diff = c_end - c_start
         log.info(f"Ramp Fitting C Time: {c_diff}")
@@ -694,8 +698,10 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
 
     p_start = time.time()
 
+    log.debug("Entering python code")
     image_info, integ_info, opt_info = ols_ramp_fit_single_python(
         ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting)
+    log.debug("Returning from python ")
 
     p_end = time.time()
     p_diff = p_end - p_start
@@ -725,7 +731,7 @@ def handle_array_endianness(arr, sys_order):
     arr_order = arr.dtype.byteorder
     bswap = False
     if (arr_order == ">" and sys_order == "<") or (arr_order == "<" and sys_order == ">"):
-        arr.newbyteorder('S').byteswap(inplace=True)
+        arr.view(arr.dtype.newbyteorder('S')).byteswap(inplace=True)
         bswap = True
 
     return arr, bswap
@@ -914,6 +920,7 @@ def discard_miri_groups(ramp_data):
     data = ramp_data.data
     err = ramp_data.err
     groupdq = ramp_data.groupdq
+    orig_gdq = ramp_data.orig_gdq
 
     n_int, ngroups, nrows, ncols = data.shape
 
@@ -943,6 +950,8 @@ def discard_miri_groups(ramp_data):
     if num_bad_slices > 0:
         data = data[:, num_bad_slices:, :, :]
         err = err[:, num_bad_slices:, :, :]
+        if orig_gdq is not None:
+            orig_gdq = orig_gdq[:, num_bad_slices:, :, :]
 
     log.info("Number of leading groups that are flagged as DO_NOT_USE: %s", num_bad_slices)
 
@@ -962,6 +971,8 @@ def discard_miri_groups(ramp_data):
         data = data[:, :-1, :, :]
         err = err[:, :-1, :, :]
         groupdq = groupdq[:, :-1, :, :]
+        if orig_gdq is not None:
+            orig_gdq = orig_gdq[:, :-1, :, :]
 
         log.info("MIRI dataset has all pixels in the final group flagged as DO_NOT_USE.")
 
@@ -975,6 +986,8 @@ def discard_miri_groups(ramp_data):
     ramp_data.data = data
     ramp_data.err = err
     ramp_data.groupdq = groupdq
+    if orig_gdq is not None:
+        ramp_data.orig_gdq = orig_gdq
 
     return True
 

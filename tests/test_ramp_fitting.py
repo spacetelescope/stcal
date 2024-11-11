@@ -1,7 +1,11 @@
 import pytest
 import numpy as np
+
+import sys
+
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
+from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # c extension
 from stcal.ramp_fitting.utils import compute_num_slices
 
 
@@ -17,6 +21,7 @@ dqflags = {
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
     "SATURATED": 2**1,  # Pixel saturated during exposure.
     "JUMP_DET": 2**2,  # Jump detected during exposure.
+    "CHARGELOSS": 2**7,   # Charge migration (was RESERVED_4)
     "NO_GAIN_VALUE": 2**19,  # Gain cannot be measured.
     "UNRELIABLE_SLOPE": 2**24,  # Slope variance large (i.e., noisy pixel).
 }
@@ -25,6 +30,9 @@ GOOD = dqflags["GOOD"]
 DNU = dqflags["DO_NOT_USE"]
 SAT = dqflags["SATURATED"]
 JUMP = dqflags["JUMP_DET"]
+CHRGL = dqflags["CHARGELOSS"]
+
+DEFAULT_OLS = "OLS_C"
 
 
 # -----------------------------------------------------------------------------
@@ -46,7 +54,7 @@ def test_long_integration():
 
     ramp_data.data[0, 291:, 0, 0] = 320 * 3
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise_array, gain_array,
         algo, wt, ncores, dqflags)
@@ -74,7 +82,7 @@ def base_neg_med_rates_single_integration():
     ramp_data.data[0, :, 0, 0] = neg_ramp
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -157,7 +165,7 @@ def base_neg_med_rates_multi_integrations():
         ramp_data.data[k, :, 0, 0] = neg_ramp * n
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -217,8 +225,12 @@ def test_neg_med_rates_multi_integration_optional():
     np.testing.assert_allclose(ovp[:, 0, 0, 0], np.zeros(3), tol)
 
 
-def base_neg_med_rates_single_integration_multi_segment():
+def test_neg_med_rates_single_integration_multi_segment_optional():
     """
+    Test a ramp with multiple segments to make sure the right number of
+    segments are created and to make sure all Poisson segments are set to
+    zero.
+
     Creates single integration, multi-segment data for testing ensuring
     negative median rates.
     """
@@ -243,21 +255,10 @@ def base_neg_med_rates_single_integration_multi_segment():
     ramp_data.groupdq[0, 10, 1, 0] = dqflags["JUMP_DET"]
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
-
-    return slopes, cube, optional, gls_dummy, dims
-
-
-def test_neg_med_rates_single_integration_multi_segment_optional():
-    """
-    Test a ramp with multiple segments to make sure the right number of
-    segments are created and to make sure all Poisson segments are set to
-    zero.
-    """
-    slopes, cube, optional, gls_dummy, dims = base_neg_med_rates_single_integration_multi_segment()
 
     oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
 
@@ -290,7 +291,7 @@ def test_neg_with_avgdark():
     ramp_data.average_dark_current[:] = 1.0
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
         )
@@ -339,7 +340,7 @@ def test_utils_dq_compress_final():
     ramp_data.groupdq[0, :, 0, 1] = np.array([dqflags["SATURATED"]] * ngroups)
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, False, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, False, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -418,7 +419,7 @@ def test_miri_ramp_dnu_at_ramp_beginning():
     ramp_data.groupdq[0, 1, 0, 0] = dqflags["DO_NOT_USE"]
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes1, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -440,7 +441,7 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
     ramp_data.groupdq[0, 1, 0, 0] = dqflags["JUMP_DET"]
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes2, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -513,7 +514,7 @@ def test_2_group_cases():
     ramp_data.set_dqflags(dqflags)
 
     # Run ramp fit on RampData
-    buffsize, save_opt, algo, wt, ncores = 512, True, "OLS", "optimal", "none"
+    buffsize, save_opt, algo, wt, ncores = 512, True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional, gls_dummy = ramp_fit_data(
         ramp_data, buffsize, save_opt, rnoise, gain, algo, wt, ncores, dqflags
     )
@@ -587,7 +588,7 @@ def run_one_group_ramp_suppression(nints, suppress):
 
     ramp_data.suppress_one_group_ramps = suppress
 
-    algo = "OLS"
+    algo = DEFAULT_OLS
     save_opt, ncores, bufsize = False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, dqflags
@@ -864,7 +865,7 @@ def test_zeroframe():
     """
     ramp_data, gain, rnoise = create_zero_frame_data()
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_OLS, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -983,7 +984,7 @@ def test_only_good_0th_group():
     # Dimensions are (1, 5, 1, 3)
     ramp_data, gain, rnoise = create_only_good_0th_group_data()
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_OLS, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp_data, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1032,7 +1033,7 @@ def test_all_sat():
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
     ramp.groupdq[:, 0, :, :] = ramp.flags_saturated
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_OLS, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1062,7 +1063,7 @@ def test_dq_multi_int_dnu():
     ramp.data[1, :, 0, 0] = np.array(base_arr)
     ramp.groupdq[0, :, 0, 0] = np.array(dq_arr)
 
-    algo, save_opt, ncores, bufsize = "OLS", False, "none", 1024 * 30000
+    algo, save_opt, ncores, bufsize = DEFAULT_OLS, False, "none", 1024 * 30000
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1159,7 +1160,7 @@ def test_multi_more_cores_than_rows():
                 ramp.data[integ, :, row, col] = bramp
                 bramp = bramp * factor
 
-    bufsize, algo, save_opt, ncores = 512, "OLS", False, "all"
+    bufsize, algo, save_opt, ncores = 512, DEFAULT_OLS, False, "all"
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1310,7 +1311,7 @@ def test_new_saturation():
     """
     ramp, gain, rnoise = get_new_saturation()
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, DEFAULT_OLS
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1402,7 +1403,7 @@ def test_invalid_integrations():
 
     ramp.suppress_one_group_ramps = True
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, DEFAULT_OLS
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1466,7 +1467,7 @@ def test_one_group():
 
     ramp.data[0, 0, 0, 0] = 105.31459
 
-    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS"
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, DEFAULT_OLS
     slopes, cube, ols_opt, gls_opt = ramp_fit_data(
         ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
     )
@@ -1495,6 +1496,147 @@ def test_one_group():
     assert abs(svp[0, 0] - cvp[0, 0, 0]) < tol
     assert abs(svr[0, 0] - cvr[0, 0, 0]) < tol
     assert abs(serr[0, 0] - cerr[0, 0, 0]) < tol
+
+
+def test_compute_num_slices():
+    n_rows = 20
+    max_available_cores = 10
+    assert compute_num_slices("none", n_rows, max_available_cores) == 1
+    assert compute_num_slices("half", n_rows, max_available_cores) == 5
+    assert compute_num_slices("3", n_rows, max_available_cores) == 3
+    assert compute_num_slices("7", n_rows, max_available_cores) == 7
+    assert compute_num_slices("21", n_rows, max_available_cores) == 10
+    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
+    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("one", n_rows, max_available_cores) == 1
+    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
+    assert compute_num_slices("all", n_rows, max_available_cores) == 10
+    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
+    n_rows = 9
+    assert compute_num_slices("21", n_rows, max_available_cores) == 9
+
+
+def test_refcounter():
+    """
+    Get reference of objects before and after C-extension to ensure
+    they are the same.
+    """
+    nints, ngroups, nrows, ncols = 1, 1, 1, 1
+    rnval, gval = 10.0, 5.0
+    frame_time, nframes, groupgap = 10.736, 4, 1
+    # frame_time, nframes, groupgap = 10.736, 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.data[0, 0, 0, 0] = 105.31459
+
+    b_data = sys.getrefcount(ramp.data)
+    b_dq = sys.getrefcount(ramp.groupdq)
+    b_err = sys.getrefcount(ramp.err)
+    b_pdq = sys.getrefcount(ramp.pixeldq)
+    b_dc = sys.getrefcount(ramp.average_dark_current)
+
+    wt, opt = "optimal", False
+    image, integ, opt= ols_slope_fitter(ramp, gain, rnoise, wt, opt)
+
+    a_data = sys.getrefcount(ramp.data)
+    a_dq = sys.getrefcount(ramp.groupdq)
+    a_err = sys.getrefcount(ramp.err)
+    a_pdq = sys.getrefcount(ramp.pixeldq)
+    a_dc = sys.getrefcount(ramp.average_dark_current)
+
+    # Verify reference counts are not affected by the C-extension, indicating
+    # memory will be properly managed.
+    assert b_data == a_data
+    assert b_dq == a_dq
+    assert b_err == a_err
+    assert b_pdq == a_pdq
+    assert b_dc == a_dc
+
+
+def test_cext_chargeloss():
+    """
+    Testing the recomputation of read noise due to CHARGELOSS.  Wherever
+    the CHARGELOSS flag is set, ramp fitting is run using the CHARGELOSS
+    flag as a segmenter.  Once ramp fitting is run, the CHARGELOSS and the
+    DO_NOT_USE flags are removed and each integration is re-segmented.  With
+    the resegmentation, the readnoise is recalculated.
+
+    There are four pixels:
+    0. A clean ramp.
+    1. A jump at group 3 (zero based) and CHARGELOSS starting at group 7.
+    2. A jump at group 3 (zero based) and SATURATED starting at group 7.
+    3. A jump at group 3 (zero based).
+
+    The slope should be the same for all pixels.  Variances differ.
+    """
+    nints, ngroups, nrows, ncols = 1, 10, 1, 4
+    rnval, gval = 0.7071, 1.
+    # frame_time, nframes, groupgap = 1., 1, 0
+    frame_time, nframes, groupgap = 10.6, 1, 0
+    group_time = 10.6
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    ramp.run_c_code = True  # Need to make this default in future
+    base = 15.
+    arr = [(k+1) * base for k in range(ngroups)]
+
+    # Populate ramps with a variety of flags
+    # (0, 0)
+    ramp.data[0, :, 0, 0] = np.array(arr)
+    # (0, 1)
+    ramp.data[0, :, 0, 1] = np.array(arr)
+    ramp.groupdq[0, 7:, 0, 1] = DNU + CHRGL
+    ramp.groupdq[0, 3, 0, 1] = JUMP
+    # (0, 2)
+    ramp.data[0, :, 0, 2] = np.array(arr)
+    ramp.groupdq[0, 7:, 0, 2] = SAT
+    ramp.groupdq[0, 3, 0, 2] = JUMP
+    # (0, 3)
+    ramp.data[0, :, 0, 3] = np.array(arr)
+    ramp.groupdq[0, 3, 0, 3] = JUMP
+
+    ramp.orig_gdq = ramp.groupdq.copy()
+    ramp.flags_chargeloss = dqflags["CHARGELOSS"]
+
+    save_opt, ncores, bufsize, algo = False, "none", 1024 * 30000, "OLS_C"
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
+
+    sdata, sdq, svp, svr, serr = slopes
+
+    # Compare slopes
+    assert sdata[0, 1] == sdata[0, 0]
+    assert sdata[0, 1] == sdata[0, 2]
+    assert sdata[0, 1] == sdata[0, 3]
+
+    # Compare Poisson variances
+    assert svp[0, 1] != svp[0, 0]
+    assert svp[0, 1] == svp[0, 2]
+    assert svp[0, 1] != svp[0, 3]
+
+    # Compare total variances
+    assert serr[0, 1] != serr[0, 0]
+    assert serr[0, 1] == serr[0, 2]
+    assert serr[0, 1] != serr[0, 3]
+
+    # Readnoise comparisons
+    assert svr[0, 1] != svr[0, 0]
+    assert svr[0, 1] != svr[0, 2]
+    assert svr[0, 1] == svr[0, 3]
+
+
+# -----------------------------------------------------------------------------
+#                           Set up functions
 
 
 def create_blank_ramp_data(dims, var, tm):
@@ -1529,28 +1671,6 @@ def create_blank_ramp_data(dims, var, tm):
     rnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnval
 
     return ramp_data, gain, rnoise
-
-
-def test_compute_num_slices():
-    n_rows = 20
-    max_available_cores = 10
-    assert compute_num_slices("none", n_rows, max_available_cores) == 1
-    assert compute_num_slices("half", n_rows, max_available_cores) == 5
-    assert compute_num_slices("3", n_rows, max_available_cores) == 3
-    assert compute_num_slices("7", n_rows, max_available_cores) == 7
-    assert compute_num_slices("21", n_rows, max_available_cores) == 10
-    assert compute_num_slices("quarter", n_rows, max_available_cores) == 2
-    assert compute_num_slices("7.5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("one", n_rows, max_available_cores) == 1
-    assert compute_num_slices("-5", n_rows, max_available_cores) == 1
-    assert compute_num_slices("all", n_rows, max_available_cores) == 10
-    assert compute_num_slices("3/4", n_rows, max_available_cores) == 1
-    n_rows = 9
-    assert compute_num_slices("21", n_rows, max_available_cores) == 9
-
-
-# -----------------------------------------------------------------------------
-#                           Set up functions
 
 
 def setup_inputs(dims, var, tm):
@@ -1673,6 +1793,16 @@ def create_test_2seg_obs(
 # The functions below are only used for DEBUGGING tests and developing tests. #
 ###############################################################################
 
+def dbg_print(string):
+    """
+    Print string with line number and filename.
+    """
+    import inspect, os
+    cf = inspect.currentframe()
+    line_number = cf.f_back.f_lineno
+    finfo = inspect.getframeinfo(cf.f_back)
+    fname = os.path.basename(finfo.filename)
+    print(f"[{fname}:{line_number}] {string}")
 
 def print_real_check(real, check, label=None):
     import inspect

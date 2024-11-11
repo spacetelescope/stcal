@@ -23,6 +23,7 @@ jobs:
     with:
       envs: |
         - linux: check-style
+        - linux: check-types
         - linux: check-build
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
@@ -44,3 +45,4 @@ jobs:
       envs: |
         - linux: py311-jwst-cov-xdist
         - linux: py311-romancal-cov-xdist
+      coverage: codecov

@@ -29,3 +29,4 @@ Package Documentation
    :maxdepth: 1
 
    stcal/package_index.rst
+   stcal/changes.rst

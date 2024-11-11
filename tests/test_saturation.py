@@ -3,6 +3,7 @@
 Unit tests for saturation flagging
 
 """
+from enum import IntEnum
 
 import numpy as np
 
@@ -227,3 +228,27 @@ def test_zero_frame():
     # Check ZEROFRAME flagged elements are zeroed out.
     assert zframe[0, 0, 0] == 0.0
     assert zframe[1, 0, 1] == 0.0
+
+
+def test_intenum_flags():
+    """
+    In numpy 2.0 IntEnums induce a failure in bitwise_or. Romancal uses IntEnums
+    for clarity rather than raw dictionaries of integers
+    """
+
+    class DqFlags(IntEnum):
+        GOOD = 0
+        DO_NOT_USE = 1
+        SATURATED = 2
+        AD_FLOOR = 64
+        NO_SAT_CHECK = 2**21
+
+    # Create inputs, data, and saturation maps
+    data = np.zeros((1, 5, 20, 20), dtype=np.float32)
+    gdq = np.zeros((1, 5, 20, 20), dtype=np.uint32)
+    pdq = np.zeros((20, 20), dtype=np.uint32)
+    sat_thresh = np.ones((20, 20)) * 100000.0
+    sat_dq = np.zeros((20, 20), dtype=np.uint32)
+
+    # Simple test to check no errors are raised
+    _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DqFlags)

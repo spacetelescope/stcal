@@ -2,15 +2,14 @@ Description
 ===========
 
 This step determines the mean count rate, in units of counts per second, for
-each pixel by performing a linear fit to the data in the input file.  The fit
-is done using the "ordinary least squares" method.
-The fit is performed independently for each pixel.
+each pixel by performing a linear fit to the data in the input file.  The default
+method uses "ordinary least squares" based on the Fixsen fitting algorithm
+described by
+`Fixsen et al. (2011) <https://ui.adsabs.harvard.edu/abs/2000PASP..112.1350F>`_.
 
 The count rate for each pixel is determined by a linear fit to the
 cosmic-ray-free and saturation-free ramp intervals for each pixel; hereafter
-this interval will be referred to as a "segment." The fitting algorithm uses an
-'optimal' weighting scheme, as described by
-`Fixsen et al. (2011) <https://ui.adsabs.harvard.edu/abs/2000PASP..112.1350F>`_.
+this interval will be referred to as a "segment."
 
 Segments are determined using
 the 4-D GROUPDQ array of the input data set, under the assumption that the jump
@@ -18,6 +17,11 @@ step will have already flagged CR's. Segments are terminated where
 saturation flags are found. Pixels are processed simultaneously in blocks
 using the array-based functionality of numpy.  The size of the block depends
 on the image size and the number of groups.
+
+
+There is also a new algorithm available for testing, the likelihood
+algorithm, implementing an algorithm based on the group differences
+of a ramp.  See :ref:`likelihood algorithm <likelihood_algo>`.
 
 .. _ramp_output_products:
 
@@ -317,3 +321,39 @@ that pixel will be flagged as JUMP_DET in the corresponding integration in the
 "rateints" product.  That pixel will also be flagged as JUMP_DET in the "rate"
 product.
 
+.. _likelihood_algo:
+
+Likelihood Algorithm Details
+----------------------------
+As an alternative to the OLS algorithm, a likelihood algorithm can be selected
+with the step argument ``--ramp_fitting.algorithm=LIKELY``.  This algorithm has
+its own algorithm for jump detection.  The normal jump detection algorithm runs
+by default, but can be skipped when selecting the LIKELY algorithm.  This
+algorithm removes jump detection flags and sets jump detection flags.  This jump
+detection algorithm requires a minimum of four (4) NGROUPS.  If the LIKELY
+algorithm is selected for data with NGROUPS less than four, the ramp fitting
+algorithm is changed to OLS_C.
+
+Each pixel is independently processed, but rather than operate on each
+group/resultant directly, the likelihood algorithm is based on differences of
+the groups/resultants :math:`d_i = r_i - r_{i-1}`.  The model used to determine
+the slope/countrate, :math:`a`, is:
+
+.. math::    
+    \chi^2 = ({\bf d} - a \cdot {\bf 1})^T C ({\bf d} - a \cdot {\bf 1}) \,,
+
+Differentiating, setting to zero, then solving for :math:`a` results in 
+
+.. math::    
+    a = ({\bf 1}^T C {\bf d})({\bf 1}^T C {\bf 1})^T \,,
+
+The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of the
+differences.  Because the covariance matrix is tridiagonal, the  computational
+complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed
+derivation and computations implemented, refer to the links above.
+The Poisson and read noise  computations are based on equations (27) and (28), in
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__
+
+For more details, especially for the jump detection portion in the liklihood
+algorithm, see
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.

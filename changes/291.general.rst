@@ -1,0 +1,1 @@
+Added fillval option to ``gwcs_blot`` utility.

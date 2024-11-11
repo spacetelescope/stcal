@@ -972,7 +972,7 @@ def find_faint_extended(
 
     first_diffs_masked = np.ma.masked_array(first_diffs, mask=np.isnan(first_diffs))
     warnings.filterwarnings("ignore")
-    if nints > minimum_sigclip_groups:
+    if nints >= minimum_sigclip_groups:
         mean, median, stddev = stats.sigma_clipped_stats(first_diffs_masked, sigma=5, axis=0)
     else:
         median_diffs = np.nanmedian(first_diffs_masked, axis=(0, 1))
