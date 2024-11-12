@@ -170,14 +170,27 @@ def find_crs(
     min_usable_groups = ngrps - max_flagged_grps
     total_groups = nints * ngrps - total_flagged_grps
     min_usable_diffs = min_usable_groups - 1
-    # Determine whether there are enough usable groups for both the two sigma clip options and
-    # baseline jump detection.
-    if ((only_use_ints and nints < minimum_sigclip_groups)  # sigclip across ints with not enough ints
-        or (not only_use_ints and (ngrps < minimum_sigclip_groups) and  # sigclip within an int not enough groups
-            min_usable_groups < minimum_groups)):  # regular jump detection minimum groups
-                log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-                dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
-                return gdq, row_below_gdq, row_above_gdq, 0, dummy
+    sig_clip_grps_fails = False
+    total_noise_min_grps_fails = False
+    # Determine whether there are enough usable groups the two sigma clip options
+    if (only_use_ints and nints < minimum_sigclip_groups) \
+            or \
+            (not only_use_ints and total_sigclip_groups < minimum_sigclip_groups):
+        sig_clip_grps_fails = True
+    if min_usable_groups < minimum_groups:
+        total_noise_min_grps_fails = True
+
+    if total_noise_min_grps_fails and sig_clip_grps_fails:
+        log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
+        dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
+        return gdq, row_below_gdq, row_above_gdq, -99, dummy
+#
+#    if ((only_use_ints and nints < minimum_sigclip_groups)  # sigclip across ints with not enough ints
+#        or (not only_use_ints and (ngrps < minimum_sigclip_groups) and  # sigclip within an int not enough groups
+#            min_usable_groups < minimum_groups)):  # regular jump detection minimum groups
+#                log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
+#                dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
+#                return gdq, row_below_gdq, row_above_gdq, -99, dummy
     else:
         # set 'saturated' or 'do not use' pixels to nan in data
         dat[np.where(np.bitwise_and(gdq, sat_flag))] = np.nan
