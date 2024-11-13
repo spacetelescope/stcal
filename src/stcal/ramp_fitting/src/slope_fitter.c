@@ -371,7 +371,6 @@ struct pixel_ramp {
     ssize_t max_num_segs;           /* Max number of segments in an integration */
     struct segment_list * segs;     /* Array of integration segments */
 
-    /* XXX CRs */
     /* This needs to be an array for each integration */
     ssize_t max_crs;
     struct cr_list * crs;
@@ -852,6 +851,22 @@ print_pid_info(long long prev, int line, char * label) {
 /*                              PROC LOGGER                                  */
 /* ------------------------------------------------------------------------- */
 
+/*
+ * This logging system is for debugging purposes.  The 'log_dir' variable needs to
+ * be changed to suit the local directory structure.  Even if fopen fails, there are
+ * checkers in place such that the logger is simply ignored.  Maybe a more intelligent
+ * system should be put in place to create a logger directory, but for now this
+ * suffices.
+ * 
+ * I created this to debug multirpocessing.  The logger captures process information
+ * into separate logs, so any failures can be determined on a per process bases.
+ * Redirection from the command line behaves unexpectedly when multiple processes print
+ * to the terminal and copy and pasting from the terminal is lacking due to the amount
+ * of data that possibly needs to be copied.
+ * 
+ * Each process has its own log and each log has a timestamp, so if you have successive
+ * runs, each can be separated by time, as well as process ID.
+ */
 void
 set_up_logger() {
     const char * log_dir = "/Users/kmacdonald/code/stcal/logs";
@@ -1034,6 +1049,7 @@ build_opt_res(
     }
 
     /* Copy data from rd->segs to these arrays */
+    /* XXX check return value */
     save_opt_res(&opt_res, rd);
 
     /* Package arrays into output tuple */
@@ -2066,7 +2082,7 @@ get_ramp_data_meta(
     rd->suppress1g = py_ramp_data_get_int(Py_ramp_data, "suppress_one_group_ramps");
 
     test = PyObject_GetAttrString(Py_ramp_data, "drop_frames1");
-    if (!test|| (test == Py_None)) {
+    if (!test || (test == Py_None)) {
         rd->dropframes = 0;
     } else {
         rd->dropframes = py_ramp_data_get_int(Py_ramp_data, "drop_frames1");
@@ -2083,7 +2099,7 @@ get_ramp_data_meta(
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
 
     test = PyObject_GetAttrString(Py_ramp_data, "flags_chargeloss");
-    if (!test|| (test == Py_None)) {
+    if (!test || (test == Py_None)) {
         rd->chargeloss = 0;
     } else {
         rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
@@ -2091,7 +2107,7 @@ get_ramp_data_meta(
     Py_XDECREF(test);
 
     test = PyObject_GetAttrString(Py_ramp_data, "start_row");
-    if (!test|| (test == Py_None)) {
+    if (!test || (test == Py_None)) {
         rd->start_row = 0;
     } else {
         rd->start_row = py_ramp_data_get_int(Py_ramp_data, "start_row");
@@ -2099,7 +2115,7 @@ get_ramp_data_meta(
     Py_XDECREF(test);
 
     test = PyObject_GetAttrString(Py_ramp_data, "num_rows");
-    if (!test|| (test == Py_None)) {
+    if (!test || (test == Py_None)) {
         rd->num_rows = 0;
     } else {
         rd->num_rows = py_ramp_data_get_int(Py_ramp_data, "num_rows");
@@ -2207,9 +2223,8 @@ get_ramp_data_dimensions(
     rd->nrows = dims[2];
     rd->ncols = dims[3];
 
-    // XXX How has this never screwed up before?
-    // rd->cube_sz = rd->ncols * rd->nrows * rd->ngroups;  // XXX OLD
-    rd->cube_sz = rd->ncols * rd->nrows * rd->nints;  // XXX New
+    /* The cube size is the size of the rateints product (nints, nrows, ncols) */
+    rd->cube_sz = rd->ncols * rd->nrows * rd->nints;
 
     rd->image_sz = rd->ncols * rd->nrows;
     rd->ramp_sz = rd->nints * rd->ngroups;
@@ -3464,6 +3479,8 @@ save_opt_res(
 {
     void * ptr = NULL;
     npy_intp integ, crnum, segnum, row, col, idx;
+    const int msg_size = 1024;
+    char msg[msg_size];
     struct simple_ll_node * current;
     struct simple_ll_node * next;
     struct cr_node * cr_current;
@@ -3494,9 +3511,11 @@ save_opt_res(
                 current = rd->segs[idx];
                 while(current) {
                     if (segnum > rd->max_num_segs) {
-                        err_ols_print("(%ld, %ld, %ld) Bad segment loop; breaking ... \n", integ, row, col);
-                        /* XXX Probably raise an exception */
-                        break;
+                        memset(msg, 0, msg_size);
+                        snprintf(msg, msg_size-1, "(%ld, %ld, %ld) Bad segment loop.\n", integ, row, col);
+                        err_ols_print("%s", msg);
+                        PyErr_SetString(PyExc_IndexError, msg);
+                        return 1;
                     }
                     next = current->flink;
                     //print_segment_opt_res(current, rd, integ, segnum, __LINE__);
@@ -3566,8 +3585,11 @@ save_opt_res(
                     cr_current = rd->crs[idx];
                     while(cr_current) {
                         if (crnum > rd->max_num_crs) {
-                            err_ols_print("(%ld, %ld, %ld) Bad CR loop; breaking ... \n", integ, row, col);
-                            break;
+                            memset(msg, 0, msg_size);
+                            snprintf(msg, msg_size-1, "(%ld, %ld, %ld) Bad CR loop.\n", integ, row, col);
+                            err_ols_print("%s", msg);
+                            PyErr_SetString(PyExc_IndexError, msg);
+                            return 1;
                         }
                         cr_next = cr_current->flink;
 
@@ -4036,6 +4058,10 @@ print_real_array(char * label, real_t * arr, int len, int ret, int line) {
     return;
 }
 
+/*
+ * Prints the cosmic ray magnitude information for a pixel.
+ * This is a debugging function.
+ */
 static void
 print_cr_pixel(struct pixel_ramp * pr, int line)
 {
@@ -4047,6 +4073,10 @@ print_cr_pixel(struct pixel_ramp * pr, int line)
     }
 }
 
+/*
+ * Prints the cosmic ray magnitude information for a pixel integration.
+ * This is a debugging function.
+ */
 static void
 print_cr_pixel_integ(
         struct pixel_ramp * pr, struct cr_list * crs, npy_intp integ, int line)
