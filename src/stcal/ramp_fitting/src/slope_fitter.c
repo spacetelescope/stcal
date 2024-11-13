@@ -450,6 +450,9 @@ static PyObject *
 build_opt_res(struct ramp_data * rd);
 
 static void
+clean_opt_res(struct opt_res_product * opt_res);
+
+static void
 clean_pixel_ramp(struct pixel_ramp * pr);
 
 static void
@@ -1049,8 +1052,10 @@ build_opt_res(
     }
 
     /* Copy data from rd->segs to these arrays */
-    /* XXX check return value */
-    save_opt_res(&opt_res, rd);
+    if (save_opt_res(&opt_res, rd)) {
+        clean_opt_res(&opt_res);
+        return Py_None;
+    }
 
     /* Package arrays into output tuple */
     opt_res_info = Py_BuildValue("NNNNNNNNN",
@@ -1059,6 +1064,21 @@ build_opt_res(
         opt_res.cr_mag);
 
     return opt_res_info;
+}
+
+static void
+clean_opt_res(
+        struct opt_res_product * opt_res)
+{
+    Py_XDECREF(opt_res->slope);
+    Py_XDECREF(opt_res->sigslope);
+    Py_XDECREF(opt_res->var_p);
+    Py_XDECREF(opt_res->var_r);
+    Py_XDECREF(opt_res->yint);
+    Py_XDECREF(opt_res->sigyint);
+    Py_XDECREF(opt_res->pedestal);
+    Py_XDECREF(opt_res->weights);
+    Py_XDECREF(opt_res->cr_mag);
 }
 
 /*
