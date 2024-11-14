@@ -92,7 +92,7 @@ def test_compute_weight_threshold_memory():
 
     # buffer to account for memory overhead needs to be small enough
     # to ensure that the array was not copied
-    fractional_memory_buffer = 1.9
+    fractional_memory_buffer = 0.9
     expected_mem = int(arr.nbytes*fractional_memory_buffer)
     with MemoryThreshold(str(expected_mem) + " B"):
         result = compute_weight_threshold(arr, 0.5)
