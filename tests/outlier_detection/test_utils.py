@@ -16,6 +16,7 @@ from stcal.outlier_detection.utils import (
     reproject,
     medfilt,
 )
+from stcal.testing_helpers import MemoryThreshold
 
 
 @pytest.mark.parametrize("shape,diff", [
@@ -78,6 +79,23 @@ def test_compute_weight_threshold_zeros():
     arr = np.zeros([10, 10], dtype=np.float32)
     arr[:5, :5] = 42
     result = compute_weight_threshold(arr, 0.5)
+    np.testing.assert_allclose(result, 21)
+
+
+def test_compute_weight_threshold_memory():
+    """Test that weight threshold function modifies
+    the weight array in place"""
+    arr = np.zeros([500, 500], dtype=np.float32)
+    arr[:250, :250] = 42
+    arr[10,10] = 0
+    arr[-10,-10] = np.nan
+
+    # buffer to account for memory overhead needs to be small enough
+    # to ensure that the array was not copied
+    fractional_memory_buffer = 1.9
+    expected_mem = int(arr.nbytes*fractional_memory_buffer)
+    with MemoryThreshold(str(expected_mem) + " B"):
+        result = compute_weight_threshold(arr, 0.5)
     np.testing.assert_allclose(result, 21)
 
 
