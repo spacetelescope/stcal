@@ -1,6 +1,19 @@
-JP-3791: Fixed the multiprocessing portion of the CHARGELOSS recomputation of the readnoise variances.  The DQ array wasn't properly sliced and distributed to the multiple processes to properly do the recompute.  This is now properly sliced for distribution.
+JP-3791: Fixed the `ramp fitting` multiprocessing portion of the 
+         CHARGELOSS recomputation of the readnoise variances.  The
+         DQ array wasn't properly sliced and distributed to the
+         multiple processes to properly do the recompute.  This is
+         now properly sliced for distribution.
 
-JP-3771: Added multiple regression tests to the JWST repo.  The tests test multiprocessing in the jump step and ramp step and ensure the outout is the same as during single processing.  This is done by running the same tests as currently being done, but selecting multiprocessing and comparing output files that are used for single processing as well.  There is an additional ramp fit multiprocessing test that also saves the optional results product.
+JP-3771: Added multiple regression tests to the JWST repo.  The tests
+         test multiprocessing in the `jump` step and `ramp_step` and
+         ensure the outout is the same as during single processing.
+         This is done by running the same tests as currently being done,
+         but selecting multiprocessing and comparing output files that
+         are used for single processing as well.  There is an additional
+         ramp fit multiprocessing test that also saves the optional results
+         product.
 
-JP-3708: Added the CRMAG array to the optional results product.  This particular element of the optional results product had not previously been implemented in the C-extension.
+JP-3708: Added the CRMAG array to the optional results product in `ramp_fit`.
+         This element of the optional results product had not previously been
+         implemented in the C-extension.
 
