@@ -1,0 +1,1 @@
+Add wcs_from_sregions function to compute a combined WCS from a list of s_regions.

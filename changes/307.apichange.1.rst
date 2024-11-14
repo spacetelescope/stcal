@@ -1,0 +1,1 @@
+Deprecate wcs_from_footprints. Use wcs_from_sregions instead.
