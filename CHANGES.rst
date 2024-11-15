@@ -1,3 +1,56 @@
+1.10.0 (2024-11-15)
+===================
+
+Changes to API
+--------------
+
+- Add `outlier_detection` median calculators from jwst. (`#292
+  <https://github.com/spacetelescope/stcal/issues/292>`_)
+- Deprecate wcs_from_footprints. Use wcs_from_sregions instead. (`#307
+  <https://github.com/spacetelescope/stcal/issues/307>`_)
+- Add wcs_from_sregions function to compute a combined WCS from a list of
+  s_regions. (`#307 <https://github.com/spacetelescope/stcal/issues/307>`_)
+
+
+Bug Fixes
+---------
+
+- Fix `IntEnum` saturation flag issue with numpy 2+ for romancal. (`#305
+  <https://github.com/spacetelescope/stcal/issues/305>`_)
+- Fix abs_deriv handling of off-edge and nan values. (`#311
+  <https://github.com/spacetelescope/stcal/issues/311>`_)
+
+
+General
+-------
+
+- Added fillval option to ``gwcs_blot`` utility. (`#291
+  <https://github.com/spacetelescope/stcal/issues/291>`_)
+- Update downstream tests for jwst and romancal to fix pytest configurations.
+  (`#297 <https://github.com/spacetelescope/stcal/issues/297>`_)
+- Changed the default `ramp fitting` CI test algorithm to ``OLS_C``.  This also
+  revealed
+  a bug in control flow that allowed for the CHARGELOSS recalculation in error,
+  which
+  resulted in a crash while attempting to dereference a ``NULL`` pointer.
+  Further, when
+  creating the optional results product, the object creation was changed to
+  `PyArray_ZEROS`
+  to ensure invalid data was set to zero.  The use of `PyArray_EMPTY` does not
+  initialize
+  memory, so junk data could be in used array elements. (`#298
+  <https://github.com/spacetelescope/stcal/issues/298>`_)
+- Add infrastructure for testing memory usage (`#299
+  <https://github.com/spacetelescope/stcal/issues/299>`_)
+- Preparing ramp fitting for the upgrade to python 3.13.  In python 3.13, the
+  C-API
+  function ``PyLong_AsLong`` raises an exception if the object passed to it is
+  ``NoneType``.  There are two integer attributes for the ``RampData`` class
+  that
+  can be ``NoneType``, so a check for ``NoneType`` for these attributes was
+  added. (`#303 <https://github.com/spacetelescope/stcal/issues/303>`_)
+
+
 1.9.0 (2024-09-19)
 ==================
 
