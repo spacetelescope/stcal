@@ -1,1 +1,0 @@
-Fix `IntEnum` saturation flag issue with numpy 2+ for romancal.

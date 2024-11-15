@@ -203,7 +203,7 @@ def datamodel(wcsobj2, group_id=None):
     return MinimalDataWithWCS(wcsobj2, group_id=group_id)
 
 
-def test_parse_refcat(datamodel):
+def test_parse_refcat(datamodel, tmp_path):
 
     wcsobj = datamodel.meta.wcs
     correctors = fake_correctors(0.0)
@@ -216,11 +216,11 @@ def test_parse_refcat(datamodel):
                               catalog=TEST_CATALOG)
 
     # save refcat to file
-    cat.write(Path.cwd() / CATALOG_FNAME, format="ascii.ecsv", overwrite=True)
+    cat.write(tmp_path / CATALOG_FNAME, format="ascii.ecsv", overwrite=True)
 
     # parse refcat from file
     epoch = Time(datamodel.meta.observation.date).decimalyear
-    refcat = _parse_refcat(Path.cwd() / CATALOG_FNAME,
+    refcat = _parse_refcat(tmp_path / CATALOG_FNAME,
                            correctors,
                            datamodel.meta.wcs,
                            datamodel.meta.wcsinfo,

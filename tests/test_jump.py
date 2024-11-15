@@ -354,7 +354,7 @@ def test_flag_large_events_withsnowball_noextension():
     assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_radius=1
 
 
-def test_find_faint_extended():
+def test_find_faint_extended(tmp_path):
     nint, ngrps, ncols, nrows = 1, 66, 25, 25
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint32)
@@ -366,7 +366,7 @@ def test_find_faint_extended():
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
-    fits.writeto("data.fits", data, overwrite=True)
+    fits.writeto(tmp_path / "data.fits", data, overwrite=True)
     gdq, num_showers = find_faint_extended(
         data,
         gdq,
@@ -386,7 +386,7 @@ def test_find_faint_extended():
     )
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside
-    fits.writeto("gdq.fits", gdq, overwrite=True)
+    fits.writeto(tmp_path / "gdq.fits", gdq, overwrite=True)
 #    assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert gdq[0, 1, 16, 18] == DQFLAGS['JUMP_DET']
