@@ -872,12 +872,14 @@ print_pid_info(long long prev, int line, char * label) {
  */
 void
 set_up_logger() {
-    const char * log_dir = "/Users/kmacdonald/code/stcal/logs";
+    const char * log_dir = NULL;
     char tbuffer[128];
     time_t now = time(NULL);
     struct tm * curr_tm = localtime(&now);
     int sz;
     const char * string_fmt = "%Y_%m_%d_%H%M%S";
+
+    return;
 
     memset(tbuffer, 0, 128);
     strftime(tbuffer, 127, string_fmt, curr_tm);
