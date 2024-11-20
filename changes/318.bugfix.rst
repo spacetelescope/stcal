@@ -1,6 +1,5 @@
-For `ramp_fitting`, the `CRMAG` element was not originally implementd in
+For `ramp_fitting`, the `CRMAG` element was not originally implemented in
 the C-extension for ramp fitting.  It is now implemented.  A bug in the read
 noise recalculation for CHARGELOSS when using the multiprocessing option has
 been fixed.  Further, in `JWST` regression tests have been added to test for
-multiprocessing to ensure testing for anything that could affect
-multiprocessing.
+multiprocessing to ensure testing for anything that could affect multiprocessing.
