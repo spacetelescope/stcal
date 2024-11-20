@@ -1,6 +1,6 @@
-This PR fixes JP-3791, JP-3771, and JP-3708.  For `ramp_fitting`, the
-`CRMAG` element was not originally implementd in the C-extension for
-ramp fitting.  It is now implemented.  The bug the read noise recalculation
-for CHARGELOSS when using the multiprocessing option has been fixed.  Further,
-in `JWST` regression tests have been added to test for multiprocessing to
-ensure testing for anything that could affect multiprocessing.
+For `ramp_fitting`, the `CRMAG` element was not originally implementd in
+the C-extension for ramp fitting.  It is now implemented.  A bug in the read
+noise recalculation for CHARGELOSS when using the multiprocessing option has
+been fixed.  Further, in `JWST` regression tests have been added to test for
+multiprocessing to ensure testing for anything that could affect
+multiprocessing.
