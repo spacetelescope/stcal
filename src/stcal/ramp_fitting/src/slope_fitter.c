@@ -800,7 +800,10 @@ print_delim_char(char c, int len) {
     printf("\n");
 }
 
-/* Used for debugging to determine if a pixel is in a list */
+/* 
+ * Used to determine if a pixel is in a list.
+ * This is a debugging function.
+ */
 static inline int
 is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 {
