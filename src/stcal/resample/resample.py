@@ -2,14 +2,11 @@ import logging
 import math
 import os
 import warnings
-import json
-import abc
-from copy import deepcopy
 import sys
 
 import numpy as np
-from scipy.ndimage import median_filter
 import psutil
+from scipy.ndimage import median_filter
 
 from astropy import units as u
 from astropy.nddata.bitmask import (
