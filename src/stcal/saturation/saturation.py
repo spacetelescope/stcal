@@ -133,11 +133,11 @@ def flag_saturated_pixels(
 
             # Reset flag array to only pixels passing this gauntlet
             flagarray[:] = 0
-            flagarray[indx] = 2
+            flagarray[indx] = dnu
             
             # Grow the newly-flagged saturating pixels
             if n_pix_grow_sat > 0:
-                flagarray = adjacent_pixels(flagarray, saturated, n_pix_grow_sat)
+                flagarray = adjacent_pixels(flagarray, dnu, n_pix_grow_sat)
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, group, :, :], flagarray, gdq[ints, group, :, :])
@@ -166,10 +166,10 @@ def flag_saturated_pixels(
 
             # Flag the 2nd group for the pixels passing that gauntlet
             flagarray = np.zeros_like(mask,dtype='uint8')
-            flagarray[mask] = saturated
+            flagarray[mask] = dnu
             # flag any pixels that border these new pixels
             if n_pix_grow_sat > 0:
-                flagarray = adjacent_pixels(flagarray, saturated, n_pix_grow_sat)
+                flagarray = adjacent_pixels(flagarray, dnu, n_pix_grow_sat)
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
