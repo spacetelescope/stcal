@@ -1,11 +1,9 @@
 import logging
 import math
-import os
 import warnings
 import sys
 
 import numpy as np
-import psutil
 from scipy.ndimage import median_filter
 
 from astropy import units as u
@@ -15,11 +13,9 @@ from astropy.nddata.bitmask import (
 )
 from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
-from stdatamodels.jwst.library.basic_utils import bytes2human
 
 
 from stcal.resample.utils import (
-    bytes2human,
     compute_wcs_pixel_area,
     get_tmeasure,
     resample_range,
@@ -84,8 +80,7 @@ class Resample:
                  fillval=0.0, wht_type="ivm", good_bits=0,
                  output_wcs=None, output_model=None,
                  accumulate=False, enable_ctx=True, enable_var=True,
-                 compute_err=None,
-                 allowed_memory=None):
+                 compute_err=None):
         """
         Parameters
         ----------
@@ -238,18 +233,12 @@ class Resample:
                 At this time, output error array is not equivalent to
                 error propagation results.
 
-        allowed_memory : float, None
-            Fraction of memory allowed to be used for resampling. If
-            ``allowed_memory`` is `None` then no check for available memory
-            will be performed.
-
         """
         # to see if setting up arrays and drizzle is needed
         self._finalized = False
         self._n_res_models = 0
 
         self._n_predicted_input_models = n_input_models
-        self.allowed_memory = allowed_memory
         self._output_model = output_model
         self._create_new_output_model = output_model is not None
 
@@ -435,79 +424,6 @@ class Resample:
 
         return attributes
 
-    def check_memory_requirements(self, output_model, allowed_memory,
-                                  n_input_models=None):
-        """ Called just before `create_output_model` returns to verify
-        that there is enough memory to hold the output.
-
-        Parameters
-        ----------
-        allowed_memory : float, None
-            Fraction of memory allowed to be used for resampling. If
-
-        output_model : dict, None, optional
-            A dictionary containing data arrays and other attributes that
-            will be used to add new models to. use
-            :py:meth:`Resample.output_model_attributes` to get the list of
-            keywords that must be present. When ``accumulate`` is `False`,
-            only the WCS object of the model will be used. When ``accumulate``
-            is `True`, new models will be added to the existing data in the
-            ``output_model``.
-
-            When ``output_model`` is `None`, a new model will be created.
-
-        n_input_models : int, None, optional
-            Number of input models expected to be resampled. When provided,
-            this is used to estimate memory requirements and optimize memory
-            allocation for the context array.
-
-
-        """
-        if ((allowed_memory is None and
-                "DMODEL_ALLOWED_MEMORY" not in os.environ) or
-                n_input_models is None):
-            return
-
-        allowed_memory = float(allowed_memory)
-
-        # get the available memory
-        available_memory = (
-            psutil.virtual_memory().available + psutil.swap_memory().total
-        )
-
-        # compute the output array size
-        npix = np.prod(self._output_array_shape)
-        nconpl = n_input_models // 32 + (1 if n_input_models % 32 else 0)  # context planes
-        required_memory = 0
-        for arr in self.output_array_types:
-            if arr in output_model:
-                if arr == "con":
-                    f = nconpl
-                elif arr == "err":
-                    if self._compute_err == "from_var":
-                        f = 2  # data and weight arrays
-                    elif self._compute_err == "driz_err":
-                        f = 1
-                elif arr.startswith("var"):
-                    f = 3  # variance data, weight, and total arrays
-                else:
-                    f = 1
-
-                required_memory += f * self.output_array_types[arr].itemsize
-
-        # add pixmap itemsize:
-        required_memory += 2 * np.dtype(float).itemsize
-        required_memory *= npix
-
-        # compare used to available
-        used_fraction = required_memory / available_memory
-        if used_fraction > allowed_memory:
-            raise OutputTooLargeError(
-                f'Combined ImageModel size {self._output_wcs.array_shape} '
-                f'requires {bytes2human(required_memory)}. '
-                f'Model cannot be instantiated.'
-            )
-
     def check_output_wcs(self, output_wcs, estimate_output_shape=True):
         """
         Check that provided WCS has expected properties and that its
@@ -607,9 +523,6 @@ class Resample:
 
     def create_output_model(self):
         """ Create a new "output model": a dictionary of data and meta fields.
-        Check that there is enough memory to hold all arrays by calling
-        `check_memory_requirements`.
-
         """
         assert self._output_wcs is not None
         assert np.array_equiv(
@@ -671,13 +584,6 @@ class Resample:
 
         if self._compute_err is not None:
             output_model["err"] = None
-
-        if self.allowed_memory:
-            self.check_memory_requirements(
-                output_model,
-                self.allowed_memory,
-                n_input_models=self._n_predicted_input_models,
-            )
 
         return output_model
 
