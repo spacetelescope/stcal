@@ -1,0 +1,1 @@
+Change flagging of 'pre-saturation' grouped data to use DO_NOT_USE instead of SATURATION flag to avoid confusing the snowball routine downstream.
