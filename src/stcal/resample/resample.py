@@ -74,7 +74,7 @@ class Resample:
         "err": np.float32,
     }
 
-    dq_flag_name_map = {}
+    dq_flag_name_map = {}  # type: dict[str, int]
 
     def __init__(self, n_input_models=None, pixfrac=1.0, kernel="square",
                  fillval=0.0, wht_type="ivm", good_bits=0,
