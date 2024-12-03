@@ -440,6 +440,14 @@ class Resample:
 
         """
         naxes = output_wcs.output_frame.naxes
+        if 'SPECTRAL' in output_wcs.output_frame.axes_type:
+            if naxes != 3:
+                raise UnsupportedWCSError(
+                    "Output spectral WCS needs 3 coordinate axes but the "
+                    f"supplied WCS has {naxes} axes."
+                )
+            return
+
         if naxes != 2:
             raise UnsupportedWCSError(
                 "Output WCS needs 2 coordinate axes but the "
@@ -600,8 +608,36 @@ class Resample:
         return self._output_wcs
 
     @property
+    def pixel_scale_ratio(self):
+        return self._pixel_scale_ratio
+
+    @property
+    def output_pixel_scale(self):
+        return self._output_pixel_scale  # in arcsec
+
+    @property
     def group_ids(self):
         return self._group_ids
+
+    @property
+    def enable_ctx(self):
+        """ Indicates whether context array is enabled. """
+        return self._enable_ctx
+
+    @property
+    def enable_var(self):
+        """ Indicates whether variance arrays are resampled. """
+        return self._enable_var
+
+    @property
+    def compute_err(self):
+        """ Indicates whether error array is computed and how it is computed. """
+        return self._compute_err
+
+    @property
+    def is_in_accumulate_mode(self):
+        """ Indicates whether resample is continuing adding to previous co-adds. """
+        return self._accumulate
 
     def _get_intensity_scale(self, model):
         """
@@ -637,7 +673,9 @@ class Resample:
                 # If input image is in flux density units, correct the
                 # flux for the user-specified change to the spatial dimension
                 if _is_flux_density(model["bunit_data"]):
-                    input_pixel_area *= self.pscale_ratio
+                    iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
+                else:
+                    iscale = 1.0
             else:
                 input_pixel_area = compute_wcs_pixel_area(
                     wcs,
@@ -667,7 +705,7 @@ class Resample:
                             self._output_model["pixel_scale_ratio"] is None):
                         self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
-            iscale = math.sqrt(input_pixflux_area / input_pixel_area)
+                iscale = math.sqrt(input_pixflux_area / input_pixel_area)
 
         else:
             iscale = 1.0
@@ -971,8 +1009,9 @@ class Resample:
                 # set those values to NaN instead
                 all_nan = np.all(np.isnan(var_components), axis=0)
                 self._output_model["err"][all_nan] = np.nan
+                del all_nan
 
-            del var_components, all_nan
+            del var_components
 
         self._finalized = True
 
