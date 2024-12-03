@@ -1,6 +1,5 @@
 from copy import deepcopy
 import logging
-import math
 
 import asdf
 import numpy as np
