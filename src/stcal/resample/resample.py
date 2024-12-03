@@ -1445,12 +1445,16 @@ class Resample:
         self._exptime_start.append(model["start_time"])
         self._exptime_end.append(model["end_time"])
 
-        t, success = get_tmeasure(model)
-        self._total_exposure_time += model["exposure_time"]
-        self._measurement_time_success.append(success)
-        self._total_measurement_time += t
+        if (exposure_time := model["exposure_time"]) is not None:
+            self._total_exposure_time += exposure_time
 
-        self._duration += model["duration"]
+        t, success = get_tmeasure(model)
+        self._measurement_time_success.append(success)
+        if t is not None:
+            self._total_measurement_time += t
+
+        if (duration := model["duration"]) is not None:
+            self._duration += duration
 
     def finalize_time_info(self):
         """ Perform final computations for the total time and update relevant
