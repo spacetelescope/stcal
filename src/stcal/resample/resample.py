@@ -11,7 +11,10 @@ from astropy.nddata.bitmask import (
     bitfield_to_boolean_mask,
     interpret_bit_flags,
 )
-from drizzle.utils import calc_pixmap
+try:
+    from drizzle.utils import calc_pixmap
+except ImportError:
+    from drizzle.util import calc_pixmap
 from drizzle.resample import Drizzle
 
 
