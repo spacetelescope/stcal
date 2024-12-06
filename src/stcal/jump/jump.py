@@ -802,6 +802,7 @@ def find_faint_extended(
             )
 
     # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
+    # XXX Make this interact with the refactor.
     for intg in range(nints):
         # Consider DO_NOT_USE, SATURATION, and JUMP_DET flags
         invalid_flags = donotuse_flag | sat_flag | jump_flag
