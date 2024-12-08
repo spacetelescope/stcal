@@ -420,6 +420,7 @@ def test_find_faint_extended(tmp_path):
     jump_data.extend_outer_radius = 2.6
     jump_data.extend_ellipse_expand_ratio = 1
     jump_data.grps_masked_after_shower = 1
+    jump_data.max_shower_amplitude = 10
 
     readnoise = readnoise * np.sqrt(2)
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)

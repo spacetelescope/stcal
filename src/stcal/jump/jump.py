@@ -801,11 +801,18 @@ def find_faint_extended(
                 max_extended_radius=jump_data.max_extended_radius
             )
 
+    gdq = max_flux_showers(jump_data, nints, indata, ingdq, gdq)
+
+    return gdq, total_showers
+    # XXX END find_faint_extended
+
+
+def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
     # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
     # XXX Make this interact with the refactor.
     for intg in range(nints):
         # Consider DO_NOT_USE, SATURATION, and JUMP_DET flags
-        invalid_flags = donotuse_flag | sat_flag | jump_flag
+        invalid_flags = jump_data.fl_dnu | jump_data.fl_sat| jump_data.fl_jump
 
         # Approximate pre-shower rates
         tempdata = indata[intg, :, :, :].copy()
@@ -833,11 +840,10 @@ def find_faint_extended(
         # became NaN or changed by more than the amount reasonable for a real CR shower
         # Note that max_shower_amplitude should now be in DN/group not DN/s
         diff = np.abs(image1 - image2)
-        indx = np.where((np.isfinite(diff) == False) | (diff > max_shower_amplitude))
+        indx = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))
         gdq[intg, :, indx[0], indx[1]] = ingdq[intg, :, indx[0], indx[1]]
 
-    return gdq, total_showers
-    # XXX END find_faint_extended
+    return gdq
 
 
 def count_dnu_groups(gdq, jump_data):
