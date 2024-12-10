@@ -497,6 +497,8 @@ def extend_ellipses(
     """
     Extend the ellipses.
 
+    Parameters
+    ----------
     gdq_cube : ndarray
         Group DQ cube for an integration.
 
@@ -521,7 +523,10 @@ def extend_ellipses(
     num_grps_masked : int
         The number of groups flagged.
 
-    max_extended_radius : float
+    Return
+    ------
+    out_gdq_cube : ndarray
+    num_ellipses : int
     """
     # For a given DQ plane it will use the list of ellipses to create
     #  expanded ellipses of pixels with
@@ -535,39 +540,17 @@ def extend_ellipses(
     for ellipse in ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
-        # Expand the ellipse by the expansion factor. The number of pixels
-        # added to both axes is
-        # the number of pixels added to the minor axis. This prevents very
-        # large flagged ellipses
-        # with high axis ratio ellipses. The major and minor axis are not
-        # always the same index.
-        # Therefore, we have to test to find which is actually the minor axis.
-        if expand_by_ratio:
-            if ellipse[1][1] < ellipse[1][0]:
-                axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
-                axis2 = ellipse[1][1] * expansion
-            else:
-                axis1 = ellipse[1][0] * expansion
-                axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
-        else:
-            axis1 = ellipse[1][0] + expansion
-            axis2 = ellipse[1][1] + expansion
-        axis1 = min(axis1, jump_data.max_extended_radius)
-        axis2 = min(axis2, jump_data.max_extended_radius)
+        axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
+
         alpha = ellipse[2]
-        image = cv.ellipse(
-            image,
-            (round(ceny), round(cenx)),
-            (round(axis1 / 2), round(axis2 / 2)),
-            alpha,
-            0,
-            360,
-            (0, 0, jump_data.fl_jump),
-            -1,
-        )
+        cen = (round(ceny), round(cenx))
+        color = (0, 0, jump_data.fl_jump)
+        image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1)
+
         jump_ellipse = image[:, :, 2]
         ngrps = gdq_cube.shape[1]
         last_grp = find_last_grp(grp, ngrps, num_grps_masked)
+
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], jump_data.fl_sat)
@@ -575,6 +558,7 @@ def extend_ellipses(
             jump_ellipse[saty, satx] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     diff_cube = out_gdq_cube - gdq_cube
+
     return out_gdq_cube, num_ellipses
 
 
@@ -866,38 +850,83 @@ def count_dnu_groups(gdq, jump_data):
 
 
 def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
+    """
+    Draw ellipses onto an image
+
+    Parameters
+    ----------
+    ellipses : list
+        List of ellipses
+
+    image : ndarray
+        The image on which to draw the ellipses.
+
+    expand_by_ratio : bool
+        Should the ellipses be expanded?
+
+    expansion : float
+        The ellipse expansion factor
+
+    jump_data : JumpData
+        Class containing parameters and methods to detect jumps.
+
+    Return
+    ------
+    image : ndarray
+        The image with ellipses drawn on it.
+    """
     for ellipse in ellipses:
-        # XXX subroutine candidate
-        # Expand the ellipse by the expansion factor. The number of pixels
-        # added to both axes is the number of pixels added to the minor axis.
-        # This prevents very large flagged ellipses with high axis ratio ellipses.
-        # The major and minor axis are not always the same index.  Therefore, we
-        # have to test to find which is actually the minor axis.
         ceny, cenx = ellipse[0][0], ellipse[0][1]
-        if expand_by_ratio:
-            if ellipse[1][1] < ellipse[1][0]:
-                axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
-                axis2 = ellipse[1][1] * expansion
-            else:
-                axis1 = ellipse[1][0] * expansion
-                axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
-        else:
-            axis1 = ellipse[1][0] + expansion
-            axis2 = ellipse[1][1] + expansion
-        axis1 = min(axis1, jump_data.max_extended_radius)
-        axis2 = min(axis2, jump_data.max_extended_radius)
+        cen = (round(ellipse[0][0]), round(ellipse[0][1]))
+        axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
         alpha = ellipse[2]
-        image = cv.ellipse(
-            image,
-            (round(ceny), round(cenx)),
-            (round(axis1 / 2), round(axis2 / 2)),
-            alpha,
-            0,
-            360,
-            (0, 0, jump_data.fl_jump),
-            -1,
-        )
+        color = (0, 0, jump_data.fl_jump)
+        image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1)
+
     return image
+
+
+def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
+    '''
+    Expand the ellipse by the expansion factor. The number of pixels added to
+    both axes is the number of pixels added to the minor axis. This prevents
+    very large flagged ellipses with high axis ratio ellipses. The major and
+    minor axis are not always the same index.  Therefore, we have to test to
+    find which is actually the minor axis.
+
+    Parameters
+    ----------
+    expand_by_ratio : bool
+        Should the axes be expanded?
+
+    ellipse : cv2.ellipse
+        Ellipse to expand.
+
+    expansion : float
+        The factor that increases the size of the snowball or enclosed ellipse.
+
+    jump_data : JumpData
+        Class containing parameters and methods to detect jumps.
+
+    Return
+    ______
+    axes : tuple
+        Expanded and rounded ellipse axes.
+    '''
+    if expand_by_ratio:
+        if ellipse[1][1] < ellipse[1][0]:
+            axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
+            axis2 = ellipse[1][1] * expansion
+        else:
+            axis1 = ellipse[1][0] * expansion
+            axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
+    else:
+        axis1 = ellipse[1][0] + expansion
+        axis2 = ellipse[1][1] + expansion
+    axis1 = min(axis1, jump_data.max_extended_radius)
+    axis2 = min(axis2, jump_data.max_extended_radius)
+
+    return (round(axis1 / 2), round(axis2 / 2))
 
 
 def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
