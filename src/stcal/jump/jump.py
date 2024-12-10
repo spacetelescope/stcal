@@ -110,11 +110,13 @@ def detect_jumps_data(jump_data):
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
-    # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
-    #    back in units of DN
-    data /= jump_data.gain_2d
-    err /= jump_data.gain_2d
-    readnoise_2d /= jump_data.gain_2d
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
+        # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
+        #    back in units of DN
+        data /= jump_data.gain_2d
+        err /= jump_data.gain_2d
+        readnoise_2d /= jump_data.gain_2d
 
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
@@ -434,6 +436,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
 
 def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
+    TODO
     
     cube : ndarray
         Group DQ cube for an integration.
@@ -587,6 +590,9 @@ def find_last_grp(grp, ngrps, num_grps_masked):
 
 
 def find_circles(dqplane, bitmask, min_area):
+    """
+    TODO
+    """
     # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
     # area and return a list of the minimum enclosing circle parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
@@ -596,6 +602,9 @@ def find_circles(dqplane, bitmask, min_area):
 
 
 def find_ellipses(dqplane, bitmask, min_area):
+    """
+    TODO
+    """
     # Using an input DQ plane this routine will find the groups of pixels with
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
@@ -665,6 +674,9 @@ def make_snowballs(
 
 
 def point_inside_ellipse(point, ellipse):
+    """
+    TODO
+    """
     delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
     major_axis = max(ellipse[1][0], ellipse[1][1])
 
@@ -672,6 +684,9 @@ def point_inside_ellipse(point, ellipse):
 
 
 def near_edge(jump, low_threshold, high_threshold):
+    """
+    TODO
+    """
     #  This routing tests whether the center of a jump is close to the edge of
     # the detector. Jumps that are within the threshold will not require a
     # saturated core since this may be off the detector
@@ -801,6 +816,9 @@ def find_faint_extended(
 
 
 def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
+    """
+    TODO
+    """
     # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
     # XXX Make this interact with the refactor.
     for intg in range(nints):
@@ -840,6 +858,9 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
 
 
 def count_dnu_groups(gdq, jump_data):
+    """
+    TODO
+    """
     nints, ngrps = gdq.shape[:2]
     num_grps_donotuse = 0
     for integ in range(nints):
@@ -930,6 +951,9 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
 
 
 def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+    """
+    TODO
+    """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
     sat_flag = jump_data.fl_sat
@@ -969,6 +993,9 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
 
 def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
+    """
+    TODO
+    """
     if intg > 0:
         e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
 
@@ -986,6 +1013,9 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
 
 
 def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
+    """
+    TODO
+    """
     median_diffs = median[grp - 1]
     sigma = stddev[grp - 1]
     # The difference from the median difference for each group
@@ -997,6 +1027,9 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
 
 
 def nan_invalid_data(data, gdq, jump_data):
+    """
+    TODO
+    """
     jump_dnu_flag = jump_data.fl_jump + jump_data.fl_dnu
     sat_dnu_flag = jump_data.fl_sat + jump_data.fl_dnu
     data[gdq == jump_dnu_flag] = np.nan
@@ -1008,6 +1041,9 @@ def nan_invalid_data(data, gdq, jump_data):
 
 
 def find_first_good_group(int_gdq, do_not_use):
+    """
+    TODO
+    """
     ngrps = int_gdq.shape[0]
     skip_grp = True
     first_good_group = 0
@@ -1021,6 +1057,9 @@ def find_first_good_group(int_gdq, do_not_use):
 
 
 def calc_num_slices(n_rows, max_cores, max_available):
+    """
+    TODO
+    """
     n_slices = 1
     if max_cores.isnumeric():
         n_slices = int(max_cores)
