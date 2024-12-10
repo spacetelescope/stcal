@@ -74,6 +74,12 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     row_above_gdq : int, 3D array (num_ints, num_groups, num_cols)
         pixels above current row also to be flagged as a CR
 
+    num_primary_crs : int
+        number of primary cosmic rays found
+
+    dummy/stddev : float
+        the standard deviation computed during sigma clipping
+
     """
     # START find_crs
     # copy data and group DQ array
