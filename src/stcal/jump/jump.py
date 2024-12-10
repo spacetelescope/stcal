@@ -432,10 +432,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     return gdq, total_snowballs
 
 
-def extend_saturation(
-    cube, grp, sat_ellipses, sat_flag, jump_flag, min_sat_radius_extend,
-    persist_jumps, expansion=2, max_extended_radius=200
-):
+def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
     
     cube : ndarray
@@ -447,23 +444,10 @@ def extend_saturation(
     sat_ellipses : cv.ellipse
         The saturated ellipse.
 
-    sat_flag : int
-        The saturated flag.
-
-    jump_flag : int
-        The jump detection flag.
-
-    min_sat_radius_extend : float
-        The smallest radius to trigger extension of the saturated core.
+    jump_data : JumpData
 
     persist_jumps : ndarray
         3D (nints, nrows, ncols) uint8
-
-    expansion : float
-        The factor that increases the size of the snowball or enclosed ellipse.
-
-    max_extended_radius : float
-        The largest radius that a snowball or shower can be extended.
     """
     ngroups, nrows, ncols = cube.shape
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
@@ -474,12 +458,14 @@ def extend_saturation(
         cenx = ellipse[0][1]
         minor_axis = min(ellipse[1][1], ellipse[1][0])
 
-        if minor_axis > min_sat_radius_extend:
-            axis1 = ellipse[1][0] + expansion
-            axis2 = ellipse[1][1] + expansion
+        if minor_axis > jump_data.min_sat_radius_extend:
+            axis1 = ellipse[1][0] + jump_data.sat_expand
+            axis2 = ellipse[1][1] + jump_data.sat_expand
             alpha = ellipse[2]
-            axis1 = min(axis1, max_extended_radius)
-            axis2 = min(axis2, max_extended_radius)
+
+
+            axis1 = min(axis1, jump_data.max_extended_radius)
+            axis2 = min(axis2, jump_data.max_extended_radius)
             image = cv.ellipse(
                 image,
                 (round(ceny), round(cenx)),
@@ -496,7 +482,7 @@ def extend_saturation(
             #  in subsequent integrations.
             sat_ellipse = image[:, :, 2]  # extract the Blue plane of the image
             saty, satx = np.where(sat_ellipse == 22)  # find all the ellipse pixels in the ellipse
-            outcube[grp:, saty, satx] = sat_flag
+            outcube[grp:, saty, satx] = jump_data.fl_sat
             persist_image = cv.ellipse(
                 persist_image,
                 (round(ceny), round(cenx)),
@@ -510,7 +496,7 @@ def extend_saturation(
 
             persist_ellipse = persist_image[:, :, 2]
             persist_saty, persist_satx = np.where(persist_ellipse == 22)
-            persist_jumps[persist_saty, persist_satx] = jump_flag
+            persist_jumps[persist_saty, persist_satx] = jump_data.fl_jump
 
     return outcube, persist_jumps
 
@@ -700,12 +686,8 @@ def make_snowballs(
         gdq[integration, :, :, :],
         group,
         sat_ellipses,
-        jump_data.fl_sat,
-        jump_data.fl_jump,
-        jump_data.min_sat_radius_extend,
+        jump_data,
         persist_jumps[integration, :, :],
-        expansion=jump_data.sat_expand,
-        max_extended_radius=jump_data.max_extended_radius,
     )
 
     return gdq, snowballs, persist_jumps

@@ -254,8 +254,13 @@ def test_extend_saturation_simple():
 
     cube[1, 2, 2] = JUMP
     sat_circles = find_ellipses(cube[grp, :, :], SAT, 1)
+
+    jump_data = JumpData(dqflags=DQFLAGS)
+    jump_data.min_sat_radius_extend = 1.1
+
+
     new_cube, persist_jumps = extend_saturation(
-        cube, grp, sat_circles, SAT, JUMP, 1.1, persist_jumps)
+        cube, grp, sat_circles, jump_data, persist_jumps)
 
     assert new_cube[grp, 2, 2] == SAT
     assert new_cube[grp, 4, 4] == SAT
