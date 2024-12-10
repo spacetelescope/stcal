@@ -284,7 +284,7 @@ def test_flag_large_events_nosnowball():
     cube[0, 2, 1:6, 1] = JUMP
     cube[0, 2, 1:6, 5] = JUMP
 
-    jump_data = JumpData()
+    jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_area = 1
     jump_data.min_jump_area = 6
     jump_data.expand_factor = 1.9
@@ -312,7 +312,7 @@ def test_flag_large_events_withsnowball():
     cube[0, 2, 1:6, 1] = JUMP
     cube[0, 2, 1:6, 5] = JUMP
 
-    jump_data = JumpData()
+    jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_area = 1
     jump_data.min_jump_area = 6
     jump_data.expand_factor = 1.9
@@ -345,7 +345,7 @@ def test_flag_large_events_groupedsnowball():
     cube[0, 2, 4, 3] = SAT
     cube[0, 2, 3, 2] = SAT
 
-    jump_data = JumpData()
+    jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_area = 1
     jump_data.min_jump_area = 6
     jump_data.expand_factor = 1.9
@@ -373,7 +373,7 @@ def test_flag_large_events_withsnowball_noextension():
     cube[0, 2, 1:6, 1] = JUMP
     cube[0, 2, 1:6, 5] = JUMP
 
-    jump_data = JumpData()
+    jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_area = 1
     jump_data.min_jump_area = 6
     jump_data.expand_factor = 1.9
