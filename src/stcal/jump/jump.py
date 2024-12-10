@@ -466,16 +466,10 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
             axis1 = min(axis1, jump_data.max_extended_radius)
             axis2 = min(axis2, jump_data.max_extended_radius)
-            image = cv.ellipse(
-                image,
-                (round(ceny), round(cenx)),
-                (round(axis1 / 2), round(axis2 / 2)),
-                alpha,
-                0,
-                360,
-                (0, 0, 22),  # in the RGB cube, set blue plane pixels of the ellipse to 22
-                -1,
-            )
+            cen = (round(ceny), round(cenx))
+            axes = (round(axis1 / 2), round(axis2 / 2))
+            color = (0, 0, 22)  # in the RGB cube, set blue plane pixels of the ellipse to 22
+            image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1,)
 
             #  Create another non-extended ellipse that is used to create the
             #  persist_jumps for this integration. This will be used to mask groups
@@ -483,16 +477,9 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
             sat_ellipse = image[:, :, 2]  # extract the Blue plane of the image
             saty, satx = np.where(sat_ellipse == 22)  # find all the ellipse pixels in the ellipse
             outcube[grp:, saty, satx] = jump_data.fl_sat
-            persist_image = cv.ellipse(
-                persist_image,
-                (round(ceny), round(cenx)),
-                (round(ellipse[1][0] / 2), round(ellipse[1][1] / 2)),
-                alpha,
-                0,
-                360,
-                (0, 0, 22),
-                -1,
-            )
+            cen = (round(ceny), round(cenx))
+            axes = (round(ellipse[1][0] / 2), round(ellipse[1][1] / 2))
+            persiste_image = cv.ellipse(persist_image, cen, axes, alpha, 0, 360, color, -1,)
 
             persist_ellipse = persist_image[:, :, 2]
             persist_saty, persist_satx = np.where(persist_ellipse == 22)
