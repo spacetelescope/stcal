@@ -317,24 +317,24 @@ class JumpData:
     def get_jump_data_options(self):
         oline = f"{DELIM}\n"
         oline += f"JumpData Options\n"
-        oline += f"Number of Frames = {self.nframes}\n"
-        oline += f"Rejection Threshold = {self.rejection_thresh}\n"
-        oline += f"Three Group Threshold = {self.three_grp_thresh}\n"
-        oline += f"Three Group Threshold = {self.four_grp_thresh}\n"
-        oline += f"Flag Four Neighbors = {self.flag_4_neighbors}\n"
-        oline += f"Max Jump to Flag = {self.max_jump_to_flag_neighbors}\n"
-        oline += f"Min Jump to Flag = {self.min_jump_to_flag_neighbors}\n\n"
+        oline += f"nframes = {self.nframes}\n"
+        oline += f"rejection_thresh = {self.rejection_thresh}\n"
+        oline += f"three_grp_thresh = {self.three_grp_thresh}\n"
+        oline += f"four_grp_thresh = {self.four_grp_thresh}\n"
+        oline += f"flag_4_neighbors = {self.flag_4_neighbors}\n"
+        oline += f"max_jump_to_flag_neighbors = {self.max_jump_to_flag_neighbors}\n"
+        oline += f"min_jump_to_flag_neighbors = {self.min_jump_to_flag_neighbors}\n\n"
 
         # After jump flagging
         oline += "After Jump Flags\n"
-        oline += f"{INDENT}DN1 = {self.after_jump_flag_dn1}\n"
-        oline += f"{INDENT}N1 = {self.after_jump_flag_n1}\n"
-        oline += f"{INDENT}DN2 = {self.after_jump_flag_dn2}\n"
-        oline += f"{INDENT}N2 = {self.after_jump_flag_n2}\n\n"
+        oline += f"{INDENT}after_jump_flag_dn1 = {self.after_jump_flag_dn1}\n"
+        oline += f"{INDENT}after_jump_flag_n1 = {self.after_jump_flag_n1}\n"
+        oline += f"{INDENT}after_jump_flag_dn2 = {self.after_jump_flag_dn2}\n"
+        oline += f"{INDENT}after_jump_flag_n2 = {self.after_jump_flag_n2}\n\n"
 
         # Computed later, depends on the after flagging above.
-        oline += f"{INDENT}E1 = {self.after_jump_flag_e1}\n"
-        oline += f"{INDENT}#2 = {self.after_jump_flag_e2}\n"
+        oline += f"{INDENT}after_jump_flag_e1 = {self.after_jump_flag_e1}\n"
+        oline += f"{INDENT}after_jump_flag_e2 = {self.after_jump_flag_e2}\n"
         oline += f"{DELIM}\n"
         return oline
 
@@ -347,12 +347,12 @@ class JumpData:
     def get_jump_data_dqflags(self):
         oline = f"{DELIM}\n"
         oline += "DQ Flags\n"
-        oline += f"{INDENT}Good = {self.fl_good}\n"
-        oline += f"{INDENT}Saturated = {self.fl_sat}\n"
-        oline += f"{INDENT}Jump Detection = {self.fl_jump}\n"
-        oline += f"{INDENT}No Gain Value = {self.fl_ngv}\n"
-        oline += f"{INDENT}Do Not Use = {self.fl_dnu}\n"
-        oline += f"{INDENT}Reference = {self.fl_ref}\n"
+        oline += f"{INDENT}fl_good = {self.fl_good}\n"
+        oline += f"{INDENT}fl_sat = {self.fl_sat}\n"
+        oline += f"{INDENT}fl_jump = {self.fl_jump}\n"
+        oline += f"{INDENT}fl_ngv = {self.fl_ngv}\n"
+        oline += f"{INDENT}fl_dnu = {self.fl_dnu}\n"
+        oline += f"{INDENT}fl_ref = {self.fl_ref}\n"
         oline += f"{DELIM}\n\n"
         return oline
 
@@ -365,15 +365,15 @@ class JumpData:
     def get_jump_data_snowball(self):
         oline = f"{DELIM}\n"
         oline += "Snowball Information\n"
-        oline += f"Expand Large Events = {self.expand_large_events}\n"
-        oline += f"Min Jump Area = {self.min_jump_area}\n"
-        oline += f"Min Saturated Area = {self.min_sat_area}\n"
-        oline += f"Expand Factor = {self.expand_factor}\n"
-        oline += f"Use Ellipse (deprecated) = {self.use_ellipses}\n"
-        oline += f"Saturated Required Snowball = {self.sat_required_snowball}\n"
-        oline += f"Min Saturated Radius = {self.min_sat_radius_extend}\n"
-        oline += f"Saturated Expand = {self.sat_expand}\n"
-        oline += f"Edge Size = {self.edge_size}\n"
+        oline += f"expand_large_events = {self.expand_large_events}\n"
+        oline += f"min_jump_area = {self.min_jump_area}\n"
+        oline += f"min_sat_area = {self.min_sat_area}\n"
+        oline += f"expand_factor = {self.expand_factor}\n"
+        oline += f"use_ellipses (deprecated) = {self.use_ellipses}\n"
+        oline += f"sat_required_snowball = {self.sat_required_snowball}\n"
+        oline += f"min_sat_radius_extend = {self.min_sat_radius_extend}\n"
+        oline += f"sat_expand = {self.sat_expand}\n"
+        oline += f"edge_size = {self.edge_size}\n"
         oline += f"{DELIM}\n\n"
         return oline
 
@@ -386,14 +386,14 @@ class JumpData:
     def get_jump_data_shower(self):
         oline = f"{DELIM}\n"
         oline += "Shower Information\n"
-        oline += f"Find Showers = {self.find_showers}\n"
-        oline += f"Extend SNR Threshold = {self.extend_snr_threshold}\n"
-        oline += f"Extend Min Area = {self.extend_min_area}\n"
-        oline += f"Extend Inner Radius = {self.extend_inner_radius}\n"
-        oline += f"Extend outer Radius = {self.extend_outer_radius}\n"
-        oline += f"Extend Ellipse Expand Ratio = {self.extend_ellipse_expand_ratio}\n"
-        oline += f"Min Diffs Single Pass = {self.min_diffs_single_pass}\n"
-        oline += f"Max Extended Radius = {self.max_extended_radius}\n"
+        oline += f"find_showers = {self.find_showers}\n"
+        oline += f"extend_snr_threshold = {self.extend_snr_threshold}\n"
+        oline += f"extend_min_area = {self.extend_min_area}\n"
+        oline += f"extend_inner_radius = {self.extend_inner_radius}\n"
+        oline += f"extend_outer_radius = {self.extend_outer_radius}\n"
+        oline += f"extend_ellipse_expand_ratio = {self.extend_ellipse_expand_ratio}\n"
+        oline += f"min_diffs_single_pass = {self.min_diffs_single_pass}\n"
+        oline += f"max_extended_radius = {self.max_extended_radius}\n"
         oline += f"{DELIM}\n\n"
         return oline
 
@@ -406,9 +406,9 @@ class JumpData:
     def get_jump_data_sigma_clipping(self):
         oline = f"{DELIM}\n"
         oline += "Sigma Clipping\n"
-        oline += f"Minimum Groups = {self.minimum_groups}\n"
-        oline += f"Min Sigma Clipping Groups = {self.minimum_sigclip_groups}\n"
-        oline += f"Only Use Integrations = {self.only_use_ints}\n"
+        oline += f"minimum_groups = {self.minimum_groups}\n"
+        oline += f"minimum_sigclip_groups = {self.minimum_sigclip_groups}\n"
+        oline += f"only_use_ints = {self.only_use_ints}\n"
         oline += f"{DELIM}\n\n"
         return oline
 
@@ -421,8 +421,8 @@ class JumpData:
     def get_jump_data_internal_state(self):
         oline = f"{DELIM}\n"
         oline += "Internal State\n"
-        oline += f"Groups Masked After Shower = {self.grps_masked_after_shower}\n"
-        oline += f"Masker Persist Groups Next Integration = {self.mask_persist_grps_next_int}\n"
-        oline += f"Persist Groups Flagged = {self.persist_grps_flagged}\n"
+        oline += f"grps_masked_after_shower = {self.grps_masked_after_shower}\n"
+        oline += f"mask_persist_grps_next_int = {self.mask_persist_grps_next_int}\n"
+        oline += f"persist_grps_flagged = {self.persist_grps_flagged}\n"
         oline += f"{DELIM}\n\n"
         return oline
