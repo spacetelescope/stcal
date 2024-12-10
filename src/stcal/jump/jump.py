@@ -46,6 +46,15 @@ def detect_jumps_data(jump_data):
 
     pdq : int, 2D array
         updated pixel dq array
+
+    total_primary_crs : int
+        the number of primary cosmic rays found
+
+    number_extended_events : int
+        the number of showers or XXX found
+
+    stddev : float
+        standard deviation computed during sigma clipping
     """
     sat, jump, dnu = jump_data.fl_sat, jump_data.fl_jump, jump_data.fl_dnu
     number_extended_events = 0
@@ -115,6 +124,8 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     """
     Implements multiprocessing for jump detection.
     
+    Parameters
+    ----------
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
@@ -132,6 +143,17 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
 
     n_slices : int
         The number of data slices for multiprocessing.
+
+    Return
+    ------
+    gdq : ndarray
+        the group DQ array, 4D uint8
+
+    total_primary_crs : int
+        total number of primary cosmic rays computed
+
+    stddev : float
+        standard deviation computed during sigma clipping
     """
     slices, yinc = slice_data(twopt_params, data, gdq, readnoise_2d, n_slices)
 
@@ -151,10 +173,34 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
 
 def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     """
+    Reassemble the data from each process for multiprocessing.
+
+    Parameters
+    ----------
     real_result : tuple
+        The tuple return values from twopt.find_crs
+        (gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy/stddev)
+
     jump_data : JumpData
+        Class containing parameters and methods to detect jumps.
+
     gdq : ndarray
+        The group DQ, 4D array uint8.
+
     yinc : int
+        The number of rows in each slice (rows are the y-axis, so this
+        says how many rows to increment to get to the next slice.
+
+    Return
+    ------
+    gdq : ndarray
+        The group DQ, 4D array uint8.
+
+    total_primary_crs
+
+    stddev : float
+        standard deviation computed during sigma clipping
+
     """
     nints, ngroups, nrows, ncols = gdq.shape
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
@@ -207,6 +253,8 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     """
     Create a slice of data for each process for multiprocessing.
 
+    Parameters
+    ----------
     twopt_params : TwoPointParams
         Class containing parameters and methods for two point differences.
 
@@ -221,6 +269,15 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
 
     n_slices : int
         The number of data slices for multiprocessing.
+
+    Return
+    ------
+    slices : array
+        The array of data slices to be used in multiprocessing
+
+    yinc : int
+        The number of rows in each slice (rows are the y-axis, so this
+        says how many rows to increment to get to the next slice.
     """
     nrows = data.shape[2]
     yinc = int(nrows // n_slices)
@@ -335,9 +392,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
             sat_ellipses = find_ellipses(new_sat, sat_flag, jump_data.min_sat_area)
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(gdq[integration, group, :, :], jump_flag, jump_data.min_jump_area)
+            
             if jump_data.sat_required_snowball:
-                low_threshold = jump_data.edge_size
-                high_threshold = max(0, nrows - jump_data.edge_size)
                 gdq, snowballs, persist_jumps = make_snowballs(
                     gdq,
                     integration,
@@ -345,13 +401,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
                     jump_ellipses,
                     sat_ellipses,
                     next_sat_ellipses,
-                    low_threshold,
-                    high_threshold,
-                    jump_data.min_sat_radius_extend,
-                    jump_data.sat_expand,
-                    sat_flag,
-                    jump_flag,
-                    jump_data.max_extended_radius,
+                    jump_data,
                     persist_jumps,
                 )
             else:
@@ -363,11 +413,9 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
                 integration,
                 group,
                 snowballs,
-                sat_flag,
-                jump_flag,
+                jump_data,  # XXX current dev
                 expansion=jump_data.expand_factor,
                 num_grps_masked=0,
-                max_extended_radius=jump_data.max_extended_radius,
             )
 
     #  Test to see if the flagging of the saturated cores will be extended into the
@@ -468,8 +516,10 @@ def extend_saturation(
 
 
 def extend_ellipses(
-    gdq_cube, intg, grp, ellipses, sat_flag, jump_flag, expansion=1.9,
-    expand_by_ratio=True, num_grps_masked=1, max_extended_radius=200,
+    gdq_cube, intg, grp, ellipses, jump_data,
+    expansion=1.9,
+    expand_by_ratio=True,
+    num_grps_masked=1,
 ):
     """
     Extend the ellipses.
@@ -484,18 +534,16 @@ def extend_ellipses(
         The current group.
 
     ellipses : cv.ellipse
+        TODO needs a descriptor
 
-    sat_flag : int
-        The saturation flag.
-
-    jump_flag : int
-        The jump detection flag.
+    jump_data : JumpData
+        Class containing parameters and methods to detect jumps.
 
     expansion : float
         The factor that increases the size of the snowball or enclosed ellipse.
 
-    expand_by_ratio : bool  # XXX Is this a float or a bool?
-        XXX This is defaulted as a bool, but I think this is passed as a float.
+    expand_by_ratio : bool
+        TODO needs a descriptor
 
     num_grps_masked : int
         The number of groups flagged.
@@ -531,8 +579,8 @@ def extend_ellipses(
         else:
             axis1 = ellipse[1][0] + expansion
             axis2 = ellipse[1][1] + expansion
-        axis1 = min(axis1, max_extended_radius)
-        axis2 = min(axis2, max_extended_radius)
+        axis1 = min(axis1, jump_data.max_extended_radius)
+        axis2 = min(axis2, jump_data.max_extended_radius)
         alpha = ellipse[2]
         image = cv.ellipse(
             image,
@@ -541,7 +589,7 @@ def extend_ellipses(
             alpha,
             0,
             360,
-            (0, 0, jump_flag),
+            (0, 0, jump_data.fl_jump),
             -1,
         )
         jump_ellipse = image[:, :, 2]
@@ -549,8 +597,8 @@ def extend_ellipses(
         last_grp = find_last_grp(grp, ngrps, num_grps_masked)
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
-            sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], sat_flag)
-            saty, satx = np.where(sat_pix == sat_flag)
+            sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], jump_data.fl_sat)
+            saty, satx = np.where(sat_pix == jump_data.fl_sat)
             jump_ellipse[saty, satx] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     diff_cube = out_gdq_cube - gdq_cube
@@ -610,13 +658,7 @@ def make_snowballs(
     jump_ellipses,
     sat_ellipses,
     next_sat_ellipses,
-    low_threshold,
-    high_threshold,
-    min_sat_radius,
-    expansion,
-    sat_flag,
-    jump_flag,
-    max_extended_radius,
+    jump_data,
     persist_jumps,
 ):
     """
@@ -626,19 +668,18 @@ def make_snowballs(
     jump_ellipses : cv.ellipses
     sat_ellipses : cv.ellipses
     next_sat_ellipses : cv.ellipses
-    low_threshold : float
-    high_threshold : float
-    min_sat_radius : float
-    expansion : float
-    sat_flag : int
-    jump_flag : int
-    max_extended_radius : float
+
+    jump_data,
+
     persist_jumps : list
     """
+    nints, ngroups, nrows, ncols = gdq.shape
+    low_threshold = jump_data.edge_size
+    high_threshold = max(0, nrows - jump_data.edge_size)
+
     # This routine will create a list of snowballs (ellipses) that have the
     # center of the saturation circle within the enclosing jump rectangle.
     snowballs = []
-    num_groups = gdq.shape[1]
     for jump in jump_ellipses:
         if near_edge(jump, low_threshold, high_threshold):
             # if the jump ellipse is near the edge, do not require saturation in the
@@ -648,22 +689,23 @@ def make_snowballs(
             for sat in sat_ellipses:
                 if ((point_inside_ellipse(sat[0], jump) and jump not in snowballs)):
                     snowballs.append(jump)
-            if group < num_groups - 1:
+            if group < ngroups - 1:
                 # Is there saturation inside the jump in the next group?
                 for next_sat in next_sat_ellipses:
                     if ((point_inside_ellipse(next_sat[0], jump)) and jump not in snowballs):
                         snowballs.append(jump)
+
     # extend the saturated ellipses that are larger than the min_sat_radius
     gdq[integration, :, :, :], persist_jumps[integration, :, :] = extend_saturation(
         gdq[integration, :, :, :],
         group,
         sat_ellipses,
-        sat_flag,
-        jump_flag,
-        min_sat_radius,
+        jump_data.fl_sat,
+        jump_data.fl_jump,
+        jump_data.min_sat_radius_extend,
         persist_jumps[integration, :, :],
-        expansion=expansion,
-        max_extended_radius=max_extended_radius,
+        expansion=jump_data.sat_expand,
+        max_extended_radius=jump_data.max_extended_radius,
     )
 
     return gdq, snowballs, persist_jumps
@@ -793,12 +835,10 @@ def find_faint_extended(
                 intg,
                 grp,
                 ellipses,
-                jump_data.fl_sat,
-                jump_data.fl_jump,
+                jump_data,
                 expansion=jump_data.extend_ellipse_expand_ratio,
                 expand_by_ratio=True,
                 num_grps_masked=jump_data.grps_masked_after_shower,
-                max_extended_radius=jump_data.max_extended_radius
             )
 
     gdq = max_flux_showers(jump_data, nints, indata, ingdq, gdq)
