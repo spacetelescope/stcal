@@ -76,8 +76,7 @@ General
   <https://github.com/spacetelescope/stcal/issues/286>`_)
 - Improve handling of catalog web service connectivity issues. (`#286
   <https://github.com/spacetelescope/stcal/issues/286>`_)
-- [jump] Remove redundant calculations and unneeded array allocations.
-  (`JP-3697<https://jira.stsci.edu/browse/JP-3697>`_)
+
 
 1.8.2 (2024-09-10)
 ==================
