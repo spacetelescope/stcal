@@ -1,0 +1,1 @@
+Do not evaluate the inverse WCS transform within the bounding box in cases where a resampled WCS is computed. Do not pass table columns to the WCS Shared API.
