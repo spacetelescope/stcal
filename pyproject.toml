@@ -20,7 +20,7 @@ dependencies = [
     "numpy >=1.21.2",
     "opencv-python-headless >=4.6.0.66",
     "asdf >=2.15.0",
-    "gwcs @ git+https://github.com/spacetelescope/gwcs.git@main",
+    "gwcs @ git+https://github.com/spacetelescope/gwcs.git@master",
     "tweakwcs >=0.8.8",
     "requests >=2.22",
 ]
