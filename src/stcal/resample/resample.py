@@ -1231,8 +1231,8 @@ class Resample:
                                      ymax=None):
         """Resample one variance image from an input model.
 
-        The error image is passed to drizzle instead of the variance, to
-        better match kernel overlap and user weights to the data, in the
+        The error image is passed to drizzle instead of the variance in order to
+        better match kernel overlap and user weights to the data during the
         pixel averaging process. The drizzled error image is squared before
         returning.
         """
