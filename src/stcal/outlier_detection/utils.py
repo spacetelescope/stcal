@@ -68,20 +68,15 @@ def compute_weight_threshold(weight, maskpt):
     float
         The weight threshold for this integration.
     '''
-    # necessary in order to assure that mask gets applied correctly
-    if hasattr(weight, '_mask'):
-        del weight._mask
-    mask_zero_weight = np.equal(weight, 0.)
-    mask_nans = np.isnan(weight)
-    # Combine the masks
-    weight_masked = np.ma.array(weight, mask=np.logical_or(
-        mask_zero_weight, mask_nans))
-    # Sigma-clip the unmasked data
-    weight_masked = sigma_clip(weight_masked, sigma=3, maxiters=5)
-    mean_weight = np.mean(weight_masked)
-    # Mask pixels where weight falls below maskpt percent
-    weight_threshold = mean_weight * maskpt
-    return weight_threshold
+    return np.mean(
+        sigma_clip(
+            weight[np.isfinite(weight) & (weight != 0)],
+            sigma=3,
+            maxiters=5,
+            masked=False,
+            copy=False,
+        ),
+    dtype='f8') * maskpt
 
 
 def _abs_deriv(array):

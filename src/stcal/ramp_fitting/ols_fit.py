@@ -46,10 +46,6 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
     gain_2d : ndarray
         gain for all pixels
 
-    algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
-        'GLS' specifies that generalized least squares should be used.
-
     weighting : str
         'optimal' specifies that optimal weighting should be used;
          currently the only weighting supported.
@@ -214,6 +210,11 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     """
     # Create output arrays for each output tuple.  The input ramp data and
     # slices are needed for this.
+    for result in pool_results:
+        image_slice, integ_slice, opt_slice = result
+        if image_slice is None or integ_slice is None:
+            return None, None, None
+
     image_info, integ_info, opt_info = create_output_info(ramp_data, pool_results, save_opt)
 
     # Loop over the slices and assemble each slice into the main return arrays.
@@ -570,6 +571,14 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.flags_saturated = ramp_data.flags_saturated
     ramp_data_slice.flags_no_gain_val = ramp_data.flags_no_gain_val
     ramp_data_slice.flags_unreliable_slope = ramp_data.flags_unreliable_slope
+    ramp_data_slice.flags_chargeloss = ramp_data.flags_chargeloss
+
+    # For possible CHARGELOSS flagging.
+    if ramp_data.orig_gdq is not None:
+        ogdq = ramp_data.orig_gdq[:, :, start_row : start_row + nrows, :].copy()
+        ramp_data_slice.orig_gdq = ogdq
+    else:
+        ramp_data_slice.orig_gdq = None
 
     # Slice info
     ramp_data_slice.start_row = start_row

@@ -1635,6 +1635,52 @@ def test_cext_chargeloss():
     assert svr[0, 1] == svr[0, 3]
 
 
+def test_crmag():
+    """
+    A basic test with two ramps, one with jumps and one without, then
+    test to make sure the ramp with jumps has non-zero entries in the
+    'crmag' array in the optional results product, while the ramp with
+    no jumps is all zeros.
+    """
+    nints, ngroups, nrows, ncols = 1, 10, 1, 2
+    rnval, gval = 0.7071, 1.
+    frame_time, nframes, groupgap = 10.6, 1, 0
+    group_time = 10.6
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+
+    # Define data
+    base = 13.67
+    arr = np.array([(k+1) * base for k in range(ngroups)])
+    ramp.data[0, :, 0, 0] = arr
+    ramp.data[0, :, 0, 1] = arr * 1.34
+
+    # Add jumps
+    ramp.data[0, 3:, 0, 0] += 165.855
+    ramp.data[0, 7:, 0, 0] += 430.543
+    ramp.groupdq[0, 3, 0, 0] = JUMP
+    ramp.groupdq[0, 7, 0, 0] = JUMP
+
+    algo = DEFAULT_OLS
+    save_opt, ncores, bufsize = True, "none", 1024 * 30000
+    slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp, bufsize, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    )
+
+    oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = ols_opt
+
+    tol = 1.e-4
+    check = np.array([179.52501, 444.213], dtype=np.float32)
+    np.testing.assert_allclose(ocrmag[0, :, 0, 0], check, tol)
+
+    check = np.array([0., 0.], dtype=np.float32)
+    np.testing.assert_allclose(ocrmag[0, :, 0, 1], check, tol)
+
+
 # -----------------------------------------------------------------------------
 #                           Set up functions
 
