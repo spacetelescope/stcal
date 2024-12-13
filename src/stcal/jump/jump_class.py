@@ -275,7 +275,7 @@ class JumpData:
         # Sigma clipping
         self.minimum_groups = mingrps
         self.minimum_sigclip_groups = minsig
-        self.only_use_ints = useints
+        self.only_use_ints = useints  # XXX
 
     def print_jump_data(self, fd=None):
         self.print_jump_data_arrays(fd=fd)
