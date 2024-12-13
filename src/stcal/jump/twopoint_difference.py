@@ -173,7 +173,7 @@ def find_crs(
         return gdq, row_below_gdq, row_above_gdq, 0, dummy
     else:
         # set 'saturated' or 'do not use' pixels to nan in data
-        dat[np.where(np.bitwise_and(gdq, dnu_flag + sat_flag))] = np.nan
+        dat[np.where(np.bitwise_and(gdq, dnu_flag | sat_flag))] = np.nan
 
         # calculate the differences between adjacent groups (first diffs)
         # use mask on data, so the results will have sat/donotuse groups masked
@@ -210,7 +210,7 @@ def find_crs(
             jump_mask = np.logical_and(clipped_diffs.mask, np.logical_not(first_diffs_masked.mask))
             jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == sat_flag)] = False
             jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == dnu_flag)] = False
-            jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag + sat_flag))] = False
+            jump_mask[np.bitwise_and(jump_mask, gdq[:, 1:, :, :] == (dnu_flag | sat_flag))] = False
             gdq[:, 1:, :, :] = np.bitwise_or(gdq[:, 1:, :, :], jump_mask *
                                              np.uint8(dqflags["JUMP_DET"]))
             # if grp is all jump set to do not use
