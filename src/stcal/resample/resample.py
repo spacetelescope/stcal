@@ -27,15 +27,10 @@ log.setLevel(logging.DEBUG)
 
 __all__ = [
     "compute_wcs_pixel_area"
-    "OutputTooLargeError",
     "Resample",
     "resampled_wcs_from_models",
     "UnsupportedWCSError",
 ]
-
-
-class OutputTooLargeError(RuntimeError):
-    """Raised when the output is too large for in-memory instantiation"""
 
 
 class UnsupportedWCSError(RuntimeError):
@@ -77,7 +72,7 @@ class Resample:
     dq_flag_name_map = {}  # type: dict[str, int]
 
     def __init__(self, n_input_models=None, pixfrac=1.0, kernel="square",
-                 fillval=0.0, wht_type="ivm", good_bits=0,
+                 fillval=0.0, weight_type="ivm", good_bits=0,
                  output_wcs=None, output_model=None,
                  accumulate=False, enable_ctx=True, enable_var=True,
                  compute_err=None):
@@ -116,15 +111,15 @@ class Resample:
             pixels with no contributions from input images will be set to this
             ``fillval`` value.
 
-        wht_type : {"exptime", "ivm"}, optional
-            The weighting type for adding models' data. For ``wht_type="ivm"``
-            (the default), the weighting will be determined per-pixel using
-            the inverse of the read noise (VAR_RNOISE) array stored in each
-            input image. If the ``VAR_RNOISE`` array does not exist,
-            the variance is set to 1 for all pixels (i.e., equal weighting).
-            If ``weight_type="exptime"``, the weight will be set equal
-            to the measurement time (``TMEASURE``) when available and to
-            the exposure time (``EFFEXPTM``) otherwise.
+        weight_type : {"exptime", "ivm"}, optional
+            The weighting type for adding models' data. For
+            ``weight_type="ivm"`` (the default), the weighting will be
+            determined per-pixel using the inverse of the read noise
+            (VAR_RNOISE) array stored in each input image. If the
+            ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
+            all pixels (i.e., equal weighting). If ``weight_type="exptime"``,
+            the weight will be set equal to the measurement time (``TMEASURE``)
+            when available and to the exposure time (``EFFEXPTM``) otherwise.
 
         good_bits : int, str, None, optional
             An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -247,7 +242,7 @@ class Resample:
         self._compute_err = compute_err
         self._accumulate = accumulate
 
-        # these are attributes that are used only for information purpose
+        # these attributes are used only for informational purposes
         # and are added to created the output_model only if they are
         # not already present there:
         self._pixel_scale_ratio = None
@@ -259,8 +254,8 @@ class Resample:
         self.fillval = fillval
         self.good_bits = good_bits
 
-        if wht_type in ["ivm", "exptime"]:
-            self.weight_type = wht_type
+        if weight_type in ["ivm", "exptime"]:
+            self.weight_type = weight_type
         else:
             raise ValueError("Unexpected weight type: '{self.weight_type}'")
 
@@ -269,12 +264,12 @@ class Resample:
         self.input_file_names = []
         self._group_ids = []
 
-        # determine output WCS and set-up output model if needed:
+        # determine output WCS and set up output model if needed:
         if output_model is None:
             if output_wcs is None:
                 raise ValueError(
                     "Output WCS must be provided either through the "
-                    "'output_wcs' parameter or the 'ouput_model' parameter. "
+                    "'output_wcs' parameter or the 'output_model' parameter. "
                 )
             else:
                 if isinstance(output_wcs, dict):
@@ -319,7 +314,7 @@ class Resample:
 
         self._output_array_shape = self._output_wcs.array_shape
 
-        # Check that the output data shape has no zero length dimensions
+        # Check that the output data shape has no zero-length dimensions
         npix = np.prod(self._output_array_shape)
         if not npix:
             raise ValueError(
@@ -335,7 +330,7 @@ class Resample:
             f"Output mosaic size (nx, ny): {self._output_wcs.pixel_shape}"
         )
 
-        # set up an empty (don't allocate arrays at this time) output model:
+        # set up an empty output model (don't allocate arrays at this time):
         if self._output_model is None:
             self._output_model = self.create_output_model()
 
@@ -737,7 +732,7 @@ class Resample:
         """
         self._n_predicted_input_models = n_input_models
 
-        # set up an empty (don't allocate arrays at this time) output model:
+        # set up an empty output model (don't allocate arrays at this time):
         if reset_output or getattr(self, "_output_model", None) is None:
             self._output_model = self.create_output_model()
 
@@ -908,7 +903,6 @@ class Resample:
         blevel = model["level"]
         if not model["subtracted"] and blevel is not None:
             data = data - blevel
-            # self._output_model["subtracted"] = True
 
         xmin, xmax, ymin, ymax = resample_range(
             data.shape,
@@ -1292,8 +1286,8 @@ class Resample:
 
         Parameters
         ----------
-        wht_type : {"exptime", "ivm"}, optional
-            The weighting type for adding models' data. For ``wht_type="ivm"``
+        weight_type : {"exptime", "ivm"}, optional
+            The weighting type for adding models' data. For ``weight_type="ivm"``
             (the default), the weighting will be determined per-pixel using
             the inverse of the read noise (VAR_RNOISE) array stored in each
             input image. If the ``VAR_RNOISE`` array does not exist,
