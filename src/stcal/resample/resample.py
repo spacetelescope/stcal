@@ -837,12 +837,12 @@ class Resample:
                 )
 
     def add_model(self, model):
-        """ Resamples model image and either variance data (if ``enable_var``
-        was `True`) or error data (if ``enable_err`` was `True`) and adds
-        them using appropriate weighting to the corresponding
-        arrays of the output model. It also updates resampled data weight,
-        the context array (if ``enable_ctx`` is `True`), relevant output
-        model's values such as "n_coadds".
+        """ Resamples model image, variance data (if ``enable_var``
+        is `True`) , and error data (if ``enable_err`` is `True`), and adds
+        them to the corresponding
+        arrays of the output model using appropriate weighting.
+        It also updates the weight array and context array (if ``enable_ctx`` is `True`)
+        of the resampled data, as well as relevant metadata such as "n_coadds".
 
         Whenever ``model`` has a unique group ID that was never processed
         before, the "pointings" value of the output model is incremented and
