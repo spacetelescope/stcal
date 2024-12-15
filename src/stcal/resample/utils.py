@@ -10,7 +10,7 @@ from spherical_geometry.polygon import SphericalPolygon
 __all__ = [
     "build_mask",
     "bytes2human",
-    "compute_wcs_pixel_area",
+    "compute_mean_pixel_area",
     "get_tmeasure",
     "is_imaging_wcs",
     "load_custom_wcs",
@@ -52,7 +52,7 @@ def load_custom_wcs(asdf_wcs_file, output_shape=None):
 
     Returns
     -------
-    wcs : WCS
+    wcs : ~gwcs.wcs.WCS
         The output WCS to resample into.
 
     """
@@ -121,7 +121,7 @@ def get_tmeasure(model):
 def bytes2human(n):
     """Convert bytes to human-readable format
 
-    Taken from the `psutil` library which references
+    Taken from the ``psutil`` library which references
     http://code.activestate.com/recipes/578019
 
     Parameters
@@ -161,8 +161,36 @@ def is_imaging_wcs(wcs):
     return imaging
 
 
-def compute_wcs_pixel_area(wcs, shape=None):
-    """ Computes pixel area in steradians.
+def compute_mean_pixel_area(wcs, shape=None):
+    """ Computes the average pixel area (in steradians) based on input WCS
+    using pixels within either the bounding box (if available) or the entire
+    data array as defined either by ``wcs.array_shape`` or the ``shape``
+    argument.
+
+    Parameters
+    ----------
+    shape : tuple, optional
+        Shape of the region over which average pixel area will be computed.
+        When not provided, pixel average will be estimated over a region
+        defined by ``wcs.array_shape``.
+
+    Returns
+    -------
+    pix_area : float
+        Pixel area in steradians.
+
+    Notes
+    -----
+
+    This function takes the outline of the region in which the average is
+    computed (a rectangle defined by either the bounding box or
+    ``wcs.array_shape`` or the ``shape``) and projects it to world coordinates.
+    It then uses ``spherical_geometry`` to compute the area of the polygon
+    defined by this outline on the sky. In order to minimize errors due to
+    distortions in the ``wcs``, the code defines the outline using pixels
+    spaced no more than 15 pixels apart along the border of the rectangle
+    in which the average is computed.
+
     """
     if (shape := (shape or wcs.array_shape)) is None:
         raise ValueError(
@@ -182,14 +210,15 @@ def compute_wcs_pixel_area(wcs, shape=None):
     else:
         ((xmin, xmax), (ymin, ymax)) = wcs.bounding_box
 
-    xmin = max(0, int(xmin + 0.5))
-    xmax = min(nx - 1, int(xmax - 0.5))
-    ymin = max(0, int(ymin + 0.5))
-    ymax = min(ny - 1, int(ymax - 0.5))
     if xmin > xmax:
         (xmin, xmax) = (xmax, xmin)
     if ymin > ymax:
         (ymin, ymax) = (ymax, ymin)
+
+    xmin = max(0, int(xmin + 0.5))
+    xmax = min(nx - 1, int(xmax - 0.5))
+    ymin = max(0, int(ymin + 0.5))
+    ymax = min(ny - 1, int(ymax - 0.5))
 
     k = 0
     dxy = [1, -1, -1, 1]
@@ -249,11 +278,74 @@ def compute_wcs_pixel_area(wcs, shape=None):
 def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
                          shrink=0):  # noqa: E741
     """
-    xmin, xmax, ymin, ymax - integer coordinates of pixel boundaries
-    step - distance between points along an edge
-    shrink - number of pixels by which to reduce `shape`
+    Creates a list of ``x`` and ``y`` coordinates of points along the perimiter
+    of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
+    ``shrink`` in counter-clockwise order.
 
-    Returns a list of points and the area of the rectangle
+    Parameters
+    ----------
+
+    xmin : int
+        X-coordinate of the left edge of a rectangle.
+
+    xmax : int
+        X-coordinate of the right edge of a rectangle.
+
+    ymin : int
+        Y-coordinate of the bottom edge of a rectangle.
+
+    ymax : int
+        Y-coordinate of the top edge of a rectangle.
+
+    dx : int, float, None, optional
+        Desired spacing between ajacent points alog horizontal edges of
+        the rectangle.
+
+    dy : int, float, None, optional
+        Desired spacing between ajacent points alog vertical edges of
+        the rectangle.
+
+    shrink : int, optional
+        Amount to be applied to input ``xmin``, ``xmax``, ``ymin``, ``ymax``
+        to reduce the rectangle size.
+
+    Returns
+    -------
+
+    x : numpy.ndarray
+        An array of X-coordinates of points along the perimiter
+        of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
+        ``shrink`` in counter-clockwise order.
+
+    y : numpy.ndarray
+        An array of Y-coordinates of points along the perimiter
+        of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
+        ``shrink`` in counter-clockwise order.
+
+    area : float
+        Area in units of pixels of the region defined by ``xmin``, ``xmax``,
+        ``ymin``, ``ymax``, and ``shrink``.
+
+    center : tuple
+        A tuple of pixel coordinates at the center of the rectangle defined
+        by ``xmin``, ``xmax``, ``ymin``, ``ymax``.
+
+    bottom : slice
+        A `slice` object that allows selection of pixels from ``x`` and ``y``
+        arrays along the bottom edge of the rectangle.
+
+    right : slice
+        A `slice` object that allows selection of pixels from ``x`` and ``y``
+        arrays along the right edge of the rectangle.
+
+    top : slice
+        A `slice` object that allows selection of pixels from ``x`` and ``y``
+        arrays along the top edge of the rectangle.
+
+    left : slice
+        A `slice` object that allows selection of pixels from ``x`` and ``y``
+        arrays along the left edge of the rectangle.
+
     """
     nx = xmax - xmin + 1
     ny = ymax - ymin + 1
@@ -278,21 +370,21 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
     x = np.empty(size)
     y = np.empty(size)
 
-    b = np.s_[0:sx]  # bottom edge
-    r = np.s_[sx:sx + sy]  # right edge
-    t = np.s_[sx + sy:2 * sx + sy]  # top edge
-    l = np.s_[2 * sx + sy:2 * sx + 2 * sy]  # noqa: E741  left edge
+    bottom = np.s_[0:sx]  # bottom edge
+    right = np.s_[sx:sx + sy]  # right edge
+    top = np.s_[sx + sy:2 * sx + sy]  # top edge
+    left = np.s_[2 * sx + sy:2 * sx + 2 * sy]  # noqa: E741  left edge
 
-    x[b] = np.linspace(xmin, xmax, sx, False)
-    y[b] = ymin
-    x[r] = xmax
-    y[r] = np.linspace(ymin, ymax, sy, False)
-    x[t] = np.linspace(xmax, xmin, sx, False)
-    y[t] = ymax
-    x[l] = xmin
-    y[l] = np.linspace(ymax, ymin, sy, False)
+    x[bottom] = np.linspace(xmin, xmax, sx, False)
+    y[bottom] = ymin
+    x[right] = xmax
+    y[right] = np.linspace(ymin, ymax, sy, False)
+    x[top] = np.linspace(xmax, xmin, sx, False)
+    y[top] = ymax
+    x[left] = xmin
+    y[left] = np.linspace(ymax, ymin, sy, False)
 
     area = (xmax - xmin) * (ymax - ymin)
     center = (0.5 * (xmin + xmax), 0.5 * (ymin + ymax))
 
-    return x, y, area, center, b, r, t, l
+    return x, y, area, center, bottom, right, top, left
