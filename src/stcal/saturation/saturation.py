@@ -127,20 +127,21 @@ def flag_saturated_pixels(
             nextdq = gdq[ints, group + 1, :, :]
 
             # Determine the dilution factor due to group averaging
-            if read_pattern is not None:
-                # Single value dilution factor for this group
-                dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
-                # Broadcast to array size
-                dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
-            else:
-                dilution_factor = 1
 
             # No point in this step if the dilution factor is 1.  In
             # that case, there is no way that we would have missed
             # saturation before but flag it now, since the threshold
             # would be the same.
 
-            if dilution_factor == 1:
+            if read_pattern is not None:
+                # Single value dilution factor for this group
+                dilution_factor = np.mean(read_pattern[group]) / read_pattern[group][-1]
+                if dilution_factor == 1:
+                    continue
+                # Broadcast to array size
+                dilution_factor = np.where(no_sat_check_mask, 1, dilution_factor)
+            else:
+                dilution_factor = 1
                 continue
 
             # Find where this plane looks like it might saturate given
