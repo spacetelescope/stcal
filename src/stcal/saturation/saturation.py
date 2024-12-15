@@ -135,6 +135,14 @@ def flag_saturated_pixels(
             else:
                 dilution_factor = 1
 
+            # No point in this step if the dilution factor is 1.  In
+            # that case, there is no way that we would have missed
+            # saturation before but flag it now, since the threshold
+            # would be the same.
+
+            if dilution_factor == 1:
+                continue
+
             # Find where this plane looks like it might saturate given
             # the dilution factor, *and* this group did not already get
             # flagged as saturated or do not use, *and* the next group
