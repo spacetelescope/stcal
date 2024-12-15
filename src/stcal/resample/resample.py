@@ -16,7 +16,7 @@ from drizzle.resample import Drizzle
 
 
 from stcal.resample.utils import (
-    compute_wcs_pixel_area,
+    compute_mean_pixel_area,
     get_tmeasure,
     resample_range,
 )
@@ -26,9 +26,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 __all__ = [
-    "compute_wcs_pixel_area"
     "Resample",
-    "resampled_wcs_from_models",
     "UnsupportedWCSError",
 ]
 
@@ -40,20 +38,25 @@ class UnsupportedWCSError(RuntimeError):
 
 
 class Resample:
-    """
-    This is the controlling routine for the resampling process.
+    """ Base class for resampling images.
 
-    Notes
-    -----
-    This routine performs the following operations::
+    The main purpose of this class is to resample and add input images
+    (data, variance array) to an output image defined by an output WCS.
 
-      1. Extracts parameter settings from input model, such as pixfrac,
-         weight type, exposure time (if relevant), and kernel, and merges
-         them with any user-provided values.
-      2. Creates output WCS based on input images and define mapping function
-         between all input arrays and the output array.
-      3. Updates output data model with output arrays from drizzle, including
-         a record of metadata from all input models.
+    In particular, this class performs the following operations:
+
+    1. Sets up output arrays based on arguments used at initialization.
+    2. Based on information about the input images and user arguments, computes
+       scale factors needed to obtain correctly convert resampled counts to
+       fluxes.
+    3. For each input image computes coordinate transformations (``pixmap``)
+       from coordinate system of the input image to the coordinate system of
+       the output image.
+    4. For each input image computes weight image.
+    5. Calls :py:class:`~drizzle.resample.Drizzle` methods to resample and
+       combine input images and their variance/error arrays.
+    6. Keeps track of total exposure time and other time-related quantities.
+
     """
     resample_suffix = 'i2d'
     resample_file_ext = '.fits'
@@ -91,7 +94,7 @@ class Resample:
             dimension, so the flux is confined to a quarter of the pixel area
             when the square kernel is used.
 
-        kernel: {"square", "gaussian", "point", "turbo", "lanczos2", "lanczos3"}, optional
+        kernel : {"square", "gaussian", "point", "turbo", "lanczos2", "lanczos3"}, optional
             The name of the kernel used to combine the input. The choice of
             kernel controls the distribution of flux over the kernel.
             The square kernel is the default.
@@ -100,7 +103,7 @@ class Resample:
                The "gaussian" and "lanczos2/3" kernels **DO NOT**
                conserve flux.
 
-        fillval: float, None, str, optional
+        fillval : float, None, str, optional
             The value of output pixels that did not have contributions from
             input images' pixels. When ``fillval`` is either `None` or
             ``"INDEF"`` and ``out_img`` is provided, the values of ``out_img``
@@ -111,7 +114,7 @@ class Resample:
             pixels with no contributions from input images will be set to this
             ``fillval`` value.
 
-        weight_type : {"exptime", "ivm"}, optional
+        weight_type : {"ivm", "exptime"}, optional
             The weighting type for adding models' data. For
             ``weight_type="ivm"`` (the default), the weighting will be
             determined per-pixel using the inverse of the read noise
@@ -168,12 +171,12 @@ class Resample:
             use a value of ``~4+8``, or ``~4,8``. A string value of
             ``~0`` would be equivalent to a setting of ``None``.
 
-            | Default value (0) will make *all* pixels with non-zero DQ
+            Default value (0) will make *all* pixels with non-zero DQ
             values be considered "bad" pixels, and the corresponding data
             pixels will be assigned zero weight and thus these pixels
             will not contribute to the output resampled data array.
 
-            | Set `good_bits` to `None` to turn off the use of model's DQ
+            Set `good_bits` to `None` to turn off the use of model's DQ
             array.
 
             For more details, see documentation for
@@ -301,7 +304,9 @@ class Resample:
 
         if self._output_pixel_scale is None:
             self._output_pixel_scale = 3600.0 * np.rad2deg(
-                math.sqrt(compute_wcs_pixel_area(self._output_wcs))
+                math.sqrt(
+                    self.get_output_model_pixel_area({"wcs": self._output_wcs})
+                )
             )
             log.info(
                 "Computed output pixel scale: "
@@ -335,6 +340,67 @@ class Resample:
             self._output_model = self.create_output_model()
 
         self.reset_arrays(reset_output=False, n_input_models=n_input_models)
+
+    def get_input_model_pixel_area(self, model):
+        """
+        Computes or retrieves pixel area of an input model. Currently,
+        this is the average pixel area of input model's pixels within either
+        the bounding box (if available) or the entire data array.
+
+        This value is used to compute a scale factor that will be applied
+        to input image data. This scale factor takes into account the
+        difference in the definition of the pixel area reported in model's
+        ``meta`` and the pixel area at the location used to construct
+        output WCS from the WCS of input models using ``pixel_scale_ratio``.
+
+        Intensity scale factor is computed elsewhere as the ratio of the value
+        of the pixel area in the meta to the area returned by this function.
+
+        Subclasses can override this method to return the most appropriate
+        pixel area value.
+
+        Parameters
+        ----------
+
+        model : dict, None
+            A dictionary containing data arrays and other meta attributes
+            and values of actual models used by pipelines. In particular, it
+            must have a keyword "wcs" and a WCS associated with it.
+
+        Returns
+        -------
+        pix_area : float
+            Pixel area in steradians.
+
+        """
+        pixel_area = compute_mean_pixel_area(
+            model["wcs"],
+            shape=model["data"].shape
+        )
+        return pixel_area
+
+    def get_output_model_pixel_area(self, model):
+        """
+        Computes or retrieves pixel area of the output model. Currently,
+        this is the average pixel area of the model's pixels within either
+        the bounding box (if available) or the entire data array.
+
+        Parameters
+        ----------
+
+        model : dict, None
+            A dictionary containing data arrays and other meta attributes
+            and values of actual models used by pipelines. In particular, it
+            must have a keyword "wcs" and a WCS associated with it.
+
+        Returns
+        -------
+        pix_area : float
+            Pixel area in steradians.
+
+        """
+        pixel_area = compute_mean_pixel_area(model["wcs"])
+        return pixel_area
 
     @classmethod
     def output_model_attributes(cls, accumulate, enable_ctx, enable_var,
@@ -373,6 +439,13 @@ class Resample:
             .. note::
                 At this time, output error array is not equivalent to
                 error propagation results.
+
+        Returns
+        -------
+
+        attributes : set
+            A set of attributes that an output model must have when it
+            is provided as an input to `Resample.__init__` initializer.
 
         """
         # always required:
@@ -422,7 +495,7 @@ class Resample:
     def check_output_wcs(self, output_wcs, estimate_output_shape=True):
         """
         Check that provided WCS has expected properties and that its
-        ``array_shape`` property is defined.
+        ``array_shape`` property is defined. May modify ``output_wcs``.
 
         Parameters
         ----------
@@ -430,8 +503,12 @@ class Resample:
             A WCS object corresponding to the output (resampled) image.
 
         estimate_output_shape : bool, optional
-            Indicates whether to *estimate* pixel scale of the ``output_wcs``
-            from
+            Indicates whether to *estimate* output image shape of the
+            ``output_wcs`` from other available attributes such as
+            ``bounding_box`` when ``output_wcs.array_shape`` is `None`.
+            If ``estimate_output_shape`` is `True` and
+            ``output_wcs.array_shape`` is `None`, upon return
+            ``output_wcs.array_shape`` will be assigned an estimated value.
 
         """
         naxes = output_wcs.output_frame.naxes
@@ -451,9 +528,6 @@ class Resample:
 
         # make sure array_shape and pixel_shape are set:
         if output_wcs.array_shape is None and estimate_output_shape:
-            # if wcs_pars and "output_shape" in wcs_pars:
-            #     output_wcs.array_shape = wcs_pars["output_shape"]
-            # else:
             if output_wcs.bounding_box:
                 halfpix = 0.5 + sys.float_info.epsilon
                 output_wcs.array_shape = (
@@ -473,9 +547,32 @@ class Resample:
     def validate_output_model(self, output_model, accumulate,
                               enable_ctx, enable_var):
         """ Checks that ``output_model`` dictionary has all the required
-        keywords that the code would expect it to have based on the values
+        keywords that the code expects it to have based on the values
         of ``accumulate``, ``enable_ctx``, ``enable_var``. It will raise
         `ValueError` if `output_model` is missing required keywords/values.
+
+        Parameters
+        ----------
+
+        output_model : dict
+            A dictionary representing data and meta values from a data model.
+
+        accumulate : bool
+            Indicates whether resampled models should be added to the
+            provided ``output_model`` data or if new arrays should be
+            created.
+
+        enable_ctx : bool
+            Indicates whether to create a context image. If ``disable_ctx``
+            is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
+            ``max_ctx_id`` will be ignored.
+
+        enable_var : bool
+            Indicates whether to resample variance arrays.
+
+        compute_err : {"from_var", "driz_err"}, None
+            A string indicating how error array for the resampled image should
+            be computed. See `Resample.__init__` for more details.
 
         """
         if output_model is None:
@@ -526,6 +623,13 @@ class Resample:
 
     def create_output_model(self):
         """ Create a new "output model": a dictionary of data and meta fields.
+
+        Returns
+        -------
+
+        output_model : dict
+            A dictionary of data model attributes and values.
+
         """
         assert self._output_wcs is not None
         assert np.array_equiv(
@@ -576,12 +680,6 @@ class Resample:
                     "var_rnoise": None,
                     "var_flat": None,
                     "var_poisson": None,
-                    # TODO: if we want to support adding more data to
-                    # existing output models, we need to also store weights
-                    # for variance arrays:
-                    # var_rnoise_weight
-                    # var_flat_weight
-                    # var_poisson_weight
                 }
             )
 
@@ -592,26 +690,35 @@ class Resample:
 
     @property
     def output_model(self):
+        """ Output (resampled) model. """
         return self._output_model
 
     @property
     def output_array_shape(self):
+        """ Shape of the output model arrays. """
         return self._output_array_shape
 
     @property
     def output_wcs(self):
+        """ WCS of the output (resampled) model. """
         return self._output_wcs
 
     @property
     def pixel_scale_ratio(self):
+        """ Get the ratio of the output pixel scale to the input pixel scale.
+        """
         return self._pixel_scale_ratio
 
     @property
     def output_pixel_scale(self):
+        """ Get pixel scale of the output model in arcsec. """
         return self._output_pixel_scale  # in arcsec
 
     @property
     def group_ids(self):
+        """ Get a list of all group IDs of models resampled and added to the
+        output model.
+        """
         return self._group_ids
 
     @property
@@ -626,12 +733,15 @@ class Resample:
 
     @property
     def compute_err(self):
-        """ Indicates whether error array is computed and how it is computed. """
+        """ Indicates whether error array is computed and how it is computed.
+        """
         return self._compute_err
 
     @property
     def is_in_accumulate_mode(self):
-        """ Indicates whether resample is continuing adding to previous co-adds. """
+        """ Indicates whether resample is continuing adding to previous
+        co-adds.
+        """
         return self._accumulate
 
     def _get_intensity_scale(self, model):
@@ -657,13 +767,13 @@ class Resample:
             The scale to apply to the input data before drizzling.
 
         """
-        input_pixflux_area = model["pixelarea_steradians"]
+        photom_pixel_area = model["pixelarea_steradians"]
         wcs = model["wcs"]
 
-        if input_pixflux_area:
+        if photom_pixel_area:
             if 'SPECTRAL' in wcs.output_frame.axes_type:
                 # Use the nominal area as is
-                input_pixel_area = input_pixflux_area
+                input_pixel_area = photom_pixel_area
 
                 # If input image is in flux density units, correct the
                 # flux for the user-specified change to the spatial dimension
@@ -672,10 +782,8 @@ class Resample:
                 else:
                     iscale = 1.0
             else:
-                input_pixel_area = compute_wcs_pixel_area(
-                    wcs,
-                    shape=model["data"].shape
-                )
+                input_pixel_area = self.get_input_model_pixel_area(model)
+
                 if input_pixel_area is None:
                     model_name = model["filename"]
                     if not model_name:
@@ -700,7 +808,7 @@ class Resample:
                             self._output_model["pixel_scale_ratio"] is None):
                         self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
-                iscale = math.sqrt(input_pixflux_area / input_pixel_area)
+                iscale = math.sqrt(photom_pixel_area / input_pixel_area)
 
         else:
             iscale = 1.0
@@ -709,6 +817,7 @@ class Resample:
 
     @property
     def finalized(self):
+        """ Indicates whether the output model was "finalized". """
         return self._finalized
 
     def reset_arrays(self, reset_output=True, n_input_models=None):
@@ -848,7 +957,7 @@ class Resample:
         before, the "pointings" value of the output model is incremented and
         the "group_id" attribute is updated. Also, time counters are updated
         with new values from the input ``model`` by calling
-        :py:meth:`~Resample.update_time`.
+        :py:meth:`~Resample.update_time` .
 
         Parameters
         ----------
@@ -914,9 +1023,9 @@ class Resample:
             'pixmap': pixmap,
             'scale': iscale,
             'weight_map': weight,
-            'wht_scale': 1.0,  # hard-coded for JWST count-rate data
+            'wht_scale': 1.0,
             'pixfrac': self.pixfrac,
-            'in_units': 'cps',  # TODO: get units from data model
+            'in_units': 'cps',
             'xmin': xmin,
             'xmax': xmax,
             'ymin': ymin,
@@ -1183,6 +1292,21 @@ class Resample:
         """ Compute variance for the resampled image from running sums and
         weights. Free memory (when ``free_memory=True``) that holds these
         running sums and weights arrays.
+
+        output_model : dict, None
+            A dictionary containing data arrays and other attributes that
+            will be used to add new models to. use
+            :py:meth:`Resample.output_model_attributes` to get the list of
+            keywords that must be present. When ``accumulate`` is `False`,
+            only the WCS object of the model will be used. When ``accumulate``
+            is `True`, new models will be added to the existing data in the
+            ``output_model``.
+
+        free_memory : True
+            Indicates whether to free temporary arrays (i.e., weight arrays)
+            that are no longer needed. If this is `True` it will not be
+            possible to continue adding new models to the output model.
+
         """
         # Divide by the total weights, squared, and set in the output model.
         # Zero weight and missing values are NaN in the output.
@@ -1191,24 +1315,24 @@ class Resample:
             warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
 
             output_variance = (
-                self._var_rnoise_wsum / self._var_rnoise_weight /
-                self._var_rnoise_weight
+                self._var_rnoise_wsum / (self._var_rnoise_weight *
+                                         self._var_rnoise_weight)
             ).astype(
                 dtype=self.output_array_types["var_rnoise"]
             )
             output_model["var_rnoise"] = output_variance
 
             output_variance = (
-                self._var_poisson_wsum / self._var_poisson_weight /
-                self._var_poisson_weight
+                self._var_poisson_wsum / (self._var_poisson_weight *
+                                          self._var_poisson_weight)
             ).astype(
                 dtype=self.output_array_types["var_poisson"]
             )
             output_model["var_poisson"] = output_variance
 
             output_variance = (
-                self._var_flat_wsum / self._var_flat_weight /
-                self._var_flat_weight
+                self._var_flat_wsum / (self._var_flat_weight *
+                                       self._var_flat_weight)
             ).astype(
                 dtype=self.output_array_types["var_flat"]
             )
@@ -1231,10 +1355,11 @@ class Resample:
                                      ymax=None):
         """Resample one variance image from an input model.
 
-        The error image is passed to drizzle instead of the variance in order to
-        better match kernel overlap and user weights to the data during the
+        The error image is passed to drizzle instead of the variance in order
+        to better match kernel overlap and user weights to the data during the
         pixel averaging process. The drizzled error image is squared before
         returning.
+
         """
         variance = model.get(name)
         if variance is None or variance.size == 0:
@@ -1270,9 +1395,9 @@ class Resample:
             pixmap=pixmap,
             scale=iscale,
             weight_map=weight_map,
-            wht_scale=1.0,  # hard-coded for JWST count-rate data
+            wht_scale=1.0,
             pixfrac=self.pixfrac,
-            in_units="cps",  # TODO: get units from data model
+            in_units="cps",
             xmin=xmin,
             xmax=xmax,
             ymin=ymin,
@@ -1282,15 +1407,20 @@ class Resample:
         return driz.out_img ** 2
 
     def build_driz_weight(self, model, weight_type=None, good_bits=None):
-        """ Create a weight map for use by drizzle.
+        """ Create a weight map that is used for weighting input images when
+        they are co-added to the ouput model.
 
         Parameters
         ----------
+        model : dict
+            Input model: a dictionar of relevant keywords and values.
+
         weight_type : {"exptime", "ivm"}, optional
-            The weighting type for adding models' data. For ``weight_type="ivm"``
-            (the default), the weighting will be determined per-pixel using
-            the inverse of the read noise (VAR_RNOISE) array stored in each
-            input image. If the ``VAR_RNOISE`` array does not exist,
+            The weighting type for adding models' data. For
+            ``weight_type="ivm"`` (the default), the weighting will be
+            determined per-pixel using the inverse of the read noise
+            (VAR_RNOISE) array stored in each input image. If the
+            ``VAR_RNOISE`` array does not exist,
             the variance is set to 1 for all pixels (i.e., equal weighting).
             If ``weight_type="exptime"``, the weight will be set equal
             to the measurement time (``TMEASURE``) when available and to
@@ -1302,7 +1432,7 @@ class Resample:
             bit flags or mnemonic flag names that indicate what bits in models'
             DQ bitfield array should be *ignored* (i.e., zeroed).
 
-            See `Resample` for more information
+            See `Resample` for more information.
 
         """
         data = model["data"]
@@ -1429,8 +1559,10 @@ class Resample:
         self._measurement_time_success = []
 
     def update_time(self, model):
-        """ A method called by the `~Resample.add_model` method to process each
-        image's time attributes *only when ``model`` has a new group ID.
+        """
+        A method called by the :py:meth:`~Resample.add_model` method to
+        process each image's time attributes *only* when ``model`` has a new
+        group ID.
 
         """
         if model["group_id"] in self._group_ids:
@@ -1497,6 +1629,10 @@ class Resample:
 
 
 def _get_model_name(model):
+    """ Return the value of ``"filename"`` from the model dictionary or
+    ``"Unknown"`` when ``"filename"`` is either not present or it is `None`.
+
+    """
     model_name = model.get("filename")
     if model_name is None or not model_name.strip():
         model_name = "Unknown"
