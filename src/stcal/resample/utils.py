@@ -4,7 +4,7 @@ import logging
 import asdf
 import numpy as np
 from astropy.nddata.bitmask import interpret_bit_flags
-from spherical_geometry.polygon import SphericalPolygon
+from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-untyped]
 
 
 __all__ = [
