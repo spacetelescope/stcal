@@ -81,8 +81,6 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         the standard deviation computed during sigma clipping
 
     """
-    # START find_crs
-
     # copy data and group DQ array
     dat, gdq = possibly_copy(dataa, group_dq, twopt_p)
 
@@ -113,6 +111,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     #     sigma is the uncertainty of d
     #     r is the rejection threshhold
     # ----------------------------------------------------------------
+
     # calculate the differences between adjacent groups (first diffs)
     # use mask on data, so the results will have sat/donotuse groups masked
     first_diffs = np.diff(dat, axis=1)
@@ -133,9 +132,8 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     e_jump_4d = first_diffs - median_diffs[np.newaxis, :, :]
     ratio_all = np.abs(first_diffs - median_diffs[np.newaxis, np.newaxis, :, :])
     ratio_all /= sigma[np.newaxis, np.newaxis, :, :]
+
     # Test to see if there are enough groups to use sigma clipping
-    
-    # START if-else for sufficient groups for sigma clipping (ends at 279)
     if enough_sigclip_groups(nints, total_groups, twopt_p):
         # XXX None of the CI tests in STCAL, nor JWST get here
         log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
@@ -158,19 +156,20 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         # use mask on data, so the results will have sat/donotuse groups masked
         first_diffs = np.diff(dat, axis=1)
 
-        # START if sufficient total_usable_diffs (starts at 278)
         if total_usable_diffs >= twopt_p.min_diffs_single_pass:
+
             gdq, e_jump = jump_det_sufficient_total_usable_diffs(
                     gdq, first_diffs, median_diffs, read_noise_2, first_diffs_masked, twopt_p)
+
         else:  # low number of diffs requires iterative flagging
+
             gdq, e_jump = jump_det_insufficient_total_usable_diffs(
                     gdq, dat, read_noise_2, first_diffs_masked, ndiffs, twopt_p)
-    # ----------------------------------------------------------------
 
     gdq, num_primary_crs = gdq_flag_4_neighbors(
             gdq, nrows, ncols, row_above_gdq, row_below_gdq, ratio_all, twopt_p)
 
-    gdq = flag_transients_after_jump(gdq, e_jump_4d, twopt_p)
+    gdq = flag_transients_after_jump(gdq, ngroups, e_jump_4d, twopt_p)
 
     if "stddev" in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
@@ -181,10 +180,9 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         dummy = np.zeros((dataa.shape[2], dataa.shape[3]), dtype=np.float32)
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
-# END find_crs
 
 
-def flag_transients_after_jump(gdq, e_jump_4d, twopt_p):
+def flag_transients_after_jump(gdq, ngroups, e_jump_4d, twopt_p):
     """
     Flag n groups after jumps above the specified thresholds to account for
     the transient seen after ramp jumps
@@ -194,7 +192,11 @@ def flag_transients_after_jump(gdq, e_jump_4d, twopt_p):
     gdq : ndarray
         Group DQ
 
+    ngroups : int
+        The number of groups
+
     e_jump_4d : ndarray
+        TODO
 
     twopt_p : TwoPointParams
         Contains parameters to compute the two point difference jump detection.
@@ -216,9 +218,8 @@ def flag_transients_after_jump(gdq, e_jump_4d, twopt_p):
                 col = cr_col[j]
                 if e_jump_4d[intg, group - 1, row, col] >= cthres:
                     for kk in range(group, min(group + cgroup + 1, ngroups)):
-                        if (gdq[intg, kk, row, col] & twopt_p.fl_sat) == 0 and (
-                            gdq[intg, kk, row, col] & twopt_p.fl_dnu
-                        ) == 0:
+                        if ((gdq[intg, kk, row, col] & twopt_p.fl_sat) == 0 
+                                and (gdq[intg, kk, row, col] & twopt_p.fl_dnu ) == 0):
                             gdq[intg, kk, row, col] = np.bitwise_or(
                                     gdq[intg, kk, row, col], twopt_p.fl_jump)
     return gdq
@@ -227,6 +228,7 @@ def flag_transients_after_jump(gdq, e_jump_4d, twopt_p):
 def jump_det_insufficient_total_usable_diffs(
         gdq, dat, read_noise_2, first_diffs_masked, ndiffs, twopt_p):
     """
+    Detect jumps with insufficient total usable groups.
 
     Parameters
     ----------
@@ -297,6 +299,7 @@ def jump_det_insufficient_total_usable_diffs(
 def jump_det_sufficient_total_usable_diffs(
         gdq, first_diffs, first_diffs_masked, median_diffs, read_noise_2, twopt_p):
     """
+    Detect jumps with sufficient total usable groups.
 
     Parameters
     ----------
