@@ -287,9 +287,9 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
     #    index of the ramp. Therefore, the Python slice needed to get all the
     #    data within the ramp is:
     #         ramp.start:ramp.end + 1
-    cdef double[:] resultants = resultants_[ramp.start:ramp.end + 1]
-    cdef double[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
-    cdef double[:] tau = tau_[ramp.start:ramp.end + 1]
+    cdef float[:] resultants = resultants_[ramp.start:ramp.end + 1]
+    cdef float[:] t_bar = t_bar_[ramp.start:ramp.end + 1]
+    cdef float[:] tau = tau_[ramp.start:ramp.end + 1]
     cdef int[:] n_reads = n_reads_[ramp.start:ramp.end + 1]
 
     # Compute mid point time
