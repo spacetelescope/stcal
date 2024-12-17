@@ -353,6 +353,6 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         # Note that the second sum in Castertano+22 has a term that can be
         # updated iteratively.  That is used here to avoid a nested for loop.
         ramp_fit.poisson_var += coeff ** 2 * tau[i] + 2 * coeff * sum_coeffs_tbar
-        sum_coeffs_tbar += coeff * tbar[i]
+        sum_coeffs_tbar += coeff * t_bar[i]
 
     return ramp_fit
