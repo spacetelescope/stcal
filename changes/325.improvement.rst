@@ -1,0 +1,1 @@
+Refactor Poisson variance calculation in ols_cas22/_ramp.pyx to use a cumulative variable instead of a nested for loop, change some single precision quantities in ols_cas22/_ramp.pyx to double precision.
