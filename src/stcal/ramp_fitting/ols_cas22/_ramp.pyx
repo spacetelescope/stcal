@@ -280,7 +280,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         return RampFit(NAN, NAN, NAN)
 
     # Compute the fit
-    cdef int i = 0, j = 0
+    cdef int i = 0
 
     # Setup data for fitting (work over subset of data) to make things cleaner
     #    Recall that the RampIndex contains the index of the first and last
