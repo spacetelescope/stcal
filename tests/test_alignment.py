@@ -30,7 +30,7 @@ def _create_wcs_object_without_distortion(
     shape,
 ):
     # subtract 1 to account for pixel indexing starting at 0
-    shift = models.Shift() & models.Shift()
+    shift = models.Shift(0) & models.Shift(0)
 
     scale = models.Scale(pscale[0]) & models.Scale(pscale[1])
 
@@ -171,7 +171,7 @@ def test_sregion_to_footprint():
 
     footprint = _sregion_to_footprint(s_region)
 
-    assert footprint.shape == (4,2)
+    assert footprint.shape == (4, 2)
     assert np.allclose(footprint, expected_footprint)
 
 
@@ -199,18 +199,27 @@ def test_wcs_from_footprints(s_regions):
     )
     dm_2 = _create_wcs_and_datamodel(fiducial_world, shape, pscale)
     wcs_2 = dm_2.meta.wcs
+
     if s_regions:
         footprints = [wcs_1.footprint(), wcs_2.footprint()]
         wcs = wcs_from_sregions(footprints, wcs_1, dm_1.meta.wcsinfo.instance)
     else:
         wcs_list = [wcs_1, wcs_2]
-        wcs = wcs_from_footprints(wcs_list, wcs_1, dm_1.meta.wcsinfo.instance)
+        msg = "wcs_from_footprints is deprecated and will be removed"
+        with pytest.warns(DeprecationWarning, match=msg):
+            wcs = wcs_from_footprints(
+                wcs_list,
+                wcs_1,
+                dm_1.meta.wcsinfo.instance
+            )
 
-    # check that all elements of footprint match the *vertices* of the new combined WCS
-    assert all(np.isclose(wcs.footprint()[0], wcs(0, 0)))
-    assert all(np.isclose(wcs.footprint()[1], wcs(0, 4)))
-    assert all(np.isclose(wcs.footprint()[2], wcs(4, 4)))
-    assert all(np.isclose(wcs.footprint()[3], wcs(4, 0)))
+    # check that all elements of footprint match the *vertices* of the new
+    # combined WCS
+    footprnt = wcs.footprint()
+    assert all(np.isclose(footprnt[0], wcs(0, 0)))
+    assert all(np.isclose(footprnt[1], wcs(0, 4)))
+    assert all(np.isclose(footprnt[2], wcs(4, 4)))
+    assert all(np.isclose(footprnt[3], wcs(4, 0)))
 
     # check that fiducials match their expected coords in the new combined WCS
     assert all(np.isclose(wcs_1(0, 0), wcs(2.5, 1.5)))
