@@ -332,7 +332,12 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
     wcs_new.bounding_box = output_bounding_box
 
     if shape is None:
-        shape = [int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]]
+        if crpix is None:
+            shape = [
+                int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]
+            ]
+        else:
+            shape = [int(axs[1] + 1.5) for axs in output_bounding_box[::-1]]
 
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
