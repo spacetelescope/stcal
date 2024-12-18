@@ -29,9 +29,8 @@ def _create_wcs_object_without_distortion(
     pscale,
     shape,
 ):
-    # subtract 1 to account for pixel indexing starting at 0
-    shift = models.Shift(0) & models.Shift(0)
-
+    # subtract 0 shift to mimic a resampled WCS that does include shift transforms
+    shift = models.Shift() & models.Shift()
     scale = models.Scale(pscale[0]) & models.Scale(pscale[1])
 
     tan = models.Pix2Sky_TAN()
