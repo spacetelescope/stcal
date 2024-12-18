@@ -234,11 +234,6 @@ def _calculate_offsets(fiducial: tuple,
     ~astropy.modeling.Model
         A model with the offsets to be added to the WCS's transform.
 
-    tuple
-        A tuple of offset *values* that are to be *subtracted* from input
-        coordinates (negative values of offsets in the returned transform).
-        Note: these are equivalent to an effective 0-indexed "crpix".
-
     Notes
     -----
     If ``crpix=None``, then ``fiducial``, ``wcs``, and ``axis_min_values`` must be
@@ -257,7 +252,7 @@ def _calculate_offsets(fiducial: tuple,
         # assume 0-based CRPIX
         offset1, offset2 = crpix
 
-    return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(-offset2, name="crpix2"), (offset1, offset2)
+    return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(-offset2, name="crpix2")
 
 
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
@@ -309,7 +304,7 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         input_frame=wcs.input_frame,
     )
     axis_min_values, bbox = _get_axis_min_and_bounding_box(footprints, wcs_new)
-    offsets, shifts = _calculate_offsets(
+    offsets = _calculate_offsets(
         fiducial=fiducial,
         wcs=wcs_new,
         axis_min_values=axis_min_values,
@@ -320,7 +315,7 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         output_bounding_box = bbox
     else:
         output_bounding_box = []
-        for axis_range, minval, shift in zip(bbox, axis_min_values, shifts):
+        for axis_range, minval, shift in zip(bbox, axis_min_values, crpix):
             output_bounding_box.append(
                 (
                     axis_range[0] + shift + minval,

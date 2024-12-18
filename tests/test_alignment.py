@@ -29,9 +29,6 @@ def _create_wcs_object_without_distortion(
     pscale,
     shape,
 ):
-    # subtract 1 to account for pixel indexing starting at 0
-    shift = models.Shift(0) & models.Shift(0)
-
     scale = models.Scale(pscale[0]) & models.Scale(pscale[1])
 
     tan = models.Pix2Sky_TAN()
@@ -41,7 +38,7 @@ def _create_wcs_object_without_distortion(
         180,
     )
 
-    det2sky = shift | scale | tan | celestial_rotation
+    det2sky = scale | tan | celestial_rotation
     det2sky.name = "linear_transform"
 
     detector_frame = cf.Frame2D(name="detector", axes_names=("x", "y"), unit=(u.pix, u.pix))
