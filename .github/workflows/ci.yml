@@ -29,13 +29,12 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       envs: |
-        - linux: py310-oldestdeps-cov-xdist
-        - linux: py310-xdist
+        - linux: py311-oldestdeps-cov-xdist
         - linux: py311-xdist
-        - linux: py312-cov-xdist
+        - linux: py312-xdist
+        - linux: py313-cov-xdist
           coverage: codecov
-        - linux: py313-xdist
-        - macos: py311-xdist
+        - macos: py313-xdist
   test_downstream:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
@@ -44,6 +43,6 @@ jobs:
         CRDS_CLIENT_RETRY_COUNT: 3
         CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
       envs: |
-        - linux: py311-jwst-cov-xdist
-        - linux: py311-romancal-cov-xdist
+        - linux: py312-jwst-cov-xdist
+        - linux: py312-romancal-cov-xdist
       coverage: codecov
