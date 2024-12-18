@@ -1,0 +1,4 @@
+Fix a bug in ``alignment.util.wcs_from_sregions()`` and
+``alignment.util.wcs_from_footprints()`` functions due to which, when the
+``crpix`` argument was provided, the bounding box of the created WCS was
+not adjusted to account for this ``crpix`` value.
