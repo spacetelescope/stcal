@@ -320,9 +320,12 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         output_bounding_box = bbox
     else:
         output_bounding_box = []
-        for axis_range, shift in zip(bbox, shifts):
+        for axis_range, minval, shift in zip(bbox, axis_min_values, shifts):
             output_bounding_box.append(
-                (axis_range[0] + shift, axis_range[1] + shift)
+                (
+                    axis_range[0] + shift + minval,
+                    axis_range[1] + shift + minval
+                )
             )
 
     wcs_new.insert_transform("detector", offsets, after=True)
