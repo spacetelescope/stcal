@@ -9,10 +9,10 @@ import abc
 import tempfile
 
 import numpy as np
-from spherical_geometry.polygon import SphericalPolygon
+from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-untyped]
 
 from . import region
-from .skystatistics import SkyStats
+from .skystatistics import SkyStats  # type: ignore[import-untyped]
 
 __all__ = [
     "SkyImage",
