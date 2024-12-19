@@ -332,7 +332,20 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                 int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]
             ]
         else:
-            shape = [int(axs[1] + 1.5) for axs in output_bounding_box[::-1]]
+            shape = []
+            for k, axs in enumerate(output_bounding_box[::-1]):
+                upper = int(axs[1] + 0.5)
+                if upper < 1:
+                    log.warning(
+                        "Input images do not overlap with created WCS. "
+                        "Consider adjusting crval and/or crpix values."
+                    )
+                    log.warning(
+                        "Setting minimum array dimension for axis %d to 10."
+                        % (len(output_bounding_box) - k)
+                    )
+                    upper = 10
+                shape.append(upper)
 
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
