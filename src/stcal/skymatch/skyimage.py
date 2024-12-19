@@ -9,9 +9,9 @@ import abc
 import tempfile
 
 import numpy as np
+from gwcs import region
 from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-untyped]
 
-from . import region
 from .skystatistics import SkyStats  # type: ignore[import-untyped]
 
 __all__ = [
