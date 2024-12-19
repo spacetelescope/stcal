@@ -227,7 +227,7 @@ def _calculate_offsets(fiducial: tuple,
         A two-elements array containing the minimum pixel value for each axis.
 
     crpix : list or tuple
-        Pixel coordinates of the reference pixel.
+        0-indexed pixel coordinates of the reference pixel.
 
     Returns
     -------
@@ -249,6 +249,7 @@ def _calculate_offsets(fiducial: tuple,
         msg = "If crpix is not provided, fiducial, wcs, and axis_min_values must be provided."
         raise ValueError(msg)
     else:
+        # assume 0-based CRPIX
         offset1, offset2 = crpix
 
     return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(-offset2, name="crpix2")
@@ -283,7 +284,7 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         coordinate system.
 
     crpix : tuple, optional
-        The coordinates of the reference pixel.
+        0-indexed coordinates of the reference pixel.
 
     transform : ~astropy.modeling.Model
         An optional transform to be prepended to the transform constructed by the
@@ -302,7 +303,7 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         transform=transform,
         input_frame=wcs.input_frame,
     )
-    axis_min_values, output_bounding_box = _get_axis_min_and_bounding_box(footprints, wcs_new)
+    axis_min_values, bbox = _get_axis_min_and_bounding_box(footprints, wcs_new)
     offsets = _calculate_offsets(
         fiducial=fiducial,
         wcs=wcs_new,
@@ -310,11 +311,41 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         crpix=crpix,
     )
 
+    if crpix is None:
+        output_bounding_box = bbox
+    else:
+        output_bounding_box = []
+        for axis_range, minval, shift in zip(bbox, axis_min_values, crpix):
+            output_bounding_box.append(
+                (
+                    axis_range[0] + shift + minval,
+                    axis_range[1] + shift + minval
+                )
+            )
+
     wcs_new.insert_transform("detector", offsets, after=True)
     wcs_new.bounding_box = output_bounding_box
 
     if shape is None:
-        shape = [int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]]
+        if crpix is None:
+            shape = [
+                int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]
+            ]
+        else:
+            shape = []
+            for k, axs in enumerate(output_bounding_box[::-1]):
+                upper = int(axs[1] + 0.5)
+                if upper < 1:
+                    log.warning(
+                        "Input images do not overlap with created WCS. "
+                        "Consider adjusting crval and/or crpix values."
+                    )
+                    log.warning(
+                        "Setting minimum array dimension for axis %d to 10."
+                        % (len(output_bounding_box) - k)
+                    )
+                    upper = 10
+                shape.append(upper)
 
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
