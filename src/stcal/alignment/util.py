@@ -172,7 +172,7 @@ def _get_axis_min_and_bounding_box(footprints: list[np.ndarray],
     output_bounding_box = []
     for axis in ref_wcs.output_frame.axes_order:
         axis_min, axis_max = (
-            domain_bounds[axis].min(),
+            0.0,
             domain_bounds[axis].max(),
         )
         # populate output_bounding_box
@@ -327,25 +327,20 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
     wcs_new.bounding_box = output_bounding_box
 
     if shape is None:
-        if crpix is None:
-            shape = [
-                int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]
-            ]
-        else:
-            shape = []
-            for k, axs in enumerate(output_bounding_box[::-1]):
-                upper = int(axs[1] + 0.5)
-                if upper < 1:
-                    log.warning(
-                        "Input images do not overlap with created WCS. "
-                        "Consider adjusting crval and/or crpix values."
-                    )
-                    log.warning(
-                        "Setting minimum array dimension for axis %d to 10."
-                        % (len(output_bounding_box) - k)
-                    )
-                    upper = 10
-                shape.append(upper)
+        shape = []
+        for k, axs in enumerate(output_bounding_box[::-1]):
+            upper = int(axs[1] + 0.5)
+            if upper < 1:
+                log.warning(
+                    "Input images do not overlap with created WCS. "
+                    "Consider adjusting crval and/or crpix values."
+                )
+                log.warning(
+                    "Setting minimum array dimension for axis %d to 10."
+                    % (len(output_bounding_box) - k)
+                )
+                upper = 10
+            shape.append(upper)
 
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
