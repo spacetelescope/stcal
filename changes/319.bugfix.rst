@@ -1,1 +1,0 @@
-Update weight threshold calculation in outlier detection to work around numpy bug that introduces small numerical differences for a mean of a masked array.
