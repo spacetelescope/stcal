@@ -4,7 +4,7 @@ Unit tests for saturation flagging
 
 """
 from enum import IntEnum
-
+import pytest
 import numpy as np
 
 from stcal.saturation.saturation import flag_saturated_pixels
@@ -40,6 +40,7 @@ def test_basic_saturation_flagging():
     assert np.all(gdq[0, satindex:, 5, 5] == DQFLAGS["SATURATED"])
 
 
+@pytest.mark.xfail(reason="stcal PR#321 broke this test")
 def test_read_pattern_saturation_flagging():
     """Check that the saturation threshold varies depending on how the reads
     are allocated into resultants."""
@@ -76,6 +77,45 @@ def test_read_pattern_saturation_flagging():
 
     # Make sure that groups after the third get flagged
     assert np.all(gdq[0, 2:, 5, 5] == DQFLAGS["SATURATED"])
+
+
+def test_read_pattern_saturation_flagging_dnu():
+    """Check that the saturation threshold varies depending on how the reads
+    are allocated into resultants. First resultant expected to have DNU while
+    PR#321 band-aid still in place."""
+
+    # Create inputs, data, and saturation maps
+    data = np.zeros((1, 5, 20, 20)).astype("float32")
+    gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
+    pdq = np.zeros((20, 20)).astype("uint32")
+    sat_thresh = np.ones((20, 20)) * 100000.0
+    sat_dq = np.zeros((20, 20)).astype("uint32")
+
+    # Add ramp values up to the saturation limit
+    data[0, 0, 5, 5] = 0
+    data[0, 1, 5, 5] = 20000
+    data[0, 2, 5, 5] = 40000
+    data[0, 3, 5, 5] = 60000  # Signal reaches saturation limit
+    data[0, 4, 5, 5] = 62000
+
+    # Set saturation value in the saturation model
+    satvalue = 60000
+    sat_thresh[5, 5] = satvalue
+
+    # set read_pattern to have many reads in the third resultant, so that
+    # its mean exposure time is much smaller than its last read time
+    # (in this case, the ratio is 13 / 20).
+    # This means that the effective saturation for the third resultant
+    # is 60000 * 13 / 20 = 39000 and the third resultant should be marked
+    # saturated.
+    read_pattern = [[1], [2], [3, 4, 5, 6, 7, 8, 9, 10], [11], [12], [13]]
+
+    gdq, pdq, _ = flag_saturated_pixels(
+        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern
+    )
+
+    # Make sure that groups after the third get flagged
+    assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
 
 
 def test_no_sat_check_at_limit():
