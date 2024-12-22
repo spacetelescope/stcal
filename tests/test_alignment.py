@@ -215,10 +215,10 @@ def test_wcs_from_footprints(s_regions):
     # check that all elements of footprint match the *vertices* of the new
     # combined WCS
     footprnt = wcs.footprint()
-    assert all(np.isclose(footprnt[0], wcs(0, 0)))
-    assert all(np.isclose(footprnt[1], wcs(0, 4)))
-    assert all(np.isclose(footprnt[2], wcs(4, 4)))
-    assert all(np.isclose(footprnt[3], wcs(4, 0)))
+    assert all(np.isclose(footprnt[0], wcs(-0.5, -0.5)))
+    assert all(np.isclose(footprnt[1], wcs(-0.5, 3.5)))
+    assert all(np.isclose(footprnt[2], wcs(3.5, 3.5)))
+    assert all(np.isclose(footprnt[3], wcs(3.5, -0.5)))
 
     # check that fiducials match their expected coords in the new combined WCS
     assert all(np.isclose(wcs_1(0, 0), wcs(2.5, 1.5)))
