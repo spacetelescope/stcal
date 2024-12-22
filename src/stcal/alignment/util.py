@@ -196,8 +196,6 @@ def _get_bounding_box_with_offsets(
     domain_max = np.max(domain_bounds, axis=1)
 
     native_crpix = ref_wcs.backward_transform(*fiducial)
-    # DEBUG: code to reproduce old results (for old unit test test_wcs_from_footprints)
-    native_crpix = (0.0, 0.0)
 
     if crpix is None:
         # shift the coordinates by domain_min so that all input footprints
@@ -216,15 +214,10 @@ def _get_bounding_box_with_offsets(
     domain_max += offsets
 
     if shape is None:
-        # shape = tuple(int(dmax + 0.5) for dmax in domain_max[::-1])
-        # bounding_box = tuple(
-        #     (-0.5, s - 0.5) for s in shape[::-1]
-        # )
-        # DEBUG: code to reproduce old results (for old unit test test_wcs_from_footprints)
-        bounding_box = tuple(
-            (0.0, dmax) for dmax in domain_max
-        )
         shape = tuple(int(dmax + 0.5) for dmax in domain_max[::-1])
+        bounding_box = tuple(
+            (-0.5, s - 0.5) for s in shape[::-1]
+        )
 
     else:
         # trim upper bounding box limits
