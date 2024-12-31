@@ -761,7 +761,6 @@ def find_faint_extended(
     number_ellipse : int
         Total number of showers detected.
     """
-    # XXX START find_faint_extended
     log.info("Flagging Showers")
     refpix_flag = jump_data.fl_ref
 
@@ -824,8 +823,6 @@ def find_faint_extended(
                 all_ellipses.append([intg, grp, ellipses])
                 # Reset the warnings filter to its original state
 
-    # XXX this is where https://github.com/spacetelescope/stcal/pull/306 adds code
-
     warnings.resetwarnings()
     total_showers = 0
 
@@ -851,7 +848,6 @@ def find_faint_extended(
     gdq = max_flux_showers(jump_data, nints, indata, ingdq, gdq)
 
     return gdq, total_showers
-    # XXX END find_faint_extended
 
 
 def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
@@ -881,7 +877,6 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
         The computed group DQ 4D uint8.
     """
     # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
-    # XXX Make this interact with the refactor.
     for intg in range(nints):
         # Consider DO_NOT_USE, SATURATION, and JUMP_DET flags
         invalid_flags = jump_data.fl_dnu | jump_data.fl_sat| jump_data.fl_jump
