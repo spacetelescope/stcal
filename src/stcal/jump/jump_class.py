@@ -20,30 +20,53 @@ class JumpData:
             DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, GOOD
         """
         # Get model information
-        self.nframes = 0  # frames_per_group
-        self.data, self.gdq, self.pdq, self.err = None, None, None, None  # indata
+
+        # The number of frames per group
+        self.nframes = 0
+
+        # These are the input arrays
+        # data is a 4-D ndarray of the science data
+        # gdq is a 4-D ndarray of the group DQ
+        # gdq is a 2-D ndarray of the pixel DQ
+        self.data, self.gdq, self.pdq = None, None, None  # indata
         if jump_model is not None:
             self.init_arrays_from_model(jump_model)
-            self.nframes = jump_model.meta.exposure.nframes  # frames_per_group
+            self.nframes = jump_model.meta.exposure.nframes
 
         # Get reference arrays
+        # gain is a 2-D ndarray for the gain for each pixel
         self.gain_2d = None
         if gain2d is not None:
             self.gain_2d = gain2d
 
+        # rnoise_2d is a 2-D ndarray for the read noise for each pixel
         self.rnoise_2d = None
         if rnoise2d is not None:
             self.rnoise_2d = rnoise2d
 
         # Detection options (using JWST defaults)
+        # The 'normal' cosmic ray sigma rejection threshold for ramps with more than 4 groups
         self.rejection_thresh = 4.
+
+        # Cosmic ray sigma rejection threshold for ramps having 3 groups
         self.three_grp_thresh = 6.
+
+        # Cosmic ray sigma rejection threshold for ramps having 4 groups
         self.four_grp_thresh = 5.
+
+        # If set to True (default is True), it will cause the four perpendicular
+        # neighbors of all detected jumps to also be flagged as a jump.
         self.flag_4_neighbors = True
+
+        # Value in units of sigma that sets the upper limit for flagging of neighbors.
+        # Any jump above this cutoff will not have its neighbors flagged.
         self.max_jump_to_flag_neighbors = 1000
+
+        # Value in units of sigma that sets the lower limit for flagging of neighbors (marginal
+        # detections). Any primary jump below this value will not have its neighbors flagged.
         self.min_jump_to_flag_neighbors = 10
 
-        # self.dqflags
+        # The group DQ flags.
         self.fl_good, self.fl_sat, self.jump = None, None, None
         self.fl_ngv, self.fl_dnu, self.ref = None, None, None
         if dqflags is not None:
@@ -57,9 +80,20 @@ class JumpData:
         # Set default values (JWST defaults)
 
         # After jump flagging
+        # Jumps with amplitudes above the specified DN value will have subsequent
+        # groups flagged with the number determined by the after_jump_flag_n1
         self.after_jump_flag_dn1 = 0.0
+
+        # Gives the number of groups to flag after jumps with DN values above that
+        # given by after_jump_flag_dn1
         self.after_jump_flag_n1 = 0
+
+        # Jumps with amplitudes above the specified DN value will have subsequent
+        # groups flagged with the number determined by the after_jump_flag_n2
         self.after_jump_flag_dn2 = 0.0
+
+        # ives the number of groups to flag after jumps with DN values above that
+        # given by after_jump_flag_dn2
         self.after_jump_flag_n2 = 0
 
         # Computed later, depends on the after flagging above.
@@ -67,64 +101,135 @@ class JumpData:
         self.after_jump_flag_e2 = None
 
         # Snowball information for near-IR
+        #  Turns on Snowball detector for NIR detectors
         self.expand_large_events = False
+
+        # The minimum contour area to trigger the creation of enclosing ellipses or circles.
         self.min_jump_area = (5,)
+
+        # The minimum area of saturated pixels at the center of a snowball. Only
+        # contours with area above the minimum will create snowballs.
         self.min_sat_area = 1
+
+        # The factor that is used to increase the size of the enclosing
+        # circle/ellipse jump flagged pixels.
         self.expand_factor = 2.0
+
+        # Deprecated
         self.use_ellipses = False
+
+        # If true there must be a saturation circle within the radius of the jump
+        # circle to trigger the creation of a snowball. All true snowballs appear
+        # to have at least one saturated pixel.
         self.sat_required_snowball = True
+
+        # The minimum radius of the saturated core of a snowball for the core to be extended
         self.min_sat_radius_extend = 2.5
+
+        # The number of pixels to expand the saturated core of detected snowballs
         self.sat_expand = 2
+
+        # The distance from the edge of the detector where saturated cores are not
+        # required for snowball detection
         self.edge_size = 25
 
         # MIRI shower information
+
+        # Turns on the flagging of the faint extended emission of MIRI showers
         self.find_showers = False
+
+        # The SNR minimum for the detection of faint extended showers in MIRI
         self.extend_snr_threshold = 1.2
+
+        # The required minimum area of extended emission after convolution for the
+        # detection of showers in MIRI
         self.extend_min_area = 90
+
+        # The inner radius of the Ring2DKernal that is used for the detection of
+        # extended emission in showers
         self.extend_inner_radius = 1
+
+        # The outer radius of the Ring2DKernal that is used for the detection of
+        # extended emission in showers
         self.extend_outer_radius = 2.6
+
+        # Multiplicative factor to expand the radius of the ellipse fit to the
+        # detected extended emission in MIRI showers
         self.extend_ellipse_expand_ratio = 1.2
+
+        # The minimum number of groups to switch to flagging all outliers in a single pass.
         self.min_diffs_single_pass = 10
+
+        # The maximum possible amplitude for flagged MIRI showers in DN/group
         self.max_shower_amplitude = 6
 
+        # The maximum radius for any extension of saturation or jump
         self.max_extended_radius = 200
 
         # Sigma clipping
+        # The minimum number of groups for jump detection
         self.minimum_groups = 3
+
+        # The minimum number of groups required to use sigma clipping to find outliers.
         self.minimum_sigclip_groups = 100
+
+        # In sigma clipping, if True only differences between integrations are compared.
+        # If False, then all differences are processed at once.
         self.only_use_ints = True
 
         # Internal state
+        # Number of groups after detected extended emission to flag as a jump for MIRI showers
         self.grps_masked_after_shower = 5
+
+        # The flag to turn on the extension of the flagging of the saturated cores of snowballs.
         self.mask_persist_grps_next_int = True
+
+        # How many groups to be flagged when the saturated cores are extended into
+        # subsequent integrations.
         self.persist_grps_flagged = 25
 
-        # Multiprocessing
-        self.max_cores = None
-        self.start_row = 0
-        self.end_row = 0
-        self.tot_row = 0
+        # Multiprocessing, data a sliced by row
+        self.max_cores = None  # Number of processes
+        self.start_row = 0  # Start row of current slice
+        self.end_row = 0  # End row of current slice
+        self.tot_row = 0 # Total number of rows in slice
 
     def init_arrays_from_model(self, jump_model):
         """
         Sets arrays from a data model.
+
+        jump_model : datamodel
+            A datamodel with certain expected parameters.
         """
         self.data = jump_model.data
         self.gdq = jump_model.groupdq
         self.pdq = jump_model.pixeldq
-        self.err = jump_model.err
 
-    def init_arrays_from_arrays(self, data, gdq, pdq, err):
+    def init_arrays_from_arrays(self, data, gdq, pdq):
         """
         Sets arrays from a numpy arrays.
+
+        Parameters
+        ----------
+        data : ndarray
+            The 4-D science array
+
+        gdq : ndarray
+            The 4-D group DQ array
+
+        pdq : ndarray
+            The 2-D pixel DQ array
         """
         self.data = data
         self.gdq = gdq
         self.pdq = pdq
-        self.err = err
 
     def set_detection_settings(self, rej, _3grp, _4grp, mx, mn, _4flag):
         """
+        Set class instance detection settings
+
+        Parameters
+        ----------
         rej : float
             The 'normal' cosmic ray sigma rejection threshold for ramps with more
             than 4 groups
@@ -158,6 +263,10 @@ class JumpData:
 
     def set_after_jump(self, dn1, n1, dn2, n2):
         """
+        Set class instance after jump values.
+
+        Parameters
+        ----------
         dn1 : float
             Jumps with amplitudes above the specified DN value will have subsequent
             groups flagged with the number determined by the after_jump_flag_n1
@@ -182,6 +291,10 @@ class JumpData:
     def set_snowball_info(
             self, levent, mjarea, msarea, exfact, require, satrad, satexp, edge):
         """
+        Set class instance values needed for snowball handling.
+
+        Parameters
+        ----------
         levent : bool
             When True this triggers the flagging of snowballs for NIR detectors.
 
@@ -222,6 +335,10 @@ class JumpData:
 
     def set_shower_info(self, shower, snr, marea, inner, outer, expand, single, extend):
         """
+        Set class instance values needed for shower handling.
+
+        Parameters
+        ----------
         showers : boolean
             Turns on the flagging of the faint extended emission of MIRI showers
 
@@ -262,6 +379,10 @@ class JumpData:
 
     def set_sigma_clipping_info(self, mingrps, minsig, useints):
         """
+        Set class instance values needed for sigma clipping.
+
+        Parameters
+        ----------
         mingrps : int
            The minimum number of groups for jump detection
 
@@ -276,6 +397,9 @@ class JumpData:
         self.minimum_groups = mingrps
         self.minimum_sigclip_groups = minsig
         self.only_use_ints = useints  # XXX
+
+    # --------------------------------------------------------------------------
+    # Print methods, primarily used for debugging.
 
     def print_jump_data(self, fd=None):
         self.print_jump_data_arrays(fd=fd)

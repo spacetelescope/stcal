@@ -65,7 +65,7 @@ def detect_jumps_data(jump_data):
     # of electrons
     data = jump_data.data * jump_data.gain_2d
     gdq = jump_data.gdq
-    err = jump_data.err * jump_data.gain_2d
+    # err = jump_data.err * jump_data.gain_2d
     readnoise_2d = jump_data.rnoise_2d * jump_data.gain_2d
 
     # also apply to the after_jump thresholds
@@ -115,7 +115,7 @@ def detect_jumps_data(jump_data):
         # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
         #    back in units of DN
         data /= jump_data.gain_2d
-        err /= jump_data.gain_2d
+        # err /= jump_data.gain_2d
         readnoise_2d /= jump_data.gain_2d
 
     # Return the updated data quality arrays

@@ -38,7 +38,6 @@ def create_jump_data(dims, gain, rnoise, tm):
     """
     nints, ngroups, nrows, ncols = dims
     data = np.zeros(shape=dims, dtype=np.float32)
-    err = np.zeros(shape=dims, dtype=np.float32)
     gdq = np.zeros(shape=dims, dtype=np.uint8)
     pdq = np.zeros(shape=dims, dtype=np.uint8)
 
@@ -46,7 +45,7 @@ def create_jump_data(dims, gain, rnoise, tm):
     rnoise2d = np.ones(shape=(nrows, ncols) , dtype=np.float32) * rnoise
 
     jump_data = JumpData(gain2d=gain2d, rnoise2d=rnoise2d, dqflags=DQFLAGS)
-    jump_data.init_arrays_from_arrays(data, gdq, pdq, err)
+    jump_data.init_arrays_from_arrays(data, gdq, pdq)
 
     frame_time, nframes, groupgap = tm
     jump_data.nframes = nframes
