@@ -10,35 +10,63 @@ log.setLevel(logging.DEBUG)
 
 
 class TwoPointParams:
-    def __init__(self, jump_data, copy_arrs):
-        self.normal_rej_thresh = jump_data.rejection_thresh
+    def __init__(self, jump_data=None, copy_arrs=False):
+        if jump_data is not None:
+            self.normal_rej_thresh = jump_data.rejection_thresh
 
-        self.two_diff_rej_thresh = jump_data.three_grp_thresh
-        self.three_diff_rej_thresh = jump_data.four_grp_thresh
-        self.nframes = jump_data.nframes,
-            
-        self.flag_4_neighbors = jump_data.flag_4_neighbors
-        self.max_jump_to_flag_neighbors = jump_data.max_jump_to_flag_neighbors
-        self.min_jump_to_flag_neighbors = jump_data.min_jump_to_flag_neighbors
+            self.two_diff_rej_thresh = jump_data.three_grp_thresh
+            self.three_diff_rej_thresh = jump_data.four_grp_thresh
+            self.nframes = jump_data.nframes,
+                
+            self.flag_4_neighbors = jump_data.flag_4_neighbors
+            self.max_jump_to_flag_neighbors = jump_data.max_jump_to_flag_neighbors
+            self.min_jump_to_flag_neighbors = jump_data.min_jump_to_flag_neighbors
 
-        self.fl_good = jump_data.fl_good
-        self.fl_sat = jump_data.fl_sat
-        self.fl_jump = jump_data.fl_jump
-        self.fl_ngv = jump_data.fl_ngv
-        self.fl_dnu = jump_data.fl_dnu
-        self.fl_ref = jump_data.fl_ref
+            self.fl_good = jump_data.fl_good
+            self.fl_sat = jump_data.fl_sat
+            self.fl_jump = jump_data.fl_jump
+            self.fl_ngv = jump_data.fl_ngv
+            self.fl_dnu = jump_data.fl_dnu
+            self.fl_ref = jump_data.fl_ref
 
-        self.after_jump_flag_e1=jump_data.after_jump_flag_e1
-        self.after_jump_flag_n1=jump_data.after_jump_flag_n1
-        self.after_jump_flag_e2=jump_data.after_jump_flag_e2
-        self.after_jump_flag_n2=jump_data.after_jump_flag_n2
+            self.after_jump_flag_e1=jump_data.after_jump_flag_e1
+            self.after_jump_flag_n1=jump_data.after_jump_flag_n1
+            self.after_jump_flag_e2=jump_data.after_jump_flag_e2
+            self.after_jump_flag_n2=jump_data.after_jump_flag_n2
+
+            self.minimum_groups = jump_data.minimum_groups
+            self.minimum_sigclip_groups = jump_data.minimum_sigclip_groups
+            self.only_use_ints = jump_data.only_use_ints
+            self.min_diffs_single_pass = jump_data.min_diffs_single_pass
+        else:
+            self.normal_rej_thresh = None
+
+            self.two_diff_rej_thresh = None
+            self.three_diff_rej_thresh = None
+            self.nframes = None
+                
+            self.flag_4_neighbors = None
+            self.max_jump_to_flag_neighbors = None
+            self.min_jump_to_flag_neighbors = None
+
+            self.fl_good = None
+            self.fl_sat = None
+            self.fl_jump = None
+            self.fl_ngv = None
+            self.fl_dnu = None
+            self.fl_ref = None
+
+            self.after_jump_flag_e1 = None
+            self.after_jump_flag_n1 = None
+            self.after_jump_flag_e2 = None
+            self.after_jump_flag_n2 = None
+
+            self.minimum_groups = None
+            self.minimum_sigclip_groups = None
+            self.only_use_ints = None
+            self.min_diffs_single_pass = None
 
         self.copy_arrs = copy_arrs
-
-        self.minimum_groups = jump_data.minimum_groups
-        self.minimum_sigclip_groups = jump_data.minimum_sigclip_groups
-        self.only_use_ints = jump_data.only_use_ints
-        self.min_diffs_single_pass = jump_data.min_diffs_single_pass
 
 
 def find_crs(dataa, group_dq, read_noise, twopt_p):
