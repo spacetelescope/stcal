@@ -10,6 +10,7 @@ import astropy.stats as stats
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
 
+from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
 
 log = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ def detect_jumps_data(jump_data):
     n_rows = data.shape[2]
     n_slices = calc_num_slices(n_rows, jump_data.max_cores, max_available)
 
-    twopt_params = twopt.TwoPointParams(jump_data, False)
+    twopt_params = TwoPointParams(jump_data, False)
     if n_slices == 1:
         twopt_params.minimum_groups = 3  # XXX Should this be hard coded as 3?
         gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = twopt.find_crs(
