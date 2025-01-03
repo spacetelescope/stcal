@@ -1,2 +1,1 @@
-- Performance improvements for saturation step. (`#331
-  <https://github.com/spacetelescope/stcal/issues/331>`_)
+Performance improvements for saturation step
