@@ -87,7 +87,7 @@ def flag_saturated_pixels(
         # We want to flag saturation in all subsequent groups after
         # the one in which it was found.  Use this boolean array to
         # keep a running tally of pixels that have saturated.
-        previously_saturated = np.zeros(data[0, 0].shape, dtype='bool')
+        previously_saturated = np.zeros(shape=(nrows, ncols), dtype='bool')
 
         for group in range(ngroups):
             plane = data[ints, group, :, :]
@@ -237,7 +237,7 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
     else:
         cgdq = plane_gdq
 
-    only_sat = plane_gdq&saturated > 0
+    only_sat = plane_gdq & saturated > 0
     dilated = only_sat.copy()
     box_dim = (n_pix_grow_sat * 2) + 1
 
