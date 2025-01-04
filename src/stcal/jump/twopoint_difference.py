@@ -26,7 +26,6 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         twopt_p.flag_4_neighbors,
         twopt_p.max_jump_to_flag_neighbors,
         twopt_p.min_jump_to_flag_neighbors,
-        # twopt_p.dqflags,
         dqflags,
         twopt_p.after_jump_flag_e1,
         twopt_p.after_jump_flag_n1,

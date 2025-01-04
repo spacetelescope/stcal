@@ -1,5 +1,3 @@
-# from .twopoint_difference import TwoPointParams
-
 class TwoPointParams:
     def __init__(self, jump_data=None, copy_arrs=False):
         if jump_data is not None:
@@ -60,7 +58,9 @@ class TwoPointParams:
         self.copy_arrs = copy_arrs
 
     def __repr__(self):
-        ostr = f"normal_rej_thresh = {self.normal_rej_thresh}\n"
+        delim = "-" * 60
+        ostr = f"{delim}\n"
+        ostr += f"normal_rej_thresh = {self.normal_rej_thresh}\n"
         ostr += f"two_diff_rej_thresh = {self.two_diff_rej_thresh}\n"
         ostr += f"three_diff_rej_thresh = {self.three_diff_rej_thresh}\n"
         ostr += f"nframes = {self.nframes}\n\n"
@@ -85,6 +85,9 @@ class TwoPointParams:
         ostr += f"minimum_groups = {self.minimum_groups}\n"
         ostr += f"minimum_sigclip_groups = {self.minimum_sigclip_groups}\n"
         ostr += f"only_use_ints = {self.only_use_ints}\n"
-        ostr += f"min_diffs_single_pass = {self.min_diffs_single_pass}\n"
+        ostr += f"min_diffs_single_pass = {self.min_diffs_single_pass}\n\n"
 
         ostr += f"copy_arrs = {self.copy_arrs}\n"
+        ostr += f"{delim}\n"
+
+        return ostr
