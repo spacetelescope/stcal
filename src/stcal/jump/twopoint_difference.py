@@ -10,11 +10,48 @@ log.setLevel(logging.DEBUG)
 
 
 def find_crs(dataa, group_dq, read_noise, twopt_p):
+    """
+    An interface between the detect_jumps_data function and the
+    find_crs_old function using the TwoPointParams class that makes
+    adding and removing parameters when using the two point
+    difference without necessitating a change to the find_crs
+    function signature.
+
+    XXX The find_crs_old should be refactored in the same way as the
+        functions in the jump.py file, as well as making use of the
+        TwoPointParams class.  This can be done on a later PR.
+
+    Parameters
+    ----------
+    dataa: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
+        input ramp data
+
+    group_dq : int, 4D array
+        group DQ flags
+
+    read_noise : float, 2D array
+        The read noise of each pixel
+
+    twopt_p : TwoPointParams
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    gdq : int, 4D array
+        group DQ array with reset flags
+
+    row_below_gdq : int, 3D array (num_ints, num_groups, num_cols)
+        pixels below current row also to be flagged as a CR
+
+    row_above_gdq : int, 3D array (num_ints, num_groups, num_cols)
+        pixels above current row also to be flagged as a CR
+    """
     dqflags = {
         "SATURATED" : twopt_p.fl_sat,
         "DO_NOT_USE" : twopt_p.fl_dnu,
         "JUMP_DET" : twopt_p.fl_jump,
     }
+
     return find_crs_old(
         dataa,
         group_dq,
