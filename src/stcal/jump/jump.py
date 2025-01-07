@@ -283,7 +283,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
         says how many rows to increment to get to the next slice.
     """
     nrows = data.shape[2]
-    yinc = int(nrows // n_slices)
+    yinc = nrows // n_slices
     slices = []
     # Slice up data, gdq, readnoise_2d into slices
     # Each element of slices is a tuple of
