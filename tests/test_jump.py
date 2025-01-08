@@ -39,8 +39,8 @@ def create_jump_data(dims, gain, rnoise, tm):
     nints, ngroups, nrows, ncols = dims
     data = np.zeros(shape=dims, dtype=np.float32)
     gdq = np.zeros(shape=dims, dtype=np.uint8)
-    pdq = np.zeros(shape=dims, dtype=np.uint8)
 
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
     gain2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * gain
     rnoise2d = np.ones(shape=(nrows, ncols) , dtype=np.float32) * rnoise
 
