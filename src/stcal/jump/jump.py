@@ -301,7 +301,8 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
             i,
             (
                 data[:, :, i * yinc: (i + 1) * yinc, :],
-                gdq[:, :, i * yinc: (i + 1) * yinc, :].copy(),
+                # gdq[:, :, i * yinc: (i + 1) * yinc, :].copy(),
+                gdq[:, :, i * yinc: (i + 1) * yinc, :],
                 readnoise_2d[i * yinc: (i + 1) * yinc, :],
                 twopt_params,
             ),
@@ -312,7 +313,8 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
         n_slices - 1,
         (
             data[:, :, (n_slices - 1) * yinc: nrows, :],
-            gdq[:, :, (n_slices - 1) * yinc: nrows, :].copy(),
+            # gdq[:, :, (n_slices - 1) * yinc: nrows, :].copy(),
+            gdq[:, :, (n_slices - 1) * yinc: nrows, :],
             readnoise_2d[(n_slices - 1) * yinc: nrows, :],
             twopt_params,
         ),
@@ -335,15 +337,8 @@ def setup_pdq(jump_data):
         The pixel DQ array (2D)
     """
     pdq = jump_data.pdq
-    wh_g = np.where(jump_data.gain_2d <= 0.0)
-    if len(wh_g[0] > 0):
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], jump_data.fl_ngv)
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], jump_data.fl_dnu)
-
-    wh_g = np.where(np.isnan(jump_data.gain_2d))
-    if len(wh_g[0] > 0):
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], jump_data.fl_ngv)
-        pdq[wh_g] = np.bitwise_or(pdq[wh_g], jump_data.fl_dnu)
+    bad_gain = (jump_data.gain_2d <= 0.0) | np.isnan(jump_data.gain_2d)
+    pdq[bad_gain] |= (jump_data.fl_ngv | jump_data.fl_dnu)
 
     return pdq
 
