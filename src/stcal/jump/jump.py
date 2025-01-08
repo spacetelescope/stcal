@@ -454,6 +454,7 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     persist_image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     outcube = cube.copy()
+    satcolor = 22  # (0, 0, 22) is a dark blue in RGB
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
@@ -468,7 +469,7 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
             axes = (round(axis1 / 2), round(axis2 / 2))
 
             alpha = ellipse[2]
-            color = (0, 0, 22)  # in the RGB cube, set blue plane pixels of the ellipse to 22
+            color = (0, 0, satcolor)  # in the RGB cube, set blue plane pixels of the ellipse to 22
             image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1,)
 
             #  Create another non-extended ellipse that is used to create the
@@ -556,8 +557,7 @@ def extend_ellipses(
         #  This loop will flag the number of groups
         for flg_grp in range(grp, last_grp):
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], jump_data.fl_sat)
-            saty, satx = np.where(sat_pix == jump_data.fl_sat)
-            jump_ellipse[saty, satx] = 0
+            jump_ellipse[sat_pix == jump_data.fl_sat] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
     diff_cube = out_gdq_cube - gdq_cube
 
