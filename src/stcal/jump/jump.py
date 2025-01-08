@@ -301,7 +301,6 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
             i,
             (
                 data[:, :, i * yinc: (i + 1) * yinc, :],
-                # gdq[:, :, i * yinc: (i + 1) * yinc, :].copy(),
                 gdq[:, :, i * yinc: (i + 1) * yinc, :],
                 readnoise_2d[i * yinc: (i + 1) * yinc, :],
                 twopt_params,
@@ -313,7 +312,6 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
         n_slices - 1,
         (
             data[:, :, (n_slices - 1) * yinc: nrows, :],
-            # gdq[:, :, (n_slices - 1) * yinc: nrows, :].copy(),
             gdq[:, :, (n_slices - 1) * yinc: nrows, :],
             readnoise_2d[(n_slices - 1) * yinc: nrows, :],
             twopt_params,
