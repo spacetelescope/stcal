@@ -559,6 +559,7 @@ def extend_ellipses(
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], jump_data.fl_sat)
             jump_ellipse[sat_pix == jump_data.fl_sat] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
+    diff_cube = out_gdq_cube - gdq_cube
 
     return out_gdq_cube, num_ellipses
 
