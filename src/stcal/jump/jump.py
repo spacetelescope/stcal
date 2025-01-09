@@ -1047,6 +1047,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
     sat_flag = jump_data.fl_sat
+    dnu_flag = jump_data.fl_dnu
 
     #  mask pixels that are already flagged as jump
     combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[:, :])
@@ -1058,18 +1059,15 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     masked_ratio[sat_pixels_array == sat_flag] = np.nan
 
     #  mask pixels that are already flagged as do not use
-    dnu_pixels_array = np.bitwise_and(combined_pixel_mask, 1)
-    dnuy, dnux = np.where(dnu_pixels_array == 1)  # dnuy, dnux used twice
+    dnu_pixels_array = np.bitwise_and(combined_pixel_mask, dnu_flag)
+    dnuy, dnux = np.where(dnu_pixels_array == dnu_flag)  # dnuy, dnux used twice
     masked_ratio[dnuy, dnux] = np.nan
-    # masked_ratio[dnu_pixels_array == 1] = np.nan
 
     masked_smoothed_ratio = convolve(masked_ratio.filled(np.nan), ring_2D_kernel)
 
     #  mask out the pixels that got refilled by the convolution
     masked_smoothed_ratio[dnuy, dnux] = np.nan
-    nrows, ncols = ratio.shape[1], ratio.shape[2]
-    extended_emission = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
-    extended_emission[masked_smoothed_ratio > jump_data.extend_snr_threshold] = 1
+    extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
     contours, hierarchy = cv.findContours(
