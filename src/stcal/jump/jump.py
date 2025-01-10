@@ -1,3 +1,6 @@
+#  jump.py - detect cosmic ray jumps and their side effects like
+#            snowballs and showers.
+
 import logging
 import multiprocessing
 import time
@@ -19,7 +22,8 @@ log.setLevel(logging.DEBUG)
 
 def detect_jumps_data(jump_data):
     """
-    This is the high-level controlling routine for the jump detection process.
+    Detect jumps and their side effects, such as showers and snowballs.
+
     It loads and sets the various input data and parameters needed by each of
     the individual detection methods and then calls the detection methods in
     turn.
@@ -125,7 +129,7 @@ def detect_jumps_data(jump_data):
 
 def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
     """
-    Implements multiprocessing for jump detection.
+    Split data for jump detection multiprocessing.
     
     Parameters
     ----------
@@ -322,7 +326,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
 
 def setup_pdq(jump_data):
     """
-    Prepares the pixel DQ array for procesing, removing invalid data.
+    Prepare the pixel DQ array for procesing, removing invalid data.
 
     Paramter
     --------
@@ -343,8 +347,7 @@ def setup_pdq(jump_data):
 
 def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     """
-    This routine controls the creation of expanded regions that are flagged as
-    jumps.
+    Control the creation of expanded regions that are flagged as jumps.
 
     These events are called snowballs for the NIR. While they are most commonly
     circular, there are elliptical ones. This routine does not handle the
@@ -424,7 +427,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
 
 def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
-    Extend the saturated ellipses that are larger than the min_sat_radius
+    Extend the saturated ellipses that are larger than the min_sat_radius.
     
     Parameter
     ---------
@@ -702,9 +705,10 @@ def point_inside_ellipse(point, ellipse):
 
 def near_edge(jump, low_threshold, high_threshold):
     """
-    This routing tests whether the center of a jump is close to the edge of
-    the detector. Jumps that are within the threshold will not require a
-    saturated core since this may be off the detector
+    Test whether the center of a jump is close to the edge of the detector.
+
+    Jumps that are within the threshold will not require a saturated core
+    since this may be off the detector
 
     Parameter
     ---------
@@ -734,7 +738,7 @@ def near_edge(jump, low_threshold, high_threshold):
 def find_faint_extended(
         indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_for_shower=10):
     """
-    Flagging showers.
+    Flag groups based on showers detected.
 
     Parameters
     ----------
@@ -846,7 +850,7 @@ def find_faint_extended(
 
 def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
     """
-    Ensure that flagging showers didn't change final fluxes by more than the allowed amount
+    Ensure that flagging showers didn't change final fluxes by more than allowed.
 
     Parameter
     ---------
@@ -935,7 +939,7 @@ def count_dnu_groups(gdq, jump_data):
 
 def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
     """
-    Draw ellipses onto an image
+    Draw ellipses onto an image.
 
     Parameters
     ----------
@@ -971,12 +975,13 @@ def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
 
 
 def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
-    '''
-    Expand the ellipse by the expansion factor. The number of pixels added to
-    both axes is the number of pixels added to the minor axis. This prevents
-    very large flagged ellipses with high axis ratio ellipses. The major and
-    minor axis are not always the same index.  Therefore, we have to test to
-    find which is actually the minor axis.
+    """
+    Expand the ellipse by the expansion factor.
+
+    The number of pixels added to both axes is the number of pixels added
+    to the minor axis. This prevents very large flagged ellipses with high
+    axis ratio ellipses. The major and minor axis are not always the same
+    index.  Therefore, we have to test to find which is actually the minor axis.
 
     Parameters
     ----------
@@ -996,7 +1001,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     ______
     axes : tuple
         Expanded and rounded ellipse axes.
-    '''
+    """
     if expand_by_ratio:
         if ellipse[1][1] < ellipse[1][0]:
             axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
@@ -1080,7 +1085,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
 def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     """
-    Computes the SNR ratio of each difference.
+    Compute the SNR ratio of each difference.
 
     Parameters
     ----------
@@ -1194,7 +1199,7 @@ def nan_invalid_data(data, gdq, jump_data):
 
 def find_first_good_group(int_gdq, do_not_use):
     """
-    Find first good group
+    Find first good group.
 
     Parameter
     ---------
@@ -1224,9 +1229,7 @@ def find_first_good_group(int_gdq, do_not_use):
 
 def calc_num_slices(n_rows, max_cores, max_available):
     """
-    Compute the number of data slices needed for multiprocessesing, based
-    on requested number of processes, available number of processes, and
-    the number of rows (the data is sliced by row).
+    Compute the number of data slices needed for multiprocessesing.
 
     Parameter
     ---------

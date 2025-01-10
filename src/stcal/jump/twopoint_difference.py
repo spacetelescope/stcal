@@ -11,6 +11,8 @@ log.setLevel(logging.DEBUG)
 
 def find_crs(dataa, group_dq, read_noise, twopt_p):
     """
+    Detect jump due to cosmic rays using the two point difference method.
+
     An interface between the detect_jumps_data function and the
     find_crs_old function using the TwoPointParams class that makes
     adding and removing parameters when using the two point
@@ -99,11 +101,12 @@ def find_crs_old(
     min_diffs_single_pass=10,
 ):
     """
-    Find CRs/Jumps in each integration within the input data array. The input
-    data array is assumed to be in units of electrons, i.e. already multiplied
-    by the gain. We also assume that the read noise is in units of electrons.
-    We also assume that there are at least three groups in the integrations.
-    This was checked by jump_step before this routine is called.
+    Find CRs/Jumps in each integration within the input data array.
+
+    The input data array is assumed to be in units of electrons, i.e. already
+    multiplied by the gain. We also assume that the read noise is in units of
+    electrons.  We also assume that there are at least three groups in the
+    integrations. This was checked by jump_step before this routine is called.
 
     Parameters
     ----------
@@ -183,6 +186,7 @@ def find_crs_old(
     min_diffs_single_pass: integer
         The minimum number of groups to switch from the iterative flagging of
         cosmic rays to just finding all the outliers at once.
+
     Returns
     -------
     gdq : int, 4D array
@@ -526,6 +530,7 @@ def calc_med_first_diffs(in_first_diffs):
     those three groups will be returned without any clipping. Finally, if
     there are two usable groups, the group with the smallest absolute
     difference will be returned.
+
     Parameters
     ----------
     in_first_diffs : array, float

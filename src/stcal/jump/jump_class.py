@@ -2,10 +2,12 @@ INDENT = "    "
 DELIM = "-" * 80
 
 class JumpData:
-    def __init__(
-        self, jump_model=None, gain2d=None, rnoise2d=None, dqflags=None
-    ):
+    """Contains data needed for detecting jumps."""
+
+    def __init__(self, jump_model=None, gain2d=None, rnoise2d=None, dqflags=None):
         """
+        Initialize JumpData instance.
+
         jump_model : model
             Input data model, assumed to be of type RampModel.
 
@@ -196,7 +198,7 @@ class JumpData:
 
     def init_arrays_from_model(self, jump_model):
         """
-        Sets arrays from a data model.
+        Set arrays from a data model.
 
         jump_model : datamodel
             A datamodel with certain expected parameters.
@@ -207,7 +209,7 @@ class JumpData:
 
     def init_arrays_from_arrays(self, data, gdq, pdq):
         """
-        Sets arrays from a numpy arrays.
+        Set arrays from a numpy arrays.
 
         Parameters
         ----------
@@ -226,7 +228,7 @@ class JumpData:
 
     def set_detection_settings(self, rej, _3grp, _4grp, mx, mn, _4flag):
         """
-        Set class instance detection settings
+        Set class instance detection settings.
 
         Parameters
         ----------
@@ -402,6 +404,7 @@ class JumpData:
     # Print methods, primarily used for debugging.
 
     def print_jump_data(self, fd=None):
+        """Print jump_data information."""
         self.print_jump_data_arrays(fd=fd)
         self.print_jump_data_options(fd=fd)
         self.print_jump_data_dqflags(fd=fd)
@@ -411,6 +414,7 @@ class JumpData:
         self.print_jump_data_internal_state(fd=fd)
 
     def print_jump_data_arrays(self, pix_list=None, fd=None):
+        """Print jump_data arrays."""
         if fd is None:
             print(self.get_jump_data_arrays())
         else:
@@ -418,6 +422,7 @@ class JumpData:
 
 
     def get_jump_data_arrays(self):
+        """Return string of jump_data information."""
         oline = f"{DELIM}\n"
         oline += "JumpData Arrays\n"
         oline += f"Data shape = {self.data.shape}\n"
@@ -433,12 +438,14 @@ class JumpData:
         return oline
 
     def print_jump_data_options(self, fd=None):
+        """Print jump_data options."""
         if fd is None:
             print(self.get_jump_data_options())
         else:
             print(self.get_jump_data_options(), file=fd)
 
     def get_jump_data_options(self):
+        """Return string of jump_data option."""
         oline = f"{DELIM}\n"
         oline += f"JumpData Options\n"
         oline += f"nframes = {self.nframes}\n"
@@ -463,12 +470,14 @@ class JumpData:
         return oline
 
     def print_jump_data_dqflags(self, fd=None):
+        """Print string of jump_data dqflags."""
         if fd is None:
             print(self.get_jump_data_dqflags())
         else:
             print(self.get_jump_data_dqflags(), file=fd)
 
     def get_jump_data_dqflags(self):
+        """Return string of jump_data dqflags."""
         oline = f"{DELIM}\n"
         oline += "DQ Flags\n"
         oline += f"{INDENT}fl_good = {self.fl_good}\n"
@@ -481,12 +490,14 @@ class JumpData:
         return oline
 
     def print_jump_data_snowball(self, fd=None):
+        """Print string of jump_data snowball data."""
         if fd is None:
             print(self.get_jump_data_snowball())
         else:
             print(self.get_jump_data_snowball(), file=fd)
 
     def get_jump_data_snowball(self):
+        """Return string of jump_data snowball data."""
         oline = f"{DELIM}\n"
         oline += "Snowball Information\n"
         oline += f"expand_large_events = {self.expand_large_events}\n"
@@ -502,12 +513,14 @@ class JumpData:
         return oline
 
     def print_jump_data_shower(self, fd=None):
+        """Print string of jump_data shower data."""
         if fd is None:
             print(self.get_jump_data_shower())
         else:
             print(self.get_jump_data_shower(), file=fd)
 
     def get_jump_data_shower(self):
+        """Return string of jump_data shower data."""
         oline = f"{DELIM}\n"
         oline += "Shower Information\n"
         oline += f"find_showers = {self.find_showers}\n"
@@ -522,12 +535,14 @@ class JumpData:
         return oline
 
     def print_jump_data_sigma_clipping(self, fd=None):
+        """Print string of jump_data sigma clipping data."""
         if fd is None:
             print(self.get_jump_data_sigma_clipping())
         else:
             print(self.get_jump_data_sigma_clipping(), file=fd)
 
     def get_jump_data_sigma_clipping(self):
+        """Return string of jump_data sigma clipping data."""
         oline = f"{DELIM}\n"
         oline += "Sigma Clipping\n"
         oline += f"minimum_groups = {self.minimum_groups}\n"
@@ -537,12 +552,14 @@ class JumpData:
         return oline
 
     def print_jump_data_internal_state(self, fd=None):
+        """Print string of jump_data internal state."""
         if fd is None:
             print(self.get_jump_data_internal_state())
         else:
             print(self.get_jump_data_internal_state(), file=fd)
 
     def get_jump_data_internal_state(self):
+        """Return string of jump_data internal state."""
         oline = f"{DELIM}\n"
         oline += "Internal State\n"
         oline += f"grps_masked_after_shower = {self.grps_masked_after_shower}\n"
