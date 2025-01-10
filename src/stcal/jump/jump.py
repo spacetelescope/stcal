@@ -98,6 +98,10 @@ def detect_jumps_data(jump_data):
 
     # remove redundant bits in pixels that have jump flagged but were
     # already flagged as do_not_use or saturated.
+    '''
+    gdq[gdq == np.bitwise_or(dnu, jump)] ^= dnu  # FAILED tests/test_jump.py::test_multiprocessing - assert 4 == 1
+    gdq[gdq == np.bitwise_or(sat, jump)] ^= sat  # FAILED tests/test_jump.py::test_multiprocessing - assert 4 == 1
+    '''
     gdq[gdq == np.bitwise_or(dnu, jump)] = dnu
     gdq[gdq == np.bitwise_or(sat, jump)] = sat
 
@@ -244,10 +248,8 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
             # row of the previous slice and flag any neighbors in the
             # bottom row of this slice saved from the top of the previous
             # slice
-            gdq[:, :, k * yinc - 1, :] = np.bitwise_or(gdq[:, :, k * yinc - 1, :], row_below_gdq[:, :, :])
-            gdq[:, :, k * yinc, :] = np.bitwise_or(
-                gdq[:, :, k * yinc, :], previous_row_above_gdq[:, :, :]
-            )
+            gdq[:, :, k * yinc - 1, :] |= row_below_gdq[:, :, :]
+            gdq[:, :, k * yinc, :] |= previous_row_above_gdq[:, :, :]
 
         # save the neighbors to be flagged that will be in the next slice
         previous_row_above_gdq = row_above_gdq.copy()
