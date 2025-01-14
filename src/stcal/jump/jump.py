@@ -98,12 +98,8 @@ def detect_jumps_data(jump_data):
 
     # remove redundant bits in pixels that have jump flagged but were
     # already flagged as do_not_use or saturated.
-    '''
-    gdq[gdq == np.bitwise_or(dnu, jump)] ^= dnu  # FAILED tests/test_jump.py::test_multiprocessing - assert 4 == 1
-    gdq[gdq == np.bitwise_or(sat, jump)] ^= sat  # FAILED tests/test_jump.py::test_multiprocessing - assert 4 == 1
-    '''
-    gdq[gdq == np.bitwise_or(dnu, jump)] = dnu
-    gdq[gdq == np.bitwise_or(sat, jump)] = sat
+    gdq[gdq & (jump | dnu) == (jump | dnu)] ^= jump
+    gdq[gdq & (jump | sat) == (jump | sat)] ^= jump
 
     #  This is the flag that controls the flagging of snowballs.
     if jump_data.expand_large_events:
