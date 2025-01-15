@@ -151,8 +151,8 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     n_slices : int
         The number of data slices for multiprocessing.
 
-    Return
-    ------
+    Returns
+    -------
     gdq : ndarray
         the group DQ array, 4D uint8
 
@@ -198,8 +198,8 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
         The number of rows in each slice (rows are the y-axis, so this
         says how many rows to increment to get to the next slice.
 
-    Return
-    ------
+    Returns
+    -------
     gdq : ndarray
         The group DQ, 4D array uint8.
 
@@ -275,8 +275,8 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     n_slices : int
         The number of data slices for multiprocessing.
 
-    Return
-    ------
+    Returns
+    -------
     slices : array
         The array of data slices to be used in multiprocessing
 
@@ -326,8 +326,8 @@ def setup_pdq(jump_data):
     """
     Prepare the pixel DQ array for procesing, removing invalid data.
 
-    Paramter
-    --------
+    Parameters
+    ----------
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
@@ -427,8 +427,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
     Extend the saturated ellipses that are larger than the min_sat_radius.
     
-    Parameter
-    ---------
+    Parameters
+    ----------
     cube : ndarray
         Group DQ cube for an integration.
 
@@ -443,8 +443,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     persist_jumps : ndarray
         3D (nints, nrows, ncols) uint8
 
-    Return
-    ------
+    Returns
+    -------
     outcube : ndarray
         Group DQ cube for an integration.
 
@@ -527,10 +527,13 @@ def extend_ellipses(
     num_grps_masked : int
         The number of groups flagged.
 
-    Return
-    ------
+    Returns
+    -------
     out_gdq_cube : ndarray
+        Computed 3-D group DQ array.
+
     num_ellipses : int
+        The number of ellipses passed in as a parameter.
     """
     # For a given DQ plane it will use the list of ellipses to create
     #  expanded ellipses of pixels with
@@ -607,8 +610,8 @@ def find_ellipses(dqplane, bitmask, min_area):
         The minimum area of saturated pixels at the center of a snowball. Only
         contours with area above the minimum will create snowballs.
 
-    Return 
-    ------
+    Returns 
+    -------
     list of computed ellipses
     """
     # Using an input DQ plane this routine will find the groups of pixels with
@@ -634,19 +637,39 @@ def make_snowballs(
     Parameter
     ---------
     gdq : ndarray
+        The 4-D group DQ array.
+
     integration : int
+        The current integration being used.
+
     group : int
+        The current group being used.
+
     jump_ellipses : cv.ellipses
+        Ellipses computed based on jump detection.
+
     sat_ellipses : cv.ellipses
+        Ellipses computed based on saturation.
+
     next_sat_ellipses : cv.ellipses
+        Ellipses computed based on saturation in the next group.
+
     jump_data : JumpData
+        Class containing parameters and methods to detect jumps.
+
     persist_jumps : ndarray
+        Zero array to be filled in.
 
     Return
     ------
     gdq : ndarray
+        The 4-D group DQ array.
+        
     snowballs : list
+        List of snowballs found.
+
     persist_jumps : ndarray
+        Filled in array.
     """
     nints, ngroups, nrows, ncols = gdq.shape
     low_threshold = jump_data.edge_size
@@ -689,10 +712,13 @@ def point_inside_ellipse(point, ellipse):
     Parameters
     ----------
     point : tuple
-    ellipse : cv2.ellipse
+        Point of interest.
 
-    Return
-    ------
+    ellipse : cv2.ellipse
+        Ellipse for testing.
+
+    Returns
+    -------
     Boolean decision if point is in ellipse
     """
     delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
@@ -721,8 +747,8 @@ def near_edge(jump, low_threshold, high_threshold):
         High threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
-    Return
-    ------
+    Returns
+    -------
     Boolean if ellipse is close to the detector's edge.
     """
     return (
@@ -867,8 +893,8 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
     gdq : ndarray
         The computed group DQ 4D uint8.
 
-    Return
-    ------
+    Returns
+    -------
     gdq : ndarray
         The computed group DQ 4D uint8.
     """
@@ -921,8 +947,8 @@ def count_dnu_groups(gdq, jump_data):
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
-    Return
-    ------
+    Returns
+    -------
     num_grps_donotuse : int
         The number of groups flagged as DO_NOT_USE.
     """
@@ -956,8 +982,8 @@ def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
-    Return
-    ------
+    Returns
+    -------
     image : ndarray
         The image with ellipses drawn on it.
     """
@@ -995,8 +1021,8 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
-    Return
-    ______
+    Returns
+    -------
     axes : tuple
         Expanded and rounded ellipse axes.
     """
@@ -1020,8 +1046,8 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     """
     Not sure what this is doing.  It does some convolution  to find some contours.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     ratio : ndarray
 
     intg : int
@@ -1042,8 +1068,8 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     ring_2D_kernel : astropy.convolution.Ring2DKernel
         2D Ring filter kernel
 
-    Return
-    ------
+    Returns
+    -------
     bigcontours : list 
         list of OpenCV countours
     """
@@ -1099,8 +1125,8 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     first_diffs_masked : ndarray
         Masked first differences.
 
-    Return
-    ------
+    Returns
+    -------
     median_diffs : ndarray
         Median of first differences
 
@@ -1144,8 +1170,8 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
     first_diffs_masked : ndarray
         Masked first differences.
 
-    Return
-    ------
+    Returns
+    -------
     median_diffs : ndarray
         Median of first differences
 
@@ -1179,8 +1205,8 @@ def nan_invalid_data(data, gdq, jump_data):
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
-    Return
-    ------
+    Returns
+    -------
     data : ndarray
         NaN'd cience data 4D float
     """
@@ -1199,16 +1225,16 @@ def find_first_good_group(int_gdq, do_not_use):
     """
     Find first good group.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     int_gdq : ndarray
         Group DQ for an integration 3D uint8.
 
     do_not_use : int
         The DO_NOT_USE flag.
 
-    Return
-    ------
+    Returns
+    -------
     first_good_group : ndarray
         The first good group of the pixel integration.
     """
@@ -1229,8 +1255,8 @@ def calc_num_slices(n_rows, max_cores, max_available):
     """
     Compute the number of data slices needed for multiprocessesing.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     n_rows : int
         The number of rows of the science data.
 
@@ -1240,8 +1266,8 @@ def calc_num_slices(n_rows, max_cores, max_available):
     max_available ; int
         The maximum number of CPU cores available.
 
-    Return
-    ------
+    Returns
+    -------
     The number of slices to slice the data into.
     """
     n_slices = 1

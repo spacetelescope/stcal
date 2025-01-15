@@ -8,6 +8,8 @@ class JumpData:
         """
         Initialize JumpData instance.
 
+        Parameters
+        ----------
         jump_model : model
             Input data model, assumed to be of type RampModel.
 
@@ -200,6 +202,8 @@ class JumpData:
         """
         Set arrays from a data model.
 
+        Parameters
+        ----------
         jump_model : datamodel
             A datamodel with certain expected parameters.
         """
