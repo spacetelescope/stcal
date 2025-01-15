@@ -1043,8 +1043,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
 
 
 def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
-    """
-    Not sure what this is doing.  It does some convolution  to find some contours.
+    """Perform convolution to find contours larger than a minimum area.
 
     Parameters
     ----------
