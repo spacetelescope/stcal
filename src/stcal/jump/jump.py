@@ -660,8 +660,8 @@ def make_snowballs(
     persist_jumps : ndarray
         Zero array to be filled in.
 
-    Return
-    ------
+    Returns
+    -------
     gdq : ndarray
         The 4-D group DQ array.
         
