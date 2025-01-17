@@ -221,6 +221,7 @@ def _get_bounding_box_with_offsets(
 
     else:
         # trim upper bounding box limits
+        shape = tuple(shape)
         bounding_box = tuple(
             (max(0, int(dmin + 0.5)) - 0.5, min(int(dmax + 0.5), sz) - 0.5)
             for dmin, dmax, sz in zip(domain_min, domain_max, shape[::-1])
