@@ -203,7 +203,8 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     gdq : ndarray
         The group DQ, 4D array uint8.
 
-    total_primary_crs
+    total_primary_crs : int
+        Total number of primary cosmic rays detected.
 
     stddev : float
         standard deviation computed during sigma clipping
@@ -563,7 +564,6 @@ def extend_ellipses(
             sat_pix = np.bitwise_and(gdq_cube[intg, flg_grp, :, :], jump_data.fl_sat)
             jump_ellipse[sat_pix == jump_data.fl_sat] = 0
             out_gdq_cube[intg, flg_grp, :, :] = np.bitwise_or(gdq_cube[intg, flg_grp, :, :], jump_ellipse)
-    diff_cube = out_gdq_cube - gdq_cube
 
     return out_gdq_cube, num_ellipses
 
@@ -734,8 +734,8 @@ def near_edge(jump, low_threshold, high_threshold):
     Jumps that are within the threshold will not require a saturated core
     since this may be off the detector
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     jump : cv2.ellipse
         Ellipse to check if close to detector edge.
 
@@ -749,7 +749,7 @@ def near_edge(jump, low_threshold, high_threshold):
 
     Returns
     -------
-    Boolean if ellipse is close to the detector's edge.
+    Boolean : True if ellipse is close to the detector's edge.
     """
     return (
         jump[0][0] < low_threshold
@@ -876,8 +876,8 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
     """
     Ensure that flagging showers didn't change final fluxes by more than allowed.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
