@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import math
 import warnings
 from pathlib import Path
@@ -253,12 +254,40 @@ def _parse_refcat(abs_refcat: str | Path,
         )
 
     if Path(abs_refcat).is_file():
-        return Table.read(abs_refcat)
+        return _parse_sky_centroid(Table.read(abs_refcat))
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
            "a path to an existing file name or one of the supported "
            f"reference catalogs: {_SINGLE_GROUP_REFCAT_STR}.")
     raise ValueError(msg)
+
+
+def _parse_sky_centroid(catalog: Table) -> Table:
+    """Turn SkyCoord object into simple RA/DEC columns.
+
+    The inclusion of SkyCoord objects via sky_centroid.ra and sky_centroid.dec
+    permits the use of catalogs directly from the jwst source_catalog step.
+    No action is taken if the catalog already contains RA and DEC columns.
+    """
+    cols = catalog.colnames
+    if ("RA" in cols) and ("DEC" in cols):
+        if "sky_centroid" in cols:
+            msg = ("Catalog contains both (RA, DEC) and sky_centroid. "
+                   "Ignoring sky_centroid.")
+            warnings.warn(msg, stacklevel=2)
+        return catalog
+    if "sky_centroid" not in cols:
+        msg = ("Absolute reference catalog contains neither RA, DEC "
+               "nor sky_centroid.ra, sky_centroid.dec.")
+        raise ValueError(msg)
+    
+    skycoord = catalog["sky_centroid"].to_table()
+
+    catalog["RA"] = skycoord["ra"]
+    catalog["DEC"] = skycoord["dec"]
+    catalog.remove_column("sky_centroid")
+
+    return catalog
 
 
 def _is_wcs_correction_small(correctors,
