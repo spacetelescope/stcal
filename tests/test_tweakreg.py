@@ -11,12 +11,14 @@ import pytest
 from astropy.modeling.models import Shift
 from astropy.table import Table
 from astropy.time import Time
+from astropy.coordinates import SkyCoord
 
 from stcal.tweakreg import astrometric_utils as amutils
 from stcal.tweakreg.tweakreg import (
     TweakregError,
     _is_wcs_correction_small,
     _parse_refcat,
+    _parse_sky_centroid,
     _wcs_to_skycoord,
     absolute_align,
     construct_wcs_corrector,
@@ -203,17 +205,19 @@ def datamodel(wcsobj2, group_id=None):
     return MinimalDataWithWCS(wcsobj2, group_id=group_id)
 
 
-def test_parse_refcat(datamodel, tmp_path):
+@pytest.fixture(scope="module")
+def abs_refcat(datamodel):
 
     wcsobj = datamodel.meta.wcs
-    correctors = fake_correctors(0.0)
-
-    # Get radius and fiducial
     radius, fiducial = amutils.compute_radius(wcsobj)
+    return amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
+                            catalog=TEST_CATALOG)
 
-    # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                              catalog=TEST_CATALOG)
+
+def test_parse_refcat(datamodel, abs_refcat, tmp_path):
+
+    correctors = fake_correctors(0.0)
+    cat = abs_refcat
 
     # save refcat to file
     cat.write(tmp_path / CATALOG_FNAME, format="ascii.ecsv", overwrite=True)
@@ -230,6 +234,36 @@ def test_parse_refcat(datamodel, tmp_path):
     # find refcat from web
     refcat = _parse_refcat(TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
     assert isinstance(refcat, Table)
+
+
+def test_parse_sky_centroid(abs_refcat):
+
+    # make a SkyCoord object out of the RA and DEC columns
+    cat = abs_refcat.copy()
+    sky_centroid = SkyCoord(cat["ra"], cat["dec"], unit="deg")
+    cat["sky_centroid"] = sky_centroid
+
+    # test case where ra, dec, and sky_centroid are all present
+    with pytest.warns(UserWarning):
+        cat_out = _parse_sky_centroid(cat)
+    cat_out = _parse_sky_centroid(cat)
+    assert isinstance(cat_out, Table)
+    assert np.all(cat["ra"] == cat_out["ra"])
+    assert np.all(cat["dec"] == cat_out["dec"])
+    assert "sky_centroid" not in cat_out.columns
+
+    # test case where ra, dec are no longer present
+    cat["sky_centroid"] = sky_centroid
+    cat.remove_columns(["ra", "dec"])
+    cat_out = _parse_sky_centroid(cat)
+    assert isinstance(cat_out, Table)
+    assert np.all(cat["ra"] == cat_out["ra"])
+    assert np.all(cat["dec"] == cat_out["dec"])
+
+    # test case where neither present
+    cat.remove_columns(["ra", "dec"])
+    with pytest.raises(KeyError):
+        _parse_sky_centroid(cat)
 
 
 @pytest.fixture(scope="module")

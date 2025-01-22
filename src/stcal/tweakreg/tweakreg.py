@@ -275,11 +275,12 @@ def _parse_sky_centroid(catalog: Table) -> Table:
             msg = ("Catalog contains both (RA, DEC) and sky_centroid. "
                    "Ignoring sky_centroid.")
             warnings.warn(msg, stacklevel=2)
+            catalog.remove_column("sky_centroid")
         return catalog
     if "sky_centroid" not in cols:
         msg = ("Absolute reference catalog contains neither RA, DEC "
                "nor sky_centroid.ra, sky_centroid.dec.")
-        raise ValueError(msg)
+        raise KeyError(msg)
     
     skycoord = catalog["sky_centroid"].to_table()
 
