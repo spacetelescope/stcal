@@ -239,21 +239,20 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
 def test_parse_sky_centroid(abs_refcat):
 
     # make a SkyCoord object out of the RA and DEC columns
-    cat = abs_refcat.copy()
-    sky_centroid = SkyCoord(cat["ra"], cat["dec"], unit="deg")
-    cat["sky_centroid"] = sky_centroid
+    sky_centroid = SkyCoord(abs_refcat["ra"], abs_refcat["dec"], unit="deg")
+    abs_refcat["sky_centroid"] = sky_centroid
 
     # test case where ra, dec, and sky_centroid are all present
+    cat = abs_refcat.copy()
     with pytest.warns(UserWarning):
         cat_out = _parse_sky_centroid(cat)
-    cat_out = _parse_sky_centroid(cat)
     assert isinstance(cat_out, Table)
     assert np.all(cat["ra"] == cat_out["ra"])
     assert np.all(cat["dec"] == cat_out["dec"])
     assert "sky_centroid" not in cat_out.columns
 
     # test case where ra, dec are no longer present
-    cat["sky_centroid"] = sky_centroid
+    cat = abs_refcat.copy()
     cat.remove_columns(["ra", "dec"])
     cat_out = _parse_sky_centroid(cat)
     assert isinstance(cat_out, Table)
@@ -261,7 +260,21 @@ def test_parse_sky_centroid(abs_refcat):
     assert np.all(cat["dec"] == cat_out["dec"])
 
     # test case where neither present
+    cat = abs_refcat.copy()
+    cat.remove_columns(["ra", "dec", "sky_centroid"])
+    with pytest.raises(KeyError):
+        _parse_sky_centroid(cat)
+
+    # test case where multiple RA or dec columns are present
+    cat = abs_refcat.copy()
+    cat["RA"] = cat["ra"]
+    with pytest.raises(KeyError):
+        _parse_sky_centroid(cat)
+
+    # test case where no RA/DEC but multiple sky_centroid columns are present
+    cat = abs_refcat.copy()
     cat.remove_columns(["ra", "dec"])
+    cat["sky_cENTROID"] = cat["sky_centroid"]
     with pytest.raises(KeyError):
         _parse_sky_centroid(cat)
 
