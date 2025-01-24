@@ -322,9 +322,9 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
 
 def subtract_dark(science_data, dark_data):
     """
-    Subtracts dark current data from science arrays, combines
-    error arrays in quadrature, and updates data quality array based on
-    DQ flags in the dark arrays.
+    Subtracts dark current data from science arrays.
+
+    Also updates data quality array based on DQ flags in the dark arrays.
 
     Parameters
     ----------

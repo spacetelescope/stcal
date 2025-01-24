@@ -5,7 +5,6 @@ class RampData:
         """Creates an internal ramp fit class."""
         # Arrays from the data model
         self.data = None
-        self.err = None
         self.groupdq = None
         self.pixeldq = None
         self.average_dark_current = None
@@ -56,7 +55,7 @@ class RampData:
 
         self.debug = False
 
-    def set_arrays(self, data, err, groupdq, pixeldq, average_dark_current, orig_gdq=None):
+    def set_arrays(self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -64,10 +63,6 @@ class RampData:
         ---------
         data : ndarray
             4-D array containing the pixel information.  It has dimensions
-            (nintegrations, ngroups, nrows, ncols)
-
-        err : ndarray
-            4-D array containing the error information.  It has dimensions
             (nintegrations, ngroups, nrows, ncols)
 
         groupdq : ndarray (uint16)
@@ -89,7 +84,6 @@ class RampData:
         """
         # Get arrays from the data model
         self.data = data
-        self.err = err
         self.groupdq = groupdq
         self.pixeldq = pixeldq
         self.average_dark_current = average_dark_current
@@ -155,7 +149,6 @@ class RampData:
         print("-" * 80)
         print("    Array Types:")
         print(f"data : {type(self.data)}")
-        print(f"err : {type(self.err)}")
         print(f"groupdq : {type(self.groupdq)}")
         print(f"pixeldq : {type(self.pixeldq)}")
 
@@ -203,7 +196,6 @@ class RampData:
         print(f"Shape : {self.data.shape}")
         print(f"data : \n{self.data}")
         print(f"groupdq : \n{self.groupdq}")
-        # print(f"err : \n{self.err}")
         # print(f"pixeldq : \n{self.pixeldq}")
         print("-" * 80)
 
@@ -215,7 +207,6 @@ class RampData:
         print(f"    groupdq")
         for integ in range(self.data.shape[0]):
             print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
-        # print(f"    err :\n{self.err[:, :, row, col]}")
         # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
 
     def dbg_print_info(self):
@@ -258,7 +249,6 @@ class RampData:
 
         nints, ngroups, nrows, ncols = self.data.shape
         fd.write(f"{indent}data = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.float32)\n")
-        fd.write(f"{indent}err = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.float32)\n")
         fd.write(f"{indent}gdq = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.uint8)\n")
         fd.write(f"{indent}pdq = np.zeros((1, 1), dtype=np.uint32)\n")
 
@@ -267,7 +257,6 @@ class RampData:
         indent = INDENT
 
         fd.write(f"{indent}ramp_data.data = data\n")
-        fd.write(f"{indent}ramp_data.err = err\n")
         fd.write(f"{indent}ramp_data.groupdq = gdq\n")
         fd.write(f"{indent}ramp_data.pixeldq = pdq\n")
         fd.write(f"{indent}ramp_data.zeroframe = zframe\n\n")
@@ -288,11 +277,6 @@ class RampData:
         for integ in range(nints):
             arr_str = np.array2string(self.data[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
             fd.write(f"{indent}data[{integ}, :, 0, 0] = np.array({arr_str})\n")
-        fd.write("\n")
-
-        for integ in range(nints):
-            arr_str = np.array2string(self.err[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
-            fd.write(f"{indent}err[{integ}, :, 0, 0] = np.array({arr_str})\n")
         fd.write("\n")
 
         for integ in range(nints):

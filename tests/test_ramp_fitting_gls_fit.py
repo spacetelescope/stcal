@@ -62,14 +62,13 @@ def setup_inputs(dims, gain, rnoise, group_time, frame_time):
 
     # Create zero arrays according to dimensions
     data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
-    err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     groupdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     pixeldq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
 
     # Set clas arrays
-    ramp_class.set_arrays(data, err, groupdq, pixeldq, average_dark_current=dark_current)
+    ramp_class.set_arrays(data, groupdq, pixeldq, dark_current)
 
     # Set class meta
     ramp_class.set_meta(
@@ -227,7 +226,7 @@ def test_error_when_frame_time_not_set():
 
     save_opt, algo, ncores = False, "GLS", "none"
     with pytest.raises(UnboundLocalError):
-        slopes, cube, ols_opt, gls_opt = ramp_fit_data(
+        ramp_fit_data(
             ramp_data, 512, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, test_dq_flags
         )
 

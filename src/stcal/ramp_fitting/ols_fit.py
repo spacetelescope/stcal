@@ -545,12 +545,11 @@ def slice_ramp_data(ramp_data, start_row, nrows):
 
     # Slice data by row
     data = ramp_data.data[:, :, start_row : start_row + nrows, :].copy()
-    err = ramp_data.err[:, :, start_row : start_row + nrows, :].copy()
     groupdq = ramp_data.groupdq[:, :, start_row : start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row : start_row + nrows, :].copy()
     average_dark_current = ramp_data.average_dark_current[start_row : start_row + nrows, :].copy()
 
-    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq, average_dark_current)
+    ramp_data_slice.set_arrays(data, groupdq, pixeldq, average_dark_current)
 
     if ramp_data.zeroframe is not None:
         ramp_data_slice.zeroframe = ramp_data.zeroframe[:, start_row : start_row + nrows, :].copy()
@@ -785,7 +784,6 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     readnoise_2d, rn_bswap = handle_array_endianness(readnoise_2d, sys_order)
 
     ramp_data.data, _ = handle_array_endianness(ramp_data.data, sys_order)
-    ramp_data.err, _ = handle_array_endianness(ramp_data.err, sys_order)
     ramp_data.average_dark_current , _ = handle_array_endianness(ramp_data.average_dark_current, sys_order)
     ramp_data.groupdq, _ = handle_array_endianness(ramp_data.groupdq, sys_order)
     ramp_data.pixeldq, _ = handle_array_endianness(ramp_data.pixeldq, sys_order)
@@ -927,7 +925,6 @@ def discard_miri_groups(ramp_data):
         True if usable data available for further processing.
     """
     data = ramp_data.data
-    err = ramp_data.err
     groupdq = ramp_data.groupdq
     orig_gdq = ramp_data.orig_gdq
 
@@ -958,7 +955,6 @@ def discard_miri_groups(ramp_data):
 
     if num_bad_slices > 0:
         data = data[:, num_bad_slices:, :, :]
-        err = err[:, num_bad_slices:, :, :]
         if orig_gdq is not None:
             orig_gdq = orig_gdq[:, num_bad_slices:, :, :]
 
@@ -978,7 +974,6 @@ def discard_miri_groups(ramp_data):
             return False
 
         data = data[:, :-1, :, :]
-        err = err[:, :-1, :, :]
         groupdq = groupdq[:, :-1, :, :]
         if orig_gdq is not None:
             orig_gdq = orig_gdq[:, :-1, :, :]
@@ -993,7 +988,6 @@ def discard_miri_groups(ramp_data):
         return False
 
     ramp_data.data = data
-    ramp_data.err = err
     ramp_data.groupdq = groupdq
     if orig_gdq is not None:
         ramp_data.orig_gdq = orig_gdq
@@ -1061,7 +1055,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     """
     # Get image data information
     data = ramp_data.data
-    err = ramp_data.err
     groupdq = ramp_data.groupdq
     inpixeldq = ramp_data.pixeldq
 
@@ -1073,7 +1066,7 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
     imshape = (nrows, ncols)
     cubeshape = (ngroups, *imshape)
 
-    # Get GROUP DQ and ERR arrays from input file
+    # Get GROUP DQ array from input file
     gdq_cube = groupdq
     gdq_cube_shape = gdq_cube.shape
 
@@ -1198,7 +1191,6 @@ def ramp_fit_slopes(ramp_data, gain_2d, readnoise_2d, save_opt, weighting):
         del pixeldq_sect
 
     ramp_data.data = data
-    ramp_data.err = err
     ramp_data.groupdq = groupdq
     ramp_data.pixeldq = inpixeldq
 
@@ -1282,7 +1274,6 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
     """
     # Get image data information
     data = ramp_data.data
-    err = ramp_data.err
     groupdq = ramp_data.groupdq
     inpixeldq = ramp_data.pixeldq
 
@@ -1440,7 +1431,6 @@ def ramp_fit_compute_variances(ramp_data, gain_2d, readnoise_2d, fit_slopes_ans)
         del segs_4
 
     ramp_data.data = data
-    ramp_data.err = err
     ramp_data.groupdq = groupdq
     ramp_data.pixeldq = inpixeldq
 
