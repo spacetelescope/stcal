@@ -465,11 +465,11 @@ def slice_ramp_data(ramp_data, start_row, nrows):
 
     # Slice data by row
     data = ramp_data.data[:, :, start_row : start_row + nrows, :].copy()
-    err = ramp_data.err[:, :, start_row : start_row + nrows, :].copy()
     groupdq = ramp_data.groupdq[:, :, start_row : start_row + nrows, :].copy()
     pixeldq = ramp_data.pixeldq[start_row : start_row + nrows, :].copy()
+    average_dark_current = ramp_data.average_dark_current[start_row : start_row + nrows, :].copy()
 
-    ramp_data_slice.set_arrays(data, err, groupdq, pixeldq)
+    ramp_data_slice.set_arrays(data, groupdq, pixeldq, average_dark_current)
 
     # Carry over meta data.
     ramp_data_slice.set_meta(
@@ -564,10 +564,6 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
     if ngroups == 1:
         med_rates = utils.compute_median_rates(ramp_data)
 
-    # We'll propagate error estimates from previous steps to the
-    # current step by using the variance.
-    input_var = ramp_data.err**2
-
     # Convert the data section from DN to electrons.
     data *= gain_2d
 
@@ -575,7 +571,6 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         ramp_data.current_integ = num_int
         gdq_cube = gdq[num_int, :, :, :]
         data_cube = data[num_int, :, :, :]
-        input_var_sect = input_var[num_int, :, :, :]
 
         if save_opt:
             first_group[:, :] = data[num_int, 0, :, :].copy()
@@ -590,7 +585,6 @@ def gls_fit_single(ramp_data, gain_2d, readnoise_2d, max_num_cr, save_opt):
         ) = determine_slope(
             ramp_data,
             data_cube,
-            input_var_sect,
             gdq_cube,
             readnoise_2d,
             gain_2d,
@@ -767,7 +761,6 @@ def create_opt_res(save_opt, dims, max_num_cr):
 def determine_slope(
     ramp_data,
     data_sect,
-    input_var_sect,
     gdq_sect,
     readnoise_sect,
     gain_sect,
@@ -876,9 +869,6 @@ def determine_slope(
         nx is the number of pixels in the X (more rapidly varying)
         direction.  The units should be electrons.
 
-    input_var_sect : 3-D ndarray, shape (ngroups, ny, nx)
-        The square of the input ERR array, matching data_sect.
-
     gdq_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The group data quality array.  This may be a subarray, matching
         data_sect.
@@ -941,7 +931,6 @@ def determine_slope(
         return determine_slope_one_group(
             ramp_data,
             data_sect,
-            input_var_sect,
             gdq_sect,
             readnoise_sect,
             gain_sect,
@@ -971,7 +960,6 @@ def determine_slope(
     while not done:
         (intercept_sect, int_var_sect, slope_sect, slope_var_sect, cr_sect, cr_var_sect) = compute_slope(
             data_sect,
-            input_var_sect,
             gdq_sect,
             readnoise_sect,
             gain_sect,
@@ -1016,7 +1004,6 @@ def determine_slope(
 def determine_slope_one_group(
     ramp_data,
     data_sect,
-    input_var_sect,
     gdq_sect,
     readnoise_sect,
     gain_sect,
@@ -1042,9 +1029,6 @@ def determine_slope_one_group(
         number of groups; ny is the number of pixels in the Y direction;
         nx is the number of pixels in the X (more rapidly varying)
         direction.  The units should be electrons.
-
-    input_var_sect : 3-D ndarray, shape (ngroups, ny, nx)
-        The square of the input ERR array, matching data_sect.
 
     gdq_sect : 3-D ndarray, shape (ngroups, ny, nx)
         The group data quality array.  This may be a subarray, matching
@@ -1235,7 +1219,6 @@ def positive_fit(current_fit):
 
 def compute_slope(
     data_sect,
-    input_var_sect,
     gdq_sect,
     readnoise_sect,
     gain_sect,
@@ -1260,9 +1243,6 @@ def compute_slope(
     data_sect : 3-D ndarray; shape (ngroups, ny, nx)
         The ramp data for one of the integrations in an exposure.  This
         may be a subarray in detector coordinates, but covering all groups.
-
-    input_var_sect : 3-D ndarray, shape (ngroups, ny, nx)
-        The square of the input ERR array, matching data_sect.
 
     gdq_sect : 3-D ndarray; shape (ngroups, ny, nx)
         The group data quality array.  This may be a subarray, matching
@@ -1406,7 +1386,6 @@ def compute_slope(
         # ramp_data will be a ramp with a 1-D array of pixels copied out
         # of data_sect.
         ramp_data = np.empty((ngroups, nz), dtype=data_sect.dtype)
-        input_var_data = np.empty((ngroups, nz), dtype=data_sect.dtype)
         prev_fit_data = np.empty((ngroups, nz), dtype=prev_fit.dtype)
         prev_slope_data = np.empty(nz, dtype=prev_slope_sect.dtype)
         prev_slope_data[:] = prev_slope_sect[ncr_mask]
@@ -1423,7 +1402,6 @@ def compute_slope(
         saturated_data = np.empty((ngroups, nz), dtype=prev_fit.dtype)
         for k in range(ngroups):
             ramp_data[k] = data_sect[k][ncr_mask]
-            input_var_data[k] = input_var_sect[k][ncr_mask]
             prev_fit_data[k] = prev_fit[k][ncr_mask]
             cr_flagged_2d[k] = cr_flagged[k][ncr_mask]
             # This is for clobbering saturated pixels.

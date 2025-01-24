@@ -29,12 +29,12 @@ def detect_jumps_data(jump_data):
     turn.
 
     Note that the detection methods are currently set up on the assumption
-    that the input science and error data arrays will be in units of
+    that the input science data array will be in units of
     electrons, hence this routine scales those input arrays by the detector
     gain. The methods assume that the read noise values will be in units
     of DN.
 
-    The gain is applied to the science data and error arrays using the
+    The gain is applied to the science data array using the
     appropriate instrument- and detector-dependent values for each pixel of an
     image.  Also, a 2-dimensional read noise array with appropriate values for
     each pixel is passed to the detection methods.
@@ -66,11 +66,10 @@ def detect_jumps_data(jump_data):
 
     pdq = setup_pdq(jump_data)
 
-    # Apply gain to the SCI, ERR, and readnoise arrays so they're in units
+    # Apply gain to the SCI and readnoise arrays so they're in units
     # of electrons
     data = jump_data.data * jump_data.gain_2d
     gdq = jump_data.gdq
-    # err = jump_data.err * jump_data.gain_2d
     readnoise_2d = jump_data.rnoise_2d * jump_data.gain_2d
 
     # also apply to the after_jump thresholds
@@ -120,7 +119,6 @@ def detect_jumps_data(jump_data):
         # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
         #    back in units of DN
         data /= jump_data.gain_2d
-        # err /= jump_data.gain_2d
         readnoise_2d /= jump_data.gain_2d
 
     # Return the updated data quality arrays
