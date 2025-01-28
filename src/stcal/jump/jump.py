@@ -292,12 +292,6 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     # Each element of slices is a tuple of
     # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
     #  four_grp_thresh, nframes)
-
-    # must copy arrays here, find_crs will make copies but if slices
-    # are being passed in for multiprocessing then the original gdq will be
-    # modified unless copied beforehand.
-    gdq = gdq.copy()
-    data = data.copy()
     twopt_params.copy_arrs = False  # we don't need to copy arrays again in find_crs
     for i in range(n_slices - 1):
         slices.insert(
@@ -540,9 +534,7 @@ def extend_ellipses(
     #  expanded ellipses of pixels with
     # the jump flag set.
     out_gdq_cube = gdq_cube.copy()
-    plane = gdq_cube[intg, grp, :, :].copy()
-    ncols = plane.shape[1]
-    nrows = plane.shape[0]
+    _, _, nrows, ncols = gdq_cube.shape
     image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
     for ellipse in ellipses:
@@ -802,6 +794,7 @@ def find_faint_extended(
     refy, refx = np.where(pdq == refpix_flag)
     gdq[:, :, refy, refx] = jump_data.fl_dnu
     first_diffs = np.diff(data, axis=1)
+    del data
 
     all_ellipses = []
 
@@ -913,6 +906,7 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
             image1 = np.nanmean(diff, axis=0)
+        del tempdata
 
         # Approximate post-shower rates
         tempdata = indata[intg, :, :, :].copy()
@@ -924,6 +918,7 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
             image2 = np.nanmean(diff, axis=0)
+        del tempdata
 
         # Revert the group flags to the pre-shower flags for any pixels whose rates
         # became NaN or changed by more than the amount reasonable for a real CR shower
@@ -1092,6 +1087,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     masked_ratio[dnuy, dnux] = np.nan
 
     masked_smoothed_ratio = convolve(masked_ratio.filled(np.nan), ring_2D_kernel)
+    del masked_ratio
 
     #  mask out the pixels that got refilled by the convolution
     masked_smoothed_ratio[dnuy, dnux] = np.nan
