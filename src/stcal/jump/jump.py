@@ -22,7 +22,6 @@ def detect_jumps(
     indata,
     gdq,
     pdq,
-    inerr,
     gain_2d,
     readnoise_2d,
     rejection_thresh,
@@ -69,12 +68,12 @@ def detect_jumps(
     turn.
 
     Note that the detection methods are currently set up on the assumption
-    that the input science and error data arrays will be in units of
+    that the input science data array will be in units of
     electrons, hence this routine scales those input arrays by the detector
     gain. The methods assume that the read noise values will be in units
     of DN.
 
-    The gain is applied to the science data and error arrays using the
+    The gain is applied to the science data array using the
     appropriate instrument- and detector-dependent values for each pixel of an
     image.  Also, a 2-dimensional read noise array with appropriate values for
     each pixel is passed to the detection methods.
@@ -92,9 +91,6 @@ def detect_jumps(
 
     pdq : int, 2D array
         pixelg dq array
-
-    inerr : float, 4D array
-        error array
 
     gain_2d : float, 2D array
         gain for all pixels
@@ -247,10 +243,9 @@ def detect_jumps(
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags["NO_GAIN_VALUE"])
         pdq[wh_g] = np.bitwise_or(pdq[wh_g], dqflags["DO_NOT_USE"])
 
-    # Apply gain to the SCI, ERR, and readnoise arrays so they're in units
+    # Apply gain to the SCI and readnoise arrays so they're in units
     # of electrons
     data = indata * gain_2d
-    err = inerr * gain_2d
     readnoise_2d *= gain_2d
     # also apply to the after_jump thresholds
     after_jump_flag_e1 = after_jump_flag_dn1 * np.nanmedian(gain_2d)
@@ -474,10 +469,9 @@ def detect_jumps(
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
-    # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
+    # Back out the applied gain to the SCI and readnoise arrays so they're
     #    back in units of DN
     data /= gain_2d
-    err /= gain_2d
     readnoise_2d /= gain_2d
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev

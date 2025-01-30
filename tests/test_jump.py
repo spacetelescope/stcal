@@ -51,7 +51,6 @@ def test_nirspec_saturated_pix():
     data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     read_noise = np.full((nrows, ncols), inreadnoise, dtype=np.float32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
-    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gain = np.ones_like(read_noise) * ingain
 
@@ -68,7 +67,7 @@ def test_nirspec_saturated_pix():
     gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, 2]
 
     # run jump detection
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(nframes, data, gdq, pdq, err,
+    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(nframes, data, gdq, pdq,
                                                                                gain, read_noise, rejection_thresh=4.0,
                                                                                three_grp_thresh=5,
                                  four_grp_thresh=6,
@@ -95,12 +94,11 @@ def test_multiprocessing():
     gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 4
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
     num_cores = "1"
     data[0, 4:, 5, 1] = 2000
     gdq[0, 4:, 6, 1] = DQFLAGS['DO_NOT_USE']
     gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
-        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        frames_per_group, data, gdq, pdq, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
         four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
         flag_4_neighbors=True, dqflags=DQFLAGS)
     print(data[0, 4, :, :])
@@ -116,11 +114,10 @@ def test_multiprocessing():
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     readnoise_2d = np.ones((nrows, ncols), dtype=np.float32) * readnoise
     gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 3
-    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
     data[0, 4:, 5, 1] = 2000
     gdq[0, 4:, 6, 1] = DQFLAGS['DO_NOT_USE']
     gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
-        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        frames_per_group, data, gdq, pdq, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
         four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
         flag_4_neighbors=True, dqflags=DQFLAGS)
     assert gdq[0, 4, 5, 1] == DQFLAGS['JUMP_DET']
@@ -140,12 +137,11 @@ def test_multiprocessing_big():
     gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 4
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint32)
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
-    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
     num_cores = "1"
     data[0, 4:, 204, 5] = 2000
     gdq[0, 4:, 204, 6] = DQFLAGS['DO_NOT_USE']
     gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
-        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        frames_per_group, data, gdq, pdq, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
         four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
         flag_4_neighbors=True, dqflags=DQFLAGS)
     print(data[0, 4, :, :])
@@ -162,11 +158,10 @@ def test_multiprocessing_big():
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     readnoise_2d = np.ones((nrows, ncols), dtype=np.float32) * readnoise
     gain_2d = np.ones((nrows, ncols), dtype=np.float32) * 3
-    err = np.zeros(shape=(nrows, ncols), dtype=np.float32)
     data[0, 4:, 204, 5] = 2000
     gdq[0, 4:, 204, 6] = DQFLAGS['DO_NOT_USE']
     gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps(
-        frames_per_group, data, gdq, pdq, err, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
+        frames_per_group, data, gdq, pdq, gain_2d, readnoise_2d, rejection_thresh=5, three_grp_thresh=6,
         four_grp_thresh=7, max_cores=num_cores, max_jump_to_flag_neighbors=10000, min_jump_to_flag_neighbors=100,
         flag_4_neighbors=True, dqflags=DQFLAGS)
     assert gdq[0, 4, 204, 5] == DQFLAGS['JUMP_DET']

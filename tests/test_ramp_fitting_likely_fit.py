@@ -36,13 +36,12 @@ def create_blank_ramp_data(dims, var, tm):
     group_time = (nframes + groupgap) * frame_time
 
     data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
-    err = np.ones(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     dark_current = np.zeros(shape=(nrows, ncols), dtype = np.float32)
 
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, err=err, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
+    ramp_data.set_arrays(data=data, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
         name="NIRSpec",
         frame_time=frame_time,
@@ -375,9 +374,7 @@ def test_too_few_group_ramp(ngroups):
     ramp_data.data[0, :, 0, 0] = ramp
 
     with pytest.raises(ValueError):
-        image_info, integ_info, opt_info = likely_ramp_fit(
-            ramp_data, rnoise2d, gain2d
-        )
+        likely_ramp_fit(ramp_data, rnoise2d, gain2d)
 
 
 @pytest.mark.parametrize("nframes", [1, 2, 4, 8])
@@ -611,9 +608,8 @@ def dbg_print_slopes(slope, pix=(0, 0), label=None):
 
 def dbg_print_cube(cube, pix=(0, 0), label=None):
     data, dq, vp, vr, err = cube
-    data1, dq1, vp1, vr1, err1 = cube1
     row, col = pix
-    nints = data1.shape[0]
+    nints = data.shape[0]
 
     print(" ")
     print(DELIM)
