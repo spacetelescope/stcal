@@ -325,6 +325,7 @@ def find_crs_old(
                     e_jump = first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]
 
                     ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
+                    # XXX Increased memory consumption with np.ma.masked_greater
                     masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
                     #  The jump mask is the ratio greater than the threshold and the difference is usable
                     jump_mask = np.logical_and(masked_ratio.mask, np.logical_not(first_diffs_masked.mask))
