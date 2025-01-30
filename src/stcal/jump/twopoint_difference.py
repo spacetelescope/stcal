@@ -9,7 +9,76 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def find_crs(
+def find_crs(dataa, group_dq, read_noise, twopt_p):
+    """
+    Detect jump due to cosmic rays using the two point difference method.
+
+    An interface between the detect_jumps_data function and the
+    find_crs_old function using the TwoPointParams class that makes
+    adding and removing parameters when using the two point
+    difference without necessitating a change to the find_crs
+    function signature.
+
+    XXX The find_crs_old should be refactored in the same way as the
+        functions in the jump.py file, as well as making use of the
+        TwoPointParams class.  This can be done on a later PR.
+
+    Parameters
+    ----------
+    dataa: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
+        input ramp data
+
+    group_dq : int, 4D array
+        group DQ flags
+
+    read_noise : float, 2D array
+        The read noise of each pixel
+
+    twopt_p : TwoPointParams
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    gdq : int, 4D array
+        group DQ array with reset flags
+
+    row_below_gdq : int, 3D array (num_ints, num_groups, num_cols)
+        pixels below current row also to be flagged as a CR
+
+    row_above_gdq : int, 3D array (num_ints, num_groups, num_cols)
+        pixels above current row also to be flagged as a CR
+    """
+    dqflags = {
+        "SATURATED" : twopt_p.fl_sat,
+        "DO_NOT_USE" : twopt_p.fl_dnu,
+        "JUMP_DET" : twopt_p.fl_jump,
+    }
+
+    return find_crs_old(
+        dataa,
+        group_dq,
+        read_noise,
+        twopt_p.normal_rej_thresh,
+        twopt_p.two_diff_rej_thresh,
+        twopt_p.three_diff_rej_thresh,
+        twopt_p.nframes,
+        twopt_p.flag_4_neighbors,
+        twopt_p.max_jump_to_flag_neighbors,
+        twopt_p.min_jump_to_flag_neighbors,
+        dqflags,
+        twopt_p.after_jump_flag_e1,
+        twopt_p.after_jump_flag_n1,
+        twopt_p.after_jump_flag_e2,
+        twopt_p.after_jump_flag_n2,
+        twopt_p.copy_arrs,
+        twopt_p.minimum_groups,
+        twopt_p.minimum_sigclip_groups,
+        twopt_p.only_use_ints,
+        twopt_p.min_diffs_single_pass,
+    )
+
+
+def find_crs_old(
     dataa,
     group_dq,
     read_noise,
@@ -32,11 +101,12 @@ def find_crs(
     min_diffs_single_pass=10,
 ):
     """
-    Find CRs/Jumps in each integration within the input data array. The input
-    data array is assumed to be in units of electrons, i.e. already multiplied
-    by the gain. We also assume that the read noise is in units of electrons.
-    We also assume that there are at least three groups in the integrations.
-    This was checked by jump_step before this routine is called.
+    Find CRs/Jumps in each integration within the input data array.
+
+    The input data array is assumed to be in units of electrons, i.e. already
+    multiplied by the gain. We also assume that the read noise is in units of
+    electrons.  We also assume that there are at least three groups in the
+    integrations. This was checked by jump_step before this routine is called.
 
     Parameters
     ----------
@@ -116,6 +186,7 @@ def find_crs(
     min_diffs_single_pass: integer
         The minimum number of groups to switch from the iterative flagging of
         cosmic rays to just finding all the outliers at once.
+
     Returns
     -------
     gdq : int, 4D array
@@ -254,6 +325,7 @@ def find_crs(
                     e_jump = first_diffs - median_diffs[np.newaxis, np.newaxis, :, :]
 
                     ratio = np.abs(e_jump) / sigma[np.newaxis, np.newaxis, :, :]
+                    # XXX Increased memory consumption with np.ma.masked_greater
                     masked_ratio = np.ma.masked_greater(ratio, normal_rej_thresh)
                     #  The jump mask is the ratio greater than the threshold and the difference is usable
                     jump_mask = np.logical_and(masked_ratio.mask, np.logical_not(first_diffs_masked.mask))
@@ -459,6 +531,7 @@ def calc_med_first_diffs(in_first_diffs):
     those three groups will be returned without any clipping. Finally, if
     there are two usable groups, the group with the smallest absolute
     difference will be returned.
+
     Parameters
     ----------
     in_first_diffs : array, float

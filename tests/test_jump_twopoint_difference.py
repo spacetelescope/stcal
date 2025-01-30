@@ -2,7 +2,8 @@ import numpy as np
 from astropy.io import fits
 import pytest
 
-from stcal.jump.twopoint_difference import calc_med_first_diffs, find_crs
+from stcal.jump.twopoint_difference import calc_med_first_diffs
+from stcal.jump.twopoint_difference import find_crs_old as find_crs
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1}
 
