@@ -23,16 +23,22 @@ log.setLevel(logging.DEBUG)
 
 def resample_range(data_shape, bbox=None):
     # Find range of input pixels to resample:
+    if len(data_shape) != 2:
+        raise ValueError("Expected 'data_shape' to be of length 2.")
+
     if bbox is None:
         xmin = ymin = 0
-        xmax = data_shape[1] - 1
-        ymax = data_shape[0] - 1
+        xmax = max(data_shape[1] - 1, 0)
+        ymax = max(data_shape[0] - 1, 0)
+
     else:
+        if len(bbox) != 2:
+            raise ValueError("Expected bounding box to be of length 2.")
         ((x1, x2), (y1, y2)) = bbox
         xmin = max(0, int(x1 + 0.5))
         ymin = max(0, int(y1 + 0.5))
-        xmax = min(data_shape[1] - 1, int(x2 + 0.5))
-        ymax = min(data_shape[0] - 1, int(y2 + 0.5))
+        xmax = max(xmin, min(data_shape[1] - 1, int(x2 + 0.5)))
+        ymax = max(ymax, min(data_shape[0] - 1, int(y2 + 0.5)))
 
     return xmin, xmax, ymin, ymax
 
