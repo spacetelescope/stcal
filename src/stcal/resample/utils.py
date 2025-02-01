@@ -38,7 +38,7 @@ def resample_range(data_shape, bbox=None):
         xmin = max(0, int(x1 + 0.5))
         ymin = max(0, int(y1 + 0.5))
         xmax = max(xmin, min(data_shape[1] - 1, int(x2 + 0.5)))
-        ymax = max(ymax, min(data_shape[0] - 1, int(y2 + 0.5)))
+        ymax = max(ymin, min(data_shape[0] - 1, int(y2 + 0.5)))
 
     return xmin, xmax, ymin, ymax
 
