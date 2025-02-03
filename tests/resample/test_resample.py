@@ -50,7 +50,9 @@ def test_resample_defaults():
     assert resample.output_model["exposure_time"] == ttime
 
     # next assert assumes constant IVM
-    assert abs(np.sum(odata * oweight) - influx * np.prod(shape)) < 1.0e-6
+    assert abs(
+        np.sum(odata * oweight, dtype=float) - influx * np.prod(shape)
+    ) < 1.0e-6
 
     assert np.nansum(resample.output_model["var_flat"]) > 0.0
     assert np.nansum(resample.output_model["var_poisson"]) > 0.0
