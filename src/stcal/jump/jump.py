@@ -116,7 +116,7 @@ def detect_jumps_data(jump_data):
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
-        # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
+        # Back out the applied gain to the SCI and readnoise arrays so they're
         #    back in units of DN
         data /= jump_data.gain_2d
         readnoise_2d /= jump_data.gain_2d
