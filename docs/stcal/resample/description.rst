@@ -31,7 +31,7 @@ with each input model are resampled individually, then combined with a weighted
 sum.  The process is:
 
 #. For each input model, take the square root of each of the read noise variance
-   array to make an error image.
+   arrays to make an error image.
 
 #. Drizzle the read noise error image onto the output WCS, with drizzle
    parameters matching those used for the science data.
@@ -41,7 +41,7 @@ sum.  The process is:
    a. If the resampling `weight_type` is an inverse variance map (`ivm`), weight
       the resampled variance by the square of its own inverse.
 
-   #. If the `weight_type` is the exposure time (`exptime`), weight the
+   b. If the `weight_type` is the exposure time (`exptime`), weight the
       resampled variance by the square of the exposure time for the image.
 
 #. Add the weighted, resampled read noise variance to a running sum across all
@@ -78,21 +78,21 @@ In addition to image data, resample step also creates a "context image" stored
 in the ``con`` attribute in the output data model . Each pixel in the context
 image is a bit field that encodes
 information about which input image has contributed to the corresponding
-pixel in the resampled data array. Context image uses 32 bit integers to encode
-this information and hence it can keep track of only 32 input images.
-First bit corresponds to the first input image, second bit corrsponds to the
-second input image, and so on. If the number of input images is larger than 32,
-then it is necessary to have multiple context images ("planes") to hold
-information about all input images
+pixel in the resampled data array. The context image uses 32 bit integers to
+encode this information, and hence it can keep track of only 32 input images.
+The first bit corresponds to the first input image, the second bit corresponds
+to the second input image, and so on. If the number of input images is larger
+than 32, then it is necessary to have multiple context images ("planes")
+to hold information about all input images
 with the first plane encoding which of the first 32 images contributed
-to the output data pixel, second plane representing next 32 input images
+to the output data pixel, the second plane representing next 32 input images
 (number 33-64), etc. For this reason, context array is a 3D array of the type
 `numpy.int32` and shape ``(np, ny, nx)`` where ``nx`` and ``ny``
-are dimensions of image's data. ``np`` is the number of "planes" equal to
-``(number of input images - 1) // 32 + 1``. If a bit at position ``k`` in a
-pixel with coordinates ``(p, y, x)`` is 0 then input image number
+are the dimensions of the image data. ``np`` is the number of "planes" computed
+as ``(number of input images - 1) // 32 + 1``. If a bit at position ``k`` in a
+pixel with coordinates ``(p, y, x)`` is 0, then input image number
 ``32 * p + k`` (0-indexed) did not contribute to the output data pixel
-with array coordinates ``(y, x)`` and if that bit is 1 then input image number
+with array coordinates ``(y, x)`` and if that bit is 1, then input image number
 ``32 * p + k`` did contribute to the pixel ``(y, x)`` in the resampled image.
 
 As an example, let's assume we have 8 input images. Then, when ``'CON'`` pixel

@@ -50,9 +50,9 @@ class Resample:
        scale factors needed to obtain correctly convert resampled counts to
        fluxes.
     3. For each input image computes coordinate transformations (``pixmap``)
-       from coordinate system of the input image to the coordinate system of
-       the output image.
-    4. For each input image computes weight image.
+       from the coordinate system of the input image to the coordinate system
+       of the output image.
+    4. Computes the weight image for each input image.
     5. Calls :py:class:`~drizzle.resample.Drizzle` methods to resample and
        combine input images and their variance/error arrays.
     6. Keeps track of total exposure time and other time-related quantities.
@@ -344,17 +344,18 @@ class Resample:
     def get_input_model_pixel_area(self, model):
         """
         Computes or retrieves pixel area of an input model. Currently,
-        this is the average pixel area of input model's pixels within either
-        the bounding box (if available) or the entire data array.
+        this is the average pixel area of the input model's pixels within
+        either the bounding box (if available) or the entire data array.
 
         This value is used to compute a scale factor that will be applied
         to input image data. This scale factor takes into account the
-        difference in the definition of the pixel area reported in model's
-        ``meta`` and the pixel area at the location used to construct
+        difference in the definition of the pixel area reported in
+        ``model.meta`` and the pixel area at the location used to construct
         output WCS from the WCS of input models using ``pixel_scale_ratio``.
 
-        Intensity scale factor is computed elsewhere as the ratio of the value
-        of the pixel area in the meta to the area returned by this function.
+        The intensity scale factor is computed elsewhere as the ratio of the
+        value of the pixel area in the meta to the area returned by this
+        function.
 
         Subclasses can override this method to return the most appropriate
         pixel area value.
