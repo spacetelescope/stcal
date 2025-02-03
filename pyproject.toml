@@ -18,7 +18,6 @@ dependencies = [
     "scipy >=1.14.1",
     "scikit-image>=0.20.0",
     "numpy >=1.25.0",
-    "astropy >=5.0.4",
     "opencv-python-headless >=4.6.0.66",
     "asdf >=3.3.0",
     "gwcs >=0.22.0",
