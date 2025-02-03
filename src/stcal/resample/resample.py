@@ -47,9 +47,8 @@ class Resample:
 
     1. Sets up output arrays based on arguments used at initialization.
     2. Based on information about the input images and user arguments, computes
-       scale factors needed to obtain correctly convert resampled counts to
-       fluxes.
-    3. For each input image computes coordinate transformations (``pixmap``)
+       scale factors needed to convert resampled counts to fluxes.
+    3. For each input image, computes coordinate transformations (``pixmap``)
        from the coordinate system of the input image to the coordinate system
        of the output image.
     4. Computes the weight image for each input image.
@@ -349,8 +348,8 @@ class Resample:
 
         This value is used to compute a scale factor that will be applied
         to input image data. This scale factor takes into account the
-        difference in the definition of the pixel area reported in
-        ``model.meta`` and the pixel area at the location used to construct
+        difference in the definition of the pixel area reported in model's
+        ``meta`` and the pixel area at the location used to construct
         output WCS from the WCS of input models using ``pixel_scale_ratio``.
 
         The intensity scale factor is computed elsewhere as the ratio of the

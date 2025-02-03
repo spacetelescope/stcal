@@ -83,7 +83,7 @@ encode this information, and hence it can keep track of only 32 input images.
 The first bit corresponds to the first input image, the second bit corresponds
 to the second input image, and so on. If the number of input images is larger
 than 32, then it is necessary to have multiple context images ("planes")
-to hold information about all input images
+to hold information about all input images,
 with the first plane encoding which of the first 32 images contributed
 to the output data pixel, the second plane representing next 32 input images
 (number 33-64), etc. For this reason, context array is a 3D array of the type
