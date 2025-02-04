@@ -321,7 +321,8 @@ def find_crs_old(
                 
                 # calc. the median of first_diffs for each pixel along the group axis
                 # Do not overwrite first_diffs, median_diffs, sigma.
-                median_diffs_iter = calc_med_first_diffs(first_diffs)
+                first_diffs_abs = np.abs(first_diffs)
+                median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
 
                 # calculate sigma for each pixel
                 sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / nframes)
@@ -331,16 +332,15 @@ def find_crs_old(
                 # compute 'ratio' for each group. this is the value that will be
                 # compared to 'threshold' to classify jumps. subtract the median of
                 # first_diffs from first_diffs, take the abs. value and divide by sigma.
-                e_jump = first_diffs - median_diffs_iter[np.newaxis, :, :]
+                e_jump = first_diffs_abs - median_diffs_iter[np.newaxis, :, :]
                 ratio = np.abs(e_jump) / sigma_iter[np.newaxis, :, :]
-
                 # create a 2d array containing the value of the largest 'ratio' for each pixel
                 warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
                 max_ratio = np.nanmax(ratio, axis=1)
                 warnings.resetwarnings()
                 # now see if the largest ratio of all groups for each pixel exceeds the threshold.
                 # there are different threshold for 4+, 3, and 2 usable groups
-                num_unusable_groups = np.sum(np.isnan(first_diffs), axis=(0, 1))
+                num_unusable_groups = np.sum(np.isnan(first_diffs_abs), axis=(0, 1))
                 int4cr, row4cr, col4cr = np.where(
                     np.logical_and(ndiffs - num_unusable_groups >= 4, max_ratio > normal_rej_thresh)
                 )
@@ -362,8 +362,7 @@ def find_crs_old(
                 # repeat this process until no more CRs are found.
                 for j in range(len(all_crs_row)):
                     # get arrays of abs(diffs), ratio, readnoise for this pixel.
-                    # Make a copy, since this will be modified.
-                    pix_first_diffs = first_diffs[:, :, all_crs_row[j], all_crs_col[j]].copy()
+                    pix_first_diffs = first_diffs_abs[:, :, all_crs_row[j], all_crs_col[j]]
                     pix_ratio = ratio[:, :, all_crs_row[j], all_crs_col[j]]
                     pix_rn2 = read_noise_2[all_crs_row[j], all_crs_col[j]]
 
