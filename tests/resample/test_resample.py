@@ -77,7 +77,8 @@ def test_resample_defaults(weight_type):
     assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
 
 
-def test_resample_output_model():
+@pytest.mark.parametrize("compute_err", ["from_var", "driz_err"])
+def test_resample_output_model(compute_err):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -92,11 +93,13 @@ def test_resample_output_model():
         pscale=pscale,
         shape=out_shape,
     )
+    output_model["wht"] = np.zeros(out_shape, dtype=np.float32)
 
     resample = Resample(
         n_input_models=nmodels,
         output_model=output_model,
-        weight_type="exptime"
+        weight_type="exptime",
+        compute_err=compute_err,
     )
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
 
