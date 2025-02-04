@@ -291,6 +291,7 @@ class Resample:
                 accumulate=accumulate,
                 enable_ctx=enable_ctx,
                 enable_var=enable_var,
+                compute_err=compute_err,
             )
             self._output_model = output_model
             self._output_wcs = output_model["wcs"]
@@ -545,7 +546,7 @@ class Resample:
                 )
 
     def validate_output_model(self, output_model, accumulate,
-                              enable_ctx, enable_var):
+                              enable_ctx, enable_var, compute_err):
         """ Checks that ``output_model`` dictionary has all the required
         keywords that the code expects it to have based on the values
         of ``accumulate``, ``enable_ctx``, ``enable_var``. It will raise
@@ -586,6 +587,7 @@ class Resample:
             accumulate=accumulate,
             enable_ctx=enable_ctx,
             enable_var=enable_var,
+            compute_err=compute_err,
         )
 
         for attr in required_attributes:
@@ -597,7 +599,10 @@ class Resample:
         model_wcs = output_model["wcs"]
         self.check_output_wcs(model_wcs, estimate_output_shape=False)
         wcs_shape = model_wcs.array_shape
-        ref_shape = output_model["data"].shape
+        if output_model["data"] is None:
+            ref_shape = wcs_shape
+        else:
+            ref_shape = output_model["data"].shape
         if accumulate and wcs_shape is None:
             raise ValueError(
                 "Output model's 'wcs' must have 'array_shape' attribute "
@@ -611,12 +616,15 @@ class Resample:
             )
 
         for attr in required_attributes.difference(["data", "wcs"]):
-            if (isinstance(output_model[attr], np.ndarray) and
-                    not np.array_equiv(output_model[attr].shape, ref_shape)):
-                raise ValueError(
-                    "'output_wcs.array_shape' value is not consistent "
-                    f"with the shape of the '{attr}' array."
-                )
+            if isinstance(output_model[attr], np.ndarray):
+                model_shape = output_model[attr].shape[1:]
+                if attr == "con":
+                    model_shape = model_shape[1:]
+                if not np.array_equiv(model_shape, ref_shape):
+                    raise ValueError(
+                        "'output_wcs.array_shape' value is not consistent "
+                        f"with the shape of the '{attr}' array."
+                    )
 
         # TODO: also check "pixfrac", "kernel", "fillval", "weight_type"
         # with initializer parameters. log a warning if different.
@@ -805,7 +813,7 @@ class Resample:
                     # update output model if "pixel_scale_ratio" was never
                     # set previously:
                     if (self._output_model is not None and
-                            self._output_model["pixel_scale_ratio"] is None):
+                            self._output_model.get("pixel_scale_ratio") is None):
                         self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
                 iscale = math.sqrt(photom_pixel_area / input_pixel_area)
@@ -1549,12 +1557,12 @@ class Resample:
         if (start_time := self.output_model.get("start_time", None)) is None:
             self._exptime_start = []
         else:
-            self._exptime_start[start_time]
+            self._exptime_start = [start_time]
 
         if (end_time := self.output_model.get("end_time", None)) is None:
             self._exptime_end = []
         else:
-            self._exptime_end[end_time]
+            self._exptime_end = [end_time]
 
         self._measurement_time_success = []
 

@@ -112,3 +112,50 @@ def make_input_model(crpix, crval, pscale, shape, group_id=1, exptime=1):
     model["err"] = np.sqrt(3.0) * np.ones(shape, dtype=np.float32)
 
     return model
+
+
+def make_output_model(crpix, crval, pscale, shape):
+    w = make_gwcs(
+        crpix=crpix,
+        crval=crval,
+        pscale=pscale,
+        shape=shape
+    )
+
+    model = {
+        # WCS:
+        "wcs": w,
+        "pixelarea_steradians": w.pixel_area,
+        "pixelarea_arcsecsq": w.pixel_area * (np.rad2deg(1) * 3600)**2,
+
+        # main arrays:
+        "data": None,
+        "wht": None,
+        "con": None,
+
+        # error arrays:
+        "var_rnoise": None,
+        "var_flat": None,
+        "var_poisson": None,
+        "err": None,
+
+        # accumulate-specific:
+        "n_coadds": 0,
+
+        # drizzle info:
+        "pointings": 0,
+
+        # exposure time:
+        "exposure_time": 0.0,
+        "measurement_time": None,
+        "start_time": None,
+        "end_time": None,
+        "duration": 0.0,
+
+        # other meta:
+        "filename": "",
+        "s_region": compute_s_region_imaging(w),
+        "bunit_data": "MJy",
+    }
+
+    return model
