@@ -77,7 +77,7 @@ html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
 html_use_index = True
 
 # Enable nitpicky mode - which ensures that all references in the docs resolve.
-nitpicky = False
+nitpicky = False  # True does not work with enumerated parameter values
 
 nitpick_ignore = [
     ("py:class", "optional"),
