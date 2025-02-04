@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 import warnings
 from astropy import stats
+from astropy.utils.exceptions import AstropyUserWarning
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -247,7 +248,7 @@ def find_crs_old(
         dat[gdq & (dnu_flag | sat_flag) != 0] = np.nan
         
         # calculate the differences between adjacent groups (first diffs)
-        # use mask on data, so the results will have sat/donotuse groups masked
+        # Bad data will be NaN; np.nanmedian will be used later.
         first_diffs = np.diff(dat, axis=1)
         first_diffs_finite = np.isfinite(first_diffs)
         
@@ -269,6 +270,7 @@ def find_crs_old(
             warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
             warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
+            warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
 
             if only_use_ints:
                 clipped_diffs, alow, ahigh = stats.sigma_clip(first_diffs, sigma=normal_rej_thresh,
@@ -318,18 +320,19 @@ def find_crs_old(
             else:  # low number of diffs requires iterative flagging
                 
                 # calc. the median of first_diffs for each pixel along the group axis
-                median_diffs_it = calc_med_first_diffs(first_diffs)
+                # Do not overwrite first_diffs, median_diffs, sigma.
+                median_diffs_iter = calc_med_first_diffs(first_diffs)
 
                 # calculate sigma for each pixel
-                sigma_it = np.sqrt(np.abs(median_diffs_it) + read_noise_2 / nframes)
+                sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / nframes)
                 # reset sigma so pxels with 0 readnoise are not flagged as jumps
-                sigma_it[sigma_it == 0.0] = np.nan
+                sigma_iter[sigma_iter == 0.0] = np.nan
 
                 # compute 'ratio' for each group. this is the value that will be
                 # compared to 'threshold' to classify jumps. subtract the median of
                 # first_diffs from first_diffs, take the abs. value and divide by sigma.
-                e_jump = first_diffs - median_diffs_it[np.newaxis, :, :]
-                ratio = np.abs(e_jump) / sigma_it[np.newaxis, :, :]
+                e_jump = first_diffs - median_diffs_iter[np.newaxis, :, :]
+                ratio = np.abs(e_jump) / sigma_iter[np.newaxis, :, :]
 
                 # create a 2d array containing the value of the largest 'ratio' for each pixel
                 warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
@@ -414,7 +417,7 @@ def find_crs_old(
     # Flag the four neighbors using bitwise or, shifting the reference
     # boolean flag on pixel right, then left, then up, then down.
     # Flag neighbors above the threshold for which neither saturation 
-    # nor dnu is set.
+    # nor donotuse is set.
     
     if flag_4_neighbors:
         for i in range(nints):

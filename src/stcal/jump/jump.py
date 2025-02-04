@@ -71,7 +71,6 @@ def detect_jumps_data(jump_data):
     # of electrons
     data = jump_data.data * jump_data.gain_2d
     gdq = jump_data.gdq
-    # err = jump_data.err * jump_data.gain_2d
     readnoise_2d = jump_data.rnoise_2d * jump_data.gain_2d
 
     # also apply to the after_jump thresholds
@@ -118,10 +117,9 @@ def detect_jumps_data(jump_data):
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
-        # Back out the applied gain to the SCI, ERR, and readnoise arrays so they're
+        # Back out the applied gain to the SCI and readnoise arrays so they're
         #    back in units of DN
         data /= jump_data.gain_2d
-        # err /= jump_data.gain_2d
         readnoise_2d /= jump_data.gain_2d
 
     # Return the updated data quality arrays
@@ -462,8 +460,6 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
             axis2 = min(axis2, jump_data.max_extended_radius)
 
             alpha = ellipse[2]
-            color = (0, 0, satcolor)  # in the RGB cube, set blue plane pixels of the ellipse to 22
-
 
             indx, sat_ellipse = ellipse_subim(ceny, cenx, axis1, axis2,
                                               alpha, satcolor, (nrows, ncols))
@@ -849,8 +845,7 @@ def find_faint_extended(
     for intg in range(nints):
         if nints < jump_data.minimum_sigclip_groups:
             # The difference from the median difference for each group
-            median_diffs, ratio = diff_meddiff_int(
-                    intg, median_diffs, sigma, first_diffs)
+            ratio = diff_meddiff_int(intg, median_diffs, sigma, first_diffs)
 
         #  The convolution kernel creation
         ring_2D_kernel = Ring2DKernel(
@@ -858,8 +853,7 @@ def find_faint_extended(
         first_good_group = find_first_good_group(gdq[intg, :, :, :], jump_data.fl_dnu)
         for grp in range(first_good_group + 1, ngrps):
             if nints >= jump_data.minimum_sigclip_groups:
-                median_diffs, ratio = diff_meddiff_grp(
-                        intg, grp, median, stddev, first_diffs)
+                ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
             bigcontours = get_bigcontours(
                     ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
@@ -1212,26 +1206,16 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
 
     Returns
     -------
-    median_diffs : ndarray
-        Median of first differences
-
     ratio : ndarray
         SNR ratio
     """
-    if intg > 0:
-        e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
 
-        # SNR ratio of each diff.
-        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-    else:
-        # The difference from the median difference for each group
-        e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
+    e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
 
-        # SNR ratio of each diff.
-        ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
-        median_diffs = np.nanmedian(first_diffs_masked, axis=(0, 1))
+    # SNR ratio of each diff.
+    ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
-    return median_diffs, ratio
+    return ratio
 
 
 def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
@@ -1257,9 +1241,6 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
 
     Returns
     -------
-    median_diffs : ndarray
-        Median of first differences
-
     ratio : ndarray
         SNR ratio
     """
@@ -1272,7 +1253,7 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
     # SNR ratio of each diff.
     ratio = np.abs(e_jump) / sigma[np.newaxis, :, :]
 
-    return median_diffs, ratio
+    return ratio
 
 
 def nan_invalid_data(data, gdq, jump_data):
