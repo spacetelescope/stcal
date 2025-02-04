@@ -77,8 +77,14 @@ def test_resample_defaults(weight_type):
     assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
 
 
-@pytest.mark.parametrize("compute_err", ["from_var", "driz_err"])
-def test_resample_output_model(compute_err):
+@pytest.mark.parametrize(
+    "compute_err,weight_type",
+    [
+        ("from_var", "ivm-smed"),
+        ("driz_err", "ivm-med5")
+    ]
+)
+def test_resample_output_model(compute_err, weight_type):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -98,7 +104,7 @@ def test_resample_output_model(compute_err):
     resample = Resample(
         n_input_models=nmodels,
         output_model=output_model,
-        weight_type="exptime",
+        weight_type=weight_type,
         compute_err=compute_err,
     )
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
@@ -119,7 +125,7 @@ def test_resample_output_model(compute_err):
         data_val = k + 0.5
         im["data"][:, :] = data_val
 
-        influx += data_val * exptime
+        influx += data_val
         ttime += exptime
 
         resample.add_model(im)
