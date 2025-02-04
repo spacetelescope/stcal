@@ -12,8 +12,11 @@ from . helpers import (
 )
 
 
-@pytest.mark.parametrize("weight_type", ["ivm", "exptime"])
-def test_resample_defaults(weight_type):
+@pytest.mark.parametrize(
+    "weight_type,wcs_dict",
+    [("ivm", True), ("exptime", False)]
+)
+def test_resample_defaults(weight_type, wcs_dict):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -25,6 +28,11 @@ def test_resample_defaults(weight_type):
         pscale=pscale,
         shape=(1200, 1200)
     )
+    if wcs_dict:
+        output_wcs = {
+            "wcs": output_wcs,
+            "pixel_scale": pscale * 3600,
+        }
 
     nmodels = 4
 
