@@ -1,8 +1,4 @@
 """ Test various utility functions """
-import asdf
-from asdf_astropy.testing.helpers import assert_model_equal
-
-from gwcs import coordinate_frames as cf
 from numpy.testing import assert_array_equal
 import numpy as np
 import pytest
@@ -14,7 +10,6 @@ from stcal.resample.utils import (
     get_tmeasure,
     is_imaging_wcs,
     resample_range,
-    load_custom_wcs,
 )
 
 from . helpers import JWST_DQ_FLAG_DEF
@@ -26,40 +21,6 @@ BITVALUES_STR = f'{2**0}, {2**2}'
 BITVALUES_INV_STR = f'~{2**0}, {2**2}'
 JWST_NAMES = 'DO_NOT_USE,JUMP_DET'
 JWST_NAMES_INV = '~' + JWST_NAMES
-
-
-def _assert_frame_equal(a, b):
-    """ Copied from `gwcs`'s test_wcs.py """
-    __tracebackhide__ = True
-
-    assert type(a) is type(b)
-
-    if a is None:
-        return
-
-    if not isinstance(a, cf.CoordinateFrame):
-        return a == b
-
-    assert a.name == b.name  # nosec
-    assert a.axes_order == b.axes_order  # nosec
-    assert a.axes_names == b.axes_names  # nosec
-    assert a.unit == b.unit  # nosec
-    assert a.reference_frame == b.reference_frame  # nosec
-
-
-def _assert_wcs_equal(a, b):
-    """ Based on corresponding function from `gwcs`'s test_wcs.py """
-    assert a.name == b.name  # nosec
-
-    assert a.pixel_shape == b.pixel_shape
-    assert a.array_shape == b.array_shape
-    if a.array_shape is not None:
-        assert a.array_shape == b.pixel_shape[::-1]
-
-    assert len(a.available_frames) == len(b.available_frames)  # nosec
-    for a_step, b_step in zip(a.pipeline, b.pipeline):
-        _assert_frame_equal(a_step.frame, b_step.frame)
-        assert_model_equal(a_step.transform, b_step.transform)
 
 
 @pytest.mark.parametrize(
@@ -118,58 +79,6 @@ def test_resample_range(data_shape, bbox, exception, truth):
 
     xyminmax = resample_range(data_shape, bbox)
     assert np.allclose(xyminmax, truth, rtol=0, atol=1e-12)
-
-
-def test_load_custom_wcs_no_shape(tmpdir, wcs_gwcs):
-    """
-    Test loading a WCS from an asdf file.
-    """
-    wcs_file = str(tmpdir / "wcs.asdf")
-    wcs_gwcs.pixel_shape = None
-    wcs_gwcs.array_shape = None
-    wcs_gwcs.bounding_box = None
-
-    with asdf.AsdfFile({"wcs": wcs_gwcs}) as af:
-        af.write_to(wcs_file)
-
-    with pytest.raises(ValueError):
-        load_custom_wcs(wcs_file, output_shape=None)
-
-
-@pytest.mark.parametrize(
-    "array_shape, pixel_shape, output_shape, expected",
-    [
-        # (None, None, None, (1000, 1000)),  # from the bounding box
-        # # (None, (123, 456), None, (456, 123)),  # fails
-        # ((456, 123), None, None, (456, 123)),
-        # ((456, 123), None, (567, 890), (890, 567)),
-        ((456, 123), (123, 456), (567, 890), (890, 567)),
-        ((456, 123), (123, 456), None, (890, 567)),
-    ]
-)
-def test_load_custom_wcs(tmpdir, wcs_gwcs, array_shape, pixel_shape,
-                         output_shape, expected):
-    """
-    Test loading a WCS from an asdf file. `expected` is expected
-    ``wcs.array_shape``.
-
-    """
-    wcs_file = str(tmpdir / "wcs.asdf")
-
-    wcs_gwcs.pixel_shape = pixel_shape
-    wcs_gwcs.array_shape = array_shape
-
-    with asdf.AsdfFile({"wcs": wcs_gwcs}) as af:
-        af.write_to(wcs_file)
-
-    if output_shape is not None:
-        wcs_gwcs.array_shape = output_shape[::-1]
-
-    wcs_read = load_custom_wcs(wcs_file, output_shape=output_shape)
-
-    assert wcs_read.array_shape == expected
-
-    _assert_wcs_equal(wcs_gwcs, wcs_read)
 
 
 def test_get_tmeasure():

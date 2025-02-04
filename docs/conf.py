@@ -45,8 +45,6 @@ intersphinx_mapping = {
     ),
 }
 
-nitpick_ignore = [("py:class", "optional"), ("py:class", "np.ndarray")]
-
 extensions = [
     "pytest_doctestplus.sphinx.doctestplus",
     "sphinx.ext.autodoc",
@@ -82,5 +80,6 @@ html_use_index = True
 nitpicky = False
 
 nitpick_ignore = [
-    ('py:obj', 'type'),
+    ("py:class", "optional"),
+    ("py:class", "np.ndarray"),
 ]
