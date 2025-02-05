@@ -10,8 +10,7 @@ from stcal.jump.jump import (
     flag_large_events,
     point_inside_ellipse,
     find_first_good_group,
-    detect_jumps_data,
-    find_last_grp
+    detect_jumps_data
 )
 
 DQFLAGS = {
