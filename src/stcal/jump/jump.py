@@ -619,32 +619,6 @@ def extend_ellipses(
 
     return gdq_cube, num_ellipses
 
-def find_last_grp(grp, ngrps, num_grps_masked):
-    """
-    Find the last group based on current group and number of groups masked.
-
-    Parameters
-    ----------
-    grp : int
-        The location of the shower
-
-    ngrps : int
-        The number of groups in the integration
-
-    num_grps_masked : int
-        The requested number of groups to be flagged after the shower
-
-    Returns
-    -------
-    last_grp : int
-        The index of the last group to flag for the shower
-
-    """
-    num_grps_masked += 1
-    last_grp = min(grp + num_grps_masked, ngrps)
-    return last_grp
-
-
 def find_ellipses(dqplane, bitmask, min_area):
     """
     Find ellipses based on DQ masks in bitmask.
