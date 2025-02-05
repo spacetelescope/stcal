@@ -72,7 +72,8 @@ def make_gwcs(crpix, crval, pscale, shape):
     return wnew
 
 
-def make_input_model(crpix, crval, pscale, shape, group_id=1, exptime=1):
+def make_input_model(shape, crpix=(0, 0), crval=(0, 0), pscale=2.0e-5,
+                     group_id=1, exptime=1):
     w = make_gwcs(
         crpix=crpix,
         crval=crval,

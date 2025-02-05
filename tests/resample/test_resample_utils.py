@@ -4,17 +4,19 @@ import numpy as np
 import pytest
 
 from stcal.resample.utils import (
+    build_driz_weight,
     build_mask,
     bytes2human,
     compute_mean_pixel_area,
     get_tmeasure,
+    is_flux_density,
     is_imaging_wcs,
     resample_range,
 )
 
-from . helpers import JWST_DQ_FLAG_DEF
+from . helpers import make_input_model, JWST_DQ_FLAG_DEF
 
-
+GOOD = 0
 DQ = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
 BITVALUES = 2**0 + 2**2
 BITVALUES_STR = f'{2**0}, {2**2}'
@@ -120,3 +122,41 @@ def test_compute_mean_pixel_area(wcs_gwcs):
     assert abs(
         compute_mean_pixel_area(wcs_gwcs) / area - 1.0
     ) < 1e-5
+
+
+@pytest.mark.parametrize('unit,result',
+                         [('Jy', True), ('MJy', True),
+                          ('MJy/sr', False), ('DN/s', False),
+                          ('bad_unit', False), (None, False)])
+def test_is_flux_density(unit, result):
+    assert is_flux_density(unit) is result
+
+
+@pytest.mark.parametrize("weight_type", ["ivm", "exptime"])
+def test_build_driz_weight(weight_type):
+    """Check that correct weight map is returned of different weight types"""
+
+    model = make_input_model((10, 10))
+
+    model["dq"][0] = JWST_DQ_FLAG_DEF.DO_NOT_USE
+    model["measurement_time"] = 10.0
+    model["var_rnoise"] /= 10.0
+
+    weight_map = build_driz_weight(
+        model,
+        weight_type=weight_type,
+        good_bits=GOOD
+    )
+    assert_array_equal(weight_map[0], 0)
+    assert_array_equal(weight_map[1:], 10.0)
+    assert weight_map.dtype == np.float32
+
+
+@pytest.mark.parametrize("weight_type", ["ivm", None])
+def test_build_driz_weight_zeros(weight_type):
+    """Check that zero or not finite weight maps get set to 1"""
+    model = make_input_model((10, 10))
+
+    weight_map = build_driz_weight(model, weight_type=weight_type)
+
+    assert_array_equal(weight_map, 1)

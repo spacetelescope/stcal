@@ -4,21 +4,16 @@ import warnings
 import sys
 
 import numpy as np
-from scipy.ndimage import median_filter
 
-from astropy import units as u
-from astropy.nddata.bitmask import (
-    bitfield_to_boolean_mask,
-    interpret_bit_flags,
-)
 from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
 
-
 from stcal.resample.utils import (
+    build_driz_weight,
     compute_mean_pixel_area,
     get_tmeasure,
     resample_range,
+    is_flux_density,
 )
 
 
@@ -71,7 +66,7 @@ class Resample:
         "err": np.float32,
     }
 
-    dq_flag_name_map = {}  # type: dict[str, int]
+    dq_flag_name_map = None
 
     def __init__(self, n_input_models=None, pixfrac=1.0, kernel="square",
                  fillval=0.0, weight_type="ivm", good_bits=0,
@@ -785,7 +780,7 @@ class Resample:
 
                 # If input image is in flux density units, correct the
                 # flux for the user-specified change to the spatial dimension
-                if _is_flux_density(model["bunit_data"]):
+                if is_flux_density(model["bunit_data"]):
                     iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
                 else:
                     iscale = 1.0
@@ -1010,10 +1005,11 @@ class Resample:
 
         log.info("Resampling science and variance data")
 
-        weight = self.build_driz_weight(
+        weight = build_driz_weight(
             model,
             weight_type=self.weight_type,
             good_bits=self.good_bits,
+            flag_name_map=self.dq_flag_name_map
         )
 
         # apply sky subtraction
@@ -1414,137 +1410,6 @@ class Resample:
 
         return driz.out_img ** 2
 
-    def build_driz_weight(self, model, weight_type=None, good_bits=None):
-        """ Create a weight map that is used for weighting input images when
-        they are co-added to the ouput model.
-
-        Parameters
-        ----------
-        model : dict
-            Input model: a dictionar of relevant keywords and values.
-
-        weight_type : {"exptime", "ivm"}, optional
-            The weighting type for adding models' data. For
-            ``weight_type="ivm"`` (the default), the weighting will be
-            determined per-pixel using the inverse of the read noise
-            (VAR_RNOISE) array stored in each input image. If the
-            ``VAR_RNOISE`` array does not exist,
-            the variance is set to 1 for all pixels (i.e., equal weighting).
-            If ``weight_type="exptime"``, the weight will be set equal
-            to the measurement time (``TMEASURE``) when available and to
-            the exposure time (``EFFEXPTM``) otherwise.
-
-        good_bits : int, str, None, optional
-            An integer bit mask, `None`, a Python list of bit flags, a comma-,
-            or ``'|'``-separated, ``'+'``-separated string list of integer
-            bit flags or mnemonic flag names that indicate what bits in models'
-            DQ bitfield array should be *ignored* (i.e., zeroed).
-
-            See `Resample` for more information.
-
-        """
-        data = model["data"]
-        dq = model["dq"]
-
-        dqmask = bitfield_to_boolean_mask(
-            dq,
-            good_bits,
-            good_mask_value=1,
-            dtype=np.uint8,
-            flag_name_map=self.dq_flag_name_map,
-        )
-
-        if weight_type and weight_type.startswith('ivm'):
-            weight_type = weight_type.strip()
-            selective_median = weight_type.startswith('ivm-smed')
-            bitvalue = interpret_bit_flags(
-                good_bits,
-                flag_name_map=self.dq_flag_name_map
-            )
-            if bitvalue is None:
-                bitvalue = 0
-
-            # disable selective median if SATURATED flag is included
-            # in good_bits:
-            try:
-                saturation = self.dq_flag_name_map["SATURATED"]
-                if selective_median and not (bitvalue & saturation):
-                    selective_median = False
-                    weight_type = 'ivm'
-            except AttributeError:
-                pass
-
-            var_rnoise = model["var_rnoise"]
-            if (var_rnoise is not None and var_rnoise.shape == data.shape):
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    inv_variance = var_rnoise**-1
-
-                inv_variance[~np.isfinite(inv_variance)] = 1
-
-                if weight_type != 'ivm':
-                    ny, nx = data.shape
-
-                    # apply a median filter to smooth the weight at saturated
-                    # (or high read-out noise) single pixels. keep kernel size
-                    # small to still give lower weight to extended CRs, etc.
-                    ksz = weight_type[8 if selective_median else 7:]
-                    if ksz:
-                        kernel_size = int(ksz)
-                        if not (kernel_size % 2):
-                            raise ValueError(
-                                'Kernel size of the median filter in IVM '
-                                'weighting must be an odd integer.'
-                            )
-                    else:
-                        kernel_size = 3
-
-                    ivm_copy = inv_variance.copy()
-
-                    if selective_median:
-                        # apply median filter selectively only at
-                        # points of partially saturated sources:
-                        jumps = np.where(
-                            np.logical_and(dq & saturation, dqmask)
-                        )
-                        w2 = kernel_size // 2
-                        for r, c in zip(*jumps):
-                            x1 = max(0, c - w2)
-                            x2 = min(nx, c + w2 + 1)
-                            y1 = max(0, r - w2)
-                            y2 = min(ny, r + w2 + 1)
-                            data = ivm_copy[y1:y2, x1:x2][dqmask[y1:y2, x1:x2]]
-                            if data.size:
-                                inv_variance[r, c] = np.median(data)
-                            # else: leave it as is
-
-                    else:
-                        # apply median to the entire inv-var array:
-                        inv_variance = median_filter(
-                            inv_variance,
-                            size=kernel_size
-                        )
-                    bad_dqmask = np.logical_not(dqmask)
-                    inv_variance[bad_dqmask] = ivm_copy[bad_dqmask]
-
-            else:
-                warnings.warn(
-                    "var_rnoise array not available. "
-                    "Setting drizzle weight map to 1",
-                    RuntimeWarning
-                )
-                inv_variance = 1.0
-
-            weight = inv_variance * dqmask
-
-        elif weight_type == "exptime":
-            t, _ = get_tmeasure(model)
-            weight = np.full(data.shape, t)
-            weight *= dqmask
-
-        else:
-            weight = np.ones(data.shape, dtype=data.dtype) * dqmask
-
-        return weight.astype(np.float32)
 
     def init_time_counters(self):
         """ Initialize variables/arrays needed to process exposure time. """
@@ -1645,24 +1510,3 @@ def _get_model_name(model):
     if model_name is None or not model_name.strip():
         model_name = "Unknown"
     return model_name
-
-
-def _is_flux_density(bunit):
-    """
-    Differentiate between surface brightness and flux density data units.
-
-    Parameters
-    ----------
-    bunit : str or `~astropy.units.Unit`
-       Data units, e.g. 'MJy' (is flux density) or 'MJy/sr' (is not).
-
-    Returns
-    -------
-    bool
-        True if the units are equivalent to flux density units.
-    """
-    try:
-        flux_density = u.Unit(bunit).is_equivalent(u.Jy)
-    except (ValueError, TypeError):
-        flux_density = False
-    return flux_density

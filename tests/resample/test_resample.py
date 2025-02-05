@@ -16,7 +16,7 @@ from . helpers import (
     "weight_type,wcs_dict",
     [("ivm", True), ("exptime", False)]
 )
-def test_resample_defaults(weight_type, wcs_dict):
+def test_resample_mostly_defaults(weight_type, wcs_dict):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -49,10 +49,10 @@ def test_resample_defaults(weight_type, wcs_dict):
     for k in range(nmodels):
         exptime = k + 1
         im = make_input_model(
+            shape=shape,
             crpix=tuple(i - 6 * k for i in crpix),
             crval=crval,
             pscale=pscale,
-            shape=shape,
             group_id=k + 1,
             exptime=exptime
         )
@@ -92,7 +92,7 @@ def test_resample_defaults(weight_type, wcs_dict):
         ("driz_err", "ivm-med5")
     ]
 )
-def test_resample_output_model(compute_err, weight_type):
+def test_resample_custom_output_model(compute_err, weight_type):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -123,10 +123,10 @@ def test_resample_output_model(compute_err, weight_type):
     for k in range(nmodels):
         exptime = k + 1
         im = make_input_model(
+            shape=shape,
             crpix=tuple(i - 6 * k for i in crpix),
             crval=crval,
             pscale=pscale,
-            shape=shape,
             group_id=k + 1,
             exptime=exptime
         )
