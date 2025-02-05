@@ -186,7 +186,6 @@ struct ramp_data {
 
     /* Functions to get the proper data. */
     float (*get_data)(PyArrayObject*, npy_intp, npy_intp, npy_intp, npy_intp);
-    float (*get_err)(PyArrayObject*, npy_intp, npy_intp, npy_intp, npy_intp);
     uint32_t (*get_pixeldq)(PyArrayObject*, npy_intp, npy_intp);
     float (*get_gain)(PyArrayObject*, npy_intp, npy_intp);
     float (*get_rnoise)(PyArrayObject*, npy_intp, npy_intp);
@@ -195,7 +194,6 @@ struct ramp_data {
 
     /* The 4-D arrays with dimensions (nints, ngroups, nrows, ncols) */
     PyArrayObject * data;       /* The 4-D science data */
-    PyArrayObject * err;        /* The 4-D err data */
     PyArrayObject * groupdq;    /* The 4-D group DQ array */
 
     PyArrayObject * orig_gdq;   /* The 4-D group DQ array */
@@ -1132,7 +1130,6 @@ clean_ramp_data(
 
     Py_XDECREF(rd->data);
     Py_XDECREF(rd->groupdq);
-    Py_XDECREF(rd->err);
     Py_XDECREF(rd->pixeldq);
     Py_XDECREF(rd->zframe);
     Py_XDECREF(rd->dcurrent);
@@ -2072,7 +2069,6 @@ get_ramp_data_arrays(
     rd->data = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "data");
     rd->groupdq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "groupdq");
     rd->orig_gdq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "orig_gdq");
-    rd->err = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "err");
     rd->pixeldq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "pixeldq");
     rd->zframe = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "zeroframe");
     rd->dcurrent = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "average_dark_current");
@@ -2208,7 +2204,6 @@ get_ramp_data_new_validate(
     /* Validate the types for each of the ndarrays */
     if (!(
             (NPY_FLOAT==PyArray_TYPE(rd->data)) &&
-            (NPY_FLOAT==PyArray_TYPE(rd->err)) &&
             (NPY_UBYTE == PyArray_TYPE(rd->groupdq)) &&
             (NPY_UINT32 == PyArray_TYPE(rd->pixeldq)) &&
             (NPY_FLOAT==PyArray_TYPE(rd->dcurrent)) &&
@@ -2263,7 +2258,6 @@ get_ramp_data_getters(
         struct ramp_data * rd) /* The ramp data */
 {
     rd->get_data = get_float4;
-    rd->get_err = get_float4;
 
     rd->get_pixeldq = get_uint32_2;
 
@@ -2593,7 +2587,6 @@ print_ramp_data_types(
     printf("NPY_UBYTE = %d\n", NPY_UBYTE);
     printf("NPY_UINT322 = %d\n", NPY_UINT32);
     printf("PyArray_TYPE(rd->data))    = %d\n", PyArray_TYPE(rd->data));
-    printf("PyArray_TYPE(rd->err))     = %d\n", PyArray_TYPE(rd->err));
     printf("PyArray_TYPE(rd->groupdq)) = %d\n", PyArray_TYPE(rd->groupdq));
     printf("PyArray_TYPE(rd->pixeldq)) = %d\n", PyArray_TYPE(rd->pixeldq));
     printf("\n");
@@ -2655,7 +2648,6 @@ print_rd_type_info(struct ramp_data * rd) { /* The ramp data */
     print_delim();
     print_npy_types();
     dbg_ols_print("data = %d (%d)\n", PyArray_TYPE(rd->data), NPY_FLOAT);
-    dbg_ols_print("err  = %d (%d)\n", PyArray_TYPE(rd->err), NPY_FLOAT);
     dbg_ols_print("gdq  = %d (%d)\n", PyArray_TYPE(rd->groupdq), NPY_UBYTE);
     dbg_ols_print("pdq  = %d (%d)\n", PyArray_TYPE(rd->pixeldq), NPY_UINT32);
     dbg_ols_print("dcur = %d (%d)\n", PyArray_TYPE(rd->dcurrent), NPY_FLOAT);
