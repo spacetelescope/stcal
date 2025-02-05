@@ -67,12 +67,11 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
         del wh_chargeloss
 
     if isinstance(model.data, u.Quantity):
-        ramp_data.set_arrays(model.data.value, model.err.value, model.groupdq,
+        ramp_data.set_arrays(model.data.value, model.groupdq,
                              model.pixeldq, dark_current_array)
     else:
         ramp_data.set_arrays(
             model.data,
-            model.err,
             model.groupdq,
             model.pixeldq,
             dark_current_array,

@@ -434,7 +434,6 @@ class JumpData:
         self.data
         self.gdq
         self.pdq
-        self.err
         self.gain_2d
         self.rnoise_2d
         '''
