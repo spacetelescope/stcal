@@ -39,7 +39,6 @@ def make_rampmodel():
         ramp_data.data = np.full(dims, 1.0, dtype=np.float32)
         ramp_data.groupdq = np.zeros(dims, dtype=np.uint32)
         ramp_data.pixeldq = np.zeros(imshape, dtype=np.uint32)
-        ramp_data.err = np.zeros(dims, dtype=np.float32)
 
         ramp_data.instrument_name = "MIRI"
 
@@ -84,7 +83,6 @@ def setup_nrc_cube():
         ramp_data.data = np.zeros(dims, dtype=np.float32)
         ramp_data.groupdq = np.zeros(dims, dtype=np.uint32)
         ramp_data.pixeldq = np.zeros(dims, dtype=np.uint32)
-        ramp_data.err = np.zeros(dims, dtype=np.float32)
 
         ramp_data.instrument_name = "NIRCAM"
         ramp_data.exp_nframes = nframes
@@ -345,8 +343,7 @@ def test_dq_combine(make_rampmodel, make_darkmodel):
 def test_frame_avg(make_rampmodel, make_darkmodel):
     """
     Check that if NFRAMES>1 or GROUPGAP>0, the frame-averaged dark data are
-    subtracted group-by-group from science data groups and the ERR arrays
-    are not modified
+    subtracted group-by-group from science data groups.
     """
 
     # size of integration
@@ -382,7 +379,3 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     assert outfile.data[0, 1, 500, 500] == pytest.approx(1.45)
     assert outfile.data[0, 2, 500, 500] == pytest.approx(2.05)
     assert outfile.data[0, 3, 500, 500] == pytest.approx(2.65)
-
-    # check that the error array is not modified.
-    tol = 1.0e-6
-    np.testing.assert_allclose(outfile.err[:, :], 0, tol)

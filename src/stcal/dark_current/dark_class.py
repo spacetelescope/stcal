@@ -27,8 +27,8 @@ class DarkData:
             during the dark current step.  This argument is only used if the
             'dark_model' argument is None.  If a dark model is not available
             from which to create a DarkData class, but the dimensions of the
-            data array are known, then 'dims' is used (the arrays data, groupdq,
-            and err are assumed to have the same dimension).
+            data array are known, then 'dims' is used (the arrays data
+            and groupdq are assumed to have the same dimension).
 
 
         dark_model : data model, optional
@@ -92,11 +92,6 @@ class ScienceData:
             self.groupdq = science_model.groupdq
             self.pixeldq = science_model.pixeldq
 
-            if isinstance(science_model.err, u.Quantity):
-                self.err = science_model.err.value
-            else:
-                self.err = science_model.err
-
             self.exp_nframes = science_model.meta.exposure.nframes
             self.exp_groupgap = science_model.meta.exposure.groupgap
             try:  # JWST only
@@ -109,7 +104,6 @@ class ScienceData:
             self.data = None
             self.groupdq = None
             self.pixeldq = None
-            self.err = None
 
             self.exp_nframes = None
             self.exp_groupgap = None

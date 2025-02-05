@@ -113,7 +113,6 @@ def test_multiprocessing():
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
@@ -156,9 +155,6 @@ def test_multiprocessing():
 
 
 def test_multiprocessing_big():
-    """
-    
-    """
     nints, ngroups, nrows, ncols = 1, 13, 2048, 7
     gval, rnval = 4., 10.
     frame_time, nframes, groupgap = 10.6, 1, 0
