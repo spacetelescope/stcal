@@ -1165,14 +1165,14 @@ class Resample:
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
-            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array of
-            Y-coordinates of input pixels in the ouput coordinate frame.
+            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
+            of Y-coordinates of input pixels in the ouput coordinate frame.
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
 
-        weight_map : 2D array, None, optional
-            A 2D numpy array containing the pixel by pixel weighting.
+        weight_map : numpy.ndarray, None, optional
+            A 2D ``numpy`` array containing the pixel by pixel weighting.
             Must have the same dimensions as ``data``.
 
             When ``weight_map`` is `None`, the weight of input data pixels will
