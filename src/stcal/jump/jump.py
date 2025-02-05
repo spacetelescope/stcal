@@ -461,8 +461,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
             alpha = ellipse[2]
 
-            indx, sat_ellipse = ellipse_subim(ceny, cenx, axis1, axis2,
-                                              alpha, satcolor, (nrows, ncols))
+            indx, sat_ellipse = ellipse_subim(
+                ceny, cenx, axis1, axis2, alpha, satcolor, (nrows, ncols))
             (iy1, iy2, ix1, ix2) = indx
 
             # Create another non-extended ellipse that is used to
@@ -474,8 +474,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
                 cube[i][iy1:iy2, ix1:ix2][is_sat] = jump_data.fl_sat
 
             ax1, ax2 = (ellipse[1][0], ellipse[1][1])
-            indx, persist_ellipse = ellipse_subim(ceny, cenx, ax1, ax2,
-                                                  alpha, satcolor, (nrows, ncols))
+            indx, persist_ellipse = ellipse_subim(
+                ceny, cenx, ax1, ax2, alpha, satcolor, (nrows, ncols))
             (iy1, iy2, ix1, ix2) = indx
 
             persist_mask = persist_ellipse == satcolor
@@ -591,7 +591,6 @@ def extend_ellipses(
     #  expanded ellipses of pixels with
     # the jump flag set.
     _, ngroups, nrows, ncols = gdq_cube.shape
-    image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
     num_ellipses = len(ellipses)
     for ellipse in ellipses:
         ceny = ellipse[0][0]
@@ -604,8 +603,8 @@ def extend_ellipses(
         # indices that place this subimage within the full array.
         axis1 = axes[0]*2
         axis2 = axes[1]*2
-        indx, jump_ellipse = ellipse_subim(ceny, cenx, axis1, axis2,
-                                           alpha, jump_data.fl_jump, (nrows, ncols))
+        indx, jump_ellipse = ellipse_subim(
+            ceny, cenx, axis1, axis2, alpha, jump_data.fl_jump, (nrows, ncols))
         (iy1, iy2, ix1, ix2) = indx
         
         # Propagate forward by num_grps_masked groups.
@@ -1155,7 +1154,8 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
 
 def convolve_fast(inarray, kernel, copy=False):
-    """Faster version of astropy.convolution.convolve(preserve_nan=True)
+    """Convolve an array with a kernel, interpolating over NaNs.
+    Faster version of astropy.convolution.convolve(preserve_nan=True)
     Parameters
     ----------
     inarray : 2D array of floats

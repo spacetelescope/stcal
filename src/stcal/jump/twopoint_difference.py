@@ -273,11 +273,13 @@ def find_crs_old(
             warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
 
             if only_use_ints:
-                clipped_diffs, alow, ahigh = stats.sigma_clip(first_diffs, sigma=normal_rej_thresh,
-                                                 axis=0, masked=True, return_bounds=True)
+                clipped_diffs, alow, ahigh = stats.sigma_clip(
+                    first_diffs, sigma=normal_rej_thresh,
+                    axis=0, masked=True, return_bounds=True)
             else:
-                clipped_diffs, alow, ahigh = stats.sigma_clip(first_diffs, sigma=normal_rej_thresh,
-                                                 axis=(0, 1), masked=True, return_bounds=True)
+                clipped_diffs, alow, ahigh = stats.sigma_clip(
+                    first_diffs, sigma=normal_rej_thresh,
+                    axis=(0, 1), masked=True, return_bounds=True)
             # get the standard deviation from the bounds of sigma clipping
             stddev = 0.5*(ahigh - alow)/normal_rej_thresh
             jump_candidates = clipped_diffs.mask
@@ -313,7 +315,9 @@ def find_crs_old(
                 # footprint.
                 jump_mask = np.zeros(first_diffs.shape, dtype=bool)
                 for i in range(nints):
-                    jump_candidates = np.abs(first_diffs[i] - median_diffs[np.newaxis, :]) / sigma[np.newaxis, :] > normal_rej_thresh
+                    absdiff = np.abs(first_diffs[i] - median_diffs[np.newaxis, :])
+                    ratio = absdiff / sigma[np.newaxis, :]
+                    jump_candidates = ratio > normal_rej_thresh
                     jump_mask = jump_candidates & first_diffs_finite[i]
                     gdq[i, 1:] |= jump_mask * np.uint8(jump_flag)
                     
