@@ -288,19 +288,16 @@ def find_crs_old(
             del clipped_diffs
             gdq[:, 1:] |= jump_mask * np.uint8(jump_flag)
 
-            # Note: the code below originally did something very different
-            # from what the comment below says.  Please check.
-            # 
             # if grp is all jump set to do not use
             for integ in range(nints):
                 for grp in range(ngrps):
                     if np.all(gdq[integ, grp] & (jump_flag | dnu_flag) != 0):
-                        gdq[integ, grp] |= dnu_flag
+                        # The line below matches the comment above, but not the
+                        # old logic.  Leaving it for now.
+                        #gdq[integ, grp] |= dnu_flag
                         
-                    #if np.all(np.bitwise_or(np.bitwise_and(gdq[integ, grp, :, :], jump_flag),
-                    #                        np.bitwise_and(gdq[integ, grp, :, :], dnu_flag))):
-                    #    jumpy, jumpx = np.where(gdq[integ, grp, :, :] == jump_flag)
-                    #    gdq[integ, grp, jumpy, jumpx] = 0
+                        jump_only = gdq[integ, grp, :, :] == jump_flag
+                        gdq[integ, grp][jump_only] = 0
                         
             warnings.resetwarnings()
         else:  # There are not enough groups for sigma clipping
