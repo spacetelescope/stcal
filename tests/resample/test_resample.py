@@ -66,6 +66,10 @@ def test_resample_mostly_defaults(weight_type, wcs_dict):
 
     resample.finalize()
 
+    # test cannot add another model after finalize():
+    with pytest.raises(RuntimeError):
+        resample.add_model(im)
+
     odata = resample.output_model["data"]
     oweight = resample.output_model["wht"]
 

@@ -6,7 +6,6 @@ import pytest
 from stcal.resample.utils import (
     build_driz_weight,
     build_mask,
-    bytes2human,
     compute_mean_pixel_area,
     get_tmeasure,
     is_flux_density,
@@ -100,17 +99,6 @@ def test_get_tmeasure():
     del model["exposure_time"]
     with pytest.raises(KeyError):
         get_tmeasure(model)
-
-
-@pytest.mark.parametrize(
-        "n, readable",
-        [
-            (10000, "9.8K"),
-            (100001221, "95.4M")
-        ]
-)
-def test_bytes2human(n, readable):
-    assert bytes2human(n) == readable
 
 
 def test_is_imaging_wcs(wcs_gwcs):

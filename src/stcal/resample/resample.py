@@ -115,8 +115,8 @@ class Resample:
             (VAR_RNOISE) array stored in each input image. If the
             ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
             all pixels (i.e., equal weighting). If ``weight_type="exptime"``,
-            the weight will be set equal to the measurement time (``TMEASURE``)
-            when available and to the exposure time (``EFFEXPTM``) otherwise.
+            the weight will be set equal to the measurement time
+            when available and to the exposure time otherwise.
 
         good_bits : int, str, None, optional
             An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -227,10 +227,10 @@ class Resample:
 
         """
         # to see if setting up arrays and drizzle is needed
+        self._locked = False
         self._finalized = False
         self._n_res_models = 0
 
-        self._n_predicted_input_models = n_input_models
         self._output_model = output_model
         self._create_new_output_model = output_model is not None
 
@@ -819,16 +819,30 @@ class Resample:
         return iscale
 
     @property
-    def finalized(self):
-        """ Indicates whether the output model was "finalized". """
-        return self._finalized
+    def is_locked(self):
+        """ Indicates whether the output model has been "locked". No further
+        calls to :py:meth:`add_model` if output model is locked.
+        """
+        return self._locked
+
+    def lock(self):
+        """ Sets "locked" flag to `True` indicating that intermediate
+        arrays have been freed and therefore no further addition of models
+        to the output model via :py:meth:`add_model` is possible.
+
+        Subclasses should call this method whenever they perform an operation
+        that would prevent further addition of input models to the output
+        model.
+        """
+        self._locked = True
 
     def reset_arrays(self, reset_output=True, n_input_models=None):
         """ Initialize/reset `Drizzle` objects, output model and arrays,
-        and time counters. Output WCS and shape are not modified from
-        `Resample` object initialization. This method needs to be called
-        before calling :py:meth:`add_model` for the first time if
-        :py:meth:`finalize` was previously called.
+        and time counters and clears the "locked" flag. Output WCS and shape
+        are not modified from `Resample` object initialization. This method
+        needs to be called before calling :py:meth:`add_model` for the first
+        time if :py:meth:`finalize` was previously called and locked the output
+        model.
 
         Parameters
         ----------
@@ -884,6 +898,7 @@ class Resample:
 
         self.init_time_counters()
 
+        self._locked = False
         self._finalized = False
 
     def validate_input_model(self, model):
@@ -953,8 +968,9 @@ class Resample:
         is `True`) , and error data (if ``enable_err`` is `True`), and adds
         them to the corresponding
         arrays of the output model using appropriate weighting.
-        It also updates the weight array and context array (if ``enable_ctx`` is `True`)
-        of the resampled data, as well as relevant metadata such as "n_coadds".
+        It also updates the weight array and context array (if ``enable_ctx``
+        is `True`) of the resampled data, as well as relevant metadata such as
+        "n_coadds".
 
         Whenever ``model`` has a unique group ID that was never processed
         before, the "pointings" value of the output model is incremented and
@@ -969,12 +985,13 @@ class Resample:
             and values of actual models used by pipelines.
 
         """
-        if self._finalized:
+        if self._locked:
             raise RuntimeError(
-                "Resampling has been finalized and intermediate arrays have "
+                "Resampling has been locked and intermediate arrays have "
                 "been freed. Unable to add new models. Call 'reset_arrays' "
                 "to initialize a new output model and associated arrays."
             )
+        self._finalized = False
         self.validate_input_model(model)
         self._n_res_models += 1
 
@@ -1055,8 +1072,16 @@ class Resample:
             # use resampled error
             self.output_model["err"] = self._driz_error.out_img
 
+    def is_finalized(self):
+        """ Indicates whether all attributes of the ``output_model`` have been
+        computed from intermediate (running) values.
+        """
+        return self._finalized
+
     def finalize(self, free_memory=True):
-        """ Finalizes all computations and frees temporary objects.
+        """ Performs final computations from any intermediate values,
+        sets ouput model values, and optionally frees temporary/intermediate
+        objects.
 
         ``finalize`` calls :py:meth:`~Resample.finalize_resample_variance` and
         :py:meth:`~Resample.finalize_time_info`.
@@ -1066,13 +1091,21 @@ class Resample:
           with ``free_memory=True`` then intermediate arrays holding variance
           weights will be lost and so continuing adding new models after
           a call to :py:meth:`~Resample.finalize` will result in incorrect
-          variance.
+          variance. In this case `finalize` will set the locked flag to `True`.
+
+        .. note::
+          If `Resample` is subclassed and :py:meth:`~Resample.finalize`
+          overridden, make sure to call :py:meth:`~Resample.lock` if an
+          irreversible operation was performed (such as freeing intermediate
+          arrays) that would prevent further addition of input models to the
+          output model.
 
         """
         if self._finalized:
             # can't finalize twice
             return
-        self._finalized = free_memory
+
+        self._finalized = True
 
         self._output_model["pointings"] = len(self.group_ids)
 
@@ -1120,10 +1153,7 @@ class Resample:
 
             del var_components
 
-        self._finalized = True
-
         self.finalize_time_info()
-
         return
 
     def init_variance_arrays(self):
@@ -1343,7 +1373,7 @@ class Resample:
             output_model["var_flat"] = output_variance
 
         if free_memory:
-            self._finalized = True
+            self.lock()
             del (
                 self._var_rnoise_wsum,
                 self._var_poisson_wsum,

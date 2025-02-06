@@ -14,7 +14,6 @@ from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-u
 __all__ = [
     "build_driz_weight",
     "build_mask",
-    "bytes2human",
     "compute_mean_pixel_area",
     "get_tmeasure",
     "is_flux_density",
@@ -68,7 +67,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     Parameters
     ----------
     model : dict
-        Input model: a dictionar of relevant keywords and values.
+        Input model: a dictionary of relevant keywords and values.
 
     weight_type : {"exptime", "ivm"}, optional
         The weighting type for adding models' data. For
@@ -78,8 +77,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         ``VAR_RNOISE`` array does not exist,
         the variance is set to 1 for all pixels (i.e., equal weighting).
         If ``weight_type="exptime"``, the weight will be set equal
-        to the measurement time (``TMEASURE``) when available and to
-        the exposure time (``EFFEXPTM``) otherwise.
+        to the measurement time when available and to
+        the exposure time otherwise.
 
     good_bits : int, str, None, optional
         An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -216,43 +215,6 @@ def get_tmeasure(model):
         return model["exposure_time"], False
     else:
         return tmeasure, True
-
-
-# FIXME: temporarily copied here to avoid this import:
-# from stdatamodels.jwst.library.basic_utils import bytes2human
-def bytes2human(n):
-    """Convert bytes to human-readable format
-
-    Taken from the ``psutil`` library which references
-    http://code.activestate.com/recipes/578019
-
-    Parameters
-    ----------
-    n : int
-        Number to convert
-
-    Returns
-    -------
-    readable : str
-        A string with units attached.
-
-    Examples
-    --------
-    >>> bytes2human(10000)
-        '9.8K'
-
-    >>> bytes2human(100001221)
-        '95.4M'
-    """
-    symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
-    prefix = {}
-    for i, s in enumerate(symbols):
-        prefix[s] = 1 << (i + 1) * 10
-    for s in reversed(symbols):
-        if n >= prefix[s]:
-            value = float(n) / prefix[s]
-            return '%.1f%s' % (value, s)
-    return "%sB" % n
 
 
 def is_imaging_wcs(wcs):
