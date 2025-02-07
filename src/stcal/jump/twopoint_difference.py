@@ -225,24 +225,39 @@ def find_crs_old(
     num_flagged_grps = 0
     # determine the number of groups with all pixels set to DO_NOT_USE
     ngrps = dat.shape[1]
+    max_flagged_grps = 0
+    total_flagged_grps = 0
     for integ in range(nints):
+        num_flagged_grps = 0
         for grp in range(dat.shape[1]):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
                 num_flagged_grps += 1
+        if num_flagged_grps > max_flagged_grps:
+            max_flagged_grps = num_flagged_grps
+        total_flagged_grps += num_flagged_grps
     if only_use_ints:
         total_sigclip_groups = nints
     else:
-        total_sigclip_groups = nints * (ngrps - num_flagged_grps)
-    total_groups = nints * (ngrps - num_flagged_grps)
-    total_diffs = nints * (ngrps - 1 - num_flagged_grps)
-    total_usable_diffs = total_diffs - num_flagged_grps
-    if ((ngrps < minimum_groups and only_use_ints and nints < minimum_sigclip_groups) or
-            (not only_use_ints and nints * ngrps < minimum_sigclip_groups and
-             total_groups < minimum_groups)):
+        total_sigclip_groups = nints * ngrps - num_flagged_grps
+
+    min_usable_groups = ngrps - max_flagged_grps
+    total_groups = nints * ngrps - total_flagged_grps
+    min_usable_diffs = min_usable_groups - 1
+    sig_clip_grps_fails = False
+    total_noise_min_grps_fails = False
+
+    # Determine whether there are enough usable groups the two sigma clip options
+    if (only_use_ints and nints < minimum_sigclip_groups) \
+            or \
+            (not only_use_ints and total_sigclip_groups < minimum_sigclip_groups):
+        sig_clip_grps_fails = True
+    if min_usable_groups < minimum_groups:
+        total_noise_min_grps_fails = True
+
+    if total_noise_min_grps_fails and sig_clip_grps_fails:
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]),
-                         dtype=np.float32)
-        return gdq, row_below_gdq, row_above_gdq, 0, dummy
+        dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
+        return gdq, row_below_gdq, row_above_gdq, -99, dummy
     else:
         # set 'saturated' or 'do not use' pixels to nan in data
         dat[gdq & (dnu_flag | sat_flag) != 0] = np.nan
@@ -301,8 +316,8 @@ def find_crs_old(
                         
             warnings.resetwarnings()
         else:  # There are not enough groups for sigma clipping
-
-            if total_usable_diffs >= min_diffs_single_pass:
+            if min_usable_diffs >= min_diffs_single_pass:
+                # There are enough diffs in all ints to look for more than one jump
 
                 # compute 'ratio' for each group. this is the value that will be
                 # compared to 'threshold' to classify jumps. subtract the median of
