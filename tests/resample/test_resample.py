@@ -94,7 +94,7 @@ def test_resample_mostly_defaults(weight_type):
         ("driz_err", "ivm-med5")
     ]
 )
-def test_resample_custom_output_model(compute_err, weight_type):
+def test_resample_compute_error_mode(compute_err, weight_type):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -113,7 +113,7 @@ def test_resample_custom_output_model(compute_err, weight_type):
 
     resample = Resample(
         n_input_models=nmodels,
-        output_model=output_model,
+        output_wcs=output_model,
         weight_type=weight_type,
         compute_err=compute_err,
     )

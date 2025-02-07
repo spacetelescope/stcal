@@ -140,9 +140,6 @@ def make_output_model(crpix, crval, pscale, shape):
         "var_poisson": None,
         "err": None,
 
-        # accumulate-specific:
-        "n_coadds": 0,
-
         # drizzle info:
         "pointings": 0,
 

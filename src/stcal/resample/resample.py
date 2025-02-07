@@ -68,14 +68,20 @@ class Resample:
 
     dq_flag_name_map = None
 
-    def __init__(self, n_input_models=None, pixfrac=1.0, kernel="square",
-                 fillval=0.0, weight_type="ivm", good_bits=0,
-                 output_wcs=None, output_model=None,
-                 accumulate=False, enable_ctx=True, enable_var=True,
-                 compute_err=None):
+    def __init__(self, output_wcs, n_input_models=None, pixfrac=1.0,
+                 kernel="square", fillval=0.0, weight_type="ivm", good_bits=0,
+                 enable_ctx=True, enable_var=True, compute_err=None):
         """
         Parameters
         ----------
+        output_wcs : dict
+            Specifies output WCS as a dictionary
+            with keys ``'wcs'`` (WCS object) and ``'pixel_scale'``
+            (pixel scale in arcseconds). ``'pixel_scale'``, when provided,
+            will be used for computation of drizzle scaling factor. When it is
+            not provided, output pixel scale will be *estimated* from the
+            provided WCS object.
+
         n_input_models : int, None, optional
             Number of input models expected to be resampled. When provided,
             this is used to estimate memory requirements and optimize memory
@@ -176,32 +182,6 @@ class Resample:
             For more details, see documentation for
             `astropy.nddata.bitmask.extend_bit_flag_map`.
 
-        output_wcs : dict, None
-            Specifies output WCS as a dictionary
-            with keys ``'wcs'`` (WCS object) and ``'pixel_scale'``
-            (pixel scale in arcseconds). ``'pixel_scale'``, when provided,
-            will be used for computation of drizzle scaling factor. When it is
-            not provided, output pixel scale will be *estimated* from the
-            provided WCS object. ``output_wcs`` object is required when
-            ``output_model`` is `None`. ``output_wcs`` is ignored when
-            ``output_model`` is provided.
-
-        output_model : dict, None, optional
-            A dictionary containing data arrays and other attributes that
-            will be used to add new models to. use
-            :py:meth:`Resample.output_model_attributes` to get the list of
-            keywords that must be present. When ``accumulate`` is `False`,
-            only the WCS object of the model will be used. When ``accumulate``
-            is `True`, new models will be added to the existing data in the
-            ``output_model``.
-
-            When ``output_model`` is `None`, a new model will be created.
-
-        accumulate : bool, optional
-            Indicates whether resampled models should be added to the
-            provided ``output_model`` data or if new arrays should be
-            created.
-
         enable_ctx : bool, optional
             Indicates whether to create a context image. If ``disable_ctx``
             is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
@@ -231,13 +211,9 @@ class Resample:
         self._finalized = False
         self._n_res_models = 0
 
-        self._output_model = output_model
-        self._create_new_output_model = output_model is not None
-
         self._enable_ctx = enable_ctx
         self._enable_var = enable_var
         self._compute_err = compute_err
-        self._accumulate = accumulate
 
         # these attributes are used only for informational purposes
         # and are added to created the output_model only if they are
@@ -262,36 +238,18 @@ class Resample:
         self._group_ids = []
 
         # determine output WCS and set up output model if needed:
-        if output_model is None:
-            if output_wcs is None:
-                raise ValueError(
-                    "Output WCS must be provided either through the "
-                    "'output_wcs' parameter or the 'output_model' parameter. "
-                )
-            else:
-                self._output_pixel_scale = output_wcs.get("pixel_scale")
-                self._pixel_scale_ratio = output_wcs.get(
-                    "pixel_scale_ratio"
-                )
-                self._output_wcs = output_wcs.get("wcs")
-                self.check_output_wcs(self._output_wcs)
-
-        else:
-            self.validate_output_model(
-                output_model=output_model,
-                accumulate=accumulate,
-                enable_ctx=enable_ctx,
-                enable_var=enable_var,
-                compute_err=compute_err,
+        if output_wcs is None:
+            raise ValueError(
+                "Output WCS must be provided either through the "
+                "'output_wcs' parameter or the 'output_model' parameter. "
             )
-            self._output_model = output_model
-            self._output_wcs = output_model["wcs"]
-            self._output_pixel_scale = output_model.get("pixel_scale")
-            if output_wcs:
-                log.warning(
-                    "'output_wcs' will be ignored. Using the 'wcs' supplied "
-                    "by the 'output_model' instead."
-                )
+        else:
+            self._output_pixel_scale = output_wcs.get("pixel_scale")
+            self._pixel_scale_ratio = output_wcs.get(
+                "pixel_scale_ratio"
+            )
+            self._output_wcs = output_wcs.get("wcs")
+            self.check_output_wcs(self._output_wcs)
 
         if self._output_pixel_scale is None:
             self._output_pixel_scale = 3600.0 * np.rad2deg(
@@ -327,8 +285,7 @@ class Resample:
         )
 
         # set up an empty output model (don't allocate arrays at this time):
-        if self._output_model is None:
-            self._output_model = self.create_output_model()
+        self._output_model = self.create_output_model()
 
         self.reset_arrays(reset_output=False, n_input_models=n_input_models)
 
@@ -395,19 +352,13 @@ class Resample:
         return pixel_area
 
     @classmethod
-    def output_model_attributes(cls, accumulate, enable_ctx, enable_var,
-                                compute_err):
+    def output_model_attributes(cls, enable_ctx, enable_var, compute_err):
         """
         Returns a set of string keywords that must be present in an
         'output_model' that is provided as input at the class initialization.
 
         Parameters
         ----------
-
-        accumulate : bool, optional
-            Indicates whether resampled models should be added to the
-            provided ``output_model`` data or if new arrays should be
-            created.
 
         enable_ctx : bool, optional
             Indicates whether to create a context image. If ``disable_ctx``
@@ -454,32 +405,6 @@ class Resample:
         if enable_var:
             attributes.update(
                 ["var_rnoise", "var_poisson", "var_flat"]
-            )
-            # TODO: if we want to support adding more data to
-            # existing output models, we need to also store weights
-            # for variance arrays:
-            # var_rnoise_weight
-            # var_flat_weight
-            # var_poisson_weight
-        if accumulate:
-            if enable_ctx:
-                attributes.add("n_coadds")
-
-            # additional attributes required for input parameter 'output_model'
-            # when data and weight arrays are not None:
-            attributes.update(
-                {
-                    "pixfrac",
-                    "kernel",
-                    "fillval",
-                    "weight_type",
-                    "pointings",
-                    "exposure_time",
-                    "measurement_time",
-                    "start_time",
-                    "end_time",
-                    "duration",
-                }
             )
 
         return attributes
@@ -536,90 +461,6 @@ class Resample:
                     "inputs."
                 )
 
-    def validate_output_model(self, output_model, accumulate,
-                              enable_ctx, enable_var, compute_err):
-        """ Checks that ``output_model`` dictionary has all the required
-        keywords that the code expects it to have based on the values
-        of ``accumulate``, ``enable_ctx``, ``enable_var``. It will raise
-        `ValueError` if `output_model` is missing required keywords/values.
-
-        Parameters
-        ----------
-
-        output_model : dict
-            A dictionary representing data and meta values from a data model.
-
-        accumulate : bool
-            Indicates whether resampled models should be added to the
-            provided ``output_model`` data or if new arrays should be
-            created.
-
-        enable_ctx : bool
-            Indicates whether to create a context image. If ``disable_ctx``
-            is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
-            ``max_ctx_id`` will be ignored.
-
-        enable_var : bool
-            Indicates whether to resample variance arrays.
-
-        compute_err : {"from_var", "driz_err"}, None
-            A string indicating how error array for the resampled image should
-            be computed. See `Resample.__init__` for more details.
-
-        """
-        if output_model is None:
-            if accumulate:
-                raise ValueError(
-                    "'output_model' must be defined when 'accumulate' is True."
-                )
-            return
-
-        required_attributes = self.output_model_attributes(
-            accumulate=accumulate,
-            enable_ctx=enable_ctx,
-            enable_var=enable_var,
-            compute_err=compute_err,
-        )
-
-        for attr in required_attributes:
-            if attr not in output_model:
-                raise ValueError(
-                    f"'output_model' dictionary must have '{attr}' set."
-                )
-
-        model_wcs = output_model["wcs"]
-        self.check_output_wcs(model_wcs, estimate_output_shape=False)
-        wcs_shape = model_wcs.array_shape
-        if output_model["data"] is None:
-            ref_shape = wcs_shape
-        else:
-            ref_shape = output_model["data"].shape
-        if accumulate and wcs_shape is None:
-            raise ValueError(
-                "Output model's 'wcs' must have 'array_shape' attribute "
-                "set when 'accumulate' parameter is True."
-            )
-
-        if not np.array_equiv(wcs_shape, ref_shape):
-            raise ValueError(
-                "Output model's 'wcs.array_shape' value is not consistent "
-                "with the shape of the data array."
-            )
-
-        for attr in required_attributes.difference(["data", "wcs"]):
-            if isinstance(output_model[attr], np.ndarray):
-                model_shape = output_model[attr].shape[1:]
-                if attr == "con":
-                    model_shape = model_shape[1:]
-                if not np.array_equiv(model_shape, ref_shape):
-                    raise ValueError(
-                        "'output_wcs.array_shape' value is not consistent "
-                        f"with the shape of the '{attr}' array."
-                    )
-
-        # TODO: also check "pixfrac", "kernel", "fillval", "weight_type"
-        # with initializer parameters. log a warning if different.
-
     def create_output_model(self):
         """ Create a new "output model": a dictionary of data and meta fields.
 
@@ -653,9 +494,6 @@ class Resample:
             "kernel": self.kernel,
             "fillval": self.fillval,
             "weight_type": self.weight_type,
-
-            # accumulate-specific:
-            "n_coadds": 0,
 
             # pixel scale:
             "pixelarea_steradians": pix_area / np.rad2deg(3600)**2,
@@ -735,13 +573,6 @@ class Resample:
         """ Indicates whether error array is computed and how it is computed.
         """
         return self._compute_err
-
-    @property
-    def is_in_accumulate_mode(self):
-        """ Indicates whether resample is continuing adding to previous
-        co-adds.
-        """
-        return self._accumulate
 
     def _get_intensity_scale(self, model):
         """
@@ -860,11 +691,10 @@ class Resample:
 
         om = self._output_model
 
-        begin_ctx_id = om.get("n_coadds", 0)
         if n_input_models is None:
             max_ctx_id = None
         else:
-            max_ctx_id = begin_ctx_id + n_input_models - 1
+            max_ctx_id = n_input_models - 1
 
         self._driz = Drizzle(
             kernel=self.kernel,
@@ -874,7 +704,7 @@ class Resample:
             out_wht=om["wht"],
             out_ctx=om["con"],
             exptime=om["exposure_time"],
-            begin_ctx_id=begin_ctx_id,
+            begin_ctx_id=0,
             max_ctx_id=max_ctx_id,
         )
 
@@ -965,8 +795,7 @@ class Resample:
         them to the corresponding
         arrays of the output model using appropriate weighting.
         It also updates the weight array and context array (if ``enable_ctx``
-        is `True`) of the resampled data, as well as relevant metadata such as
-        "n_coadds".
+        is `True`) of the resampled data, as well as relevant metadata.
 
         Whenever ``model`` has a unique group ID that was never processed
         before, the "pointings" value of the output model is incremented and
@@ -999,8 +828,6 @@ class Resample:
             raise RuntimeError(
                 f"Input model '{model['filename']}' is not a 2D image."
             )
-
-        self._output_model["n_coadds"] += 1
 
         if (group_id := model["group_id"]) not in self._group_ids:
             self.update_time(model)
@@ -1159,18 +986,8 @@ class Resample:
 
         for noise_type in ["var_rnoise", "var_flat", "var_poisson"]:
             var_dtype = self.output_array_types[noise_type]
-            kwd = f"{noise_type}_weight"
-            if self._accumulate:
-                wsum = self._output_model.get(noise_type)
-                wt = self._output_model.get(kwd)
-                if wsum is None or wt is None:
-                    wsum = np.full(shape, np.nan, dtype=var_dtype)
-                    wt = np.zeros(shape, dtype=var_dtype)
-                else:
-                    wsum = wsum * (wt * wt)
-            else:
-                wsum = np.full(shape, np.nan, dtype=var_dtype)
-                wt = np.zeros(shape, dtype=var_dtype)
+            wsum = np.full(shape, np.nan, dtype=var_dtype)
+            wt = np.zeros(shape, dtype=var_dtype)
 
             setattr(self, f"_{noise_type}_wsum", wsum)
             setattr(self, f"_{noise_type}_weight", wt)
