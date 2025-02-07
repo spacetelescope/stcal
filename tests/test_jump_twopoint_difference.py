@@ -22,7 +22,7 @@ def setup_cube():
 
     return _cube
 
-def test_sigclip_not_enough_groups(setup_cube):
+def test_sigclip_not_enough_groups_ng10(setup_cube):
     ngroups = 10
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
@@ -32,7 +32,7 @@ def test_sigclip_not_enough_groups(setup_cube):
     )
     assert total_crs == -99
 
-def test_sigclip_not_enough_groups(setup_cube):
+def test_sigclip_not_enough_groups_ng5(setup_cube):
     ngroups = 5
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
@@ -42,7 +42,7 @@ def test_sigclip_not_enough_groups(setup_cube):
     )
     assert total_crs == -99
 
-def test_sigclip_not_enough_groups(setup_cube):
+def test_sigclip_not_enough_groups_ng12(setup_cube):
     ngroups = 12
 
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
@@ -54,7 +54,7 @@ def test_sigclip_not_enough_groups(setup_cube):
     )
     assert total_crs == -99
 
-def test_sigclip_with_num_small_groups(setup_cube):
+def test_sigclip_with_num_small_groups_ni190(setup_cube):
     ngroups = 12
     nints = 190
 
@@ -67,7 +67,7 @@ def test_sigclip_with_num_small_groups(setup_cube):
     )
     assert total_crs != -99
 
-def test_nosigclip_with_enough_groups(setup_cube):
+def test_nosigclip_with_enough_groups_ni1(setup_cube):
     ngroups = 12
     nints = 1
 
@@ -80,7 +80,7 @@ def test_nosigclip_with_enough_groups(setup_cube):
     )
     assert total_crs != -99
 
-def test_nosigclip_with_num_small_groups(setup_cube):
+def test_nosigclip_with_num_small_groups_ni1(setup_cube):
     ngroups = 4
     nints = 1
 
@@ -93,7 +93,7 @@ def test_nosigclip_with_num_small_groups(setup_cube):
     )
     assert total_crs == -99
 
-def test_nosigclip_with_num_small_groups(setup_cube):
+def test_nosigclip_with_num_small_groups_ni100(setup_cube):
     ngroups = 4
     nints = 100
 
