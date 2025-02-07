@@ -176,8 +176,8 @@ class Resample:
             For more details, see documentation for
             `astropy.nddata.bitmask.extend_bit_flag_map`.
 
-        output_wcs : dict, WCS object, None
-            Specifies output WCS either directly as a WCS or a dictionary
+        output_wcs : dict, None
+            Specifies output WCS as a dictionary
             with keys ``'wcs'`` (WCS object) and ``'pixel_scale'``
             (pixel scale in arcseconds). ``'pixel_scale'``, when provided,
             will be used for computation of drizzle scaling factor. When it is
@@ -269,15 +269,11 @@ class Resample:
                     "'output_wcs' parameter or the 'output_model' parameter. "
                 )
             else:
-                if isinstance(output_wcs, dict):
-                    self._output_pixel_scale = output_wcs.get("pixel_scale")
-                    self._pixel_scale_ratio = output_wcs.get(
-                        "pixel_scale_ratio"
-                    )
-                    self._output_wcs = output_wcs.get("wcs")
-                else:
-                    self._output_wcs = output_wcs
-
+                self._output_pixel_scale = output_wcs.get("pixel_scale")
+                self._pixel_scale_ratio = output_wcs.get(
+                    "pixel_scale_ratio"
+                )
+                self._output_wcs = output_wcs.get("wcs")
                 self.check_output_wcs(self._output_wcs)
 
         else:

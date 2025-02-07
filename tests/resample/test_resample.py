@@ -13,26 +13,24 @@ from . helpers import (
 
 
 @pytest.mark.parametrize(
-    "weight_type,wcs_dict",
-    [("ivm", True), ("exptime", False)]
+    "weight_type", ["ivm", "exptime"]
 )
-def test_resample_mostly_defaults(weight_type, wcs_dict):
+def test_resample_mostly_defaults(weight_type):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
     pscale = 0.06 / 3600
 
-    output_wcs = make_gwcs(
+    w = make_gwcs(
         crpix=(600, 600),
         crval=crval,
         pscale=pscale,
         shape=(1200, 1200)
     )
-    if wcs_dict:
-        output_wcs = {
-            "wcs": output_wcs,
-            "pixel_scale": pscale * 3600,
-        }
+    output_wcs = {
+        "wcs": w,
+        "pixel_scale": pscale * 3600,
+    }
 
     nmodels = 4
 
