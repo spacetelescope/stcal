@@ -207,7 +207,6 @@ class Resample:
 
         """
         # to see if setting up arrays and drizzle is needed
-        self._locked = False
         self._finalized = False
         self._n_res_models = 0
 
@@ -285,9 +284,7 @@ class Resample:
         )
 
         # set up an empty output model (don't allocate arrays at this time):
-        self._output_model = self.create_output_model()
-
-        self.reset_arrays(reset_output=False, n_input_models=n_input_models)
+        self.reset_arrays(n_input_models=n_input_models)
 
     def get_input_model_pixel_area(self, model):
         """
@@ -359,7 +356,6 @@ class Resample:
 
         Parameters
         ----------
-
         enable_ctx : bool, optional
             Indicates whether to create a context image. If ``disable_ctx``
             is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
@@ -615,7 +611,7 @@ class Resample:
                 input_pixel_area = self.get_input_model_pixel_area(model)
 
                 if input_pixel_area is None:
-                    model_name = model["filename"]
+                    model_name = _get_model_name(model)
                     if not model_name:
                         model_name = "Unknown"
                     raise ValueError(
@@ -645,51 +641,24 @@ class Resample:
 
         return iscale
 
-    @property
-    def is_locked(self):
-        """ Indicates whether the output model has been "locked". No further
-        calls to :py:meth:`add_model` if output model is locked.
-        """
-        return self._locked
-
-    def lock(self):
-        """ Sets "locked" flag to `True` indicating that intermediate
-        arrays have been freed and therefore no further addition of models
-        to the output model via :py:meth:`add_model` is possible.
-
-        Subclasses should call this method whenever they perform an operation
-        that would prevent further addition of input models to the output
-        model.
-        """
-        self._locked = True
-
-    def reset_arrays(self, reset_output=True, n_input_models=None):
+    def reset_arrays(self, n_input_models=None):
         """ Initialize/reset `Drizzle` objects, output model and arrays,
-        and time counters and clears the "locked" flag. Output WCS and shape
+        and time counters and clears the "finalized" flag. Output WCS and shape
         are not modified from `Resample` object initialization. This method
         needs to be called before calling :py:meth:`add_model` for the first
-        time if :py:meth:`finalize` was previously called and locked the output
-        model.
+        time after :py:meth:`finalize` was called.
 
         Parameters
         ----------
-        reset_output : bool, optional
-            When `True` a new output model will be created. Otherwise new
-            models will be resampled and added to existing output data arrays.
-
         n_input_models : int, None, optional
             Number of input models expected to be resampled. When provided,
             this is used to estimate memory requirements and optimize memory
             allocation for the context array.
 
         """
-        self._n_predicted_input_models = n_input_models
-
         # set up an empty output model (don't allocate arrays at this time):
-        if reset_output or getattr(self, "_output_model", None) is None:
+        if getattr(self, "_output_model", None) is None:
             self._output_model = self.create_output_model()
-
-        om = self._output_model
 
         if n_input_models is None:
             max_ctx_id = None
@@ -700,10 +669,10 @@ class Resample:
             kernel=self.kernel,
             fillval=self.fillval,
             out_shape=self._output_array_shape,
-            out_img=om["data"],
-            out_wht=om["wht"],
-            out_ctx=om["con"],
-            exptime=om["exposure_time"],
+            out_img=self._output_model["data"],
+            out_wht=self._output_model["wht"],
+            out_ctx=self._output_model["con"],
+            exptime=self._output_model["exposure_time"],
             begin_ctx_id=0,
             max_ctx_id=max_ctx_id,
         )
@@ -714,8 +683,8 @@ class Resample:
                 kernel=self.kernel,
                 fillval=self.fillval,
                 out_shape=self._output_array_shape,
-                out_img=om["err"],
-                exptime=om["exposure_time"],
+                out_img=self._output_model["err"],
+                exptime=self._output_model["exposure_time"],
                 disable_ctx=True,
             )
 
@@ -724,7 +693,6 @@ class Resample:
 
         self.init_time_counters()
 
-        self._locked = False
         self._finalized = False
 
     def validate_input_model(self, model):
@@ -753,8 +721,8 @@ class Resample:
             "dq",
 
             # meta:
+            "filename",
             "group_id",
-            "s_region",
             "wcs",
 
             "exposure_time",
@@ -762,7 +730,6 @@ class Resample:
             "end_time",
             "duration",
             "measurement_time",
-            "effective_exposure_time",
             "elapsed_exposure_time",
 
             "pixelarea_steradians",
@@ -771,6 +738,9 @@ class Resample:
             "level",  # sky level
             "subtracted",
         ]
+
+        if 'SPECTRAL' in model["wcs"].output_frame.axes_type:
+            min_attributes.append("bunit_data")
 
         if self._enable_var:
             min_attributes += ["var_rnoise", "var_poisson", "var_flat"]
@@ -810,13 +780,13 @@ class Resample:
             and values of actual models used by pipelines.
 
         """
-        if self._locked:
+        if self._finalized:
             raise RuntimeError(
-                "Resampling has been locked and intermediate arrays have "
-                "been freed. Unable to add new models. Call 'reset_arrays' "
+                "Resampling has been finalized and no new models can be added "
+                "to the resampled output model. Call 'reset_arrays' "
                 "to initialize a new output model and associated arrays."
             )
-        self._finalized = False
+
         self.validate_input_model(model)
         self._n_res_models += 1
 
@@ -826,7 +796,7 @@ class Resample:
         # Check that input models are 2D images
         if data.ndim != 2:
             raise RuntimeError(
-                f"Input model '{model['filename']}' is not a 2D image."
+                f"Input model '{_get_model_name(model)}' is not a 2D image."
             )
 
         if (group_id := model["group_id"]) not in self._group_ids:
@@ -901,7 +871,7 @@ class Resample:
         """
         return self._finalized
 
-    def finalize(self, free_memory=True):
+    def finalize(self):
         """ Performs final computations from any intermediate values,
         sets ouput model values, and optionally frees temporary/intermediate
         objects.
@@ -910,18 +880,8 @@ class Resample:
         :py:meth:`~Resample.finalize_time_info`.
 
         .. warning::
-          If ``enable_var=True`` and :py:meth:`~Resample.finalize` is called
-          with ``free_memory=True`` then intermediate arrays holding variance
-          weights will be lost and so continuing adding new models after
-          a call to :py:meth:`~Resample.finalize` will result in incorrect
-          variance. In this case `finalize` will set the locked flag to `True`.
-
-        .. note::
-          If `Resample` is subclassed and :py:meth:`~Resample.finalize`
-          overridden, make sure to call :py:meth:`~Resample.lock` if an
-          irreversible operation was performed (such as freeing intermediate
-          arrays) that would prevent further addition of input models to the
-          output model.
+          Once the resample process has been finalized, adding new models to
+          the output resampled model is not allowed.
 
         """
         if self._finalized:
@@ -940,21 +900,16 @@ class Resample:
             # back to the product's `con` attribute.
             self._output_model["con"] = self._driz.out_ctx
 
-        if free_memory:
-            del self._driz
+        del self._driz
 
         # compute final variances:
         if self._enable_var:
-            self.finalize_resample_variance(
-                self._output_model,
-                free_memory=free_memory
-            )
+            self.finalize_resample_variance(self._output_model)
 
         if self._compute_err == "driz_err":
             # use resampled error
             self.output_model["err"] = self._driz_error.out_img
-            if free_memory:
-                del self._driz_error
+            del self._driz_error
 
         elif self._enable_var:
             # compute error from variance arrays:
@@ -1135,10 +1090,9 @@ class Resample:
                 )
                 self._var_flat_weight[mask] += weight[mask]
 
-    def finalize_resample_variance(self, output_model, free_memory=True):
+    def finalize_resample_variance(self, output_model):
         """ Compute variance for the resampled image from running sums and
-        weights. Free memory (when ``free_memory=True``) that holds these
-        running sums and weights arrays.
+        weights. Free memory that holds these running sums and weights arrays.
 
         output_model : dict, None
             A dictionary containing data arrays and other attributes that
@@ -1148,11 +1102,6 @@ class Resample:
             only the WCS object of the model will be used. When ``accumulate``
             is `True`, new models will be added to the existing data in the
             ``output_model``.
-
-        free_memory : True
-            Indicates whether to free temporary arrays (i.e., weight arrays)
-            that are no longer needed. If this is `True` it will not be
-            possible to continue adding new models to the output model.
 
         """
         # Divide by the total weights, squared, and set in the output model.
@@ -1185,8 +1134,6 @@ class Resample:
             )
             output_model["var_flat"] = output_variance
 
-        if free_memory:
-            self.lock()
             del (
                 self._var_rnoise_wsum,
                 self._var_poisson_wsum,
@@ -1195,6 +1142,7 @@ class Resample:
                 self._var_poisson_weight,
                 self._var_flat_weight,
             )
+            self._finalized = True
 
     def _resample_one_variance_array(self, name, model, iscale,
                                      weight_map, pixmap,
@@ -1212,14 +1160,14 @@ class Resample:
         if variance is None or variance.size == 0:
             log.debug(
                 f"No data for '{name}' for model "
-                f"{repr(model['filename'])}. Skipping ..."
+                f"{repr(_get_model_name(model))}. Skipping ..."
             )
             return
 
         elif variance.shape != model["data"].shape:
             log.warning(
                 f"Data shape mismatch for '{name}' for model "
-                f"{repr(model['filename'])}. Skipping ..."
+                f"{repr(_get_model_name(model))}. Skipping ..."
             )
             return
 
@@ -1309,9 +1257,7 @@ class Resample:
         self._output_model["start_time"] = min(self._exptime_start)
         self._output_model["end_time"] = max(self._exptime_end)
         # Update other exposure time keywords:
-        # XPOSURE (identical to the total effective exposure time,EFFEXPTM)
-        self._output_model["effective_exposure_time"] = self._total_exposure_time
-        # DURATION (identical to TELAPSE, elapsed time)
+        # DURATION (identical to elapsed time)
         self._output_model["duration"] = self._duration
         self._output_model["elapsed_exposure_time"] = self._duration
 
