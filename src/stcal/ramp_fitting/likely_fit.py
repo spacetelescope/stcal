@@ -60,9 +60,6 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     if ngroups < LIKELY_MIN_NGROUPS:
         raise ValueError("Likelihood fit requires at least 4 groups.")
 
-
-    remove_jump_detection_flags(ramp_data)
-
     readtimes = get_readtimes(ramp_data)
 
     covar = Covar(readtimes)
@@ -405,23 +402,6 @@ def compute_image_info(integ_class, ramp_data):
     err = np.sqrt(var_p + var_r)
 
     return (slope, dq, var_p, var_r, err)
-
-
-def remove_jump_detection_flags(ramp_data):
-    """
-    Remove the JUMP_DET flag from the group DQ array
-
-    Parameters
-    ----------
-    ramp_data : RampData
-        Input data necessary for computing ramp fitting.
-    """
-    jump = ramp_data.flags_jump_det
-    gdq = ramp_data.groupdq
-    wh_jump = np.where(np.bitwise_and(gdq.astype(np.uint32), jump))
-    gdq[wh_jump] -= jump
-    ramp_data.groupdq = gdq
-
 
 def determine_diffs2use(ramp_data, integ, row, diffs):
     """
