@@ -327,10 +327,9 @@ Likelihood Algorithm Details
 ----------------------------
 As an alternative to the OLS algorithm, a likelihood algorithm can be selected
 with the step argument ``--ramp_fitting.algorithm=LIKELY``.  This algorithm has
-its own algorithm for jump detection.  The normal jump detection algorithm runs
-by default, but can be skipped when selecting the LIKELY algorithm.  This
-algorithm removes jump detection flags and sets jump detection flags.  This jump
-detection algorithm requires a minimum of four (4) NGROUPS.  If the LIKELY
+its own algorithm for jump detection that augments anything identified by
+the regular jump detection step.
+The LIKELY algorithm requires a minimum of four (4) NGROUPS.  If the LIKELY
 algorithm is selected for data with NGROUPS less than four, the ramp fitting
 algorithm is changed to OLS_C.
 
