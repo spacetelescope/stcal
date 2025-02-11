@@ -23,6 +23,7 @@ dependencies = [
     "gwcs >=0.22.0",
     "tweakwcs >=0.8.8",
     "requests >=2.22",
+    "spherical-geometry>=1.2.22"
 ]
 dynamic = [
     "version",
@@ -218,6 +219,8 @@ module = [
     "asdf.*",
     "scipy.*",
     "drizzle.*",
+    "stsci.imagestats.*",
+    "spherical_geometry.*",
     # don't complain about the installed c parts of this library
     "stcal.ramp_fitting.ols_cas22._fit",
     "stcal.ramp_fitting.ols_cas22._jump",
