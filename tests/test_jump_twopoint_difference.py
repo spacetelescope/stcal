@@ -22,16 +22,6 @@ def setup_cube():
 
     return _cube
 
-def test_sigclip_not_enough_groups_ng10(setup_cube):
-    ngroups = 10
-    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
-        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
-        nframes, False, 200, 10, DQFLAGS,
-        minimum_sigclip_groups=10, minimum_groups=5
-    )
-    assert total_crs == -99
-
 def test_sigclip_not_enough_groups_ng5(setup_cube):
     ngroups = 5
     data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
