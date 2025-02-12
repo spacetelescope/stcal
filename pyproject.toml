@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
     "astropy >=6.0.0",
-    "drizzle>=1.15.0",
+    "drizzle >=2.0.1",
     "scipy >=1.14.1",
     "scikit-image>=0.20.0",
     "numpy >=1.25.0",

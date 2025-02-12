@@ -39,9 +39,11 @@ intersphinx_mapping = {
     "gwcs": ("https://gwcs.readthedocs.io/en/latest/", None),
     "astropy": ("https://docs.astropy.org/en/stable/", None),
     "tweakwcs": ("https://tweakwcs.readthedocs.io/en/latest/", None),
+    "drizzle": (
+        "https://spacetelescope-drizzle.readthedocs.io/en/latest/",
+        None
+    ),
 }
-
-nitpick_ignore = [("py:class", "optional"), ("py:class", "np.ndarray")]
 
 extensions = [
     "pytest_doctestplus.sphinx.doctestplus",
@@ -75,4 +77,9 @@ html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
 html_use_index = True
 
 # Enable nitpicky mode - which ensures that all references in the docs resolve.
-nitpicky = True
+nitpicky = False  # True does not work with enumerated parameter values
+
+nitpick_ignore = [
+    ("py:class", "optional"),
+    ("py:class", "np.ndarray"),
+]
