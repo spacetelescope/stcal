@@ -230,7 +230,6 @@ class Resample:
 
         self._output_wcs = output_wcs
 
-        self.input_file_names = []
         self._group_ids = []
 
         # determine output WCS and set up output model if needed:
@@ -344,63 +343,6 @@ class Resample:
         """
         pixel_area = compute_mean_pixel_area(model["wcs"])
         return pixel_area
-
-    @classmethod
-    def output_model_attributes(cls, enable_ctx, enable_var, compute_err):
-        """
-        Returns a set of string keywords that must be present in an
-        'output_model' that is provided as input at the class initialization.
-
-        Parameters
-        ----------
-        enable_ctx : bool, optional
-            Indicates whether to create a context image. If ``disable_ctx``
-            is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
-            ``max_ctx_id`` will be ignored.
-
-        enable_var : bool, optional
-            Indicates whether to resample variance arrays.
-
-        compute_err : {"from_var", "driz_err"}, None, optional
-            - ``"from_var"``: compute output model's error array from
-              all (Poisson, flat, readout) resampled variance arrays.
-              Setting ``compute_err`` to ``"from_var"`` will assume
-              ``enable_var`` was set to `True` regardless of actual
-              value of the parameter ``enable_var``.
-            - ``"driz_err"``: compute output model's error array by drizzling
-              together all input models' error arrays.
-
-            Error array will be assigned to ``'err'`` key of the output model.
-
-            .. note::
-                At this time, output error array is not equivalent to
-                error propagation results.
-
-        Returns
-        -------
-
-        attributes : set
-            A set of attributes that an output model must have when it
-            is provided as an input to `Resample.__init__` initializer.
-
-        """
-        # always required:
-        attributes = {
-            "data",
-            "wcs",
-            "wht",
-        }
-
-        if enable_ctx:
-            attributes.add("con")
-        if compute_err:
-            attributes.add("err")
-        if enable_var:
-            attributes.update(
-                ["var_rnoise", "var_poisson", "var_flat"]
-            )
-
-        return attributes
 
     def check_output_wcs(self, output_wcs, estimate_output_shape=True):
         """
@@ -608,12 +550,9 @@ class Resample:
                 input_pixel_area = self.get_input_model_pixel_area(model)
 
                 if input_pixel_area is None:
-                    model_name = _get_model_name(model)
-                    if not model_name:
-                        model_name = "Unknown"
                     raise ValueError(
                         "Unable to compute input pixel area from WCS of input "
-                        f"image {repr(model_name)}."
+                        f"image {repr(_get_model_name(model))}."
                     )
 
                 if self._pixel_scale_ratio is None:
@@ -672,6 +611,7 @@ class Resample:
             exptime=self._output_model["exposure_time"],
             begin_ctx_id=0,
             max_ctx_id=max_ctx_id,
+            disable_ctx=not self._enable_ctx,
         )
 
         # Also make a temporary model to hold error data
