@@ -129,13 +129,13 @@ class SkyImage:
 
         Parameters
         ----------
-        image : numpy.ndarray, NDArrayDataAccessor
+        image : numpy.ndarray, `NDArrayDataAccessor`
             A 2D array of image data or a `NDArrayDataAccessor`.
 
-        wcs_fwd : function
+        wcs_fwd : collections.abc.Callable
             "forward" pixel-to-world transformation function.
 
-        wcs_inv : function
+        wcs_inv : collections.abc.Callable
             "inverse" world-to-pixel transformation function.
 
         pix_area : float, optional
@@ -151,18 +151,18 @@ class SkyImage:
               The functionality to support this conversion is not yet
               implemented and at this moment `convf` is ignored.
 
-        mask : numpy.ndarray, NDArrayDataAccessor
+        mask : numpy.ndarray, `NDArrayDataAccessor`
             A 2D array or `NDArrayDataAccessor` of a 2D array that indicates
             which pixels in the input `image` should be used for sky
             computations (``1``) and which pixels should **not** be used
             for sky computations (``0``).
 
-        sky_id : anything
+        sky_id : typing.Any
             The value of this parameter is simple stored within the `SkyImage`
             object. While it can be of any type, it is preferable that `id` be
             of a type with nice string representation.
 
-        skystat : callable, None, optional
+        skystat : collections.abc.Callable, None, optional
             A callable object that takes a either a 2D image (2D
             `numpy.ndarray`) or a list of pixel values (a Nx1 array) and
             returns a tuple of two values: some statistics (e.g., mean,
@@ -170,7 +170,7 @@ class SkyImage:
             used in computing that statistics.
 
             When `skystat` is not set, `SkyImage` will use
-            :py:class:`~jwst_pipeline.skymatch.skystatistics.SkyStats` object
+            :py:class:`~stcal.skymatch.skystatistics.SkyStats` object
             to perform sky statistics on image data.
 
         stepsize : int, None, optional
@@ -345,12 +345,12 @@ class SkyImage:
 
         Parameters
         ----------
-        skyimage : SkyImage, SkyGroup, SphericalPolygon
+        skyimage : SkyImage, SkyGroup, spherical_geometry.polygon.SphericalPolygon
             Another object that should be intersected with this `SkyImage`.
 
         Returns
         -------
-        polygon : SphericalPolygon
+        polygon : `SphericalPolygon`
             A :py:class:`~spherical_geometry.polygon.SphericalPolygon` that is
             the intersection of this `SkyImage` and `skyimage`.
 
@@ -442,7 +442,7 @@ class SkyImage:
         Replace already set `skystat` with a "built-in" version of a
         statistics callable object used to measure sky background.
 
-        See :py:class:`~jwst_pipeline.skymatch.skystatistics.SkyStats` for the
+        See :py:class:`~stcal.skymatch.skystatistics.SkyStats` for the
         parameter description.
 
         """
@@ -462,10 +462,9 @@ class SkyImage:
 
         Parameters
         ----------
-        overlap : SkyImage, SkyGroup, SphericalPolygon, list of tuples, \
-None, optional
+        overlap : SkyImage, SkyGroup, `SphericalPolygon`, list[tuple[typing.Any]], None, optional
             Another `SkyImage`, `SkyGroup`,
-            :py:class:`spherical_geometry.polygons.SphericalPolygon`, or
+            :py:class:`spherical_geometry.polygon.SphericalPolygon`, or
             a list of tuples of (RA, DEC) of vertices of a spherical
             polygon. This parameter is used to indicate that sky statistics
             should computed only in the region of intersection of *this*
@@ -688,12 +687,12 @@ class SkyGroup:
 
         Parameters
         ----------
-        skyimage : SkyImage, SkyGroup, SphericalPolygon
+        skyimage : SkyImage, SkyGroup, `SphericalPolygon`
             Another object that should be intersected with this `SkyImage`.
 
         Returns
         -------
-        intersect_poly : SphericalPolygon
+        intersect_poly : `SphericalPolygon`
             A :py:class:`~spherical_geometry.polygon.SphericalPolygon` that is
             the intersection of this `SkyImage` and `skyimage`.
 
@@ -768,10 +767,9 @@ class SkyGroup:
 
         Parameters
         ----------
-        overlap : SkyImage, SkyGroup, SphericalPolygon, list of tuples, \
-None, optional
+        overlap : SkyImage, SkyGroup, `SphericalPolygon`, list[tuple[typing.Any]], None, optional
             Another `SkyImage`, `SkyGroup`,
-            :py:class:`spherical_geometry.polygons.SphericalPolygon`, or
+            :py:class:`spherical_geometry.polygon.SphericalPolygon`, or
             a list of tuples of (RA, DEC) of vertices of a spherical
             polygon. This parameter is used to indicate that sky statistics
             should computed only in the region of intersection of *this*

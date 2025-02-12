@@ -34,10 +34,11 @@ def skymatch(images, skymethod='global+match', match_down=True, subtract=False):
     ----------
 
     images : list of SkyImage or SkyGroup
-        A list of of :py:class:`~jwst.skymatch.skyimage.SkyImage` or
-        :py:class:`~jwst.skymatch.skyimage.SkyGroup` objects.
+        A list of of :py:class:`~stcal.skymatch.skyimage.SkyImage` or
+        :py:class:`~stcal.skymatch.skyimage.SkyGroup` objects.
 
-    skymethod : {'local', 'global+match', 'global', 'match'}, optional
+    skymethod : str, optional
+        Available methods: {'local', 'global+match', 'global', 'match'}
         Select the algorithm for sky computation:
 
         * **'local'** : compute sky background values of each input image or
@@ -88,22 +89,23 @@ drizzlepac/astrodrizzle.html>`_
           This setting applies *only* when the `skymethod` parameter is
           either `'match'` or `'global+match'`.
 
-    subtract : bool (Default = False)
+    subtract : bool
         Subtract computed sky value from image data.
+        (Default: `False`).
 
     Raises
     ------
 
     TypeError
         The `images` argument must be a Python list of
-        :py:class:`~jwst.skymatch.skyimage.SkyImage` and/or
-        :py:class:`~jwst.skymatch.skyimage.SkyGroup` objects.
+        :py:class:`~stcal.skymatch.skyimage.SkyImage` and/or
+        :py:class:`~stcal.skymatch.skyimage.SkyGroup` objects.
 
 
     Notes
     -----
 
-    :py:func:`match` provides new algorithms for sky value computations
+    :py:func:`skymatch` provides new algorithms for sky value computations
     and enhances previously available algorithms used by, e.g.,
     `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\
 drizzlepac/astrodrizzle.html>`_.
@@ -163,7 +165,7 @@ drizzlepac/astrodrizzle.html>`_.
       baseline sky value (instead of 0 in ``'match'`` algorithm alone).
 
     **Remarks:**
-      * :py:func:`match` works directly on *geometrically distorted*
+      * :py:func:`skymatch` works directly on *geometrically distorted*
         flat-fielded images thus avoiding the need to perform distortion
         correction on the input images.
 
@@ -179,7 +181,7 @@ drizzlepac/astrodrizzle.html>`_.
       Primary reason for introducing "sky match" algorithm was to try to
       equalize the sky in large mosaics in which computation of the
       "absolute" sky is difficult due to the presence of large diffuse
-      sources in the image. As discussed above, :py:func:`match`
+      sources in the image. As discussed above, :py:func:`skymatch`
       accomplishes this by comparing "sky values" in a pair of images in the
       overlap region (that is common to both images). Quite obviously the
       quality of sky "matching" will depend on how well these "sky values"
@@ -188,10 +190,10 @@ drizzlepac/astrodrizzle.html>`_.
       measured sky may be the surface brightness of large galaxy, nebula, etc.
 
       In the discussion below we will refer to parameter names in
-      :py:class:`~jwst.skymatch.skystatistics.SkyStats` and these
+      :py:class:`~stcal.skymatch.skystatistics.SkyStats` and these
       parameter names may differ from the parameters of the actual `skystat`
       object passed to initializer of the
-      :py:class:`~jwst.skymatch.skyimage.SkyImage`.
+      :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 
       Here is a brief list of possible limitations/factors that can affect
       the outcome of the matching (sky subtraction in general) algorithm:

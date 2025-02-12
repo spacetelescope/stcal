@@ -1,7 +1,7 @@
 """
 `skystatistics` module provides statistics computation class used by
-:py:func:`~jwst.skymatch.skymatch.skymatch`
-and :py:class:`~jwst.skymatch.skyimage.SkyImage`.
+:py:func:`~stcal.skymatch.skymatch.skymatch`
+and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 
 :Authors: Mihai Cara (contact: help@stsci.edu)
 
@@ -30,8 +30,9 @@ class SkyStats:
 
         Parameters
         -----------
-        skystat : {'mode', 'median', 'mode', 'midpt'}, optional
-            Sets the statistics that will be returned by `~SkyStats.calc_sky`.
+        skystat : optional
+            possible values are'mode', 'median', 'mode', 'midpt".
+            Sets the statistics that will be returned by `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
             The following statistics are supported: 'mean', 'mode', 'midpt',
             and 'median'. First three statistics have the same meaning as in
             `stsdas.toolbox.imgtools.gstatistics <http://stsdas.stsci.edu/\
