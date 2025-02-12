@@ -52,9 +52,6 @@ class Resample:
     6. Keeps track of total exposure time and other time-related quantities.
 
     """
-    resample_suffix = 'i2d'
-    resample_file_ext = '.fits'
-
     # supported output arrays (subclasses can add more):
     output_array_types = {
         "data": np.float32,
@@ -657,7 +654,7 @@ class Resample:
 
         """
         # set up an empty output model (don't allocate arrays at this time):
-        if getattr(self, "_output_model", None) is None:
+        if not hasattr(self, "_output_model") or self.is_finalized():
             self._output_model = self.create_output_model()
 
         if n_input_models is None:
@@ -730,7 +727,6 @@ class Resample:
             "end_time",
             "duration",
             "measurement_time",
-            "elapsed_exposure_time",
 
             "pixelarea_steradians",
             # "pixelarea_arcsecsq",
@@ -1201,12 +1197,11 @@ class Resample:
 
         return driz.out_img ** 2
 
-
     def init_time_counters(self):
         """ Initialize variables/arrays needed to process exposure time. """
-        self._total_exposure_time = self.output_model["exposure_time"]
-        self._duration = self.output_model["duration"]
-        self._total_measurement_time = self.output_model["measurement_time"]
+        self._total_exposure_time = 0
+        self._duration = 0
+        self._total_measurement_time = 0
         if self._total_measurement_time is None:
             self._total_measurement_time = 0.0
 

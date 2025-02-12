@@ -47,16 +47,34 @@ def resample_range(data_shape, bbox=None):
     return xmin, xmax, ymin, ymax
 
 
-def build_mask(dqarr, bitvalue, flag_name_map=None):
+def build_mask(dqarr, good_bits, flag_name_map=None):
     """Build a bit mask from an input DQ array and a bitvalue flag
 
     In the returned bit mask, 1 is good, 0 is bad
     """
-    bitvalue = interpret_bit_flags(bitvalue, flag_name_map=flag_name_map)
+    good_bits = interpret_bit_flags(good_bits, flag_name_map=flag_name_map)
 
-    if bitvalue is None:
-        return np.ones(dqarr.shape, dtype=np.uint8)
-    return np.logical_not(np.bitwise_and(dqarr, ~bitvalue)).astype(np.uint8)
+    dqmask = bitfield_to_boolean_mask(
+        dqarr,
+        good_bits,
+        good_mask_value=1,
+        dtype=np.uint8,
+        flag_name_map=flag_name_map,
+    )
+    return dqmask
+
+    # if bitvalue is None:
+    #     return np.ones(dqarr.shape, dtype=np.uint8)
+    # return np.logical_not(np.bitwise_and(dqarr, ~bitvalue)).astype(np.uint8)
+
+
+    # bitvalue = interpret_bit_flags(bitvalue, mnemonic_map=pixel)
+
+    # if bitvalue is None:
+    #     return np.ones(dqarr.shape, dtype=np.uint8)
+
+    # bitvalue = np.array(bitvalue).astype(dqarr.dtype)
+    # return np.logical_not(np.bitwise_and(dqarr, ~bitvalue)).astype(np.uint8)
 
 
 def build_driz_weight(model, weight_type=None, good_bits=None,
@@ -106,98 +124,30 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         flag_name_map=flag_name_map,
     )
 
-    if weight_type and weight_type.startswith('ivm'):
-        weight_type = weight_type.strip()
-        selective_median = weight_type.startswith('ivm-smed')
-        bitvalue = interpret_bit_flags(
-            good_bits,
-            flag_name_map=flag_name_map
-        )
-        if bitvalue is None:
-            bitvalue = 0
-
-        # disable selective median if SATURATED flag is included
-        # in good_bits:
-        try:
-            if flag_name_map is not None:
-                saturation = flag_name_map["SATURATED"]
-                if selective_median and not (bitvalue & saturation):
-                    selective_median = False
-                    weight_type = 'ivm'
-        except AttributeError:
-            pass
-
+    if weight_type == 'ivm':
         var_rnoise = model["var_rnoise"]
-        if (var_rnoise is not None and var_rnoise.shape == data.shape):
+        if (var_rnoise is not None and
+                var_rnoise.shape == data.shape):
             with np.errstate(divide="ignore", invalid="ignore"):
                 inv_variance = var_rnoise**-1
-
             inv_variance[~np.isfinite(inv_variance)] = 1
-
-            if weight_type != 'ivm':
-                ny, nx = data.shape
-
-                # apply a median filter to smooth the weight at saturated
-                # (or high read-out noise) single pixels. keep kernel size
-                # small to still give lower weight to extended CRs, etc.
-                ksz = weight_type[8 if selective_median else 7:]
-                if ksz:
-                    kernel_size = int(ksz)
-                    if not (kernel_size % 2):
-                        raise ValueError(
-                            'Kernel size of the median filter in IVM '
-                            'weighting must be an odd integer.'
-                        )
-                else:
-                    kernel_size = 3
-
-                ivm_copy = inv_variance.copy()
-
-                if selective_median:
-                    # apply median filter selectively only at
-                    # points of partially saturated sources:
-                    jumps = np.where(
-                        np.logical_and(dq & saturation, dqmask)
-                    )
-                    w2 = kernel_size // 2
-                    for r, c in zip(*jumps):
-                        x1 = max(0, c - w2)
-                        x2 = min(nx, c + w2 + 1)
-                        y1 = max(0, r - w2)
-                        y2 = min(ny, r + w2 + 1)
-                        data = ivm_copy[y1:y2, x1:x2][dqmask[y1:y2, x1:x2]]
-                        if data.size:
-                            inv_variance[r, c] = np.median(data)
-                        # else: leave it as is
-
-                else:
-                    # apply median to the entire inv-var array:
-                    inv_variance = median_filter(
-                        inv_variance,
-                        size=kernel_size
-                    )
-                bad_dqmask = np.logical_not(dqmask)
-                inv_variance[bad_dqmask] = ivm_copy[bad_dqmask]
-
         else:
             warnings.warn(
-                "var_rnoise array not available. "
+                "'var_rnoise' array not available. "
                 "Setting drizzle weight map to 1",
                 RuntimeWarning
             )
             inv_variance = 1.0
+        result = inv_variance * dqmask
 
-        weight = inv_variance * dqmask
-
-    elif weight_type == "exptime":
-        t, _ = get_tmeasure(model)
-        weight = np.full(data.shape, t)
-        weight *= dqmask
+    elif weight_type == 'exptime':
+        exptime, s = get_tmeasure(model)
+        result = exptime * dqmask
 
     else:
-        weight = np.ones(data.shape, dtype=data.dtype) * dqmask
+        result = np.ones(data.shape, dtype=data.dtype) * dqmask
 
-    return weight.astype(np.float32)
+    return result.astype(np.float32)
 
 
 def get_tmeasure(model):
