@@ -246,10 +246,9 @@ def find_crs_old(
     sig_clip_grps_fails = False
     total_noise_min_grps_fails = False
 
-    # Determine whether there are enough usable groups the two sigma clip options
-    if (only_use_ints and nints < minimum_sigclip_groups) \
-            or \
-            (not only_use_ints and total_sigclip_groups < minimum_sigclip_groups):
+    # Determine whether there are enough usable groups for the two sigma clip options
+    if ((only_use_ints and nints < minimum_sigclip_groups)
+        or (not only_use_ints and total_sigclip_groups < minimum_sigclip_groups)):
         sig_clip_grps_fails = True
     if min_usable_groups < minimum_groups:
         total_noise_min_grps_fails = True
