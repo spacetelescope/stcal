@@ -1,3 +1,6 @@
+# temporary minimum dependencies file
+requirements-min.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
