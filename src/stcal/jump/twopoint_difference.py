@@ -45,37 +45,27 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     row_above_gdq : int, 3D array (num_ints, num_groups, num_cols)
         pixels above current row also to be flagged as a CR
     """
-    # copy data and group DQ array
-    if twopt_p.copy_arrs:
-        dat = dataa.copy()
-        gdq = group_dq.copy()
-    else:
-        dat = dataa
-        gdq = group_dq
+    # START
+    dat, gdq, read_noise_2 = set_up_data(dataa, group_dq, read_noise, twopt_p)
+
     # Get data characteristics
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = (ngroups - 1) * nints
-    # get readnoise, squared
-    read_noise_2 = read_noise**2
+
     # create arrays for output
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
 
-    # get dq flags for saturated, donotuse, jump
-    sat_flag = twopt_p.fl_sat
-    dnu_flag = twopt_p.fl_dnu
-    jump_flag = twopt_p.fl_jump
-
     # get data, gdq
     num_flagged_grps = 0
+
     # determine the number of groups with all pixels set to DO_NOT_USE
-    ngrps = dat.shape[1]
     max_flagged_grps = 0
     total_flagged_grps = 0
     for integ in range(nints):
         num_flagged_grps = 0
-        for grp in range(dat.shape[1]):
-            if np.all(np.bitwise_and(gdq[integ, grp, :, :], dnu_flag)):
+        for grp in range(ngroups):
+            if np.all(np.bitwise_and(gdq[integ, grp, :, :], twopt_p.fl_dnu)):
                 num_flagged_grps += 1
         if num_flagged_grps > max_flagged_grps:
             max_flagged_grps = num_flagged_grps
@@ -83,10 +73,10 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     if twopt_p.only_use_ints:
         total_sigclip_groups = nints
     else:
-        total_sigclip_groups = nints * ngrps - num_flagged_grps
+        total_sigclip_groups = nints * ngroups - num_flagged_grps
 
-    min_usable_groups = ngrps - max_flagged_grps
-    total_groups = nints * ngrps - total_flagged_grps
+    min_usable_groups = ngroups - max_flagged_grps
+    total_groups = nints * ngroups - total_flagged_grps
     min_usable_diffs = min_usable_groups - 1
     sig_clip_grps_fails = False
     total_noise_min_grps_fails = False
@@ -104,7 +94,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
     else:
         # set 'saturated' or 'do not use' pixels to nan in data
-        dat[gdq & (dnu_flag | sat_flag) != 0] = np.nan
+        dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
         
         # calculate the differences between adjacent groups (first diffs)
         # Bad data will be NaN; np.nanmedian will be used later.
@@ -142,20 +132,20 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
             # get the standard deviation from the bounds of sigma clipping
             stddev = 0.5*(ahigh - alow)/twopt_p.normal_rej_thresh
             jump_candidates = clipped_diffs.mask
-            sat_or_dnu_not_set = gdq[:, 1:] & (sat_flag | dnu_flag) == 0
+            sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
             jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
             del clipped_diffs
-            gdq[:, 1:] |= jump_mask * np.uint8(jump_flag)
+            gdq[:, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
 
             # if grp is all jump set to do not use
             for integ in range(nints):
-                for grp in range(ngrps):
-                    if np.all(gdq[integ, grp] & (jump_flag | dnu_flag) != 0):
+                for grp in range(ngroups):
+                    if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
                         # The line below matches the comment above, but not the
                         # old logic.  Leaving it for now.
-                        #gdq[integ, grp] |= dnu_flag
+                        #gdq[integ, grp] |= twopt_p.fl_dnu
                         
-                        jump_only = gdq[integ, grp, :, :] == jump_flag
+                        jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
                         gdq[integ, grp][jump_only] = 0
                         
             warnings.resetwarnings()
@@ -175,7 +165,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
                     ratio = absdiff / sigma[np.newaxis, :]
                     jump_candidates = ratio > twopt_p.normal_rej_thresh
                     jump_mask = jump_candidates & first_diffs_finite[i]
-                    gdq[i, 1:] |= jump_mask * np.uint8(jump_flag)
+                    gdq[i, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
                     
             else:  # low number of diffs requires iterative flagging
                 
@@ -269,10 +259,10 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
                     gdq[:, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
                         gdq[:, 1:, all_crs_row[j],
                         all_crs_col[j]],
-                        jump_flag * np.invert(pix_cr_mask),
+                        twopt_p.fl_jump * np.invert(pix_cr_mask),
                     )
                     
-    num_primary_crs = np.sum(gdq & jump_flag == jump_flag)
+    num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
     
     # Flag the four neighbors using bitwise or, shifting the reference
     # boolean flag on pixel right, then left, then up, then down.
@@ -283,7 +273,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         for i in range(nints):
             for j in range(ngroups - 1):
                 ratio = np.abs(first_diffs[i, j] - median_diffs)/sigma
-                jump_set = gdq[i, j + 1] & jump_flag != 0
+                jump_set = gdq[i, j + 1] & twopt_p.fl_jump != 0
                 flag = (ratio < twopt_p.max_jump_to_flag_neighbors) & \
                     (ratio > twopt_p.min_jump_to_flag_neighbors) & \
                     (jump_set)
@@ -294,10 +284,10 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
                 flag[:-1] |= flagsave[1:]
                 flag[:, 1:] |= flagsave[:, :-1]
                 flag[:, :-1] |= flagsave[:, 1:]
-                sat_or_dnu_notset = gdq[i, j + 1] & (sat_flag | dnu_flag) == 0
-                gdq[i, j + 1][sat_or_dnu_notset & flag] |= jump_flag
-                row_below_gdq[i, j + 1][flagsave[0]] = jump_flag
-                row_above_gdq[i, j + 1][flagsave[-1]] = jump_flag
+                sat_or_dnu_notset = gdq[i, j + 1] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
+                gdq[i, j + 1][sat_or_dnu_notset & flag] |= twopt_p.fl_jump
+                row_below_gdq[i, j + 1][flagsave[0]] = twopt_p.fl_jump
+                row_above_gdq[i, j + 1][flagsave[-1]] = twopt_p.fl_jump
                 
     # Flag n groups after jumps above the specified thresholds to
     # account for the transient seen after ramp jumps.  Again, use
@@ -306,7 +296,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     if twopt_p.after_jump_flag_n1 > 0 or twopt_p.after_jump_flag_n2 > 0:
         for i in range(nints):
             ejump = first_diffs[i] - median_diffs[np.newaxis, :]
-            jump_set = gdq[i] & jump_flag != 0
+            jump_set = gdq[i] & twopt_p.fl_jump != 0
             
             bigjump = np.zeros(jump_set.shape, dtype=bool)
             verybigjump = np.zeros(jump_set.shape, dtype=bool)
@@ -320,9 +310,9 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
             
             # Set the flags for pixels after these jumps that are not
             # already flagged as saturated or do not use.
-            sat_or_dnu_notset = gdq[i] & (sat_flag | dnu_flag) == 0
+            sat_or_dnu_notset = gdq[i] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
             addflag = (bigjump | verybigjump) & sat_or_dnu_notset
-            gdq[i][addflag] |= jump_flag
+            gdq[i][addflag] |= twopt_p.fl_jump
             
     if "stddev" in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
@@ -333,6 +323,20 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         dummy = np.zeros((dataa.shape[2], dataa.shape[3]), dtype=np.float32)
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
+# END
+
+def set_up_data(dataa, group_dq, read_noise, twopt_p):
+    # copy data and group DQ array
+    if twopt_p.copy_arrs:
+        dat = dataa.copy()
+        gdq = group_dq.copy()
+    else:
+        dat = dataa
+        gdq = group_dq
+
+    read_noise_2 = read_noise**2
+
+    return dat, gdq, read_noise_2
 
 
 def propagate_flags(boolean_flag, n_groups_flag):
