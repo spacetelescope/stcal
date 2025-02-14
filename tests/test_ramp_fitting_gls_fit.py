@@ -677,12 +677,11 @@ def test_two_groups_unc():
     answer = slopes[2][50, 50]
     check = np.sqrt((deltaDN / gain) / group_time**2 + (rnoise**2 / group_time**2))
     tol = 1.0e-6
-    # print(f"answer = {answer}")
-    # print(f"check = {check}")
+
     np.testing.assert_allclose(answer, check, tol)
 
 
-@pytest.mark.skip(reason="GLS does not comopute VAR_XXX arrays.")
+@pytest.mark.skip(reason="GLS does not compute VAR_XXX arrays.")
 def test_five_groups_unc():
     """ """
     """

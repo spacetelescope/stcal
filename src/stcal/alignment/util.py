@@ -4,7 +4,8 @@ from __future__ import annotations
 import functools
 import logging
 import re
-from typing import TYPE_CHECKING
+import typing
+from typing import TYPE_CHECKING, Tuple
 import warnings
 
 if TYPE_CHECKING:
@@ -88,15 +89,18 @@ def _generate_tranform(
     wcsinfo : dict
         A dictionary containing the WCS FITS keywords and corresponding values.
 
-    pscale_ratio : int, None
+    ref_fiducial : np.array
+        A two-elements array containing the world coordinates of the fiducial point.
+
+    pscale_ratio : int, None, optional
         Ratio of input to output pixel scale. This parameter is only used when
         ``pscale=None`` and, in that case, it is passed on to ``compute_scale``.
 
-    pscale : float, None
+    pscale : float, None, optional
         The plate scale. If `None`, the plate scale is calculated from the reference
         datamodel.
 
-    rotation : float, None
+    rotation : float, None, optional
         Position angle of output image's Y-axis relative to North.
         A value of 0.0 would orient the final output image to be North up.
         The default of `None` specifies that the images will not be rotated,
@@ -106,10 +110,7 @@ def _generate_tranform(
         provided. If `None`, the rotation angle is extracted from the
         reference model's ``meta.wcsinfo.roll_ref``.
 
-    ref_fiducial : np.array
-        A two-elements array containing the world coordinates of the fiducial point.
-
-    transform : ~astropy.modeling.Model
+    transform : ~astropy.modeling.Model, None, optional
         A transform between frames.
 
     Returns
@@ -143,10 +144,16 @@ def _generate_tranform(
     return transform
 
 
-def _get_axis_min_and_bounding_box(footprints: list[np.ndarray],
-                                   ref_wcs: gwcs.wcs.WCS) -> tuple:
+def _get_bounding_box_with_offsets(
+        footprints: list[np.ndarray],
+        ref_wcs: gwcs.wcs.WCS,
+        fiducial: Sequence,
+        crpix: Sequence | None,
+        shape: Sequence | None
+        ) -> Tuple[tuple, tuple, astmodels.Model]:
     """
     Calculates axis minimum values and bounding box.
+    Calculates the offsets to the transform.
 
     Parameters
     ----------
@@ -157,28 +164,74 @@ def _get_axis_min_and_bounding_box(footprints: list[np.ndarray],
     ref_wcs : ~gwcs.wcs.WCS
         The reference WCS object.
 
+    fiducial : tuple
+        A tuple containing the world coordinates of the fiducial point.
+
+    crpix : list or tuple, None, optional
+        0-indexed pixel coordinates of the reference pixel.
+
+    shape : tuple, None, optional
+        Shape (using `numpy.ndarray` convention) of the image array associated
+        with the ``ref_wcs``.
+
+
     Returns
     -------
+
     tuple
-        A tuple containing two elements:
-            1 - a :py:class:`np.ndarray` with the minimum value in each axis;
-            2 - a tuple containing the bounding box region in the format
-            ((x0_lower, x0_upper), (x1_lower, x1_upper)).
+        A tuple containing the bounding box region in the format
+        ((x0_lower, x0_upper), (x1_lower, x1_upper), ...).
+
+    tuple
+        Shape of the image. When ``shape`` argument is `None`, shape is
+        determined from the upper limit of the computed bounding box, otherwise
+        input value of ``shape`` is returned.
+
+    ~astropy.modeling.Model
+        A model with the offsets to be added to the WCS's transform.
+
     """
     domain_bounds = np.hstack([ref_wcs.backward_transform(*f.T) for f in footprints])
-    axis_min_values = np.min(domain_bounds, axis=1)
-    domain_bounds = (domain_bounds.T - axis_min_values).T
+    domain_min = np.min(domain_bounds, axis=1)
+    domain_max = np.max(domain_bounds, axis=1)
 
-    output_bounding_box = []
-    for axis in ref_wcs.output_frame.axes_order:
-        axis_min, axis_max = (
-            domain_bounds[axis].min(),
-            domain_bounds[axis].max(),
+    native_crpix = ref_wcs.backward_transform(*fiducial)
+
+    if crpix is None:
+        # shift the coordinates by domain_min so that all input footprints
+        # will project to positive coordinates in the offsetted ref_wcs
+        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min))
+
+    else:
+        # assume 0-based CRPIX and require that fiducial would map to the user
+        # defined crpix value:
+        offsets = tuple(
+            crp - ncrp for ncrp, crp in zip(native_crpix, crpix)
         )
-        # populate output_bounding_box
-        output_bounding_box.append((axis_min, axis_max))
 
-    return (axis_min_values, output_bounding_box)
+    # Also offset domain limits:
+    domain_min += offsets
+    domain_max += offsets
+
+    if shape is None:
+        shape = tuple(int(dmax + 0.5) for dmax in domain_max[::-1])
+        bounding_box = tuple(
+            (-0.5, s - 0.5) for s in shape[::-1]
+        )
+
+    else:
+        # trim upper bounding box limits
+        shape = tuple(shape)
+        bounding_box = tuple(
+            (max(0, int(dmin + 0.5)) - 0.5, min(int(dmax + 0.5), sz) - 0.5)
+            for dmin, dmax, sz in zip(domain_min, domain_max, shape[::-1])
+        )
+
+    model = astmodels.Shift(-offsets[0], name="crpix1")
+    for k, shift in enumerate(offsets[1:]):
+        model = model.__and__(astmodels.Shift(-shift, name=f"crpix{k + 2:d}"))
+
+    return bounding_box, shape, model
 
 
 def _calculate_fiducial(footprints: list[np.ndarray],
@@ -208,52 +261,6 @@ def _calculate_fiducial(footprints: list[np.ndarray],
     return _compute_fiducial_from_footprints(footprints)
 
 
-def _calculate_offsets(fiducial: tuple,
-                       wcs: gwcs.wcs.WCS | None,
-                       axis_min_values: np.ndarray | None,
-                       crpix: Sequence | None) -> astmodels.Model:
-    """
-    Calculates the offsets to the transform.
-
-    Parameters
-    ----------
-    fiducial : tuple
-        A tuple containing the world coordinates of the fiducial point.
-
-    wcs : ~gwcs.wcs.WCS
-        A WCS object. It will be used to determine the
-
-    axis_min_values : np.ndarray
-        A two-elements array containing the minimum pixel value for each axis.
-
-    crpix : list or tuple
-        Pixel coordinates of the reference pixel.
-
-    Returns
-    -------
-    ~astropy.modeling.Model
-        A model with the offsets to be added to the WCS's transform.
-
-    Notes
-    -----
-    If ``crpix=None``, then ``fiducial``, ``wcs``, and ``axis_min_values`` must be
-    provided, in which case, the offsets will be calculated using the WCS object to
-    find the pixel coordinates of the fiducial point and then correct it by the minimum
-    pixel value for each axis.
-    """
-    if crpix is None and fiducial is not None and wcs is not None and axis_min_values is not None:
-        offset1, offset2 = wcs.backward_transform(*fiducial)
-        offset1 -= axis_min_values[0]
-        offset2 -= axis_min_values[1]
-    elif crpix is None:
-        msg = "If crpix is not provided, fiducial, wcs, and axis_min_values must be provided."
-        raise ValueError(msg)
-    else:
-        offset1, offset2 = crpix
-
-    return astmodels.Shift(-offset1, name="crpix1") & astmodels.Shift(-offset2, name="crpix2")
-
-
 def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
                        shape: Sequence | None,
                        footprints: list[np.ndarray],
@@ -270,10 +277,6 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
     wcs : ~gwcs.wcs.WCS
         The reference WCS object.
 
-    shape : list
-        The shape of the new WCS's pixel grid. If `None`, then the output bounding box
-        will be used to determine it.
-
     footprints : list
         A list of numpy arrays each of shape (N, 2) containing the
         (RA, Dec) vertices demarcating the footprint of the input WCSs.
@@ -282,10 +285,14 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         A tuple containing the location on the sky in some standard
         coordinate system.
 
-    crpix : tuple, optional
-        The coordinates of the reference pixel.
+    shape : list, None, optional
+        The shape of the new WCS's pixel grid. If `None`, then the output bounding box
+        will be used to determine it.
 
-    transform : ~astropy.modeling.Model
+    crpix : tuple, None, optional
+        0-indexed coordinates of the reference pixel.
+
+    transform : ~astropy.modeling.Model, None, optional
         An optional transform to be prepended to the transform constructed by the
         fiducial point. The number of outputs of this transform must equal the number
         of axes in the coordinate frame.
@@ -302,20 +309,23 @@ def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
         transform=transform,
         input_frame=wcs.input_frame,
     )
-    axis_min_values, output_bounding_box = _get_axis_min_and_bounding_box(footprints, wcs_new)
-    offsets = _calculate_offsets(
+
+    bounding_box, shape, offsets = _get_bounding_box_with_offsets(
+        footprints,
+        ref_wcs=wcs_new,
         fiducial=fiducial,
-        wcs=wcs_new,
-        axis_min_values=axis_min_values,
         crpix=crpix,
+        shape=shape
     )
 
+    if any(d < 2 for d in shape):
+        raise ValueError(
+            "Computed shape for the output image using provided "
+            "WCS parameters is too small."
+        )
+
     wcs_new.insert_transform("detector", offsets, after=True)
-    wcs_new.bounding_box = output_bounding_box
-
-    if shape is None:
-        shape = [int(axs[1] - axs[0] + 0.5) for axs in output_bounding_box[::-1]]
-
+    wcs_new.bounding_box = bounding_box
     wcs_new.pixel_shape = shape[::-1]
     wcs_new.array_shape = shape
     return wcs_new
@@ -375,11 +385,11 @@ def compute_scale(
         Input fiducial of (RA, DEC) or (RA, DEC, Wavelength) used in calculating
         reference points.
 
-    disp_axis : int
+    disp_axis : int, None, optional
         Dispersion axis integer. Assumes the same convention as
         ``wcsinfo.dispersion_direction``
 
-    pscale_ratio : int
+    pscale_ratio : int, None, optional
         Ratio of input to output pixel scale
 
     Returns
@@ -435,7 +445,7 @@ def compute_fiducial(wcslist: list,
     wcslist : list
         A list containing all the WCS objects for which the fiducial is to be
         calculated.
-    bounding_box : tuple, list, None
+    bounding_box : tuple, list, None, optional
         The bounding box over which the WCS is valid. It can be a either tuple of tuples
         or a list of lists of size 2 where each element represents a range of
         (low, high) values. The bounding_box is in the order of the axes, axes_order.
@@ -585,23 +595,23 @@ def wcs_from_footprints(
     ref_wcsinfo : dict
         A dictionary containing the WCS FITS keywords and corresponding values.
 
-    transform : ~astropy.modeling.Model
+    transform : ~astropy.modeling.Model, None, optional
         A transform, passed to :py:func:`gwcs.wcstools.wcs_from_fiducial`
         If not supplied `Scaling | Rotation` is computed from ``refmodel``.
 
-    bounding_box : tuple
+    bounding_box : tuple, None, optional
         Bounding_box of the new WCS.
         If not supplied it is computed from the bounding_box of all inputs.
 
-    pscale_ratio : float, None
+    pscale_ratio : float, None, optional
         Ratio of input to output pixel scale. Ignored when either
         ``transform`` or ``pscale`` are provided.
 
-    pscale : float, None
+    pscale : float, None, optional
         Absolute pixel scale in degrees. When provided, overrides
         ``pscale_ratio``. Ignored when ``transform`` is provided.
 
-    rotation : float, None
+    rotation : float, None, optional
         Position angle of output image's Y-axis relative to North.
         A value of 0.0 would orient the final output image to be North up.
         The default of `None` specifies that the images will not be rotated,
@@ -610,22 +620,22 @@ def wcs_from_footprints(
         approximately to the detector axes. Ignored when ``transform`` is
         provided.
 
-    shape : tuple of int, None
+    shape : tuple of int, None, optional
         Shape of the image (data array) using ``np.ndarray`` convention
         (``ny`` first and ``nx`` second). This value will be assigned to
         ``pixel_shape`` and ``array_shape`` properties of the returned
         WCS object.
 
-    crpix : tuple of float, None
+    crpix : tuple of float, None, optional
         Position of the reference pixel in the image array.  If ``crpix`` is not
         specified, it will be set to the center of the bounding box of the
         returned WCS object.
 
-    crval : tuple of float, None
+    crval : tuple of float, None, optional
         Right ascension and declination of the reference pixel. Automatically
         computed if not provided.
 
-    wcs_list : list
+    wcs_list : list, None, optional
         A list of WCS objects. If not supplied, the WCS objects are extracted
         from the input datamodels.
 
@@ -707,26 +717,26 @@ def wcs_from_sregions(
         If list elements are strings, each should be the S_REGION header keyword
         containing (RA, Dec) vertices demarcating the footprint of the input WCSs.
 
-    ref_wcs :
+    ref_wcs : ~gwcs.wcs.WCS
         A WCS used as reference for the creation of the output
         coordinate frame, projection, and scaling and rotation transforms.
 
     ref_wcsinfo : dict
         A dictionary containing the WCS FITS keywords and corresponding values.
 
-    transform : ~astropy.modeling.Model
+    transform : ~astropy.modeling.Model, None, optional
         A transform, passed to :py:func:`gwcs.wcstools.wcs_from_fiducial`
         If not supplied `Scaling | Rotation` is computed from ``refmodel``.
 
-    pscale_ratio : float, None
+    pscale_ratio : float, None, optional
         Ratio of input to output pixel scale. Ignored when either
         ``transform`` or ``pscale`` are provided.
 
-    pscale : float, None
+    pscale : float, None, optional
         Absolute pixel scale in degrees. When provided, overrides
         ``pscale_ratio``. Ignored when ``transform`` is provided.
 
-    rotation : float, None
+    rotation : float, None, optional
         Position angle of output image's Y-axis relative to North.
         A value of 0.0 would orient the final output image to be North up.
         The default of `None` specifies that the images will not be rotated,
@@ -735,18 +745,18 @@ def wcs_from_sregions(
         approximately to the detector axes. Ignored when ``transform`` is
         provided.
 
-    shape : tuple of int, None
+    shape : tuple of int, None, optional
         Shape of the image (data array) using ``np.ndarray`` convention
         (``ny`` first and ``nx`` second). This value will be assigned to
         ``pixel_shape`` and ``array_shape`` properties of the returned
         WCS object.
 
-    crpix : tuple of float, None
+    crpix : tuple of float, None, optional
         Position of the reference pixel in the image array.  If ``crpix`` is not
         specified, it will be set to the center of the bounding box of the
         returned WCS object.
 
-    crval : tuple of float, None
+    crval : tuple of float, None, optional
         Right ascension and declination of the reference pixel. Automatically
         computed if not provided.
 
@@ -773,10 +783,10 @@ def wcs_from_sregions(
 
     return _calculate_new_wcs(
         wcs=ref_wcs,
-        shape=shape,
-        crpix=crpix,
         footprints=footprints,
         fiducial=fiducial,
+        shape=shape,
+        crpix=crpix,
         transform=transform,
     )
 
@@ -792,11 +802,11 @@ def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
     wcs : ~gwcs.wcs.WCS
         The WCS object.
 
-    shape : tuple, optional
+    shape : tuple, None, optional
         Shape of input model data array. Used to compute the bounding box if not
         provided in the WCS object, and required in that case. The default is None.
 
-    center : bool, optional
+    center : bool, None, optional
         Whether or not to use the center of the pixel as reference for the
         coordinates, by default True
 
@@ -826,9 +836,7 @@ def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
     footprint = footprint[:2, :]
 
     # Make sure RA values are all positive
-    negative_ind = footprint[0] < 0
-    if negative_ind.any():
-        footprint[0][negative_ind] = 360 + footprint[0][negative_ind]
+    np.mod(footprint[0], 360, out=footprint[0])
 
     footprint = footprint.T
     return compute_s_region_keyword(footprint)
