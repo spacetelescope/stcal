@@ -56,34 +56,23 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
 
-    # get data, gdq
-    num_flagged_grps = 0
-
-    # determine the number of groups with all pixels set to DO_NOT_USE
-    max_flagged_grps = 0
-    total_flagged_grps = 0
-    for integ in range(nints):
-        num_flagged_grps = 0
-        for grp in range(ngroups):
-            if np.all(np.bitwise_and(gdq[integ, grp, :, :], twopt_p.fl_dnu)):
-                num_flagged_grps += 1
-        if num_flagged_grps > max_flagged_grps:
-            max_flagged_grps = num_flagged_grps
-        total_flagged_grps += num_flagged_grps
-    if twopt_p.only_use_ints:
-        total_sigclip_groups = nints
-    else:
-        total_sigclip_groups = nints * ngroups - num_flagged_grps
-
-    min_usable_groups = ngroups - max_flagged_grps
-    total_groups = nints * ngroups - total_flagged_grps
-    min_usable_diffs = min_usable_groups - 1
-    sig_clip_grps_fails = False
-    total_noise_min_grps_fails = False
+    ngroups_ans = groups_all_set_dnu(nints, ngroups, gdq, twopt_p)
+    min_usable_groups = ngroups_ans[0]
+    total_groups = ngroups_ans[1]
+    min_usable_diffs = ngroups_ans[2]
+    sig_clip_grps_fails = ngroups_ans[3]
+    total_noise_min_grps_fails = ngroups_ans[4]
 
     # Determine whether there are enough usable groups for the two sigma clip options
-    if ((twopt_p.only_use_ints and nints < twopt_p.minimum_sigclip_groups)
-        or (not twopt_p.only_use_ints and total_sigclip_groups < twopt_p.minimum_sigclip_groups)):
+    if (
+            (
+                twopt_p.only_use_ints
+                and nints < twopt_p.minimum_sigclip_groups
+            ) or  (
+                not twopt_p.only_use_ints
+                and total_sigclip_groups < twopt_p.minimum_sigclip_groups
+            )
+    ):
         sig_clip_grps_fails = True
     if min_usable_groups < twopt_p.minimum_groups:
         total_noise_min_grps_fails = True
@@ -325,7 +314,81 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 # END
 
+
+def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
+    """
+    Get group totals with various characteristics.
+
+    Parameters
+    ----------
+    nints : int
+        The number of integrations in an exposure.
+    ngroups : int
+        The number of groups in an integration.
+    gdq : ndarray
+        Group DQ array.
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    ngroups_ans : tuple
+        Various group totals.
+    """
+    # get data, gdq
+    num_flagged_grps = 0
+
+    # determine the number of groups with all pixels set to DO_NOT_USE
+    max_flagged_grps = 0
+    total_flagged_grps = 0
+    for integ in range(nints):
+        num_flagged_grps = 0
+        for grp in range(ngroups):
+            if np.all(np.bitwise_and(gdq[integ, grp, :, :], twopt_p.fl_dnu)):
+                num_flagged_grps += 1
+        if num_flagged_grps > max_flagged_grps:
+            max_flagged_grps = num_flagged_grps
+        total_flagged_grps += num_flagged_grps
+    if twopt_p.only_use_ints:
+        total_sigclip_groups = nints
+    else:
+        total_sigclip_groups = nints * ngroups - num_flagged_grps
+
+    min_usable_groups = ngroups - max_flagged_grps
+    total_groups = nints * ngroups - total_flagged_grps
+    min_usable_diffs = min_usable_groups - 1
+    sig_clip_grps_fails = False
+    total_noise_min_grps_fails = False
+
+    ngroups_ans = (min_usable_groups, total_groups, min_usable_diffs, 
+                   sig_clip_grps_fails, total_noise_min_grps_fails)
+
+    return ngroups_ans
+
 def set_up_data(dataa, group_dq, read_noise, twopt_p):
+    """
+    Creates copies, if desired, and squares the read noise.
+
+    Parameters
+    ----------
+    dataa : ndarray
+        The science data.
+    group_dq : ndarray
+        The group DQ array.
+    read_noise : ndarray
+        The pixel readnoise reference array.
+    twopt_p : TwoPointParams
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    dat : ndarray
+        The science data.
+    gdq : ndarray
+        The group DQ array.
+    read_noise_2 : ndarray
+        The square of the read noise reference array.
+    """
     # copy data and group DQ array
     if twopt_p.copy_arrs:
         dat = dataa.copy()
