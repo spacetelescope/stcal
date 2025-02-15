@@ -62,18 +62,12 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     min_usable_diffs = ngroups_ans[2]
     sig_clip_grps_fails = ngroups_ans[3]
     total_noise_min_grps_fails = ngroups_ans[4]
+    total_sigclip_groups = ngroups_ans[5]
 
     # Determine whether there are enough usable groups for the two sigma clip options
-    if (
-            (
-                twopt_p.only_use_ints
-                and nints < twopt_p.minimum_sigclip_groups
-            ) or  (
-                not twopt_p.only_use_ints
-                and total_sigclip_groups < twopt_p.minimum_sigclip_groups
-            )
-    ):
+    if (test_group_counts(nints, total_sigclip_groups, twopt_p)):
         sig_clip_grps_fails = True
+
     if min_usable_groups < twopt_p.minimum_groups:
         total_noise_min_grps_fails = True
 
@@ -82,6 +76,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
     else:
+        # XXX current dev
         # set 'saturated' or 'do not use' pixels to nan in data
         dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
         
@@ -315,6 +310,31 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 # END
 
 
+def test_group_counts(nints, total_sigclip_groups, twopt_p):
+    """
+    Determine whether there are enough usable groups for the two sigma clip options
+
+    Parameters
+    ----------
+    nints : int
+        Number of integrations in an exposure
+    total_sigclip_groups : int
+        Total number of sigma-clipped groups
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    boolean
+        Can the sigma clip options be used?
+    """
+    test1 = twopt_p.only_use_ints and nints < twopt_p.minimum_sigclip_groups
+    test2 = not twopt_p.only_use_ints
+    test2 = test2 and total_sigclip_groups < twopt_p.minimum_sigclip_groups
+
+    return test1 or test2
+
+
 def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
     """
     Get group totals with various characteristics.
@@ -360,10 +380,11 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
     sig_clip_grps_fails = False
     total_noise_min_grps_fails = False
 
-    ngroups_ans = (min_usable_groups, total_groups, min_usable_diffs, 
-                   sig_clip_grps_fails, total_noise_min_grps_fails)
+    ngroups_ans = (min_usable_groups, total_groups, min_usable_diffs, sig_clip_grps_fails,
+                   total_noise_min_grps_fails, total_sigclip_groups)
 
     return ngroups_ans
+
 
 def set_up_data(dataa, group_dq, read_noise, twopt_p):
     """
