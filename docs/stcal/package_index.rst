@@ -10,3 +10,4 @@ Package Index
    tweakreg/index.rst
    outlier_detection/index.rst
    resample/index.rst
+   skymatch/index.rst
