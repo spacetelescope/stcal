@@ -76,7 +76,6 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
     else:
-        # XXX current dev
         # set 'saturated' or 'do not use' pixels to nan in data
         dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
         
@@ -89,6 +88,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
         median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
         warnings.resetwarnings()
+
         # calculate sigma for each pixel
         sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / twopt_p.nframes)
 
@@ -252,51 +252,16 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     # boolean flag on pixel right, then left, then up, then down.
     # Flag neighbors above the threshold for which neither saturation 
     # nor donotuse is set.
-    
     if twopt_p.flag_4_neighbors:
-        for i in range(nints):
-            for j in range(ngroups - 1):
-                ratio = np.abs(first_diffs[i, j] - median_diffs)/sigma
-                jump_set = gdq[i, j + 1] & twopt_p.fl_jump != 0
-                flag = (ratio < twopt_p.max_jump_to_flag_neighbors) & \
-                    (ratio > twopt_p.min_jump_to_flag_neighbors) & \
-                    (jump_set)
-
-                # Dilate the flag by one pixel in each direction.
-                flagsave = flag.copy()
-                flag[1:] |= flagsave[:-1]
-                flag[:-1] |= flagsave[1:]
-                flag[:, 1:] |= flagsave[:, :-1]
-                flag[:, :-1] |= flagsave[:, 1:]
-                sat_or_dnu_notset = gdq[i, j + 1] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
-                gdq[i, j + 1][sat_or_dnu_notset & flag] |= twopt_p.fl_jump
-                row_below_gdq[i, j + 1][flagsave[0]] = twopt_p.fl_jump
-                row_above_gdq[i, j + 1][flagsave[-1]] = twopt_p.fl_jump
+        gdq = flag_four_neighbors(
+            gdq, nints, ngroups, first_diffs, median_diffs, sigma,
+            row_below_gdq, row_above_gdq, twopt_p)
                 
     # Flag n groups after jumps above the specified thresholds to
     # account for the transient seen after ramp jumps.  Again, use
     # boolean arrays; the propagation happens in a separate function.
-    
     if twopt_p.after_jump_flag_n1 > 0 or twopt_p.after_jump_flag_n2 > 0:
-        for i in range(nints):
-            ejump = first_diffs[i] - median_diffs[np.newaxis, :]
-            jump_set = gdq[i] & twopt_p.fl_jump != 0
-            
-            bigjump = np.zeros(jump_set.shape, dtype=bool)
-            verybigjump = np.zeros(jump_set.shape, dtype=bool)
-
-            bigjump[1:] = (ejump >= twopt_p.after_jump_flag_e1) & jump_set[1:]
-            verybigjump[1:] = (ejump >= twopt_p.after_jump_flag_e2) & jump_set[1:]
-            
-            # Propagate flags forward
-            propagate_flags(bigjump, twopt_p.after_jump_flag_n1)
-            propagate_flags(verybigjump, twopt_p.after_jump_flag_n2)
-            
-            # Set the flags for pixels after these jumps that are not
-            # already flagged as saturated or do not use.
-            sat_or_dnu_notset = gdq[i] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
-            addflag = (bigjump | verybigjump) & sat_or_dnu_notset
-            gdq[i][addflag] |= twopt_p.fl_jump
+        gdq = transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p)
             
     if "stddev" in locals():
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
@@ -308,6 +273,102 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 # END
+
+
+def flag_four_neighbors(
+    gdq, nints, ngroups, first_diffs, median_diffs, sigma,
+    row_below_gdq, row_above_gdq, twopt_p):
+    """
+    Flag four neighbors.
+
+    Parameters
+    ----------
+    gdq : ndarray
+        Group DQ array.
+    nints : int
+        The number of integrations.
+    ngroups : int
+        The number of groups.
+    first_diffs : ndarray
+        The first differences of the groups.
+    median_diffs : ndarray
+        The median of the first differences.
+    sigma : ndarray
+        The sigma for each pixel.
+    row_below_gdq : ndarray
+        Pixels below current row also to be flagged as a CR.
+    row_above_gdq : ndarray
+        Pixels above current row also to be flagged as a CR.
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    gdq : ndarray
+        Group DQ array.
+    """
+    for i in range(nints):
+        for j in range(ngroups - 1):
+            ratio = np.abs(first_diffs[i, j] - median_diffs)/sigma
+            jump_set = gdq[i, j + 1] & twopt_p.fl_jump != 0
+            flag = (ratio < twopt_p.max_jump_to_flag_neighbors) & \
+                (ratio > twopt_p.min_jump_to_flag_neighbors) & \
+                (jump_set)
+
+            # Dilate the flag by one pixel in each direction.
+            flagsave = flag.copy()
+            flag[1:] |= flagsave[:-1]
+            flag[:-1] |= flagsave[1:]
+            flag[:, 1:] |= flagsave[:, :-1]
+            flag[:, :-1] |= flagsave[:, 1:]
+            sat_or_dnu_notset = gdq[i, j + 1] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
+            gdq[i, j + 1][sat_or_dnu_notset & flag] |= twopt_p.fl_jump
+            row_below_gdq[i, j + 1][flagsave[0]] = twopt_p.fl_jump
+            row_above_gdq[i, j + 1][flagsave[-1]] = twopt_p.fl_jump
+    return gdq
+
+
+def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
+    """
+    Flag n groups after jumps to account for the transient seen after ramp jumps.
+
+    Parameters
+    ----------
+    gdq : ndarray
+        The group DQ array.
+    first_diffs : ndarray
+        First differences of the groups of the science array.
+    median_diffs : ndarray
+        The media of the first differences.
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    gdq : ndarray
+        The group DQ array.
+    """
+    for i in range(nints):
+        ejump = first_diffs[i] - median_diffs[np.newaxis, :]
+        jump_set = gdq[i] & twopt_p.fl_jump != 0
+
+        bigjump = np.zeros(jump_set.shape, dtype=bool)
+        verybigjump = np.zeros(jump_set.shape, dtype=bool)
+
+        bigjump[1:] = (ejump >= twopt_p.after_jump_flag_e1) & jump_set[1:]
+        verybigjump[1:] = (ejump >= twopt_p.after_jump_flag_e2) & jump_set[1:]
+
+        # Propagate flags forward
+        propagate_flags(bigjump, twopt_p.after_jump_flag_n1)
+        propagate_flags(verybigjump, twopt_p.after_jump_flag_n2)
+
+        # Set the flags for pixels after these jumps that are not
+        # already flagged as saturated or do not use.
+        sat_or_dnu_notset = gdq[i] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
+        addflag = (bigjump | verybigjump) & sat_or_dnu_notset
+        gdq[i][addflag] |= twopt_p.fl_jump
+
+    return gdq
 
 
 def test_group_counts(nints, total_sigclip_groups, twopt_p):
