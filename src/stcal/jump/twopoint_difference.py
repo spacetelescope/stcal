@@ -96,8 +96,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         sigma[sigma == 0.] = np.nan
 
         # Test to see if there are enough groups to use sigma clipping
-        if (twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups) or \
-           (not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups):
+        if (test_sigma_clip_groups(nints, total_groups, twopt_p)):
             log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
                 str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)))
             warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
@@ -273,6 +272,29 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 # END
+
+
+def test_sigma_clip_groups(nints, total_groups, twopt_p):
+    """
+    Test to see if there are enough groups to use sigma clipping.
+
+    Parameters
+    ----------
+    nints : int
+        The number of integrations per exposure
+    total_groups : int
+        Total usable groups to check.
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    boolean
+        Are there enough groups to use sigma clipping.
+    """
+    test1 = (twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups)
+    test2 = (not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups)
+    return test1 or test2
 
 
 def flag_four_neighbors(
