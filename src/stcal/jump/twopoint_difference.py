@@ -97,41 +97,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
         # Test to see if there are enough groups to use sigma clipping
         if (test_sigma_clip_groups(nints, total_groups, twopt_p)):
-            log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
-                str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)))
-            warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-            warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
-            warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
-            warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
-
-            if twopt_p.only_use_ints:
-                clipped_diffs, alow, ahigh = stats.sigma_clip(
-                    first_diffs, sigma=twopt_p.normal_rej_thresh,
-                    axis=0, masked=True, return_bounds=True)
-            else:
-                clipped_diffs, alow, ahigh = stats.sigma_clip(
-                    first_diffs, sigma=twopt_p.normal_rej_thresh,
-                    axis=(0, 1), masked=True, return_bounds=True)
-            # get the standard deviation from the bounds of sigma clipping
-            stddev = 0.5*(ahigh - alow)/twopt_p.normal_rej_thresh
-            jump_candidates = clipped_diffs.mask
-            sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
-            jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
-            del clipped_diffs
-            gdq[:, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
-
-            # if grp is all jump set to do not use
-            for integ in range(nints):
-                for grp in range(ngroups):
-                    if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
-                        # The line below matches the comment above, but not the
-                        # old logic.  Leaving it for now.
-                        #gdq[integ, grp] |= twopt_p.fl_dnu
-                        
-                        jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
-                        gdq[integ, grp][jump_only] = 0
-                        
-            warnings.resetwarnings()
+            gdq = set_jump_sigma_clipping(gdq, ints, ngroups, first_diffs, twopt_p)
         else:  # There are not enough groups for sigma clipping
             if min_usable_diffs >= twopt_p.min_diffs_single_pass:
                 # There are enough diffs in all ints to look for more than one jump
@@ -272,6 +238,59 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 # END
+
+
+def set_jump_sigma_clipping(gdq, ints, ngroups, first_diffs, twopt_p):
+    """
+    Detect jumps using sigma clipping.
+
+    Parameters
+    ----------
+    gdq
+    ints
+    ngroups
+    first_diffs
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    gdq : ndarray
+        Flagged group DQ array.
+    """
+    log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
+        str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)))
+    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
+    warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
+
+    axis = 0 if twopt_p.only_use_ints else (0, 1)
+    clipped_diffs, alow, ahigh = stats.sigma_clip(
+        first_diffs, sigma=twopt_p.normal_rej_thresh,
+        axis=axis, masked=True, return_bounds=True)
+
+    # get the standard deviation from the bounds of sigma clipping
+    stddev = 0.5 * (ahigh - alow) / twopt_p.normal_rej_thresh
+    jump_candidates = clipped_diffs.mask
+    sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
+    jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
+    del clipped_diffs
+    gdq[:, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
+
+    # if grp is all jump set to do not use
+    for integ in range(nints):
+        for grp in range(ngroups):
+            if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
+                # The line below matches the comment above, but not the
+                # old logic.  Leaving it for now.
+                #gdq[integ, grp] |= twopt_p.fl_dnu
+                
+                jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
+                gdq[integ, grp][jump_only] = 0
+                
+    warnings.resetwarnings()
+    return gdq
 
 
 def test_sigma_clip_groups(nints, total_groups, twopt_p):
