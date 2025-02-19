@@ -24,13 +24,10 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     ----------
     dataa: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
         input ramp data
-
     group_dq : int, 4D array
         group DQ flags
-
     read_noise : float, 2D array
         The read noise of each pixel
-
     twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
@@ -38,10 +35,8 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     -------
     gdq : int, 4D array
         group DQ array with reset flags
-
     row_below_gdq : int, 3D array (num_ints, num_groups, num_cols)
         pixels below current row also to be flagged as a CR
-
     row_above_gdq : int, 3D array (num_ints, num_groups, num_cols)
         pixels above current row also to be flagged as a CR
     """
@@ -239,41 +234,12 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     gdq : ndarray
         Updated group DQ array.
     """
-    # calc. the median of first_diffs for each pixel along the group axis
+    # Compute the median of first_diffs for each pixel along the group axis.
     # Do not overwrite first_diffs, median_diffs, sigma.
     first_diffs_abs = np.abs(first_diffs)
-    median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
 
-    # calculate sigma for each pixel
-    sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / twopt_p.nframes)
-    # reset sigma so pxels with 0 readnoise are not flagged as jumps
-    sigma_iter[sigma_iter == 0.0] = np.nan
-
-    # compute 'ratio' for each group. this is the value that will be
-    # compared to 'threshold' to classify jumps. subtract the median of
-    # first_diffs from first_diffs, take the abs. value and divide by sigma.
-    e_jump = first_diffs_abs - median_diffs_iter[np.newaxis, :, :]
-    ratio = np.abs(e_jump) / sigma_iter[np.newaxis, :, :]
-    # create a 2d array containing the value of the largest 'ratio' for each pixel
-    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-    max_ratio = np.nanmax(ratio, axis=1)
-    warnings.resetwarnings()
-    # now see if the largest ratio of all groups for each pixel exceeds the threshold.
-    # there are different threshold for 4+, 3, and 2 usable groups
-    num_unusable_groups = np.sum(np.isnan(first_diffs_abs), axis=(0, 1))
-    int4cr, row4cr, col4cr = np.where(
-        np.logical_and(ndiffs - num_unusable_groups >= 4, max_ratio > twopt_p.normal_rej_thresh)
-    )
-    int3cr, row3cr, col3cr = np.where(
-        np.logical_and(ndiffs - num_unusable_groups == 3, max_ratio > twopt_p.three_diff_rej_thresh)
-    )
-    int2cr, row2cr, col2cr = np.where(
-        np.logical_and(ndiffs - num_unusable_groups == 2, max_ratio > twopt_p.two_diff_rej_thresh)
-    )
-    # get the rows, col pairs for all pixels with at least one CR
-    # all_crs_int = np.concatenate((int4cr, int3cr, int2cr))
-    all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
-    all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
+    all_crs_row, all_crs_col, ratio = get_rows_cols_of_crs(
+        first_diffs_abs, read_noise_2, ndiffs, twopt_p) 
 
     # iterate over all groups of the pix w/ an initial CR to look for subsequent CRs
     # flag and clip the first CR found. recompute median/sigma/ratio
@@ -307,12 +273,10 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
 
             # recalculate median, sigma, and ratio
             new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
-
             new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / twopt_p.nframes)
             new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
 
             # check if largest ratio exceeds threshold appropriate for num remaining groups
-
             # select appropriate thresh. based on number of remaining groups
             rej_thresh = twopt_p.normal_rej_thresh
             if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
@@ -325,6 +289,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
                 new_CR_found = True
                 pix_cr_mask[location] = 0
             unusable_diffs = np.sum(np.isnan(pix_first_diffs))
+
         # Found all CRs for this pix - set flags in input DQ array
         gdq[:, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
             gdq[:, 1:, all_crs_row[j],
@@ -332,6 +297,67 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
             twopt_p.fl_jump * np.invert(pix_cr_mask),
         )
     return gdq
+
+
+def get_rows_cols_of_crs(first_diffs_abs, read_noise_2, ndiffs, twopt_p):
+    """
+    Compute the pairs of rows and columns with cosmic rays.
+
+    Parameters
+    ----------
+    first_diffs_abs : ndarray
+        The absolute value of first differences of the groups.
+    read_noise_2 : ndarray
+        The square of the read noise reference array.
+    ndiffs : int
+        The number of differences.
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    all_crs_row : list
+        The list of rows with CRs.
+    all_crs_col : list
+        The list of cols with CRs.
+    ratio : ndarray
+        Used for threshold comparison
+    """
+    median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
+
+    # calculate sigma for each pixel
+    sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / twopt_p.nframes)
+    # reset sigma so pxels with 0 readnoise are not flagged as jumps
+    sigma_iter[sigma_iter == 0.0] = np.nan
+
+    # compute 'ratio' for each group. this is the value that will be
+    # compared to 'threshold' to classify jumps. subtract the median of
+    # first_diffs from first_diffs, take the abs. value and divide by sigma.
+    e_jump = first_diffs_abs - median_diffs_iter[np.newaxis, :, :]
+    ratio = np.abs(e_jump) / sigma_iter[np.newaxis, :, :]
+
+    # create a 2d array containing the value of the largest 'ratio' for each pixel
+    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+    max_ratio = np.nanmax(ratio, axis=1)
+    warnings.resetwarnings()
+    # now see if the largest ratio of all groups for each pixel exceeds the threshold.
+    # there are different threshold for 4+, 3, and 2 usable groups
+    num_unusable_groups = np.sum(np.isnan(first_diffs_abs), axis=(0, 1))
+    int4cr, row4cr, col4cr = np.where(
+        np.logical_and(ndiffs - num_unusable_groups >= 4, max_ratio > twopt_p.normal_rej_thresh)
+    )
+    int3cr, row3cr, col3cr = np.where(
+        np.logical_and(ndiffs - num_unusable_groups == 3, max_ratio > twopt_p.three_diff_rej_thresh)
+    )
+    int2cr, row2cr, col2cr = np.where(
+        np.logical_and(ndiffs - num_unusable_groups == 2, max_ratio > twopt_p.two_diff_rej_thresh)
+    )
+    # get the rows, col pairs for all pixels with at least one CR
+    # all_crs_int = np.concatenate((int4cr, int3cr, int2cr))
+    all_crs_row = np.concatenate((row4cr, row3cr, row2cr))
+    all_crs_col = np.concatenate((col4cr, col3cr, col2cr))
+
+    return all_crs_row, all_crs_col, ratio
 
 
 def look_for_more_than_one_jump(
