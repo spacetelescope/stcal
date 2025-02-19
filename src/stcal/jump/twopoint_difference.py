@@ -46,7 +46,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     nints, ngroups, nrows, ncols = dataa.shape
     ndiffs = (ngroups - 1) * nints
 
-    # create arrays for output
+    # Create arrays for output
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
 
@@ -72,14 +72,14 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     gdq, first_diffs, median_diffs, sigma, stddev = run_jump_detection(
         dat, gdq, ndiffs, read_noise_2, nints, total_groups, min_usable_diffs, twopt_p)
-                    
+
     num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
-    
+
     gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
         gdq, nints, ngroups, first_diffs, median_diffs, sigma,
         row_below_gdq, row_above_gdq, twopt_p)
             
-    # if "stddev" in locals():
+    # If "stddev" in locals():
     if stddev is not None:
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 
@@ -241,7 +241,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     all_crs_row, all_crs_col, ratio = get_rows_cols_of_crs(
         first_diffs_abs, read_noise_2, ndiffs, twopt_p) 
 
-    # iterate over all groups of the pix w/ an initial CR to look for subsequent CRs
+    # Iterate over all groups of the pix w/ an initial CR to look for subsequent CRs
     # flag and clip the first CR found. recompute median/sigma/ratio
     # and repeat the above steps of comparing the max 'ratio' for each pixel
     # to the threshold to determine if another CR can be flagged and clipped.
@@ -258,37 +258,8 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
         # set the largest ratio as a CR
         location = np.unravel_index(np.nanargmax(pix_ratio), pix_ratio.shape)
         pix_cr_mask[location] = 0
-        new_CR_found = True
 
-        # loop and check for more CRs, setting the mask as you go and
-        # clipping the group with the CR. stop when no more CRs are found
-        # or there is only one two diffs left (which means there is
-        # actually one left, since the next CR will be masked after
-        # checking that condition)
-        while new_CR_found and (ndiffs - np.sum(np.isnan(pix_first_diffs)) > 2):
-            new_CR_found = False
-
-            # set CRs to nans in first diffs to clip them
-            pix_first_diffs[~pix_cr_mask] = np.nan
-
-            # recalculate median, sigma, and ratio
-            new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
-            new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / twopt_p.nframes)
-            new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
-
-            # check if largest ratio exceeds threshold appropriate for num remaining groups
-            # select appropriate thresh. based on number of remaining groups
-            rej_thresh = twopt_p.normal_rej_thresh
-            if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
-                rej_thresh = twopt_p.three_diff_rej_thresh
-            if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
-                rej_thresh = twopt_p.two_diff_rej_thresh
-            max_idx = np.nanargmax(new_pix_ratio)
-            location = np.unravel_index(max_idx, new_pix_ratio.shape)
-            if new_pix_ratio[location] > rej_thresh:
-                new_CR_found = True
-                pix_cr_mask[location] = 0
-            unusable_diffs = np.sum(np.isnan(pix_first_diffs))
+        pix_cr_mask = loop_for_more_crs(ndiffs, pix_cr_mask, pix_first_diffs, pix_rn2, twopt_p)
 
         # Found all CRs for this pix - set flags in input DQ array
         gdq[:, 1:, all_crs_row[j], all_crs_col[j]] = np.bitwise_or(
@@ -296,8 +267,63 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
             all_crs_col[j]],
             twopt_p.fl_jump * np.invert(pix_cr_mask),
         )
+
     return gdq
 
+
+def loop_for_more_crs(ndiffs, pix_cr_mask, pix_first_diffs, pix_rn2, twopt_p):
+    """
+    Loop to check for more CRs
+
+    Setting the mask as you go and clipping the group with the CR.  Stop when no
+    more CRs are found or there is only one two diffs left, which means there is
+    one left, since the next CR will be masked after checking that condition.
+
+    Parameters
+    ----------
+    ndiffs : int
+        The number of differences.
+    pix_cr_mask : ndarray
+        Mask to flag cosmic rays.
+    pix_first_diffs : ndarray
+        Absolute value of group differences in rows and columns with CRs.
+    pix_rn2 : ndarray
+        Read noise in rows and columns with CRs.
+    twopt_p : TwoPointParams 
+        Class containing two point difference parameters.
+
+    Returns
+    -------
+    pix_cr_mask : ndarray
+        Mask to flag cosmic rays.
+    """
+    new_cr_found = True
+    while new_cr_found and (ndiffs - np.sum(np.isnan(pix_first_diffs)) > 2):
+        new_cr_found = False
+
+        # set CRs to nans in first diffs to clip them
+        pix_first_diffs[~pix_cr_mask] = np.nan
+
+        # recalculate median, sigma, and ratio
+        new_pix_median_diffs = calc_med_first_diffs(pix_first_diffs)
+        new_pix_sigma = np.sqrt(np.abs(new_pix_median_diffs) + pix_rn2 / twopt_p.nframes)
+        new_pix_ratio = np.abs(pix_first_diffs - new_pix_median_diffs) / new_pix_sigma
+
+        # check if largest ratio exceeds threshold appropriate for num remaining groups
+        # select appropriate thresh. based on number of remaining groups
+        rej_thresh = twopt_p.normal_rej_thresh
+        if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 3:
+            rej_thresh = twopt_p.three_diff_rej_thresh
+        if ndiffs - np.sum(np.isnan(pix_first_diffs)) == 2:
+            rej_thresh = twopt_p.two_diff_rej_thresh
+        max_idx = np.nanargmax(new_pix_ratio)
+        location = np.unravel_index(max_idx, new_pix_ratio.shape)
+        if new_pix_ratio[location] > rej_thresh:
+            new_cr_found = True
+            pix_cr_mask[location] = 0
+        # unusable_diffs = np.sum(np.isnan(pix_first_diffs))
+
+    return pix_cr_mask
 
 def get_rows_cols_of_crs(first_diffs_abs, read_noise_2, ndiffs, twopt_p):
     """
@@ -516,6 +542,10 @@ def flag_four_neighbors(
     -------
     gdq : ndarray
         Group DQ array.
+    row_below_gdq : ndarray
+        Pixels below current row also to be flagged as a CR.
+    row_above_gdq : ndarray
+        Pixels above current row also to be flagged as a CR.
     """
     for i in range(nints):
         for j in range(ngroups - 1):
@@ -535,6 +565,7 @@ def flag_four_neighbors(
             gdq[i, j + 1][sat_or_dnu_notset & flag] |= twopt_p.fl_jump
             row_below_gdq[i, j + 1][flagsave[0]] = twopt_p.fl_jump
             row_above_gdq[i, j + 1][flagsave[-1]] = twopt_p.fl_jump
+
     return gdq, row_below_gdq, row_above_gdq
 
 
@@ -695,20 +726,20 @@ def set_up_data(dataa, group_dq, read_noise, twopt_p):
 
 
 def propagate_flags(boolean_flag, n_groups_flag):
-    """Propagate a boolean flag array npix groups along the first axis.
+    """
+    Propagate a boolean flag array npix groups along the first axis.
+
     If the number of groups to propagate is not too large, or if a
     high percentage of pixels are flagged, use boolean or on the
     array.  Otherwise use np.where.  In both cases operate on the
     array in-place.
+
     Parameters
     ----------
     boolean_flag : 3D boolean array
         Should be True where the flag is to be propagated.
     n_groups_flag : int
         Number of groups to propagate flags forward.
-    Returns
-    -------
-    None
     """
     ngroups = boolean_flag.shape[0]
     jmax = min(n_groups_flag, ngroups - 2)
@@ -727,7 +758,8 @@ def propagate_flags(boolean_flag, n_groups_flag):
 
 
 def calc_med_first_diffs(in_first_diffs):
-    """Calculate the median of `first diffs` along the group axis.
+    """
+    Calculate the median of `first diffs` along the group axis.
 
     If there are 4+ usable groups (e.g not flagged as saturated, donotuse,
     or a previously clipped CR), then the group with largest absolute
