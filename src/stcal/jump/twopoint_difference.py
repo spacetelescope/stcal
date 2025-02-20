@@ -79,7 +79,6 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         gdq, nints, ngroups, first_diffs, median_diffs, sigma,
         row_below_gdq, row_above_gdq, twopt_p)
             
-    # If "stddev" in locals():
     if stddev is not None:
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 
