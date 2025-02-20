@@ -2,7 +2,8 @@ import numpy as np
 from astropy.io import fits
 import pytest
 
-from stcal.jump.twopoint_difference import calc_med_first_diffs, find_crs
+from stcal.jump.twopoint_difference import calc_med_first_diffs
+from stcal.jump.twopoint_difference import find_crs_old as find_crs
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1}
 
@@ -21,6 +22,79 @@ def setup_cube():
 
     return _cube
 
+def test_sigclip_not_enough_groups_ng5(setup_cube):
+    ngroups = 5
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
+        nframes, False, 200, 10, DQFLAGS,
+        minimum_sigclip_groups=11, minimum_groups=6
+    )
+    assert total_crs == -99
+
+def test_sigclip_not_enough_groups_ng12(setup_cube):
+    ngroups = 12
+
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=8, nrows=2, ncols=2, readnoise=8)
+    data[0, 0:2, 0:, 0] = 1
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
+        nframes, False, 200, 10, DQFLAGS,
+        minimum_sigclip_groups=11, minimum_groups=16
+    )
+    assert total_crs == -99
+
+def test_sigclip_with_num_small_groups_ni190(setup_cube):
+    ngroups = 12
+    nints = 190
+
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=nints, nrows=2, ncols=2, readnoise=8)
+    data[0, 0:2, 0:, 0] = 1
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
+        nframes, False, 200, 10, DQFLAGS,
+        minimum_sigclip_groups=11, minimum_groups=16
+    )
+    assert total_crs != -99
+
+def test_nosigclip_with_enough_groups_ni1(setup_cube):
+    ngroups = 12
+    nints = 1
+
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=nints, nrows=2, ncols=2, readnoise=8)
+    data[0, 0:2, 0:, 0] = 1
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
+        nframes, False, 200, 10, DQFLAGS,
+        minimum_sigclip_groups=11, minimum_groups=5
+    )
+    assert total_crs != -99
+
+def test_nosigclip_with_num_small_groups_ni1(setup_cube):
+    ngroups = 4
+    nints = 1
+
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=nints, nrows=2, ncols=2, readnoise=8)
+    data[0, 0:2, 0:, 0] = 1
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
+        nframes, False, 200, 10, DQFLAGS,
+        minimum_sigclip_groups=11, minimum_groups=16
+    )
+    assert total_crs == -99
+
+def test_nosigclip_with_num_small_groups_ni100(setup_cube):
+    ngroups = 4
+    nints = 100
+
+    data, gdq, nframes, read_noise, rej_threshold = setup_cube(ngroups, nints=nints, nrows=2, ncols=2, readnoise=8)
+    data[0, 0:2, 0:, 0] = 1
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, rej_threshold, rej_threshold, rej_threshold,
+        nframes, False, 200, 10, DQFLAGS,
+        minimum_sigclip_groups=100, minimum_groups=16
+    )
+    assert total_crs != -99
 
 def test_varying_groups(setup_cube):
     ngroups = 5

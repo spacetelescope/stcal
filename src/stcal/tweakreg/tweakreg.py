@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import math
 import warnings
 from pathlib import Path
@@ -253,12 +254,57 @@ def _parse_refcat(abs_refcat: str | Path,
         )
 
     if Path(abs_refcat).is_file():
-        return Table.read(abs_refcat)
+        return _parse_sky_centroid(Table.read(abs_refcat))
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
            "a path to an existing file name or one of the supported "
            f"reference catalogs: {_SINGLE_GROUP_REFCAT_STR}.")
     raise ValueError(msg)
+
+
+def _parse_sky_centroid(catalog: Table) -> Table:
+    """Turn SkyCoord object into simple RA/DEC columns.
+
+    The inclusion of SkyCoord objects via sky_centroid.ra and sky_centroid.dec
+    permits the use of catalogs directly from the jwst source_catalog step.
+    No action is taken if the catalog already contains RA and DEC columns.
+    """
+    cols = [name.lower() for name in catalog.colnames]
+    occurrences = Counter(cols)
+    nra, ndec = occurrences["ra"], occurrences["dec"]
+    ncentroid = occurrences["sky_centroid"]
+
+    # Check for too many or too few columns
+    if nra > 1 or ndec > 1:
+        msg = ("Absolute reference catalog contains multiple RA and/or DEC columns."
+               "Could not determine which to use. Note that the columns are case-insensitive.")
+        raise KeyError(msg)
+
+    if nra == 1 and ndec == 1:
+        if ncentroid > 0:
+            msg = ("Absolute reference catalog contains both RA/DEC "
+                   "and sky_centroid columns. Ignoring sky_centroid.")
+            warnings.warn(msg, stacklevel=2)
+            catalog.remove_column("sky_centroid")
+        return catalog
+
+    if ncentroid > 1:
+        msg = ("Absolute reference catalog contains multiple sky_centroid columns."
+               "Could not determine which to use. Note that the columns are case-insensitive.")
+        raise KeyError(msg)
+
+    if ncentroid == 0:
+        msg = ("Absolute reference catalog contains neither RA/DEC nor "
+               "sky_centroid columns. Could not parse the catalog.")
+        raise KeyError(msg)
+    
+    # Convert SkyCoord object to RA/DEC
+    skycoord = catalog["sky_centroid"].to_table()
+    catalog["ra"] = skycoord["ra"]
+    catalog["dec"] = skycoord["dec"]
+    catalog.remove_column("sky_centroid")
+
+    return catalog
 
 
 def _is_wcs_correction_small(correctors,

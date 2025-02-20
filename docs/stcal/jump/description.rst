@@ -9,7 +9,7 @@ an input exposure. On output, the GROUPDQ array is updated with the DQ flag
 In addition, any pixels that have non-positive or NaN values in the gain
 reference file will have DQ flags "NO_GAIN_VALUE" and "DO_NOT_USE" set in the
 output PIXELDQ array.
-The SCI and ERR arrays of the input data are not modified.
+The SCI array of the input data is not modified.
 
 The current implementation uses the two-point difference method described
 in `Anderson & Gordon (2011) <https://ui.adsabs.harvard.edu/abs/2011PASP..123.1237A>`_.

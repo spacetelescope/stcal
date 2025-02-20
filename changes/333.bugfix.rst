@@ -1,0 +1,1 @@
+Allow tweakreg to parse absolute reference catalogs with skycoord objects in them

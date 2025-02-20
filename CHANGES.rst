@@ -1,3 +1,35 @@
+1.11.0 (2024-12-20)
+===================
+
+Changes to API
+--------------
+
+- Add maximum_shower_amplitude parameter to MIRI cosmic rays showers routine
+  to fix accidental flagging of bright science pixels. (`#306
+  <https://github.com/spacetelescope/stcal/issues/306>`_)
+
+
+Bug Fixes
+---------
+
+- Do not evaluate the inverse WCS transform within the bounding box in cases
+  where a resampled WCS is computed. Do not pass table columns to the WCS
+  Shared API. (`#314 <https://github.com/spacetelescope/stcal/issues/314>`_)
+- For `ramp_fitting`, the `CRMAG` element was not originally implemented in
+  the C-extension for ramp fitting.  It is now implemented.  A bug in the read
+  noise recalculation for CHARGELOSS when using the multiprocessing option has
+  been fixed.  Further, in `JWST` regression tests have been added to test for
+  multiprocessing to ensure testing for anything that could affect
+  multiprocessing. (`#318
+  <https://github.com/spacetelescope/stcal/issues/318>`_)
+- Update weight threshold calculation in outlier detection to work around numpy
+  bug that introduces small numerical differences for a mean of a masked array.
+  (`#319 <https://github.com/spacetelescope/stcal/issues/319>`_)
+- Change flagging of 'pre-saturation' grouped data to use DO_NOT_USE instead of
+  SATURATION flag to avoid confusing the snowball routine downstream. (`#321
+  <https://github.com/spacetelescope/stcal/issues/321>`_)
+
+
 1.10.0 (2024-11-15)
 ===================
 

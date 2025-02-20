@@ -2,7 +2,7 @@
 name = "stcal"
 description = "STScI tools and algorithms used in calibration pipelines"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.11"
 authors = [
     { name = "STScI", email = "help@stsci.edu" },
 ]
@@ -13,16 +13,17 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-    "astropy >=5.0.4",
-    "drizzle>=1.15.0",
-    "scipy >=1.7.2",
-    "scikit-image>=0.19",
-    "numpy >=1.21.2",
+    "astropy >=6.0.0",
+    "drizzle >=2.0.1",
+    "scipy >=1.14.1",
+    "scikit-image>=0.20.0",
+    "numpy >=1.25.0",
     "opencv-python-headless >=4.6.0.66",
-    "asdf >=2.15.0",
-    "gwcs @ git+https://github.com/spacetelescope/gwcs.git@master",
+    "asdf >=3.3.0",
+    "gwcs >=0.22.0",
     "tweakwcs >=0.8.8",
     "requests >=2.22",
+    "spherical-geometry>=1.2.22"
 ]
 dynamic = [
     "version",
@@ -218,6 +219,8 @@ module = [
     "asdf.*",
     "scipy.*",
     "drizzle.*",
+    "stsci.imagestats.*",
+    "spherical_geometry.*",
     # don't complain about the installed c parts of this library
     "stcal.ramp_fitting.ols_cas22._fit",
     "stcal.ramp_fitting.ols_cas22._jump",

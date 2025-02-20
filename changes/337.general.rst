@@ -1,0 +1,1 @@
+Performance improvements for jump step targeting both runtime and memory consumption. Results are mostly identical, but there are some differences in the MIRI shower flagging (it now flags somewhat fewer showers). 
