@@ -735,11 +735,6 @@ class Resample:
                 f"Input model '{_get_model_name(model)}' is not a 2D image."
             )
 
-        if (group_id := model["group_id"]) not in self._group_ids:
-            self.update_time(model)
-            self._group_ids.append(group_id)
-            self.output_model["pointings"] += 1
-
         iscale = self._get_intensity_scale(model)
         log.debug(f'Using intensity scale iscale={iscale}')
 
@@ -784,6 +779,11 @@ class Resample:
 
         self._driz.add_image(data, **add_image_kwargs)
 
+        if (group_id := model["group_id"]) not in self._group_ids:
+            self.update_time(model, driz_args=add_image_kwargs)
+            self._group_ids.append(group_id)
+            self._output_model["pointings"] += 1
+
         if self._compute_err == "driz_err":
             self._driz_error.add_image(model["err"], **add_image_kwargs)
 
@@ -799,7 +799,7 @@ class Resample:
 
         if self._compute_err == "driz_err":
             # use resampled error
-            self.output_model["err"] = self._driz_error.out_img
+            self._output_model["err"] = self._driz_error.out_img
 
     def is_finalized(self):
         """ Indicates whether all attributes of the ``output_model`` have been
@@ -1157,11 +1157,22 @@ class Resample:
 
         self._measurement_time_success = []
 
-    def update_time(self, model):
+    def update_time(self, model, driz_args=None):
         """
         A method called by the :py:meth:`~Resample.add_model` method to
         process each image's time attributes *only* when ``model`` has a new
         group ID.
+
+        Parameters
+        ----------
+        model : dict
+            A dictionary containing data arrays and other meta attributes
+            and values of actual models used by pipelines.
+
+        driz_args : dict
+            A dictionary of parameters passed by :py:meth:`~Resample.add_model`
+            to :py:meth:`~drizzle.resample.Drizzle.add_image` when adding
+            image data.
 
         """
         if model["group_id"] in self._group_ids:
