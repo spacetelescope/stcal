@@ -30,6 +30,7 @@ __all__ = [
     "calc_rotation_matrix",
     "compute_s_region_imaging",
     "compute_s_region_keyword",
+    "sregion_to_footprint",
     "wcs_from_footprints",
     "wcs_from_sregions",
     "wcs_bbox_from_shape",
@@ -666,8 +667,10 @@ def wcs_from_footprints(
     )
 
 
-def _sregion_to_footprint(s_region: str) -> np.ndarray:
+def sregion_to_footprint(s_region: str) -> np.ndarray:
     """
+    Parse the s_region string and return the footprint as an Nx2 array.
+
     Parameters
     ----------
     s_region : str
@@ -766,7 +769,7 @@ def wcs_from_sregions(
         The WCS object corresponding to the combined input footprints.
 
     """
-    footprints = [_sregion_to_footprint(s_region)
+    footprints = [sregion_to_footprint(s_region)
                   if isinstance(s_region, str) else s_region
                   for s_region in footprints]
     fiducial = _calculate_fiducial(footprints, crval=crval)
