@@ -567,7 +567,7 @@ def calc_med_first_diffs(in_first_diffs):
         num_usable_diffs = first_diffs.size - np.sum(np.isnan(first_diffs), axis=(0, 1))
         if num_usable_diffs >= 4:  # if 4+, clip largest and return median
             mask = np.ones_like(first_diffs).astype(bool)
-            location = np.unravel_index(first_diffs.argmax(), first_diffs.shape)
+            location = np.unravel_index(np.nanargmax(first_diffs), first_diffs.shape)
             mask[location] = False  # clip the diff with the largest abs value
             return np.nanmedian(first_diffs[mask])
         elif num_usable_diffs == 3:  # if 3, no clipping just return median

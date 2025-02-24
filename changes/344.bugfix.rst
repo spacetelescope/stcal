@@ -1,0 +1,1 @@
+Fix a bug in ``jump.twopointdifference.calc_med_first_diffs()`` where ``argmax`` was being used instead of ``nanargmax``.
