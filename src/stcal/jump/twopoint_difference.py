@@ -71,7 +71,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
 
     gdq, first_diffs, median_diffs, sigma, stddev = run_jump_detection(
-        dat, gdq, ndiffs, read_noise_2, nints, total_groups, min_usable_diffs, twopt_p)
+        dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
 
     num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
 
@@ -143,7 +143,7 @@ def jump_detection_post_processing(
 
 
 def run_jump_detection(
-    dat, gdq, ndiffs, read_noise_2, nints, total_groups, min_usable_diffs, twopt_p
+    dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p
 ):
     """
     Detect jumps.
@@ -160,6 +160,8 @@ def run_jump_detection(
         The square of the read noise reference array.
     nints : int
         The number of integrations for exposure.
+    ngroups : int
+        The number of groups in an integration.
     total_groups : int
         Total usable groups to check.
     min_usable_diffs : int
@@ -200,7 +202,8 @@ def run_jump_detection(
     # Test to see if there are enough groups to use sigma clipping
     stddev = None
     if (test_sigma_clip_groups(nints, total_groups, twopt_p)):
-        gdq, stddev = set_jump_sigma_clipping(gdq, ints, ngroups, first_diffs, twopt_p)
+        gdq, stddev = set_jump_sigma_clipping(
+            gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
         if min_usable_diffs >= twopt_p.min_diffs_single_pass:
             gdq = look_for_more_than_one_jump(
@@ -430,7 +433,10 @@ def look_for_more_than_one_jump(
     return gdq
 
 
-def set_jump_sigma_clipping(gdq, ints, ngroups, first_diffs, twopt_p):
+# XXX Develop a CI test to cover this function.
+def set_jump_sigma_clipping(
+    gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
+):
     """
     Detect jumps using sigma clipping.
 
@@ -442,6 +448,10 @@ def set_jump_sigma_clipping(gdq, ints, ngroups, first_diffs, twopt_p):
         The number of integrations in an exposure.
     ngroups : int
         The number of groups in an integration
+    total_groups : int
+        Total usable groups to check.
+    first_diffs_finite : ndarray
+        A boolean array where the first diffs are finite.
     first_diffs : ndarray
         The first differences of the groups.
     twopt_p : TwoPointParams 
