@@ -433,7 +433,6 @@ def look_for_more_than_one_jump(
     return gdq
 
 
-# XXX Develop a CI test to cover this function.
 def set_jump_sigma_clipping(
     gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
 ):
@@ -444,7 +443,7 @@ def set_jump_sigma_clipping(
     ----------
     gdq : ndarray
         The group DQ array.
-    ints : int
+    nints : int
         The number of integrations in an exposure.
     ngroups : int
         The number of groups in an integration
