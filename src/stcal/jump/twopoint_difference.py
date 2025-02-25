@@ -183,9 +183,9 @@ def run_jump_detection(
     first_diffs_finite = np.isfinite(first_diffs)
     
     # calc. the median of first_diffs for each pixel along the group axis
-    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-    median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
-    warnings.resetwarnings()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+        median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
 
     # calculate sigma for each pixel
     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / twopt_p.nframes)
