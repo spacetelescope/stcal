@@ -14,12 +14,6 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     """
     Detect jump due to cosmic rays using the two point difference method.
 
-    An interface between the detect_jumps_data function and the
-    find_crs_old function using the TwoPointParams class that makes
-    adding and removing parameters when using the two point
-    difference without necessitating a change to the find_crs
-    function signature.
-
     Parameters
     ----------
     dataa: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
@@ -59,7 +53,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     total_sigclip_groups = ngroups_ans[5]
 
     # Determine whether there are enough usable groups for the two sigma clip options
-    if (test_group_counts(nints, total_sigclip_groups, twopt_p)):
+    if (check_group_counts(nints, total_sigclip_groups, twopt_p)):
         sig_clip_grps_fails = True
 
     if min_usable_groups < twopt_p.minimum_groups:
@@ -201,7 +195,7 @@ def run_jump_detection(
 
     # Test to see if there are enough groups to use sigma clipping
     stddev = None
-    if (test_sigma_clip_groups(nints, total_groups, twopt_p)):
+    if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
         gdq, stddev = set_jump_sigma_clipping(
             gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
@@ -452,7 +446,7 @@ def set_jump_sigma_clipping(
     return gdq, stddev
 
 
-def test_sigma_clip_groups(nints, total_groups, twopt_p):
+def check_sigma_clip_groups(nints, total_groups, twopt_p):
     """
     Test to see if there are enough groups to use sigma clipping.
 
@@ -576,7 +570,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
     return gdq
 
 
-def test_group_counts(nints, total_sigclip_groups, twopt_p):
+def check_group_counts(nints, total_sigclip_groups, twopt_p):
     """
     Determine whether there are enough usable groups for the two sigma clip options
 
