@@ -1,0 +1,1 @@
+Updated ``build_driz_weight`` to raise an exception when requested ``weight_type`` is not supported.
