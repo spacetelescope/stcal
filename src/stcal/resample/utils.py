@@ -144,8 +144,14 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         exptime, s = get_tmeasure(model)
         result = exptime * dqmask
 
-    else:
+    elif weight_type is None:
         result = np.ones(data.shape, dtype=data.dtype) * dqmask
+
+    else:
+        raise ValueError(
+            f"Invalid weight type: {repr(weight_type)}. "
+            "Allowed weight types are 'ivm', 'exptime', or None."
+        )
 
     return result.astype(np.float32)
 
