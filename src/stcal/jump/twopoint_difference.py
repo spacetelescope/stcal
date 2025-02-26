@@ -196,7 +196,7 @@ def run_jump_detection(
     # Test to see if there are enough groups to use sigma clipping
     stddev = None
     if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
-        gdq, stddev = set_jump_sigma_clipping(
+        gdq, stddev = det_jump_sigma_clipping(
             gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
         if min_usable_diffs >= twopt_p.min_diffs_single_pass:
@@ -383,7 +383,7 @@ def look_for_more_than_one_jump(
 
 
 # XXX develop CI test for this function.
-def set_jump_sigma_clipping(
+def det_jump_sigma_clipping(
     gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
 ):
     """
