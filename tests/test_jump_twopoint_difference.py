@@ -838,3 +838,99 @@ def test_10grps_cr2_gt3sigma_2frames_offdiag():
     assert np.array_equal([0, 4, 0, 0, 0, 0, 0, 0, 0, 0], out_gdq[0, :, 100, 110])
 
 
+def sigclip_twopt_p():
+    twopt_p = TwoPointParams()
+
+    twopt_p.normal_rej_thresh = 6.0
+    twopt_p.two_diff_rej_thresh = 6.0
+    twopt_p.three_diff_rej_thresh = 5.0
+    twopt_p.nframes = (1,)
+            
+    twopt_p.flag_4_neighbors = False
+    twopt_p.max_jump_to_flag_neighbors = 200.0
+    twopt_p.min_jump_to_flag_neighbors = 10.0
+
+    twopt_p.fl_jump = DQFLAGS["JUMP_DET"]
+    twopt_p.fl_sat = DQFLAGS["SATURATED"]
+    twopt_p.fl_dnu = DQFLAGS["DO_NOT_USE"]
+
+    twopt_p.after_jump_flag_e1 = 1619.335205078125
+    twopt_p.after_jump_flag_n1 = 16
+    twopt_p.after_jump_flag_e2 = 0.0
+    twopt_p.after_jump_flag_n2 = 0
+
+    twopt_p.minimum_groups = 10
+    twopt_p.minimum_sigclip_groups = 10
+    twopt_p.only_use_ints = True
+    twopt_p.min_diffs_single_pass = 10
+
+    twopt_p.copy_arrs = False
+
+    return twopt_p
+
+
+@pytest.mark.skip("Unfinished")
+def test_det_jump_sigma_clipping():
+    nints, ngroups, nrows, ncols = 15, 9, 1, 1
+    dims = nints, ngroups, nrows, ncols
+    rnoise = 16.613169
+
+    # Example taken from pixel dat[15:, :, 100, 204]
+    # jw01366001001_04101_00001-seg001_nis_dark_current.fits
+    data, gdq, read_noise = setup_data(dims, rnoise)
+    data[:, :, 0, 0] = np.array([
+           [ 10.731703 ,  27.203512 , 106.22826  , 151.0139   , 212.16364  ,
+            258.99268  , 288.5518   , 347.3305   , 415.43622  ],
+           [ 81.00812  , 126.25662  , 182.64836  , 222.33426  , 271.6754   ,
+            313.7703   , 340.5042   , 383.5762   , 440.76724  ],
+           [ 25.141754 ,  44.785824 ,  90.29829  , 118.28577  , 209.94017  ,
+            251.54932  , 259.02567  , 332.81836  , 390.73328  ],
+           [ 42.45757  ,  87.34434  , 120.69542  , 181.82999  , 230.85397  ,
+            283.2989   , 322.58997  , 359.593    , 413.067    ],
+           [-20.901432 ,  21.450695 ,  74.89305  , 143.93784  , 171.35698  ,
+            230.34262  , 292.6677   , 326.13788  , 376.32413  ],
+           [-45.09379  ,   3.33447  ,  75.925735 , 117.744316 , 141.13106  ,
+            216.48933  , 242.42192  , 298.9422   , 360.00977  ],
+           [ 17.00263  ,  76.606064 ,  99.686714 , 134.43599  , 222.63557  ,
+            262.86624  , 273.09332  , 314.8982   , 374.4669   ],
+           [ 35.92628  , 100.91746  , 146.84523  , 191.37482  , 223.67198  ,
+            284.9848   , 321.36685  , 405.71707  , 423.96967  ],
+           [ 49.854065 ,  52.88707  , 101.63217  , 152.14273  , 185.52617  ,
+            261.91086  , 283.9805   , 348.89255  , 395.10388  ],
+           [ 46.19449  ,  95.038574 , 136.92563  , 213.52617  , 255.4488   ,
+            285.599    , 353.41556  , 398.4853   , 450.24988  ],
+           [ 20.631287 ,   6.7477093,  87.05258  , 102.348785 , 138.26501  ,
+            199.50543  , 232.0937   , 271.54175  , 318.06076  ],
+           [ 44.94166  ,  79.9948   , 152.88118  , 189.57803  , 232.15485  ,
+            284.44135  , 295.0025   , 362.4202   , 408.2485   ],
+           [ 49.948082 ,  76.186874 , 114.14371  , 181.95833  , 215.66791  ,
+            263.49374  , 318.52133  , 375.40717  , 424.171    ],
+           [ 33.684372 ,  57.108395 ,  99.87311  , 158.9294   , 207.78914  ,
+            310.25403  , 349.13037  , 380.33728  , 423.91754  ],
+           [  0.8763512,  57.26083  ,  98.34808  , 149.68803  , 200.28212  ,
+            258.59805  , 300.5317   , 331.96344  , 372.13153  ]],
+          dtype=np.float32)
+
+    print(" ")
+    print("+" * 80)
+    print_base(data[7, :, 0, 0])
+    data[7, 2:, 0, 0] += 10000.0
+    print("+" * 80)
+    print_base(data[7, :, 0, 0])
+    print("+" * 80)
+
+    twopt_p = sigclip_twopt_p()
+
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+        data, gdq, read_noise, twopt_p)
+
+    print(f"out_gdq = {out_gdq[7, :, 0, 0]}")
+
+
+def print_base(arr):
+    print(base_ndarray(arr))
+
+
+def base_ndarray(arr):
+    arr_str = np.array2string(arr, separator=", ", max_line_width=np.nan)
+    return arr_str
