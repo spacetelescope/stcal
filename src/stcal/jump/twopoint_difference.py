@@ -438,7 +438,6 @@ def det_jump_sigma_clipping(
                 # The line below matches the comment above, but not the
                 # old logic.  Leaving it for now.
                 #gdq[integ, grp] |= twopt_p.fl_dnu
-                
                 jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
                 gdq[integ, grp][jump_only] = 0
                 
