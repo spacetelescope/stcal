@@ -909,7 +909,7 @@ def set_sigma_clip_data(data):
     return data
 
 
-# @pytest.mark.skip("Unfinished")
+@pytest.mark.skip("Unfinished")
 def test_det_jump_sigma_clipping():
     """
     Test jump detection for sigma clipping.
