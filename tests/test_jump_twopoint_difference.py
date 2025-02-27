@@ -909,15 +909,17 @@ def set_sigma_clip_data(data):
     return data
 
 
-@pytest.mark.skip("Unfinished")
+# @pytest.mark.skip("Unfinished")
 def test_det_jump_sigma_clipping():
     """
     Test jump detection for sigma clipping.
+
+    XXX developing test.
     """
     nints, ngroups, nrows, ncols = 15, 9, 5, 5
     dims = nints, ngroups, nrows, ncols
     rnoise = 16.613169
-    crmag = 1000.0
+    crmag = 10000.0
 
     # Example taken from pixel dat[15:, :, 100, 204]
     # jw01366001001_04101_00001-seg001_nis_dark_current.fits
@@ -925,17 +927,19 @@ def test_det_jump_sigma_clipping():
     data = set_sigma_clip_data(data)
 
     data[7, 2:, 3, 3] += crmag
+    print(" ")
+    print(f"data[7, :, 3, 3] =")
+    print_arr(data[7, :, 3, 3])
 
     twopt_p = sigclip_twopt_p()
 
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data, gdq, read_noise, twopt_p)
 
-    print(f"{out_gdq[5, :, 0, 1]}")
-    print(f"{out_gdq[7, :, 3, 3]}")
+    print(f"{out_gdq[7, :, 3, 3] = }")
 
 
-def print_base(arr):
+def print_arr(arr):
     print(base_ndarray(arr))
 
 
