@@ -861,7 +861,8 @@ def sigclip_twopt_p():
 
     twopt_p.minimum_groups = 10
     twopt_p.minimum_sigclip_groups = 10
-    twopt_p.only_use_ints = True
+    # twopt_p.only_use_ints = True
+    twopt_p.only_use_ints = False
     twopt_p.min_diffs_single_pass = 10
 
     twopt_p.copy_arrs = False
@@ -909,40 +910,27 @@ def set_sigma_clip_data(data):
     return data
 
 
-@pytest.mark.skip("Unfinished")
 def test_det_jump_sigma_clipping():
     """
     Test jump detection for sigma clipping.
-
-    XXX developing test.
     """
     nints, ngroups, nrows, ncols = 15, 9, 5, 5
     dims = nints, ngroups, nrows, ncols
     rnoise = 16.613169
-    crmag = 10000.0
+    crmag = 1000.0
 
     # Example taken from pixel dat[15:, :, 100, 204]
     # jw01366001001_04101_00001-seg001_nis_dark_current.fits
     data, gdq, read_noise = setup_data(dims, rnoise)
     data = set_sigma_clip_data(data)
 
-    data[7, 2:, 3, 3] += crmag
-    print(" ")
-    print(f"data[7, :, 3, 3] =")
-    print_arr(data[7, :, 3, 3])
+    data[7, 3:, 3, 3] += crmag
 
     twopt_p = sigclip_twopt_p()
 
     out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
         data, gdq, read_noise, twopt_p)
 
-    print(f"{out_gdq[7, :, 3, 3] = }")
-
-
-def print_arr(arr):
-    print(base_ndarray(arr))
-
-
-def base_ndarray(arr):
-    arr_str = np.array2string(arr, separator=", ", max_line_width=np.nan)
-    return arr_str
+    jump = DQFLAGS["JUMP_DET"]
+    check = np.array([0, 0, 0, jump, 0, 0, 0, 0, 0], dtype=np.uint32)
+    assert np.array_equal(check, out_gdq[7, :, 3, 3])
