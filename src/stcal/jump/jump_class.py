@@ -192,6 +192,10 @@ class JumpData:
         # subsequent integrations.
         self.persist_grps_flagged = 25
 
+        # Fraction of pixels that can be flagged as JUMP in a given group before flagging the entire
+        # array as JUMP due to a likely micrometeorite event
+        self.mmflashfrac = 1.0
+
         # Multiprocessing, data a sliced by row
         self.max_cores = None  # Number of processes
         self.start_row = 0  # Start row of current slice
@@ -568,5 +572,6 @@ class JumpData:
         oline += f"grps_masked_after_shower = {self.grps_masked_after_shower}\n"
         oline += f"mask_persist_grps_next_int = {self.mask_persist_grps_next_int}\n"
         oline += f"persist_grps_flagged = {self.persist_grps_flagged}\n"
+        oline += f"mmflashfrac = {self.mmflashfrac}\n"
         oline += f"{DELIM}\n\n"
         return oline
