@@ -164,7 +164,7 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     slices, yinc = slice_data(twopt_params, data, gdq, readnoise_2d, n_slices)
 
     log.info("Creating %d processes for jump detection ", n_slices)
-    ctx = multiprocessing.get_context("forkserver")
+    ctx = multiprocessing.get_context("spawn")
     pool = ctx.Pool(processes=n_slices)
     ######### JUST FOR DEBUGGING #########################
     # pool = ctx.Pool(processes=1)
