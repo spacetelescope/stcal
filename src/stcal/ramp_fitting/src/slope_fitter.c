@@ -846,6 +846,10 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 
 static inline long long
 print_pid_info(long long prev, int line, char * label) {
+#if defined(_WIN32)
+    // Not implemented
+    return 0;
+#else
     struct rusage res_usage;
     long long now_time = (long long)time(NULL);
     long long mem_usage = -1;
@@ -865,6 +869,7 @@ print_pid_info(long long prev, int line, char * label) {
     }
 
     return mem_usage;
+#endif
 }
 
 
