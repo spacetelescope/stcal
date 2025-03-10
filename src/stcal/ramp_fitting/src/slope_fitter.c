@@ -953,35 +953,35 @@ ols_slope_fitter(
     /* Allocate, fill, and validate ramp data */
     rd = get_ramp_data(args);
     if (NULL == rd) { 
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Prepare output products */
     if (create_rate_product(&rate_prod, rd) ||
         create_rateint_product(&rateint_prod, rd))
     {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Prepare the pixel ramp data structure */
     pr = create_pixel_ramp(rd);
     if (NULL==pr) {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Fit ramps for each pixel */
     if (ols_slope_fit_pixels(rd, pr, &rate_prod, &rateint_prod)) {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Package up results to be returned */
     result = package_results(&rate_prod, &rateint_prod, rd);
     if ((NULL==result) || (Py_None==(PyObject*)result)) {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     goto CLEANUP;
-ERROR:
+ERROR_END:
     Py_XDECREF(result);
 
     /* Clean up errors */
