@@ -110,11 +110,13 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  * data structure itself.
  */
 #define FREE_RAMP_DATA(RD) \
-    if (RD) { \
-        clean_ramp_data(rd); \
-        free(RD); \
-        (RD) = NULL; \
-    }
+    do { \
+        if (RD) { \
+            clean_ramp_data(rd); \
+            free(RD); \
+            (RD) = NULL; \
+        } \
+    } while (0)
 
 /* 
  * Wraps the clean_pixel_ramp function.  Ensure all allocated
@@ -123,10 +125,12 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  * data structure itself.
  */
 #define FREE_PIXEL_RAMP(PR) \
-    if (PR) { \
-        clean_pixel_ramp(PR); \
-        SET_FREE(PR); \
-    }
+    do { \
+        if (PR) { \
+            clean_pixel_ramp(PR); \
+            SET_FREE(PR); \
+        } \
+    } while (0)
 
 /* 
  * Wraps the clean_segment_list function.  Ensure all allocated
@@ -135,10 +139,12 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  * data structure itself.
  */
 #define FREE_SEGS_LIST(N, S) \
-    if (S) { \
-        clean_segment_list(N, S); \
-        SET_FREE(S);\
-    }
+    do { \
+        if (S) { \
+            clean_segment_list(N, S); \
+            SET_FREE(S);\
+        } \
+    } while (0)
 
 /* Complicated dereferencing and casting using a label. */
 #define VOID_2_FLOAT(A) (*((float*)(A)))
