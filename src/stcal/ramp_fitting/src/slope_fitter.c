@@ -7,9 +7,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
 #include <time.h>
-#include <unistd.h>
+
+#if defined(_WIN32)  // Windows
+#    include <windows.h>
+#    include <process.h>
+#    define PATH_MAX MAX_PATH
+#    ifdef _WIN64
+#        define ssize_t __int64
+#    else
+#        define ssize_t long
+#    endif
+#else  // Linux/Unix
+#    include <sys/resource.h>
+#    include <unistd.h>
+#endif
 
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
