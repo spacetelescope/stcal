@@ -1445,10 +1445,10 @@ create_opt_res(
         struct opt_res_product * opt_res, /* The optional results product */
         struct ramp_data * rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 4;
-    npy_intp dims[nd];
-    const npy_intp pnd = 3;
-    npy_intp pdims[pnd];
+    npy_intp dims[4];
+    npy_intp pdims[3];
+    const npy_intp nd = sizeof(dims) / sizeof(*dims);
+    const npy_intp pnd = sizeof(pdims) / sizeof(*pdims);
     const int fortran = 0;  /* Want C order */
     const char * msg = "Couldn't allocate memory for opt_res products.";
 
@@ -1590,8 +1590,8 @@ create_rate_product(
         struct rate_product * rate, /* The rate product */
         struct ramp_data * rd)      /* The ramp fitting data */
 {
-    const npy_intp nd = 2;
-    npy_intp dims[nd];
+    npy_intp dims[2];
+    const npy_intp nd = sizeof(dims) / sizeof(*dims);
     const int fortran = 0;
     const char * msg = "Couldn't allocate memory for rate products.";
 
@@ -1648,8 +1648,8 @@ create_rateint_product(
         struct rateint_product * rateint, /* The rateints product */
         struct ramp_data * rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 3;
-    npy_intp dims[nd];
+    npy_intp dims[3];
+    const npy_intp nd = sizeof(dims) / sizeof(*dims);
     const int fortran = 0;
     const char * msg = "Couldn't allocate memory for rateint products.";
 
@@ -3518,8 +3518,8 @@ save_opt_res(
 {
     void * ptr = NULL;
     npy_intp integ, crnum, segnum, row, col, idx;
-    const int msg_size = 1024;
-    char msg[msg_size];
+    char msg[1024];
+    const int msg_size = sizeof(msg);
     struct simple_ll_node * current;
     struct simple_ll_node * next;
     struct cr_node * cr_current;
