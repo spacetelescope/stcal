@@ -1,0 +1,1 @@
+Added ``driz_args`` argument to ``resample.Resample.update_time()`` method.
