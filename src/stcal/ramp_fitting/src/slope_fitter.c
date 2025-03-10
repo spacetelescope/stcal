@@ -7,9 +7,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
 #include <time.h>
-#include <unistd.h>
+
+#if defined(_WIN32)  // Windows
+#    include <windows.h>
+#    include <process.h>
+#    define PATH_MAX MAX_PATH
+#    ifdef _WIN64
+#        define ssize_t __int64
+#    else
+#        define ssize_t long
+#    endif
+#else  // Linux/Unix
+#    include <sys/resource.h>
+#    include <unistd.h>
+#endif
 
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
@@ -98,11 +110,13 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  * data structure itself.
  */
 #define FREE_RAMP_DATA(RD) \
-    if (RD) { \
-        clean_ramp_data(rd); \
-        free(RD); \
-        (RD) = NULL; \
-    }
+    do { \
+        if (RD) { \
+            clean_ramp_data(rd); \
+            free(RD); \
+            (RD) = NULL; \
+        } \
+    } while (0)
 
 /* 
  * Wraps the clean_pixel_ramp function.  Ensure all allocated
@@ -111,10 +125,12 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  * data structure itself.
  */
 #define FREE_PIXEL_RAMP(PR) \
-    if (PR) { \
-        clean_pixel_ramp(PR); \
-        SET_FREE(PR); \
-    }
+    do { \
+        if (PR) { \
+            clean_pixel_ramp(PR); \
+            SET_FREE(PR); \
+        } \
+    } while (0)
 
 /* 
  * Wraps the clean_segment_list function.  Ensure all allocated
@@ -123,10 +139,12 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  * data structure itself.
  */
 #define FREE_SEGS_LIST(N, S) \
-    if (S) { \
-        clean_segment_list(N, S); \
-        SET_FREE(S);\
-    }
+    do { \
+        if (S) { \
+            clean_segment_list(N, S); \
+            SET_FREE(S);\
+        } \
+    } while (0)
 
 /* Complicated dereferencing and casting using a label. */
 #define VOID_2_FLOAT(A) (*((float*)(A)))
@@ -798,7 +816,7 @@ print_delim_char(char c, int len) {
     printf("\n");
 }
 
-/* 
+/*
  * Used to determine if a pixel is in a list.
  * This is a debugging function.
  */
@@ -807,9 +825,8 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 {
     /* Pixel list */
     // JP-3669 - (1804, 173)
-    const int len = 1;
-    npy_intp rows[len];
-    npy_intp cols[len];
+    npy_intp rows[1];
+    npy_intp cols[1];
     npy_intp row;
     int k;
 
@@ -818,7 +835,7 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
     rows[0] = 1804;
     cols[0] = 173;
 
-    for (k=0; k<len; ++k) {
+    for (k=0; k < (int) (sizeof(rows) / sizeof(*rows)); ++k) {
         row = pr->row + rd->start_row;
         if (row==rows[k] && pr->col==cols[k]) {
             return 1;
@@ -829,6 +846,10 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 
 static inline long long
 print_pid_info(long long prev, int line, char * label) {
+#if defined(_WIN32)
+    // Not implemented
+    return 0;
+#else
     struct rusage res_usage;
     long long now_time = (long long)time(NULL);
     long long mem_usage = -1;
@@ -848,6 +869,7 @@ print_pid_info(long long prev, int line, char * label) {
     }
 
     return mem_usage;
+#endif
 }
 
 
@@ -931,35 +953,35 @@ ols_slope_fitter(
     /* Allocate, fill, and validate ramp data */
     rd = get_ramp_data(args);
     if (NULL == rd) { 
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Prepare output products */
     if (create_rate_product(&rate_prod, rd) ||
         create_rateint_product(&rateint_prod, rd))
     {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Prepare the pixel ramp data structure */
     pr = create_pixel_ramp(rd);
     if (NULL==pr) {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Fit ramps for each pixel */
     if (ols_slope_fit_pixels(rd, pr, &rate_prod, &rateint_prod)) {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     /* Package up results to be returned */
     result = package_results(&rate_prod, &rateint_prod, rd);
     if ((NULL==result) || (Py_None==(PyObject*)result)) {
-        goto ERROR;
+        goto ERROR_END;
     }
 
     goto CLEANUP;
-ERROR:
+ERROR_END:
     Py_XDECREF(result);
 
     /* Clean up errors */
@@ -1423,10 +1445,10 @@ create_opt_res(
         struct opt_res_product * opt_res, /* The optional results product */
         struct ramp_data * rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 4;
-    npy_intp dims[nd];
-    const npy_intp pnd = 3;
-    npy_intp pdims[pnd];
+    npy_intp dims[4];
+    npy_intp pdims[3];
+    const npy_intp nd = sizeof(dims) / sizeof(*dims);
+    const npy_intp pnd = sizeof(pdims) / sizeof(*pdims);
     const int fortran = 0;  /* Want C order */
     const char * msg = "Couldn't allocate memory for opt_res products.";
 
@@ -1568,8 +1590,8 @@ create_rate_product(
         struct rate_product * rate, /* The rate product */
         struct ramp_data * rd)      /* The ramp fitting data */
 {
-    const npy_intp nd = 2;
-    npy_intp dims[nd];
+    npy_intp dims[2];
+    const npy_intp nd = sizeof(dims) / sizeof(*dims);
     const int fortran = 0;
     const char * msg = "Couldn't allocate memory for rate products.";
 
@@ -1626,8 +1648,8 @@ create_rateint_product(
         struct rateint_product * rateint, /* The rateints product */
         struct ramp_data * rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 3;
-    npy_intp dims[nd];
+    npy_intp dims[3];
+    const npy_intp nd = sizeof(dims) / sizeof(*dims);
     const int fortran = 0;
     const char * msg = "Couldn't allocate memory for rateint products.";
 
@@ -3496,8 +3518,8 @@ save_opt_res(
 {
     void * ptr = NULL;
     npy_intp integ, crnum, segnum, row, col, idx;
-    const int msg_size = 1024;
-    char msg[msg_size];
+    char msg[1024];
+    const int msg_size = sizeof(msg);
     struct simple_ll_node * current;
     struct simple_ll_node * next;
     struct cr_node * cr_current;
@@ -4207,8 +4229,13 @@ print_npy_types() {
     printf("NPY_DOUBLE = %d\n",NPY_DOUBLE);
 
     printf("NPY_VOID = %d\n",NPY_VOID);
-    printf("NPY_NTYPES_LEGACY = %d\n",NPY_NTYPES_LEGACY);
+#if defined(NPY_NTYPES_LEGACY)
+    printf("NPY_NTYPES_LEGACY [np2 compat] = %d\n",NPY_NTYPES_LEGACY);
+#elif defined(NPY_NTYPES)
+    printf("NPY_NTYPES [np1 compat] = %d\n",NPY_NTYPES);
+#endif
     printf("NPY_NOTYPE = %d\n",NPY_NOTYPE);
+
     /*
     NPY_SHORT
     NPY_USHORT
