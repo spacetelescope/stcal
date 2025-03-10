@@ -798,7 +798,7 @@ print_delim_char(char c, int len) {
     printf("\n");
 }
 
-/* 
+/*
  * Used to determine if a pixel is in a list.
  * This is a debugging function.
  */
@@ -807,9 +807,8 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 {
     /* Pixel list */
     // JP-3669 - (1804, 173)
-    const int len = 1;
-    npy_intp rows[len];
-    npy_intp cols[len];
+    npy_intp rows[1];
+    npy_intp cols[1];
     npy_intp row;
     int k;
 
@@ -818,7 +817,7 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
     rows[0] = 1804;
     cols[0] = 173;
 
-    for (k=0; k<len; ++k) {
+    for (k=0; k < (int) (sizeof(rows) / sizeof(*rows)); ++k) {
         row = pr->row + rd->start_row;
         if (row==rows[k] && pr->col==cols[k]) {
             return 1;
