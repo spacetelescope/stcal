@@ -515,74 +515,6 @@ class Resample:
         """
         return self._compute_err
 
-    def _get_intensity_scale(self, model):
-        """
-        Compute an intensity scale from the input and output pixel area.
-
-        For imaging data, the scaling is used to account for differences
-        between the nominal pixel area and the average pixel area for
-        the input data.
-
-        For spectral data, the scaling is used to account for flux
-        conservation with non-unity pixel scale ratios, when the
-        data units are flux density.
-
-        Parameters
-        ----------
-        model : dict
-            The input data model.
-
-        Returns
-        -------
-        iscale : float
-            The scale to apply to the input data before drizzling.
-
-        """
-        photom_pixel_area = model["pixelarea_steradians"]
-        wcs = model["wcs"]
-
-        if photom_pixel_area:
-            if 'SPECTRAL' in wcs.output_frame.axes_type:
-                # Use the nominal area as is
-                input_pixel_area = photom_pixel_area
-
-                # If input image is in flux density units, correct the
-                # flux for the user-specified change to the spatial dimension
-                if is_flux_density(model["bunit_data"]):
-                    iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
-                else:
-                    iscale = 1.0
-            else:
-                input_pixel_area = self.get_input_model_pixel_area(model)
-
-                if input_pixel_area is None:
-                    raise ValueError(
-                        "Unable to compute input pixel area from WCS of input "
-                        f"image {repr(_get_model_name(model))}."
-                    )
-
-                if self._pixel_scale_ratio is None:
-                    input_pscale = 3600.0 * np.rad2deg(
-                        math.sqrt(input_pixel_area)
-                    )
-
-                    self._pixel_scale_ratio = (
-                        self._output_pixel_scale / input_pscale
-                    )
-
-                    # update output model if "pixel_scale_ratio" was never
-                    # set previously:
-                    if (self._output_model is not None and
-                            self._output_model.get("pixel_scale_ratio") is None):
-                        self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
-
-                iscale = math.sqrt(photom_pixel_area / input_pixel_area)
-
-        else:
-            iscale = 1.0
-
-        return iscale
-
     def reset_arrays(self, n_input_models=None):
         """ Initialize/reset `Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
@@ -742,7 +674,12 @@ class Resample:
                 f"Input model '{_get_model_name(model)}' is not a 2D image."
             )
 
-        iscale = self._get_intensity_scale(model)
+        if (group_id := model["group_id"]) not in self._group_ids:
+            self.update_time(model)
+            self._group_ids.append(group_id)
+            self.output_model["pointings"] += 1
+
+        iscale = 1.0
         log.debug(f'Using intensity scale iscale={iscale}')
 
         pixmap = calc_pixmap(
