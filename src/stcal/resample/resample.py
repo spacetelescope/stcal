@@ -515,6 +515,39 @@ class Resample:
         """
         return self._compute_err
 
+    def _get_intensity_scale(self, model):
+        """
+        Compute an intensity scale from the input and output pixel area.
+        For imaging data, the scaling is used to account for differences
+        between the nominal pixel area and the average pixel area for
+        the input data.
+        For spectral data, the scaling is used to account for flux
+        conservation with non-unity pixel scale ratios, when the
+        data units are flux density.
+        Parameters
+        ----------
+        model : dict
+            The input data model.
+        Returns
+        -------
+        iscale : float
+            The scale to apply to the input data before drizzling.
+        """
+        photom_pixel_area = model["pixelarea_steradians"]
+        wcs = model["wcs"]
+
+        if (photom_pixel_area and 'SPECTRAL' in wcs.output_frame.axes_type and
+                is_flux_density(model["bunit_data"])):
+
+            # If input image is in flux density units, correct the
+            # flux for the user-specified change to the spatial dimension
+            iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
+
+        else:
+            iscale = 1.0
+
+        return iscale
+
     def reset_arrays(self, n_input_models=None):
         """ Initialize/reset `Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
@@ -679,7 +712,7 @@ class Resample:
             self._group_ids.append(group_id)
             self.output_model["pointings"] += 1
 
-        iscale = 1.0
+        iscale = self._get_intensity_scale(model)
         log.debug(f'Using intensity scale iscale={iscale}')
 
         pixmap = calc_pixmap(
