@@ -9,7 +9,17 @@ log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(
-    data, gdq, pdq, sat_thresh, sat_dq, atod_limit, dqflags, n_pix_grow_sat=1, zframe=None, read_pattern=None
+    data, 
+    gdq, 
+    pdq, 
+    sat_thresh, 
+    sat_dq, 
+    atod_limit, 
+    dqflags, 
+    n_pix_grow_sat=1, 
+    zframe=None, 
+    read_pattern=None,
+    bias=None
 ):
     """
     Short Summary
@@ -53,6 +63,8 @@ def flag_saturated_pixels(
     read_pattern : List[List[float or int]] or None
         The times or indices of the frames composing each group.
 
+    bias : float, 2D array
+        superbias array.  For use in group 2 saturation flagging for frame-averaged groups.
 
     Returns
     -------
@@ -80,6 +92,10 @@ def flag_saturated_pixels(
     # converter limit so that they don't get flagged as saturated, for
     # pixels in the no_sat_check_mask.
     sat_thresh[no_sat_check_mask] = atod_limit + 1
+    
+    # If no bias is provided set it to zero
+    if bias is None:
+        bias = 0.
 
     for ints in range(nints):
         # Work forward through the groups for initial pass at saturation
@@ -171,14 +187,15 @@ def flag_saturated_pixels(
             
             # Identify groups which we wouldn't expect to saturate by the third group,
             # on the basis of the first group
-            scigp1 = data[ints, 0, :, :]
-            mask = scigp1 / np.mean(read_pattern[0]) * read_pattern[2][-1] < sat_thresh
-
+            scigp1 = data[ints, 0, :, :] - bias
+            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias < sat_thresh
+            
             # Identify groups with suspiciously large values in the second group
-            # In the limit of groups with just nframe this just checks if second group
-            # is over the regular saturation limit.
-            scigp2 = data[ints, 1, :, :]
-            mask &= scigp2 > sat_thresh / len(read_pattern[1])
+            # by comparing the change between group 1 and 2 to the dynamic range between
+            # the superbias and saturation threshold.  Flag any differences sufficiently large
+            # that they could come from a saturating event in the last frame of the group.
+            scigp2 = data[ints, 1, :, :] - data[ints, 0, :, :]
+            mask &= scigp2 > (sat_thresh - bias) / len(read_pattern[1])
 
             # Identify groups that are saturated in the third group but not yet flagged in the second
             gp3mask = ((np.bitwise_and(dq3, saturated) != 0) & \
