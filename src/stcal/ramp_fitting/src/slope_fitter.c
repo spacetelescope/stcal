@@ -933,9 +933,13 @@ print_pid_info(long long prev, int line, char * label) {
  */
 void
 set_up_logger() {
-    const char * string_fmt = "%Y_%m_%d_%H%M%S";
     int sz;
     char tbuffer[128];
+    const char *log_dir = NULL;
+
+    if (!log_dir) {
+        return;
+    }
 
     get_log_timestamp(tbuffer, sizeof(tbuffer), DEBUG_LOG_TS_FILE);
     sz = snprintf(g_log_name, PATH_MAX-1, "%s/%s_pid_%d_logger.txt",
