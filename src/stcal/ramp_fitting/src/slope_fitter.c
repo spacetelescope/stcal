@@ -846,7 +846,28 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
     return 0;
 }
 
-static inline long long
+#define DEBUG_LOG_TS_FILE 0
+#define DEBUG_LOG_TS_MSG 1
+static inline void
+get_log_timestamp(char *tbuffer, size_t len, int style) {
+    time_t now = time(NULL);
+    struct tm * curr_tm = localtime(&now);
+    const char * string_fmt;
+    switch (style) {
+        case 0:
+            string_fmt = "%Y_%m_%d_%H%M%S";
+	    break;
+	default:
+            string_fmt = "%Y/%m/%d %H:%M:%S";
+	    break;
+    }
+
+    memset(tbuffer, 0, len);
+    strftime(tbuffer, len - 1, string_fmt, curr_tm);
+    return;
+}
+
+static long long
 print_pid_info(long long prev, int line, char * label) {
     char tbuffer[128];
     long long mem_usage = -1;
@@ -912,18 +933,11 @@ print_pid_info(long long prev, int line, char * label) {
  */
 void
 set_up_logger() {
-    const char * log_dir = NULL;
-    char tbuffer[128];
-    time_t now = time(NULL);
-    struct tm * curr_tm = localtime(&now);
-    int sz;
     const char * string_fmt = "%Y_%m_%d_%H%M%S";
+    int sz;
+    char tbuffer[128];
 
-    return;
-
-    memset(tbuffer, 0, 128);
-    strftime(tbuffer, 127, string_fmt, curr_tm);
-
+    get_log_timestamp(tbuffer, sizeof(tbuffer), DEBUG_LOG_TS_FILE);
     sz = snprintf(g_log_name, PATH_MAX-1, "%s/%s_pid_%d_logger.txt",
             log_dir, tbuffer, g_pid);
 
