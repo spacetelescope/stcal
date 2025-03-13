@@ -9,9 +9,11 @@
 #include <string.h>
 #include <time.h>
 
+
 #if defined(_WIN32)  // Windows
 #    include <windows.h>
 #    include <process.h>
+#    include <psapi.h>
 #    define PATH_MAX MAX_PATH
 #    ifdef _WIN64
 #        define ssize_t __int64
@@ -846,32 +848,47 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 
 static inline long long
 print_pid_info(long long prev, int line, char * label) {
-#if defined(_WIN32)
-    // Not implemented
-    return 0;
-#else
-    struct rusage res_usage;
-    long long now_time = (long long)time(NULL);
+    char tbuffer[128];
     long long mem_usage = -1;
     long long diff = 0;
     pid_t pid = getpid();
-    // dbg_ols_print("PID:  %d\n", pid);
+#if defined(_WIN32)
+    HANDLE proc;
+    PROCESS_MEMORY_COUNTERS_EX pmc;
 
-    getrusage(RUSAGE_SELF, &res_usage);
-    mem_usage =  res_usage.ru_maxrss;
+    proc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+    if (proc == NULL) {
+        return -1;
+    }
+
+    if (GetProcessMemoryInfo(proc, (PROCESS_MEMORY_COUNTERS *) &pmc, sizeof(pmc))) {
+        mem_usage = pmc.WorkingSetSize;
+    } else {
+	return -1;
+    }
+    CloseHandle(proc);
+#else
+    struct rusage res_usage;
+    if (getrusage(RUSAGE_SELF, &res_usage) < 0) {
+        perror("getrusage");
+	return -1;
+    }
+    mem_usage = res_usage.ru_maxrss;
+#endif
+    get_log_timestamp(tbuffer, sizeof(tbuffer), DEBUG_LOG_TS_MSG);
+    // dbg_ols_print("PID:  %d\n", pid);
     if (prev > 0) {
         diff = mem_usage - prev;
-        dbg_ols_print("[%d] time: %lld, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n",
-            line, now_time, mem_usage, diff, prev, pid, label);
+        dbg_ols_print("[%d] time: %s, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n",
+                    line, tbuffer, mem_usage, diff, prev, pid, label);
     } else {
-        dbg_ols_print("[%d] time: %lld, Mem: %lld, diff: %lld, pid: %d  '%s'\n",
-            line, now_time, mem_usage, diff, pid, label);
+        dbg_ols_print("[%d] time: %s, Mem: %lld, diff: %lld, pid: %d  '%s'\n",
+                    line, tbuffer, mem_usage, diff, pid, label);
     }
 
     return mem_usage;
-#endif
 }
-
+    
 
 /* ------------------------------------------------------------------------- */
 /*                              PROC LOGGER                                  */
