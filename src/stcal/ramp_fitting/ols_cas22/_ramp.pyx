@@ -280,7 +280,7 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         return RampFit(NAN, NAN, NAN)
 
     # Compute the fit
-    cdef int i = 0, j = 0
+    cdef int i = 0
 
     # Setup data for fitting (work over subset of data) to make things cleaner
     #    Recall that the RampIndex contains the index of the first and last
@@ -294,29 +294,28 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
 
     # Compute mid point time
     cdef int end = n_resultants - 1
-    cdef float t_bar_mid = (t_bar[0] + t_bar[end]) / 2
+    cdef double t_bar_mid = (t_bar[0] + t_bar[end]) / 2
 
     # Casertano+2022 Eq. 44
     #    Note we've departed from Casertano+22 slightly;
     #    there s is just resultants[ramp.end].  But that doesn't seem good if, e.g.,
     #    a CR in the first resultant has boosted the whole ramp high but there
     #    is no actual signal.
-    cdef float power = fmaxf(resultants[end] - resultants[0], 0)
+    cdef double power = fmaxf(resultants[end] - resultants[0], 0)
     power = power / sqrt(read_noise**2 + power)
     power = _get_power(power)
 
     # It's easy to use up a lot of dynamic range on something like
     # (tbar - tbarmid) ** 10.  Rescale these.
-    cdef float t_scale = (t_bar[end] - t_bar[0]) / 2
+    cdef double t_scale = (t_bar[end] - t_bar[0]) / 2
     t_scale = 1 if t_scale == 0 else t_scale
 
     # Initialize the fit loop
     #   it is faster to generate a c++ vector than a numpy array
-    cdef vector[float] weights = vector[float](n_resultants)
-    cdef vector[float] coeffs = vector[float](n_resultants)
+    cdef vector[double] weights = vector[double](n_resultants)
     cdef RampFit ramp_fit = RampFit(0, 0, 0)
-    cdef float f0 = 0, f1 = 0, f2 = 0
-    cdef float coeff
+    cdef double f0 = 0, f1 = 0, f2 = 0
+    cdef double coeff
 
     # Issue when tbar[] == tbarmid causes exception otherwise
     with cpow(True):
@@ -331,14 +330,15 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
             f2 += weights[i] * t_bar[i]**2
 
     # Casertano+22 Eq. 36
-    cdef float det = f2 * f0 - f1 ** 2
+    cdef double det = f2 * f0 - f1 ** 2
+    # Used to hold a running sum in Casertano+22 Eq. 40
+    cdef double sum_coeffs_tbar = 0
     if det == 0:
         return ramp_fit
 
     for i in range(n_resultants):
         # Casertano+22 Eq. 37
         coeff = (f0 * t_bar[i] - f1) * weights[i] / det
-        coeffs[i] = coeff
 
         # Casertano+22 Eq. 38
         ramp_fit.slope += coeff * resultants[i]
@@ -350,8 +350,9 @@ cdef inline RampFit fit_ramp(float[:] resultants_,
         #    Note that this is an inversion of the indexing from the equation;
         #    however, commutivity of addition results in the same answer. This
         #    makes it so that we don't have to loop over all the resultants twice.
-        ramp_fit.poisson_var += coeff ** 2 * tau[i]
-        for j in range(i):
-            ramp_fit.poisson_var += (2 * coeff * coeffs[j] * t_bar[j])
+        # Note that the second sum in Castertano+22 has a term that can be
+        # updated iteratively.  That is used here to avoid a nested for loop.
+        ramp_fit.poisson_var += coeff ** 2 * tau[i] + 2 * coeff * sum_coeffs_tbar
+        sum_coeffs_tbar += coeff * t_bar[i]
 
     return ramp_fit
