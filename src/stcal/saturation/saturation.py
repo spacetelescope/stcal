@@ -192,10 +192,10 @@ def flag_saturated_pixels(
             
             # Identify groups with suspiciously large values in the second group
             # by comparing the change between group 1 and 2 to the dynamic range between
-            # the superbias and saturation threshold.  Flag any differences sufficiently large
+            # the group 1 and saturation threshold.  Flag any differences sufficiently large
             # that they could come from a saturating event in the last frame of the group.
             scigp2 = data[ints, 1, :, :] - data[ints, 0, :, :]
-            mask &= scigp2 > (sat_thresh - bias) / len(read_pattern[1])
+            mask &= scigp2 > (sat_thresh - data[ints, 0, :, :]) / len(read_pattern[1])
 
             # Identify groups that are saturated in the third group but not yet flagged in the second
             gp3mask = ((np.bitwise_and(dq3, saturated) != 0) & \
