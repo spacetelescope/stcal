@@ -1,6 +1,3 @@
-from pathlib import Path
-
-import asdf
 from astropy.nddata.bitmask import BitFlagNameMap
 from astropy import coordinates as coord
 from astropy.modeling import models as astmodels
@@ -119,8 +116,8 @@ def make_input_model(shape, crpix=(0, 0), crval=(0, 0), pscale=2.0e-5,
     return model
 
 
-def make_nrcb5_model(nrcb5_wcs_wcsinfo, group_id=1, exptime=1):
-    wcs, wcsinfo = nrcb5_wcs_wcsinfo
+def make_nrcb5_model(wcs_wcsinfo, group_id=1, exptime=1):
+    wcs, wcsinfo = wcs_wcsinfo
     shape = wcs.array_shape
     pixel_area = compute_mean_pixel_area(wcs)
 

@@ -1,10 +1,7 @@
-import math
 import pytest
 
 import numpy as np
-from astropy.convolution import Gaussian2DKernel
-from skimage.measure import label
-from skimage.morphology import closing
+from drizzle.utils import calc_pixmap
 
 from stcal.resample import Resample
 from stcal.alignment.util import wcs_from_footprints
@@ -12,7 +9,6 @@ from stcal.alignment.util import wcs_from_footprints
 from . helpers import (
     make_gwcs,
     make_input_model,
-    make_nrcb5_model,
     make_output_model,
     JWST_DQ_FLAG_DEF,
 )
@@ -166,53 +162,16 @@ def test_resample_compute_error_mode(compute_err, weight_type):
     assert np.nansum(resample.output_model["var_poisson"]) > 0.0
     assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
 
-@pytest.mark.parametrize(
-    "pscale_ratio", [1.0, 0.55]
-)
-def test_resample_photometry(nrcb5_wcs_wcsinfo, pscale_ratio):
+
+@pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
+@pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
+def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel):
     """ test surface-brightness photometry """
-    wcs, wcsinfo = nrcb5_wcs_wcsinfo
-    model = make_nrcb5_model(nrcb5_wcs_wcsinfo)
-    model["dq"][:, :] = 1
+    model = nrcb5_many_fluxes
 
-    np.random.seed(0)
-
-    patch_size = 21
-    p2 = patch_size // 2
-    # add border so that resampled partial pixels can be isolated
-    # in the segmentation:
-    border = 4
-    pwb = patch_size + border
-
-    fwhm2sigma = 2.0 * math.sqrt(2.0 * math.log(2.0))
-
-    ny, nx = model["data"].shape
-
-    stars = []
-
-    for yc in range(border + p2, ny - pwb, pwb):
-        for xc in range(border + p2, nx - pwb, pwb):
-            sl = np.s_[yc - p2:yc + p2 + 1, xc - p2:xc + p2 + 1]
-            flux = 1.0 + 99.0 * np.random.random()
-            if np.random.random() > 0.7:
-                # uniform image
-                psf = np.full((patch_size, patch_size), flux)
-            else:
-                # "star":
-                fwhm = 1.5 + 1.5 * np.random.random()
-                sigma = fwhm / fwhm2sigma
-
-                psf = flux * Gaussian2DKernel(
-                    sigma,
-                    x_size=patch_size,
-                    y_size=patch_size
-                ).array
-
-            flux = psf.sum()
-
-            model["data"][sl] = psf
-            model["dq"][sl] = 0
-            stars.append((xc, yc, flux))
+    wcs = model["wcs"]
+    wcsinfo = model["wcsinfo"]
+    stars = model["stars"]
 
     output_wcs = wcs_from_footprints(
         [wcs],
@@ -239,17 +198,19 @@ def test_resample_photometry(nrcb5_wcs_wcsinfo, pscale_ratio):
     out_wht = resample.output_model['wht']
     out_data = resample.output_model["data"] * out_wht
 
-    # apply threshold
-    bw = closing(np.isfinite(out_data), np.ones((1, 1)))
+    pixmap = calc_pixmap(
+        wcs,
+        output_wcs,
+        model["data"].shape,
+    )
 
-    # label image regions
-    label_image = label(bw)
-
-    for xin, yin, fin in stars:
-        r, d = wcs(xin, yin)
-        xout, yout = output_wcs.invert(r, d)
-        lbl = label_image[int(yout), int(xout)]
-        mask = (label_image == lbl)
-        fout = out_data[mask].sum()
+    dim3 = (slice(None, None, None), )
+    for _, _, fin, sl in stars:
+        xyout = pixmap[sl + dim3]
+        xmin = int(np.floor(xyout[:, :, 0].min() - 0.5))
+        xmax = int(np.ceil(xyout[:, :, 0].max() + 1.5))
+        ymin = int(np.floor(xyout[:, :, 1].min() - 0.5))
+        ymax = int(np.ceil(xyout[:, :, 1].max() + 1.5))
+        fout = np.nansum(out_data[ymin:ymax, xmin:xmax])
 
         assert np.allclose(fin, fout, rtol=1.0e-6, atol=0.0)
