@@ -118,6 +118,74 @@ def test_read_pattern_saturation_flagging_dnu():
     assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
 
 
+def test_group2_saturation_flagging_with_bias():
+    """Flag group 2 saturation in frame-averaged data with significant bias.
+    
+    Saturation in frame-averaged groups may not exceed the saturation threshold
+    until after the group where a saturating CR occurs.  Special rules are used
+    for the second group of frame-averaged data.  Check that the saturation
+    flagging is robust to data with a signficant bias.
+    """
+
+    # Create inputs, data, and saturation maps
+    data = np.zeros((1, 5, 20, 20)).astype("float32")
+    gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
+    pdq = np.zeros((20, 20)).astype("uint32")
+    sat_thresh = np.ones((20, 20)) * 100000.0
+    sat_dq = np.zeros((20, 20)).astype("uint32")
+    bias = np.zeros((20, 20))
+
+    # Add ramp values up to the saturation limit
+    # Bias is 15000
+    # Five frames per group
+    # Source with 1000 counts per frame
+    # Frame 5 in group 2 has a 40000 count CR saturating the pixel
+    # averaged over 5 frames this only looks like a 8000 count jump in group 2
+    # but group 3 signal saturates
+    
+    bias[5, 5] = 15000
+    
+    data[0, 0, 5, 5] = 18000
+    data[0, 1, 5, 5] = 31000
+    data[0, 2, 5, 5] = 68000
+    data[0, 3, 5, 5] = 73000  # Signal reaches saturation limit
+    data[0, 4, 5, 5] = 78000
+    
+        
+    # Add another pixel with bias of 15000, but no source flux
+    # pixel counts are 15000 > sat_thresh/5, but should not be flagged as
+    # saturated.
+    bias[15, 15] = 15000
+    
+    data[0, :, 15, 15] = 15000
+
+    # Set saturation value in the saturation model
+    satvalue = 60000
+    sat_thresh[5, 5] = satvalue
+    sat_thresh[15, 15] = satvalue
+    
+
+    # set read_pattern to have 5 reads per group.
+    read_pattern = [
+        [1, 2, 3, 4, 5], 
+        [6, 7, 8, 9, 10], 
+        [11, 12, 13, 14, 15], 
+        [16, 17, 18, 19, 20], 
+        [21, 22, 23, 24, 25]
+    ]
+
+    gdq, pdq, _ = flag_saturated_pixels(
+        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern, bias=bias
+    )
+
+    # Make sure that groups after the second get flagged
+    # The second group will only be flagged as DNU while
+    # the PR#321 band-aid still in place.
+    assert np.all(gdq[0, 1:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
+
+    # Make sure that the high-bias, non-saturating pixel is not flagged
+    assert np.all(gdq[0, :, 15, 15] == 0)
+
 def test_no_sat_check_at_limit():
     """Test to verify that pixels at the A-to-D limit (65535), but flagged with
     NO_SAT_CHECK do NOT get flagged as saturated, and that their neighbors
