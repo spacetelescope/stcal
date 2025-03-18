@@ -286,6 +286,8 @@ def _parse_sky_centroid(catalog: Table) -> Table:
                    "and sky_centroid columns. Ignoring sky_centroid.")
             warnings.warn(msg, stacklevel=2)
             catalog.remove_column("sky_centroid")
+        catalog["ra"].name = "RA"
+        catalog["dec"].name = "DEC"
         return catalog
 
     if ncentroid > 1:
@@ -300,8 +302,8 @@ def _parse_sky_centroid(catalog: Table) -> Table:
     
     # Convert SkyCoord object to RA/DEC
     skycoord = catalog["sky_centroid"].to_table()
-    catalog["ra"] = skycoord["ra"]
-    catalog["dec"] = skycoord["dec"]
+    catalog["RA"] = skycoord["ra"]
+    catalog["DEC"] = skycoord["dec"]
     catalog.remove_column("sky_centroid")
 
     return catalog
