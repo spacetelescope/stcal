@@ -269,9 +269,15 @@ def _parse_sky_centroid(catalog: Table) -> Table:
     permits the use of catalogs directly from the jwst source_catalog step.
     No action is taken if the catalog already contains RA and DEC columns.
     """
-    cols = [name.lower() for name in catalog.colnames]
-    occurrences = Counter(cols)
-    nra, ndec = occurrences["ra"], occurrences["dec"]
+    # Rename RA/DEC columns to uppercase to ensure any case is handled
+    for col in catalog.colnames:
+        if col.upper() in ["RA", "DEC"]:
+            catalog.rename_column(col, col.upper())
+        elif col.lower() == "sky_centroid":
+            catalog.rename_column(col, "sky_centroid")
+
+    occurrences = Counter(catalog.colnames)
+    nra, ndec = occurrences["RA"], occurrences["DEC"]
     ncentroid = occurrences["sky_centroid"]
 
     # Check for too many or too few columns
@@ -286,8 +292,6 @@ def _parse_sky_centroid(catalog: Table) -> Table:
                    "and sky_centroid columns. Ignoring sky_centroid.")
             warnings.warn(msg, stacklevel=2)
             catalog.remove_column("sky_centroid")
-        catalog["ra"].name = "RA"
-        catalog["dec"].name = "DEC"
         return catalog
 
     if ncentroid > 1:
