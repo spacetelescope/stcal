@@ -1,1 +1,0 @@
-Refactoring twopoint_difference.py for the jump step.
