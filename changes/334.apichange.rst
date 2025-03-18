@@ -1,1 +1,0 @@
-Removed all references to the unused ramp error array in dark, jump, and ramp fitting steps.

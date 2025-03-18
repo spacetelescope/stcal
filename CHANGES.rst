@@ -1,3 +1,57 @@
+1.12.0 (2025-03-18)
+===================
+
+Changes to API
+--------------
+
+- Added ``resample`` submodule. (`#320
+  <https://github.com/spacetelescope/stcal/issues/320>`_)
+- Refactoring the jump module to improve memory consumption, readability, and
+  maintenance. (`#330 <https://github.com/spacetelescope/stcal/issues/330>`_)
+- Removed all references to the unused ramp error array in dark, jump, and ramp
+  fitting steps. (`#334 <https://github.com/spacetelescope/stcal/issues/334>`_)
+- Make sregion_to_footprint part of public API (`#345
+  <https://github.com/spacetelescope/stcal/issues/345>`_)
+
+
+Bug Fixes
+---------
+
+- Fix a bug in ``alignment.util.wcs_from_sregions()`` and
+  ``alignment.util.wcs_from_footprints()`` functions that was causing incorrect
+  WCS bounding boxes
+  when the ``crpix`` argument was provided. (`#326
+  <https://github.com/spacetelescope/stcal/issues/326>`_)
+- Allow tweakreg to parse absolute reference catalogs with skycoord objects in
+  them (`#333 <https://github.com/spacetelescope/stcal/issues/333>`_)
+- Fix a bug in the jump step with counting the number of usable groups. (`#338
+  <https://github.com/spacetelescope/stcal/issues/338>`_)
+- Do not reset existing JUMP flags at the start of the likelihood ramp fitting
+  algorithm. (`#339 <https://github.com/spacetelescope/stcal/issues/339>`_)
+- Fix a bug in ``jump.twopointdifference.calc_med_first_diffs()`` where
+  ``argmax`` was being used instead of ``nanargmax``. (`#344
+  <https://github.com/spacetelescope/stcal/issues/344>`_)
+- Changed multiprocessing from forkserver to spawn. (`#350
+  <https://github.com/spacetelescope/stcal/issues/350>`_)
+
+
+General
+-------
+
+- Move common parts of skymatch shared by both jwst and romancal into stcal.
+  (`#310 <https://github.com/spacetelescope/stcal/issues/310>`_)
+- Drop support for Python 3.10 and add support for Python 3.13. (`#327
+  <https://github.com/spacetelescope/stcal/issues/327>`_)
+- Performance improvements for saturation step (`#331
+  <https://github.com/spacetelescope/stcal/issues/331>`_)
+- Performance improvements for jump step targeting both runtime and memory
+  consumption. Results are mostly identical, but there are some differences in
+  the MIRI shower flagging (it now flags somewhat fewer showers). (`#337
+  <https://github.com/spacetelescope/stcal/issues/337>`_)
+- Refactoring twopoint_difference.py for the jump step. (`#340
+  <https://github.com/spacetelescope/stcal/issues/340>`_)
+
+
 1.11.0 (2024-12-20)
 ===================
 

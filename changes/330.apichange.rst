@@ -1,1 +1,0 @@
-Refactoring the jump module to improve memory consumption, readability, and maintenance.
