@@ -36,12 +36,14 @@ def nrcb5_wcs_wcsinfo():
 
 @pytest.fixture(scope="module")
 def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
-    model = make_nrcb5_model(nrcb5_wcs_wcsinfo)
-    model["dq"][:, :] = 1
-
     np.random.seed(0)
 
+    exptime = 3.1415 + 100.0 * np.random.random()
+    model = make_nrcb5_model(nrcb5_wcs_wcsinfo, exptime=exptime)
+    model["dq"][:, :] = 1
+
     patch_size = 21
+    patch_area = patch_size * patch_size
     p2 = patch_size // 2
     # add border so that resampled partial pixels can be isolated
     # in the segmentation:
@@ -60,7 +62,7 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
             flux = 1.0 + 99.0 * np.random.random()
             if np.random.random() > 0.7:
                 # uniform image
-                psf = np.full((patch_size, patch_size), flux)
+                psf = np.full((patch_size, patch_size), flux / patch_area)
             else:
                 # "star":
                 fwhm = 1.5 + 1.5 * np.random.random()
@@ -72,11 +74,18 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
                     y_size=patch_size
                 ).array
 
-            flux = psf.sum()
+            mean_noise = (0.05 + 0.35 * np.random.random()) * flux / patch_area
+            rdnoise = mean_noise * np.random.random((patch_size, patch_size))
 
             model["data"][sl] = psf
             model["dq"][sl] = 0
-            stars.append((xc, yc, flux, sl))
+
+            model["var_rnoise"][sl] = rdnoise
+            model["var_poisson"][sl] = psf
+            var_patch = psf + rdnoise
+            model["err"][sl] = np.sqrt(var_patch)
+
+            stars.append((xc, yc, sl))
 
     model["stars"] = stars
     return model
