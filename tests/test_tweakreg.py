@@ -230,10 +230,12 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
                            datamodel.meta.wcsinfo,
                            epoch)
     assert isinstance(refcat, Table)
+    assert refcat.meta["name"] == CATALOG_FNAME
 
     # find refcat from web
     refcat = _parse_refcat(TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
     assert isinstance(refcat, Table)
+    assert refcat.meta["name"] == TEST_CATALOG
 
 
 def test_parse_sky_centroid(abs_refcat):

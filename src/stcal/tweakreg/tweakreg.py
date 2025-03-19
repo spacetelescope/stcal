@@ -247,14 +247,18 @@ def _parse_refcat(abs_refcat: str | Path,
                         ref_wcsinfo=wcsinfo,
         )
 
-        return create_astrometric_catalog(
+        ref_table = create_astrometric_catalog(
             combined_wcs, epoch,
             catalog=gaia_cat_name,
             output=output_name,
         )
+        ref_table.meta["name"] = gaia_cat_name # accessed by tweakwcs log message
+        return ref_table
 
     if Path(abs_refcat).is_file():
-        return _parse_sky_centroid(Table.read(abs_refcat))
+        ref_table = Table.read(abs_refcat)
+        ref_table.meta["name"] = Path(abs_refcat).name # accessed by tweakwcs log message
+        return _parse_sky_centroid(ref_table)
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
            "a path to an existing file name or one of the supported "
