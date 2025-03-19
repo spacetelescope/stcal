@@ -230,10 +230,12 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
                            datamodel.meta.wcsinfo,
                            epoch)
     assert isinstance(refcat, Table)
+    assert refcat.meta["name"] == CATALOG_FNAME
 
     # find refcat from web
     refcat = _parse_refcat(TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
     assert isinstance(refcat, Table)
+    assert refcat.meta["name"] == TEST_CATALOG
 
 
 def test_parse_sky_centroid(abs_refcat):
@@ -247,8 +249,8 @@ def test_parse_sky_centroid(abs_refcat):
     with pytest.warns(UserWarning):
         cat_out = _parse_sky_centroid(cat)
     assert isinstance(cat_out, Table)
-    assert np.all(cat["ra"] == cat_out["ra"])
-    assert np.all(cat["dec"] == cat_out["dec"])
+    assert np.all(abs_refcat["ra"] == cat_out["RA"])
+    assert np.all(abs_refcat["dec"] == cat_out["DEC"])
     assert "sky_centroid" not in cat_out.columns
 
     # test case where ra, dec are no longer present
@@ -256,8 +258,8 @@ def test_parse_sky_centroid(abs_refcat):
     cat.remove_columns(["ra", "dec"])
     cat_out = _parse_sky_centroid(cat)
     assert isinstance(cat_out, Table)
-    assert np.all(cat["ra"] == cat_out["ra"])
-    assert np.all(cat["dec"] == cat_out["dec"])
+    assert np.all(abs_refcat["ra"] == cat_out["RA"])
+    assert np.all(abs_refcat["dec"] == cat_out["DEC"])
 
     # test case where neither present
     cat = abs_refcat.copy()
