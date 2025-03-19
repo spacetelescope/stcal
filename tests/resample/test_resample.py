@@ -1,9 +1,12 @@
+import math
+
 import pytest
 
 import numpy as np
 from drizzle.utils import calc_pixmap
 
 from stcal.resample import Resample
+from stcal.resample.utils import build_driz_weight
 from stcal.alignment.util import wcs_from_footprints
 
 from . helpers import (
@@ -165,7 +168,9 @@ def test_resample_compute_error_mode(compute_err, weight_type):
 
 @pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
 @pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
-def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel):
+@pytest.mark.parametrize("weight_type", ["exptime", "ivm"])
+def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel,
+                             weight_type):
     """ test surface-brightness photometry """
     model = nrcb5_many_fluxes
 
@@ -180,14 +185,21 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel):
         pscale_ratio=pscale_ratio
     )
 
+    weight = build_driz_weight(
+        model,
+        weight_type=weight_type,
+        good_bits=0,
+        flag_name_map=JWST_DQ_FLAG_DEF
+    )
+
     resample = Resample(
         n_input_models=1,
         output_wcs={"wcs": output_wcs},
-        weight_type="exptime",
+        weight_type=weight_type,
         enable_var=False,
         compute_err=False,
         fillval="NAN",
-        kernel="square"
+        kernel=kernel
     )
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
     resample.add_model(model)
@@ -196,7 +208,9 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel):
     # for efficiency, instead of doing this patch-by-patch,
     # multiply resampled data by resampled image weight
     out_wht = resample.output_model['wht']
-    out_data = resample.output_model["data"] * out_wht
+    out_wdata = resample.output_model["data"] * out_wht
+
+    in_wdata = model["data"] * weight
 
     pixmap = calc_pixmap(
         wcs,
@@ -205,12 +219,14 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel):
     )
 
     dim3 = (slice(None, None, None), )
-    for _, _, fin, sl in stars:
-        xyout = pixmap[sl + dim3]
-        xmin = int(np.floor(xyout[:, :, 0].min() - 0.5))
-        xmax = int(np.ceil(xyout[:, :, 0].max() + 1.5))
-        ymin = int(np.floor(xyout[:, :, 1].min() - 0.5))
-        ymax = int(np.ceil(xyout[:, :, 1].max() + 1.5))
-        fout = np.nansum(out_data[ymin:ymax, xmin:xmax])
 
-        assert np.allclose(fin, fout, rtol=1.0e-6, atol=0.0)
+    for _, _, sl in stars:
+        wfin = in_wdata[sl].sum()
+        xyout = pixmap[sl + dim3]
+        xmin = math.floor(xyout[:, :, 0].min() - 0.5)
+        xmax = math.ceil(xyout[:, :, 0].max() + 1.5)
+        ymin = math.floor(xyout[:, :, 1].min() - 0.5)
+        ymax = math.ceil(xyout[:, :, 1].max() + 1.5)
+        wfout = np.nansum(out_wdata[ymin:ymax, xmin:xmax])
+
+        assert np.allclose(wfin, wfout, rtol=1.0e-6, atol=0.0)
