@@ -1,1 +1,3 @@
-Added ``driz_args`` argument to ``resample.Resample.update_time()`` method.
+Added ``add_model_hook()`` method to ``resample.Resample`` that is called by
+``add_model()`` and allows subclasses to perform additional processing while
+reusing quantities computed by ``add_model()``
