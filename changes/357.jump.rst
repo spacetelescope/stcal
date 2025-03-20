@@ -1,0 +1,1 @@
+Expanding jump step documentation to include information about cross integration jump detection.
