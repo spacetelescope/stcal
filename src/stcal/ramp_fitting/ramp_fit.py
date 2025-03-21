@@ -19,7 +19,6 @@ import numpy as np
 from astropy import units as u
 
 from . import (
-    gls_fit,    # used only if algorithm is "GLS"
     likely_fit, # used only if algorithm is "LIKELY"
     ols_fit,    # used only if algorithm is "OLS"
     ramp_fit_class,
@@ -177,9 +176,8 @@ def ramp_fit(
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
 
-    gls_opt_model : GLS_RampFitModel object or None (Unused for now)
-        Object containing optional GLS-specific ramp fitting data for the
-        exposure
+    dummy : None
+        To prevent changing function signature.  XXX maybe remove.
     """
     if suppress_one_group and model.data.shape[1] == 1:
         # One group ramp suppression should only be done on data with
@@ -252,9 +250,8 @@ def ramp_fit_data(
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
 
-    gls_opt_model : GLS_RampFitModel object or None (Unused for now)
-        Object containing optional GLS-specific ramp fitting data for the
-        exposure
+    dummy : None
+        To prevent changing function signature.  XXX maybe remove.
     """
     # For the LIKELY algorithm, due to the jump detection portion of the code
     # a minimum of a four group ramp is needed.
@@ -269,16 +266,10 @@ def ramp_fit_data(
     if algorithm.upper() == "OLS_C":
         ramp_data.run_c_code = True
         
-    if algorithm.upper() == "GLS":
-        image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
-        )
-        opt_info = None
-    elif algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
+    if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, readnoise_2d, gain_2d
         )
-        gls_opt_info = None
     else:
         # Default to OLS.
         # Get readnoise array for calculation of variance of noiseless ramps, and
@@ -294,9 +285,9 @@ def ramp_fit_data(
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
         )
-        gls_opt_info = None
 
-    return image_info, integ_info, opt_info, gls_opt_info
+    dummy = None
+    return image_info, integ_info, opt_info, dummy
 
 
 def suppress_one_good_group_ramps(ramp_data):
