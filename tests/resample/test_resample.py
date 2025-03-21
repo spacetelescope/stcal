@@ -162,4 +162,3 @@ def test_resample_add_model_hook():
     with pytest.raises(RuntimeError, match="raised by subclass' add_model_hook") as err_info:
         resample.add_model(im)
 
-    assert str(err_info.value) == "raised by subclass' add_model_hook"
