@@ -159,7 +159,7 @@ def test_resample_add_model_hook():
         exptime=10.0
     )
 
-    with pytest.raises(RuntimeError) as err_info:
+    with pytest.raises(RuntimeError, match="raised by subclass' add_model_hook") as err_info:
         resample.add_model(im)
 
     assert str(err_info.value) == "raised by subclass' add_model_hook"
