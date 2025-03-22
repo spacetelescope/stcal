@@ -83,7 +83,11 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         the variance is set to 1 for all pixels (i.e., equal weighting).
         If ``weight_type="exptime"``, the weight will be set equal
         to the measurement time when available and to
-        the exposure time otherwise. For the default value of `
+        the exposure time otherwise for pixels not flagged in the DQ array of
+        the model. The default value of `None` will
+        set weights to 1 for pixels not flagged in the DQ array of the model.
+        Pixels flagged as "bad" in the DQ array will have thier weights
+        set to 0.
 
     good_bits : int, str, None, optional
         An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -118,21 +122,22 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
             with np.errstate(divide="ignore", invalid="ignore"):
                 inv_variance = var_rnoise**-1
             inv_variance[~np.isfinite(inv_variance)] = 1
+            result = inv_variance * dqmask
         else:
             warnings.warn(
                 "'var_rnoise' array not available. "
                 "Setting drizzle weight map to 1",
                 RuntimeWarning
             )
-            inv_variance = 1.0
-        result = inv_variance * dqmask
+            inv_variance = 1
+            result = dqmask
 
     elif weight_type == 'exptime':
-        exptime, s = get_tmeasure(model)
-        result = exptime * dqmask
+        exptime, _ = get_tmeasure(model)
+        result = np.float32(exptime) * dqmask
 
     elif weight_type is None:
-        result = np.ones(data.shape, dtype=data.dtype) * dqmask
+        result = dqmask
 
     else:
         raise ValueError(
