@@ -129,7 +129,6 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
                 "Setting drizzle weight map to 1",
                 RuntimeWarning
             )
-            inv_variance = 1
             result = dqmask
 
     elif weight_type == 'exptime':
