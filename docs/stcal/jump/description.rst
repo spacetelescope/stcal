@@ -10,11 +10,11 @@ have DQ flags "NO_GAIN_VALUE" and "DO_NOT_USE" set in the output PIXELDQ array.
 The SCI array of the input data is not modified.
 
 Jumps can be detected in two different ways.  The primary way is the two-point
-difference methode described below.  The other way is by selecting ``only_use_ints``
+difference method described below.  The other way is by selecting ``only_use_ints``
 as ``True`` and if there are enough integrations, then ``sigma_clip`` from the
-``astropy.stats`` will be used to detect jumps.  Also, ``sigma_clip`` will be used
-if the total number of usable groups (number of groups per integration multiplied
-by the number of integrations) is above a minimum threshold.
+``astropy.stats`` package will be used to detect jumps.  The ``sigma_clip`` method
+will also be used if the total number of usable groups (number of groups per
+integration multiplied by the number of integrations) is above a minimum threshold.
 
 The current implementation uses the two-point difference method described
 in `Anderson & Gordon (2011) <https://ui.adsabs.harvard.edu/abs/2011PASP..123.1237A>`_.
