@@ -1,0 +1,1 @@
+Removing old and unused OLS python and GLS code from ramp fitting.
