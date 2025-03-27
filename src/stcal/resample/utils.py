@@ -63,19 +63,6 @@ def build_mask(dqarr, good_bits, flag_name_map=None):
     )
     return dqmask
 
-    # if bitvalue is None:
-    #     return np.ones(dqarr.shape, dtype=np.uint8)
-    # return np.logical_not(np.bitwise_and(dqarr, ~bitvalue)).astype(np.uint8)
-
-
-    # bitvalue = interpret_bit_flags(bitvalue, mnemonic_map=pixel)
-
-    # if bitvalue is None:
-    #     return np.ones(dqarr.shape, dtype=np.uint8)
-
-    # bitvalue = np.array(bitvalue).astype(dqarr.dtype)
-    # return np.logical_not(np.bitwise_and(dqarr, ~bitvalue)).astype(np.uint8)
-
 
 def build_driz_weight(model, weight_type=None, good_bits=None,
                       flag_name_map=None):
@@ -87,16 +74,20 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     model : dict
         Input model: a dictionary of relevant keywords and values.
 
-    weight_type : {"exptime", "ivm"}, optional
+    weight_type : {"exptime", "ivm"}, None, optional
         The weighting type for adding models' data. For
-        ``weight_type="ivm"`` (the default), the weighting will be
+        ``weight_type="ivm"``, the weighting will be
         determined per-pixel using the inverse of the read noise
         (VAR_RNOISE) array stored in each input image. If the
         ``VAR_RNOISE`` array does not exist,
         the variance is set to 1 for all pixels (i.e., equal weighting).
         If ``weight_type="exptime"``, the weight will be set equal
         to the measurement time when available and to
-        the exposure time otherwise.
+        the exposure time otherwise for pixels not flagged in the DQ array of
+        the model. The default value of `None` will
+        set weights to 1 for pixels not flagged in the DQ array of the model.
+        Pixels flagged as "bad" in the DQ array will have thier weights
+        set to 0.
 
     good_bits : int, str, None, optional
         An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -131,21 +122,27 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
             with np.errstate(divide="ignore", invalid="ignore"):
                 inv_variance = var_rnoise**-1
             inv_variance[~np.isfinite(inv_variance)] = 1
+            result = inv_variance * dqmask
         else:
             warnings.warn(
                 "'var_rnoise' array not available. "
                 "Setting drizzle weight map to 1",
                 RuntimeWarning
             )
-            inv_variance = 1.0
-        result = inv_variance * dqmask
+            result = dqmask
 
     elif weight_type == 'exptime':
-        exptime, s = get_tmeasure(model)
-        result = exptime * dqmask
+        exptime, _ = get_tmeasure(model)
+        result = np.float32(exptime) * dqmask
+
+    elif weight_type is None:
+        result = dqmask
 
     else:
-        result = np.ones(data.shape, dtype=data.dtype) * dqmask
+        raise ValueError(
+            f"Invalid weight type: {repr(weight_type)}."
+            "Allowed weight types are 'ivm', 'exptime', or None."
+        )
 
     return result.astype(np.float32)
 
