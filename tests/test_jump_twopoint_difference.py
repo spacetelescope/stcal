@@ -715,26 +715,6 @@ def test_11grps_0cr_3donotuse():
     assert np.array_equal([0, 0, 0, 0, 0, 0, 0, 0], out_gdq[0, 1:-2, 100, 100])
 
 
-@pytest.mark.skip("Copied, but checks nothing and is named wrong")
-def test_5grps_nocr():
-    nints, ngroups, nrows, ncols = 1, 6, 204, 204
-    dims = nints, ngroups, nrows, ncols
-    rnoise = 10
-
-    data, gdq, read_noise = setup_data(dims, rnoise)
-    data[0, 0, 100, 100] = 0
-    data[0, 1, 100, 100] = 10
-    data[0, 2, 100, 100] = 21
-    data[0, 3, 100, 100] = 33
-    data[0, 4, 100, 100] = 46
-
-    twopt_p = default_twopt_p(
-        rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
-
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
-        data, gdq, read_noise, twopt_p)
-
-
 def test_10grps_cr2_gt3sigma():
     crmag = 16
     nints, ngroups, nrows, ncols = 1, 10, 204, 204
