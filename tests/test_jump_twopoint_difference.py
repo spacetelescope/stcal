@@ -817,9 +817,8 @@ def test_10grps_cr2_gt3sigma_2frames():
     assert np.array_equal([0, 4, 0, 0, 0, 0, 0, 0, 0, 0], out_gdq[0, :, 100, 100])
 
 
-@pytest.mark.skip("Fails for some reason")
 def test_10grps_cr2_gt3sigma_2frames_offdiag():
-    crmag = 16
+    crmag = 160
     nints, ngroups, nrows, ncols = 1, 10, 204, 204
     dims = nints, ngroups, nrows, ncols
     rnoise = 5 * np.sqrt(2)
