@@ -102,11 +102,13 @@ def flag_saturated_pixels(
             flagarray = (previously_saturated * saturated).astype(np.uint32)
 
             gdq[ints, group, :, :] |= flagarray
+            print(f"Foward work: {ints}:{group}, flagarray: {gdq[0, :, 5, 5] = }")
 
             # for A/D floor, the flag is only set of the current plane
             flaglowarray = ((plane <= 0)*(ad_floor | dnu)).astype(np.uint32)
 
             gdq[ints, group, :, :] |= flaglowarray
+            print(f"Foward work: {ints}:{group}, flaglowarray: {gdq[0, :, 5, 5] = }")
 
             del flagarray
             del flaglowarray
@@ -119,6 +121,8 @@ def flag_saturated_pixels(
         # Work backward through the groups for a second pass at saturation
         # This is to flag things that actually saturated in prior groups but
         # were not obvious because of group averaging
+
+        print("-" * 80)
 
         for group in range(ngroups - 2, -1, -1):
 
@@ -150,6 +154,8 @@ def flag_saturated_pixels(
             # was flagged as saturated.  Result of the line below is a
             # boolean array.
 
+            # import ipdb; ipdb.set_trace()
+
             partial_sat = ((plane >= sat_thresh*dilution_factor) & \
                            (thisdq & (saturated | dnu) == 0) & \
                            (nextdq & saturated != 0))
@@ -162,6 +168,9 @@ def flag_saturated_pixels(
 
             # Add them to the gdq array
             gdq[ints, group, :, :] |= flagarray
+            print(f"Backward work: {ints}:{group}, flagarray: {gdq[0, :, 5, 5] = }")
+
+        print(f"{gdq[0, :, 5, 5] = }")
 
         # Add an additional pass to look for things saturating in the second group
         # that can be particularly tricky to identify
@@ -191,6 +200,7 @@ def flag_saturated_pixels(
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
 
+        print(f"{gdq[0, :, 5, 5] = }")
 
         # Check ZEROFRAME.
         if zframe is not None:
