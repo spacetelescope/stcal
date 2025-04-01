@@ -143,7 +143,6 @@ def ramp_fit(
 
     algorithm : str
         'OLS' specifies that ordinary least squares should be used;
-        'GLS' specifies that generalized least squares should be used.
         'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
@@ -221,7 +220,6 @@ def ramp_fit_data(
 
     algorithm : str
         'OLS' specifies that ordinary least squares should be used;
-        'GLS' specifies that generalized least squares should be used.
         'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
@@ -286,8 +284,7 @@ def ramp_fit_data(
             ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
         )
 
-    dummy = None
-    return image_info, integ_info, opt_info, dummy
+    return image_info, integ_info, opt_info
 
 
 def suppress_one_good_group_ramps(ramp_data):
