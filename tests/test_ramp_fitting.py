@@ -1565,7 +1565,6 @@ def test_cext_chargeloss():
     tm = frame_time, nframes, groupgap
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
 
-    ramp.run_c_code = True  # Need to make this default in future
     base = 15.
     arr = [(k+1) * base for k in range(ngroups)]
 

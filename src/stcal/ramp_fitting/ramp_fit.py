@@ -20,7 +20,7 @@ from astropy import units as u
 
 from . import (
     likely_fit, # used only if algorithm is "LIKELY"
-    ols_fit,    # used only if algorithm is "OLS"
+    ols_fit,    # used only if algorithm is "OLS_C"
     ramp_fit_class,
 )
 
@@ -138,7 +138,7 @@ def ramp_fit(
         2-D array gain for all pixels
 
     algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
+        'OLS_C' specifies that ordinary least squares should be used;
         'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
@@ -209,7 +209,7 @@ def ramp_fit_data(
         2-D array gain for all pixels
 
     algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
+        'OLS_C' specifies that ordinary least squares should be used;
         'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
@@ -247,16 +247,13 @@ def ramp_fit_data(
                   " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
                   " is being changed to OLS_C")
         algorithm = "OLS_C"
-
-    if algorithm.upper() == "OLS_C":
-        ramp_data.run_c_code = True
         
     if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, readnoise_2d, gain_2d
         )
     else:
-        # Default to OLS.
+        # Default to OLS_C.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
         nframes = ramp_data.nframes

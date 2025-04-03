@@ -574,8 +574,6 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.start_row = start_row
     ramp_data_slice.num_rows = nrows
 
-    ramp_data_slice.run_c_code = ramp_data.run_c_code
-
     return ramp_data_slice
 
 
