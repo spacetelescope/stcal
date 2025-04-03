@@ -170,9 +170,6 @@ def ramp_fit(
 
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
-
-    dummy : None
-        To prevent changing function signature.  XXX maybe remove.
     """
     if suppress_one_group and model.data.shape[1] == 1:
         # One group ramp suppression should only be done on data with
@@ -240,9 +237,6 @@ def ramp_fit_data(
 
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
-
-    dummy : None
-        To prevent changing function signature.  XXX maybe remove.
     """
     # For the LIKELY algorithm, due to the jump detection portion of the code
     # a minimum of a four group ramp is needed.
