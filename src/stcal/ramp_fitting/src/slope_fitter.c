@@ -2182,7 +2182,7 @@ get_ramp_data_parse(
     } else {
         msg = "Bad value for weighting.";
         PyErr_SetString(PyExc_ValueError, msg);
-        err_ols_print("%s\n", msg);
+        err_ols_print("%s (weight = '%s')\n", msg, weight);
         return 1;
     }
 
