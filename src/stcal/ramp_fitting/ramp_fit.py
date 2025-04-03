@@ -106,7 +106,6 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
 
 def ramp_fit(
     model,
-    buffsize,
     save_opt,
     readnoise_2d,
     gain_2d,
@@ -128,9 +127,6 @@ def ramp_fit(
     ----------
     model : data model
         input data model, assumed to be of type RampModel
-
-    buffsize : int
-        size of data section (buffer) in bytes
 
     save_opt : bool
        calculate optional fitting results
@@ -189,12 +185,12 @@ def ramp_fit(
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
     return ramp_fit_data(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+        ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
     )
 
 
 def ramp_fit_data(
-    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+    ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
 ):
     """
     This function begins the ramp fit computation after the creation of the
@@ -205,9 +201,6 @@ def ramp_fit_data(
 
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
-
-    buffsize : int
-        size of data section (buffer) in bytes
 
     save_opt : bool
        calculate optional fitting results
@@ -281,7 +274,7 @@ def ramp_fit_data(
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
+            ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores
         )
 
     return image_info, integ_info, opt_info

@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
+def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
     Setup the inputs to ols_ramp_fit with and without multiprocessing. The
     inputs will be sliced into the number of cores that are being used for
@@ -33,9 +33,6 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
     ----------
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
-
-    buffsize : int
-        size of data section (buffer) in bytes (not used)
 
     save_opt : bool
        calculate optional fitting results
@@ -96,7 +93,7 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
     if number_slices == 1:
         # Single threaded computation
         image_info, integ_info, opt_info = ols_ramp_fit_single(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting
+            ramp_data, save_opt, readnoise_2d, gain_2d, weighting
         )
         if image_info is None or integ_info is None:
             return None, None, None
@@ -105,14 +102,14 @@ def ols_ramp_fit_multi(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, wei
 
     # Call ramp fitting for multi-processor (multiple data slices) case
     image_info, integ_info, opt_info = ols_ramp_fit_multiprocessing(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+        ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
 
     return image_info, integ_info, opt_info
 
 
 def ols_ramp_fit_multiprocessing(
-    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+    ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
 ):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
@@ -125,9 +122,6 @@ def ols_ramp_fit_multiprocessing(
     ----------
     ramp_data: RampData
         Input data necessary for computing ramp fitting.
-
-    buffsize : int
-        The working buffer size
 
     save_opt : bool
         Whether to return the optional output model
@@ -157,7 +151,7 @@ def ols_ramp_fit_multiprocessing(
     """
     log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+        ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
 
     ctx = multiprocessing.get_context("spawn")
@@ -438,7 +432,7 @@ def get_max_segs_crs(pool_results):
 
 
 def compute_slices_for_starmap(
-    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+    ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
 ):
     """
     Creates the slices needed for each process for multiprocessing.  The slices
@@ -446,9 +440,6 @@ def compute_slices_for_starmap(
 
     ramp_data: RampData
         The ramp data to be sliced.
-
-    buffsize : int
-        The working buffer size
 
     save_opt : bool
         Whether to return the optional output model
@@ -481,7 +472,7 @@ def compute_slices_for_starmap(
         ramp_slice = slice_ramp_data(ramp_data, start_row, rslices[k])
         rnoise_slice = readnoise_2d[start_row : start_row + rslices[k], :].copy()
         gain_slice = gain_2d[start_row : start_row + rslices[k], :].copy()
-        slices.insert(k, (ramp_slice, buffsize, save_opt, rnoise_slice, gain_slice, weighting))
+        slices.insert(k, (ramp_slice, save_opt, rnoise_slice, gain_slice, weighting))
         start_row = start_row + rslices[k]
 
     return slices, rslices
@@ -588,7 +579,7 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     return ramp_data_slice
 
 
-def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting):
+def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -599,9 +590,6 @@ def ols_ramp_fit_single(ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, we
     ----------
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
-
-    buffsize : int
-        The working buffer size
 
     save_opt : bool
         Whether to return the optional output model
