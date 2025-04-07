@@ -284,7 +284,18 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     log.debug("Bounding box from data shape: {}".format(bb))
 
     grid = gwcs.wcstools.grid_from_bounding_box(bb)
-    return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
+
+    # temporarily disable the bounding box:
+    orig_bbox = out_wcs.bounding_box
+    out_wcs.bounding_box = None
+    try:
+        pixmap = np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
+    finally:
+        # restore bounding box:
+        if orig_bbox is not None:
+            out_wcs.bounding_box = orig_bbox
+
+    return pixmap
 
 
 def reproject(wcs1, wcs2):
