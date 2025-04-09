@@ -247,14 +247,18 @@ def _parse_refcat(abs_refcat: str | Path,
                         ref_wcsinfo=wcsinfo,
         )
 
-        return create_astrometric_catalog(
+        ref_table = create_astrometric_catalog(
             combined_wcs, epoch,
             catalog=gaia_cat_name,
             output=output_name,
         )
+        ref_table.meta["name"] = gaia_cat_name # accessed by tweakwcs log message
+        return ref_table
 
     if Path(abs_refcat).is_file():
-        return _parse_sky_centroid(Table.read(abs_refcat))
+        ref_table = Table.read(abs_refcat)
+        ref_table.meta["name"] = Path(abs_refcat).name # accessed by tweakwcs log message
+        return _parse_sky_centroid(ref_table)
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
            "a path to an existing file name or one of the supported "
@@ -269,9 +273,15 @@ def _parse_sky_centroid(catalog: Table) -> Table:
     permits the use of catalogs directly from the jwst source_catalog step.
     No action is taken if the catalog already contains RA and DEC columns.
     """
-    cols = [name.lower() for name in catalog.colnames]
-    occurrences = Counter(cols)
-    nra, ndec = occurrences["ra"], occurrences["dec"]
+    # Rename RA/DEC columns to uppercase to ensure any case is handled
+    for col in catalog.colnames:
+        if col.upper() in ["RA", "DEC"]:
+            catalog.rename_column(col, col.upper())
+        elif col.lower() == "sky_centroid":
+            catalog.rename_column(col, "sky_centroid")
+
+    occurrences = Counter(catalog.colnames)
+    nra, ndec = occurrences["RA"], occurrences["DEC"]
     ncentroid = occurrences["sky_centroid"]
 
     # Check for too many or too few columns
@@ -300,8 +310,8 @@ def _parse_sky_centroid(catalog: Table) -> Table:
     
     # Convert SkyCoord object to RA/DEC
     skycoord = catalog["sky_centroid"].to_table()
-    catalog["ra"] = skycoord["ra"]
-    catalog["dec"] = skycoord["dec"]
+    catalog["RA"] = skycoord["ra"]
+    catalog["DEC"] = skycoord["dec"]
     catalog.remove_column("sky_centroid")
 
     return catalog

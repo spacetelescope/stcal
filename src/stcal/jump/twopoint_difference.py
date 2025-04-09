@@ -382,7 +382,6 @@ def look_for_more_than_one_jump(
     return gdq
 
 
-# XXX develop CI test for this function.
 def det_jump_sigma_clipping(
     gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
 ):
