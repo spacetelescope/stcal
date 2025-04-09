@@ -143,6 +143,24 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     elif weight_type == 'exptime':
         exptime, s = get_tmeasure(model)
         result = exptime * dqmask
+        
+    elif weight_type == "ivsky":
+        var_sky = model["var_sky"]
+        if (
+            var_sky is not None and 
+            var_sky.shape == data.shape
+        ):
+            with np.errstate(divide="ignore", invalid="ignore"):
+                inv_sky_variance = var_sky**-1
+            inv_sky_variance[~np.isfinite(inv_sky_variance)] = 0
+        else:
+            warnings.warn(
+                "'var_sky' array is not available. "
+                "Setting drizzle weight map to 1",
+                RuntimeError,
+            )
+            inv_sky_variance = 1.0
+        result = inv_sky_variance * dqmask
 
     else:
         result = np.ones(data.shape, dtype=data.dtype) * dqmask

@@ -111,11 +111,15 @@ class Resample:
             pixels with no contributions from input images will be set to this
             ``fillval`` value.
 
-        weight_type : {"ivm", "exptime"}, optional
+        weight_type : {"ivm", "exptime", "ivsky"}, optional
             The weighting type for adding models' data. For
             ``weight_type="ivm"`` (the default), the weighting will be
             determined per-pixel using the inverse of the read noise
             (VAR_RNOISE) array stored in each input image. If the
+            ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
+            all pixels (i.e., equal weighting). If ``weight_type="ivm"``, 
+            the weighting will be determined per-pixel using the inverse of 
+            the sky variance (VAR_SKY) array stored in each input image. If the
             ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
             all pixels (i.e., equal weighting). If ``weight_type="exptime"``,
             the weight will be set equal to the measurement time
@@ -223,7 +227,7 @@ class Resample:
         self.fillval = fillval
         self.good_bits = good_bits
 
-        if weight_type.startswith("ivm") or weight_type == "exptime":
+        if weight_type.startswith("ivm") or weight_type in ("exptime", "ivsky"):
             self.weight_type = weight_type
         else:
             raise ValueError("Unexpected weight type: '{self.weight_type}'")
@@ -964,9 +968,10 @@ class Resample:
             else:
                 mask = np.full_like(rn_var, False)
 
+            weight = np.ones(self.output_array_shape)
+
             # Set the weight for the image from the weight type
             if self.weight_type.startswith("ivm") and rn_var is not None:
-                weight = np.ones(self.output_array_shape)
                 weight[mask] = np.reciprocal(rn_var[mask])
 
             elif self.weight_type == "exptime":
