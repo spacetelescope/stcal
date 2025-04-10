@@ -746,12 +746,7 @@ class Resample:
 
         log.info("Resampling science and variance data")
 
-        weight = build_driz_weight(
-            model,
-            weight_type=self.weight_type,
-            good_bits=self.good_bits,
-            flag_name_map=self.dq_flag_name_map
-        )
+        weight = self.compute_input_model_weight(model)
 
         # apply sky subtraction
         blevel = model["level"]
@@ -863,6 +858,16 @@ class Resample:
 
         """
         pass
+
+    def compute_input_model_weight(self, model):
+        """ Computes the weight array of the input ``model``. """
+        weight = build_driz_weight(
+            model,
+            weight_type=self.weight_type,
+            good_bits=self.good_bits,
+            flag_name_map=self.dq_flag_name_map
+        )
+        return weight
 
     def is_finalized(self):
         """ Indicates whether all attributes of the ``output_model`` have been
