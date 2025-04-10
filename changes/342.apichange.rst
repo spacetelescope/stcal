@@ -1,0 +1,9 @@
+Added ``add_model_hook()`` method to ``resample.Resample`` that
+allows subclasses to perform additional processing while
+reusing quantities computed by ``add_model()``.
+
+
+Modified the behavior of ``resample.utils.build_driz_weight()``: any
+value of the ``weight_type`` argument other than "ivm", "exptime", or ``None``
+will raise a ``ValueError`` exception (previous behavior was to treat them
+as ``None``).

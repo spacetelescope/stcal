@@ -735,11 +735,6 @@ class Resample:
                 f"Input model '{_get_model_name(model)}' is not a 2D image."
             )
 
-        if (group_id := model["group_id"]) not in self._group_ids:
-            self.update_time(model)
-            self._group_ids.append(group_id)
-            self.output_model["pointings"] += 1
-
         iscale = self._get_intensity_scale(model)
         log.debug(f'Using intensity scale iscale={iscale}')
 
@@ -783,6 +778,13 @@ class Resample:
         }
 
         self._driz.add_image(data, **add_image_kwargs)
+        self.add_model_hook(model, pixmap, iscale, weight,
+                            xmin, xmax, ymin, ymax)
+
+        if (group_id := model["group_id"]) not in self._group_ids:
+            self.update_time(model)
+            self._group_ids.append(group_id)
+            self._output_model["pointings"] += 1
 
         if self._compute_err == "driz_err":
             self._driz_error.add_image(model["err"], **add_image_kwargs)
@@ -799,7 +801,68 @@ class Resample:
 
         if self._compute_err == "driz_err":
             # use resampled error
-            self.output_model["err"] = self._driz_error.out_img
+            self._output_model["err"] = self._driz_error.out_img
+
+    def add_model_hook(self, model, pixmap, iscale, weight_map,
+                       xmin, xmax, ymin, ymax):
+        """ A hook method called by the :py:meth:`~Resample.add_model` method.
+        It allows subclasses perform additional processing at the time the
+        ``model["data"]`` array is resampled.
+
+        This method is called immediately after ``model["data"]`` is resampled.
+
+        Parameters
+        ----------
+        model : dict
+            A dictionary containing data arrays and other meta attributes
+            and values of actual models used by pipelines.
+
+        pixmap : 3D array
+            A mapping from input image (``data``) coordinates to resampled
+            (``out_img``) coordinates. ``pixmap`` must be an array of shape
+            ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
+            ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
+            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
+            of Y-coordinates of input pixels in the ouput coordinate frame.
+
+        iscale : float
+            The scale to apply to the input variance data before drizzling.
+
+        weight_map : numpy.ndarray, None, optional
+            A 2D ``numpy`` array containing the pixel by pixel weighting.
+            Must have the same dimensions as ``data``.
+
+            When ``weight_map`` is `None`, the weight of input data pixels will
+            be assumed to be 1.
+
+        xmin : float, optional
+            This and the following three parameters set a bounding rectangle
+            on the input image. Only pixels on the input image inside this
+            rectangle will have their flux added to the output image. Xmin
+            sets the minimum value of the x dimension. The x dimension is the
+            dimension that varies quickest on the image. If the value is zero,
+            no minimum will be set in the x dimension. All four parameters are
+            zero based, counting starts at zero.
+
+        xmax : float, optional
+            Sets the maximum value of the x dimension on the bounding box
+            of the input image. If the value is zero, no maximum will
+            be set in the x dimension, the full x dimension of the output
+            image is the bounding box.
+
+        ymin : float, optional
+            Sets the minimum value in the y dimension on the bounding box. The
+            y dimension varies less rapidly than the x and represents the line
+            index on the input image. If the value is zero, no minimum  will be
+            set in the y dimension.
+
+        ymax : float, optional
+            Sets the maximum value in the y dimension. If the value is zero, no
+            maximum will be set in the y dimension, the full x dimension
+            of the output image is the bounding box.
+
+        """
+        pass
 
     def is_finalized(self):
         """ Indicates whether all attributes of the ``output_model`` have been
@@ -1158,10 +1221,15 @@ class Resample:
         self._measurement_time_success = []
 
     def update_time(self, model):
-        """
-        A method called by the :py:meth:`~Resample.add_model` method to
+        """ A method called by the :py:meth:`~Resample.add_model` method to
         process each image's time attributes *only* when ``model`` has a new
         group ID.
+
+        Parameters
+        ----------
+        model : dict
+            A dictionary containing data arrays and other meta attributes
+            and values of actual models used by pipelines.
 
         """
         if model["group_id"] in self._group_ids:
