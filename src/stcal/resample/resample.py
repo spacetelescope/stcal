@@ -805,8 +805,8 @@ class Resample:
 
     def add_model_hook(self, model, pixmap, iscale, weight_map,
                        xmin, xmax, ymin, ymax):
-        """ A hook method called by the :py:meth:`~Resample.add_model` method
-        to allow subclasses perform additional processing at the time the
+        """ A hook method called by the :py:meth:`~Resample.add_model` method.
+        It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
 
         This method is called immediately after ``model["data"]`` is resampled.
