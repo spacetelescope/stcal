@@ -75,8 +75,8 @@ def test_read_pattern_saturation_flagging():
     )
 
     # Make sure that groups after the third get flagged
-    check = np.zeros(shape=(5,), dtype=np.uint32)
-    check[2:] = DQFLAGS["SATURATED"]
+    assert np.all(gdq[0, 3:, 5, 5] == DQFLAGS["SATURATED"])
+    assert gdq[0, 2, 5, 5] == DQFLAGS["DO_NOT_USE"]
 
 
 def test_read_pattern_saturation_flagging_dnu():
