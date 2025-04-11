@@ -4,7 +4,6 @@ Unit tests for saturation flagging
 
 """
 from enum import IntEnum
-import pytest
 import numpy as np
 
 from stcal.saturation.saturation import flag_saturated_pixels
@@ -41,7 +40,6 @@ def test_basic_saturation_flagging():
     assert np.all(gdq[0, satindex:, 5, 5] == DQFLAGS["SATURATED"])
 
 
-@pytest.mark.xfail(reason="stcal PR#321 broke this test")
 def test_read_pattern_saturation_flagging():
     """Check that the saturation threshold varies depending on how the reads
     are allocated into resultants."""
@@ -79,7 +77,6 @@ def test_read_pattern_saturation_flagging():
     # Make sure that groups after the third get flagged
     check = np.zeros(shape=(5,), dtype=np.uint32)
     check[2:] = DQFLAGS["SATURATED"]
-    # assert np.all(gdq[0, 2:, 5, 5] == DQFLAGS["SATURATED"])
 
 
 def test_read_pattern_saturation_flagging_dnu():

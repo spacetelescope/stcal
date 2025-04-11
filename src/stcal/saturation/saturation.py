@@ -150,23 +150,18 @@ def flag_saturated_pixels(
             # was flagged as saturated.  Result of the line below is a
             # boolean array.
 
-            # import ipdb; ipdb.set_trace()
-
-            partial_sat = ((plane >= sat_thresh*dilution_factor) & \
-                           (thisdq & (saturated | dnu) == 0) & \
-                           (nextdq & saturated != 0))
+            partial_sat = ((plane >= sat_thresh*dilution_factor)
+                           & (thisdq & (saturated | dnu) == 0)
+                           & (nextdq & saturated != 0))
 
             flagarray = (partial_sat * dnu).astype(np.uint32)
             
             # Grow the newly-flagged saturating pixels
             if n_pix_grow_sat > 0:
                 adjacent_pixels(flagarray, dnu, n_pix_grow_sat, inplace=True)
-                # adjacent_pixels(flagarray, saturated, n_pix_grow_sat, inplace=True)
 
             # Add them to the gdq array
             gdq[ints, group, :, :] |= flagarray
-
-        # dbg_print(f"{gdq[0, :, 5, 5] = }")
 
         # Add an additional pass to look for things saturating in the second group
         # that can be particularly tricky to identify
