@@ -75,6 +75,8 @@ def test_read_pattern_saturation_flagging():
     )
 
     # Make sure that groups after the third get flagged
+    # XXX - PR #321 introduced this behavior, but it may not be what's wanted.  For now
+    #       the xfail has been removed to test the current behavior.
     assert np.all(gdq[0, 3:, 5, 5] == DQFLAGS["SATURATED"])
     assert gdq[0, 2, 5, 5] == DQFLAGS["DO_NOT_USE"]
 
