@@ -2,7 +2,7 @@ import logging
 import math
 import warnings
 import sys
-
+import pdb
 import numpy as np
 
 from drizzle.utils import calc_pixmap
@@ -844,7 +844,7 @@ class Resample:
 
         if self._compute_err == "driz_err":
             # use resampled error
-            self.output_model["err"] = self._driz_error.out_img
+            self.output_model["err"] = self._driz_error.out_img / self.pixel_scale_ratio
             del self._driz_error
 
         elif self._enable_var:
@@ -1052,7 +1052,7 @@ class Resample:
             ).astype(
                 dtype=self.output_array_types["var_rnoise"]
             )
-            output_model["var_rnoise"] = output_variance
+            output_model["var_rnoise"] = output_variance / (self.pixel_scale_ratio**2)
 
             output_variance = (
                 self._var_poisson_wsum / (self._var_poisson_weight *
@@ -1060,7 +1060,7 @@ class Resample:
             ).astype(
                 dtype=self.output_array_types["var_poisson"]
             )
-            output_model["var_poisson"] = output_variance
+            output_model["var_poisson"] = output_variance / (self.pixel_scale_ratio**2)
 
             output_variance = (
                 self._var_flat_wsum / (self._var_flat_weight *
@@ -1068,7 +1068,7 @@ class Resample:
             ).astype(
                 dtype=self.output_array_types["var_flat"]
             )
-            output_model["var_flat"] = output_variance
+            output_model["var_flat"] = output_variance / (self.pixel_scale_ratio**2)
 
             del (
                 self._var_rnoise_wsum,
