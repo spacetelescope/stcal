@@ -120,7 +120,7 @@ def test_is_flux_density(unit, result):
     assert is_flux_density(unit) is result
 
 
-@pytest.mark.parametrize("weight_type", ["ivm", "exptime"])
+@pytest.mark.parametrize("weight_type", ["ivm", "exptime", "ivsky", ])
 def test_build_driz_weight(weight_type):
     """Check that correct weight map is returned of different weight types"""
 
@@ -129,6 +129,7 @@ def test_build_driz_weight(weight_type):
     model["dq"][0] = JWST_DQ_FLAG_DEF.DO_NOT_USE
     model["measurement_time"] = 10.0
     model["var_rnoise"] /= 10.0
+    model["var_sky"] /= 10.0
 
     weight_map = build_driz_weight(
         model,

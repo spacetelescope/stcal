@@ -107,7 +107,7 @@ def make_input_model(shape, crpix=(0, 0), crval=(0, 0), pscale=2.0e-5,
         "subtracted": False,
     }
 
-    for arr in ["var_flat", "var_rnoise", "var_poisson"]:
+    for arr in ["var_flat", "var_rnoise", "var_poisson", "var_sky"]:
         model[arr] = np.ones(shape, dtype=np.float32)
 
     model["err"] = np.sqrt(3.0) * np.ones(shape, dtype=np.float32)
