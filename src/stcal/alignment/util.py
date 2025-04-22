@@ -93,8 +93,9 @@ def _generate_tranform(
         A two-elements array containing the world coordinates of the fiducial point.
 
     pscale_ratio : int, None, optional
-        Ratio of input to output pixel scale. This parameter is only used when
-        ``pscale=None`` and, in that case, it is passed on to ``compute_scale``.
+        Ratio of output pixel scale to input pixel scale. This parameter is
+        only used when ``pscale=None`` and, in that case, it is passed on to
+        ``compute_scale``.
 
     pscale : float, None, optional
         The plate scale. If `None`, the plate scale is calculated from the reference
@@ -390,7 +391,7 @@ def compute_scale(
         ``wcsinfo.dispersion_direction``
 
     pscale_ratio : int, None, optional
-        Ratio of input to output pixel scale
+        Ratio of output pixel scale to input pixel scale.
 
     Returns
     -------
@@ -604,7 +605,7 @@ def wcs_from_footprints(
         If not supplied it is computed from the bounding_box of all inputs.
 
     pscale_ratio : float, None, optional
-        Ratio of input to output pixel scale. Ignored when either
+        Ratio of output pixel scale to input pixel scale. Ignored when either
         ``transform`` or ``pscale`` are provided.
 
     pscale : float, None, optional
@@ -731,7 +732,7 @@ def wcs_from_sregions(
         If not supplied `Scaling | Rotation` is computed from ``refmodel``.
 
     pscale_ratio : float, None, optional
-        Ratio of input to output pixel scale. Ignored when either
+        Ratio of output pixel scale to input pixel scale. Ignored when either
         ``transform`` or ``pscale`` are provided.
 
     pscale : float, None, optional
