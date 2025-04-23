@@ -19,9 +19,8 @@ import numpy as np
 from astropy import units as u
 
 from . import (
-    gls_fit,    # used only if algorithm is "GLS"
     likely_fit, # used only if algorithm is "LIKELY"
-    ols_fit,    # used only if algorithm is "OLS"
+    ols_fit,    # used only if algorithm is "OLS_C"
     ramp_fit_class,
 )
 
@@ -107,7 +106,6 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
 
 def ramp_fit(
     model,
-    buffsize,
     save_opt,
     readnoise_2d,
     gain_2d,
@@ -130,9 +128,6 @@ def ramp_fit(
     model : data model
         input data model, assumed to be of type RampModel
 
-    buffsize : int
-        size of data section (buffer) in bytes
-
     save_opt : bool
        calculate optional fitting results
 
@@ -143,8 +138,7 @@ def ramp_fit(
         2-D array gain for all pixels
 
     algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
-        'GLS' specifies that generalized least squares should be used.
+        'OLS_C' specifies that ordinary least squares should be used;
         'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
@@ -176,10 +170,6 @@ def ramp_fit(
 
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
-
-    gls_opt_model : GLS_RampFitModel object or None (Unused for now)
-        Object containing optional GLS-specific ramp fitting data for the
-        exposure
     """
     if suppress_one_group and model.data.shape[1] == 1:
         # One group ramp suppression should only be done on data with
@@ -192,12 +182,12 @@ def ramp_fit(
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
     return ramp_fit_data(
-        ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+        ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
     )
 
 
 def ramp_fit_data(
-    ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+    ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
 ):
     """
     This function begins the ramp fit computation after the creation of the
@@ -209,9 +199,6 @@ def ramp_fit_data(
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
 
-    buffsize : int
-        size of data section (buffer) in bytes
-
     save_opt : bool
        calculate optional fitting results
 
@@ -222,8 +209,7 @@ def ramp_fit_data(
         2-D array gain for all pixels
 
     algorithm : str
-        'OLS' specifies that ordinary least squares should be used;
-        'GLS' specifies that generalized least squares should be used.
+        'OLS_C' specifies that ordinary least squares should be used;
         'LIKELY' specifies that maximum likelihood should be used.
 
     weighting : str
@@ -251,10 +237,6 @@ def ramp_fit_data(
 
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
-
-    gls_opt_model : GLS_RampFitModel object or None (Unused for now)
-        Object containing optional GLS-specific ramp fitting data for the
-        exposure
     """
     # For the LIKELY algorithm, due to the jump detection portion of the code
     # a minimum of a four group ramp is needed.
@@ -265,22 +247,13 @@ def ramp_fit_data(
                   " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
                   " is being changed to OLS_C")
         algorithm = "OLS_C"
-
-    if algorithm.upper() == "OLS_C":
-        ramp_data.run_c_code = True
         
-    if algorithm.upper() == "GLS":
-        image_info, integ_info, gls_opt_info = gls_fit.gls_ramp_fit(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, max_cores
-        )
-        opt_info = None
-    elif algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
+    if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, readnoise_2d, gain_2d
         )
-        gls_opt_info = None
     else:
-        # Default to OLS.
+        # Default to OLS_C.
         # Get readnoise array for calculation of variance of noiseless ramps, and
         #   gain array in case optimal weighting is to be done
         nframes = ramp_data.nframes
@@ -292,11 +265,10 @@ def ramp_fit_data(
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(
-            ramp_data, buffsize, save_opt, readnoise_2d, gain_2d, weighting, max_cores
+            ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores
         )
-        gls_opt_info = None
 
-    return image_info, integ_info, opt_info, gls_opt_info
+    return image_info, integ_info, opt_info
 
 
 def suppress_one_good_group_ramps(ramp_data):

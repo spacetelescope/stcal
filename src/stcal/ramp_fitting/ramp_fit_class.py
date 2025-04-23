@@ -45,9 +45,6 @@ class RampData:
         # One group ramp suppression for saturated ramps after 0th group.
         self.suppress_one_group_ramps = False
 
-        # C code debugging switch.
-        self.run_c_code = False
-
         self.one_groups_locs = None  # One good group locations.
         self.one_groups_time = None  # Time to use for one good group ramps.
 
