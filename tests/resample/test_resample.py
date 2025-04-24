@@ -170,9 +170,7 @@ def test_resample_compute_error_mode(compute_err):
         im["data"][:, :] = data_val
 
         ttime += exptime
-        if weight_type == "ivm":
-            exptime = 1
-        influx += exptime * data_val
+        influx += data_val
 
         resample.add_model(im)
 
