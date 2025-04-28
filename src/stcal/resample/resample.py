@@ -953,17 +953,17 @@ class Resample:
         weights. """
         shape = self.output_array_shape
 
-        self._variance_info = dict()
+        self._variance_info = {}
         for noise_type in self._enable_var:
             # note: output_array_types is a defaultdict, so this will succeed
             # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
             wsum = np.full(shape, np.nan, dtype=var_dtype)
             wt = np.zeros(shape, dtype=var_dtype)
-            self._variance_info[noise_type] = dict(
-                wsum=np.full(shape, np.nan, dtype=var_dtype),
-                wt=np.zeros(shape, dtype=var_dtype),
-            )
+            self._variance_info[noise_type] = {
+                "wsum": np.full(shape, np.nan, dtype=var_dtype),
+                "wt": np.zeros(shape, dtype=var_dtype),
+            }
 
     def resample_variance_arrays(self, model, pixmap, iscale,
                                  weight_map, xmin, xmax, ymin, ymax):
@@ -1044,7 +1044,7 @@ class Resample:
 
         # Set the weight for the image from the weight type
         if self.weight_type.startswith("ivm"):
-            rn_var_info = self._variance_info.get('var_rnoise', dict())
+            rn_var_info = self._variance_info.get('var_rnoise', {})
             rn_var = rn_var_info.get('var', None)
             if rn_var is not None:
                 mask = (rn_var > 0) & np.isfinite(rn_var)
