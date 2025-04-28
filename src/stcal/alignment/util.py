@@ -18,7 +18,6 @@ import numpy as np
 from astropy import wcs as fitswcs
 from astropy.coordinates import SkyCoord
 from astropy.modeling import models as astmodels
-from astropy.utils.misc import isiterable
 from gwcs.wcstools import wcs_from_fiducial
 
 log = logging.getLogger(__name__)
@@ -354,7 +353,7 @@ def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
         Raised whenever wcs_list is empty or any of its content is not an
         instance of WCS.
     """
-    if not isiterable(wcs_list):
+    if not np.iterable(wcs_list):
         msg = "Expected 'wcs_list' to be an iterable of WCS objects."
         raise ValueError(msg)
 
