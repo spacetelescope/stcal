@@ -704,7 +704,8 @@ class Resample:
             min_attributes.append("err")
 
         if (not self._enable_var and self.weight_type is not None and
-                self.weight_type.startswith('ivm')):
+                self.weight_type.startswith('ivm') and
+                ("var_rnoise" not in min_attributes)):
             min_attributes.append("var_rnoise")
 
         for attr in min_attributes:

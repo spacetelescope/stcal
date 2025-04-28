@@ -126,14 +126,16 @@ def test_resample_mostly_defaults(weight_type):
 
 
 @pytest.mark.parametrize(
-    "compute_err,weight_type",
+    "compute_err,weight_type,include_var_in_err",
     [
-        ("from_var", "ivm"),
-        ("from_var", "exptime"),
-        ("driz_err", "ivm")
+        ("from_var", "ivm", None),
+        ("from_var", "ivm", ["var_rnoise", "var_poisson"]),
+        ("from_var", "exptime", None),
+        ("driz_err", "ivm", None)
     ]
 )
-def test_resample_compute_error_mode(compute_err, weight_type):
+def test_resample_compute_error_mode(
+        compute_err, weight_type, include_var_in_err):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -155,6 +157,7 @@ def test_resample_compute_error_mode(compute_err, weight_type):
         output_wcs=output_model,
         weight_type=weight_type,
         compute_err=compute_err,
+        include_var_in_err=include_var_in_err,
     )
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
 
