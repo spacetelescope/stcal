@@ -211,7 +211,7 @@ class Resample:
 
         include_var_in_err : list or None, optional
             Indicates which variances to include in the ``err`` computation.
-            This field is only used if ``compute_err`` is ``from_var``.  If
+            This field is used only if ``compute_err`` is ``from_var``.  If
             None, all variances are included in the error computation.
 
         """
@@ -930,21 +930,19 @@ class Resample:
             self.output_model["err"] = self._driz_error.out_img
             del self._driz_error
 
-        elif self._enable_var:
+        elif self._enable_var and (self._compute_err == "from_var"):
             # compute error from variance arrays:
             var_components = [
                 self._output_model[x] for x in self._include_var_in_err]
-            if self._compute_err == "from_var":
-                self.output_model["err"] = np.sqrt(
-                    np.nansum(var_components, axis=0)
-                )
+            self.output_model["err"] = np.sqrt(
+                np.nansum(var_components, axis=0)
+            )
 
-                # nansum returns zero for input that is all NaN -
-                # set those values to NaN instead
-                all_nan = np.all(np.isnan(var_components), axis=0)
-                self._output_model["err"][all_nan] = np.nan
-                del all_nan
-
+            # nansum returns zero for input that is all NaN -
+            # set those values to NaN instead
+            all_nan = np.all(np.isnan(var_components), axis=0)
+            self._output_model["err"][all_nan] = np.nan
+            del all_nan
             del var_components
 
         self.finalize_time_info()
