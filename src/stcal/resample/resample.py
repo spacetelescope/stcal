@@ -4,6 +4,7 @@ import warnings
 import sys
 
 import numpy as np
+from collections import defaultdict
 
 from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
@@ -53,22 +54,25 @@ class Resample:
 
     """
     # supported output arrays (subclasses can add more):
-    output_array_types = {
+    output_array_types_explicit = {
         "data": np.float32,
         "wht": np.float32,
         "con": np.int32,
         "var_rnoise": np.float32,
         "var_flat": np.float32,
         "var_poisson": np.float32,
-        "var_sky": np.float32,
         "err": np.float32,
     }
+    # add default of float32 to support generic variances conveniently
+    output_array_types = defaultdict(lambda: np.float32)
+    output_array_types.update(output_array_types_explicit)
 
     dq_flag_name_map = None
 
     def __init__(self, output_wcs, n_input_models=None, pixfrac=1.0,
                  kernel="square", fillval=0.0, weight_type="ivm", good_bits=0,
-                 enable_ctx=True, enable_var=True, compute_err=None):
+                 enable_ctx=True, enable_var=True, compute_err=None,
+                 include_var_in_err=None):
         """
         Parameters
         ----------
@@ -205,6 +209,11 @@ class Resample:
                 At this time, output error array is not equivalent to
                 error propagation results.
 
+        include_var_in_err : list or None, optional
+            Indicates which variances to include in the ``err`` computation.
+            This field is only used if ``compute_err`` is ``from_var``.  If
+            None, all variances are included in the error computation.
+
         """
         # to see if setting up arrays and drizzle is needed
         self._finalized = False
@@ -220,6 +229,11 @@ class Resample:
                 self._enable_var = []
         else:
             self._enable_var = enable_var
+
+        if include_var_in_err is None:
+            self._include_var_in_err = self._enable_var
+        else:
+            self._include_var_in_err = include_var_in_err
 
 
         # these attributes are used only for informational purposes
@@ -505,7 +519,7 @@ class Resample:
 
     @property
     def enable_var(self):
-        """ Indicates whether variance arrays are resampled. """
+        """ List of variance arrays to resample. """
         return self._enable_var
 
     @property
@@ -917,7 +931,8 @@ class Resample:
 
         elif self._enable_var:
             # compute error from variance arrays:
-            var_components = [self._output_model[x] for x in self._enable_var]
+            var_components = [
+                self._output_model[x] for x in self._include_var_in_err]
             if self._compute_err == "from_var":
                 self.output_model["err"] = np.sqrt(
                     np.nansum(var_components, axis=0)
@@ -939,12 +954,14 @@ class Resample:
         weights. """
         shape = self.output_array_shape
 
-        self.variance_info = dict()
+        self._variance_info = dict()
         for noise_type in self._enable_var:
+            # note: output_array_types is a defaultdict, so this will succeed
+            # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
             wsum = np.full(shape, np.nan, dtype=var_dtype)
             wt = np.zeros(shape, dtype=var_dtype)
-            self.variance_info[noise_type] = dict(
+            self._variance_info[noise_type] = dict(
                 wsum=np.full(shape, np.nan, dtype=var_dtype),
                 wt=np.zeros(shape, dtype=var_dtype),
             )
@@ -1024,14 +1041,16 @@ class Resample:
                     model=model,
                     **pars,
                 )
-                self.variance_info[varname]['var'] = var
+                self._variance_info[varname]['var'] = var
 
         # Set the weight for the image from the weight type
         if self.weight_type.startswith("ivm"):
-            rn_var = self.variance_info['var_rnoise']['var']
-            mask = (rn_var > 0) & np.isfinite(rn_var)
-            weight = np.zeros(self.output_array_shape, dtype='f4')
-            weight[mask] = np.reciprocal(rn_var[mask])
+            rn_var_info = self._variance_info.get('var_rnoise', dict())
+            rn_var = rn_var_info.get('var', None)
+            if rn_var is not None:
+                mask = (rn_var > 0) & np.isfinite(rn_var)
+                weight = np.zeros(self.output_array_shape)
+                weight[mask] = np.reciprocal(rn_var[mask])
 
         elif self.weight_type == "exptime":
             t, _ = get_tmeasure(model)
@@ -1043,8 +1062,8 @@ class Resample:
         for varname in self._enable_var:
             if not self._check_var_array(model, varname):
                 continue
-            var = self.variance_info[varname]['var']
-            wsum = self.variance_info[varname]['wsum']
+            var = self._variance_info[varname]['var']
+            wsum = self._variance_info[varname]['wsum']
             mask = (var >= 0) & np.isfinite(var) & (weight > 0)
             wsum[mask] = np.nansum(
                     [
@@ -1052,7 +1071,7 @@ class Resample:
                     ],
                     axis=0
                 )
-            self.variance_info[varname]['wt'][mask] += weight[mask]
+            self._variance_info[varname]['wt'][mask] += weight[mask]
 
     def finalize_resample_variance(self, output_model):
         """ Compute variance for the resampled image from running sums and
@@ -1075,12 +1094,12 @@ class Resample:
             warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
 
             for varname in self._enable_var:
-                varwsum = self.variance_info[varname]['wsum']
-                weight = self.variance_info[varname]['wt']
+                varwsum = self._variance_info[varname]['wsum']
+                weight = self._variance_info[varname]['wt']
                 output_model[varname] = (varwsum / (weight * weight)).astype(
                     dtype=self.output_array_types[varname]
                 )
-            del self.variance_info
+            del self._variance_info
             self._finalized = True
 
     def _resample_one_variance_array(self, name, model, iscale,
