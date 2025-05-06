@@ -73,7 +73,6 @@ class Resample:
     # variances to include in output 'err'
     # default None means all of variance_array_names
     error_from_variances = None
-    
 
     dq_flag_name_map = None
 
@@ -219,8 +218,8 @@ class Resample:
         self._n_res_models = 0
 
         self._enable_ctx = enable_ctx
-        self._compute_err = compute_err
         self._enable_var = enable_var
+        self._compute_err = compute_err
 
         # these attributes are used only for informational purposes
         # and are added to created the output_model only if they are
@@ -457,8 +456,9 @@ class Resample:
             "duration": 0.0,
         }
 
-        for varname in self.variance_array_names:
-            output_model[varname] = None
+        if self._enable_var:
+            for varname in self.variance_array_names:
+                output_model[varname] = None
 
         if self._compute_err is not None:
             output_model["err"] = None
@@ -505,7 +505,7 @@ class Resample:
 
     @property
     def enable_var(self):
-        """ Indicates whether variance arrays are resample. """
+        """ Indicates whether variance arrays are resampled. """
         return self._enable_var
 
     @property
