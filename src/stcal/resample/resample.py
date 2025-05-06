@@ -5,7 +5,7 @@ import sys
 
 import numpy as np
 from collections import defaultdict
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
