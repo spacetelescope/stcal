@@ -5,7 +5,7 @@ import sys
 
 import numpy as np
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from numpy.typing import DTypeLike
 
 from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
@@ -17,9 +17,6 @@ from stcal.resample.utils import (
     resample_range,
     is_flux_density,
 )
-
-if TYPE_CHECKING:
-    from numpy.typing import DTypeLike
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
