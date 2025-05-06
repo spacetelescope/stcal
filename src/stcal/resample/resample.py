@@ -5,6 +5,7 @@ import sys
 
 import numpy as np
 from collections import defaultdict
+from typing import TYPE_CHECKING, cast
 
 from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
@@ -17,6 +18,8 @@ from stcal.resample.utils import (
     is_flux_density,
 )
 
+if TYPE_CHECKING:
+    from numpy.typing import DTypeLike
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -54,7 +57,10 @@ class Resample:
 
     """
     # supported output arrays (subclasses can add more):
-    output_array_types_explicit = {
+    # add default of float32 to support generic variances conveniently
+    output_array_types: defaultdict[str, DTypeLike] = defaultdict(
+        lambda: np.float32)
+    output_array_types.update({
         "data": np.float32,
         "wht": np.float32,
         "con": np.int32,
@@ -62,17 +68,21 @@ class Resample:
         "var_flat": np.float32,
         "var_poisson": np.float32,
         "err": np.float32,
-    }
-    # add default of float32 to support generic variances conveniently
-    output_array_types = defaultdict(lambda: np.float32)
-    output_array_types.update(output_array_types_explicit)
+    })
+
+    # default variance array names; subclasses can choose something else
+    variance_array_names = ["var_rnoise", "var_flat", "var_poisson"]
+
+    # variances to include in output 'err'
+    # default None means all of variance_array_names
+    error_from_variances = None
+    
 
     dq_flag_name_map = None
 
     def __init__(self, output_wcs, n_input_models=None, pixfrac=1.0,
                  kernel="square", fillval=0.0, weight_type="ivm", good_bits=0,
-                 enable_ctx=True, enable_var=True, compute_err=None,
-                 include_var_in_err=None):
+                 enable_ctx=True, enable_var=True, compute_err=None):
         """
         Parameters
         ----------
@@ -189,10 +199,8 @@ class Resample:
             is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
             ``max_ctx_id`` will be ignored.
 
-        enable_var : bool or list, optional
+        enable_var : bool, optional
             Indicates whether to resample variance arrays.
-            If a list, it is a list of the variance arrays to resample.
-            If True, equivalent to ['var_rnoise', 'var_poisson', 'var_flat'].
 
         compute_err : {"from_var", "driz_err"}, None, optional
             - ``"from_var"``: compute output model's error array from
@@ -208,12 +216,6 @@ class Resample:
             .. note::
                 At this time, output error array is not equivalent to
                 error propagation results.
-
-        include_var_in_err : list or None, optional
-            Indicates which variances to include in the ``err`` computation.
-            This field is used only if ``compute_err`` is ``from_var``.  If
-            None, all variances are included in the error computation.
-
         """
         # to see if setting up arrays and drizzle is needed
         self._finalized = False
@@ -221,20 +223,7 @@ class Resample:
 
         self._enable_ctx = enable_ctx
         self._compute_err = compute_err
-
-        if isinstance(enable_var, bool):
-            if enable_var:
-                self._enable_var = ['var_rnoise', 'var_poisson', 'var_flat']
-            else:
-                self._enable_var = []
-        else:
-            self._enable_var = enable_var
-
-        if include_var_in_err is None:
-            self._include_var_in_err = self._enable_var
-        else:
-            self._include_var_in_err = include_var_in_err
-
+        self._enable_var = enable_var
 
         # these attributes are used only for informational purposes
         # and are added to created the output_model only if they are
@@ -471,7 +460,7 @@ class Resample:
             "duration": 0.0,
         }
 
-        for varname in self._enable_var:
+        for varname in self.variance_array_names:
             output_model[varname] = None
 
         if self._compute_err is not None:
@@ -519,7 +508,7 @@ class Resample:
 
     @property
     def enable_var(self):
-        """ List of variance arrays to resample. """
+        """ Indicates whether variance arrays are resample. """
         return self._enable_var
 
     @property
@@ -698,7 +687,7 @@ class Resample:
             min_attributes.append("bunit_data")
 
         if self._enable_var:
-            min_attributes += self._enable_var
+            min_attributes += self.variance_array_names
 
         if self._compute_err == "driz_err":
             min_attributes.append("err")
@@ -932,8 +921,12 @@ class Resample:
 
         elif self._enable_var and (self._compute_err == "from_var"):
             # compute error from variance arrays:
+            include_var = (
+                self.error_from_variances
+                if self.error_from_variances is not None
+                else self.variance_array_names)
             var_components = [
-                self._output_model[x] for x in self._include_var_in_err]
+                self._output_model[x] for x in include_var]
             self.output_model["err"] = np.sqrt(
                 np.nansum(var_components, axis=0)
             )
@@ -954,7 +947,7 @@ class Resample:
         shape = self.output_array_shape
 
         self._variance_info = {}
-        for noise_type in self._enable_var:
+        for noise_type in self.variance_array_names:
             # note: output_array_types is a defaultdict, so this will succeed
             # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
@@ -1033,7 +1026,7 @@ class Resample:
             'ymax': ymax,
         }
 
-        for varname in self._enable_var:
+        for varname in self.variance_array_names:
             if self._check_var_array(model, varname):
                 var = self._resample_one_variance_array(
                     varname,
@@ -1058,7 +1051,7 @@ class Resample:
         else:
             raise ValueError('unrecognized weight type')
 
-        for varname in self._enable_var:
+        for varname in self.variance_array_names:
             if not self._check_var_array(model, varname):
                 continue
             var = self._variance_info[varname]['var']
@@ -1092,7 +1085,7 @@ class Resample:
             warnings.filterwarnings("ignore", "invalid value*", RuntimeWarning)
             warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
 
-            for varname in self._enable_var:
+            for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]['wsum']
                 weight = self._variance_info[varname]['wt']
                 output_model[varname] = (varwsum / (weight * weight)).astype(
