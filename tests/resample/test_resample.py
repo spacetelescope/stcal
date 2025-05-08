@@ -130,11 +130,10 @@ def test_resample_mostly_defaults(weight_type):
     [
         ("from_var", "ivm"),
         ("from_var", "exptime"),
-        ("driz_err", "ivm"),
+        ("driz_err", "ivm")
     ]
 )
-def test_resample_compute_error_mode(
-        compute_err, weight_type):
+def test_resample_compute_error_mode(compute_err, weight_type):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
