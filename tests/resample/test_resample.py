@@ -129,7 +129,6 @@ def test_resample_mostly_defaults(weight_type):
     "compute_err,weight_type",
     [
         ("from_var", "ivm"),
-        ("from_var", "ivm"),
         ("from_var", "exptime"),
         ("driz_err", "ivm"),
     ]
