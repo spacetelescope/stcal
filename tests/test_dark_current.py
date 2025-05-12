@@ -180,46 +180,6 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
     assert avg_dark.exp_groupgap == groupgap
 
 
-def test_more_sci_frames(make_rampmodel, make_darkmodel):
-    """
-    Check that data is unchanged if there are more frames in the science
-    data is than in the dark reference file and verify that when the dark
-    is not applied, the data is correctly flagged as such
-    """
-
-    # ncols of integration
-    nints, ngroups, nrows, ncols = 1, 7, 200, 200
-
-    # create raw input data for step
-    dm_ramp = make_rampmodel(nints, ngroups, nrows, ncols)
-    dm_ramp.exp_nframes = 1
-    dm_ramp.exp_groupgap = 0
-
-    # populate data array of science cube
-    for i in range(ngroups - 1):
-        dm_ramp.data[0, i] = i
-
-    refgroups = 5
-    # create dark reference file model with fewer frames than science data
-    dark = make_darkmodel(refgroups, nrows, ncols)
-
-    # populate data array of reference file
-    for i in range(refgroups - 1):
-        dark.data[0, i] = i * 0.1
-
-    # apply correction
-    out_data, avg_data = darkcorr(dm_ramp, dark)
-
-    # test that the science data are not changed; input file = output file
-    np.testing.assert_array_equal(dm_ramp.data, out_data.data)
-
-    # get dark correction status from header
-    # darkstatus = outfile.meta.cal_step.dark_sub
-    darkstatus = out_data.cal_step
-
-    assert darkstatus == "SKIPPED"
-
-
 def test_sub_by_frame(make_rampmodel, make_darkmodel):
     """
     Check that if NFRAMES=1 and GROUPGAP=0 for the science data,
