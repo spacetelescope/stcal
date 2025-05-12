@@ -82,7 +82,7 @@ def setup_nrc_cube():
         ramp_data = ScienceData()
         ramp_data.data = np.zeros(dims, dtype=np.float32)
         ramp_data.groupdq = np.zeros(dims, dtype=np.uint32)
-        ramp_data.pixeldq = np.zeros(dims, dtype=np.uint32)
+        ramp_data.pixeldq = np.zeros(dims[-2:], dtype=np.uint32)
 
         ramp_data.instrument_name = "NIRCAM"
         ramp_data.exp_nframes = nframes
@@ -379,3 +379,57 @@ def test_frame_avg(make_rampmodel, make_darkmodel):
     assert outfile.data[0, 1, 500, 500] == pytest.approx(1.45)
     assert outfile.data[0, 2, 500, 500] == pytest.approx(2.05)
     assert outfile.data[0, 3, 500, 500] == pytest.approx(2.65)
+
+
+def test_dark_extrapolation(make_rampmodel, make_darkmodel, setup_nrc_cube):
+    """
+    Check that the dark is extrapolated when it has insufficient frames to cover the science input.
+
+    MIRI uses multi-integration 4-D darks, while NIR instruments use 3-D single-int darks.
+    Extrapolation code branches depending on dark shape, so test both.
+    """
+
+    # size of integration
+    nints, ngroups, nrows, ncols = 2, 20, 1024, 1032
+
+    # create raw input data for step
+    dm_ramp = make_rampmodel(nints, ngroups, nrows, ncols)
+    dm_ramp.exp_nframes = 1
+    dm_ramp.exp_groupgap = 0
+
+    # Science array will have rate of 1, starting at 1.
+    for i in range(ngroups):
+        dm_ramp.data[:, i] = i + 1
+
+    # create dark reference file model
+
+    refgroups = 10  # This needs to be <20 groups for the extrapolation to occur.
+    dark = make_darkmodel(refgroups, nrows, ncols)
+
+    # Int 1 will have dark current of 0.1, starting at 0.
+    # Int 2 will have dark current of 0.3, starting at 0.
+    for i in range(refgroups):
+        dark.data[0, i] = i * 0.1
+        dark.data[1, i] = i * 0.3
+    # apply correction
+    outfile, avg_dark = darkcorr(dm_ramp, dark)
+
+    assert_allclose(outfile.data[0, :, 500, 500], np.linspace(1., 18.1, ngroups), rtol=1.e-5)
+    assert_allclose(dark.data[0, :, 500, 500], np.linspace(0., 1.9, ngroups), rtol=1.e-5)
+    assert_allclose(outfile.data[1, :, 500, 500], np.linspace(1., 14.3, ngroups), rtol=1.e-5)
+    assert_allclose(dark.data[1, :, 500, 500], np.linspace(0., 5.7, ngroups), rtol=1.e-5)
+
+    nrc_ngroups = 40
+    data, dark = setup_nrc_cube("rp", nrc_ngroups, nframes=1, groupgap=0, nrows=2048, ncols=2048)
+
+    # Add ramp values to dark model data array
+    dark.data[:, 10, 10] = np.arange(0, NGROUPS_DARK) * 0.2
+    dark.err[:, 10, 10] = np.arange(10, NGROUPS_DARK + 10)
+
+    data.data[:, :, 10, 10] = np.arange(1, nrc_ngroups + 1)
+
+    outfile, avg_dark = darkcorr(data, dark)
+
+    assert_allclose(outfile.data[0, :, 10, 10], np.linspace(1, 32.2, nrc_ngroups), rtol=1.e-5)
+    assert_allclose(dark.data[:, 10, 10], np.linspace(0, 7.8, nrc_ngroups), rtol=1.e-5)
+

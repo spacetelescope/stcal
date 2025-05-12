@@ -402,8 +402,7 @@ def extrapolate_dark(dark_data, ngroups):
     Extrapolate a dark data array to cover the specified additional number of groups.
 
     Modifies the dark_data input in-place; dark_data.data may be 4-dimensional, as MIRI
-    uses multi-integration darks, while NIR instruments use 3-dimensional single integration
-    darks.
+    uses multi-integration darks, or 3-dimensional single integration darks for NIR instruments.
 
     Parameters
     ----------
