@@ -1,3 +1,42 @@
+1.13.0 (2025-05-12)
+===================
+
+Changes to API
+--------------
+
+- Added ``add_model_hook()`` method to ``resample.Resample`` that
+  allows subclasses to perform additional processing while
+  reusing quantities computed by ``add_model()``.
+
+
+  Modified the behavior of ``resample.utils.build_driz_weight()``: any
+  value of the ``weight_type`` argument other than "ivm", "exptime", or
+  ``None``
+  will raise a ``ValueError`` exception (previous behavior was to treat them
+  as ``None``). (`#342 <https://github.com/spacetelescope/stcal/issues/342>`_)
+
+
+Bug Fixes
+---------
+
+- Bugfix catalog parsing for tweakreg absolute refcat (`#355
+  <https://github.com/spacetelescope/stcal/issues/355>`_)
+- [saturation] Account for non-zero bias in group 2 saturation flagging in
+  frame-averaged groups. (`#356
+  <https://github.com/spacetelescope/stcal/issues/356>`_)
+
+
+General
+-------
+
+- Refactor Poisson variance calculation in ols_cas22/_ramp.pyx to use a
+  cumulative variable instead of a nested for loop, change some single
+  precision quantities in ols_cas22/_ramp.pyx to double precision. (`#325
+  <https://github.com/spacetelescope/stcal/issues/325>`_)
+- Removing old and unused OLS python and GLS code from ramp fitting. (`#358
+  <https://github.com/spacetelescope/stcal/issues/358>`_)
+
+
 1.12.0 (2025-03-18)
 ===================
 
