@@ -918,10 +918,10 @@ class Resample:
 
         elif self._enable_var and (self._compute_err == "from_var"):
             # compute error from variance arrays:
-            include_var = (
-                self.error_from_variances
-                if self.error_from_variances is not None
-                else self.variance_array_names)
+            if self.error_from_variances is None:
+                include_var = self.variance_array_names
+            else:
+                include_var = self.error_from_variances
             var_components = [
                 self._output_model[x] for x in include_var]
             self.output_model["err"] = np.sqrt(
