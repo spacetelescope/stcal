@@ -106,11 +106,13 @@ def do_correction_data(science_data, dark_data, dark_output=None):
     drk_total_frames = drk_ngroups * drk_nframes + (drk_ngroups - 1) * drk_groupgap
     if sci_total_frames > drk_total_frames:
         log.warning("Not enough data in dark reference file to match to science data.")
-        log.warning("Input will be returned without subtracting dark current.")
-        science_data.cal_step = "SKIPPED"
-        out_data = copy.deepcopy(science_data)
+        log.warning("Dark reference will be extrapolated to match length of science file.")
 
-        return out_data, None
+        frames_to_extrapolate = sci_total_frames - drk_total_frames
+        # Find number of new groups required from above calculation of total frames.
+        groups_to_extrapolate = np.ceil((frames_to_extrapolate + drk_groupgap)
+                                 / (drk_nframes + drk_groupgap)).astype(int)
+        extrapolate_dark(dark_data, groups_to_extrapolate)
 
     # Check that the value of nframes and groupgap in the dark
     # are not greater than those of the science data
@@ -214,16 +216,11 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
         if nframes == 1:
             log.debug("copy dark frame %d", start)
             avg_dark.data[group] = dark_data.data[start]
-            avg_dark.err[group] = dark_data.err[start]
 
-        # Otherwise average nframes into a new group: take the mean of
-        # the SCI arrays and the quadratic sum of the ERR arrays.
+        # Otherwise generate new group by taking the mean of the SCI array nframes.
         else:
             log.debug("average dark frames %d to %d", start + 1, end)
             avg_dark.data[group] = dark_data.data[start:end].mean(axis=0)
-            avg_dark.err[group] = np.sqrt(np.add.reduce(dark_data.err[start:end] ** 2, axis=0)) / (
-                end - start
-            )
 
         # Skip over unused frames
         start = end + groupgap
@@ -298,16 +295,12 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
             if nframes == 1:
                 log.debug("copy dark frame %d", start)
                 avg_dark.data[it, group] = dark_data.data[it, start]
-                avg_dark.err[it, group] = dark_data.err[it, start]
 
             # Otherwise average nframes into a new group: take the mean of
             # the SCI arrays and the quadratic sum of the ERR arrays.
             else:
                 log.debug("average dark frames %d to %d", start + 1, end)
                 avg_dark.data[it, group] = dark_data.data[it, start:end].mean(axis=0)
-                avg_dark.err[it, group] = np.sqrt(
-                    np.add.reduce(dark_data.err[it, start:end] ** 2, axis=0)
-                ) / (end - start)
 
             # Skip over unused frames
             start = end + groupgap
@@ -393,3 +386,38 @@ def subtract_dark(science_data, dark_data):
             output.data[i, j] -= dark_sci[j]
 
     return output
+
+
+def extrapolate_dark(dark_data, ngroups):
+    """
+    Extrapolate a dark data array to cover the specified additional number of groups.
+
+    Modifies the dark_data input in-place; dark_data.data may be 4-dimensional, as MIRI
+    uses multi-integration darks, or 3-dimensional single integration darks for NIR instruments.
+
+    Parameters
+    ----------
+    dark_data : ~stdatamodels.jwst.datamodels.DarkModel or DarkMIRIModel
+        The dark datamodel to be extrapolated.
+    ngroups : int
+        The number of groups to add to the dark array's ngroups.
+    """
+
+    def _extrapolate_int(arr, ngroups):
+        """Extrapolate using rate derived from difference of last two groups."""
+        rate_arr = arr[-1, :, :] - arr[-2, :, :]
+        new_groups = np.broadcast_to(
+            np.arange(1, ngroups + 1).reshape(-1, 1, 1),
+            (ngroups, *rate_arr.shape)) * rate_arr + arr[-1]
+        return np.concatenate((arr, new_groups))
+
+    if len(dark_data.data.shape) == 4:
+        nints, init_groups, nx, ny = dark_data.data.shape
+        tmp_dark = dark_data.data
+        dark_data.data = np.full((nints, init_groups + ngroups, nx, ny), np.nan)
+        for i in range(nints):
+            dark_data.data[i] = _extrapolate_int(tmp_dark[i], ngroups)
+    else:
+        dark_data.data = _extrapolate_int(dark_data.data, ngroups)
+
+    dark_data.exp_ngroups += ngroups

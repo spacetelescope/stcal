@@ -39,10 +39,8 @@ class DarkData:
         if dark_model is not None:
             if isinstance(dark_model.data, u.Quantity):
                 self.data = dark_model.data.value
-                self.err = dark_model.err.value
             else:
                 self.data = dark_model.data
-                self.err = dark_model.err
             self.groupdq = dark_model.dq
 
             self.exp_nframes = dark_model.meta.exposure.nframes
@@ -52,7 +50,6 @@ class DarkData:
         elif dims is not None:
             self.data = np.zeros(dims, dtype=np.float32)
             self.groupdq = np.zeros(dims, dtype=np.uint32)
-            self.err = np.zeros(dims, dtype=np.float32)
 
             self.exp_nframes = None
             self.exp_ngroups = None
@@ -61,7 +58,6 @@ class DarkData:
         else:
             self.data = None
             self.groupdq = None
-            self.err = None
 
             self.exp_nframes = None
             self.exp_ngroups = None
