@@ -216,16 +216,11 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
         if nframes == 1:
             log.debug("copy dark frame %d", start)
             avg_dark.data[group] = dark_data.data[start]
-            avg_dark.err[group] = dark_data.err[start]
 
-        # Otherwise average nframes into a new group: take the mean of
-        # the SCI arrays and the quadratic sum of the ERR arrays.
+        # Otherwise generate new group by taking the mean of the SCI array nframes.
         else:
             log.debug("average dark frames %d to %d", start + 1, end)
             avg_dark.data[group] = dark_data.data[start:end].mean(axis=0)
-            avg_dark.err[group] = np.sqrt(np.add.reduce(dark_data.err[start:end] ** 2, axis=0)) / (
-                end - start
-            )
 
         # Skip over unused frames
         start = end + groupgap
@@ -300,15 +295,12 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
             if nframes == 1:
                 log.debug("copy dark frame %d", start)
                 avg_dark.data[it, group] = dark_data.data[it, start]
-                avg_dark.err[it, group] = dark_data.err[it, start]
 
             # Otherwise average nframes into a new group: take the mean of
             # the SCI arrays and the quadratic sum of the ERR arrays.
             else:
                 log.debug("average dark frames %d to %d", start + 1, end)
                 avg_dark.data[it, group] = dark_data.data[it, start:end].mean(axis=0)
-                avg_dark.err[it, group] = np.sqrt(
-                    np.add.reduce(dark_data.err[it, start:end] ** 2, axis=0)
                 ) / (end - start)
 
             # Skip over unused frames
@@ -424,21 +416,9 @@ def extrapolate_dark(dark_data, ngroups):
         nints, init_groups, nx, ny = dark_data.data.shape
         tmp_dark = dark_data.data
         dark_data.data = np.full((nints, init_groups + ngroups, nx, ny), np.nan)
-
         for i in range(nints):
             dark_data.data[i] = _extrapolate_int(tmp_dark[i], ngroups)
-        # Extend error array with NaN-filled planes.
-        tmp_err = dark_data.err
-        dark_data.err = np.full((nints, init_groups + ngroups, nx, ny), np.nan)
-        dark_data.err[:, :init_groups, :, :] = tmp_err
-
     else:
-        init_groups, nx, ny = dark_data.data.shape
         dark_data.data = _extrapolate_int(dark_data.data, ngroups)
-        # Extend error array with NaN-filled planes.
-        dark_data.err = np.concatenate((
-            dark_data.err,
-            np.full((init_groups + ngroups, nx, ny), np.nan)
-        ))
 
     dark_data.exp_ngroups += ngroups

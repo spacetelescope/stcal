@@ -61,7 +61,6 @@ def make_darkmodel():
         dark = DarkData()
         dark.data = np.full(csize, 1.0)
         dark.groupdq = np.zeros(csize, dtype=np.uint32)
-        dark.err = np.zeros(csize, dtype=np.float32)
 
         dark.exp_nframes = 1
         dark.exp_ngroups = ngroups
@@ -145,7 +144,6 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
 
     # Add ramp values to dark model data array
     dark.data[:, 10, 10] = np.arange(0, NGROUPS_DARK)
-    dark.err[:, 10, 10] = np.arange(10, NGROUPS_DARK + 10)
 
     # Run the pipeline's averaging function
     avg_dark = average_dark_frames(dark, ngroups, nframes, groupgap)
@@ -159,7 +157,6 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
 
     # Prepare arrays to hold results of averaging
     manual_avg = np.zeros((ngroups), dtype=np.float32)
-    manual_errs = np.zeros((ngroups), dtype=np.float32)
 
     # Manually average the input data to compare with pipeline output
     for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind):
@@ -167,12 +164,8 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
         newframe = np.mean(dark.data[gstart:gend, 10, 10])
         manual_avg[newgp] = newframe
 
-        # ERR arrays will be quadratic sum of error values
-        manual_errs[newgp] = np.sqrt(np.sum(dark.err[gstart:gend, 10, 10] ** 2)) / (gend - gstart)
-
     # Check that pipeline output matches manual averaging results
     assert_allclose(manual_avg, avg_dark.data[:, 10, 10], rtol=1e-5)
-    assert_allclose(manual_errs, avg_dark.err[:, 10, 10], rtol=1e-5)
 
     # Check that meta data was properly updated
     assert avg_dark.exp_nframes == nframes
@@ -384,7 +377,6 @@ def test_dark_extrapolation(make_rampmodel, make_darkmodel, setup_nrc_cube):
 
     # Add ramp values to dark model data array
     dark.data[:, 10, 10] = np.arange(0, NGROUPS_DARK) * 0.2
-    dark.err[:, 10, 10] = np.arange(10, NGROUPS_DARK + 10)
 
     data.data[:, :, 10, 10] = np.arange(1, nrc_ngroups + 1)
 
