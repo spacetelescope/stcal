@@ -301,7 +301,6 @@ def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
             else:
                 log.debug("average dark frames %d to %d", start + 1, end)
                 avg_dark.data[it, group] = dark_data.data[it, start:end].mean(axis=0)
-                ) / (end - start)
 
             # Skip over unused frames
             start = end + groupgap
