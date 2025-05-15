@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
-from scipy import ndimage
+from scipy import ndimage, interpolate
 from skimage.util import view_as_windows
 import gwcs
 
@@ -260,7 +260,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
     return outsci
 
 
-def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
+def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape, fast=True):
     """
     Return a pixel grid map from input frame to output frame.
 
@@ -275,6 +275,12 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     in_shape : list of int
         Input shape used to compute the input bounding box.
 
+    fast : bool
+        Perform the full calculation on a sparser grid and use bilinear
+        interpolation to fill in the rest of the pixels?  Default True.
+        Only activated if in_shape is of length 2.  Recommended if the
+        underlying distortion correction is smooth.
+
     Returns
     -------
     pixmap : numpy.ndarray
@@ -283,8 +289,36 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     bb = wcs_bbox_from_shape(in_shape)
     log.debug("Bounding box from data shape: {}".format(bb))
 
-    grid = gwcs.wcstools.grid_from_bounding_box(bb)
-    return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
+    if fast and len(in_shape) == 2:
+
+        # Make the 1D grids we want the results on, then make
+        # coarser versions with 10% of the points (minimum 10).
+
+        x = gwcs.wcstools.grid_from_bounding_box(bb[1])
+        y = gwcs.wcstools.grid_from_bounding_box(bb[0])
+
+        x_coarse = np.linspace(x[0], x[-1], max(len(x)//10, 10))
+        y_coarse = np.linspace(y[0], y[-1], max(len(y)//10, 10))
+
+        # Compute the full correction on the sparse grid
+
+        sparsegrid = np.meshgrid(y_coarse, x_coarse)
+
+        pixmap_coarse = reproject(in_wcs, out_wcs)(*sparsegrid)
+
+        # Finally, fill in the rest of the pixels using bilinear
+        # interpolation and return the result.
+
+        fx = interpolate.RectBivariateSpline(x_coarse, y_coarse,
+                                             pixmap_coarse[0], kx=1, ky=1)
+        fy = interpolate.RectBivariateSpline(x_coarse, y_coarse,
+                                             pixmap_coarse[1], kx=1, ky=1)
+
+        return np.dstack([fx(x, y), fy(x, y)])
+
+    else:
+        grid = gwcs.wcstools.grid_from_bounding_box(bb)
+        return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
 
 
 def reproject(wcs1, wcs2):
