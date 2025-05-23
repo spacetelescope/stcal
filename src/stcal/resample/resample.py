@@ -913,7 +913,7 @@ class Resample:
 
         if self._compute_err == "driz_err":
             # use resampled error
-            self.output_model["err"] = self._driz_error.out_img
+            self.output_model["err"] = self._driz_error.out_img / self.pixel_scale_ratio
             del self._driz_error
 
         elif self._enable_var and (self._compute_err == "from_var"):
@@ -1085,8 +1085,9 @@ class Resample:
             for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]['wsum']
                 weight = self._variance_info[varname]['wt']
-                output_model[varname] = (varwsum / (weight * weight)).astype(
-                    dtype=self.output_array_types[varname]
+                output_model[varname] = (varwsum / (weight * weight)
+                                         / (self.pixel_scale_ratio ** 2)).astype(
+                                             dtype=self.output_array_types[varname]
                 )
             del self._variance_info
             self._finalized = True
