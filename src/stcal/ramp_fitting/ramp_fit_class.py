@@ -1,3 +1,5 @@
+from astropy import units as u
+
 INDENT = "    "
 
 class RampData:
@@ -52,7 +54,8 @@ class RampData:
 
         self.debug = False
 
-    def set_arrays(self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None):
+    def set_arrays(self, data, groupdq, pixeldq, average_dark_current,
+                   orig_gdq=None, zeroframe=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -80,12 +83,17 @@ class RampData:
             around the original group DQ flags passed to ramp fitting.
         """
         # Get arrays from the data model
-        self.data = data
+        if isinstance(data, u.Quantity):
+            self.data = data.value
+        else:
+            self.data = data
         self.groupdq = groupdq
         self.pixeldq = pixeldq
         self.average_dark_current = average_dark_current
 
+        # May be None for some use cases
         self.orig_gdq = orig_gdq
+        self.zeroframe = zeroframe
 
     def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """

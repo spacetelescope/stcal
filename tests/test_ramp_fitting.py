@@ -52,7 +52,7 @@ def test_long_integration():
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
         ramp_data, save_opt, rnoise_array, gain_array,
-        algo, wt, ncores, dqflags)
+        algo, wt, ncores)
 
     np.testing.assert_almost_equal(slopes[0], .65, 2)
 
@@ -79,7 +79,7 @@ def base_neg_med_rates_single_integration():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     return slopes, cube, optional
@@ -162,7 +162,7 @@ def base_neg_med_rates_multi_integrations():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     return slopes, cube, optional, dims
@@ -247,7 +247,7 @@ def test_neg_med_rates_single_integration_multi_segment_optional():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
@@ -283,7 +283,7 @@ def test_neg_with_avgdark():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
         )
 
     sdata, sdq, svp, svr, serr = slopes
@@ -332,7 +332,7 @@ def test_utils_dq_compress_final():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = False, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     dq = slopes[1]  # Should be [[3 0 0]]
@@ -410,7 +410,7 @@ def test_miri_ramp_dnu_at_ramp_beginning():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes1, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     s1 = slopes1[0]
@@ -432,7 +432,7 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes2, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     s2 = slopes2[0]
@@ -501,7 +501,7 @@ def test_2_group_cases():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, wt, ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
 
     # Check the outputs
@@ -576,7 +576,7 @@ def run_one_group_ramp_suppression(nints, suppress):
     algo = DEFAULT_OLS
     save_opt, ncores = False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
     )
 
     return slopes, cube, dims
@@ -815,7 +815,13 @@ def create_zero_frame_data():
 
     # Create RampData for testing.
     ramp_data = RampData()
-    ramp_data.set_arrays(data=data, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
+    ramp_data.set_arrays(
+        data=data,
+        groupdq=gdq,
+        pixeldq=pixdq,
+        average_dark_current=dark_current,
+        zeroframe=zframe,
+    )
     ramp_data.set_meta(
         name="NIRCam",
         frame_time=frame_time,
@@ -825,9 +831,7 @@ def create_zero_frame_data():
         drop_frames1=None,
     )
     ramp_data.set_dqflags(dqflags)
-
     ramp_data.suppress_one_group_ramps = False
-    ramp_data.zeroframe = zframe
 
     # Create variance arrays
     gain = np.ones((nrows, ncols), np.float32) * gval
@@ -851,7 +855,7 @@ def test_zeroframe():
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     tol = 1.0e-5
@@ -969,7 +973,7 @@ def test_only_good_0th_group():
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     tol = 1.0e-5
@@ -1018,7 +1022,7 @@ def test_all_sat():
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     assert slopes is None
@@ -1048,7 +1052,7 @@ def test_dq_multi_int_dnu():
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     tol = 1.0e-5
@@ -1144,8 +1148,8 @@ def test_multi_more_cores_than_rows():
                 bramp = bramp * factor
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "all"
-    slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+    ramp_fit_data(
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
     # This part of the test is simply to make sure ramp fitting
     # doesn't crash.  No asserts are necessary here.
@@ -1296,7 +1300,7 @@ def test_new_saturation():
 
     save_opt, ncores, algo = False, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     tol = 1.0e-5
@@ -1388,7 +1392,7 @@ def test_invalid_integrations():
 
     save_opt, ncores, algo = False, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     tol = 1.0e-5
@@ -1452,7 +1456,7 @@ def test_one_group():
 
     save_opt, ncores, algo = False, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     tol = 1e-5
@@ -1588,7 +1592,7 @@ def test_cext_chargeloss():
 
     save_opt, ncores, algo = False, "none", "OLS_C"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     sdata, sdq, svp, svr, serr = slopes
@@ -1647,7 +1651,7 @@ def test_crmag():
     algo = DEFAULT_OLS
     save_opt, ncores = True, "none"
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = ols_opt

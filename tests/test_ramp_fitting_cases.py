@@ -62,7 +62,7 @@ def test_pix_0():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -103,7 +103,7 @@ def test_pix_1():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -136,7 +136,7 @@ def test_pix_2():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -179,7 +179,7 @@ def test_pix_3():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -221,7 +221,7 @@ def test_pix_4():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -304,7 +304,7 @@ def test_pix_5():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -348,7 +348,7 @@ def test_pix_6():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -389,7 +389,7 @@ def test_pix_7():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -422,7 +422,7 @@ def test_pix_8():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -456,7 +456,7 @@ def test_pix_9():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -499,7 +499,7 @@ def test_pix_10():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -540,7 +540,7 @@ def test_pix_11():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -576,7 +576,7 @@ def test_pix_12():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results for pixel 1:
@@ -630,7 +630,7 @@ def test_miri_0():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -664,7 +664,7 @@ def test_miri_1():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -698,7 +698,7 @@ def test_miri_2():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
@@ -732,7 +732,7 @@ def test_miri_3():
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
     slopes, cube, ols_opt = ramp_fit_data(
-        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores, dqflags
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
 
     # Set truth values for PRIMARY results:
