@@ -377,7 +377,9 @@ def compute_image_info(integ_class, ramp_data):
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
-    slope = np.nanmedian(integ_class.data, axis=0)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "All-NaN slice", RuntimeWarning)
+        slope = np.nanmedian(integ_class.data, axis=0)
     for _ in range(2):
         rate_scale = slope[np.newaxis, :] / integ_class.data
         rate_scale[(~np.isfinite(rate_scale)) | (rate_scale < 0)] = 0
