@@ -39,6 +39,10 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     model : data model
         input data model, assumed to be of type RampModel
 
+    algorithm : str
+        'OLS_C' specifies that ordinary least squares should be used;
+        'LIKELY' specifies that maximum likelihood should be used.
+
     dqflags : dict
         The data quality flags needed for ramp fitting.
 
@@ -53,7 +57,7 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     """
     ramp_data = ramp_fit_class.RampData()
 
-    if not hasattr(model, 'average_dark_current'):
+    if not model.hasattr("average_dark_current"):
         dark_current_array = np.zeros_like(model.pixeldq)
     else:
         dark_current_array = model.average_dark_current
@@ -77,7 +81,10 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
             orig_gdq)
 
     # Attribute may not be supported by all pipelines.  Default is NoneType.
-    drop_frames1 = model.meta.exposure.drop_frames1 if hasattr(model, "drop_frames1") else None
+    if hasattr(model.meta.exposure, "drop_frames1"):
+        drop_frames1 = model.meta.exposure.drop_frames1
+    else:
+        drop_frames1 = None
     ramp_data.set_meta(
         name=model.meta.instrument.name,
         frame_time=model.meta.exposure.frame_time,
