@@ -4,6 +4,7 @@
 
 import copy
 import logging
+import warnings
 
 import numpy as np
 
@@ -220,7 +221,10 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
         # Otherwise generate new group by taking the mean of the SCI array nframes.
         else:
             log.debug("average dark frames %d to %d", start + 1, end)
-            avg_dark.data[group] = dark_data.data[start:end].mean(axis=0)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "Mean of empty slice", RuntimeWarning)
+                warnings.filterwarnings("ignore", "invalid value", RuntimeWarning)
+                avg_dark.data[group] = dark_data.data[start:end].mean(axis=0)
 
         # Skip over unused frames
         start = end + groupgap
