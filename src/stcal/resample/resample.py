@@ -1105,7 +1105,7 @@ class Resample:
                 varwsum = self._variance_info[varname]['wsum']
                 weight = self._variance_info[varname]['wt']
                 output_model[varname] = (varwsum / (weight * weight * scaling)).astype(
-                                             dtype=self.output_array_types[varname]
+                    dtype=self.output_array_types[varname]
                 )
             del self._variance_info
             self._finalized = True
