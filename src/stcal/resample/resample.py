@@ -16,6 +16,7 @@ from stcal.resample.utils import (
     get_tmeasure,
     resample_range,
     is_flux_density,
+    is_imaging_wcs,
 )
 
 log = logging.getLogger(__name__)
@@ -911,9 +912,18 @@ class Resample:
         if self._enable_var:
             self.finalize_resample_variance(self._output_model)
 
+        # If imaging, pixel scale ratio is (output scale / input scale)
+        # and the error should be divided by this ratio
+        # If spectroscopy, pixel scale ratio is (input scale / output scale)
+        # and the error should be multiplied by the square root of this ratio
+        if is_imaging_wcs(self.output_wcs):
+            scaling = self.pixel_scale_ratio
+        else:
+            scaling = 1. / np.sqrt(self.pixel_scale_ratio)
+
         if self._compute_err == "driz_err":
             # use resampled error
-            self.output_model["err"] = self._driz_error.out_img / self.pixel_scale_ratio
+            self.output_model["err"] = self._driz_error.out_img / scaling
             del self._driz_error
 
         elif self._enable_var and (self._compute_err == "from_var"):
@@ -1082,11 +1092,19 @@ class Resample:
             warnings.filterwarnings("ignore", "invalid value*", RuntimeWarning)
             warnings.filterwarnings("ignore", "divide by zero*", RuntimeWarning)
 
+            # If imaging, pixel scale ratio is (output scale / input scale)
+            # and the variance should be divided by this ratio squared
+            # If spectroscopy, pixel scale ratio is (input scale / output scale)
+            # and the variance should be multiplied by this ratio
+            if is_imaging_wcs(self.output_wcs):
+                scaling = self.pixel_scale_ratio ** 2
+            else:
+                scaling = 1. / self.pixel_scale_ratio
+
             for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]['wsum']
                 weight = self._variance_info[varname]['wt']
-                output_model[varname] = (varwsum / (weight * weight)
-                                         / (self.pixel_scale_ratio ** 2)).astype(
+                output_model[varname] = (varwsum / (weight * weight * scaling)).astype(
                                              dtype=self.output_array_types[varname]
                 )
             del self._variance_info
