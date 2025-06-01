@@ -201,6 +201,69 @@ def test_resample_compute_error_mode(compute_err, weight_type):
     assert np.nansum(resample.output_model["var_poisson"]) > 0.0
     assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
 
+@pytest.mark.parametrize(
+    "compute_err",
+    [
+        ("from_var"),
+        ("driz_err")
+    ]
+)
+def test_resample_error_scaling(compute_err):
+    crval = (150.0, 2.0)
+    crpix = (500.0, 500.0)
+    shape = (1000, 1000)
+    out_shape = (500, 500)
+    weight_type = 'exptime'
+    pscale_in = 0.1 / 3600 # Input pixel scale 0.1 arcsec
+    pscale_out = 0.2 / 3600 # Output pixel scale 0.2 arcsec
+    sb_in = 1.0 # Input surface brightness
+    sb_err_in = 0.1 # Input surface brightness error
+
+    output_model = make_output_model(
+        crpix=(250, 250),
+        crval=crval,
+        pscale=pscale_out,
+        shape=out_shape,
+    )
+
+    resample = Resample(
+        n_input_models=1,
+        output_wcs=output_model,
+        weight_type=weight_type,
+        compute_err=compute_err,
+    )
+    resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
+
+    im = make_input_model(
+        shape=shape,
+        crpix=tuple(i - 6 for i in crpix),
+        crval=crval,
+        pscale=pscale_in,
+        group_id=1
+    )
+    im["data"][:, :] = sb_in
+    im["err"][:, :] = sb_err_in
+    im["var_poisson"][:, :] = sb_err_in ** 2
+    im["var_rnoise"][:, :] = 0
+    im["var_flat"][:, :] = 0
+    resample.add_model(im)
+
+    resample.finalize()
+
+    odata = resample.output_model["data"]
+    oerr = resample.output_model["err"]
+
+    # Surface brightness should be unchanged with new pixel scale
+    assert np.allclose(np.nanmedian(odata),
+                       sb_in,
+                       atol=0,
+                       rtol=1e-6)
+    # Surface brightness error should have scaled with pixel area
+    assert np.allclose(np.nanmedian(oerr),
+                       sb_err_in * (pscale_in / pscale_out),
+                       atol=0,
+                       rtol=1e-6)
+
 
 def test_resample_add_model_hook():
     crval = (150.0, 2.0)
