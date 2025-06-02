@@ -1103,9 +1103,9 @@ class Resample:
                 scaling = 1.0
             else:
                 if is_imaging_wcs(self.output_wcs):
-                    scaling = self.pixel_scale_ratio
+                    scaling = self.pixel_scale_ratio ** 2
                 else:
-                    scaling = 1. / np.sqrt(self.pixel_scale_ratio)
+                    scaling = 1. / self.pixel_scale_ratio
 
             for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]['wsum']
