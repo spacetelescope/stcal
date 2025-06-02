@@ -916,10 +916,13 @@ class Resample:
         # and the error should be divided by this ratio
         # If spectroscopy, pixel scale ratio is (input scale / output scale)
         # and the error should be multiplied by the square root of this ratio
-        if is_imaging_wcs(self.output_wcs):
-            scaling = self.pixel_scale_ratio
+        if (self.pixel_scale_ratio is None):
+            scaling = 1.0
         else:
-            scaling = 1. / np.sqrt(self.pixel_scale_ratio)
+            if is_imaging_wcs(self.output_wcs):
+                scaling = self.pixel_scale_ratio
+            else:
+                scaling = 1. / np.sqrt(self.pixel_scale_ratio)
 
         if self._compute_err == "driz_err":
             # use resampled error
@@ -1096,10 +1099,13 @@ class Resample:
             # and the variance should be divided by this ratio squared
             # If spectroscopy, pixel scale ratio is (input scale / output scale)
             # and the variance should be multiplied by this ratio
-            if is_imaging_wcs(self.output_wcs):
-                scaling = self.pixel_scale_ratio ** 2
+            if (self.pixel_scale_ratio is None):
+                scaling = 1.0
             else:
-                scaling = 1. / self.pixel_scale_ratio
+                if is_imaging_wcs(self.output_wcs):
+                    scaling = self.pixel_scale_ratio
+                else:
+                    scaling = 1. / np.sqrt(self.pixel_scale_ratio)
 
             for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]['wsum']
