@@ -118,7 +118,7 @@ class RampData:
 
         drop_frames1 :
             The number of frames dropped at the beginning of every integration.
-            May not be used in some pipelines, so is defaulted to NoneType.
+            May not be used in some pipelines, so is defaulted to None.
         """
         # Get meta information
         self.instrument_name = name
@@ -128,7 +128,7 @@ class RampData:
         self.groupgap = groupgap
         self.nframes = nframes
 
-        # May not be available for all pipelines, so is defaulted to NoneType.
+        # May not be available for all pipelines, so is defaulted to None.
         self.drop_frames1 = drop_frames1
 
     def set_dqflags(self, dqflags):
