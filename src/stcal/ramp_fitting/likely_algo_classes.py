@@ -166,15 +166,15 @@ class Covar:
             a resultant.
         """
         # Equations (4) and (11) in paper 1.
-        mean_t, tau, N, delta_t = self._compute_means_and_taus(readtimes)
+        mean_t, tau, n_reads, delta_t = self._compute_means_and_taus(readtimes)
 
         self.delta_t = delta_t
         self.mean_t = mean_t
         self.tau = tau
-        self.Nreads = N
+        self.Nreads = n_reads
 
         # Equations (28) and (29) in paper 1.
-        self._compute_alphas_and_betas(mean_t, tau, N, delta_t)
+        self._compute_alphas_and_betas(mean_t, tau, n_reads, delta_t)
 
     def _compute_means_and_taus(self, readtimes):
         """
@@ -189,40 +189,31 @@ class Covar:
         """
         mean_t = []  # mean time of the resultant as defined in the paper
         tau = []  # variance-weighted mean time of the resultant
-        N = []  # Number of reads per resultant
+        n_reads = []  # Number of reads per resultant
 
         for times in readtimes:
-            mean_t += [np.mean(times)]
+            mean_t.append(np.mean(times))
 
             if hasattr(times, "__len__"):
                 # eqn 11
-                N += [len(times)]
-                k = np.arange(1, N[-1] + 1)
-                if False:
-                    tau += [
-                        1
-                        / N[-1] ** 2
-                        * np.sum((2 * N[-1] + 1 - 2 * k) * np.array(times))
-                    ]
-                    # tau += [(np.sum((2*N[-1] + 1 - 2*k)*np.array(times))) / N[-1]**2]
-                else:
-                    length = N[-1]
-                    tmp0 = (2 * length + 1) - (2 * k)
-                    sm = np.sum(tmp0 * np.array(times))
-                    tmp = sm / length**2
-                    tau.append(tmp)
+                length = len(times)
+                n_reads.append(length)
+                k = np.arange(1, length + 1)
+                weight = (2 * length + 1) - (2 * k)
+                tau.append(np.sum(weight * np.array(times)) / length**2)
+
             else:
-                tau += [times]
-                N += [1]
+                tau.append(times)
+                n_reads.append(1)
 
         # readtimes is a list of lists, so mean_t is the list of each
         # mean of each list.
         mean_t = np.array(mean_t)
         tau = np.array(tau)
-        N = np.array(N)
+        n_reads = np.array(n_reads)
         delta_t = mean_t[1:] - mean_t[:-1]
 
-        return mean_t, tau, N, delta_t
+        return mean_t, tau, n_reads, delta_t
 
     def _compute_alphas_and_betas(self, mean_t, tau, N, delta_t):
         """
