@@ -77,10 +77,10 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
             zfdq = gdq[0].copy()
 
             # Subtract the zeroframe data from the first group
-            data[0] = (data[0] * ramp_data.nframes - zf) / (ramp_data.nframes - 1)
+            first_group = (data[0] * ramp_data.nframes - zf) / (ramp_data.nframes - 1)
 
             # Prepend the zero frame to the data and gdq arrays
-            data = np.vstack([zf[None, :, :], data])
+            data = np.vstack([zf[None, :, :], first_group[None, :, :], data[1:]])
             gdq = np.vstack([zfdq[None, :, :], gdq])
 
         # Eqn (5)
