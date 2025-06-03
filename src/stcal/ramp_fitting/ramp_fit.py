@@ -59,7 +59,7 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     if model.hasattr("average_dark_current"):
         dark_current_array = model.average_dark_current
     else:
-        dark_current_array = np.zeros_like(model.pixeldq)
+        dark_current_array = np.zeros(model.pixeldq.shape, dtype=np.float32)
 
     if model.hasattr("zeroframe"):
         zeroframe = model.zeroframe
