@@ -48,7 +48,9 @@ def medfilt(arr, kern_size):
     """
     padded = np.pad(arr, [[k // 2] for k in kern_size])
     windows = view_as_windows(padded, kern_size, np.ones(len(kern_size), dtype='int'))
-    return np.nanmedian(windows, axis=np.arange(-len(kern_size), 0))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "All-NaN", RuntimeWarning)
+        return np.nanmedian(windows, axis=np.arange(-len(kern_size), 0))
 
 
 def compute_weight_threshold(weight, maskpt):
@@ -68,20 +70,18 @@ def compute_weight_threshold(weight, maskpt):
     float
         The weight threshold for this integration.
     '''
-    # necessary in order to assure that mask gets applied correctly
-    if hasattr(weight, '_mask'):
-        del weight._mask
-    mask_zero_weight = np.equal(weight, 0.)
-    mask_nans = np.isnan(weight)
-    # Combine the masks
-    weight_masked = np.ma.array(weight, mask=np.logical_or(
-        mask_zero_weight, mask_nans))
-    # Sigma-clip the unmasked data
-    weight_masked = sigma_clip(weight_masked, sigma=3, maxiters=5)
-    mean_weight = np.mean(weight_masked)
-    # Mask pixels where weight falls below maskpt percent
-    weight_threshold = mean_weight * maskpt
-    return weight_threshold
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "Mean of empty slice", RuntimeWarning)
+        warnings.filterwarnings("ignore", "invalid value", RuntimeWarning)
+        return np.mean(
+            sigma_clip(
+                weight[np.isfinite(weight) & (weight != 0)],
+                sigma=3,
+                maxiters=5,
+                masked=False,
+                copy=False,
+            ),
+        dtype='f8') * maskpt
 
 
 def _abs_deriv(array):

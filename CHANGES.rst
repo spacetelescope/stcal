@@ -1,3 +1,181 @@
+1.13.0 (2025-05-12)
+===================
+
+Changes to API
+--------------
+
+- Added ``add_model_hook()`` method to ``resample.Resample`` that
+  allows subclasses to perform additional processing while
+  reusing quantities computed by ``add_model()``.
+
+
+  Modified the behavior of ``resample.utils.build_driz_weight()``: any
+  value of the ``weight_type`` argument other than "ivm", "exptime", or
+  ``None``
+  will raise a ``ValueError`` exception (previous behavior was to treat them
+  as ``None``). (`#342 <https://github.com/spacetelescope/stcal/issues/342>`_)
+
+
+Bug Fixes
+---------
+
+- Bugfix catalog parsing for tweakreg absolute refcat (`#355
+  <https://github.com/spacetelescope/stcal/issues/355>`_)
+- [saturation] Account for non-zero bias in group 2 saturation flagging in
+  frame-averaged groups. (`#356
+  <https://github.com/spacetelescope/stcal/issues/356>`_)
+
+
+General
+-------
+
+- Refactor Poisson variance calculation in ols_cas22/_ramp.pyx to use a
+  cumulative variable instead of a nested for loop, change some single
+  precision quantities in ols_cas22/_ramp.pyx to double precision. (`#325
+  <https://github.com/spacetelescope/stcal/issues/325>`_)
+- Removing old and unused OLS python and GLS code from ramp fitting. (`#358
+  <https://github.com/spacetelescope/stcal/issues/358>`_)
+
+
+1.12.0 (2025-03-18)
+===================
+
+Changes to API
+--------------
+
+- Added ``resample`` submodule. (`#320
+  <https://github.com/spacetelescope/stcal/issues/320>`_)
+- Refactoring the jump module to improve memory consumption, readability, and
+  maintenance. (`#330 <https://github.com/spacetelescope/stcal/issues/330>`_)
+- Removed all references to the unused ramp error array in dark, jump, and ramp
+  fitting steps. (`#334 <https://github.com/spacetelescope/stcal/issues/334>`_)
+- Make sregion_to_footprint part of public API (`#345
+  <https://github.com/spacetelescope/stcal/issues/345>`_)
+
+
+Bug Fixes
+---------
+
+- Fix a bug in ``alignment.util.wcs_from_sregions()`` and
+  ``alignment.util.wcs_from_footprints()`` functions that was causing incorrect
+  WCS bounding boxes
+  when the ``crpix`` argument was provided. (`#326
+  <https://github.com/spacetelescope/stcal/issues/326>`_)
+- Allow tweakreg to parse absolute reference catalogs with skycoord objects in
+  them (`#333 <https://github.com/spacetelescope/stcal/issues/333>`_)
+- Fix a bug in the jump step with counting the number of usable groups. (`#338
+  <https://github.com/spacetelescope/stcal/issues/338>`_)
+- Do not reset existing JUMP flags at the start of the likelihood ramp fitting
+  algorithm. (`#339 <https://github.com/spacetelescope/stcal/issues/339>`_)
+- Fix a bug in ``jump.twopointdifference.calc_med_first_diffs()`` where
+  ``argmax`` was being used instead of ``nanargmax``. (`#344
+  <https://github.com/spacetelescope/stcal/issues/344>`_)
+- Changed multiprocessing from forkserver to spawn. (`#350
+  <https://github.com/spacetelescope/stcal/issues/350>`_)
+
+
+General
+-------
+
+- Move common parts of skymatch shared by both jwst and romancal into stcal.
+  (`#310 <https://github.com/spacetelescope/stcal/issues/310>`_)
+- Drop support for Python 3.10 and add support for Python 3.13. (`#327
+  <https://github.com/spacetelescope/stcal/issues/327>`_)
+- Performance improvements for saturation step (`#331
+  <https://github.com/spacetelescope/stcal/issues/331>`_)
+- Performance improvements for jump step targeting both runtime and memory
+  consumption. Results are mostly identical, but there are some differences in
+  the MIRI shower flagging (it now flags somewhat fewer showers). (`#337
+  <https://github.com/spacetelescope/stcal/issues/337>`_)
+- Refactoring twopoint_difference.py for the jump step. (`#340
+  <https://github.com/spacetelescope/stcal/issues/340>`_)
+
+
+1.11.0 (2024-12-20)
+===================
+
+Changes to API
+--------------
+
+- Add maximum_shower_amplitude parameter to MIRI cosmic rays showers routine
+  to fix accidental flagging of bright science pixels. (`#306
+  <https://github.com/spacetelescope/stcal/issues/306>`_)
+
+
+Bug Fixes
+---------
+
+- Do not evaluate the inverse WCS transform within the bounding box in cases
+  where a resampled WCS is computed. Do not pass table columns to the WCS
+  Shared API. (`#314 <https://github.com/spacetelescope/stcal/issues/314>`_)
+- For `ramp_fitting`, the `CRMAG` element was not originally implemented in
+  the C-extension for ramp fitting.  It is now implemented.  A bug in the read
+  noise recalculation for CHARGELOSS when using the multiprocessing option has
+  been fixed.  Further, in `JWST` regression tests have been added to test for
+  multiprocessing to ensure testing for anything that could affect
+  multiprocessing. (`#318
+  <https://github.com/spacetelescope/stcal/issues/318>`_)
+- Update weight threshold calculation in outlier detection to work around numpy
+  bug that introduces small numerical differences for a mean of a masked array.
+  (`#319 <https://github.com/spacetelescope/stcal/issues/319>`_)
+- Change flagging of 'pre-saturation' grouped data to use DO_NOT_USE instead of
+  SATURATION flag to avoid confusing the snowball routine downstream. (`#321
+  <https://github.com/spacetelescope/stcal/issues/321>`_)
+
+
+1.10.0 (2024-11-15)
+===================
+
+Changes to API
+--------------
+
+- Add `outlier_detection` median calculators from jwst. (`#292
+  <https://github.com/spacetelescope/stcal/issues/292>`_)
+- Deprecate wcs_from_footprints. Use wcs_from_sregions instead. (`#307
+  <https://github.com/spacetelescope/stcal/issues/307>`_)
+- Add wcs_from_sregions function to compute a combined WCS from a list of
+  s_regions. (`#307 <https://github.com/spacetelescope/stcal/issues/307>`_)
+
+
+Bug Fixes
+---------
+
+- Fix `IntEnum` saturation flag issue with numpy 2+ for romancal. (`#305
+  <https://github.com/spacetelescope/stcal/issues/305>`_)
+- Fix abs_deriv handling of off-edge and nan values. (`#311
+  <https://github.com/spacetelescope/stcal/issues/311>`_)
+
+
+General
+-------
+
+- Added fillval option to ``gwcs_blot`` utility. (`#291
+  <https://github.com/spacetelescope/stcal/issues/291>`_)
+- Update downstream tests for jwst and romancal to fix pytest configurations.
+  (`#297 <https://github.com/spacetelescope/stcal/issues/297>`_)
+- Changed the default `ramp fitting` CI test algorithm to ``OLS_C``.  This also
+  revealed
+  a bug in control flow that allowed for the CHARGELOSS recalculation in error,
+  which
+  resulted in a crash while attempting to dereference a ``NULL`` pointer.
+  Further, when
+  creating the optional results product, the object creation was changed to
+  `PyArray_ZEROS`
+  to ensure invalid data was set to zero.  The use of `PyArray_EMPTY` does not
+  initialize
+  memory, so junk data could be in used array elements. (`#298
+  <https://github.com/spacetelescope/stcal/issues/298>`_)
+- Add infrastructure for testing memory usage (`#299
+  <https://github.com/spacetelescope/stcal/issues/299>`_)
+- Preparing ramp fitting for the upgrade to python 3.13.  In python 3.13, the
+  C-API
+  function ``PyLong_AsLong`` raises an exception if the object passed to it is
+  ``NoneType``.  There are two integer attributes for the ``RampData`` class
+  that
+  can be ``NoneType``, so a check for ``NoneType`` for these attributes was
+  added. (`#303 <https://github.com/spacetelescope/stcal/issues/303>`_)
+
+
 1.9.0 (2024-09-19)
 ==================
 
