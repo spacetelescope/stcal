@@ -1067,12 +1067,14 @@ class Resample:
             var = self._variance_info[varname]['var']
             wsum = self._variance_info[varname]['wsum']
             mask = (var >= 0) & np.isfinite(var) & (weight > 0)
-            wsum[mask] = np.nansum(
-                    [
-                        wsum[mask], var[mask] * weight[mask] * weight[mask]
-                    ],
-                    axis=0
-                )
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "overflow encountered", RuntimeWarning)
+                wsum[mask] = np.nansum(
+                        [
+                            wsum[mask], var[mask] * weight[mask] * weight[mask]
+                        ],
+                        axis=0
+                    )
             self._variance_info[varname]['wt'][mask] += weight[mask]
 
     def finalize_resample_variance(self, output_model):
