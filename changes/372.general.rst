@@ -1,0 +1,1 @@
+For the likelihood algorithm for ramp fitting, use a separately downlinked zeroframe if available, independent of the remaining first group data.
