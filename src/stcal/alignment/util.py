@@ -33,6 +33,7 @@ __all__ = [
     "wcs_from_footprints",
     "wcs_from_sregions",
     "wcs_bbox_from_shape",
+    "wcs_pixel_shape_from_bbox",
     "reproject",
 ]
 
@@ -861,6 +862,23 @@ def wcs_bbox_from_shape(shape: Sequence) -> tuple:
         Bounding box in x, y order.
     """
     return (-0.5, shape[-1] - 0.5), (-0.5, shape[-2] - 0.5)
+
+
+def wcs_pixel_shape_from_bbox(
+    bbox: list[tuple[float, float]],
+) -> list[float]:
+    """Create a pixel shape from the bounding box of the data.
+    This is appropriate to attach to a wcs object.
+    Parameters
+    ----------
+    bbox: tuple
+        The bounding box in center pixel coordinates.
+    Returns
+    -------
+    shape : tuple
+        Pixel shape x, y order.
+    """
+    return [dimension[1] - dimension[0] for dimension in bbox]
 
 
 def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
