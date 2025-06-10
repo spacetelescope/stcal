@@ -248,6 +248,12 @@ archs = [
     "aarch64",
 ]
 
+[tool.coverage.run]
+omit = [
+    "config.py",
+    "config-3.py",
+]
+
 [tool.towncrier]
 filename = "CHANGES.rst"
 directory = "changes"
