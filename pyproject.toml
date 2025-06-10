@@ -252,6 +252,7 @@ archs = [
 omit = [
     "config.py",
     "config-3.py",
+    "*.rmap",
 ]
 
 [tool.towncrier]
