@@ -1,0 +1,1 @@
+add `stcal.alignment.wcs_pixel_shape_from_bbox` function
