@@ -14,7 +14,11 @@
 #    include <windows.h>
 #    include <process.h>
 #    include <psapi.h>
-#    define PATH_MAX MAX_PATH
+
+#    ifndef PATH_MAX
+#        define PATH_MAX MAX_PATH
+#    endif
+
 #    ifdef _WIN64
 #        define ssize_t __int64
 #    else
