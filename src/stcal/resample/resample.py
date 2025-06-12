@@ -548,6 +548,23 @@ class Resample:
 
         return iscale
 
+    def _compute_pixel_scale_ratio(self, model):
+        if self._pixel_scale_ratio is None:
+            photom_pixel_area = model["pixelarea_steradians"]
+            input_pscale = 3600.0 * np.rad2deg(
+                math.sqrt(photom_pixel_area)
+            )
+
+            self._pixel_scale_ratio = (
+                self._output_pixel_scale / input_pscale
+            )
+
+            # update output model if "pixel_scale_ratio" was never
+            # set previously:
+            if (self._output_model is not None and
+                    self._output_model.get("pixel_scale_ratio") is None):
+                self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
+
     def reset_arrays(self, n_input_models=None):
         """ Initialize/reset `Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
@@ -711,6 +728,11 @@ class Resample:
             self.update_time(model)
             self._group_ids.append(group_id)
             self.output_model["pointings"] += 1
+
+            # compute pixel scale ratio:
+            #   - this is done only once using the first image
+            #   - this is currently used only to scale error arrays
+            self._compute_pixel_scale_ratio(model)
 
         iscale = self._get_intensity_scale(model)
         log.debug(f'Using intensity scale iscale={iscale}')
@@ -887,6 +909,7 @@ class Resample:
         # If spectroscopy, pixel scale ratio is (input scale / output scale)
         # and the error should be multiplied by the square root of this ratio
         if (self.pixel_scale_ratio is None):
+            assert False
             scaling = 1.0
         else:
             if is_imaging_wcs(self.output_wcs):
