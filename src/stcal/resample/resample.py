@@ -724,15 +724,10 @@ class Resample:
                 f"Input model '{_get_model_name(model)}' is not a 2D image."
             )
 
-        if (group_id := model["group_id"]) not in self._group_ids:
-            self.update_time(model)
-            self._group_ids.append(group_id)
-            self.output_model["pointings"] += 1
-
-            # compute pixel scale ratio:
-            #   - this is done only once using the first image
-            #   - this is currently used only to scale error arrays
-            self._compute_pixel_scale_ratio(model)
+        # compute pixel scale ratio:
+        #   - this is done only once using the first image
+        #   - this is currently used only to scale error arrays
+        self._compute_pixel_scale_ratio(model)
 
         iscale = self._get_intensity_scale(model)
         log.debug(f'Using intensity scale iscale={iscale}')
@@ -909,7 +904,6 @@ class Resample:
         # If spectroscopy, pixel scale ratio is (input scale / output scale)
         # and the error should be multiplied by the square root of this ratio
         if (self.pixel_scale_ratio is None):
-            assert False
             scaling = 1.0
         else:
             if is_imaging_wcs(self.output_wcs):

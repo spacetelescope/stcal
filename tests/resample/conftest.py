@@ -1,10 +1,10 @@
 """ Test various utility functions """
-import math
 import pytest
 from pathlib import Path
 
 import asdf
 from astropy.convolution import Gaussian2DKernel
+from astropy.stats.funcs import gaussian_sigma_to_fwhm
 import numpy as np
 
 from stcal.alignment.util import wcs_bbox_from_shape
@@ -38,7 +38,10 @@ def nrcb5_wcs_wcsinfo():
 def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
     np.random.seed(0)
 
-    exptime = 3.1415 + 100.0 * np.random.random()
+    # just to have something "truly" irrational (that could not be
+    # reproduced by accident as a result of normal processing):
+    exptime = (np.pi + np.exp(1)) / np.euler_gamma
+
     model = make_nrcb5_model(nrcb5_wcs_wcsinfo, exptime=exptime)
     model["dq"][:, :] = 1
 
@@ -49,8 +52,6 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
     # in the segmentation:
     border = 4
     pwb = patch_size + border
-
-    fwhm2sigma = 2.0 * math.sqrt(2.0 * math.log(2.0))
 
     ny, nx = model["data"].shape
 
@@ -66,7 +67,7 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
             else:
                 # "star":
                 fwhm = 1.5 + 1.5 * np.random.random()
-                sigma = fwhm / fwhm2sigma
+                sigma = fwhm / gaussian_sigma_to_fwhm
 
                 psf = flux * Gaussian2DKernel(
                     sigma,
