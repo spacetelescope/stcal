@@ -36,5 +36,5 @@ jobs:
         CRDS_CLIENT_RETRY_COUNT: 3
         CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
       envs: |
-        - linux: py313-jwst-devdeps-xdist
-        - linux: py313-romancal-devdeps-xdist
+        - linux: py313-jwst-devdeps
+        - linux: py313-romancal-devdeps
