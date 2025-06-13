@@ -22,7 +22,7 @@ jobs:
         - cp3*-macosx_x86_64
         - cp3*-macosx_arm64
         # Windows wheels
-        - cp3*-windows_x86_64
+        - cp3*-win_amd64
       sdist: true
       test_command: python -c "from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter"
     secrets:
