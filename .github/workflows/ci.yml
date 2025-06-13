@@ -25,6 +25,7 @@ jobs:
         - linux: check-style
         - linux: check-types
         - linux: check-build
+        - windows: check-build
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
@@ -35,6 +36,7 @@ jobs:
         - linux: py313-cov-xdist
           coverage: codecov
         - macos: py313-xdist
+        - windows: py313-xdist
   test_downstream:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
