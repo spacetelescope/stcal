@@ -189,7 +189,7 @@ class _DiskAppendableArray:
             with Path.open(self._filename, "wb") as f:   # noqa: F841
                 pass
         except PermissionError:
-            if self._filename.is_dir and sys.platform.startswith("win"):
+            if self._filename.is_dir() and sys.platform.startswith("win"):
                 raise IsADirectoryError(self._filename)
 
         self._slice_shape = slice_shape
