@@ -17,8 +17,7 @@ from astropy.convolution import convolve
 from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.jump")
 
 
 def detect_jumps_data(jump_data):

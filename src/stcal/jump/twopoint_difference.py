@@ -6,8 +6,7 @@ import warnings
 from astropy import stats
 from astropy.utils.exceptions import AstropyUserWarning
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.jump")
 
 
 def find_crs(dataa, group_dq, read_noise, twopt_p):

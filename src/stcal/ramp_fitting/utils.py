@@ -7,8 +7,7 @@ import warnings
 import numpy as np
 
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.ramp_fitting")
 
 # Replace zero or negative variances with this:
 LARGE_VARIANCE = 1.0e8

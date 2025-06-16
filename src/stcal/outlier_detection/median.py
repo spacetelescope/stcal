@@ -10,8 +10,7 @@ from typing import Any
 
 import numpy as np
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.outlier_detection")
 
 _ONE_MB = 1 << 20
 

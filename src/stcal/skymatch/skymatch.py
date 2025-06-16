@@ -18,8 +18,7 @@ __all__ = ['skymatch']
 # DEBUG
 __local_debug__ = True
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.skymatch")
 
 
 def skymatch(images, skymethod='global+match', match_down=True, subtract=False):

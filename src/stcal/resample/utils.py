@@ -21,8 +21,7 @@ __all__ = [
     "resample_range",
 ]
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.resample")
 
 
 def resample_range(data_shape, bbox=None):

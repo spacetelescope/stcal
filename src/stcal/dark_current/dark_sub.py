@@ -10,8 +10,7 @@ import numpy as np
 
 from . import dark_class
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.dark_current")
 
 
 def do_correction(input_model, dark_model, dark_output=None):

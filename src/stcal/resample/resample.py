@@ -19,8 +19,7 @@ from stcal.resample.utils import (
     is_imaging_wcs,
 )
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.resample")
 
 __all__ = [
     "Resample",

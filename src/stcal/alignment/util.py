@@ -20,8 +20,7 @@ from astropy.coordinates import SkyCoord
 from astropy.modeling import models as astmodels
 from gwcs.wcstools import wcs_from_fiducial
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.alignment")
 
 __all__ = [
     "compute_scale",

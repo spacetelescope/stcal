@@ -24,8 +24,7 @@ from . import (
     ramp_fit_class,
 )
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger("stpipe.stcal.ramp_fitting")
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
