@@ -148,3 +148,10 @@ def test_build_driz_weight_zeros(weight_type):
     weight_map = build_driz_weight(model, weight_type=weight_type)
 
     assert_array_equal(weight_map, 1)
+
+
+@pytest.mark.parametrize("weight_type", ["ivm-smed", "ivm-med5"])
+def test_unsupported_weight_type(weight_type):
+    model = make_input_model((10, 10))
+    with pytest.raises(ValueError, match=fr"^Invalid weight type: {repr(weight_type)}"):
+        build_driz_weight(model, weight_type=weight_type)
