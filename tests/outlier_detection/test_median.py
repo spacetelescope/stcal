@@ -24,7 +24,7 @@ def test_disk_appendable_array(tmp_path):
     arr = _DiskAppendableArray(slice_shape, dtype, fname)
 
     # check temporary file setup
-    assert str(arr._filename).split("/")[-1] in os.listdir(tempdir)  # noqa: SLF001
+    assert fname.exists()
     assert len(os.listdir(tempdir)) == 1
     assert arr.shape == (0, *slice_shape)
 
