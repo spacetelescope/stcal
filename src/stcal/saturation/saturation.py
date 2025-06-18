@@ -166,9 +166,9 @@ def flag_saturated_pixels(
             # was flagged as saturated.  Result of the line below is a
             # boolean array.
 
-            partial_sat = ((plane >= sat_thresh*dilution_factor) & \
-                           (thisdq & (saturated | dnu) == 0) & \
-                           (nextdq & saturated != 0))
+            partial_sat = ((plane >= sat_thresh*dilution_factor)
+                           & (thisdq & (saturated | dnu) == 0)
+                           & (nextdq & saturated != 0))
 
             flagarray = (partial_sat * dnu).astype(np.uint32)
             
@@ -207,7 +207,6 @@ def flag_saturated_pixels(
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
-
 
         # Check ZEROFRAME.
         if zframe is not None:
