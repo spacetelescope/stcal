@@ -524,14 +524,17 @@ class Resample:
         For spectral data, the scaling is used to account for flux
         conservation with non-unity pixel scale ratios, when the
         data units are flux density.
+
         Parameters
         ----------
         model : dict
             The input data model.
+
         Returns
         -------
         iscale : float
             The scale to apply to the input data before drizzling.
+
         """
         photom_pixel_area = model["pixelarea_steradians"]
         wcs = model["wcs"]
@@ -549,7 +552,8 @@ class Resample:
         return iscale
 
     def _compute_pixel_scale_ratio(self, model):
-        if self._pixel_scale_ratio is None:
+        if (self._pixel_scale_ratio is None and
+                'SPECTRAL' not in model["wcs"].output_frame.axes_type):
             photom_pixel_area = model["pixelarea_steradians"]
             input_pscale = 3600.0 * np.rad2deg(
                 math.sqrt(photom_pixel_area)
