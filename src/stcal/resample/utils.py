@@ -253,7 +253,7 @@ def compute_mean_pixel_area(wcs, shape=None):
 
         limits = [ymin, xmax, ymax, xmin]
 
-        for j in range(4):
+        for _ in range(4):
             sl = [b, r, t, l][k]
             if not (np.all(np.isfinite(ra[sl])) and
                     np.all(np.isfinite(dec[sl]))):
@@ -281,6 +281,9 @@ def compute_mean_pixel_area(wcs, shape=None):
             "Setting area to: 4*Pi - area"
         )
         sky_area = 4 * np.pi - sky_area
+    if image_area == 0:
+        log.error("Image area is zero; cannot compute pixel area.")
+        return None
     pix_area = sky_area / image_area
 
     return pix_area
@@ -361,9 +364,9 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
     nx = xmax - xmin + 1
     ny = ymax - ymin + 1
 
-    if dx is None:
+    if dx is None or dx <= 0:
         dx = nx
-    if dy is None:
+    if dy is None or dy <= 0:
         dy = ny
 
     if nx - 2 * shrink < 1 or ny - 2 * shrink < 1:

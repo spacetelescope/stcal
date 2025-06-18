@@ -293,21 +293,13 @@ class Resample:
         # set up an empty output model (don't allocate arrays at this time):
         self.reset_arrays(n_input_models=n_input_models)
 
-    def get_input_model_pixel_area(self, model):
+    def get_input_model_pixel_area(self, model, prefer_mean=True):
         """
-        Computes or retrieves pixel area of an input model. Currently,
+        Computes or retrieves pixel area of an input model. By default,
         this is the average pixel area of the input model's pixels within
         either the bounding box (if available) or the entire data array.
-
-        This value is used to compute a scale factor that will be applied
-        to input image data. This scale factor takes into account the
-        difference in the definition of the pixel area reported in model's
-        ``meta`` and the pixel area at the location used to construct
-        output WCS from the WCS of input models using ``pixel_scale_ratio``.
-
-        The intensity scale factor is computed elsewhere as the ratio of the
-        value of the pixel area in the meta to the area returned by this
-        function.
+        Alternatively, this is the "nominal" pixel area as provided by the
+        ``"pixelarea_steradians"`` keyword of the input model.
 
         Subclasses can override this method to return the most appropriate
         pixel area value.
@@ -320,16 +312,47 @@ class Resample:
             and values of actual models used by pipelines. In particular, it
             must have a keyword "wcs" and a WCS associated with it.
 
+        prefer_mean : bool, optional
+            If `True`, computes the mean pixel area of the model's pixels
+            within either the bounding box (if available) or the entire data
+            array. If this fails, it will fall back to the value of the
+            ``"pixelarea_steradians"`` keyword of the input model.
+            If `False`, returns the "nominal" pixel area as provided by the
+            ``"pixelarea_steradians"`` keyword of the input model and if this
+            is `None`, it will return mean pixel area.
+
         Returns
         -------
-        pix_area : float
+        pix_area : float, None
             Pixel area in steradians.
 
         """
-        pixel_area = compute_mean_pixel_area(
-            model["wcs"],
-            shape=model["data"].shape
-        )
+        if prefer_mean:
+            pixel_area = compute_mean_pixel_area(
+                model["wcs"],
+                shape=model["data"].shape
+            )
+            if pixel_area is None or pixel_area <= 0:
+                log.warning(
+                    "Unable to compute mean pixel area of input model "
+                    f"'{model['filename']}'. "
+                    "Using \"nominal\" pixel area instead."
+                )
+        else:
+            pixel_area = model["pixelarea_steradians"]
+            if pixel_area is None or pixel_area <= 0:
+                log.warning(
+                    "Input model does not have 'pixelarea_steradians' set. "
+                    "Using mean pixel area instead."
+                )
+                pixel_area = compute_mean_pixel_area(
+                    model["wcs"],
+                    shape=model["data"].shape
+                )
+        if pixel_area is None or pixel_area <= 0:
+            log.error(
+                "Unable to determine pixel area of the input model."
+            )
         return pixel_area
 
     def get_output_model_pixel_area(self, model):
@@ -552,9 +575,18 @@ class Resample:
         return iscale
 
     def _compute_pixel_scale_ratio(self, model):
-        if (self._pixel_scale_ratio is None and
-                'SPECTRAL' not in model["wcs"].output_frame.axes_type):
-            photom_pixel_area = model["pixelarea_steradians"]
+        if (self._pixel_scale_ratio is None and is_imaging_wcs(model["wcs"])):
+            photom_pixel_area = self.get_input_model_pixel_area(
+                model,
+                prefer_mean=False,
+            )
+
+            if photom_pixel_area is None or photom_pixel_area <= 0:
+                log.error(
+                    "Unable to determine pixel area of the input model. "
+                )
+                return
+
             input_pscale = 3600.0 * np.rad2deg(
                 math.sqrt(photom_pixel_area)
             )
@@ -567,7 +599,9 @@ class Resample:
             # set previously:
             if (self._output_model is not None and
                     self._output_model.get("pixel_scale_ratio") is None):
-                self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
+                self._output_model["pixel_scale_ratio"] = (
+                    self._pixel_scale_ratio
+                )
 
     def reset_arrays(self, n_input_models=None):
         """ Initialize/reset `Drizzle` objects, output model and arrays,
