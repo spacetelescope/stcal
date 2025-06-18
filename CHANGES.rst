@@ -1,3 +1,26 @@
+1.14.0 (2025-06-18)
+===================
+
+Bug Fixes
+---------
+
+- Scale drizzled errors and variances by the input-to-output pixel size ratio
+  to ensure proper error propagation for non-standard output pixel scales in
+  imaging mode.  Apply a similar scaling for spectroscopic modes, but using the
+  square root of the input-to-output pixel size ratio. (`#370
+  <https://github.com/spacetelescope/stcal/issues/370>`_)
+
+
+General
+-------
+
+- Allow resample to resample arbitrary variance arrays. (`#364
+  <https://github.com/spacetelescope/stcal/issues/364>`_)
+- Extrapolate dark reference integration to match or exceed number of science
+  file frames for cases when provided dark is not long enough to cover science
+  data. (`#368 <https://github.com/spacetelescope/stcal/issues/368>`_)
+
+
 1.13.0 (2025-05-12)
 ===================
 

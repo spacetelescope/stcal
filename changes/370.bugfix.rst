@@ -1,1 +1,0 @@
-Scale drizzled errors and variances by the input-to-output pixel size ratio to ensure proper error propagation for non-standard output pixel scales in imaging mode.  Apply a similar scaling for spectroscopic modes, but using the square root of the input-to-output pixel size ratio.

@@ -1,1 +1,0 @@
-Extrapolate dark reference integration to match or exceed number of science file frames for cases when provided dark is not long enough to cover science data.
