@@ -583,7 +583,7 @@ class Resample:
 
             if photom_pixel_area is None or photom_pixel_area <= 0:
                 log.error(
-                    "Unable to determine pixel area of the input model. "
+                    "Unable to determine pixel area of the input model."
                 )
                 return
 
