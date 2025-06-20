@@ -48,15 +48,22 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     readtimes = get_readtimes(ramp_data)
 
     # Check for a zeroframe
+    use_zeroframe = False
     if ramp_data.zeroframe is not None:
-        # Read time for the zeroframe is the first entry in the first group
-        rt_zero = readtimes[0][0]
+        if len(readtimes[0]) < 2:
+            log.warning("Zero frame is present, but the first group has < 2 reads.")
+            log.warning("The zero frame will be ignored")
+        else:
+            # Read time for the zeroframe is the first entry in the first group
+            rt_zero = readtimes[0][0]
 
-        # Remove the zero readtime from the first group
-        readtimes[0] = readtimes[0][1:]
+            # Remove the zero readtime from the first group
+            readtimes[0] = readtimes[0][1:]
 
-        # Add the zero readtime as a separate entry in the beginning of the array
-        readtimes.insert(0, np.array([rt_zero]))
+            # Add the zero readtime as a separate entry in the beginning of the array
+            readtimes.insert(0, np.array([rt_zero]))
+
+            use_zeroframe = True
 
     covar = Covar(readtimes)
     integ_class = IntegInfo(nints, nrows, ncols)
@@ -69,7 +76,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
         pdq = ramp_data.pixeldq.copy()
 
         # Use the zeroframe if available
-        if ramp_data.zeroframe is not None:
+        if use_zeroframe:
             # Zeroframe image for this integration (2D)
             zf = ramp_data.zeroframe[integ]
 

@@ -442,6 +442,30 @@ def test_zeroframe():
     np.testing.assert_allclose(cube[0], cube1[0], tol)
 
 
+def test_zeroframe_bad_group(caplog):
+    """Test a multi-int ramp with a separate zeroframe, but first group has only 1 read."""
+    nints, ngroups, nrows, ncols, nframes = 2, 10, 2, 2, 1
+    ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols, nframes)
+
+    ramp_data.zeroframe = np.full((nints, nrows, ncols), 5.0, dtype=np.float32)
+
+    # Fit with likelihood
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
+
+    # Warning is issued
+    assert "Zero frame is present, but the first group has < 2 reads" in caplog.text
+
+    # Check against OLS fit - it should be the same, since the zeroframe is ignored in this case
+    algo = "OLS"
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
+    tol = 1e-7
+    np.testing.assert_allclose(slopes[0], slopes1[0], tol)
+
 
 
 # -----------------------------------------------------------------
