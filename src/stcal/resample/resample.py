@@ -575,7 +575,7 @@ class Resample:
         return iscale
 
     def _compute_pixel_scale_ratio(self, model):
-        if (self._pixel_scale_ratio is None and is_imaging_wcs(model["wcs"])):
+        if self._pixel_scale_ratio is None and is_imaging_wcs(model["wcs"]):
             photom_pixel_area = self.get_input_model_pixel_area(
                 model,
                 prefer_mean=False,
