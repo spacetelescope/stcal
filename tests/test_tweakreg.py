@@ -200,9 +200,13 @@ class MinimalDataWithWCS:
         self.data = np.zeros((512, 512))
 
 
+def _datamodel(wcsobj2, group_id=None):
+    return MinimalDataWithWCS(wcsobj2, group_id=group_id)
+
+
 @pytest.fixture(scope="module")
 def datamodel(wcsobj2, group_id=None):
-    return MinimalDataWithWCS(wcsobj2, group_id=group_id)
+    return _datamodel(wcsobj2, group_id=None)
 
 
 @pytest.fixture(scope="module")
