@@ -97,76 +97,6 @@ def _calculate_fiducial(footprints: list[np.ndarray],
     return _compute_fiducial_from_footprints(footprints)
 
 
-def _calculate_new_wcs(wcs: gwcs.wcs.WCS,
-                       shape: Sequence | None,
-                       footprints: list[np.ndarray],
-                       fiducial: tuple,
-                       crpix: Sequence | None = None,
-                       transform: astmodels.Model | None = None,
-                       ) -> gwcs.wcs.WCS:
-    """
-    Calculates a new WCS object based on the combined footprints
-    and reference WCS provided.
-
-    Parameters
-    ----------
-    wcs : ~gwcs.wcs.WCS
-        The reference WCS object.
-
-    footprints : list
-        A list of numpy arrays each of shape (N, 2) containing the
-        (RA, Dec) vertices demarcating the footprint of the input WCSs.
-
-    fiducial : tuple
-        A tuple containing the location on the sky in some standard
-        coordinate system.
-
-    shape : list, None, optional
-        The shape of the new WCS's pixel grid. If `None`, then the output bounding box
-        will be used to determine it.
-
-    crpix : tuple, None, optional
-        0-indexed coordinates of the reference pixel.
-
-    transform : ~astropy.modeling.Model, None, optional
-        An optional transform to be prepended to the transform constructed by the
-        fiducial point. The number of outputs of this transform must equal the number
-        of axes in the coordinate frame.
-
-    Returns
-    -------
-    wcs_new : ~gwcs.wcs.WCS
-        The new WCS object that corresponds to the combined WCS objects in `wcs_list`.
-    """
-    wcs_new = wcs_from_fiducial(
-        fiducial,
-        coordinate_frame=wcs.output_frame,
-        projection=astmodels.Pix2Sky_TAN(),
-        transform=transform,
-        input_frame=wcs.input_frame,
-    )
-
-    bounding_box, shape, offsets = _get_bounding_box_with_offsets(
-        footprints,
-        ref_wcs=wcs_new,
-        fiducial=fiducial,
-        crpix=crpix,
-        shape=shape
-    )
-
-    if any(d < 2 for d in shape):
-        raise ValueError(
-            "Computed shape for the output image using provided "
-            "WCS parameters is too small."
-        )
-
-    wcs_new.insert_transform("detector", offsets, after=True)
-    wcs_new.bounding_box = bounding_box
-    wcs_new.pixel_shape = shape[::-1]
-    wcs_new.array_shape = shape
-    return wcs_new
-
-
 def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
     """
     Validates wcs_list.
@@ -432,7 +362,6 @@ def wcs_from_footprints(
         A dictionary containing the WCS FITS keywords and corresponding values.
 
     transform : ~astropy.modeling.Model, None, optional
-        A transform, passed to :py:func:`gwcs.wcstools.wcs_from_fiducial`
         If not supplied `Scaling | Rotation` is computed from ``refmodel``.
 
     bounding_box : tuple, None, optional
