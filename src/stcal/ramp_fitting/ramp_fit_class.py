@@ -1,3 +1,5 @@
+from astropy import units as u
+
 INDENT = "    "
 
 class RampData:
@@ -52,7 +54,8 @@ class RampData:
 
         self.debug = False
 
-    def set_arrays(self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None):
+    def set_arrays(self, data, groupdq, pixeldq, average_dark_current,
+                   orig_gdq=None, zeroframe=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -80,12 +83,17 @@ class RampData:
             around the original group DQ flags passed to ramp fitting.
         """
         # Get arrays from the data model
-        self.data = data
+        if isinstance(data, u.Quantity):
+            self.data = data.value
+        else:
+            self.data = data
         self.groupdq = groupdq
         self.pixeldq = pixeldq
         self.average_dark_current = average_dark_current
 
+        # May be None for some use cases
         self.orig_gdq = orig_gdq
+        self.zeroframe = zeroframe
 
     def set_meta(self, name, frame_time, group_time, groupgap, nframes, drop_frames1=None):
         """
@@ -110,7 +118,7 @@ class RampData:
 
         drop_frames1 :
             The number of frames dropped at the beginning of every integration.
-            May not be used in some pipelines, so is defaulted to NoneType.
+            May not be used in some pipelines, so is defaulted to None.
         """
         # Get meta information
         self.instrument_name = name
@@ -120,7 +128,7 @@ class RampData:
         self.groupgap = groupgap
         self.nframes = nframes
 
-        # May not be available for all pipelines, so is defaulted to NoneType.
+        # May not be available for all pipelines, so is defaulted to None.
         self.drop_frames1 = drop_frames1
 
     def set_dqflags(self, dqflags):

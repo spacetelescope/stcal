@@ -1,27 +1,16 @@
-#! /usr/bin/env python
-
 import logging
-import multiprocessing
-import time
 import scipy
-import sys
 import warnings
-
-from multiprocessing import cpu_count
-from pprint import pprint
 
 import numpy as np
 
-from . import ramp_fit_class, utils
-from .likely_algo_classes import IntegInfo, RampResult, Covar
+from stcal.ramp_fitting import utils
+from stcal.ramp_fitting.likely_algo_classes import IntegInfo, RampResult, Covar
 
 
 DELIM = "=" * 80
 SQRT2 = np.sqrt(2)
 LIKELY_MIN_NGROUPS = 4
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -35,10 +24,8 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     ----------
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
-
     readnoise_2d : ndarray
         readnoise for all pixels
-
     gain_2d : ndarray
         gain for all pixels
 
@@ -46,10 +33,8 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
     -------
     image_info : tuple
         The tuple of computed ramp fitting arrays.
-
     integ_info : tuple
         The tuple of computed integration fitting arrays.
-
     opt_info : tuple
         The tuple of computed optional results arrays for fitting.
     """
@@ -62,22 +47,55 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
 
     readtimes = get_readtimes(ramp_data)
 
+    # Check for a zeroframe
+    use_zeroframe = False
+    if ramp_data.zeroframe is not None:
+        if len(readtimes[0]) < 2:
+            log.warning("Zero frame is present, but the first group has < 2 reads.")
+            log.warning("The zero frame will be ignored")
+        else:
+            # Read time for the zeroframe is the first entry in the first group
+            rt_zero = readtimes[0][0]
+
+            # Remove the zero readtime from the first group
+            readtimes[0] = readtimes[0][1:]
+
+            # Add the zero readtime as a separate entry in the beginning of the array
+            readtimes.insert(0, np.array([rt_zero]))
+
+            use_zeroframe = True
+
     covar = Covar(readtimes)
     integ_class = IntegInfo(nints, nrows, ncols)
 
     readnoise_2d = readnoise_2d / SQRT2
 
     for integ in range(nints):
-        data = ramp_data.data[integ, :, :, :]
-        gdq = ramp_data.groupdq[integ, :, :, :].copy()
-        pdq = ramp_data.pixeldq[:, :].copy()
+        data = ramp_data.data[integ]
+        gdq = ramp_data.groupdq[integ].copy()
+        pdq = ramp_data.pixeldq.copy()
+
+        # Use the zeroframe if available
+        if use_zeroframe:
+            # Zeroframe image for this integration (2D)
+            zf = ramp_data.zeroframe[integ]
+
+            # Borrow the DQ image for the first group
+            zfdq = gdq[0].copy()
+
+            # Subtract the zeroframe data from the first group
+            first_group = (data[0] * ramp_data.nframes - zf) / (ramp_data.nframes - 1)
+
+            # Prepend the zero frame to the data and gdq arrays
+            data = np.vstack([zf[None, :, :], first_group[None, :, :], data[1:]])
+            gdq = np.vstack([zfdq[None, :, :], gdq])
 
         # Eqn (5)
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
         alldiffs2use = np.ones(diff.shape, np.uint8)
 
         for row in range(nrows):
-            d2use = determine_diffs2use(ramp_data, integ, row, diff)
+            d2use = determine_diffs2use(row, diff, gdq)
             d2use_copy = d2use.copy()  # Use to flag jumps
             if ramp_data.rejection_threshold is not None:
                 threshold_one_omit = ramp_data.rejection_threshold**2
@@ -333,7 +351,7 @@ def get_readtimes(ramp_data):
 
     Returns
     -------
-    readtimes : list
+    readtimes : list of ndarray
         A list of frame times for each frame used in the computation of the ramp.
     """
     if ramp_data.read_pattern is not None:
@@ -377,7 +395,9 @@ def compute_image_info(integ_class, ramp_data):
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
-    slope = np.nanmedian(integ_class.data, axis=0)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "All-NaN slice", RuntimeWarning)
+        slope = np.nanmedian(integ_class.data, axis=0)
     for _ in range(2):
         rate_scale = slope[np.newaxis, :] / integ_class.data
         rate_scale[(~np.isfinite(rate_scale)) | (rate_scale < 0)] = 0
@@ -403,24 +423,20 @@ def compute_image_info(integ_class, ramp_data):
 
     return (slope, dq, var_p, var_r, err)
 
-def determine_diffs2use(ramp_data, integ, row, diffs):
+
+def determine_diffs2use(row, diffs, gdq):
     """
     Compute the diffs2use mask based on DQ flags of a row.
 
     Parameters
     ----------
-    ramp_data : RampData
-        Input data necessary for computing ramp fitting.
-
-    integ : int
-        The current integration being processed.
-
     row : int
         The current row being processed.
-
     diffs : ndarray
         The group differences of the data array for a given integration and row
         (ngroups-1, ncols).
+    gdq : ndarray
+        The group DQ for the current integration.
 
     Returns
     -------
@@ -428,10 +444,9 @@ def determine_diffs2use(ramp_data, integ, row, diffs):
         A boolean array definined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
     """
-    # import ipdb; ipdb.set_trace()
-    _, ngroups, _, ncols = ramp_data.data.shape
+    ngroups, _, ncols = gdq.shape
     dq = np.zeros(shape=(ngroups, ncols), dtype=np.uint8)
-    dq[:, :] = ramp_data.groupdq[integ, :, row, :]
+    dq[:, :] = gdq[:, row, :]
     d2use_tmp = np.ones(shape=diffs.shape, dtype=np.uint8)
     d2use = d2use_tmp[:, row]
 
