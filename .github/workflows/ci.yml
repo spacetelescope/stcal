@@ -35,6 +35,8 @@ jobs:
         - linux: py313-cov-xdist
           coverage: codecov
         - macos: py313-xdist
+        - windows: py313-xdist
+          python-version: '>=3.13.5 <3.14'
   test_downstream:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:

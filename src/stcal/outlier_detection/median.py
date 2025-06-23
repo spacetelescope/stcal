@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import tempfile
 import warnings
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -184,8 +185,13 @@ class _DiskAppendableArray:
             msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays are supported."
             raise ValueError(msg)
         self._filename = Path(filename)
-        with Path.open(self._filename, "wb") as f:   # noqa: F841
-            pass
+        try:
+            with Path.open(self._filename, "wb") as f:   # noqa: F841
+                pass
+        except PermissionError:
+            if self._filename.is_dir() and sys.platform.startswith("win"):
+                raise IsADirectoryError(self._filename)
+
         self._slice_shape = slice_shape
         self._dtype = np.dtype(dtype)
         self._append_count = 0
