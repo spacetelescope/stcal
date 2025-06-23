@@ -1,3 +1,24 @@
+1.14.1 (2025-06-23)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug in ``resample``, first introduced in
+  https://github.com/spacetelescope/jwst/pull/7894, due which the intensity of
+  resampled images was incorrectly adjusted to minimize the error in flux
+  computations while using an incorrect procedure. (`#352
+  <https://github.com/spacetelescope/stcal/issues/352>`_)
+
+
+General
+-------
+
+- For the likelihood algorithm for ramp fitting, use a separately downlinked
+  zeroframe if available, independent of the remaining first group data. (`#372
+  <https://github.com/spacetelescope/stcal/issues/372>`_)
+
+
 1.14.0 (2025-06-18)
 ===================
 
