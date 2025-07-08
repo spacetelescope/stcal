@@ -461,20 +461,17 @@ def _compute_bounding_box_with_offsets(
     domain_max = np.max(domain_bounds, axis=1)
 
     native_crpix = transform.inverse(*fiducial)
-
     if crpix is None:
         # shift the coordinates by domain_min so that all input footprints
         # will project to positive coordinates in the offsetted ref_wcs
         offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix,
                                                           domain_min))
-
     else:
         # assume 0-based CRPIX and require that fiducial would map to the user
         # defined crpix value:
         offsets = tuple(
             crp - ncrp for ncrp, crp in zip(native_crpix, crpix)
         )
-
     # Also offset domain limits:
     domain_min += offsets
     domain_max += offsets
@@ -594,7 +591,7 @@ def wcs_from_sregions(
         roll_ref = np.deg2rad(rotation) + (vparity * v3yangle)
     pc = np.reshape(calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2))
     if not pscale:
-        pscale = compute_scale(ref_wcs, crval, pscale_ratio=pscale_ratio)
+        pscale = compute_scale(ref_wcs, (ref_wcsinfo['ra_ref'], ref_wcsinfo['dec_ref']), pscale_ratio=pscale_ratio)
 
     projection = astmodels.Pix2Sky_TAN()
     cdelt = [pscale, pscale]
@@ -608,13 +605,12 @@ def wcs_from_sregions(
             )
     bounding_box, shape, offsets = _compute_bounding_box_with_offsets(
         footprints,
-        transform=transform,
+        transform,
         fiducial=crval,
         crpix=crpix,
         shape=shape
     )
     if any(d < 2 for d in shape):
-        print(bounding_box, shape, offsets)
         raise ValueError(
             "Computed shape for the output image using provided "
             "WCS parameters is too small.",bounding_box, shape, offsets
@@ -622,19 +618,9 @@ def wcs_from_sregions(
 
     fwcs = FITSImagingWCSTransform(projection, crpix=offsets, crval=crval,
                                    cdelt=cdelt, pc=pc)
+    input_frame = ref_wcs.input_frame
+    output_frame = ref_wcs.output_frame
 
-    if isinstance(fiducial, coord.SkyCoord):
-        output_frame = cf.CelestialFrame(
-            reference_frame=fiducial.frame,
-            unit=(fiducial.spherical.lon.unit, fiducial.spherical.lat.unit),
-        )
-    else:
-        output_frame = cf.CelestialFrame(
-            reference_frame=coord.ICRS(),
-            unit=(u.deg, u.deg),
-        )
-
-    input_frame = cf.Frame2D(name="detector")
     new_wcs = gwcs.WCS([gwcs.Step(input_frame, fwcs),
                         gwcs.Step(output_frame, None)])
     new_wcs.bounding_box = bounding_box
