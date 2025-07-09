@@ -197,7 +197,8 @@ def flag_saturated_pixels(
             scigp2 = data[ints, 1, :, :] - data[ints, 0, :, :]
             mask &= scigp2 > (sat_thresh - data[ints, 0, :, :]) / len(read_pattern[1])
 
-            # Identify groups that are saturated in the third group but not yet flagged in the second
+            # Identify groups that are saturated in the third group but not yet flagged in the
+            # second
             gp3mask = (np.bitwise_and(dq3, saturated) != 0) & (np.bitwise_and(dq2, saturated) == 0)
             mask &= gp3mask
 

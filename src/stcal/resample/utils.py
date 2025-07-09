@@ -135,7 +135,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
 
     else:
         raise ValueError(
-            f"Invalid weight type: {repr(weight_type)}.Allowed weight types are 'ivm', 'exptime', or None."
+            f"Invalid weight type: {repr(weight_type)}.Allowed weight types are "
+            "'ivm', 'exptime', or None."
         )
 
     return result.astype(np.float32)

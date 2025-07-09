@@ -60,7 +60,8 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     if total_noise_min_grps_fails and sig_clip_grps_fails:
         log.info(
-            "Jump Step was skipped because exposure has less than the minimum number of usable groups"
+            "Jump Step was skipped because exposure has less than the minimum "
+            "number of usable groups"
         )
         dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
@@ -420,7 +421,9 @@ def det_jump_sigma_clipping(
         Flagged group DQ array.
     """
     log.info(
-        f" Jump Step using sigma clip {str(total_groups)} greater than {str(twopt_p.minimum_sigclip_groups)}, rejection threshold {str(twopt_p.normal_rej_thresh)}"
+        f" Jump Step using sigma clip {str(total_groups)} greater than "
+        f"{str(twopt_p.minimum_sigclip_groups)}, rejection threshold "
+        f"{str(twopt_p.normal_rej_thresh)}"
     )
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)

@@ -653,7 +653,8 @@ class SkyGroup:
 
         else:
             raise TypeError(
-                "Parameter 'images' must be either a single 'SkyImage' object or a list of 'SkyImage' objects"
+                "Parameter 'images' must be either a single 'SkyImage' object or "
+                "a list of 'SkyImage' objects"
             )
 
         self.sky_id = sky_id

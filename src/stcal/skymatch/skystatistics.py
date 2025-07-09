@@ -42,11 +42,11 @@ class SkyStats:
         ----------
         skystat : optional
             possible values are'mode', 'median', 'mode', 'midpt".
-            Sets the statistics that will be returned by `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
+            Sets the statistics that will be returned by
+            `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
             The following statistics are supported: 'mean', 'mode', 'midpt',
             and 'median'. First three statistics have the same meaning as in
-            `stsdas.toolbox.imgtools.gstatistics <http://stsdas.stsci.edu/\
-cgi-bin/gethelp.cgi?gstatistics>`_
+            `stsdas.toolbox.imgtools.gstatistics <http://stsdas.stsci.edu/cgi-bin/gethelp.cgi?gstatistics>`_
             while 'median' will compute the median of the distribution.
 
         lower : float, None, optional

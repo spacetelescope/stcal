@@ -336,7 +336,8 @@ class Resample:
             pixel_area = model["pixelarea_steradians"]
             if pixel_area is None or pixel_area <= 0:
                 log.warning(
-                    "Input model does not have 'pixelarea_steradians' set. Using mean pixel area instead."
+                    "Input model does not have 'pixelarea_steradians' set. Using "
+                    "mean pixel area instead."
                 )
                 pixel_area = compute_mean_pixel_area(model["wcs"], shape=model["data"].shape)
         if pixel_area is None or pixel_area <= 0:
@@ -388,7 +389,8 @@ class Resample:
         if "SPECTRAL" in output_wcs.output_frame.axes_type:
             if naxes != 3:
                 raise UnsupportedWCSError(
-                    f"Output spectral WCS needs 3 coordinate axes but the supplied WCS has {naxes} axes."
+                    f"Output spectral WCS needs 3 coordinate axes but the supplied "
+                    f"WCS has {naxes} axes."
                 )
             return
 
@@ -1112,7 +1114,8 @@ class Resample:
 
         elif variance.shape != model["data"].shape:
             log.warning(
-                f"Data shape mismatch for '{name}' for model {repr(_get_model_name(model))}. Skipping ..."
+                f"Data shape mismatch for '{name}' for model {repr(_get_model_name(model))}. "
+                "Skipping ..."
             )
             return
 

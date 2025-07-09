@@ -242,7 +242,8 @@ drizzlepac/astrodrizzle.html>`_.
     skymethod = skymethod.lower()
     if skymethod not in ["local", "global", "match", "global+match"]:
         raise ValueError(
-            "Unsupported 'skymethod'. Valid values are: 'local', 'global', 'match', or 'global+match'"
+            "Unsupported 'skymethod'. Valid values are: 'local', 'global', "
+            "'match', or 'global+match'"
         )
     do_match = "match" in skymethod
     do_global = "global" in skymethod
@@ -395,7 +396,8 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
                 c = 1.0 / im.convf
                 if show_old:
                     log.info(
-                        f"      - Image ID={im.sky_id}. Sky background: {c * new_sky:G} (old={c * old_sky:G}, delta={c * sky:G})"
+                        f"      - Image ID={im.sky_id}. Sky background: {c * new_sky:G} "
+                        f"(old={c * old_sky:G}, delta={c * sky:G})"
                     )
                 else:
                     log.info(f"      - Image ID={im.sky_id}. Sky background: {c * new_sky:G}")
@@ -414,7 +416,8 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             c = 1.0 / img.convf
             if show_old:
                 log.info(
-                    f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G} (old={c * old_sky:G}, delta={c * sky:G})"
+                    f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G} "
+                    f"(old={c * old_sky:G}, delta={c * sky:G})"
                 )
             else:
                 log.info(f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G}")
