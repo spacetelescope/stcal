@@ -13,7 +13,7 @@ TweakReg
 
 .. toctree::
    :maxdepth: 1
-   
+
    utils.rst
    astrometric_utils.rst
 

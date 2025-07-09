@@ -195,11 +195,11 @@ Segment-specific Computations
 +++++++++++++++++++++++++++++
 The variance of the slope of a segment due to read noise is:
 
-.. math::  
+.. math::
    var^R_{s} = \frac{12 \ R^2 }{ (ngroups_{s}^3 - ngroups_{s})(tgroup^2)(gain^2) } \,,
 
-where :math:`R` is the noise in the difference between 2 frames, 
-:math:`ngroups_{s}` is the number of groups in the segment, and :math:`tgroup` is the group 
+where :math:`R` is the noise in the difference between 2 frames,
+:math:`ngroups_{s}` is the number of groups in the segment, and :math:`tgroup` is the group
 time in seconds (from the keyword TGROUP).  The divide by gain converts to
 :math:`DN`.  For the special case where as segment has length 1, the
 :math:`ngroups_{s}` is set to :math:`2`.
@@ -272,7 +272,7 @@ The square-root of the combined variance is stored in the ERR array of the outpu
 The overall slope depends on the slope and the combined variance of the slope of each integration's
 segments, so is a sum over integration values computed from the segments:
 
-.. math::    
+.. math::
     slope_{o} = \frac{ \sum_{i}{ \frac{slope_{i}} {var^C_{i}}}} { \sum_{i}{ \frac{1} {var^C_{i}}}}
 
 
@@ -338,12 +338,12 @@ group/resultant directly, the likelihood algorithm is based on differences of
 the groups/resultants :math:`d_i = r_i - r_{i-1}`.  The model used to determine
 the slope/countrate, :math:`a`, is:
 
-.. math::    
+.. math::
     \chi^2 = ({\bf d} - a \cdot {\bf 1})^T C ({\bf d} - a \cdot {\bf 1}) \,,
 
-Differentiating, setting to zero, then solving for :math:`a` results in 
+Differentiating, setting to zero, then solving for :math:`a` results in
 
-.. math::    
+.. math::
     a = ({\bf 1}^T C {\bf d})({\bf 1}^T C {\bf 1})^T \,,
 
 The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of the

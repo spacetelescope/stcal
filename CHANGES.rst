@@ -283,7 +283,7 @@ Changes to API
 --------------
 
 - Add ``outlier_detection`` submodule with ``utils`` included
-  from jwst. [#270] 
+  from jwst. [#270]
 
 1.7.3 (2024-07-05)
 ==================

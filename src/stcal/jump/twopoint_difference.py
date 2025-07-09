@@ -72,7 +72,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
         gdq, nints, ngroups, first_diffs, median_diffs, sigma,
         row_below_gdq, row_above_gdq, twopt_p)
-            
+
     if stddev is not None:
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 
@@ -83,7 +83,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 
-    
+
 def jump_detection_post_processing(
     gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
 ):
@@ -106,7 +106,7 @@ def jump_detection_post_processing(
         Pixels below current row also to be flagged as a CR.
     row_above_gdq : ndarray
         Pixels above current row also to be flagged as a CR.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -120,13 +120,13 @@ def jump_detection_post_processing(
     """
     # Flag the four neighbors using bitwise or, shifting the reference
     # boolean flag on pixel right, then left, then up, then down.
-    # Flag neighbors above the threshold for which neither saturation 
+    # Flag neighbors above the threshold for which neither saturation
     # nor donotuse is set.
     if twopt_p.flag_4_neighbors:
         gdq, row_below_gdq, row_above_gdq = flag_four_neighbors(
             gdq, nints, ngroups, first_diffs, median_diffs, sigma,
             row_below_gdq, row_above_gdq, twopt_p)
-                
+
     # Flag n groups after jumps above the specified thresholds to
     # account for the transient seen after ramp jumps.  Again, use
     # boolean arrays; the propagation happens in a separate function.
@@ -160,7 +160,7 @@ def run_jump_detection(
         Total usable groups to check.
     min_usable_diffs : int
         The minimum number of usable differences needed.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -176,12 +176,12 @@ def run_jump_detection(
     """
     # set 'saturated' or 'do not use' pixels to nan in data
     dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
-    
+
     # calculate the differences between adjacent groups (first diffs)
     # Bad data will be NaN; np.nanmedian will be used later.
     first_diffs = np.diff(dat, axis=1)
     first_diffs_finite = np.isfinite(first_diffs)
-    
+
     # calc. the median of first_diffs for each pixel along the group axis
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
@@ -201,7 +201,7 @@ def run_jump_detection(
     else:  # There are not enough groups for sigma clipping
         if min_usable_diffs >= twopt_p.min_diffs_single_pass:
             gdq = look_for_more_than_one_jump(
-                gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p) 
+                gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p)
         else:  # low number of diffs requires iterative flagging
             gdq = iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p)
 
@@ -222,7 +222,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
         The first differences of the groups.
     read_noise_2 : ndarray
         The square of the read noise reference array.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -235,7 +235,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     first_diffs_abs = np.abs(first_diffs)
 
     cr_pix, ratio = get_cr_locs(
-        first_diffs_abs, read_noise_2, ndiffs, twopt_p) 
+        first_diffs_abs, read_noise_2, ndiffs, twopt_p)
 
     # Iterate over all groups and integrations: flag and clip the
     # first CR found for each pixel (if any), then recompute medians
@@ -246,7 +246,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
 
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
         # Newly flagged jump locations
-        new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]        
+        new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]
         warnings.resetwarnings()
 
         # No new jumps: we are done.
@@ -261,7 +261,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
         # CR flagged in this iteration.
         cr_pix, ratio = get_cr_locs(first_diffs_abs, read_noise_2, ndiffs,
                                     twopt_p, index=np.any(new_cr, axis=(0, 1)))
-        
+
     return gdq
 
 
@@ -277,7 +277,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
         The square of the read noise reference array.
     ndiffs : int
         The number of differences.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
     index : ndarray, bool or None
         Boolean index of pixels that require checking.  If None,
@@ -296,13 +296,13 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
 
     # If index is supplied, we use zero for median_diffs_iter except
     # for pixels marked by index in order to save computation time.
-    
+
     if index is not None:
         firstdiffs_reshaped = first_diffs_abs[:, :, index].reshape(nints, ndiffs_int, -1)
         median_diffs_iter[index] = calc_med_first_diffs(firstdiffs_reshaped)
     else:
         median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
-        
+
     # calculate sigma for each pixel
     sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / twopt_p.nframes)
     # reset sigma so pixels with 0 readnoise are not flagged as jumps
@@ -333,7 +333,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     twogrp_cr = (num_usable_grps == 2) & (max_ratio > twopt_p.two_diff_rej_thresh)
     # Get a boolean array labeling pixels with at least one CR
     cr_pixel = fourgrp_cr | threegrp_cr | twogrp_cr
-    
+
     return cr_pixel, ratio
 
 
@@ -357,7 +357,7 @@ def look_for_more_than_one_jump(
         The sigma for each pixel.
     first_diffs_finite : ndarray
         A boolean array where the first diffs are finite.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -402,7 +402,7 @@ def det_jump_sigma_clipping(
         A boolean array where the first diffs are finite.
     first_diffs : ndarray
         The first differences of the groups.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -439,7 +439,7 @@ def det_jump_sigma_clipping(
                 #gdq[integ, grp] |= twopt_p.fl_dnu
                 jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
                 gdq[integ, grp][jump_only] = 0
-                
+
     warnings.resetwarnings()
     return gdq, stddev
 
@@ -454,7 +454,7 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
         The number of integrations per exposure
     total_groups : int
         Total usable groups to check.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -491,7 +491,7 @@ def flag_four_neighbors(
         Pixels below current row also to be flagged as a CR.
     row_above_gdq : ndarray
         Pixels above current row also to be flagged as a CR.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -537,7 +537,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
         First differences of the groups of the science array.
     median_diffs : ndarray
         The media of the first differences.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -578,7 +578,7 @@ def check_group_counts(nints, total_sigclip_groups, twopt_p):
         Number of integrations in an exposure
     total_sigclip_groups : int
         Total number of sigma-clipped groups
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -605,7 +605,7 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
         The number of groups in an integration.
     gdq : ndarray
         Group DQ array.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -739,7 +739,7 @@ def calc_med_first_diffs(in_first_diffs):
         integrations for each pixel in in_first_diffs. Will be either
         1d or 2d depending on the shape of in_first_diffs.
     """
-    
+
     # We will modify our copy of first_diffs by setting some pixels to NaN.
     first_diffs = in_first_diffs.copy()
     nints, ndiffs = first_diffs.shape[:2]
@@ -753,15 +753,15 @@ def calc_med_first_diffs(in_first_diffs):
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
 
     # Four or more usable diffs: mask the largest difference.
-    maxval = np.nanmax(first_diffs, axis=(0, 1))        
+    maxval = np.nanmax(first_diffs, axis=(0, 1))
     first_diffs[fourgrps & (first_diffs == maxval)] = np.nan
-    
+
     # Three or more usable diffs: take the median
     median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
 
     # Two usable diffs: take the minimum
     median_diffs[twogrps] = np.nanmin(first_diffs, axis=(0, 1))[twogrps]
-    
+
     # Fewer than two usable diffs: can't do anything.
     median_diffs[lessthantwogrps] = np.nan
 

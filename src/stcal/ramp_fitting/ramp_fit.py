@@ -248,7 +248,7 @@ def ramp_fit_data(
                   " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
                   " is being changed to OLS_C")
         algorithm = "OLS_C"
-        
+
     if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, readnoise_2d, gain_2d

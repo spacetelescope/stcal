@@ -211,7 +211,7 @@ def test_memory_computer(in_memory, tmp_path):
     in_memory=False case allocates the following memory:
     - one buffer size, which by default is the frame size
     - median array == one frame size
-    
+
     add a half-frame-size buffer to the expected memory usage in both cases
     """
     shp = (20, 500, 500)

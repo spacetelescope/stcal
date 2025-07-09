@@ -17,7 +17,7 @@ class MemoryThreshold:
     If the code in the with statement uses more than the expected_usage
     memory a ``MemoryThresholdExceeded`` exception
     will be raised.
-    
+
     Note that this class does not prevent allocations beyond the threshold
     and only checks the actual peak allocations to the threshold at the
     end of the with statement.

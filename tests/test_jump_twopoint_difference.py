@@ -28,7 +28,7 @@ def default_twopt_p(
     twopt_p.two_diff_rej_thresh = 3
     twopt_p.three_diff_rej_thresh = 3
     twopt_p.nframes = 1
-            
+
     twopt_p.flag_4_neighbors = _4n
     twopt_p.max_jump_to_flag_neighbors = mx_flag
     twopt_p.min_jump_to_flag_neighbors = mn_flag
@@ -845,7 +845,7 @@ def sigclip_twopt_p():
     twopt_p.two_diff_rej_thresh = 6.0
     twopt_p.three_diff_rej_thresh = 5.0
     twopt_p.nframes = (1,)
-            
+
     twopt_p.flag_4_neighbors = False
     twopt_p.max_jump_to_flag_neighbors = 200.0
     twopt_p.min_jump_to_flag_neighbors = 10.0

@@ -384,4 +384,3 @@ def test_dark_extrapolation(make_rampmodel, make_darkmodel, setup_nrc_cube):
 
     assert_allclose(outfile.data[0, :, 10, 10], np.linspace(1, 32.2, nrc_ngroups), rtol=1.e-5)
     assert_allclose(dark.data[:, 10, 10], np.linspace(0, 7.8, nrc_ngroups), rtol=1.e-5)
-

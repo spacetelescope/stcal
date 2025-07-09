@@ -120,7 +120,7 @@ def test_read_pattern_saturation_flagging_dnu():
 
 def test_group2_saturation_flagging_with_bias():
     """Flag group 2 saturation in frame-averaged data with significant bias.
-    
+
     Saturation in frame-averaged groups may not exceed the saturation threshold
     until after the group where a saturating CR occurs.  Special rules are used
     for the second group of frame-averaged data.  Check that the saturation
@@ -142,35 +142,35 @@ def test_group2_saturation_flagging_with_bias():
     # Frame 5 in group 2 has a 40000 count CR saturating the pixel
     # averaged over 5 frames this only looks like a 8000 count jump in group 2
     # but group 3 signal saturates
-    
+
     bias[5, 5] = 15000
-    
+
     data[0, 0, 5, 5] = 18000
     data[0, 1, 5, 5] = 31000
     data[0, 2, 5, 5] = 68000
     data[0, 3, 5, 5] = 73000  # Signal reaches saturation limit
     data[0, 4, 5, 5] = 78000
-    
-        
+
+
     # Add another pixel with bias of 15000, but no source flux
     # pixel counts are 15000 > sat_thresh/5, but should not be flagged as
     # saturated.
     bias[15, 15] = 15000
-    
+
     data[0, :, 15, 15] = 15000
 
     # Set saturation value in the saturation model
     satvalue = 60000
     sat_thresh[5, 5] = satvalue
     sat_thresh[15, 15] = satvalue
-    
+
 
     # set read_pattern to have 5 reads per group.
     read_pattern = [
-        [1, 2, 3, 4, 5], 
-        [6, 7, 8, 9, 10], 
-        [11, 12, 13, 14, 15], 
-        [16, 17, 18, 19, 20], 
+        [1, 2, 3, 4, 5],
+        [6, 7, 8, 9, 10],
+        [11, 12, 13, 14, 15],
+        [16, 17, 18, 19, 20],
         [21, 22, 23, 24, 25]
     ]
 

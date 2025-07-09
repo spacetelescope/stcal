@@ -1463,7 +1463,7 @@ def test_one_group():
     sdata, sdq, svp, svr, serr = slopes
 
     # XXX JP-3121: this is the value from python, which may not be correct
-    chk_data = 1.9618962  
+    chk_data = 1.9618962
     chk_dq = 0
     chk_var_p = 0.02923839
     chk_var_r = 0.03470363

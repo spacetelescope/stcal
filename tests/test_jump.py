@@ -612,4 +612,3 @@ def test_calc_num_slices():
     assert calc_num_slices(n_rows, "3/4", max_available_cores) == 1
     n_rows = 9
     assert calc_num_slices(n_rows, "21", max_available_cores) == 9
-

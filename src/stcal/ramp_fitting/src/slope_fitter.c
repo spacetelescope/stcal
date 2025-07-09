@@ -21,7 +21,7 @@ lists all extensions, then run:
 
 python setup.py build_ext --inplace
 
-        or 
+        or
 
 pip install -e .
  */
@@ -30,7 +30,7 @@ pip install -e .
 /*                               TYPEDEFs                                    */
 /* ------------------------------------------------------------------------- */
 
-/* 
+/*
  * Toggle internal arrays from float to doubles.  The REAL_IS_DOUBLE is used
  * for preprocessor switches in the code.  If a developer prefers to use a
  * float for internal arrays, this macro can be set to zero to switch from
@@ -61,7 +61,7 @@ static pid_t g_pid;
 char g_log_name[PATH_MAX];
 FILE * g_log = NULL;
 
-/* 
+/*
  * Deals with invalid data.  This is one of the ways the python code dealt with
  * the limitations of numpy that aren't necessary in this code.  The LARGE_VARIANCE
  * variable has been removed from use in this code, but due to some strange,
@@ -91,7 +91,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 #define SET_FREE(X) if (X) {free(X); (X) = NULL;}
 #define FCLOSE(FD) if (FD) {fclose(FD); (FD) = NULL;}
 
-/* 
+/*
  * Wraps the clean_ramp_data function.  Ensure all allocated
  * memory gets deallocated properly for the ramp_data data
  * structure, as well as the allocation allocation for the
@@ -104,7 +104,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
         (RD) = NULL; \
     }
 
-/* 
+/*
  * Wraps the clean_pixel_ramp function.  Ensure all allocated
  * memory gets deallocated properly for the pixel_ramp data
  * structure, as well as the allocation allocation for the
@@ -116,7 +116,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
         SET_FREE(PR); \
     }
 
-/* 
+/*
  * Wraps the clean_segment_list function.  Ensure all allocated
  * memory gets deallocated properly for the segment_list data
  * structure, as well as the allocation allocation for the
@@ -209,13 +209,13 @@ struct ramp_data {
     int special2;   /* Count of segments of length 2 */
 
     /*
-     * Group and Pixel flags: 
+     * Group and Pixel flags:
      * DO_NOT USE, JUMP_DET, SATURATED, NO_GAIN_VALUE, UNRELIABLE_SLOPE,
      * CHARGELOSS, and a user defined "invalid" flag.
      */
     uint32_t dnu, jump, sat, ngval, uslope, chargeloss, invalid;
 
-    /* 
+    /*
      * This is used only if the save_opt is non-zero, i.e., the option to
      * save the optional results product must be turned on.
      *
@@ -752,7 +752,7 @@ print_segment_opt_res(
     npy_intp integ, int segnum, int line);
 
 static void
-print_stats(struct pixel_ramp * pr, npy_intp integ, int line); 
+print_stats(struct pixel_ramp * pr, npy_intp integ, int line);
 
 static void
 print_uint8_array(uint8_t * arr, int len, int ret, int line);
@@ -798,7 +798,7 @@ print_delim_char(char c, int len) {
     printf("\n");
 }
 
-/* 
+/*
  * Used to determine if a pixel is in a list.
  * This is a debugging function.
  */
@@ -861,13 +861,13 @@ print_pid_info(long long prev, int line, char * label) {
  * checkers in place such that the logger is simply ignored.  Maybe a more intelligent
  * system should be put in place to create a logger directory, but for now this
  * suffices.
- * 
+ *
  * I created this to debug multirpocessing.  The logger captures process information
  * into separate logs, so any failures can be determined on a per process bases.
  * Redirection from the command line behaves unexpectedly when multiple processes print
  * to the terminal and copy and pasting from the terminal is lacking due to the amount
  * of data that possibly needs to be copied.
- * 
+ *
  * Each process has its own log and each log has a timestamp, so if you have successive
  * runs, each can be separated by time, as well as process ID.
  */
@@ -930,7 +930,7 @@ ols_slope_fitter(
 
     /* Allocate, fill, and validate ramp data */
     rd = get_ramp_data(args);
-    if (NULL == rd) { 
+    if (NULL == rd) {
         goto ERROR;
     }
 
@@ -1092,7 +1092,7 @@ static void
 clean_pixel_ramp(
         struct pixel_ramp * pr)  /* Ramp fitting data for a pixel. */
 {
-    npy_intp integ; 
+    npy_intp integ;
 
     if (NULL == pr) {
         return;  /* Nothing to do */
@@ -1109,7 +1109,7 @@ clean_pixel_ramp(
 
     /* Clean up the allocated memory for the linked lists. */
     FREE_SEGS_LIST(pr->nints, pr->segs);
-    
+
     /* XXX Clean CR list */
     for (integ=0; integ < pr->nints; ++integ) {
         cr_list_clean(&(pr->crs[integ]));
@@ -1221,7 +1221,7 @@ clean_segment_list(
     struct simple_ll_node * current = NULL;
     struct simple_ll_node * next = NULL;
 
-    /* 
+    /*
      * Clean each list for each integration.   Each integration for
      * each pixel is segmented.  For each integration, there is a
      * linked list of segments, so walk the linked lists and free
@@ -2019,7 +2019,7 @@ get_ramp_data(
         err_ols_print("%s\n", msg);
         goto END;
     }
-    
+
     if (get_ramp_data_parse(&Py_ramp_data, rd, args)) {
         FREE_RAMP_DATA(rd);
         goto END;
@@ -2359,7 +2359,7 @@ median_rate_default(
         }
         accum_mrate += mrate;
     }
-    
+
     /* The pixel median rate is the average of the integration median rates. */
     pr->median_rate = accum_mrate /= (float)pr->nints;
 
@@ -2445,7 +2445,7 @@ median_rate_integration(
     /* Sort first differences with NaN's based on DQ flags */
     median_rate_integration_sort(loc_integ, int_dq, rd, pr);
 
-    /* 
+    /*
      * Get the NaN median using the sorted first differences.  Note that the
      * first differences has a length ngroups-1.
      */
@@ -2608,13 +2608,13 @@ package_results(
     PyObject * opt_res = Py_None;
     PyObject * result = Py_None;
 
-    image_info = Py_BuildValue("(NNNNN)", 
+    image_info = Py_BuildValue("(NNNNN)",
         rate->slope, rate->dq, rate->var_poisson, rate->var_rnoise, rate->var_err);
     if (!image_info) {
         goto FAILED_ALLOC;
     }
 
-    cube_info = Py_BuildValue("(NNNNN)", 
+    cube_info = Py_BuildValue("(NNNNN)",
         rateints->slope, rateints->dq, rateints->var_poisson, rateints->var_rnoise, rateints->var_err);
     if (!cube_info) {
         goto FAILED_ALLOC;
@@ -2797,7 +2797,7 @@ ramp_fit_pixel(
             ret = 1;
             goto END;
         }
-        
+
         if (pr->rateints[integ].dq & rd->dnu) {
             dnu_cnt++;
             pr->rateints[integ].slope = NAN;
@@ -3003,7 +3003,7 @@ ramp_fit_pixel_integration(
             pr->rateints[integ].dq |= rd->sat;
         }
         return 0;
-    } 
+    }
 
     ramp_fit_pixel_integration_fit_slope(rd, pr, integ);
 
@@ -3340,7 +3340,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted(
         real_t power)                   /* The power of the segment */
 {
     struct ols_calcs ols = {0};
-    
+
     /* Make sure the initial values are zero */
     memset(&ols, 0, sizeof(ols));
     ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
@@ -3367,7 +3367,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
 {
     npy_intp idx, group;
     real_t mid, weight, invrn2, invmid, data, xval, xwt;
-    
+
     /* Find midpoint for weight computation */
     mid = (real_t)(seg->length - 1) / 2.;
     invmid = 1. / mid;
@@ -3876,7 +3876,7 @@ print_segment(
         printf("[%d] - ", line);
     }
     printf("Integration %ld, segment %d, has length %ld.\n", integ, segnum, seg->length);
-    
+
     idx = get_ramp_index(rd, integ, seg->start);
     printf("Science Data\n[%" DBL, pr->data[idx]);
     for (group = seg->start + 1; group < seg->end; ++group) {
@@ -3884,7 +3884,7 @@ print_segment(
         printf(", %" DBL, pr->data[idx]);
     }
     printf("]\n");
-    
+
     idx = get_ramp_index(rd, integ, seg->start);
     printf("Group DQ\n[%02x", pr->groupdq[idx]);
     for (group = seg->start + 1; group < seg->end; ++group) {
@@ -4172,7 +4172,7 @@ print_PyArrayObject_info(PyArrayObject * obj) {
 
     printf("flags:\n");
     if (NPY_ARRAY_C_CONTIGUOUS & flags ) {
-        printf("    NPY_ARRAY_C_CONTIGUOUS\n"); 
+        printf("    NPY_ARRAY_C_CONTIGUOUS\n");
     }
     if (NPY_ARRAY_F_CONTIGUOUS & flags ) {
         printf("    NPY_ARRAY_F_CONTIGUOUS\n");

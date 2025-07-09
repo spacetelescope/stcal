@@ -307,7 +307,7 @@ def _parse_sky_centroid(catalog: Table) -> Table:
         msg = ("Absolute reference catalog contains neither RA/DEC nor "
                "sky_centroid columns. Could not parse the catalog.")
         raise KeyError(msg)
-    
+
     # Convert SkyCoord object to RA/DEC
     skycoord = catalog["sky_centroid"].to_table()
     catalog["RA"] = skycoord["ra"]
