@@ -51,10 +51,6 @@ ignore = [
     "TRY003", # prevents custom exception messages not defined in exception itself.
     "TRY400", # enforces log.exception instead of log.error in except clause.
     "ISC001", # single line implicit string concatenation. formatter recommends ignoring this.
-    "N818",
-    "N806",
-    "N803",
-    "N802",
     "D205",
     "D103",
     "D101",
@@ -97,27 +93,8 @@ ignore-fully-untyped = true  # Turn off annotation checking for fully untyped co
     "UP",     # pyupgrade (simplified syntax allowed by newer Python versions)
     "YTT",    # flake8-2020 (prevent some specific gotchas from sys.version)
 ]
-# "**/tests/test_*.py" = [
-#     "F",      # Pyflakes (part of default flake8)
-#     "E",      # pycodestyle (part of default flake8)
-#     "W",      # pycodestyle (part of default flake8)
-#     "D",      # docstrings, see also numpydoc pre-commit action
-#     "N",      # pep8-naming (naming conventions)
-#     "A",      # flake8-builtins (prevent shadowing of builtins)
-#     "ARG",    # flake8-unused-arguments (prevent unused arguments)
-#     "B",      # flake8-bugbear (miscellaneous best practices to avoid bugs)
-#     "C4",     # flake8-comprehensions (best practices for comprehensions)
-#     "ICN",    # flake8-import-conventions (enforce import conventions)
-#     "INP",    # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
-#     "ISC",    # flake8-implicit-str-concat (conventions for concatenating long strings)
-#     "LOG",    # flake8-logging
-#     "NPY",    # numpy-specific rules
-#     "PGH",    # pygrep-hooks (ensure appropriate usage of noqa and type-ignore)
-#     "PTH",    # flake8-use-pathlib (enforce using Pathlib instead of os)
-#     "S",      # flake8-bandit (security checks)
-#     "SLF",    # flake8-self (prevent using private class members outside class)
-#     "SLOT",   # flake8-slots (require __slots__ for immutable classes)
-#     "TRY",    # tryceratops (best practices for try/except blocks)
-#     "UP",     # pyupgrade (simplified syntax allowed by newer Python versions)
-#     "YTT",    # flake8-2020 (prevent some specific gotchas from sys.version)
-# ]
+"src/stcal/ramp_fitting/*.py" = [
+    "N802", # function name should be lowercase
+    "N803", # argument name in function should be lowercase
+    "N806", # variable name in function should be lowercase
+]

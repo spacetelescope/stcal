@@ -3,7 +3,7 @@ import tracemalloc
 MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
 
 
-class MemoryThresholdExceeded(Exception):
+class MemoryThresholdExceededError(Exception):
     pass
 
 
@@ -51,4 +51,4 @@ class MemoryThreshold:
                 f"{peak / scaling:.2f} {self.units} > "
                 f"{self.expected_usage_bytes / scaling:.2f} {self.units} "
             )
-            raise MemoryThresholdExceeded(msg)
+            raise MemoryThresholdExceededError(msg)

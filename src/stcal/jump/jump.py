@@ -874,13 +874,13 @@ def find_faint_extended(indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_f
             ratio = diff_meddiff_int(intg, median_diffs, sigma, first_diffs)
 
         #  The convolution kernel creation
-        ring_2D_kernel = Ring2DKernel(jump_data.extend_inner_radius, jump_data.extend_outer_radius)
+        ring_2d_kernel = Ring2DKernel(jump_data.extend_inner_radius, jump_data.extend_outer_radius)
         first_good_group = find_first_good_group(gdq[intg, :, :, :], jump_data.fl_dnu)
         for grp in range(first_good_group + 1, ngrps):
             if nints >= jump_data.minimum_sigclip_groups:
                 ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
-            bigcontours = get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
+            bigcontours = get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2d_kernel)
 
             # get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
@@ -1096,7 +1096,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     return (round(axis1 / 2), round(axis2 / 2))
 
 
-def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2d_kernel):
     """Perform convolution to find contours larger than a minimum area.
 
     Parameters
@@ -1118,7 +1118,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
-    ring_2D_kernel : astropy.convolution.Ring2DKernel
+    ring_2d_kernel : astropy.convolution.Ring2DKernel
         2D Ring filter kernel
 
     Returns
@@ -1137,7 +1137,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     jump_sat_or_dnu = np.bitwise_and(combined_pixel_mask, jump_flag | sat_flag | dnu_flag) != 0
     masked_ratio[jump_sat_or_dnu] = np.nan
 
-    kernel = ring_2D_kernel.array
+    kernel = ring_2d_kernel.array
 
     # Equivalent to but faster than
     # masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel, preserve_nan=True)

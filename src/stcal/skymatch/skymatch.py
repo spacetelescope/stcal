@@ -466,8 +466,8 @@ def _overlap_matrix(images, apply_sky=True):
     # TODO: to improve performance, the nested loops could be parallelized
     # since _calc_sky() here can be called independently from previous steps.
     ns = len(images)
-    A = np.zeros((ns, ns), dtype=float)
-    W = np.zeros((ns, ns), dtype=float)
+    a = np.zeros((ns, ns), dtype=float)
+    w = np.zeros((ns, ns), dtype=float)
 
     for i in range(ns):
         for j in range(i + 1, ns):
@@ -478,20 +478,20 @@ def _overlap_matrix(images, apply_sky=True):
             if area1 == 0.0 or area2 == 0.0 or s1 is None or s2 is None:
                 continue
 
-            A[j, i] = s1
-            W[j, i] = w1
-            A[i, j] = s2
-            W[i, j] = w2
+            a[j, i] = s1
+            w[j, i] = w1
+            a[i, j] = s2
+            w[i, j] = w2
 
-    return A, W
+    return a, w
 
 
 def _find_optimum_sky_deltas(images, apply_sky=True):
     ns = len(images)
-    A, W = _overlap_matrix(images, apply_sky=apply_sky)
+    a, w = _overlap_matrix(images, apply_sky=apply_sky)
 
     def is_valid(i, j):
-        return W[i, j] > 0 and W[j, i] > 0
+        return w[i, j] > 0 and w[j, i] > 0
 
     # We need to know how many "non-trivial" (at least for now... - we will
     # compute rank later) equations can be built so that we know the
@@ -506,11 +506,11 @@ def _find_optimum_sky_deltas(images, apply_sky=True):
                 neq += 1
 
     # average weights:
-    Wm = 0.5 * (W + W.T)
+    w_mean = 0.5 * (w + w.T)
 
     # create arrays for coefficients and free terms:
-    K = np.zeros((neq, ns), dtype=float)
-    F = np.zeros(neq, dtype=float)
+    k = np.zeros((neq, ns), dtype=float)
+    f = np.zeros(neq, dtype=float)
     invalid = (ns) * [True]
 
     # now process intersections between the rest of the images:
@@ -518,15 +518,15 @@ def _find_optimum_sky_deltas(images, apply_sky=True):
     for i in range(0, ns):
         for j in range(i + 1, ns):
             if is_valid(i, j):
-                K[ieq, i] = Wm[i, j]
-                K[ieq, j] = -Wm[i, j]
-                F[ieq] = Wm[i, j] * (A[j, i] - A[i, j])
+                k[ieq, i] = w_mean[i, j]
+                k[ieq, j] = -w_mean[i, j]
+                f[ieq] = w_mean[i, j] * (a[j, i] - a[i, j])
                 invalid[i] = False
                 invalid[j] = False
                 ieq += 1
 
     try:
-        rank = np.linalg.matrix_rank(K, 1.0e-12)
+        rank = np.linalg.matrix_rank(k, 1.0e-12)
     except np.linalg.LinAlgError:
         log.warning("Unable to compute sky: No valid data in common image areas")
         deltas = np.full(ns, np.nan, dtype=float)
@@ -537,8 +537,8 @@ def _find_optimum_sky_deltas(images, apply_sky=True):
         log.warning(f"than there are independent equations available (matrix rank={rank}).")
         log.warning("Sky matching (delta) values will be computed only for")
         log.warning("a subset (or more independent subsets) of input images.")
-    invK = np.linalg.pinv(K, rcond=1.0e-12)
+    inv_k = np.linalg.pinv(k, rcond=1.0e-12)
 
-    deltas = np.dot(invK, F)
+    deltas = np.dot(inv_k, f)
     deltas[np.asarray(invalid, dtype=bool)] = np.nan
     return deltas

@@ -19,7 +19,7 @@ _ONE_MB = 1 << 20
 __all__ = ["MedianComputer", "nanmedian3D"]
 
 
-def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
+def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:  # noqa: N802 preserve API
     """Compute the nanmedian of a cube.
 
     This produces identical results to np.nanmedian but is much more
