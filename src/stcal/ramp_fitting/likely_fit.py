@@ -1209,26 +1209,3 @@ def get_ramp_result(
     warnings.resetwarnings()
 
     return result
-
-
-################################################################################
-################################## DEBUG #######################################
-
-
-def dbg_print_info(group_time, readtimes, data, diff):
-    print(DELIM)
-    print(f"group_time = {group_time}")
-    print(DELIM)
-    print(f"readtimes = {array_string(np.array(readtimes))}")
-    print(DELIM)
-    print(f"data = {array_string(data[:, 0, 0])}")
-    print(DELIM)
-    data_gt = data / group_time
-    print(f"data / gt = {array_string(data_gt[:, 0, 0])}")
-    print(DELIM)
-    print(f"diff = {array_string(diff[:, 0, 0])}")
-    print(DELIM)
-
-
-def array_string(arr, prec=4):
-    return np.array2string(arr, precision=prec, max_line_width=np.nan, separator=", ")

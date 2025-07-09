@@ -151,81 +151,6 @@ class RampData:
         if self.algorithm is not None and self.algorithm.upper() == "OLS_C":
             self.flags_chargeloss = dqflags["CHARGELOSS"]
 
-    def dbg_print_types(self):
-        # Arrays from the data model
-        print("-" * 80)
-        print("    Array Types:")
-        print(f"data : {type(self.data)}")
-        print(f"groupdq : {type(self.groupdq)}")
-        print(f"pixeldq : {type(self.pixeldq)}")
-
-        self.dbg_print_meta()
-        self.dbg_print_mp()
-        self.dbg_print_zframe()
-        self.dbg_print_1grp()
-
-    def dbg_print_meta(self):
-        # Meta information
-        print("-" * 80)
-        print("    Meta:")
-        print(f"Instrument: {self.instrument_name}")
-
-        print(f"Frame time : {self.frame_time}")
-        print(f"Group time : {self.group_time}")
-        print(f"Group Gap : {self.groupgap}")
-        print(f"Nframes : {self.nframes}")
-        print(f"Drop Frames : {self.drop_frames1}")
-        print("-" * 80)
-
-    def dbg_print_mp(self):
-        # Multiprocessing
-        print("-" * 80)
-        print(f"Start row : {self.start_row}")
-        print(f"Number of rows : {self.num_rows}")
-
-    def dbg_print_zframe(self):
-        # ZEROFRAME
-        print("-" * 80)
-        print("    ZEROFRAME:")
-        print(f"zframe_locs : {type(self.zframe_locs)}")
-        print(f"zeroframe : {type(self.zeroframe)}")
-
-    def dbg_print_1grp(self):
-        # One group ramp suppression for saturated ramps after 0th group.
-        print("-" * 80)
-        print("    One Group Suppression:")
-        print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")
-
-    def dbg_print_basic_info(self):
-        # Arrays from the data model
-        self.dbg_print_meta()
-
-        print(f"Shape : {self.data.shape}")
-        print(f"data : \n{self.data}")
-        print(f"groupdq : \n{self.groupdq}")
-        # print(f"pixeldq : \n{self.pixeldq}")
-        print("-" * 80)
-
-    def dbg_print_pixel_info(self, row, col):
-        print("-" * 80)
-        print("    data")
-        for integ in range(self.data.shape[0]):
-            print(f"[{integ}] {self.data[integ, :, row, col]}")
-        print("    groupdq")
-        for integ in range(self.data.shape[0]):
-            print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
-        # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
-
-    def dbg_print_info(self):
-        print(" ")
-        nints, ngroups, nrows, ncols = self.data.shape
-        for row in range(nrows):
-            for col in range(ncols):
-                print("=" * 80)
-                print(f"**** Pixel ({row}, {col}) ****")
-                self.dbg_print_pixel_info(row, col)
-        print("=" * 80)
-
     def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):
         fd.write("def create_ramp_data_pixel():\n")
         indent = INDENT
@@ -319,7 +244,6 @@ class RampData:
         fd.write(f"{indent}nrnoise[0, 0] = {rnoise[row, col]}\n\n")
 
     def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):
-        print(f"*** {fname} ***")
         with open(fname, "w") as fd:
             self.dbg_write_ramp_data_pix_pre(fname, row, col, fd)
             self.dbg_write_ramp_data_pix_pixel(fname, row, col, gain, rnoise, fd)

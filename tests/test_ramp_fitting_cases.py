@@ -828,27 +828,6 @@ def create_blank_ramp_data(dims, var, timing, ts_name="NIRSpec"):
     return ramp_data, gain, rnoise
 
 
-def debug_pri(p_true, new_info, pix):
-    data, dq, vp, vr, err = new_info
-
-    print(DELIM)
-    dbg_print(f"data   = {data[0, pix]}")
-    dbg_print(f"p_true = {p_true[0]}")
-    print(DELIM)
-    dbg_print(f"dq     = {dq[0, pix]}")
-    dbg_print(f"p_true = {p_true[1]}")
-    print(DELIM)
-    dbg_print(f"vp     = {vp[0, pix]}")
-    dbg_print(f"p_true = {p_true[3]}")
-    print(DELIM)
-    dbg_print(f"vr     = {vr[0, pix]}")
-    dbg_print(f"p_true = {p_true[4]}")
-    print(DELIM)
-    dbg_print(f"err    = {err[0, pix]}")
-    dbg_print(f"p_true = {p_true[2]}")
-    print(DELIM)
-
-
 def assert_pri(p_true, new_info, pix):
     """
     Compare true and fit values of primary output for extensions
@@ -876,31 +855,22 @@ def debug_opt(o_true, opt_info, pix):
     opt_pedestal = pedestal[:, 0, pix]
     opt_weights = weights[0, :, 0, pix]
 
-    print(DELIM)
     dbg_print(f"slope  = {opt_slope}")
     dbg_print(f"o_true = {o_true[0]}")
-    print(DELIM)
     dbg_print(f"sigslope = {opt_sigslope}")
     dbg_print(f"o_true   = {o_true[1]}")
-    print(DELIM)
     dbg_print(f"var_p  = {opt_var_poisson}")
     dbg_print(f"o_true = {o_true[2]}")
-    print(DELIM)
     dbg_print(f"var_r  = {opt_var_rnoise}")
     dbg_print(f"o_true = {o_true[3]}")
-    print(DELIM)
     dbg_print(f"yint   = {opt_yint}")
     dbg_print(f"o_true = {o_true[4]}")
-    print(DELIM)
     dbg_print(f"sigyint = {opt_sigyint}")
     dbg_print(f"o_true  = {o_true[5]}")
-    print(DELIM)
     dbg_print(f"pedestal = {opt_pedestal}")
     dbg_print(f"o_true   = {o_true[6]}")
-    print(DELIM)
     dbg_print(f"weights = {opt_weights}")
     dbg_print(f"o_true  = {o_true[7]}")
-    print(DELIM)
 
 
 def assert_opt(o_true, opt_info, pix):
@@ -939,4 +909,3 @@ def dbg_print(string):
     line_number = cf.f_back.f_lineno
     finfo = inspect.getframeinfo(cf.f_back)
     fname = Path(finfo.filename).name
-    print(f"[{fname}:{line_number}] {string}")
