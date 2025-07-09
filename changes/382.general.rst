@@ -1,0 +1,2 @@
+Update and re-enable the linting options for ``stcal`` to bring it in line with what
+JWST uses.
