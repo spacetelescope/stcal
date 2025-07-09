@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import os
+from multiprocessing import Manager
+from typing import TYPE_CHECKING
 
 import requests
-from astropy import table
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.table import Table
+from astropy.table import Column, Table
 
 from stcal.alignment import compute_fiducial
+
+if TYPE_CHECKING:
+    from multiprocessing.managers import DictProxy, SyncManager
+    from threading import Lock
 
 ASTROMETRIC_CAT_ENVVAR = "ASTROMETRIC_CATALOG_URL"
 DEF_CAT_URL = "http://gsss.stsci.edu/webservices"
@@ -116,7 +123,7 @@ def create_astrometric_catalog(
             g = "-1"  # indicator for no source ID extracted
         gaia_sources.append(g)
 
-    gaia_col = table.Column(data=gaia_sources, name="GaiaID", dtype="U25")
+    gaia_col = Column(data=gaia_sources, name="GaiaID", dtype="U25")
     ref_table.add_column(gaia_col)
 
     # sort table by magnitude, fainter to brightest
@@ -151,14 +158,83 @@ def compute_radius(wcs):
     return radius, fiducial
 
 
+class _CatalogCacheSingleton:
+    _instance: _CatalogCacheSingleton | None = None
+    _initalized: bool = False
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+
+        return cls._instance
+
+    def __init__(self):
+        if not self._initalized:
+            self._manager: SyncManager = Manager()
+            self._cache: DictProxy[str, Table] = self._manager.dict()
+            self._lock: Lock = self._manager.Lock()
+            self.__class__._initalized = True
+
+    def get_catalog(
+        self,
+        right_ascension: float,
+        declination: float,
+        epoch: float=2016.0,
+        search_radius: float=0.1,
+        catalog: str | None = None,
+        timeout: float=TIMEOUT,
+        override: bool=False,
+    ) -> Table:
+        """
+        Extract catalog from VO web service.
+
+        See `get_catalog` for details on parameters and return value.
+        """
+        catalog = "GAIADR3" if catalog is None else catalog
+
+        with self._lock:
+            service_url = (
+                f"{SERVICELOCATION}/vo/CatalogSearch.aspx?RA={right_ascension}&DEC={declination}&EPOCH={epoch}&SR={search_radius}&FORMAT=CSV&CAT={catalog}&MINDET=5"
+            )
+            if not override and (catalog := self._cache.get(service_url, None)) is not None:
+                return catalog
+
+            headers = {"Content-Type": "text/csv"}
+
+            try:
+                rawcat = requests.get(service_url, headers=headers, timeout=timeout)
+            except requests.exceptions.ConnectionError as err:
+                raise requests.exceptions.ConnectionError(
+                    "Could not connect to the VO API server. Try again later."
+                ) from err
+            except requests.exceptions.Timeout as err:
+                raise requests.exceptions.Timeout(
+                    "The request to the VO API server timed out."
+                ) from err
+            except requests.exceptions.RequestException as err:
+                raise requests.exceptions.RequestException(
+                    "There was an unexpected error with the request."
+                ) from err
+            # convert from bytes to a String
+            r_contents = rawcat.content.decode()
+            rstr = r_contents.split("\r\n")
+            # remove initial line describing the number of sources returned
+            # CRITICAL to proper interpretation of CSV data
+            del rstr[0]
+
+            self._cache[service_url] = Table.read(rstr, format="csv")
+            return self._cache[service_url]
+
+
 def get_catalog(
-    right_ascension,
-    declination,
-    epoch=2016.0,
-    search_radius=0.1,
-    catalog="GAIADR3",
-    timeout=TIMEOUT,
-):
+    right_ascension: float,
+    declination: float,
+    epoch: float=2016.0,
+    search_radius: float=0.1,
+    catalog: str | None = None,
+    timeout: float=TIMEOUT,
+    override: bool=False,
+) -> Table:
     """Extract catalog from VO web service.
 
     Parameters
@@ -183,42 +259,18 @@ def get_catalog(
     timeout : float, optional
         Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
 
+    override : bool, optional
+        If True, will override any cached catalog with the same parameters.
+        Default: False
+
     Returns
     -------
     csv : `~astropy.table.Table`
         CSV object of returned sources with all columns as provided by catalog
 
     """
-    service_type = "vo/CatalogSearch.aspx"
-    spec_str = "RA={}&DEC={}&EPOCH={}&SR={}&FORMAT={}&CAT={}&MINDET=5"
-    headers = {"Content-Type": "text/csv"}
-    fmt = "CSV"
+    catalog = "GAIADR3" if catalog is None else catalog
 
-    spec = spec_str.format(
-        right_ascension,
-        declination,
-        epoch,
-        search_radius,
-        fmt,
-        catalog
+    return _CatalogCacheSingleton().get_catalog(
+        right_ascension, declination, epoch=epoch, search_radius=search_radius, catalog=catalog, timeout=timeout, override=override
     )
-    service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
-    try:
-        rawcat = requests.get(service_url, headers=headers, timeout=timeout)
-    except requests.exceptions.ConnectionError:
-        raise requests.exceptions.ConnectionError(
-            "Could not connect to the VO API server. Try again later."
-        )
-    except requests.exceptions.Timeout:
-        raise requests.exceptions.Timeout("The request to the VO API server timed out.")
-    except requests.exceptions.RequestException:
-        raise requests.exceptions.RequestException(
-            "There was an unexpected error with the request."
-        )
-    r_contents = rawcat.content.decode()  # convert from bytes to a String
-    rstr = r_contents.split("\r\n")
-    # remove initial line describing the number of sources returned
-    # CRITICAL to proper interpretation of CSV data
-    del rstr[0]
-
-    return Table.read(rstr, format="csv")

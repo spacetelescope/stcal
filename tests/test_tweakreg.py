@@ -374,7 +374,7 @@ def test_get_catalog_timeout():
     with pytest.raises(Exception) as exec_info:
         for dt in np.arange(1, 0, -0.01):
             with contextlib.suppress(requests.exceptions.ConnectionError):
-                amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt)
+                amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt, override=True)
     assert exec_info.type == requests.exceptions.Timeout
 
 
@@ -384,6 +384,6 @@ def test_get_catalog_raises_connection_error(monkeypatch):
     monkeypatch.setattr("requests.get", MockConnectionError)
 
     with pytest.raises(Exception) as exec_info:
-        amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3")
+        amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", override=True)
 
     assert exec_info.type == requests.exceptions.ConnectionError
