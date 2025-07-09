@@ -567,7 +567,7 @@ cdef inline JumpFits fit_jumps(float[:] resultants,
 
         # Start recording the the fit (no jump detected)
 
-        # Record the diagnositcs
+        # Record the diagnostics
         if include_diagnostic:
             ramp_fits.fits.push_back(ramp_fit)
             ramp_fits.index.push_back(ramp)

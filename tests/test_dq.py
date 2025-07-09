@@ -19,5 +19,8 @@ def test_deprecation(name):
         else pytest.raises(ImportError, match=f"{name} has been moved to stdatamodels.{name},.*")
     )
 
-    with pytest.warns(DeprecationWarning, match=f"{name} has been moved to stdatamodels.{name},.*"), error:
+    with (
+        pytest.warns(DeprecationWarning, match=f"{name} has been moved to stdatamodels.{name},.*"),
+        error,
+    ):
         importlib.import_module(f"stcal.{name}")

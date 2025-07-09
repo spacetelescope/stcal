@@ -34,5 +34,5 @@ def _wcsinfo_from_wcs_transform(wcs):
         "v3_ref": -3600 * nv3_ref,
         "roll_ref": roll_ref,
         "ra_ref": -nra_ref,
-        "dec_ref": dec_ref
+        "dec_ref": dec_ref,
     }

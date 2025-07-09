@@ -2,7 +2,6 @@ import logging
 import warnings
 
 import numpy as np
-import warnings
 from astropy import stats
 from astropy.utils.exceptions import AstropyUserWarning
 
@@ -53,26 +52,30 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     total_sigclip_groups = ngroups_ans[5]
 
     # Determine whether there are enough usable groups for the two sigma clip options
-    if (check_group_counts(nints, total_sigclip_groups, twopt_p)):
+    if check_group_counts(nints, total_sigclip_groups, twopt_p):
         sig_clip_grps_fails = True
 
     if min_usable_groups < twopt_p.minimum_groups:
         total_noise_min_grps_fails = True
 
     if total_noise_min_grps_fails and sig_clip_grps_fails:
-        log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
+        log.info(
+            "Jump Step was skipped because exposure has less than the minimum "
+            "number of usable groups"
+        )
         dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
 
     gdq, first_diffs, median_diffs, sigma, stddev = run_jump_detection(
-        dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
+        dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p
+    )
 
     num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
 
     gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
-        gdq, nints, ngroups, first_diffs, median_diffs, sigma,
-        row_below_gdq, row_above_gdq, twopt_p)
-            
+        gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
+    )
+
     if stddev is not None:
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 
@@ -83,7 +86,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 
-    
+
 def jump_detection_post_processing(
     gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
 ):
@@ -106,7 +109,7 @@ def jump_detection_post_processing(
         Pixels below current row also to be flagged as a CR.
     row_above_gdq : ndarray
         Pixels above current row also to be flagged as a CR.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -120,13 +123,21 @@ def jump_detection_post_processing(
     """
     # Flag the four neighbors using bitwise or, shifting the reference
     # boolean flag on pixel right, then left, then up, then down.
-    # Flag neighbors above the threshold for which neither saturation 
+    # Flag neighbors above the threshold for which neither saturation
     # nor donotuse is set.
     if twopt_p.flag_4_neighbors:
         gdq, row_below_gdq, row_above_gdq = flag_four_neighbors(
-            gdq, nints, ngroups, first_diffs, median_diffs, sigma,
-            row_below_gdq, row_above_gdq, twopt_p)
-                
+            gdq,
+            nints,
+            ngroups,
+            first_diffs,
+            median_diffs,
+            sigma,
+            row_below_gdq,
+            row_above_gdq,
+            twopt_p,
+        )
+
     # Flag n groups after jumps above the specified thresholds to
     # account for the transient seen after ramp jumps.  Again, use
     # boolean arrays; the propagation happens in a separate function.
@@ -160,7 +171,7 @@ def run_jump_detection(
         Total usable groups to check.
     min_usable_diffs : int
         The minimum number of usable differences needed.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -176,12 +187,12 @@ def run_jump_detection(
     """
     # set 'saturated' or 'do not use' pixels to nan in data
     dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
-    
+
     # calculate the differences between adjacent groups (first diffs)
     # Bad data will be NaN; np.nanmedian will be used later.
     first_diffs = np.diff(dat, axis=1)
     first_diffs_finite = np.isfinite(first_diffs)
-    
+
     # calc. the median of first_diffs for each pixel along the group axis
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
@@ -191,17 +202,19 @@ def run_jump_detection(
     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / twopt_p.nframes)
 
     # reset sigma so pxels with 0 readnoise are not flagged as jumps
-    sigma[sigma == 0.] = np.nan
+    sigma[sigma == 0.0] = np.nan
 
     # Test to see if there are enough groups to use sigma clipping
     stddev = None
-    if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
+    if check_sigma_clip_groups(nints, total_groups, twopt_p):
         gdq, stddev = det_jump_sigma_clipping(
-            gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
+            gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
+        )
     else:  # There are not enough groups for sigma clipping
         if min_usable_diffs >= twopt_p.min_diffs_single_pass:
             gdq = look_for_more_than_one_jump(
-                gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p) 
+                gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p
+            )
         else:  # low number of diffs requires iterative flagging
             gdq = iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p)
 
@@ -222,7 +235,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
         The first differences of the groups.
     read_noise_2 : ndarray
         The square of the read noise reference array.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -234,19 +247,17 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     # Do not overwrite first_diffs, median_diffs, sigma.
     first_diffs_abs = np.abs(first_diffs)
 
-    cr_pix, ratio = get_cr_locs(
-        first_diffs_abs, read_noise_2, ndiffs, twopt_p) 
+    cr_pix, ratio = get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p)
 
     # Iterate over all groups and integrations: flag and clip the
     # first CR found for each pixel (if any), then recompute medians
     # and sigmas and search all of the pixels that had a CR for
     # additional CRs. Repeat until no more CRs are found.
 
-    for i in range(ndiffs): # Can't have more than ndiffs CRs per pixel!
-
+    for _ in range(ndiffs):  # Can't have more than ndiffs CRs per pixel!
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
         # Newly flagged jump locations
-        new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]        
+        new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]
         warnings.resetwarnings()
 
         # No new jumps: we are done.
@@ -259,9 +270,10 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
 
         # Look for more jumps! We only need to check pixels that had a
         # CR flagged in this iteration.
-        cr_pix, ratio = get_cr_locs(first_diffs_abs, read_noise_2, ndiffs,
-                                    twopt_p, index=np.any(new_cr, axis=(0, 1)))
-        
+        cr_pix, ratio = get_cr_locs(
+            first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=np.any(new_cr, axis=(0, 1))
+        )
+
     return gdq
 
 
@@ -277,7 +289,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
         The square of the read noise reference array.
     ndiffs : int
         The number of differences.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
     index : ndarray, bool or None
         Boolean index of pixels that require checking.  If None,
@@ -290,19 +302,18 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     ratio : ndarray
         Used for threshold comparison
     """
-
     nints, ndiffs_int, nrows, ncols = first_diffs_abs.shape
     median_diffs_iter = np.zeros((nrows, ncols), np.float32)
 
     # If index is supplied, we use zero for median_diffs_iter except
     # for pixels marked by index in order to save computation time.
-    
+
     if index is not None:
         firstdiffs_reshaped = first_diffs_abs[:, :, index].reshape(nints, ndiffs_int, -1)
         median_diffs_iter[index] = calc_med_first_diffs(firstdiffs_reshaped)
     else:
         median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
-        
+
     # calculate sigma for each pixel
     sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / twopt_p.nframes)
     # reset sigma so pixels with 0 readnoise are not flagged as jumps
@@ -333,7 +344,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     twogrp_cr = (num_usable_grps == 2) & (max_ratio > twopt_p.two_diff_rej_thresh)
     # Get a boolean array labeling pixels with at least one CR
     cr_pixel = fourgrp_cr | threegrp_cr | twogrp_cr
-    
+
     return cr_pixel, ratio
 
 
@@ -357,7 +368,7 @@ def look_for_more_than_one_jump(
         The sigma for each pixel.
     first_diffs_finite : ndarray
         A boolean array where the first diffs are finite.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -365,7 +376,6 @@ def look_for_more_than_one_jump(
     gdq : ndarray
         The updated group DQ array.
     """
-
     # compute 'ratio' for each group. this is the value that will be
     # compared to 'threshold' to classify jumps. subtract the median of
     # first_diffs from first_diffs, take the abs. value and divide by sigma.
@@ -402,7 +412,7 @@ def det_jump_sigma_clipping(
         A boolean array where the first diffs are finite.
     first_diffs : ndarray
         The first differences of the groups.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -410,20 +420,23 @@ def det_jump_sigma_clipping(
     gdq : ndarray
         Flagged group DQ array.
     """
-    log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
-        str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)))
+    log.info(
+        f" Jump Step using sigma clip {str(total_groups)} greater than "
+        f"{str(twopt_p.minimum_sigclip_groups)}, rejection threshold "
+        f"{str(twopt_p.normal_rej_thresh)}"
+    )
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
 
     axis = 0 if twopt_p.only_use_ints else (0, 1)
-    clipped_diffs, alow, ahigh = stats.sigma_clip(
-        first_diffs, sigma=twopt_p.normal_rej_thresh,
-        axis=axis, masked=True, return_bounds=True)
+    clipped_diffs, a_low, a_high = stats.sigma_clip(
+        first_diffs, sigma=twopt_p.normal_rej_thresh, axis=axis, masked=True, return_bounds=True
+    )
 
     # get the standard deviation from the bounds of sigma clipping
-    stddev = 0.5 * (ahigh - alow) / twopt_p.normal_rej_thresh
+    stddev = 0.5 * (a_high - a_low) / twopt_p.normal_rej_thresh
     jump_candidates = clipped_diffs.mask
     sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
     jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
@@ -436,10 +449,10 @@ def det_jump_sigma_clipping(
             if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
                 # The line below matches the comment above, but not the
                 # old logic.  Leaving it for now.
-                #gdq[integ, grp] |= twopt_p.fl_dnu
+                # gdq[integ, grp] |= twopt_p.fl_dnu
                 jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
                 gdq[integ, grp][jump_only] = 0
-                
+
     warnings.resetwarnings()
     return gdq, stddev
 
@@ -454,7 +467,7 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
         The number of integrations per exposure
     total_groups : int
         Total usable groups to check.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -462,14 +475,14 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
     boolean
         Are there enough groups to use sigma clipping.
     """
-    test1 = (twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups)
-    test2 = (not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups)
+    test1 = twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups
+    test2 = not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups
     return test1 or test2
 
 
 def flag_four_neighbors(
-    gdq, nints, ngroups, first_diffs, median_diffs, sigma,
-    row_below_gdq, row_above_gdq, twopt_p):
+    gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
+):
     """
     Flag four neighbors.
 
@@ -491,7 +504,7 @@ def flag_four_neighbors(
         Pixels below current row also to be flagged as a CR.
     row_above_gdq : ndarray
         Pixels above current row also to be flagged as a CR.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -505,11 +518,13 @@ def flag_four_neighbors(
     """
     for i in range(nints):
         for j in range(ngroups - 1):
-            ratio = np.abs(first_diffs[i, j] - median_diffs)/sigma
+            ratio = np.abs(first_diffs[i, j] - median_diffs) / sigma
             jump_set = gdq[i, j + 1] & twopt_p.fl_jump != 0
-            flag = (ratio < twopt_p.max_jump_to_flag_neighbors) & \
-                (ratio > twopt_p.min_jump_to_flag_neighbors) & \
-                (jump_set)
+            flag = (
+                (ratio < twopt_p.max_jump_to_flag_neighbors)
+                & (ratio > twopt_p.min_jump_to_flag_neighbors)
+                & (jump_set)
+            )
 
             # Dilate the flag by one pixel in each direction.
             flagsave = flag.copy()
@@ -537,7 +552,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
         First differences of the groups of the science array.
     median_diffs : ndarray
         The media of the first differences.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -570,7 +585,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
 
 def check_group_counts(nints, total_sigclip_groups, twopt_p):
     """
-    Determine whether there are enough usable groups for the two sigma clip options
+    Determine whether there are enough usable groups for the two sigma clip options.
 
     Parameters
     ----------
@@ -578,7 +593,7 @@ def check_group_counts(nints, total_sigclip_groups, twopt_p):
         Number of integrations in an exposure
     total_sigclip_groups : int
         Total number of sigma-clipped groups
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -605,7 +620,7 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
         The number of groups in an integration.
     gdq : ndarray
         Group DQ array.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -638,8 +653,14 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
     sig_clip_grps_fails = False
     total_noise_min_grps_fails = False
 
-    ngroups_ans = (min_usable_groups, total_groups, min_usable_diffs, sig_clip_grps_fails,
-                   total_noise_min_grps_fails, total_sigclip_groups)
+    ngroups_ans = (
+        min_usable_groups,
+        total_groups,
+        min_usable_diffs,
+        sig_clip_grps_fails,
+        total_noise_min_grps_fails,
+        total_sigclip_groups,
+    )
 
     return ngroups_ans
 
@@ -704,12 +725,12 @@ def propagate_flags(boolean_flag, n_groups_flag):
     # and cosmic rays are rare.
     if (jmax <= 50 and jmax > 0) or np.mean(boolean_flag) > 1e-3:
         for j in range(jmax):
-            boolean_flag[j + 1:] |= boolean_flag[j:-1]
+            boolean_flag[j + 1 :] |= boolean_flag[j:-1]
     # Option B: find the flags and propagate them individually.
     elif jmax > 0:
         igrp, icol, irow = np.where(boolean_flag)
         for j in range(len(igrp)):
-            boolean_flag[igrp[j]:igrp[j] + n_groups_flag + 1, icol[j], irow[j]] = True
+            boolean_flag[igrp[j] : igrp[j] + n_groups_flag + 1, icol[j], irow[j]] = True
     return
 
 
@@ -739,7 +760,6 @@ def calc_med_first_diffs(in_first_diffs):
         integrations for each pixel in in_first_diffs. Will be either
         1d or 2d depending on the shape of in_first_diffs.
     """
-    
     # We will modify our copy of first_diffs by setting some pixels to NaN.
     first_diffs = in_first_diffs.copy()
     nints, ndiffs = first_diffs.shape[:2]
@@ -753,15 +773,15 @@ def calc_med_first_diffs(in_first_diffs):
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
 
     # Four or more usable diffs: mask the largest difference.
-    maxval = np.nanmax(first_diffs, axis=(0, 1))        
+    maxval = np.nanmax(first_diffs, axis=(0, 1))
     first_diffs[fourgrps & (first_diffs == maxval)] = np.nan
-    
+
     # Three or more usable diffs: take the median
     median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
 
     # Two usable diffs: take the minimum
     median_diffs[twogrps] = np.nanmin(first_diffs, axis=(0, 1))[twogrps]
-    
+
     # Fewer than two usable diffs: can't do anything.
     median_diffs[lessthantwogrps] = np.nan
 

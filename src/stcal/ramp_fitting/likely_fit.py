@@ -1,12 +1,11 @@
 import logging
-import scipy
 import warnings
 
 import numpy as np
+import scipy
 
 from stcal.ramp_fitting import utils
-from stcal.ramp_fitting.likely_algo_classes import IntegInfo, RampResult, Covar
-
+from stcal.ramp_fitting.likely_algo_classes import Covar, IntegInfo, RampResult
 
 DELIM = "=" * 80
 SQRT2 = np.sqrt(2)
@@ -99,20 +98,22 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
             d2use_copy = d2use.copy()  # Use to flag jumps
             if ramp_data.rejection_threshold is not None:
                 threshold_one_omit = ramp_data.rejection_threshold**2
-                pval = scipy.special.erfc(ramp_data.rejection_threshold/SQRT2)
+                pval = scipy.special.erfc(ramp_data.rejection_threshold / SQRT2)
                 threshold_two_omit = scipy.stats.chi2.isf(pval, 2)
                 if np.isinf(threshold_two_omit):
                     threshold_two_omit = threshold_one_omit + 10
                 d2use, countrates = mask_jumps(
-                    diff[:, row], covar, readnoise_2d[row], gain_2d[row],
+                    diff[:, row],
+                    covar,
+                    readnoise_2d[row],
+                    gain_2d[row],
                     threshold_one_omit=threshold_one_omit,
                     threshold_two_omit=threshold_two_omit,
-                    diffs2use=d2use
+                    diffs2use=d2use,
                 )
             else:
                 d2use, countrates = mask_jumps(
-                    diff[:, row], covar, readnoise_2d[row], gain_2d[row],
-                    diffs2use=d2use
+                    diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=d2use
                 )
 
             # Set jump detection flags
@@ -153,7 +154,6 @@ def mask_jumps(
     threshold_two_omit=23.8,
     diffs2use=None,
 ):
-
     """
     Implements a likelihood-based, iterative jump detection algorithm.
 
@@ -181,13 +181,13 @@ def mask_jumps(
         Default 23.8.
 
     diffs2use : ndarray
-        A boolean array definined the segmented ramps for each pixel in a row.
+        A boolean array defined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
     Returns
     -------
     dffs2use : ndarray
-        A boolean array definined the segmented ramps for each pixel in a row.
+        A boolean array defined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
     countrates : ndarray
@@ -262,9 +262,7 @@ def mask_jumps(
 
         # We want the largest chi squared difference
         best_dchisq_one = np.amax(dchisq_one * one_omit_ok[:, np.newaxis], axis=0)
-        best_dchisq_two = np.amax(
-            dchisq_two * two_omit_ok[:, np.newaxis], axis=0
-        )
+        best_dchisq_two = np.amax(dchisq_two * two_omit_ok[:, np.newaxis], axis=0)
 
         # Is the best improvement from dropping one resultant
         # difference or two?  Two drops will always offer more
@@ -272,16 +270,10 @@ def mask_jumps(
         # thresholds.  Then find the chi squared improvement
         # corresponding to dropping either one or two reads, whichever
         # is better, if either exceeded the threshold.
-        onedropbetter = (
-            best_dchisq_one - threshold_one_omit > best_dchisq_two - threshold_two_omit
-        )
+        onedropbetter = best_dchisq_one - threshold_one_omit > best_dchisq_two - threshold_two_omit
 
-        best_dchisq = (
-            best_dchisq_one * (best_dchisq_one > threshold_one_omit) * onedropbetter
-        )
-        best_dchisq += (
-            best_dchisq_two * (best_dchisq_two > threshold_two_omit) * (~onedropbetter)
-        )
+        best_dchisq = best_dchisq_one * (best_dchisq_one > threshold_one_omit) * onedropbetter
+        best_dchisq += best_dchisq_two * (best_dchisq_two > threshold_two_omit) * (~onedropbetter)
 
         # If nothing exceeded the threshold set the improvement to
         # NaN so that dchisq==best_dchisq is guaranteed to be False.
@@ -360,17 +352,14 @@ def get_readtimes(ramp_data):
     ngroups = ramp_data.data.shape[1]
     tot_frames = ramp_data.nframes + ramp_data.groupgap
     tot_nreads = np.arange(1, ramp_data.nframes + 1)
-    rtimes = [
-        (tot_nreads + k * tot_frames) * ramp_data.frame_time for k in range(ngroups)
-    ]
+    rtimes = [(tot_nreads + k * tot_frames) * ramp_data.frame_time for k in range(ngroups)]
 
     return rtimes
 
 
 def compute_image_info(integ_class, ramp_data):
     """
-    Combine all integrations into a single image of rates,
-    variances, and DQ flags.
+    Combine all integrations into a single image of rates, variances, and DQ flags.
 
     Parameters
     ----------
@@ -402,7 +391,7 @@ def compute_image_info(integ_class, ramp_data):
         rate_scale = slope[np.newaxis, :] / integ_class.data
         rate_scale[(~np.isfinite(rate_scale)) | (rate_scale < 0)] = 0
         all_var_p = integ_class.var_poisson * rate_scale
-        weight = 1/(all_var_p + integ_class.var_rnoise)
+        weight = 1 / (all_var_p + integ_class.var_rnoise)
         weight /= np.nansum(weight, axis=0)[np.newaxis, :]
         tmp_slope = integ_class.data * weight
         all_nan = np.all(np.isnan(tmp_slope), axis=0)
@@ -441,7 +430,7 @@ def determine_diffs2use(row, diffs, gdq):
     Returns
     -------
     d2use : ndarray
-        A boolean array definined the segmented ramps for each pixel in a row.
+        A boolean array defined the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
     """
     ngroups, _, ncols = gdq.shape
@@ -620,9 +609,7 @@ def fit_ramps(
 # RAMP FITTING END
 
 
-def compute_jump_detects(
-    result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta
-):
+def compute_jump_detects(result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta):
     """
     Detect jumps in ramps.
 
@@ -707,12 +694,7 @@ def compute_jump_detects(
 
         # Use the best-fit a, b to get chi squared
         result.chisq_one_omit = (
-            A
-            + a**2 * C
-            - 2 * a * B
-            + b**2 * Cinv_diag
-            - 2 * b * dB
-            + 2 * a * b * dC
+            A + a**2 * C - 2 * a * B + b**2 * Cinv_diag - 2 * b * dB + 2 * a * b * dC
         )
 
         # invert the covariance matrix of a, b to get the uncertainty on a
@@ -741,13 +723,9 @@ def compute_jump_detects(
         result.countrate_two_omit = a
 
         # best-fit chi squared
-        result.chisq_two_omit = (
-            A + a**2 * C + b**2 * Cinv_diag[:-1] + c**2 * Cinv_diag[1:]
-        )
+        result.chisq_two_omit = A + a**2 * C + b**2 * Cinv_diag[:-1] + c**2 * Cinv_diag[1:]
         result.chisq_two_omit -= 2 * a * B + 2 * b * dB[:-1] + 2 * c * dB[1:]
-        result.chisq_two_omit += (
-            2 * a * b * dC[:-1] + 2 * a * c * dC[1:] + 2 * b * c * Cinv_offdiag
-        )
+        result.chisq_two_omit += 2 * a * b * dC[:-1] + 2 * a * c * dC[1:] + 2 * b * c * Cinv_offdiag
         result.chisq_two_omit /= scale
 
         # uncertainty on the slope from inverting the (a, b, c)
@@ -841,8 +819,7 @@ def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, 
 
         for i in range(2, ndiffs + 1):
             theta[i] = (
-                alpha[i - 1] / scale * theta[i - 1]
-                - beta[i - 2] ** 2 / scale**2 * theta[i - 2]
+                alpha[i - 1] / scale * theta[i - 1] - beta[i - 2] ** 2 / scale**2 * theta[i - 2]
             )
 
             # Scaling every ten steps in safe for alpha up to 1e20
@@ -967,7 +944,8 @@ def compute_Phis(ndiffs, npix, beta, phi, sgn):
 
 def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
     """
-    EQN 4, Paper II
+    EQN 4, Paper II.
+
     This one is defined later in the paper and is used for jump detection.
 
     Parameters
@@ -1002,7 +980,7 @@ def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
 
 def compute_Thetas(ndiffs, npix, beta, theta, sgn):
     """
-    EQN 47
+    EQN 47.
 
     Parameters
     ----------
@@ -1034,7 +1012,7 @@ def compute_Thetas(ndiffs, npix, beta, theta, sgn):
 
 def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):
     """
-    EQN 48
+    EQN 48.
 
     Parameters
     ----------
@@ -1143,9 +1121,7 @@ def matrix_computations(
     # {\cal A}, {\cal B}, {\cal C} in the paper
 
     # EQNs 61-63
-    A = 2 * np.sum(
-        diff_mask * sgn / theta[-1] * beta_extended * phi[1:] * ThetaD[:-1], axis=0
-    )
+    A = 2 * np.sum(diff_mask * sgn / theta[-1] * beta_extended * phi[1:] * ThetaD[:-1], axis=0)
     A += np.sum(diff_mask**2 * theta[:-1] * phi[1:] / theta[ndiffs], axis=0)
 
     B = np.sum(diff_mask * dC, axis=0)
@@ -1155,8 +1131,15 @@ def matrix_computations(
 
 
 def get_ramp_result(
-    dC, A, B, C, scale, alpha_phnoise, alpha_readnoise,
-    beta_phnoise, beta_readnoise,
+    dC,
+    A,
+    B,
+    C,
+    scale,
+    alpha_phnoise,
+    alpha_readnoise,
+    beta_phnoise,
+    beta_readnoise,
 ):
     """
     Use intermediate computations to fit the ramp and save the results.
@@ -1225,26 +1208,3 @@ def get_ramp_result(
     warnings.resetwarnings()
 
     return result
-
-
-################################################################################
-################################## DEBUG #######################################
-
-
-def dbg_print_info(group_time, readtimes, data, diff):
-    print(DELIM)
-    print(f"group_time = {group_time}")
-    print(DELIM)
-    print(f"readtimes = {array_string(np.array(readtimes))}")
-    print(DELIM)
-    print(f"data = {array_string(data[:, 0, 0])}")
-    print(DELIM)
-    data_gt = data / group_time
-    print(f"data / gt = {array_string(data_gt[:, 0, 0])}")
-    print(DELIM)
-    print(f"diff = {array_string(diff[:, 0, 0])}")
-    print(DELIM)
-
-
-def array_string(arr, prec=4):
-    return np.array2string(arr, precision=prec, max_line_width=np.nan, separator=", ")

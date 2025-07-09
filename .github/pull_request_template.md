@@ -19,7 +19,7 @@ This PR addresses ...
 - [ ] Does this PR change any API used downstream? (if not, label with `no-changelog-entry-needed`)
   - [ ] write news fragment(s) in `changes/`: `echo "changed something" > changes/<PR#>.<changetype>.rst` (see below for change types)
   - [ ] run regression tests with this branch installed (`"git+https://github.com/<fork>/stcal@<branch>"`)
-    - [ ] [`jwst` regression test](https://github.com/spacetelescope/RegressionTests/actions/workflows/jwst.yml) 
+    - [ ] [`jwst` regression test](https://github.com/spacetelescope/RegressionTests/actions/workflows/jwst.yml)
     - [ ] [`romancal` regression test](https://github.com/spacetelescope/RegressionTests/actions/workflows/romancal.yml)
 
 <details><summary>news fragment change types...</summary>

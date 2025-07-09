@@ -2,10 +2,8 @@
 #
 # utils.py: utility functions
 import logging
-import warnings
 
 import numpy as np
-
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -72,8 +70,10 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
     final_dq[all_set] = np.bitwise_or(final_dq[all_set], set_flag)
 
 
-def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
+def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):  # noqa: ARG001  preserve API
     """
+    Set integration level DQ flags based on group DQ flags.
+
     This sets the integration level flags for DO_NOT_USE, JUMP_DET and
     SATURATED.  If any ramp has a jump, this flag will be set for the
     integration.  If all groups in a ramp are flagged as DO_NOT_USE, then the

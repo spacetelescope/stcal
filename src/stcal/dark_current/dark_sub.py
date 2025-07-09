@@ -17,6 +17,7 @@ log.setLevel(logging.DEBUG)
 def do_correction(input_model, dark_model, dark_output=None):
     """
     Convert models to classes to remove internal dependence on data models.
+
     After the creation of internal classes, the dark current subtraction is
     done.
 
@@ -47,6 +48,8 @@ def do_correction(input_model, dark_model, dark_output=None):
 
 def do_correction_data(science_data, dark_data, dark_output=None):
     """
+    Perform dark current subtraction on the science data.
+
     Short Summary
     -------------
     Execute all tasks for Dark Current Subtraction
@@ -111,8 +114,9 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
         frames_to_extrapolate = sci_total_frames - drk_total_frames
         # Find number of new groups required from above calculation of total frames.
-        groups_to_extrapolate = np.ceil((frames_to_extrapolate + drk_groupgap)
-                                 / (drk_nframes + drk_groupgap)).astype(int)
+        groups_to_extrapolate = np.ceil(
+            (frames_to_extrapolate + drk_groupgap) / (drk_nframes + drk_groupgap)
+        ).astype(int)
         extrapolate_dark(dark_data, groups_to_extrapolate)
 
     # Check that the value of nframes and groupgap in the dark
@@ -156,7 +160,9 @@ def do_correction_data(science_data, dark_data, dark_output=None):
                 dark_data, sci_nints, sci_ngroups, sci_nframes, sci_groupgap
             )
         else:
-            averaged_dark = average_dark_frames_3d(dark_data, sci_ngroups, sci_nframes, sci_groupgap)
+            averaged_dark = average_dark_frames_3d(
+                dark_data, sci_ngroups, sci_nframes, sci_groupgap
+            )
 
         # Save the frame-averaged dark data that was just created,
         # if requested by the user
@@ -174,6 +180,8 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
 def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
     """
+    Average the individual frames of the reference dark data.
+
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
     This routine is not used for JWST/MIRI (see average_dark_frames_4d).
@@ -239,6 +247,8 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
 
 def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     """
+    Average the individual frames of the data.
+
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
     JWST/MIRI needs a separate routine because the darks are
@@ -379,7 +389,9 @@ def subtract_dark(science_data, dark_data):
             #
             # For science integrations beyond the number of
             # dark integrations, use the last dark integration
-            dark_sci = dark_data.data[i] if i < dark_nints and int_start == 1 else dark_data.data[-1]
+            dark_sci = (
+                dark_data.data[i] if i < dark_nints and int_start == 1 else dark_data.data[-1]
+            )
         else:
             # Use single-integration dark data
             dark_sci = dark_data.data
@@ -410,9 +422,11 @@ def extrapolate_dark(dark_data, ngroups):
     def _extrapolate_int(arr, ngroups):
         """Extrapolate using rate derived from difference of last two groups."""
         rate_arr = arr[-1, :, :] - arr[-2, :, :]
-        new_groups = np.broadcast_to(
-            np.arange(1, ngroups + 1).reshape(-1, 1, 1),
-            (ngroups, *rate_arr.shape)) * rate_arr + arr[-1]
+        new_groups = (
+            np.broadcast_to(np.arange(1, ngroups + 1).reshape(-1, 1, 1), (ngroups, *rate_arr.shape))
+            * rate_arr
+            + arr[-1]
+        )
         return np.concatenate((arr, new_groups))
 
     if len(dark_data.data.shape) == 4:

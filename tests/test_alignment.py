@@ -10,9 +10,9 @@ from gwcs import coordinate_frames as cf
 
 from stcal.alignment import resample_utils
 from stcal.alignment.util import (
+    _compute_fiducial_from_footprints,
     _validate_wcs_list,
     compute_fiducial,
-    _compute_fiducial_from_footprints,
     compute_s_region_imaging,
     compute_s_region_keyword,
     compute_scale,
@@ -20,7 +20,7 @@ from stcal.alignment.util import (
     sregion_to_footprint,
     wcs_bbox_from_shape,
     wcs_from_footprints,
-    wcs_from_sregions
+    wcs_from_sregions,
 )
 
 
@@ -59,7 +59,9 @@ def _create_wcs_object_without_distortion(
 
 
 def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
-    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
+    wcs = _create_wcs_object_without_distortion(
+        fiducial_world=fiducial_world, shape=shape, pscale=pscale
+    )
     ra_ref, dec_ref = fiducial_world[0], fiducial_world[1]
     return DataModel(
         ra_ref=ra_ref,
@@ -76,6 +78,7 @@ class WcsInfo:
     """
     JWST-like wcsinfo object
     """
+
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle):
         self.ra_ref = ra_ref
         self.dec_ref = dec_ref
@@ -120,6 +123,7 @@ class MetaData:
 
 class DataModel:
     """JWST-like datamodel object"""
+
     def __init__(self, ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=None):
         self.meta = MetaData(ra_ref, dec_ref, roll_ref, v2_ref, v3_ref, v3yangle, wcs=wcs)
 
@@ -134,7 +138,9 @@ def test_compute_fiducial(footprint):
     fiducial_world = (0, 0)  # in deg
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
+    wcs = _create_wcs_object_without_distortion(
+        fiducial_world=fiducial_world, shape=shape, pscale=pscale
+    )
     if footprint:
         footprint = wcs.footprint()
         computed_fiducial = _compute_fiducial_from_footprints([footprint])
@@ -153,7 +159,9 @@ def test_compute_scale(pscales):
     fiducial_world = (0, 0)  # in deg
     pscale = (pscales[0], pscales[1])  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
+    wcs = _create_wcs_object_without_distortion(
+        fiducial_world=fiducial_world, shape=shape, pscale=pscale
+    )
     expected_scale = np.sqrt(pscale[0] * pscale[1])
 
     computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world)
@@ -206,11 +214,7 @@ def test_wcs_from_footprints(s_regions):
         wcs_list = [wcs_1, wcs_2]
         msg = "wcs_from_footprints is deprecated and will be removed"
         with pytest.warns(DeprecationWarning, match=msg):
-            wcs = wcs_from_footprints(
-                wcs_list,
-                wcs_1,
-                dm_1.meta.wcsinfo.instance
-            )
+            wcs = wcs_from_footprints(wcs_list, wcs_1, dm_1.meta.wcsinfo.instance)
 
     # check that all elements of footprint match the *vertices* of the new
     # combined WCS
@@ -356,7 +360,7 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
         (
             _create_wcs_and_datamodel((10, 0), (3, 3), (0.000028, 0.000028)),
             np.array([[1.0, 2.0], [3.0, np.nan], [5.0, 6.0], [7.0, 8.0]]),
-        None,
+            None,
             "There are NaNs in s_region, S_REGION not updated.",
         ),
     ],
@@ -415,8 +419,11 @@ def test_compute_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, -0.5),
     ]
     shape = data.shape if data is not None else None
-    model.meta.wcsinfo.s_region = compute_s_region_imaging(model.meta.wcs, shape=shape, center=False)
+    model.meta.wcsinfo.s_region = compute_s_region_imaging(
+        model.meta.wcs, shape=shape, center=False
+    )
     updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
-    assert all(np.isclose(x, y) for x, y in zip(updated_s_region_coords,
-                                                expected_s_region_coords,
-                                                strict=False))
+    assert all(
+        np.isclose(x, y)
+        for x, y in zip(updated_s_region_coords, expected_s_region_coords, strict=False)
+    )

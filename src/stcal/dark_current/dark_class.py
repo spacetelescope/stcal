@@ -4,38 +4,36 @@ from astropy import units as u
 
 class DarkData:
     """
-    This class contains all data needed to perform the dark current subtraction
-    step.
+    Handles all data needed to perform the dark current subtraction step.
+
+    Creates a class to remove data model dependencies in the internals of
+    the dark current code.  The data contained in this class comes from the
+    dark reference data file.  If a dark data model is passed as an
+    argument the DarkData uses it to create class arrays and set metadata.
+    If a dark data model is None, then the DarkData arrays can still be
+    created by using the 'dims' argument.  In that situation, no metadata
+    will be contained in the class.  If both arguments are None, all arrays
+    and metadata are set to None, requiring the instantiator of the class
+    to set wanted values.
+
+    Parameters
+    ----------
+    dims : tuple, optional
+        A tuple of integers to describe the dimensions of the arrays used
+        during the dark current step.  This argument is only used if the
+        'dark_model' argument is None.  If a dark model is not available
+        from which to create a DarkData class, but the dimensions of the
+        data array are known, then 'dims' is used (the arrays data
+        and groupdq are assumed to have the same dimension).
+
+
+    dark_model : data model, optional
+        Input data model, assumed to be a JWST DarkModel like model.  If
+        this argument is not None, the DarkData class will have arrasy and
+        meta data set based on the arrays in the dark_model.
     """
 
     def __init__(self, dims=None, dark_model=None):
-        """
-        Creates a class to remove data model dependencies in the internals of
-        the dark current code.  The data contained in this class comes from the
-        dark reference data file.  If a dark data model is passed as an
-        argument the DarkData uses it to create class arrays and set metadata.
-        If a dark data model is None, then the DarkData arrays can still be
-        created by using the 'dims' argument.  In that situation, no metadata
-        will be contained in the class.  If both arguments are None, all arrays
-        and metadata are set to None, requiring the instantiator of the class
-        to set wanted values.
-
-        Parameters
-        ----------
-        dims : tuple, optional
-            A tuple of integers to describe the dimensions of the arrays used
-            during the dark current step.  This argument is only used if the
-            'dark_model' argument is None.  If a dark model is not available
-            from which to create a DarkData class, but the dimensions of the
-            data array are known, then 'dims' is used (the arrays data
-            and groupdq are assumed to have the same dimension).
-
-
-        dark_model : data model, optional
-            Input data model, assumed to be a JWST DarkModel like model.  If
-            this argument is not None, the DarkData class will have arrasy and
-            meta data set based on the arrays in the dark_model.
-        """
         if dark_model is not None:
             if isinstance(dark_model.data, u.Quantity):
                 self.data = dark_model.data.value
@@ -70,8 +68,7 @@ class DarkData:
 class ScienceData:
     def __init__(self, science_model=None):
         """
-        A class containing all science data needed to subtract the dark current
-        from the data.
+        A class containing all science data needed to subtract the dark current from the data.
 
         Parameters
         ----------

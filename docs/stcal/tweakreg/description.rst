@@ -3,7 +3,7 @@ Description
 
 Overview
 --------
-This step takes as input image catalogs of point-like sources, 
+This step takes as input image catalogs of point-like sources,
 which are used to compute corrections to the WCS of
 the input images such that sky catalogs obtained from the
 image catalogs using the corrected WCS will align on the sky.
@@ -44,7 +44,7 @@ of the input data.
 
 .. _STScI MAST Catalogs: https://outerspace.stsci.edu/display/MASTDATA/Catalog+Access
 
-The combined source catalog 
+The combined source catalog
 then gets cross-matched and fit to this astrometric reference catalog.
 The pipeline initially supports fitting to the
 GAIADR3 catalog, with the option to select the GAIADR2 or GAIADR1 instead.
@@ -69,7 +69,7 @@ can be computed and applied to all these images because any error in
 telescope pointing will be identical in all these images and it is assumed
 that the relative positions of (e.g., NIRCam) detectors do not change.
 Identification of images that belong to the same "exposure" and therefore
-can be grouped together is based on several attributes 
+can be grouped together is based on several attributes
 *change from here to end of section* described in
 `~jwst.datamodels.ModelContainer`. This grouping is performed automatically
 in the ``tweakreg`` step using the
@@ -143,7 +143,7 @@ are passed into the `~stcal.tweakreg.relative_align` function.
   .. note::
       Mathematically, alignment of images observed in different tangent planes
       requires ``fitgeometry='general'`` in order to fit source catalogs
-      in the different images even if mis-alignment is caused only by a shift
+      in the different images even if misalignment is caused only by a shift
       or rotation in the tangent plane of one of the images.
 
       However, under certain circumstances, such as small alignment errors or

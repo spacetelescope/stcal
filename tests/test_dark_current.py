@@ -133,7 +133,9 @@ def _params():
     return params
 
 
-@pytest.mark.parametrize(("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params())
+@pytest.mark.parametrize(
+    ("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params()
+)
 def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, nrows, ncols):
     """Check that if nframes>1 or groupgap>0, then the pipeline reconstructs
     the dark reference file to match the frame averaging and groupgap
@@ -159,7 +161,7 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
     manual_avg = np.zeros((ngroups), dtype=np.float32)
 
     # Manually average the input data to compare with pipeline output
-    for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind):
+    for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind, strict=False):
         # Average the data frames
         newframe = np.mean(dark.data[gstart:gend, 10, 10])
         manual_avg[newgp] = newframe
@@ -367,10 +369,10 @@ def test_dark_extrapolation(make_rampmodel, make_darkmodel, setup_nrc_cube):
     # apply correction
     outfile, avg_dark = darkcorr(dm_ramp, dark)
 
-    assert_allclose(outfile.data[0, :, 500, 500], np.linspace(1., 18.1, ngroups), rtol=1.e-5)
-    assert_allclose(dark.data[0, :, 500, 500], np.linspace(0., 1.9, ngroups), rtol=1.e-5)
-    assert_allclose(outfile.data[1, :, 500, 500], np.linspace(1., 14.3, ngroups), rtol=1.e-5)
-    assert_allclose(dark.data[1, :, 500, 500], np.linspace(0., 5.7, ngroups), rtol=1.e-5)
+    assert_allclose(outfile.data[0, :, 500, 500], np.linspace(1.0, 18.1, ngroups), rtol=1.0e-5)
+    assert_allclose(dark.data[0, :, 500, 500], np.linspace(0.0, 1.9, ngroups), rtol=1.0e-5)
+    assert_allclose(outfile.data[1, :, 500, 500], np.linspace(1.0, 14.3, ngroups), rtol=1.0e-5)
+    assert_allclose(dark.data[1, :, 500, 500], np.linspace(0.0, 5.7, ngroups), rtol=1.0e-5)
 
     nrc_ngroups = 40
     data, dark = setup_nrc_cube("rp", nrc_ngroups, nframes=1, groupgap=0, nrows=2048, ncols=2048)
@@ -382,6 +384,5 @@ def test_dark_extrapolation(make_rampmodel, make_darkmodel, setup_nrc_cube):
 
     outfile, avg_dark = darkcorr(data, dark)
 
-    assert_allclose(outfile.data[0, :, 10, 10], np.linspace(1, 32.2, nrc_ngroups), rtol=1.e-5)
-    assert_allclose(dark.data[:, 10, 10], np.linspace(0, 7.8, nrc_ngroups), rtol=1.e-5)
-
+    assert_allclose(outfile.data[0, :, 10, 10], np.linspace(1, 32.2, nrc_ngroups), rtol=1.0e-5)
+    assert_allclose(dark.data[:, 10, 10], np.linspace(0, 7.8, nrc_ngroups), rtol=1.0e-5)

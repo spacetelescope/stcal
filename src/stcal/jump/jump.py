@@ -5,17 +5,15 @@ import logging
 import multiprocessing
 import time
 import warnings
+
+import astropy.stats as stats
+import cv2 as cv
+import numpy as np
+from astropy.convolution import Ring2DKernel
 from scipy import signal
 
-import numpy as np
-import cv2 as cv
-import astropy.stats as stats
-
-from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
-
-from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
+from .twopoint_difference_class import TwoPointParams
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -91,10 +89,12 @@ def detect_jumps_data(jump_data):
     if n_slices == 1:
         twopt_params.minimum_groups = 3  # XXX Should this be hard coded as 3?
         gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = twopt.find_crs(
-                    data, gdq, readnoise_2d, twopt_params)
+            data, gdq, readnoise_2d, twopt_params
+        )
     else:
         gdq, total_primary_crs, stddev = twopoint_diff_multi(
-            jump_data, twopt_params, data, gdq, readnoise_2d, n_slices)
+            jump_data, twopt_params, data, gdq, readnoise_2d, n_slices
+        )
 
     # remove redundant bits in pixels that have jump flagged but were
     # already flagged as do_not_use or saturated.
@@ -129,7 +129,7 @@ def detect_jumps_data(jump_data):
 def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
     """
     Split data for jump detection multiprocessing.
-    
+
     Parameters
     ----------
     jump_data : JumpData
@@ -141,7 +141,7 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     data : ndarray
         The science data, 4D array float.
 
-    gdq : ndarray 
+    gdq : ndarray
         The group DQ, 4D array uint8.
 
     readnoise_2d : ndarray
@@ -225,15 +225,15 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     # Reassemble the data
     for k, resultslice in enumerate(real_result):
         if len(real_result) == k + 1:  # last result
-            gdq[:, :, k * yinc: nrows, :] = resultslice[0]
+            gdq[:, :, k * yinc : nrows, :] = resultslice[0]
             if jump_data.only_use_ints:
-                stddev[:, k * yinc: nrows, :] = resultslice[4]
+                stddev[:, k * yinc : nrows, :] = resultslice[4]
             else:
-                stddev[k * yinc: nrows, :] = resultslice[4]
+                stddev[k * yinc : nrows, :] = resultslice[4]
         else:
-            gdq[:, :, k * yinc: (k + 1) * yinc, :] = resultslice[0]
+            gdq[:, :, k * yinc : (k + 1) * yinc, :] = resultslice[0]
             if jump_data.only_use_ints:
-                stddev[:, k * yinc: (k + 1) * yinc, :] = resultslice[4]
+                stddev[:, k * yinc : (k + 1) * yinc, :] = resultslice[4]
             else:
                 stddev[k * yinc : (k + 1) * yinc, :] = resultslice[4]
         row_below_gdq[:, :, :] = resultslice[1]
@@ -253,7 +253,6 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     return gdq, total_primary_crs, stddev
 
 
-
 def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     """
     Create a slice of data for each process for multiprocessing.
@@ -266,7 +265,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     data : ndarray
         The science data, 4D array float.
 
-    gdq : ndarray 
+    gdq : ndarray
         The group DQ, 4D array uint8.
 
     readnoise_2d : ndarray
@@ -296,9 +295,9 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
         slices.insert(
             i,
             (
-                data[:, :, i * yinc: (i + 1) * yinc, :],
-                gdq[:, :, i * yinc: (i + 1) * yinc, :],
-                readnoise_2d[i * yinc: (i + 1) * yinc, :],
+                data[:, :, i * yinc : (i + 1) * yinc, :],
+                gdq[:, :, i * yinc : (i + 1) * yinc, :],
+                readnoise_2d[i * yinc : (i + 1) * yinc, :],
                 twopt_params,
             ),
         )
@@ -307,9 +306,9 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     slices.insert(
         n_slices - 1,
         (
-            data[:, :, (n_slices - 1) * yinc: nrows, :],
-            gdq[:, :, (n_slices - 1) * yinc: nrows, :],
-            readnoise_2d[(n_slices - 1) * yinc: nrows, :],
+            data[:, :, (n_slices - 1) * yinc : nrows, :],
+            gdq[:, :, (n_slices - 1) * yinc : nrows, :],
+            readnoise_2d[(n_slices - 1) * yinc : nrows, :],
             twopt_params,
         ),
     )
@@ -318,7 +317,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
 
 def setup_pdq(jump_data):
     """
-    Prepare the pixel DQ array for procesing, removing invalid data.
+    Prepare the pixel DQ array for processing, removing invalid data.
 
     Parameters
     ----------
@@ -332,7 +331,7 @@ def setup_pdq(jump_data):
     """
     pdq = jump_data.pdq
     bad_gain = (jump_data.gain_2d <= 0.0) | np.isnan(jump_data.gain_2d)
-    pdq[bad_gain] |= (jump_data.fl_ngv | jump_data.fl_dnu)
+    pdq[bad_gain] |= jump_data.fl_ngv | jump_data.fl_dnu
 
     return pdq
 
@@ -387,20 +386,32 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
 
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(
-                gdq[integration, group, :, :], jump_flag, jump_data.min_jump_area)
-            
+                gdq[integration, group, :, :], jump_flag, jump_data.min_jump_area
+            )
+
             if jump_data.sat_required_snowball:
                 gdq, snowballs, persist_jumps = make_snowballs(
-                    gdq, integration, group, jump_ellipses, sat_ellipses,
-                    next_sat_ellipses, jump_data, persist_jumps,
+                    gdq,
+                    integration,
+                    group,
+                    jump_ellipses,
+                    sat_ellipses,
+                    next_sat_ellipses,
+                    jump_data,
+                    persist_jumps,
                 )
             else:
                 snowballs = jump_ellipses
             n_showers_grp.append(len(snowballs))
             total_snowballs += len(snowballs)
             gdq, num_events = extend_ellipses(
-                gdq, integration, group, snowballs, jump_data,
-                expansion=jump_data.expand_factor, num_grps_masked=0,
+                gdq,
+                integration,
+                group,
+                snowballs,
+                jump_data,
+                expansion=jump_data.expand_factor,
+                num_grps_masked=0,
             )
 
     #  Test to see if the flagging of the saturated cores will be
@@ -411,16 +422,18 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
             if jump_data.persist_grps_flagged >= 1:
                 last_grp_flagged = min(jump_data.persist_grps_flagged, ngrps)
                 gdq[intg, 1:last_grp_flagged, :, :] = np.bitwise_or(
-                        gdq[intg, 1:last_grp_flagged, :, :],
-                        np.repeat(persist_jumps[intg - 1, np.newaxis, :, :],
-                        last_grp_flagged - 1, axis=0))
+                    gdq[intg, 1:last_grp_flagged, :, :],
+                    np.repeat(
+                        persist_jumps[intg - 1, np.newaxis, :, :], last_grp_flagged - 1, axis=0
+                    ),
+                )
     return gdq, total_snowballs
 
 
 def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
     Extend the saturated ellipses that are larger than the min_sat_radius.
-    
+
     Parameters
     ----------
     cube : ndarray
@@ -450,7 +463,6 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
-        cen = (round(ceny), round(cenx))
         minor_axis = min(ellipse[1][1], ellipse[1][0])
 
         if minor_axis > jump_data.min_sat_radius_extend:
@@ -461,9 +473,10 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
             alpha = ellipse[2]
 
-            indx, sat_ellipse = ellipse_subim(
-                ceny, cenx, axis1, axis2, alpha, satcolor, (nrows, ncols))
-            (iy1, iy2, ix1, ix2) = indx
+            index, sat_ellipse = ellipse_subim(
+                ceny, cenx, axis1, axis2, alpha, satcolor, (nrows, ncols)
+            )
+            (iy1, iy2, ix1, ix2) = index
 
             # Create another non-extended ellipse that is used to
             # create the persist_jumps for this integration. This
@@ -474,9 +487,10 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
                 cube[i][iy1:iy2, ix1:ix2][is_sat] = jump_data.fl_sat
 
             ax1, ax2 = (ellipse[1][0], ellipse[1][1])
-            indx, persist_ellipse = ellipse_subim(
-                ceny, cenx, ax1, ax2, alpha, satcolor, (nrows, ncols))
-            (iy1, iy2, ix1, ix2) = indx
+            index, persist_ellipse = ellipse_subim(
+                ceny, cenx, ax1, ax2, alpha, satcolor, (nrows, ncols)
+            )
+            (iy1, iy2, ix1, ix2) = index
 
             persist_mask = persist_ellipse == satcolor
             persist_jumps[iy1:iy2, ix1:ix2][persist_mask] = jump_data.fl_jump
@@ -485,7 +499,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
 
 def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
-    """Draw a filled ellipse in a small array at a given (returned) location
+    """Draw a filled ellipse in a small array at a given (returned) location.
+
     Parameters
     ----------
     ceny : float
@@ -503,9 +518,10 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     shape : (int, int)
         The shape of the full 2D array into which the returned
         subimage should be placed.
+
     Returns
     -------
-    indx : (int, int, int, int)
+    index : (int, int, int, int)
         Indices (iy1, iy2, ix1, ix2) such that
         fullimage[iy1:iy2, ix1:ix2] = subimage (see below)
     subimage : 2D 8-bit unsigned int array
@@ -516,7 +532,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
 
     # How big of a subarray do we need for the subimage?
 
-    dn_over_2 = max(round(axis1/2), round(axis2/2)) + 2
+    dn_over_2 = max(round(axis1 / 2), round(axis2 / 2)) + 2
 
     # Note that the convention between which index is x and which
     # is y is a little confusing here.  To cv.ellipse, the first
@@ -545,10 +561,15 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     return (iy1, iy2, ix1, ix2), subimage
 
 
-
 def extend_ellipses(
-    gdq_cube, intg, grp, ellipses, jump_data,
-    expansion=1.9, expand_by_ratio=True, num_grps_masked=1,
+    gdq_cube,
+    intg,
+    grp,
+    ellipses,
+    jump_data,
+    expansion=1.9,
+    expand_by_ratio=True,
+    num_grps_masked=1,
 ):
     """
     Extend the ellipses.
@@ -601,16 +622,16 @@ def extend_ellipses(
 
         # Get the expanded ellipse in a subimage, along with the
         # indices that place this subimage within the full array.
-        axis1 = axes[0]*2
-        axis2 = axes[1]*2
-        indx, jump_ellipse = ellipse_subim(
-            ceny, cenx, axis1, axis2, alpha, jump_data.fl_jump, (nrows, ncols))
-        (iy1, iy2, ix1, ix2) = indx
-        
+        axis1 = axes[0] * 2
+        axis2 = axes[1] * 2
+        index, jump_ellipse = ellipse_subim(
+            ceny, cenx, axis1, axis2, alpha, jump_data.fl_jump, (nrows, ncols)
+        )
+        (iy1, iy2, ix1, ix2) = index
+
         # Propagate forward by num_grps_masked groups.
 
         for flg_grp in range(grp, min(grp + num_grps_masked + 1, ngroups)):
-
             # Only propagate the snowball forward to unsaturated pixels.
 
             sat_pix = gdq_cube[intg, flg_grp, iy1:iy2, ix1:ix2] & jump_data.fl_sat
@@ -618,6 +639,7 @@ def extend_ellipses(
             gdq_cube[intg, flg_grp, iy1:iy2, ix1:ix2] |= jump_ellipse
 
     return gdq_cube, num_ellipses
+
 
 def find_ellipses(dqplane, bitmask, min_area):
     """
@@ -635,7 +657,7 @@ def find_ellipses(dqplane, bitmask, min_area):
         The minimum area of saturated pixels at the center of a snowball. Only
         contours with area above the minimum will create snowballs.
 
-    Returns 
+    Returns
     -------
     list of computed ellipses
     """
@@ -653,8 +675,14 @@ def find_ellipses(dqplane, bitmask, min_area):
 
 
 def make_snowballs(
-    gdq, integration, group, jump_ellipses, sat_ellipses,
-    next_sat_ellipses, jump_data, persist_jumps
+    gdq,
+    integration,
+    group,
+    jump_ellipses,
+    sat_ellipses,
+    next_sat_ellipses,
+    jump_data,
+    persist_jumps,
 ):
     """
     Find snowballs.
@@ -689,7 +717,7 @@ def make_snowballs(
     -------
     gdq : ndarray
         The 4-D group DQ array.
-        
+
     snowballs : list
         List of snowballs found.
 
@@ -710,12 +738,12 @@ def make_snowballs(
             snowballs.append(jump)
         else:
             for sat in sat_ellipses:
-                if ((point_inside_ellipse(sat[0], jump) and jump not in snowballs)):
+                if point_inside_ellipse(sat[0], jump) and jump not in snowballs:
                     snowballs.append(jump)
             if group < ngroups - 1:
                 # Is there saturation inside the jump in the next group?
                 for next_sat in next_sat_ellipses:
-                    if ((point_inside_ellipse(next_sat[0], jump)) and jump not in snowballs):
+                    if (point_inside_ellipse(next_sat[0], jump)) and jump not in snowballs:
                         snowballs.append(jump)
 
     # extend the saturated ellipses that are larger than the min_sat_radius
@@ -768,7 +796,7 @@ def near_edge(jump, low_threshold, high_threshold):
         Low threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
-    high_threshold : 
+    high_threshold :
         High threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
@@ -784,8 +812,7 @@ def near_edge(jump, low_threshold, high_threshold):
     )
 
 
-def find_faint_extended(
-        indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_for_shower=10):
+def find_faint_extended(indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_for_shower=10):
     """
     Flag groups based on showers detected.
 
@@ -846,15 +873,13 @@ def find_faint_extended(
             ratio = diff_meddiff_int(intg, median_diffs, sigma, first_diffs)
 
         #  The convolution kernel creation
-        ring_2D_kernel = Ring2DKernel(
-                jump_data.extend_inner_radius, jump_data.extend_outer_radius)
+        ring_2d_kernel = Ring2DKernel(jump_data.extend_inner_radius, jump_data.extend_outer_radius)
         first_good_group = find_first_good_group(gdq[intg, :, :, :], jump_data.fl_dnu)
         for grp in range(first_good_group + 1, ngrps):
             if nints >= jump_data.minimum_sigclip_groups:
                 ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
-            bigcontours = get_bigcontours(
-                    ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
+            bigcontours = get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2d_kernel)
 
             # get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
@@ -924,7 +949,7 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
     # Ensure that flagging showers didn't change final fluxes by more than the allowed amount
     for intg in range(nints):
         # Consider DO_NOT_USE, SATURATION, and JUMP_DET flags
-        invalid_flags = jump_data.fl_dnu | jump_data.fl_sat| jump_data.fl_jump
+        invalid_flags = jump_data.fl_dnu | jump_data.fl_sat | jump_data.fl_jump
 
         # Approximate pre-shower rates
         tempdata = indata[intg, :, :, :].copy()
@@ -934,7 +959,9 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
         diff = np.diff(tempdata, axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
-            warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+            warnings.filterwarnings(
+                "ignore", category=RuntimeWarning, message="Mean of empty slice"
+            )
             image1 = np.nanmean(diff, axis=0)
         del tempdata
 
@@ -946,7 +973,9 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
         diff = np.diff(tempdata, axis=0)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN")
-            warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+            warnings.filterwarnings(
+                "ignore", category=RuntimeWarning, message="Mean of empty slice"
+            )
             image2 = np.nanmean(diff, axis=0)
         del tempdata
 
@@ -954,8 +983,8 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
         # became NaN or changed by more than the amount reasonable for a real CR shower
         # Note that max_shower_amplitude should now be in DN/group not DN/s
         diff = np.abs(image1 - image2)
-        indx = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))
-        gdq[intg, :, indx[0], indx[1]] = ingdq[intg, :, indx[0], indx[1]]
+        index = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))  # noqa: E712
+        gdq[intg, :, index[0], index[1]] = ingdq[intg, :, index[0], index[1]]
 
     return gdq
 
@@ -968,7 +997,7 @@ def count_dnu_groups(gdq, jump_data):
     ----------
     gdq : ndarray
         The group DQ 4D uint8.
-        
+
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
@@ -1013,7 +1042,6 @@ def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
         The image with ellipses drawn on it.
     """
     for ellipse in ellipses:
-        ceny, cenx = ellipse[0][0], ellipse[0][1]
         cen = (round(ellipse[0][0]), round(ellipse[0][1]))
         axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
         alpha = ellipse[2]
@@ -1067,7 +1095,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     return (round(axis1 / 2), round(axis2 / 2))
 
 
-def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2d_kernel):
     """Perform convolution to find contours larger than a minimum area.
 
     Parameters
@@ -1089,13 +1117,13 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
-    ring_2D_kernel : astropy.convolution.Ring2DKernel
+    ring_2d_kernel : astropy.convolution.Ring2DKernel
         2D Ring filter kernel
 
     Returns
     -------
-    bigcontours : list 
-        list of OpenCV countours
+    bigcontours : list
+        list of OpenCV contours
     """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
@@ -1105,31 +1133,34 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     #  mask pixels that are already flagged as jump, sat, or dnu
     combined_pixel_mask = np.bitwise_or(gdq[intg, grp, :, :], pdq[:, :])
 
-    jump_sat_or_dnu = np.bitwise_and(combined_pixel_mask, jump_flag|sat_flag|dnu_flag) != 0
+    jump_sat_or_dnu = np.bitwise_and(combined_pixel_mask, jump_flag | sat_flag | dnu_flag) != 0
     masked_ratio[jump_sat_or_dnu] = np.nan
-    
-    kernel = ring_2D_kernel.array
-    
+
+    kernel = ring_2d_kernel.array
+
     # Equivalent to but faster than
     # masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel, preserve_nan=True)
-    
+
     masked_smoothed_ratio = convolve_fast(masked_ratio, kernel)
 
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
     contours, hierarchy = cv.findContours(
-            extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
+    )
 
     #  get the contours that are above the minimum size
     bigcontours = [con for con in contours if cv.contourArea(con) > jump_data.extend_min_area]
-    return bigcontours 
-
+    return bigcontours
 
 
 def convolve_fast(inarray, kernel, copy=False):
-    """Convolve an array with a kernel, interpolating over NaNs.
+    """
+    Convolve an array with a kernel, interpolating over NaNs.
+
     Faster version of astropy.convolution.convolve(preserve_nan=True)
+
     Parameters
     ----------
     inarray : 2D array of floats
@@ -1138,12 +1169,12 @@ def convolve_fast(inarray, kernel, copy=False):
         Convolution kernel.  Both dimensions must be odd.
     copy : bool
         Make a copy of inarray to avoid modifying NaN values.  Default False.
+
     Returns
     -------
     convolved_array : 2D array of floats
         Convolution of inarray and kernel, interpolating over NaNs.
     """
-
     # We will mask nan pixels by setting them to zero.  We
     # will convolve by our kernel, then divide by the weight
     # given by the valid pixels convolved with the kernel in
@@ -1162,20 +1193,21 @@ def convolve_fast(inarray, kernel, copy=False):
     good = np.isfinite(array)
     array[~good] = 0
 
-    convolved_array = signal.oaconvolve(array, kernel, mode='same')
+    convolved_array = signal.oaconvolve(array, kernel, mode="same")
 
     # Embed the flag in a larger array to reproduce the behavior at
     # the edge with a fill value of zero.
 
-    padded_good_arr = np.ones((good.shape[0] + kernel.shape[0] - 1,
-                               good.shape[1] + kernel.shape[1] - 1))
-    n = kernel.shape[0]//2
+    padded_good_arr = np.ones(
+        (good.shape[0] + kernel.shape[0] - 1, good.shape[1] + kernel.shape[1] - 1)
+    )
+    n = kernel.shape[0] // 2
     padded_good_arr[n:-n, n:-n] = good
-    norm = signal.oaconvolve(padded_good_arr, kernel, mode='valid')
+    norm = signal.oaconvolve(padded_good_arr, kernel, mode="valid")
 
     # Avoid dividing by a tiny number due to roundoff error.
 
-    good &= norm > 1e-3*np.mean(kernel)
+    good &= norm > 1e-3 * np.mean(kernel)
     convolved_array /= norm
 
     # Replace NaNs
@@ -1192,7 +1224,7 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     Parameters
     ----------
     intg : int
-        Current intregration
+        Current integration
 
     median_diffs : ndarray
         Median of differences in integration
@@ -1208,7 +1240,6 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     ratio : ndarray
         SNR ratio
     """
-
     e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
 
     # SNR ratio of each diff.
@@ -1224,7 +1255,7 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
     Parameters
     ----------
     intg : int
-        Current intregration
+        Current integration
 
     grp : int
         Current group
