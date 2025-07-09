@@ -48,11 +48,15 @@ class MockConnectionError:
         raise requests.exceptions.ConnectionError
 
 
-@pytest.fixture(scope="module")
-def wcsobj():
+def _wcsobj():
     path = Path(__file__).parent / DATADIR / WCS_NAME
     with asdf.open(path, lazy_load=False) as asdf_file:
         return asdf_file.tree["wcs"]
+
+
+@pytest.fixture(scope="module")
+def wcsobj():
+    return _wcsobj()
 
 
 @pytest.fixture(scope="module")
@@ -200,9 +204,13 @@ class MinimalDataWithWCS:
         self.data = np.zeros((512, 512))
 
 
+def _datamodel(wcsobj2, group_id=None):
+    return MinimalDataWithWCS(wcsobj2, group_id=group_id)
+
+
 @pytest.fixture(scope="module")
 def datamodel(wcsobj2, group_id=None):
-    return MinimalDataWithWCS(wcsobj2, group_id=group_id)
+    return _datamodel(wcsobj2, group_id=None)
 
 
 @pytest.fixture(scope="module")
@@ -211,7 +219,7 @@ def abs_refcat(datamodel):
     wcsobj = datamodel.meta.wcs
     radius, fiducial = amutils.compute_radius(wcsobj)
     return amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                            catalog=TEST_CATALOG)
+                               catalog=TEST_CATALOG)
 
 
 def test_parse_refcat(datamodel, abs_refcat, tmp_path):
@@ -367,6 +375,7 @@ def test_absolute_align(example_input, input_catalog):
 
     abs_delta = abs(result[1].wcs(0, 0)[0] - result[0].wcs(0, 0)[0])
     assert abs_delta < 1E-12
+
 
 def test_get_catalog_timeout():
     """Test that get_catalog can raise an exception on timeout."""
