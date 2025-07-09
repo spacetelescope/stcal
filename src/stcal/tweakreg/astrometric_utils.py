@@ -121,8 +121,8 @@ def create_astrometric_catalog(
     # Should 'num_sources' be a negative value, it will return the faintest
     # 'num_sources' sources.
     if num_sources is not None:
-        indx = -1 * num_sources
-        ref_table = ref_table[:indx] if num_sources < 0 else ref_table[indx:]
+        index = -1 * num_sources
+        ref_table = ref_table[:index] if num_sources < 0 else ref_table[index:]
 
     # Write out table to a file, if specified
     if output is not None:

@@ -2433,7 +2433,7 @@ median_rate_integration(
         goto END;
     }
 
-    /* Create a local copy because it will be modiified */
+    /* Create a local copy because it will be modified */
     for (k=0; k<pr->ngroups; ++k) {
         if (int_dq[k] & rd->dnu) {
             loc_integ[k] = NAN;
@@ -3359,7 +3359,7 @@ static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
         struct ramp_data * rd,          /* The ramp data */
         struct pixel_ramp * pr,         /* The pixel ramp data */
-        struct simple_ll_node * seg,    /* The intgration segment */
+        struct simple_ll_node * seg,    /* The integration segment */
         struct ols_calcs * ols,         /* Intermediate calculations */
         npy_intp integ,                 /* The integration number */
         int segnum,                     /* The segment number */

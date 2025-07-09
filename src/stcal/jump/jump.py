@@ -474,10 +474,10 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
             alpha = ellipse[2]
 
-            indx, sat_ellipse = ellipse_subim(
+            index, sat_ellipse = ellipse_subim(
                 ceny, cenx, axis1, axis2, alpha, satcolor, (nrows, ncols)
             )
-            (iy1, iy2, ix1, ix2) = indx
+            (iy1, iy2, ix1, ix2) = index
 
             # Create another non-extended ellipse that is used to
             # create the persist_jumps for this integration. This
@@ -488,10 +488,10 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
                 cube[i][iy1:iy2, ix1:ix2][is_sat] = jump_data.fl_sat
 
             ax1, ax2 = (ellipse[1][0], ellipse[1][1])
-            indx, persist_ellipse = ellipse_subim(
+            index, persist_ellipse = ellipse_subim(
                 ceny, cenx, ax1, ax2, alpha, satcolor, (nrows, ncols)
             )
-            (iy1, iy2, ix1, ix2) = indx
+            (iy1, iy2, ix1, ix2) = index
 
             persist_mask = persist_ellipse == satcolor
             persist_jumps[iy1:iy2, ix1:ix2][persist_mask] = jump_data.fl_jump
@@ -522,7 +522,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
 
     Returns
     -------
-    indx : (int, int, int, int)
+    index : (int, int, int, int)
         Indices (iy1, iy2, ix1, ix2) such that
         fullimage[iy1:iy2, ix1:ix2] = subimage (see below)
     subimage : 2D 8-bit unsigned int array
@@ -625,10 +625,10 @@ def extend_ellipses(
         # indices that place this subimage within the full array.
         axis1 = axes[0] * 2
         axis2 = axes[1] * 2
-        indx, jump_ellipse = ellipse_subim(
+        index, jump_ellipse = ellipse_subim(
             ceny, cenx, axis1, axis2, alpha, jump_data.fl_jump, (nrows, ncols)
         )
-        (iy1, iy2, ix1, ix2) = indx
+        (iy1, iy2, ix1, ix2) = index
 
         # Propagate forward by num_grps_masked groups.
 
@@ -984,8 +984,8 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
         # became NaN or changed by more than the amount reasonable for a real CR shower
         # Note that max_shower_amplitude should now be in DN/group not DN/s
         diff = np.abs(image1 - image2)
-        indx = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))  # noqa: E712
-        gdq[intg, :, indx[0], indx[1]] = ingdq[intg, :, indx[0], indx[1]]
+        index = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))  # noqa: E712
+        gdq[intg, :, index[0], index[1]] = ingdq[intg, :, index[0], index[1]]
 
     return gdq
 
@@ -1225,7 +1225,7 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     Parameters
     ----------
     intg : int
-        Current intregration
+        Current integration
 
     median_diffs : ndarray
         Median of differences in integration
@@ -1256,7 +1256,7 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
     Parameters
     ----------
     intg : int
-        Current intregration
+        Current integration
 
     grp : int
         Current group
