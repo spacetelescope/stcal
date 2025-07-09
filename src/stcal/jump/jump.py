@@ -5,16 +5,15 @@ import logging
 import multiprocessing
 import time
 import warnings
+
+import astropy.stats as stats
+import cv2 as cv
+import numpy as np
+from astropy.convolution import Ring2DKernel
 from scipy import signal
 
-import numpy as np
-import cv2 as cv
-import astropy.stats as stats
-
-from astropy.convolution import Ring2DKernel
-
-from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
+from .twopoint_difference_class import TwoPointParams
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)

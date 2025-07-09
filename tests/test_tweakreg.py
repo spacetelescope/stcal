@@ -1,17 +1,18 @@
 """Test astrometric utility functions for alignment"""
 
+import contextlib
 import copy
 from copy import deepcopy
 from pathlib import Path
 
 import asdf
-import contextlib
 import numpy as np
 import pytest
+import requests
+from astropy.coordinates import SkyCoord
 from astropy.modeling.models import Shift
 from astropy.table import Table
 from astropy.time import Time
-from astropy.coordinates import SkyCoord
 
 from stcal.tweakreg import astrometric_utils as amutils
 from stcal.tweakreg.tweakreg import (
@@ -25,7 +26,6 @@ from stcal.tweakreg.tweakreg import (
     relative_align,
 )
 from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
-import requests
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product

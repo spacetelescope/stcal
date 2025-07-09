@@ -1,8 +1,8 @@
 """Test various utility functions"""
 
-from numpy.testing import assert_array_equal
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 
 from stcal.resample.utils import (
     build_driz_weight,
@@ -14,7 +14,7 @@ from stcal.resample.utils import (
     resample_range,
 )
 
-from .helpers import make_input_model, JWST_DQ_FLAG_DEF
+from .helpers import JWST_DQ_FLAG_DEF, make_input_model
 
 GOOD = 0
 DQ = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])

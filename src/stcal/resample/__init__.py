@@ -1,7 +1,7 @@
 from .resample import (
     Resample,
-    compute_mean_pixel_area,
     UnsupportedWCSError,
+    compute_mean_pixel_area,
 )
 
 __all__ = [

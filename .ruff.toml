@@ -36,6 +36,7 @@ select = [
     "SLF",    # flake8-self (prevent using private class members outside class)
     "SLOT",   # flake8-slots (require __slots__ for immutable classes)
     "T20",    # flake8-print (prevent print statements in code)
+    "I",      # isort rules (sorting imports)
     "TRY",    # tryceratops (best practices for try/except blocks)
     "UP",     # pyupgrade (simplified syntax allowed by newer Python versions)
     "YTT",    # flake8-2020 (prevent some specific gotchas from sys.version)

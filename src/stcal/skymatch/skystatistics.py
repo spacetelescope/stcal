@@ -9,8 +9,9 @@ and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 """
 
 # THIRD PARTY
-from stsci.imagestats import ImageStats
 from copy import deepcopy
+
+from stsci.imagestats import ImageStats
 
 __all__ = ["SkyStats"]
 

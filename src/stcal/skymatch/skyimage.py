@@ -21,7 +21,6 @@ from spherical_geometry.polygon import SphericalPolygon
 # LOCAL
 from .skystatistics import SkyStats
 
-
 __all__ = [
     "SkyImage",
     "SkyGroup",

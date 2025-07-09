@@ -5,8 +5,9 @@ Unit tests for saturation flagging
 """
 
 from enum import IntEnum
-import pytest
+
 import numpy as np
+import pytest
 
 from stcal.saturation.saturation import flag_saturated_pixels
 

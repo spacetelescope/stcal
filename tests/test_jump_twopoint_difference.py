@@ -4,7 +4,6 @@ import pytest
 from stcal.jump.twopoint_difference import find_crs
 from stcal.jump.twopoint_difference_class import TwoPointParams
 
-
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1}
 
 

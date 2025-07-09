@@ -1,23 +1,21 @@
 import math
 
+import numpy as np
 import pytest
-
 from drizzle.utils import calc_pixmap
+
+from stcal.alignment.util import wcs_from_footprints
 from stcal.resample import Resample
 from stcal.resample.utils import (
     build_driz_weight,
     resample_range,
 )
 
-import numpy as np
-
-from stcal.alignment.util import wcs_from_footprints
-
 from .helpers import (
+    JWST_DQ_FLAG_DEF,
     make_gwcs,
     make_input_model,
     make_output_model,
-    JWST_DQ_FLAG_DEF,
 )
 
 
