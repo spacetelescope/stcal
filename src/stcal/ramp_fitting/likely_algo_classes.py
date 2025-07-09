@@ -6,6 +6,7 @@ class IntegInfo:
     """
     Storage for the integration information for ramp fitting computations.
     """
+
     def __init__(self, nints, nrows, ncols):
         """
         Initialize output arrays.
@@ -87,7 +88,7 @@ class RampResult:
         ostring = f"countrate = \n{self.countrate}"
         ostring += f"\nchisq = \n{self.chisq}"
         ostring += f"\nucert = \n{self.uncert}"
-        '''
+        """
         ostring += f"\nweights = \n{self.weights}"
 
         ostring += f"\ncountrate_two_omit = \n{self.countrate_two_omit}"
@@ -99,7 +100,7 @@ class RampResult:
         ostring += f"\njumpsig_one_omit = \n{self.jumpsig_one_omit}"
         ostring += f"\nchisq_one_omit = \n{self.chisq_one_omit}"
         ostring += f"\nuncert_one_omit = \n{self.uncert_one_omit}"
-        '''
+        """
 
         return ostring
 
@@ -152,6 +153,7 @@ class Covar:
     class Covar holding read and photon noise components of alpha and
     beta and the time intervals between the resultant midpoints
     """
+
     def __init__(self, readtimes):
         """
         Compute alpha and beta, the diagonal and off-diagonal elements of

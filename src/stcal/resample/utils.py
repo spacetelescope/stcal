@@ -64,9 +64,8 @@ def build_mask(dqarr, good_bits, flag_name_map=None):
     return dqmask
 
 
-def build_driz_weight(model, weight_type=None, good_bits=None,
-                      flag_name_map=None):
-    """ Create a weight map that is used for weighting input images when
+def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=None):
+    """Create a weight map that is used for weighting input images when
     they are co-added to the output model.
 
     Parameters
@@ -115,23 +114,18 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         flag_name_map=flag_name_map,
     )
 
-    if weight_type == 'ivm':
+    if weight_type == "ivm":
         var_rnoise = model["var_rnoise"]
-        if (var_rnoise is not None and
-                var_rnoise.shape == data.shape):
+        if var_rnoise is not None and var_rnoise.shape == data.shape:
             with np.errstate(divide="ignore", invalid="ignore"):
                 inv_variance = var_rnoise**-1
             inv_variance[~np.isfinite(inv_variance)] = 1
             result = inv_variance * dqmask
         else:
-            warnings.warn(
-                "'var_rnoise' array not available. "
-                "Setting drizzle weight map to 1",
-                RuntimeWarning
-            )
+            warnings.warn("'var_rnoise' array not available. Setting drizzle weight map to 1", RuntimeWarning)
             result = dqmask
 
-    elif weight_type == 'exptime':
+    elif weight_type == "exptime":
         exptime, _ = get_tmeasure(model)
         result = np.float32(exptime) * dqmask
 
@@ -140,8 +134,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
 
     else:
         raise ValueError(
-            f"Invalid weight type: {repr(weight_type)}."
-            "Allowed weight types are 'ivm', 'exptime', or None."
+            f"Invalid weight type: {repr(weight_type)}.Allowed weight types are 'ivm', 'exptime', or None."
         )
 
     return result.astype(np.float32)
@@ -165,15 +158,13 @@ def get_tmeasure(model):
 
 
 def is_imaging_wcs(wcs):
-    """ Returns `True` if ``wcs`` is an imaging WCS and `False` otherwise. """
-    imaging = all(
-        ax == 'SPATIAL' for ax in wcs.output_frame.axes_type
-    )
+    """Returns `True` if ``wcs`` is an imaging WCS and `False` otherwise."""
+    imaging = all(ax == "SPATIAL" for ax in wcs.output_frame.axes_type)
     return imaging
 
 
 def compute_mean_pixel_area(wcs, shape=None):
-    """ Computes the average pixel area (in steradians) based on input WCS
+    """Computes the average pixel area (in steradians) based on input WCS
     using pixels within either the bounding box (if available) or the entire
     data array as defined either by ``wcs.array_shape`` or the ``shape``
     argument.
@@ -205,14 +196,11 @@ def compute_mean_pixel_area(wcs, shape=None):
     """
     if (shape := (shape or wcs.array_shape)) is None:
         raise ValueError(
-            "Either WCS must have 'array_shape' attribute set or 'shape' "
-            "argument must be supplied."
+            "Either WCS must have 'array_shape' attribute set or 'shape' argument must be supplied."
         )
 
     valid_polygon = False
-    spatial_idx = np.where(
-        np.array(wcs.output_frame.axes_type) == 'SPATIAL'
-    )[0]
+    spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
 
     ny, nx = shape
 
@@ -242,7 +230,7 @@ def compute_mean_pixel_area(wcs, shape=None):
                 ymin=ymin,
                 ymax=ymax,
                 dx=min((xmax - xmin) // 4, 15),
-                dy=min((ymax - ymin) // 4, 15)
+                dy=min((ymax - ymin) // 4, 15),
             )
         except ValueError:
             return None
@@ -255,8 +243,7 @@ def compute_mean_pixel_area(wcs, shape=None):
 
         for _ in range(4):
             sl = [b, r, t, l][k]
-            if not (np.all(np.isfinite(ra[sl])) and
-                    np.all(np.isfinite(dec[sl]))):
+            if not (np.all(np.isfinite(ra[sl])) and np.all(np.isfinite(dec[sl]))):
                 limits[k] += dxy[k]
                 ymin, xmax, ymax, xmin = limits
                 k = (k + 1) % 4
@@ -276,10 +263,7 @@ def compute_mean_pixel_area(wcs, shape=None):
 
     sky_area = SphericalPolygon.from_radec(ra, dec, center=wcenter).area()
     if sky_area > 2 * np.pi:
-        log.warning(
-            "Unexpectedly large computed sky area for an image. "
-            "Setting area to: 4*Pi - area"
-        )
+        log.warning("Unexpectedly large computed sky area for an image. Setting area to: 4*Pi - area")
         sky_area = 4 * np.pi - sky_area
     if image_area == 0:
         log.error("Image area is zero; cannot compute pixel area.")
@@ -289,8 +273,7 @@ def compute_mean_pixel_area(wcs, shape=None):
     return pix_area
 
 
-def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
-                         shrink=0):  # noqa: E741
+def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  # noqa: E741
     """
     Creates a list of ``x`` and ``y`` coordinates of points along the perimiter
     of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
@@ -385,9 +368,9 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
     y = np.empty(size)
 
     bottom = np.s_[0:sx]  # bottom edge
-    right = np.s_[sx:sx + sy]  # right edge
-    top = np.s_[sx + sy:2 * sx + sy]  # top edge
-    left = np.s_[2 * sx + sy:2 * sx + 2 * sy]  # noqa: E741  left edge
+    right = np.s_[sx : sx + sy]  # right edge
+    top = np.s_[sx + sy : 2 * sx + sy]  # top edge
+    left = np.s_[2 * sx + sy : 2 * sx + 2 * sy]  # noqa: E741  left edge
 
     x[bottom] = np.linspace(xmin, xmax, sx, False)
     y[bottom] = ymin

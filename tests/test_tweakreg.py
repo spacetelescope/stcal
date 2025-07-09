@@ -76,8 +76,7 @@ def test_get_catalog(wcsobj):
     radius, fiducial = amutils.compute_radius(wcsobj)
 
     # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                              catalog=TEST_CATALOG)
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius, catalog=TEST_CATALOG)
 
     assert len(cat) == EXPECTED_NUM_SOURCES
 
@@ -85,7 +84,8 @@ def test_get_catalog(wcsobj):
 def test_create_catalog(wcsobj):
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
-        wcsobj, "2016.0",
+        wcsobj,
+        "2016.0",
         catalog=TEST_CATALOG,
         output=None,
     )
@@ -102,7 +102,8 @@ def test_create_catalog_graceful_failure(wcsobj):
 
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
-        wcsobj, "2016.0",
+        wcsobj,
+        "2016.0",
         catalog=TEST_CATALOG,
         output=None,
     )
@@ -133,8 +134,7 @@ def fake_correctors(offset):
     return [FakeCorrector(twcs, _wcs_to_skycoord(wcs))]
 
 
-@pytest.mark.parametrize(("offset", "is_good"),
-                         [(1 / 3600, True), (11 / 3600, False)])
+@pytest.mark.parametrize(("offset", "is_good"), [(1 / 3600, True), (11 / 3600, False)])
 def test_is_wcs_correction_small(offset, is_good):
     """
     Test that the _is_wcs_correction_small method returns True for a small
@@ -151,27 +151,22 @@ def test_is_wcs_correction_small(offset, is_good):
 
 
 def test_expected_fails_bad_separation():
-
     correctors = fake_correctors(0.0)
     separation = 1.0
     tolerance = 1.0
     with pytest.raises(TweakregError):
-        relative_align(correctors,
-                       separation=separation,
-                       tolerance=tolerance)
+        relative_align(correctors, separation=separation, tolerance=tolerance)
 
     with pytest.raises(TweakregError):
-        absolute_align(correctors, "GAIADR3",
-                       None,
-                       None,
-                       None,
-                       abs_separation=separation,
-                       abs_tolerance=tolerance)
+        absolute_align(
+            correctors, "GAIADR3", None, None, None, abs_separation=separation, abs_tolerance=tolerance
+        )
 
 
 class AttrDict(dict):
     """Hack to be able to treat wcsinfo dict as an object so attributes
     can be accessed"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
@@ -182,7 +177,6 @@ class AttrDict(dict):
 
 
 class Metadata:
-
     def __init__(self, wcs, epoch, group_id=None):
         self.wcs = wcs
         self.observation = AttrDict({"date": epoch})
@@ -194,7 +188,6 @@ class Metadata:
 
 
 class MinimalDataWithWCS:
-
     def __init__(self, wcs, epoch="2016-01-01T00:00:00.0", group_id=None):
         self.meta = Metadata(wcs, epoch, group_id=group_id)
         self.data = np.zeros((512, 512))
@@ -207,15 +200,12 @@ def datamodel(wcsobj2, group_id=None):
 
 @pytest.fixture(scope="module")
 def abs_refcat(datamodel):
-
     wcsobj = datamodel.meta.wcs
     radius, fiducial = amutils.compute_radius(wcsobj)
-    return amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                            catalog=TEST_CATALOG)
+    return amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius, catalog=TEST_CATALOG)
 
 
 def test_parse_refcat(datamodel, abs_refcat, tmp_path):
-
     correctors = fake_correctors(0.0)
     cat = abs_refcat
 
@@ -224,11 +214,9 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
 
     # parse refcat from file
     epoch = Time(datamodel.meta.observation.date).decimalyear
-    refcat = _parse_refcat(tmp_path / CATALOG_FNAME,
-                           correctors,
-                           datamodel.meta.wcs,
-                           datamodel.meta.wcsinfo,
-                           epoch)
+    refcat = _parse_refcat(
+        tmp_path / CATALOG_FNAME, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch
+    )
     assert isinstance(refcat, Table)
     assert refcat.meta["name"] == CATALOG_FNAME
 
@@ -239,7 +227,6 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
 
 
 def test_parse_sky_centroid(abs_refcat):
-
     # make a SkyCoord object out of the RA and DEC columns
     sky_centroid = SkyCoord(abs_refcat["ra"], abs_refcat["dec"], unit="deg")
     abs_refcat["sky_centroid"] = sky_centroid
@@ -290,8 +277,7 @@ def input_catalog(datamodel):
     radius, fiducial = amutils.compute_radius(w)
 
     # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                              catalog=TEST_CATALOG)
+    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius, catalog=TEST_CATALOG)
 
     x, y = w.world_to_pixel_values(cat["ra"].value, cat["dec"].value)
     return Table({"x": x, "y": y})
@@ -299,7 +285,6 @@ def input_catalog(datamodel):
 
 @pytest.fixture(scope="module")
 def example_input(wcsobj2):
-
     m0 = MinimalDataWithWCS(wcsobj2)
     m0.data[:] = BKG_LEVEL
     n_sources = N_EXAMPLE_SOURCES
@@ -307,7 +292,7 @@ def example_input(wcsobj2):
     xs = rng.choice(50, n_sources, replace=False) * 8 + 10
     ys = rng.choice(50, n_sources, replace=False) * 8 + 10
     for y, x in zip(ys, xs, strict=False):
-        m0.data[y-1:y+2, x-1:x+2] = [
+        m0.data[y - 1 : y + 2, x - 1 : x + 2] = [
             [0.1, 0.6, 0.1],
             [0.6, 0.8, 0.6],
             [0.1, 0.6, 0.1],
@@ -324,7 +309,6 @@ def example_input(wcsobj2):
 
 @pytest.mark.parametrize("with_shift", [True, False])
 def test_relative_align(example_input, input_catalog, with_shift):
-
     [m0, m1] = example_input
     cat1 = copy.deepcopy(input_catalog)
     if with_shift:
@@ -332,41 +316,42 @@ def test_relative_align(example_input, input_catalog, with_shift):
         m1.data[-9:] = BKG_LEVEL
         cat1["y"] -= 9
 
-    correctors = [construct_wcs_corrector(dm.meta.wcs,
-                                          dm.meta.wcsinfo.instance,
-                                          cat,
-                                          dm.meta.group_id) for (dm, cat) in \
-                                          zip([m0, m1], [input_catalog, cat1], strict=True)]
+    correctors = [
+        construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, cat, dm.meta.group_id)
+        for (dm, cat) in zip([m0, m1], [input_catalog, cat1], strict=True)
+    ]
     result = relative_align(correctors, minobj=5)
 
     # ensure wcses differ by a small amount due to the shift above
     # by projecting one point through each wcs and comparing the difference
     abs_delta = abs(result[1].wcs(0, 0)[0] - result[0].wcs(0, 0)[0])
     if with_shift:
-        assert abs_delta > 1E-5
+        assert abs_delta > 1e-5
     else:
-        assert abs_delta < 1E-12
+        assert abs_delta < 1e-12
 
 
 def test_absolute_align(example_input, input_catalog):
-
-    correctors = [construct_wcs_corrector(dm.meta.wcs,
-                                          dm.meta.wcsinfo.instance,
-                                          input_catalog,
-                                          dm.meta.group_id) for dm in example_input]
+    correctors = [
+        construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, input_catalog, dm.meta.group_id)
+        for dm in example_input
+    ]
 
     ref_model = example_input[0]
-    result = absolute_align(correctors,
-                            TEST_CATALOG,
-                            ref_wcs=ref_model.meta.wcs,
-                            ref_wcsinfo=ref_model.meta.wcsinfo,
-                            epoch=Time(ref_model.meta.observation.date).decimalyear,
-                            abs_minobj=5)
+    result = absolute_align(
+        correctors,
+        TEST_CATALOG,
+        ref_wcs=ref_model.meta.wcs,
+        ref_wcsinfo=ref_model.meta.wcsinfo,
+        epoch=Time(ref_model.meta.observation.date).decimalyear,
+        abs_minobj=5,
+    )
     for res in result:
         assert res.meta["group_id"] == 987654
 
     abs_delta = abs(result[1].wcs(0, 0)[0] - result[0].wcs(0, 0)[0])
-    assert abs_delta < 1E-12
+    assert abs_delta < 1e-12
+
 
 def test_get_catalog_timeout():
     """Test that get_catalog can raise an exception on timeout."""

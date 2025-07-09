@@ -18,8 +18,8 @@ import logging
 import numpy as np
 
 from . import (
-    likely_fit, # used only if algorithm is "LIKELY"
-    ols_fit,    # used only if algorithm is "OLS_C"
+    likely_fit,  # used only if algorithm is "LIKELY"
+    ols_fit,  # used only if algorithm is "OLS_C"
     ramp_fit_class,
 )
 
@@ -68,7 +68,7 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
 
     orig_gdq = None
     if algorithm.upper() == "OLS_C":
-        wh_chargeloss = model.groupdq & dqflags['CHARGELOSS']
+        wh_chargeloss = model.groupdq & dqflags["CHARGELOSS"]
         if np.any(wh_chargeloss > 0):
             orig_gdq = model.groupdq.copy()
         del wh_chargeloss
@@ -186,14 +186,10 @@ def ramp_fit(
     # data models.
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
-    return ramp_fit_data(
-        ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores
-    )
+    return ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores)
 
 
-def ramp_fit_data(
-    ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores
-):
+def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores):
     """
     This function begins the ramp fit computation after the creation of the
     RampData class.  It determines the proper path for computation to take
@@ -243,16 +239,16 @@ def ramp_fit_data(
     # a minimum of a four group ramp is needed.
     ngroups = ramp_data.data.shape[1]
     if algorithm.upper() == "LIKELY" and ngroups < likely_fit.LIKELY_MIN_NGROUPS:
-        log.info(f"When selecting the LIKELY ramp fitting algorithm the"
-                  " ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
-                  " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
-                  " is being changed to OLS_C")
+        log.info(
+            f"When selecting the LIKELY ramp fitting algorithm the"
+            " ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
+            " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
+            " is being changed to OLS_C"
+        )
         algorithm = "OLS_C"
 
     if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
-        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
-            ramp_data, readnoise_2d, gain_2d
-        )
+        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(ramp_data, readnoise_2d, gain_2d)
     else:
         # Default to OLS_C.
         # Get readnoise array for calculation of variance of noiseless ramps, and

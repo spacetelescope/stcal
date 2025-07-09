@@ -1,6 +1,7 @@
 """
 Unit tests for ramp-fitting functions.
 """
+
 import astropy.units as u
 import numpy as np
 import pytest

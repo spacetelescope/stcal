@@ -29,13 +29,13 @@ __all__ = [
 
 
 class UnsupportedWCSError(RuntimeError):
-    """ Raised when provided output WCS has an unexpected number of axes
+    """Raised when provided output WCS has an unexpected number of axes
     or has an unsupported structure.
     """
 
 
 class Resample:
-    """ Base class for resampling images.
+    """Base class for resampling images.
 
     The main purpose of this class is to resample and add input images
     (data, variance array) to an output image defined by an output WCS.
@@ -54,19 +54,21 @@ class Resample:
     6. Keeps track of total exposure time and other time-related quantities.
 
     """
+
     # supported output arrays (subclasses can add more):
     # add default of float32 to support generic variances conveniently
-    output_array_types: defaultdict[str, DTypeLike] = defaultdict(
-        lambda: np.float32)
-    output_array_types.update({
-        "data": np.float32,
-        "wht": np.float32,
-        "con": np.int32,
-        "var_rnoise": np.float32,
-        "var_flat": np.float32,
-        "var_poisson": np.float32,
-        "err": np.float32,
-    })
+    output_array_types: defaultdict[str, DTypeLike] = defaultdict(lambda: np.float32)
+    output_array_types.update(
+        {
+            "data": np.float32,
+            "wht": np.float32,
+            "con": np.int32,
+            "var_rnoise": np.float32,
+            "var_flat": np.float32,
+            "var_poisson": np.float32,
+            "err": np.float32,
+        }
+    )
 
     # default variance array names; subclasses can choose something else
     variance_array_names = ["var_rnoise", "var_flat", "var_poisson"]
@@ -77,9 +79,19 @@ class Resample:
 
     dq_flag_name_map = None
 
-    def __init__(self, output_wcs, n_input_models=None, pixfrac=1.0,
-                 kernel="square", fillval=0.0, weight_type="ivm", good_bits=0,
-                 enable_ctx=True, enable_var=True, compute_err=None):
+    def __init__(
+        self,
+        output_wcs,
+        n_input_models=None,
+        pixfrac=1.0,
+        kernel="square",
+        fillval=0.0,
+        weight_type="ivm",
+        good_bits=0,
+        enable_ctx=True,
+        enable_var=True,
+        compute_err=None,
+    ):
         """
         Parameters
         ----------
@@ -251,44 +263,30 @@ class Resample:
             )
         else:
             self._output_pixel_scale = output_wcs.get("pixel_scale")
-            self._pixel_scale_ratio = output_wcs.get(
-                "pixel_scale_ratio"
-            )
+            self._pixel_scale_ratio = output_wcs.get("pixel_scale_ratio")
             self._output_wcs = output_wcs.get("wcs")
             self.check_output_wcs(self._output_wcs)
 
         if self._output_pixel_scale is None:
             self._output_pixel_scale = 3600.0 * np.rad2deg(
-                math.sqrt(
-                    self.get_output_model_pixel_area({"wcs": self._output_wcs})
-                )
+                math.sqrt(self.get_output_model_pixel_area({"wcs": self._output_wcs}))
             )
-            log.info(
-                "Computed output pixel scale: "
-                f"{self._output_pixel_scale} arcsec."
-            )
+            log.info(f"Computed output pixel scale: {self._output_pixel_scale} arcsec.")
         else:
-            log.info(
-                f"Output pixel scale: {self._output_pixel_scale} arcsec."
-            )
+            log.info(f"Output pixel scale: {self._output_pixel_scale} arcsec.")
 
         self._output_array_shape = self._output_wcs.array_shape
 
         # Check that the output data shape has no zero-length dimensions
         npix = np.prod(self._output_array_shape)
         if not npix:
-            raise ValueError(
-                "Invalid output frame shape: "
-                f"{tuple(self._output_array_shape)}"
-            )
+            raise ValueError(f"Invalid output frame shape: {tuple(self._output_array_shape)}")
 
         log.info(f"Driz parameter kernel: {self.kernel}")
         log.info(f"Driz parameter pixfrac: {self.pixfrac}")
         log.info(f"Driz parameter fillval: {self.fillval}")
         log.info(f"Driz parameter weight_type: {self.weight_type}")
-        log.debug(
-            f"Output mosaic size (nx, ny): {self._output_wcs.pixel_shape}"
-        )
+        log.debug(f"Output mosaic size (nx, ny): {self._output_wcs.pixel_shape}")
 
         # set up an empty output model (don't allocate arrays at this time):
         self.reset_arrays(n_input_models=n_input_models)
@@ -328,31 +326,22 @@ class Resample:
 
         """
         if prefer_mean:
-            pixel_area = compute_mean_pixel_area(
-                model["wcs"],
-                shape=model["data"].shape
-            )
+            pixel_area = compute_mean_pixel_area(model["wcs"], shape=model["data"].shape)
             if pixel_area is None or pixel_area <= 0:
                 log.warning(
                     "Unable to compute mean pixel area of input model "
                     f"'{model['filename']}'. "
-                    "Using \"nominal\" pixel area instead."
+                    'Using "nominal" pixel area instead.'
                 )
         else:
             pixel_area = model["pixelarea_steradians"]
             if pixel_area is None or pixel_area <= 0:
                 log.warning(
-                    "Input model does not have 'pixelarea_steradians' set. "
-                    "Using mean pixel area instead."
+                    "Input model does not have 'pixelarea_steradians' set. Using mean pixel area instead."
                 )
-                pixel_area = compute_mean_pixel_area(
-                    model["wcs"],
-                    shape=model["data"].shape
-                )
+                pixel_area = compute_mean_pixel_area(model["wcs"], shape=model["data"].shape)
         if pixel_area is None or pixel_area <= 0:
-            log.error(
-                "Unable to determine pixel area of the input model."
-            )
+            log.error("Unable to determine pixel area of the input model.")
         return pixel_area
 
     def get_output_model_pixel_area(self, model):
@@ -398,18 +387,16 @@ class Resample:
 
         """
         naxes = output_wcs.output_frame.naxes
-        if 'SPECTRAL' in output_wcs.output_frame.axes_type:
+        if "SPECTRAL" in output_wcs.output_frame.axes_type:
             if naxes != 3:
                 raise UnsupportedWCSError(
-                    "Output spectral WCS needs 3 coordinate axes but the "
-                    f"supplied WCS has {naxes} axes."
+                    f"Output spectral WCS needs 3 coordinate axes but the supplied WCS has {naxes} axes."
                 )
             return
 
         if naxes != 2:
             raise UnsupportedWCSError(
-                "Output WCS needs 2 coordinate axes but the "
-                f"supplied WCS has {naxes} axes."
+                f"Output WCS needs 2 coordinate axes but the supplied WCS has {naxes} axes."
             )
 
         # make sure array_shape and pixel_shape are set:
@@ -425,13 +412,10 @@ class Resample:
                 # input models, convert them to image coordinates using
                 # `output_wcs`, and then take max(x_i), max(y_i) as
                 # output image size.
-                raise ValueError(
-                    "Unable to infer output image size from provided "
-                    "inputs."
-                )
+                raise ValueError("Unable to infer output image size from provided inputs.")
 
     def create_output_model(self):
-        """ Create a new "output model": a dictionary of data and meta fields.
+        """Create a new "output model": a dictionary of data and meta fields.
 
         Returns
         -------
@@ -441,10 +425,7 @@ class Resample:
 
         """
         assert self._output_wcs is not None
-        assert np.array_equiv(
-            self._output_wcs.array_shape,
-            self._output_array_shape
-        )
+        assert np.array_equiv(self._output_wcs.array_shape, self._output_array_shape)
         assert self._output_pixel_scale
 
         pix_area = self._output_pixel_scale**2
@@ -452,26 +433,21 @@ class Resample:
         output_model = {
             # WCS:
             "wcs": self._output_wcs,
-
             # main arrays:
             "data": None,
             "wht": None,
             "con": None,
-
             # resample parameters:
             "pixfrac": self.pixfrac,
             "kernel": self.kernel,
             "fillval": self.fillval,
             "weight_type": self.weight_type,
-
             # pixel scale:
-            "pixelarea_steradians": pix_area / np.rad2deg(3600)**2,
+            "pixelarea_steradians": pix_area / np.rad2deg(3600) ** 2,
             "pixelarea_arcsecsq": pix_area,
             "pixel_scale_ratio": self._pixel_scale_ratio,
-
             # drizzle info:
             "pointings": 0,
-
             # exposure time:
             "exposure_time": 0.0,
             "measurement_time": None,
@@ -491,51 +467,49 @@ class Resample:
 
     @property
     def output_model(self):
-        """ Output (resampled) model. """
+        """Output (resampled) model."""
         return self._output_model
 
     @property
     def output_array_shape(self):
-        """ Shape of the output model arrays. """
+        """Shape of the output model arrays."""
         return self._output_array_shape
 
     @property
     def output_wcs(self):
-        """ WCS of the output (resampled) model. """
+        """WCS of the output (resampled) model."""
         return self._output_wcs
 
     @property
     def pixel_scale_ratio(self):
-        """ Get the ratio of the output pixel scale to the input pixel scale.
-        """
+        """Get the ratio of the output pixel scale to the input pixel scale."""
         return self._pixel_scale_ratio
 
     @property
     def output_pixel_scale(self):
-        """ Get pixel scale of the output model in arcsec. """
+        """Get pixel scale of the output model in arcsec."""
         return self._output_pixel_scale  # in arcsec
 
     @property
     def group_ids(self):
-        """ Get a list of all group IDs of models resampled and added to the
+        """Get a list of all group IDs of models resampled and added to the
         output model.
         """
         return self._group_ids
 
     @property
     def enable_ctx(self):
-        """ Indicates whether context array is enabled. """
+        """Indicates whether context array is enabled."""
         return self._enable_ctx
 
     @property
     def enable_var(self):
-        """ Indicates whether variance arrays are resampled. """
+        """Indicates whether variance arrays are resampled."""
         return self._enable_var
 
     @property
     def compute_err(self):
-        """ Indicates whether error array is computed and how it is computed.
-        """
+        """Indicates whether error array is computed and how it is computed."""
         return self._compute_err
 
     def _get_intensity_scale(self, model):
@@ -562,9 +536,11 @@ class Resample:
         photom_pixel_area = model["pixelarea_steradians"]
         wcs = model["wcs"]
 
-        if (photom_pixel_area and 'SPECTRAL' in wcs.output_frame.axes_type and
-                is_flux_density(model["bunit_data"])):
-
+        if (
+            photom_pixel_area
+            and "SPECTRAL" in wcs.output_frame.axes_type
+            and is_flux_density(model["bunit_data"])
+        ):
             # If input image is in flux density units, correct the
             # flux for the user-specified change to the spatial dimension
             iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
@@ -582,29 +558,20 @@ class Resample:
             )
 
             if photom_pixel_area is None or photom_pixel_area <= 0:
-                log.error(
-                    "Unable to determine pixel area of the input model."
-                )
+                log.error("Unable to determine pixel area of the input model.")
                 return
 
-            input_pscale = 3600.0 * np.rad2deg(
-                math.sqrt(photom_pixel_area)
-            )
+            input_pscale = 3600.0 * np.rad2deg(math.sqrt(photom_pixel_area))
 
-            self._pixel_scale_ratio = (
-                self._output_pixel_scale / input_pscale
-            )
+            self._pixel_scale_ratio = self._output_pixel_scale / input_pscale
 
             # update output model if "pixel_scale_ratio" was never
             # set previously:
-            if (self._output_model is not None and
-                    self._output_model.get("pixel_scale_ratio") is None):
-                self._output_model["pixel_scale_ratio"] = (
-                    self._pixel_scale_ratio
-                )
+            if self._output_model is not None and self._output_model.get("pixel_scale_ratio") is None:
+                self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
     def reset_arrays(self, n_input_models=None):
-        """ Initialize/reset `Drizzle` objects, output model and arrays,
+        """Initialize/reset `Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
         are not modified from `Resample` object initialization. This method
         needs to be called before calling :py:meth:`add_model` for the first
@@ -659,7 +626,7 @@ class Resample:
         self._finalized = False
 
     def validate_input_model(self, model):
-        """ Checks that ``model`` has all the required keywords needed for
+        """Checks that ``model`` has all the required keywords needed for
         processing based on settings used during initialisation if the
         `Resample` object.
 
@@ -682,26 +649,22 @@ class Resample:
             # arrays:
             "data",
             "dq",
-
             # meta:
             "filename",
             "group_id",
             "wcs",
-
             "exposure_time",
             "start_time",
             "end_time",
             "duration",
             "measurement_time",
-
             "pixelarea_steradians",
             # "pixelarea_arcsecsq",
-
             "level",  # sky level
             "subtracted",
         ]
 
-        if 'SPECTRAL' in model["wcs"].output_frame.axes_type:
+        if "SPECTRAL" in model["wcs"].output_frame.axes_type:
             min_attributes.append("bunit_data")
 
         if self._enable_var:
@@ -710,20 +673,20 @@ class Resample:
         if self._compute_err == "driz_err":
             min_attributes.append("err")
 
-        if (not self._enable_var and self.weight_type is not None and
-                self.weight_type.startswith('ivm') and
-                ("var_rnoise" not in min_attributes)):
+        if (
+            not self._enable_var
+            and self.weight_type is not None
+            and self.weight_type.startswith("ivm")
+            and ("var_rnoise" not in min_attributes)
+        ):
             min_attributes.append("var_rnoise")
 
         for attr in min_attributes:
             if attr not in model:
-                raise KeyError(
-                    f"Attempt to access non-existent key '{attr}' "
-                    "in a data model."
-                )
+                raise KeyError(f"Attempt to access non-existent key '{attr}' in a data model.")
 
     def add_model(self, model):
-        """ Resamples model image, variance data (if ``enable_var``
+        """Resamples model image, variance data (if ``enable_var``
         is `True`) , and error data (if ``enable_err`` is `True`), and adds
         them to the corresponding
         arrays of the output model using appropriate weighting.
@@ -758,9 +721,7 @@ class Resample:
 
         # Check that input models are 2D images
         if data.ndim != 2:
-            raise RuntimeError(
-                f"Input model '{_get_model_name(model)}' is not a 2D image."
-            )
+            raise RuntimeError(f"Input model '{_get_model_name(model)}' is not a 2D image.")
 
         # compute pixel scale ratio:
         #   - this is done only once using the first image
@@ -768,7 +729,7 @@ class Resample:
         self._compute_pixel_scale_ratio(model)
 
         iscale = self._get_intensity_scale(model)
-        log.debug(f'Using intensity scale iscale={iscale}')
+        log.debug(f"Using intensity scale iscale={iscale}")
 
         pixmap = calc_pixmap(
             wcs,
@@ -779,10 +740,7 @@ class Resample:
         log.info("Resampling science and variance data")
 
         weight = build_driz_weight(
-            model,
-            weight_type=self.weight_type,
-            good_bits=self.good_bits,
-            flag_name_map=self.dq_flag_name_map
+            model, weight_type=self.weight_type, good_bits=self.good_bits, flag_name_map=self.dq_flag_name_map
         )
 
         # apply sky subtraction
@@ -790,28 +748,24 @@ class Resample:
         if not model["subtracted"] and blevel is not None:
             data = data - blevel
 
-        xmin, xmax, ymin, ymax = resample_range(
-            data.shape,
-            wcs.bounding_box
-        )
+        xmin, xmax, ymin, ymax = resample_range(data.shape, wcs.bounding_box)
 
         add_image_kwargs = {
-            'exptime': model["exposure_time"],
-            'pixmap': pixmap,
-            'scale': iscale,
-            'weight_map': weight,
-            'wht_scale': 1.0,
-            'pixfrac': self.pixfrac,
-            'in_units': 'cps',
-            'xmin': xmin,
-            'xmax': xmax,
-            'ymin': ymin,
-            'ymax': ymax,
+            "exptime": model["exposure_time"],
+            "pixmap": pixmap,
+            "scale": iscale,
+            "weight_map": weight,
+            "wht_scale": 1.0,
+            "pixfrac": self.pixfrac,
+            "in_units": "cps",
+            "xmin": xmin,
+            "xmax": xmax,
+            "ymin": ymin,
+            "ymax": ymax,
         }
 
         self._driz.add_image(data, **add_image_kwargs)
-        self.add_model_hook(model, pixmap, iscale, weight,
-                            xmin, xmax, ymin, ymax)
+        self.add_model_hook(model, pixmap, iscale, weight, xmin, xmax, ymin, ymax)
 
         if (group_id := model["group_id"]) not in self._group_ids:
             self.update_time(model)
@@ -822,8 +776,7 @@ class Resample:
             self._driz_error.add_image(model["err"], **add_image_kwargs)
 
         if self._enable_var:
-            self.resample_variance_arrays(model, pixmap, iscale, weight,
-                                          xmin, xmax, ymin, ymax)
+            self.resample_variance_arrays(model, pixmap, iscale, weight, xmin, xmax, ymin, ymax)
 
         # update output model (variance is too expensive so it's omitted)
         self._output_model["data"] = self._driz.out_img
@@ -835,9 +788,8 @@ class Resample:
             # use resampled error
             self._output_model["err"] = self._driz_error.out_img
 
-    def add_model_hook(self, model, pixmap, iscale, weight_map,
-                       xmin, xmax, ymin, ymax):
-        """ A hook method called by the :py:meth:`~Resample.add_model` method.
+    def add_model_hook(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
+        """A hook method called by the :py:meth:`~Resample.add_model` method.
         It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
 
@@ -897,13 +849,13 @@ class Resample:
         pass
 
     def is_finalized(self):
-        """ Indicates whether all attributes of the ``output_model`` have been
+        """Indicates whether all attributes of the ``output_model`` have been
         computed from intermediate (running) values.
         """
         return self._finalized
 
     def finalize(self):
-        """ Performs final computations from any intermediate values,
+        """Performs final computations from any intermediate values,
         sets output model values, and optionally frees temporary/intermediate
         objects.
 
@@ -941,13 +893,13 @@ class Resample:
         # and the error should be divided by this ratio
         # If spectroscopy, pixel scale ratio is (input scale / output scale)
         # and the error should be multiplied by the square root of this ratio
-        if (self.pixel_scale_ratio is None):
+        if self.pixel_scale_ratio is None:
             scaling = 1.0
         else:
             if is_imaging_wcs(self.output_wcs):
                 scaling = self.pixel_scale_ratio
             else:
-                scaling = 1. / np.sqrt(self.pixel_scale_ratio)
+                scaling = 1.0 / np.sqrt(self.pixel_scale_ratio)
 
         if self._compute_err == "driz_err":
             # use resampled error
@@ -960,11 +912,8 @@ class Resample:
                 include_var = self.variance_array_names
             else:
                 include_var = self.error_from_variances
-            var_components = [
-                self._output_model[x] for x in include_var]
-            self.output_model["err"] = np.sqrt(
-                np.nansum(var_components, axis=0)
-            )
+            var_components = [self._output_model[x] for x in include_var]
+            self.output_model["err"] = np.sqrt(np.nansum(var_components, axis=0))
 
             # nansum returns zero for input that is all NaN -
             # set those values to NaN instead
@@ -977,8 +926,8 @@ class Resample:
         return
 
     def init_variance_arrays(self):
-        """ Allocate arrays that hold co-added resampled variances and their
-        weights. """
+        """Allocate arrays that hold co-added resampled variances and their
+        weights."""
         shape = self.output_array_shape
 
         self._variance_info = {}
@@ -993,9 +942,8 @@ class Resample:
                 "wt": np.zeros(shape, dtype=var_dtype),
             }
 
-    def resample_variance_arrays(self, model, pixmap, iscale,
-                                 weight_map, xmin, xmax, ymin, ymax):
-        """ Resample and co-add variance arrays using appropriate weights
+    def resample_variance_arrays(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
+        """Resample and co-add variance arrays using appropriate weights
         and update total weights.
 
         Parameters
@@ -1052,13 +1000,13 @@ class Resample:
         # Do the read noise variance first, so it can be
         # used for weights if needed
         pars = {
-            'pixmap': pixmap,
-            'iscale': iscale,
-            'weight_map': weight_map,
-            'xmin': xmin,
-            'xmax': xmax,
-            'ymin': ymin,
-            'ymax': ymax,
+            "pixmap": pixmap,
+            "iscale": iscale,
+            "weight_map": weight_map,
+            "xmin": xmin,
+            "xmax": xmax,
+            "ymin": ymin,
+            "ymax": ymax,
         }
 
         for varname in self.variance_array_names:
@@ -1068,12 +1016,12 @@ class Resample:
                     model=model,
                     **pars,
                 )
-                self._variance_info[varname]['var'] = var
+                self._variance_info[varname]["var"] = var
 
         # Set the weight for the image from the weight type
         if self.weight_type.startswith("ivm"):
-            rn_var_info = self._variance_info.get('var_rnoise', {})
-            rn_var = rn_var_info.get('var', None)
+            rn_var_info = self._variance_info.get("var_rnoise", {})
+            rn_var = rn_var_info.get("var", None)
             if rn_var is not None:
                 mask = (rn_var > 0) & np.isfinite(rn_var)
                 weight = np.zeros(self.output_array_shape)
@@ -1084,26 +1032,21 @@ class Resample:
             weight = np.full(self.output_array_shape, t)
 
         else:
-            raise ValueError('unrecognized weight type')
+            raise ValueError("unrecognized weight type")
 
         for varname in self.variance_array_names:
             if not self._check_var_array(model, varname):
                 continue
-            var = self._variance_info[varname]['var']
-            wsum = self._variance_info[varname]['wsum']
+            var = self._variance_info[varname]["var"]
+            wsum = self._variance_info[varname]["wsum"]
             mask = (var >= 0) & np.isfinite(var) & (weight > 0)
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "overflow encountered", RuntimeWarning)
-                wsum[mask] = np.nansum(
-                        [
-                            wsum[mask], var[mask] * weight[mask] * weight[mask]
-                        ],
-                        axis=0
-                    )
-            self._variance_info[varname]['wt'][mask] += weight[mask]
+                wsum[mask] = np.nansum([wsum[mask], var[mask] * weight[mask] * weight[mask]], axis=0)
+            self._variance_info[varname]["wt"][mask] += weight[mask]
 
     def finalize_resample_variance(self, output_model):
-        """ Compute variance for the resampled image from running sums and
+        """Compute variance for the resampled image from running sums and
         weights. Free memory that holds these running sums and weights arrays.
 
         output_model : dict, None
@@ -1126,27 +1069,26 @@ class Resample:
             # and the variance should be divided by this ratio squared
             # If spectroscopy, pixel scale ratio is (input scale / output scale)
             # and the variance should be multiplied by this ratio
-            if (self.pixel_scale_ratio is None):
+            if self.pixel_scale_ratio is None:
                 scaling = 1.0
             else:
                 if is_imaging_wcs(self.output_wcs):
-                    scaling = self.pixel_scale_ratio ** 2
+                    scaling = self.pixel_scale_ratio**2
                 else:
-                    scaling = 1. / self.pixel_scale_ratio
+                    scaling = 1.0 / self.pixel_scale_ratio
 
             for varname in self.variance_array_names:
-                varwsum = self._variance_info[varname]['wsum']
-                weight = self._variance_info[varname]['wt']
+                varwsum = self._variance_info[varname]["wsum"]
+                weight = self._variance_info[varname]["wt"]
                 output_model[varname] = (varwsum / (weight * weight * scaling)).astype(
                     dtype=self.output_array_types[varname]
                 )
             del self._variance_info
             self._finalized = True
 
-    def _resample_one_variance_array(self, name, model, iscale,
-                                     weight_map, pixmap,
-                                     xmin=None, xmax=None, ymin=None,
-                                     ymax=None):
+    def _resample_one_variance_array(
+        self, name, model, iscale, weight_map, pixmap, xmin=None, xmax=None, ymin=None, ymax=None
+    ):
         """Resample one variance image from an input model.
 
         The error image is passed to drizzle instead of the variance in order
@@ -1157,28 +1099,19 @@ class Resample:
         """
         variance = model.get(name)
         if variance is None or variance.size == 0:
-            log.debug(
-                f"No data for '{name}' for model "
-                f"{repr(_get_model_name(model))}. Skipping ..."
-            )
+            log.debug(f"No data for '{name}' for model {repr(_get_model_name(model))}. Skipping ...")
             return
 
         elif variance.shape != model["data"].shape:
             log.warning(
-                f"Data shape mismatch for '{name}' for model "
-                f"{repr(_get_model_name(model))}. Skipping ..."
+                f"Data shape mismatch for '{name}' for model {repr(_get_model_name(model))}. Skipping ..."
             )
             return
 
         output_shape = self.output_array_shape
 
         # Resample the error array. Fill "unpopulated" pixels with NaNs.
-        driz = Drizzle(
-            out_shape=output_shape,
-            kernel=self.kernel,
-            fillval=np.nan,
-            disable_ctx=True
-        )
+        driz = Drizzle(out_shape=output_shape, kernel=self.kernel, fillval=np.nan, disable_ctx=True)
 
         # Call 'drizzle' to perform image combination
         log.info(f"Drizzling {variance.shape} --> {output_shape}")
@@ -1198,10 +1131,10 @@ class Resample:
             ymax=ymax,
         )
 
-        return driz.out_img ** 2
+        return driz.out_img**2
 
     def init_time_counters(self):
-        """ Initialize variables/arrays needed to process exposure time. """
+        """Initialize variables/arrays needed to process exposure time."""
         self._total_exposure_time = 0
         self._duration = 0
         self._total_measurement_time = 0
@@ -1221,7 +1154,7 @@ class Resample:
         self._measurement_time_success = []
 
     def update_time(self, model):
-        """ A method called by the :py:meth:`~Resample.add_model` method to
+        """A method called by the :py:meth:`~Resample.add_model` method to
         process each image's time attributes *only* when ``model`` has a new
         group ID.
 
@@ -1250,7 +1183,7 @@ class Resample:
             self._duration += duration
 
     def finalize_time_info(self):
-        """ Perform final computations for the total time and update relevant
+        """Perform final computations for the total time and update relevant
         fields of the output model.
 
         """
@@ -1268,7 +1201,7 @@ class Resample:
             self._output_model["measurement_time"] = self._total_measurement_time
 
     def _check_var_array(self, model, array_name):
-        """ Check that a variance array has the same shape as the model's
+        """Check that a variance array has the same shape as the model's
         data array.
 
         """
@@ -1277,24 +1210,18 @@ class Resample:
         model_name = _get_model_name(model)
 
         if array_data is None or array_data.size == 0:
-            log.debug(
-                f"No data for '{array_name}' for model "
-                f"{repr(model_name)}. Skipping ..."
-            )
+            log.debug(f"No data for '{array_name}' for model {repr(model_name)}. Skipping ...")
             return False
 
         elif array_data.shape != sci_data.shape:
-            log.warning(
-                f"Data shape mismatch for '{array_name}' for model "
-                f"{repr(model_name)}. Skipping ..."
-            )
+            log.warning(f"Data shape mismatch for '{array_name}' for model {repr(model_name)}. Skipping ...")
             return False
 
         return True
 
 
 def _get_model_name(model):
-    """ Return the value of ``"filename"`` from the model dictionary or
+    """Return the value of ``"filename"`` from the model dictionary or
     ``"Unknown"`` when ``"filename"`` is either not present or it is `None`.
 
     """

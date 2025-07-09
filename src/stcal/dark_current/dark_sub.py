@@ -111,8 +111,9 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
         frames_to_extrapolate = sci_total_frames - drk_total_frames
         # Find number of new groups required from above calculation of total frames.
-        groups_to_extrapolate = np.ceil((frames_to_extrapolate + drk_groupgap)
-                                 / (drk_nframes + drk_groupgap)).astype(int)
+        groups_to_extrapolate = np.ceil(
+            (frames_to_extrapolate + drk_groupgap) / (drk_nframes + drk_groupgap)
+        ).astype(int)
         extrapolate_dark(dark_data, groups_to_extrapolate)
 
     # Check that the value of nframes and groupgap in the dark
@@ -410,9 +411,11 @@ def extrapolate_dark(dark_data, ngroups):
     def _extrapolate_int(arr, ngroups):
         """Extrapolate using rate derived from difference of last two groups."""
         rate_arr = arr[-1, :, :] - arr[-2, :, :]
-        new_groups = np.broadcast_to(
-            np.arange(1, ngroups + 1).reshape(-1, 1, 1),
-            (ngroups, *rate_arr.shape)) * rate_arr + arr[-1]
+        new_groups = (
+            np.broadcast_to(np.arange(1, ngroups + 1).reshape(-1, 1, 1), (ngroups, *rate_arr.shape))
+            * rate_arr
+            + arr[-1]
+        )
         return np.concatenate((arr, new_groups))
 
     if len(dark_data.data.shape) == 4:

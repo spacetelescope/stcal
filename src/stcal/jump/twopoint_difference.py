@@ -53,7 +53,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     total_sigclip_groups = ngroups_ans[5]
 
     # Determine whether there are enough usable groups for the two sigma clip options
-    if (check_group_counts(nints, total_sigclip_groups, twopt_p)):
+    if check_group_counts(nints, total_sigclip_groups, twopt_p):
         sig_clip_grps_fails = True
 
     if min_usable_groups < twopt_p.minimum_groups:
@@ -65,13 +65,14 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
 
     gdq, first_diffs, median_diffs, sigma, stddev = run_jump_detection(
-        dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
+        dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p
+    )
 
     num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
 
     gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
-        gdq, nints, ngroups, first_diffs, median_diffs, sigma,
-        row_below_gdq, row_above_gdq, twopt_p)
+        gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
+    )
 
     if stddev is not None:
         return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
@@ -124,8 +125,8 @@ def jump_detection_post_processing(
     # nor donotuse is set.
     if twopt_p.flag_4_neighbors:
         gdq, row_below_gdq, row_above_gdq = flag_four_neighbors(
-            gdq, nints, ngroups, first_diffs, median_diffs, sigma,
-            row_below_gdq, row_above_gdq, twopt_p)
+            gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
+        )
 
     # Flag n groups after jumps above the specified thresholds to
     # account for the transient seen after ramp jumps.  Again, use
@@ -191,17 +192,19 @@ def run_jump_detection(
     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / twopt_p.nframes)
 
     # reset sigma so pxels with 0 readnoise are not flagged as jumps
-    sigma[sigma == 0.] = np.nan
+    sigma[sigma == 0.0] = np.nan
 
     # Test to see if there are enough groups to use sigma clipping
     stddev = None
-    if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
+    if check_sigma_clip_groups(nints, total_groups, twopt_p):
         gdq, stddev = det_jump_sigma_clipping(
-            gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
+            gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
+        )
     else:  # There are not enough groups for sigma clipping
         if min_usable_diffs >= twopt_p.min_diffs_single_pass:
             gdq = look_for_more_than_one_jump(
-                gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p)
+                gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p
+            )
         else:  # low number of diffs requires iterative flagging
             gdq = iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p)
 
@@ -234,16 +237,14 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     # Do not overwrite first_diffs, median_diffs, sigma.
     first_diffs_abs = np.abs(first_diffs)
 
-    cr_pix, ratio = get_cr_locs(
-        first_diffs_abs, read_noise_2, ndiffs, twopt_p)
+    cr_pix, ratio = get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p)
 
     # Iterate over all groups and integrations: flag and clip the
     # first CR found for each pixel (if any), then recompute medians
     # and sigmas and search all of the pixels that had a CR for
     # additional CRs. Repeat until no more CRs are found.
 
-    for i in range(ndiffs): # Can't have more than ndiffs CRs per pixel!
-
+    for i in range(ndiffs):  # Can't have more than ndiffs CRs per pixel!
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
         # Newly flagged jump locations
         new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]
@@ -259,8 +260,9 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
 
         # Look for more jumps! We only need to check pixels that had a
         # CR flagged in this iteration.
-        cr_pix, ratio = get_cr_locs(first_diffs_abs, read_noise_2, ndiffs,
-                                    twopt_p, index=np.any(new_cr, axis=(0, 1)))
+        cr_pix, ratio = get_cr_locs(
+            first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=np.any(new_cr, axis=(0, 1))
+        )
 
     return gdq
 
@@ -337,9 +339,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     return cr_pixel, ratio
 
 
-def look_for_more_than_one_jump(
-    gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p
-):
+def look_for_more_than_one_jump(gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p):
     """
     Detect jumps using enough diffs in ints to look for more than one jump.
 
@@ -382,9 +382,7 @@ def look_for_more_than_one_jump(
     return gdq
 
 
-def det_jump_sigma_clipping(
-    gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
-):
+def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p):
     """
     Detect jumps using sigma clipping.
 
@@ -410,8 +408,11 @@ def det_jump_sigma_clipping(
     gdq : ndarray
         Flagged group DQ array.
     """
-    log.info(" Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
-        str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)))
+    log.info(
+        " Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
+            str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)
+        )
+    )
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
@@ -419,8 +420,8 @@ def det_jump_sigma_clipping(
 
     axis = 0 if twopt_p.only_use_ints else (0, 1)
     clipped_diffs, a_low, a_high = stats.sigma_clip(
-        first_diffs, sigma=twopt_p.normal_rej_thresh,
-        axis=axis, masked=True, return_bounds=True)
+        first_diffs, sigma=twopt_p.normal_rej_thresh, axis=axis, masked=True, return_bounds=True
+    )
 
     # get the standard deviation from the bounds of sigma clipping
     stddev = 0.5 * (a_high - a_low) / twopt_p.normal_rej_thresh
@@ -436,7 +437,7 @@ def det_jump_sigma_clipping(
             if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
                 # The line below matches the comment above, but not the
                 # old logic.  Leaving it for now.
-                #gdq[integ, grp] |= twopt_p.fl_dnu
+                # gdq[integ, grp] |= twopt_p.fl_dnu
                 jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
                 gdq[integ, grp][jump_only] = 0
 
@@ -462,14 +463,14 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
     boolean
         Are there enough groups to use sigma clipping.
     """
-    test1 = (twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups)
-    test2 = (not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups)
+    test1 = twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups
+    test2 = not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups
     return test1 or test2
 
 
 def flag_four_neighbors(
-    gdq, nints, ngroups, first_diffs, median_diffs, sigma,
-    row_below_gdq, row_above_gdq, twopt_p):
+    gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
+):
     """
     Flag four neighbors.
 
@@ -505,11 +506,13 @@ def flag_four_neighbors(
     """
     for i in range(nints):
         for j in range(ngroups - 1):
-            ratio = np.abs(first_diffs[i, j] - median_diffs)/sigma
+            ratio = np.abs(first_diffs[i, j] - median_diffs) / sigma
             jump_set = gdq[i, j + 1] & twopt_p.fl_jump != 0
-            flag = (ratio < twopt_p.max_jump_to_flag_neighbors) & \
-                (ratio > twopt_p.min_jump_to_flag_neighbors) & \
-                (jump_set)
+            flag = (
+                (ratio < twopt_p.max_jump_to_flag_neighbors)
+                & (ratio > twopt_p.min_jump_to_flag_neighbors)
+                & (jump_set)
+            )
 
             # Dilate the flag by one pixel in each direction.
             flagsave = flag.copy()
@@ -638,8 +641,14 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
     sig_clip_grps_fails = False
     total_noise_min_grps_fails = False
 
-    ngroups_ans = (min_usable_groups, total_groups, min_usable_diffs, sig_clip_grps_fails,
-                   total_noise_min_grps_fails, total_sigclip_groups)
+    ngroups_ans = (
+        min_usable_groups,
+        total_groups,
+        min_usable_diffs,
+        sig_clip_grps_fails,
+        total_noise_min_grps_fails,
+        total_sigclip_groups,
+    )
 
     return ngroups_ans
 
@@ -704,12 +713,12 @@ def propagate_flags(boolean_flag, n_groups_flag):
     # and cosmic rays are rare.
     if (jmax <= 50 and jmax > 0) or np.mean(boolean_flag) > 1e-3:
         for j in range(jmax):
-            boolean_flag[j + 1:] |= boolean_flag[j:-1]
+            boolean_flag[j + 1 :] |= boolean_flag[j:-1]
     # Option B: find the flags and propagate them individually.
     elif jmax > 0:
         igrp, icol, irow = np.where(boolean_flag)
         for j in range(len(igrp)):
-            boolean_flag[igrp[j]:igrp[j] + n_groups_flag + 1, icol[j], irow[j]] = True
+            boolean_flag[igrp[j] : igrp[j] + n_groups_flag + 1, icol[j], irow[j]] = True
     return
 
 

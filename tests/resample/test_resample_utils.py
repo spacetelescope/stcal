@@ -1,4 +1,5 @@
-""" Test various utility functions """
+"""Test various utility functions"""
+
 from numpy.testing import assert_array_equal
 import numpy as np
 import pytest
@@ -13,19 +14,20 @@ from stcal.resample.utils import (
     resample_range,
 )
 
-from . helpers import make_input_model, JWST_DQ_FLAG_DEF
+from .helpers import make_input_model, JWST_DQ_FLAG_DEF
 
 GOOD = 0
 DQ = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
 BITVALUES = 2**0 + 2**2
-BITVALUES_STR = f'{2**0}, {2**2}'
-BITVALUES_INV_STR = f'~{2**0}, {2**2}'
-JWST_NAMES = 'DO_NOT_USE,JUMP_DET'
-JWST_NAMES_INV = '~' + JWST_NAMES
+BITVALUES_STR = f"{2**0}, {2**2}"
+BITVALUES_INV_STR = f"~{2**0}, {2**2}"
+JWST_NAMES = "DO_NOT_USE,JUMP_DET"
+JWST_NAMES_INV = "~" + JWST_NAMES
 
 
 @pytest.mark.parametrize(
-    'dq, bitvalues, expected', [
+    "dq, bitvalues, expected",
+    [
         (DQ, 0, np.array([1, 0, 0, 0, 0, 0, 0, 0, 0])),
         (DQ, BITVALUES, np.array([1, 1, 0, 0, 1, 1, 0, 0, 0])),
         (DQ, BITVALUES_STR, np.array([1, 1, 0, 0, 1, 1, 0, 0, 0])),
@@ -33,10 +35,10 @@ JWST_NAMES_INV = '~' + JWST_NAMES
         (DQ, JWST_NAMES, np.array([1, 1, 0, 0, 1, 1, 0, 0, 0])),
         (DQ, JWST_NAMES_INV, np.array([1, 0, 1, 0, 0, 0, 0, 0, 1])),
         (DQ, None, np.array([1, 1, 1, 1, 1, 1, 1, 1, 1])),
-    ]
+    ],
 )
 def test_build_mask(dq, bitvalues, expected):
-    """ Test logic of mask building
+    """Test logic of mask building
 
     Parameters
     ----------
@@ -58,11 +60,11 @@ def test_build_mask(dq, bitvalues, expected):
     [
         ((1, 2, 3), ((1, 500), (0, 350)), True, None),
         ((1, 2, 3), None, True, None),
-        ((1, ), ((1, 500), (0, 350)), True, None),
-        ((1, ), None, True, None),
-        ((1000, 800), ((1, 500), ), True, None),
+        ((1,), ((1, 500), (0, 350)), True, None),
+        ((1,), None, True, None),
+        ((1000, 800), ((1, 500),), True, None),
         ((1000, 800), ((1, 500), (0, 350), (0, 350)), True, None),
-        ((1, ), ((1, 500), (0, 350)), True, None),
+        ((1,), ((1, 500), (0, 350)), True, None),
         ((1200, 1400), ((700, 300), (600, 800)), False, (700, 700, 600, 800)),
         ((1200, 1400), ((600, 800), (700, 300)), False, (600, 800, 700, 700)),
         ((1200, 1400), ((300, 700), (600, 800)), False, (300, 700, 600, 800)),
@@ -70,7 +72,7 @@ def test_build_mask(dq, bitvalues, expected):
         ((750, 470), ((-5, -1), (-800, -600)), False, (0, 0, 0, 0)),
         ((750, 470), None, False, (0, 469, 0, 749)),
         ((-750, -470), None, False, (0, 0, 0, 0)),
-    ]
+    ],
 )
 def test_resample_range(data_shape, bbox, exception, truth):
     if exception:
@@ -106,16 +108,14 @@ def test_is_imaging_wcs(wcs_gwcs):
 
 
 def test_compute_mean_pixel_area(wcs_gwcs):
-    area = np.deg2rad(wcs_gwcs.pixel_scale)**2
-    assert abs(
-        compute_mean_pixel_area(wcs_gwcs) / area - 1.0
-    ) < 1e-5
+    area = np.deg2rad(wcs_gwcs.pixel_scale) ** 2
+    assert abs(compute_mean_pixel_area(wcs_gwcs) / area - 1.0) < 1e-5
 
 
-@pytest.mark.parametrize('unit,result',
-                         [('Jy', True), ('MJy', True),
-                          ('MJy/sr', False), ('DN/s', False),
-                          ('bad_unit', False), (None, False)])
+@pytest.mark.parametrize(
+    "unit,result",
+    [("Jy", True), ("MJy", True), ("MJy/sr", False), ("DN/s", False), ("bad_unit", False), (None, False)],
+)
 def test_is_flux_density(unit, result):
     assert is_flux_density(unit) is result
 
@@ -130,11 +130,7 @@ def test_build_driz_weight(weight_type):
     model["measurement_time"] = 10.0
     model["var_rnoise"] /= 10.0
 
-    weight_map = build_driz_weight(
-        model,
-        weight_type=weight_type,
-        good_bits=GOOD
-    )
+    weight_map = build_driz_weight(model, weight_type=weight_type, good_bits=GOOD)
     assert_array_equal(weight_map[0], 0)
     assert_array_equal(weight_map[1:], 10.0)
     assert weight_map.dtype == np.float32
@@ -153,5 +149,5 @@ def test_build_driz_weight_zeros(weight_type):
 @pytest.mark.parametrize("weight_type", ["ivm-smed", "ivm-med5"])
 def test_unsupported_weight_type(weight_type):
     model = make_input_model((10, 10))
-    with pytest.raises(ValueError, match=fr"^Invalid weight type: {repr(weight_type)}"):
+    with pytest.raises(ValueError, match=rf"^Invalid weight type: {repr(weight_type)}"):
         build_driz_weight(model, weight_type=weight_type)

@@ -22,21 +22,18 @@ Primary function for creating an astrometric reference catalog.
 """
 
 
-__all__ = [
-    "TIMEOUT",
-    "compute_radius",
-    "create_astrometric_catalog",
-    "get_catalog"]
+__all__ = ["TIMEOUT", "compute_radius", "create_astrometric_catalog", "get_catalog"]
 
 
 def create_astrometric_catalog(
-        wcs,
-        epoch,
-        catalog="GAIADR3",
-        output="ref_cat.ecsv",
-        gaia_only=False,
-        table_format="ascii.ecsv",
-        num_sources=None):
+    wcs,
+    epoch,
+    catalog="GAIADR3",
+    output="ref_cat.ecsv",
+    gaia_only=False,
+    table_format="ascii.ecsv",
+    num_sources=None,
+):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
     Parameters
@@ -85,12 +82,7 @@ def create_astrometric_catalog(
     radius, fiducial = compute_radius(wcs)
 
     # perform query for this field-of-view
-    ref_dict = get_catalog(
-        fiducial[0],
-        fiducial[1],
-        epoch=epoch,
-        search_radius=radius,
-        catalog=catalog)
+    ref_dict = get_catalog(fiducial[0], fiducial[1], epoch=epoch, search_radius=radius, catalog=catalog)
     if len(ref_dict) == 0:
         return ref_dict
 
@@ -139,13 +131,14 @@ def create_astrometric_catalog(
 
 def compute_radius(wcs):
     """Compute the radius from the center to the furthest edge of the WCS."""
-    fiducial = compute_fiducial([wcs,])
-    img_center = SkyCoord(
-        ra=fiducial[0] * u.degree,
-        dec=fiducial[1] * u.degree)
+    fiducial = compute_fiducial(
+        [
+            wcs,
+        ]
+    )
+    img_center = SkyCoord(ra=fiducial[0] * u.degree, dec=fiducial[1] * u.degree)
     wcs_foot = wcs.footprint()
-    img_corners = SkyCoord(ra=wcs_foot[:, 0] * u.degree,
-                           dec=wcs_foot[:, 1] * u.degree)
+    img_corners = SkyCoord(ra=wcs_foot[:, 0] * u.degree, dec=wcs_foot[:, 1] * u.degree)
     radius = img_center.separation(img_corners).max().value
 
     return radius, fiducial
@@ -194,27 +187,16 @@ def get_catalog(
     headers = {"Content-Type": "text/csv"}
     fmt = "CSV"
 
-    spec = spec_str.format(
-        right_ascension,
-        declination,
-        epoch,
-        search_radius,
-        fmt,
-        catalog
-    )
+    spec = spec_str.format(right_ascension, declination, epoch, search_radius, fmt, catalog)
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     try:
         rawcat = requests.get(service_url, headers=headers, timeout=timeout)
     except requests.exceptions.ConnectionError:
-        raise requests.exceptions.ConnectionError(
-            "Could not connect to the VO API server. Try again later."
-        )
+        raise requests.exceptions.ConnectionError("Could not connect to the VO API server. Try again later.")
     except requests.exceptions.Timeout:
         raise requests.exceptions.Timeout("The request to the VO API server timed out.")
     except requests.exceptions.RequestException:
-        raise requests.exceptions.RequestException(
-            "There was an unexpected error with the request."
-        )
+        raise requests.exceptions.RequestException("There was an unexpected error with the request.")
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     rstr = r_contents.split("\r\n")
     # remove initial line describing the number of sources returned

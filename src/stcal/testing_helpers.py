@@ -1,6 +1,7 @@
 import tracemalloc
 
-MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3, "TB": 1024 ** 4}
+MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
+
 
 class MemoryThresholdExceeded(Exception):
     pass
@@ -45,7 +46,9 @@ class MemoryThreshold:
 
         if peak > self.expected_usage_bytes:
             scaling = MEMORY_UNIT_CONVERSION[self.units]
-            msg = ("Peak memory usage exceeded expected usage: "
-                  f"{peak / scaling:.2f} {self.units} > "
-                  f"{self.expected_usage_bytes / scaling:.2f} {self.units} ")
+            msg = (
+                "Peak memory usage exceeded expected usage: "
+                f"{peak / scaling:.2f} {self.units} > "
+                f"{self.expected_usage_bytes / scaling:.2f} {self.units} "
+            )
             raise MemoryThresholdExceeded(msg)
