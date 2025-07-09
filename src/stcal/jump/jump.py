@@ -464,7 +464,6 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
-        cen = (round(ceny), round(cenx))
         minor_axis = min(ellipse[1][1], ellipse[1][0])
 
         if minor_axis > jump_data.min_sat_radius_extend:
@@ -1044,7 +1043,6 @@ def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
         The image with ellipses drawn on it.
     """
     for ellipse in ellipses:
-        ceny, cenx = ellipse[0][0], ellipse[0][1]
         cen = (round(ellipse[0][0]), round(ellipse[0][1]))
         axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
         alpha = ellipse[2]

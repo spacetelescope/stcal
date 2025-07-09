@@ -941,8 +941,6 @@ class Resample:
             # note: output_array_types is a defaultdict, so this will succeed
             # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
-            wsum = np.full(shape, np.nan, dtype=var_dtype)
-            wt = np.zeros(shape, dtype=var_dtype)
             self._variance_info[noise_type] = {
                 "wsum": np.full(shape, np.nan, dtype=var_dtype),
                 "wt": np.zeros(shape, dtype=var_dtype),
