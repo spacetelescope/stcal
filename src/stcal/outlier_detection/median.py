@@ -54,8 +54,27 @@ def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:  
 
 class MedianComputer:
     """
-    Top-level class to treat median computation uniformly, whether in
-    memory or on disk.
+    Top-level class to treat median computation uniformly, whether in memory or on disk.
+
+    Parameters
+    ----------
+    full_shape
+        The shape of the full input dataset.
+
+    in_memory
+        Whether to perform the median computation in memory or using
+        temporary files on disk to save memory.
+
+    buffer_size
+        The buffer size for the median computation, units of bytes.
+        Has no effect if `in_memory` is True.
+
+    dtype
+        The data type of the input data.
+
+    tempdir
+        The parent directory in which to create the temporary directory.
+        Default is the current working directory.
     """
 
     def __init__(
@@ -66,27 +85,6 @@ class MedianComputer:
         dtype: str | np.dtype = "float32",
         tempdir: str = "",
     ) -> None:
-        """
-        Parameters
-        ----------
-        full_shape
-            The shape of the full input dataset.
-
-        in_memory
-            Whether to perform the median computation in memory or using
-            temporary files on disk to save memory.
-
-        buffer_size
-            The buffer size for the median computation, units of bytes.
-            Has no effect if `in_memory` is True.
-
-        dtype
-            The data type of the input data.
-
-        tempdir
-            The parent directory in which to create the temporary directory.
-            Default is the current working directory.
-        """
         self.full_shape = full_shape
         self.in_memory = in_memory
         if buffer_size is None:
@@ -143,6 +141,8 @@ class MedianComputer:
 
 class _DiskAppendableArray:
     """
+    Create a temporary file to append data.
+
     Creates a temporary file to which to append data, in order to perform
     timewise operations on a stack of input images without holding all of them
     in memory.
@@ -157,21 +157,20 @@ class _DiskAppendableArray:
     into memory. When working with large datasets that do not fit in memory
     the required workflow is to create many DiskAppendableArray objects, each
     holding a small spatial segment of the full dataset.
+
+    Parameters
+    ----------
+    slice_shape
+        The required shape of each appended slice.
+
+    dtype
+        The data type of the array. Must be a valid numpy array datatype.
+
+    filename
+        The full file path in which to store the array
     """
 
     def __init__(self, slice_shape: tuple, dtype: str | np.dtype, filename: str | Path) -> None:
-        """
-        Parameters
-        ----------
-        slice_shape
-            The required shape of each appended slice.
-
-        dtype
-            The data type of the array. Must be a valid numpy array datatype.
-
-        filename
-            The full file path in which to store the array
-        """
         if len(slice_shape) != 2:
             msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays are supported."
             raise ValueError(msg)
@@ -221,6 +220,32 @@ class _DiskAppendableArray:
 
 
 class _OnDiskMedian:
+    """
+    Compute the median of a large dataset on disk.
+
+    Set up temporary files to perform operations on a stack of 2-D input
+    arrays along the first dimension (e.g., a time axis) without
+    holding all of them in memory. Currently the only supported operation
+    is the median.
+
+    Parameters
+    ----------
+    shape
+        The shape of the entire input, (n_images, imrows, imcols).
+
+    dtype
+        The data type of the input data.
+
+    tempdir
+        The parent directory in which to create the temporary directory,
+        which itself holds all the DiskAppendableArray tempfiles.
+        Default is the current working directory.
+
+    buffer_size
+        The buffer size, units of bytes.
+        Default is the size of one input image.
+    """
+
     def __init__(
         self,
         shape: tuple,
@@ -228,29 +253,6 @@ class _OnDiskMedian:
         tempdir: str = "",
         buffer_size: int = 0,
     ) -> None:
-        """
-        Set up temporary files to perform operations on a stack of 2-D input
-        arrays along the first dimension (e.g., a time axis) without
-        holding all of them in memory. Currently the only supported operation
-        is the median.
-
-        Parameters
-        ----------
-        shape
-            The shape of the entire input, (n_images, imrows, imcols).
-
-        dtype
-            The data type of the input data.
-
-        tempdir
-            The parent directory in which to create the temporary directory,
-            which itself holds all the DiskAppendableArray tempfiles.
-            Default is the current working directory.
-
-        buffer_size
-            The buffer size, units of bytes.
-            Default is the size of one input image.
-        """
         if len(shape) != 3:
             msg = f"Invalid input shape {shape}; only three-dimensional data are supported."
             raise ValueError(msg)
@@ -271,6 +273,8 @@ class _OnDiskMedian:
 
     def _get_buffer_indices(self, buffer_size: int = 0) -> tuple[int, int]:
         """
+        Find buffer indices.
+
         Determine the number of sections and rows per section needed to
         divide the input data into sections that fit within the specified
         buffer size.
@@ -331,6 +335,8 @@ class _OnDiskMedian:
 
     def add_image(self, data: np.ndarray) -> None:
         """
+        Add image data to the median computer.
+
         Split data into ``nsections`` sections and write/append each section to
         the corresponding temporary file.
         """

@@ -22,17 +22,16 @@ class MemoryThreshold:
     Note that this class does not prevent allocations beyond the threshold
     and only checks the actual peak allocations to the threshold at the
     end of the with statement.
+
+    Parameters
+    ----------
+    expected_usage : str
+        Expected peak memory usage expressed as a whitespace-separated string
+        with a number and a memory unit (e.g. "100 KB").
+        Supported units are "B", "KB", "MB", "GB", "TB".
     """
 
     def __init__(self, expected_usage):
-        """
-        Parameters
-        ----------
-        expected_usage : str
-            Expected peak memory usage expressed as a whitespace-separated string
-            with a number and a memory unit (e.g. "100 KB").
-            Supported units are "B", "KB", "MB", "GB", "TB".
-        """
         expected, self.units = expected_usage.upper().split()
         self.expected_usage_bytes = float(expected) * MEMORY_UNIT_CONVERSION[self.units]
 

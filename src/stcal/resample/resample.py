@@ -29,7 +29,10 @@ __all__ = [
 
 
 class UnsupportedWCSError(RuntimeError):
-    """Raised when provided output WCS has an unexpected number of axes
+    """
+    Unsupported WCS Error.
+
+    Raised when provided output WCS has an unexpected number of axes
     or has an unsupported structure.
     """
 
@@ -52,6 +55,139 @@ class Resample:
     5. Calls :py:class:`~drizzle.resample.Drizzle` methods to resample and
        combine input images and their variance/error arrays.
     6. Keeps track of total exposure time and other time-related quantities.
+
+    Parameters
+    ----------
+    output_wcs : dict
+        Specifies output WCS as a dictionary
+        with keys ``'wcs'`` (WCS object) and ``'pixel_scale'``
+        (pixel scale in arcseconds). ``'pixel_scale'``, when provided,
+        will be used for computation of drizzle scaling factor. When it is
+        not provided, output pixel scale will be *estimated* from the
+        provided WCS object.
+
+    n_input_models : int, None, optional
+        Number of input models expected to be resampled. When provided,
+        this is used to estimate memory requirements and optimize memory
+        allocation for the context array.
+
+    pixfrac : float, optional
+        The fraction of a pixel that the pixel flux is confined to. The
+        default value of 1 has the pixel flux evenly spread across the
+        image. A value of 0.5 confines it to half a pixel in the linear
+        dimension, so the flux is confined to a quarter of the pixel area
+        when the square kernel is used.
+
+    kernel : {"square", "gaussian", "point", "turbo", "lanczos2", "lanczos3"}, optional
+        The name of the kernel used to combine the input. The choice of
+        kernel controls the distribution of flux over the kernel.
+        The square kernel is the default.
+
+        .. warning::
+            The "gaussian" and "lanczos2/3" kernels **DO NOT**
+            conserve flux.
+
+    fillval : float, None, str, optional
+        The value of output pixels that did not have contributions from
+        input images' pixels. When ``fillval`` is either `None` or
+        ``"INDEF"`` and ``out_img`` is provided, the values of ``out_img``
+        will not be modified. When ``fillval`` is either `None` or
+        ``"INDEF"`` and ``out_img`` is **not provided**, the values of
+        ``out_img`` will be initialized to `numpy.nan`. If ``fillval``
+        is a string that can be converted to a number, then the output
+        pixels with no contributions from input images will be set to this
+        ``fillval`` value.
+
+    weight_type : {"ivm", "exptime"}, optional
+        The weighting type for adding models' data. For
+        ``weight_type="ivm"`` (the default), the weighting will be
+        determined per-pixel using the inverse of the read noise
+        (VAR_RNOISE) array stored in each input image. If the
+        ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
+        all pixels (i.e., equal weighting). If ``weight_type="exptime"``,
+        the weight will be set equal to the measurement time
+        when available and to the exposure time otherwise.
+
+    good_bits : int, str, None, optional
+        An integer bit mask, `None`, a Python list of bit flags, a comma-,
+        or ``'|'``-separated, ``'+'``-separated string list of integer
+        bit flags or mnemonic flag names that indicate what bits in models'
+        DQ bitfield array should be *ignored* (i.e., zeroed).
+
+        When co-adding models using :py:meth:`add_model`, any pixels with
+        a non-zero DQ values are assigned a weight of zero and therefore
+        they do not contribute to the output (resampled) data.
+        ``good_bits`` provides a mean to ignore some of the DQ bitflags.
+
+        When ``good_bits`` is an integer, it must be
+        the sum of all the DQ bit values from the input model's
+        DQ array that should be considered "good" (or ignored). For
+        example, if pixels in the DQ array can be
+        combinations of 1, 2, 4, and 8 flags and one wants to consider DQ
+        "defects" having flags 2 and 4 as being acceptable, then
+        ``good_bits`` should be set to 2+4=6. Then a pixel with DQ values
+        2,4, or 6 will be considered a good pixel, while a pixel with
+        DQ value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
+        a "bad" pixel.
+
+        Alternatively, when ``good_bits`` is a string, it can be a
+        comma-separated or '+' separated list of integer bit flags that
+        should be summed to obtain the final "good" bits. For example,
+        both "4,8" and "4+8" are equivalent to integer ``good_bits=12``.
+
+        Finally, instead of integers, ``good_bits`` can be a string of
+        comma-separated mnemonics. For example, for JWST, all the following
+        specifications are equivalent:
+
+        `"12" == "4+8" == "4, 8" == "JUMP_DET, DROPOUT"`
+
+        In order to "translate" mnemonic code to integer bit flags,
+        ``Resample.dq_flag_name_map`` attribute must be set to either
+        a dictionary (with keys being mnemonc codes and the values being
+        integer flags) or a `~astropy.nddata.BitFlagNameMap`.
+
+        In order to reverse the meaning of the flags
+        from indicating values of the "good" DQ flags
+        to indicating the "bad" DQ flags, prepend '~' to the string
+        value. For example, in order to exclude pixels with
+        DQ flags 4 and 8 for computations and to consider
+        as "good" all other pixels (regardless of their DQ flag),
+        use a value of ``~4+8``, or ``~4,8``. A string value of
+        ``~0`` would be equivalent to a setting of ``None``.
+
+        Default value (0) will make *all* pixels with non-zero DQ
+        values be considered "bad" pixels, and the corresponding data
+        pixels will be assigned zero weight and thus these pixels
+        will not contribute to the output resampled data array.
+
+        Set `good_bits` to `None` to turn off the use of model's DQ
+        array.
+
+        For more details, see documentation for
+        `astropy.nddata.bitmask.extend_bit_flag_map`.
+
+    enable_ctx : bool, optional
+        Indicates whether to create a context image. If ``disable_ctx``
+        is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
+        ``max_ctx_id`` will be ignored.
+
+    enable_var : bool, optional
+        Indicates whether to resample variance arrays.
+
+    compute_err : {"from_var", "driz_err"}, None, optional
+        - ``"from_var"``: compute output model's error array from
+            all (Poisson, flat, readout) resampled variance arrays.
+            Setting ``compute_err`` to ``"from_var"`` will assume
+            ``enable_var`` was set to `True` regardless of actual
+            value of the parameter ``enable_var``.
+        - ``"driz_err"``: compute output model's error array by drizzling
+            together all input models' error arrays.
+
+        Error array will be assigned to ``'err'`` key of the output model.
+
+        .. note::
+            At this time, output error array is not equivalent to
+            error propagation results.
 
     """
 
@@ -92,140 +228,6 @@ class Resample:
         enable_var=True,
         compute_err=None,
     ):
-        """
-        Parameters
-        ----------
-        output_wcs : dict
-            Specifies output WCS as a dictionary
-            with keys ``'wcs'`` (WCS object) and ``'pixel_scale'``
-            (pixel scale in arcseconds). ``'pixel_scale'``, when provided,
-            will be used for computation of drizzle scaling factor. When it is
-            not provided, output pixel scale will be *estimated* from the
-            provided WCS object.
-
-        n_input_models : int, None, optional
-            Number of input models expected to be resampled. When provided,
-            this is used to estimate memory requirements and optimize memory
-            allocation for the context array.
-
-        pixfrac : float, optional
-            The fraction of a pixel that the pixel flux is confined to. The
-            default value of 1 has the pixel flux evenly spread across the
-            image. A value of 0.5 confines it to half a pixel in the linear
-            dimension, so the flux is confined to a quarter of the pixel area
-            when the square kernel is used.
-
-        kernel : {"square", "gaussian", "point", "turbo", "lanczos2", "lanczos3"}, optional
-            The name of the kernel used to combine the input. The choice of
-            kernel controls the distribution of flux over the kernel.
-            The square kernel is the default.
-
-            .. warning::
-               The "gaussian" and "lanczos2/3" kernels **DO NOT**
-               conserve flux.
-
-        fillval : float, None, str, optional
-            The value of output pixels that did not have contributions from
-            input images' pixels. When ``fillval`` is either `None` or
-            ``"INDEF"`` and ``out_img`` is provided, the values of ``out_img``
-            will not be modified. When ``fillval`` is either `None` or
-            ``"INDEF"`` and ``out_img`` is **not provided**, the values of
-            ``out_img`` will be initialized to `numpy.nan`. If ``fillval``
-            is a string that can be converted to a number, then the output
-            pixels with no contributions from input images will be set to this
-            ``fillval`` value.
-
-        weight_type : {"ivm", "exptime"}, optional
-            The weighting type for adding models' data. For
-            ``weight_type="ivm"`` (the default), the weighting will be
-            determined per-pixel using the inverse of the read noise
-            (VAR_RNOISE) array stored in each input image. If the
-            ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
-            all pixels (i.e., equal weighting). If ``weight_type="exptime"``,
-            the weight will be set equal to the measurement time
-            when available and to the exposure time otherwise.
-
-        good_bits : int, str, None, optional
-            An integer bit mask, `None`, a Python list of bit flags, a comma-,
-            or ``'|'``-separated, ``'+'``-separated string list of integer
-            bit flags or mnemonic flag names that indicate what bits in models'
-            DQ bitfield array should be *ignored* (i.e., zeroed).
-
-            When co-adding models using :py:meth:`add_model`, any pixels with
-            a non-zero DQ values are assigned a weight of zero and therefore
-            they do not contribute to the output (resampled) data.
-            ``good_bits`` provides a mean to ignore some of the DQ bitflags.
-
-            When ``good_bits`` is an integer, it must be
-            the sum of all the DQ bit values from the input model's
-            DQ array that should be considered "good" (or ignored). For
-            example, if pixels in the DQ array can be
-            combinations of 1, 2, 4, and 8 flags and one wants to consider DQ
-            "defects" having flags 2 and 4 as being acceptable, then
-            ``good_bits`` should be set to 2+4=6. Then a pixel with DQ values
-            2,4, or 6 will be considered a good pixel, while a pixel with
-            DQ value, e.g., 1+2=3, 4+8=12, etc. will be flagged as
-            a "bad" pixel.
-
-            Alternatively, when ``good_bits`` is a string, it can be a
-            comma-separated or '+' separated list of integer bit flags that
-            should be summed to obtain the final "good" bits. For example,
-            both "4,8" and "4+8" are equivalent to integer ``good_bits=12``.
-
-            Finally, instead of integers, ``good_bits`` can be a string of
-            comma-separated mnemonics. For example, for JWST, all the following
-            specifications are equivalent:
-
-            `"12" == "4+8" == "4, 8" == "JUMP_DET, DROPOUT"`
-
-            In order to "translate" mnemonic code to integer bit flags,
-            ``Resample.dq_flag_name_map`` attribute must be set to either
-            a dictionary (with keys being mnemonc codes and the values being
-            integer flags) or a `~astropy.nddata.BitFlagNameMap`.
-
-            In order to reverse the meaning of the flags
-            from indicating values of the "good" DQ flags
-            to indicating the "bad" DQ flags, prepend '~' to the string
-            value. For example, in order to exclude pixels with
-            DQ flags 4 and 8 for computations and to consider
-            as "good" all other pixels (regardless of their DQ flag),
-            use a value of ``~4+8``, or ``~4,8``. A string value of
-            ``~0`` would be equivalent to a setting of ``None``.
-
-            Default value (0) will make *all* pixels with non-zero DQ
-            values be considered "bad" pixels, and the corresponding data
-            pixels will be assigned zero weight and thus these pixels
-            will not contribute to the output resampled data array.
-
-            Set `good_bits` to `None` to turn off the use of model's DQ
-            array.
-
-            For more details, see documentation for
-            `astropy.nddata.bitmask.extend_bit_flag_map`.
-
-        enable_ctx : bool, optional
-            Indicates whether to create a context image. If ``disable_ctx``
-            is set to `True`, parameters ``out_ctx``, ``begin_ctx_id``, and
-            ``max_ctx_id`` will be ignored.
-
-        enable_var : bool, optional
-            Indicates whether to resample variance arrays.
-
-        compute_err : {"from_var", "driz_err"}, None, optional
-            - ``"from_var"``: compute output model's error array from
-              all (Poisson, flat, readout) resampled variance arrays.
-              Setting ``compute_err`` to ``"from_var"`` will assume
-              ``enable_var`` was set to `True` regardless of actual
-              value of the parameter ``enable_var``.
-            - ``"driz_err"``: compute output model's error array by drizzling
-              together all input models' error arrays.
-
-            Error array will be assigned to ``'err'`` key of the output model.
-
-            .. note::
-                At this time, output error array is not equivalent to
-                error propagation results.
-        """
         # to see if setting up arrays and drizzle is needed
         self._finalized = False
         self._n_res_models = 0
@@ -293,6 +295,8 @@ class Resample:
 
     def get_input_model_pixel_area(self, model, prefer_mean=True):
         """
+        Get input model pixel area.
+
         Computes or retrieves pixel area of an input model. By default,
         this is the average pixel area of the input model's pixels within
         either the bounding box (if available) or the entire data array.
@@ -346,6 +350,8 @@ class Resample:
 
     def get_output_model_pixel_area(self, model):
         """
+        Get output model pixel area.
+
         Computes or retrieves pixel area of the output model. Currently,
         this is the average pixel area of the model's pixels within either
         the bounding box (if available) or the entire data array.
@@ -368,6 +374,8 @@ class Resample:
 
     def check_output_wcs(self, output_wcs, estimate_output_shape=True):
         """
+        Check ands modify output WCS.
+
         Check that provided WCS has expected properties and that its
         ``array_shape`` property is defined. May modify ``output_wcs``.
 
@@ -497,9 +505,7 @@ class Resample:
 
     @property
     def group_ids(self):
-        """Get a list of all group IDs of models resampled and added to the
-        output model.
-        """
+        """Get a list of all group IDs of models resampled and added to the output model."""
         return self._group_ids
 
     @property
@@ -519,6 +525,8 @@ class Resample:
 
     def _get_intensity_scale(self, model):
         """
+        Compute the intensity scale for the input model.
+
         Compute an intensity scale from the input and output pixel area.
         For imaging data, the scaling is used to account for differences
         between the nominal pixel area and the average pixel area for
@@ -579,7 +587,10 @@ class Resample:
                 self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
     def reset_arrays(self, n_input_models=None):
-        """Initialize/reset `Drizzle` objects, output model and arrays,
+        """
+        Reset the arrays to initial values.
+
+        Initialize/reset `Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
         are not modified from `Resample` object initialization. This method
         needs to be called before calling :py:meth:`add_model` for the first
@@ -634,7 +645,10 @@ class Resample:
         self._finalized = False
 
     def validate_input_model(self, model):
-        """Checks that ``model`` has all the required keywords needed for
+        """
+        Validate the input model.
+
+        Checks that ``model`` has all the required keywords needed for
         processing based on settings used during initialisation if the
         `Resample` object.
 
@@ -695,7 +709,10 @@ class Resample:
                 raise KeyError(f"Attempt to access non-existent key '{attr}' in a data model.")
 
     def add_model(self, model):
-        """Resamples model image, variance data (if ``enable_var``
+        """
+        Add a model to the resampled output model.
+
+        Resamples model image, variance data (if ``enable_var``
         is `True`) , and error data (if ``enable_err`` is `True`), and adds
         them to the corresponding
         arrays of the output model using appropriate weighting.
@@ -801,7 +818,10 @@ class Resample:
             self._output_model["err"] = self._driz_error.out_img
 
     def add_model_hook(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """A hook method called by the :py:meth:`~Resample.add_model` method.
+        """
+        Hook method for additional processing of the model data.
+
+        A hook method called by the :py:meth:`~Resample.add_model` method.
         It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
 
@@ -861,13 +881,19 @@ class Resample:
         pass
 
     def is_finalized(self):
-        """Indicates whether all attributes of the ``output_model`` have been
+        """
+        Check if the resampling process has been finalized.
+
+        Indicates whether all attributes of the ``output_model`` have been
         computed from intermediate (running) values.
         """
         return self._finalized
 
     def finalize(self):
-        """Performs final computations from any intermediate values,
+        """
+        Finalize the resampling process.
+
+        Performs final computations from any intermediate values,
         sets output model values, and optionally frees temporary/intermediate
         objects.
 
@@ -938,9 +964,7 @@ class Resample:
         return
 
     def init_variance_arrays(self):
-        """Allocate arrays that hold co-added resampled variances and their
-        weights.
-        """
+        """Allocate arrays that hold co-added resampled variances and their weights."""
         shape = self.output_array_shape
 
         self._variance_info = {}
@@ -954,8 +978,8 @@ class Resample:
             }
 
     def resample_variance_arrays(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """Resample and co-add variance arrays using appropriate weights
-        and update total weights.
+        """
+        Resample and co-add variance arrays using appropriate weights and update total weights.
 
         Parameters
         ----------
@@ -1059,8 +1083,10 @@ class Resample:
             self._variance_info[varname]["wt"][mask] += weight[mask]
 
     def finalize_resample_variance(self, output_model):
-        """Compute variance for the resampled image from running sums and
-        weights. Free memory that holds these running sums and weights arrays.
+        """
+        Compute variance for the resampled image from running sums and weights.
+
+        Free memory that holds these running sums and weights arrays.
 
         output_model : dict, None
             A dictionary containing data arrays and other attributes that
@@ -1170,7 +1196,10 @@ class Resample:
         self._measurement_time_success = []
 
     def update_time(self, model):
-        """A method called by the :py:meth:`~Resample.add_model` method to
+        """
+        Update the time attributes of the output model.
+
+        A method called by the :py:meth:`~Resample.add_model` method to
         process each image's time attributes *only* when ``model`` has a new
         group ID.
 
@@ -1199,9 +1228,11 @@ class Resample:
             self._duration += duration
 
     def finalize_time_info(self):
-        """Perform final computations for the total time and update relevant
-        fields of the output model.
+        """
+        Finalize time information for the output model.
 
+        Perform final computations for the total time and update relevant fields
+        of the output model.
         """
         if not self._n_res_models:
             raise ValueError("No resampled models available.")
@@ -1218,10 +1249,7 @@ class Resample:
             self._output_model["measurement_time"] = self._total_measurement_time
 
     def _check_var_array(self, model, array_name):
-        """Check that a variance array has the same shape as the model's
-        data array.
-
-        """
+        """Check that a variance array has the same shape as the model's data array."""
         array_data = model.get(array_name, None)
         sci_data = model["data"]
         model_name = _get_model_name(model)
@@ -1240,7 +1268,10 @@ class Resample:
 
 
 def _get_model_name(model):
-    """Return the value of ``"filename"`` from the model dictionary or
+    """
+    Get the model's filenamae.
+
+    Return the value of ``"filename"`` from the model dictionary or
     ``"Unknown"`` when ``"filename"`` is either not present or it is `None`.
 
     """

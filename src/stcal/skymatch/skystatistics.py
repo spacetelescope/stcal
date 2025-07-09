@@ -1,11 +1,11 @@
 """
+Sky Statistics Module.
+
 `skystatistics` module provides statistics computation class used by
 :py:func:`~stcal.skymatch.skymatch.skymatch`
 and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 
 :Authors: Mihai Cara (contact: help@stsci.edu)
-
-
 """
 
 # THIRD PARTY
@@ -17,6 +17,8 @@ __all__ = ["SkyStats"]
 
 class SkyStats:
     """
+    Class for computing sky statistics on images.
+
     This class is built on top of :py:class:`stsci.imagestats.ImageStats`,
     deligating its functionality to calls to the ``ImageStats`` object. Compared
     to :py:class:`stsci.imagestats.ImageStats`, `SkyStats` has "persistent settings"

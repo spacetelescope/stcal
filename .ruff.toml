@@ -51,15 +51,13 @@ ignore = [
     "TRY003", # prevents custom exception messages not defined in exception itself.
     "TRY400", # enforces log.exception instead of log.error in except clause.
     "ISC001", # single line implicit string concatenation. formatter recommends ignoring this.
-    "D205",
-    "D103",
+
+    # Documentation style fixes that need to be addressed
     "D101",
     "D102",
+    "D103",
     "D104",
     "D401",
-    "D404",
-    "D200",
-    "D400",
 ]
 
 [lint.pydocstyle]

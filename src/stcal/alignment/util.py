@@ -78,8 +78,7 @@ def _generate_tranform(
     transform: astmodels.Model | None = None,
 ) -> astmodels.Model:
     """
-    Creates a transform from pixel to world coordinates based on a
-    reference datamodel's WCS.
+    Creates a transform from pixel to world coordinates based on a reference datamodel's WCS.
 
     Parameters
     ----------
@@ -155,8 +154,7 @@ def _get_bounding_box_with_offsets(
     shape: Sequence | None,
 ) -> tuple[tuple, tuple, astmodels.Model]:
     """
-    Calculates axis minimum values and bounding box.
-    Calculates the offsets to the transform.
+    Calculates axis minimum values and bounding box. Calculates the offsets to the transform.
 
     Parameters
     ----------
@@ -177,7 +175,6 @@ def _get_bounding_box_with_offsets(
         Shape (using `numpy.ndarray` convention) of the image array associated
         with the ``ref_wcs``.
 
-
     Returns
     -------
     tuple
@@ -191,7 +188,6 @@ def _get_bounding_box_with_offsets(
 
     ~astropy.modeling.Model
         A model with the offsets to be added to the WCS's transform.
-
     """
     domain_bounds = np.hstack([ref_wcs.backward_transform(*f.T) for f in footprints])
     domain_min = np.min(domain_bounds, axis=1)
@@ -234,8 +230,9 @@ def _get_bounding_box_with_offsets(
 
 def _calculate_fiducial(footprints: list[np.ndarray], crval: Sequence | None = None) -> tuple:
     """
-    Calculates the coordinates of the fiducial point and, if necessary, updates it with
-    the values in CRVAL (the update is applied to spatial axes only).
+    Calculates the coordinates of the fiducial point.
+
+    If necessary, updates it with the values in CRVAL (the update is applied to spatial axes only).
 
     Parameters
     ----------
@@ -267,8 +264,7 @@ def _calculate_new_wcs(
     transform: astmodels.Model | None = None,
 ) -> gwcs.wcs.WCS:
     """
-    Calculates a new WCS object based on the combined footprints
-    and reference WCS provided.
+    Calculates a new WCS object based on the combined footprints and reference WCS provided.
 
     Parameters
     ----------
@@ -429,6 +425,7 @@ def compute_scale(
 def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
+
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
 
@@ -471,6 +468,8 @@ def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.
 
 def _compute_fiducial_from_footprints(footprints: list[np.ndarray]) -> tuple:
     """
+    Compute the fiducial point from the given footprints.
+
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
@@ -883,6 +882,8 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
 
 def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
+    Reproject pixel coordinates from one WCS to another.
+
     Given two WCSs or transforms return a function which takes pixel
     coordinates in the first WCS or transform and computes them in pixel coordinates
     in the second one. It performs the forward transformation of ``wcs1`` followed by the
@@ -902,10 +903,12 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
 
     def _get_forward_transform_func(wcs1):
-        """Get the forward transform function from the input WCS. If the wcs is a
-        fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
-        y (str, ndarray), and origin (int). The origin should be between 0, and 1
-        https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
+        """
+        Get the forward transform function from the input WCS.
+
+        If the wcs is a fitswcs.WCS object all_pix2world requires three inputs,
+        the x (str, ndarrray), y (str, ndarray), and origin (int). The origin should be between 0,
+        and 1 https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         ).
         """
         if isinstance(wcs1, fitswcs.WCS):

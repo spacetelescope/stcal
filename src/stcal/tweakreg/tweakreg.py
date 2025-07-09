@@ -235,6 +235,8 @@ def _parse_refcat(
     output_dir: str | None = None,
 ) -> Table:
     """
+    Parse the refcat.
+
     Figure out if abs_refcat is an input filename or
     the name of a GAIA catalog. If the former, load it,
     and if the latter, retrieve that catalog from the Web.
@@ -365,10 +367,7 @@ def _wcs_to_skycoord(wcs):
 
 
 def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[tuple]) -> Table:
-    """
-    Given a catalog of x,y positions, only return sources that fall
-    inside the bounding box.
-    """
+    """Given a catalog of x,y positions, only return sources that fall inside the bounding box."""
     if bounding_box is None:
         return catalog
 
@@ -387,8 +386,7 @@ def construct_wcs_corrector(
     group_id: str,
 ) -> JWSTWCSCorrector:
     """
-    pre-compute skycoord here so we can later use it
-    to check for a small wcs correction.
+    pre-compute skycoord here so we can later use it to check for a small wcs correction.
 
     Parameters
     ----------

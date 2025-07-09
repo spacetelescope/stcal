@@ -47,7 +47,7 @@ def resample_range(data_shape, bbox=None):
 
 
 def build_mask(dqarr, good_bits, flag_name_map=None):
-    """Build a bit mask from an input DQ array and a bitvalue flag
+    """Build a bit mask from an input DQ array and a bitvalue flag.
 
     In the returned bit mask, 1 is good, 0 is bad
     """
@@ -64,7 +64,10 @@ def build_mask(dqarr, good_bits, flag_name_map=None):
 
 
 def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=None):
-    """Create a weight map that is used for weighting input images when
+    """
+    Create weight map for drizzle resampling.
+
+    Create a weight map that is used for weighting input images when
     they are co-added to the output model.
 
     Parameters
@@ -146,6 +149,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
 
 def get_tmeasure(model):
     """
+    Get and check the measurement time from the model.
+
     Check if the measurement_time keyword is present in the datamodel
     for use in exptime weighting. If not, revert to using exposure_time.
 
@@ -168,7 +173,10 @@ def is_imaging_wcs(wcs):
 
 
 def compute_mean_pixel_area(wcs, shape=None):
-    """Computes the average pixel area (in steradians) based on input WCS
+    """
+    Find the average pixel area in steradians for a given WCS.
+
+    Computes the average pixel area (in steradians) based on input WCS
     using pixels within either the bounding box (if available) or the entire
     data array as defined either by ``wcs.array_shape`` or the ``shape``
     argument.
@@ -280,6 +288,8 @@ def compute_mean_pixel_area(wcs, shape=None):
 
 def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  # noqa: E741
     """
+    Get the boundary points of a rectangle.
+
     Creates a list of ``x`` and ``y`` coordinates of points along the perimiter
     of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
     ``shrink`` in counter-clockwise order.

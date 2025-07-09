@@ -2,9 +2,7 @@ import numpy as np
 
 
 class IntegInfo:
-    """
-    Storage for the integration information for ramp fitting computations.
-    """
+    """Storage for the integration information for ramp fitting computations."""
 
     def __init__(self, nints, nrows, ncols):
         """
@@ -32,9 +30,7 @@ class IntegInfo:
         self.err = np.zeros(shape=dims, dtype=np.float32)
 
     def prepare_info(self):
-        """
-        Arrange output arrays as a tuple, which the ramp fit step expects.
-        """
+        """Arrange output arrays as a tuple, which the ramp fit step expects."""
         return (self.data, self.dq, self.var_poisson, self.var_rnoise, self.err)
 
     def get_results(self, result, integ, row):
@@ -60,9 +56,7 @@ class IntegInfo:
 
 class RampResult:
     def __init__(self):
-        """
-        Contains the ramp fitting results.
-        """
+        """Contains the ramp fitting results."""
         self.countrate = None
         self.chisq = None
         self.uncert = None
@@ -81,9 +75,7 @@ class RampResult:
         self.uncert_one_omit = None
 
     def __repr__(self):
-        """
-        Return string of information about the class.
-        """
+        """Return string of information about the class."""
         ostring = f"countrate = \n{self.countrate}"
         ostring += f"\nchisq = \n{self.chisq}"
         ostring += f"\nucert = \n{self.uncert}"
@@ -149,23 +141,24 @@ class RampResult:
 
 class Covar:
     """
+    Class for covariance computing.
+
     class Covar holding read and photon noise components of alpha and
     beta and the time intervals between the resultant midpoints
+
+    Compute alpha and beta, the diagonal and off-diagonal elements of
+    the covariance matrix of the resultant differences, and the time
+    intervals between the resultant midpoints.
+
+    Parameters
+    ----------
+    readtimes : list
+        List of values or lists for the times of reads.  If a list of
+        lists, times for reads that are averaged together to produce
+        a resultant.
     """
 
     def __init__(self, readtimes):
-        """
-        Compute alpha and beta, the diagonal and off-diagonal elements of
-        the covariance matrix of the resultant differences, and the time
-        intervals between the resultant midpoints.
-
-        Parameters
-        ----------
-        readtimes : list
-            List of values or lists for the times of reads.  If a list of
-            lists, times for reads that are averaged together to produce
-            a resultant.
-        """
         # Equations (4) and (11) in paper 1.
         mean_t, tau, n_reads, delta_t = self._compute_means_and_taus(readtimes)
 

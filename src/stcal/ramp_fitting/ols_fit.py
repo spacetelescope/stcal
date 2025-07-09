@@ -23,8 +23,9 @@ log.setLevel(logging.DEBUG)
 
 def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
-    Setup the inputs to ols_ramp_fit with and without multiprocessing. The
-    inputs will be sliced into the number of cores that are being used for
+    Setup the inputs to ols_ramp_fit with and without multiprocessing.
+
+    The inputs will be sliced into the number of cores that are being used for
     multiprocessing. Because the data models cannot be pickled, only numpy
     arrays are passed and returned as parameters to ols_ramp_fit.
 
@@ -111,11 +112,12 @@ def ols_ramp_fit_multiprocessing(
     ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
 ):
     """
-    Fit a ramp using ordinary least squares. Calculate the count rate for each
-    pixel in all data cube sections and all integrations, equal to the weighted
-    slope for all sections (intervals between cosmic rays) of the pixel's ramp
-    divided by the effective integration time.  The data is spread across the
-    desired number of processors (>1).
+    Fit a ramp using ordinary least squares using multiprocessing.
+
+    Calculate the count rate for each pixel in all data cube sections and all
+    integrations, equal to the weighted slope for all sections (intervals between
+    cosmic rays) of the pixel's ramp divided by the effective integration time.
+    The data is spread across the desired number of processors (>1).
 
     Parameters
     ----------
@@ -169,6 +171,8 @@ def ols_ramp_fit_multiprocessing(
 
 def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     """
+    Assemble the results from the multiprocessing pool.
+
     Takes the list of results from the starmap pool method and assembles the
     slices into primary tuples to be returned by `ramp_fit`.
 
@@ -326,8 +330,7 @@ def get_opt_slice(opt_info, opt_slice, row_start, nrows):
 
 def create_output_info(ramp_data, pool_results, save_opt):
     """
-    Creates the output arrays and tuples for ramp fitting reassembly for
-    mulitprocessing.
+    Creates the output arrays and tuples for ramp fitting reassembly for mulitprocessing.
 
     Parameters
     ----------
@@ -400,6 +403,8 @@ def create_output_info(ramp_data, pool_results, save_opt):
 
 def get_max_segs_crs(pool_results):
     """
+    Find max number of segments needed for CRs.
+
     Computes the max number of segments computed needed for the second
     dimension of the optional results output.
 
@@ -436,8 +441,9 @@ def compute_slices_for_starmap(
     ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
 ):
     """
-    Creates the slices needed for each process for multiprocessing.  The slices
-    for the arguments needed for ols_ramp_fit_single.
+    Creates the slices needed for each process for multiprocessing.
+
+    The slices for the arguments needed for ols_ramp_fit_single.
 
     ramp_data: RampData
         The ramp data to be sliced.
@@ -514,8 +520,7 @@ def rows_per_slice(nslices, nrows):
 
 def slice_ramp_data(ramp_data, start_row, nrows):
     """
-    Slices the ramp data by rows, where the arrays contain all rows in
-    [start_row, start_row+nrows).
+    Slices the ramp data by rows, where the arrays contain all rows in [start_row, start_row+nrows).
 
     Parameters
     ----------
@@ -580,7 +585,9 @@ def slice_ramp_data(ramp_data, start_row, nrows):
 
 def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
     """
-    Fit a ramp using ordinary least squares. Calculate the count rate for each
+    Fit a ramp using ordinary least squares.
+
+    Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
     slope for all sections (intervals between cosmic rays) of the pixel's ramp
     divided by the effective integration time.
@@ -646,8 +653,9 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
 
 def handle_array_endianness(arr, sys_order):
     """
-    Determines if the array byte order is the same as the system byte order.  If
-    it is not, then byteswap the array.
+    Determines if the array byte order is the same as the system byte order.
+
+    If it is not, then byteswap the array.
 
     Parameters
     ----------
@@ -673,6 +681,8 @@ def handle_array_endianness(arr, sys_order):
 
 def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     """
+    Handle the endianness of the arrays used in ramp fitting.
+
     Check all arrays for endianness against the system endianness,
     so when used by the C extension, the endianness is correct.  Numpy
     ndarrays can be in any byte order and is handled transparently to the
@@ -721,6 +731,8 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
 
 def discard_miri_groups(ramp_data):
     """
+    Discard MIRI groups that are all flagged as DO_NOT_USE.
+
     For MIRI datasets having >1 group, if all pixels in the final group are
     flagged as DO_NOT_USE, resize the input model arrays to exclude the
     final group.  Similarly, if leading groups 1 though N have all pixels

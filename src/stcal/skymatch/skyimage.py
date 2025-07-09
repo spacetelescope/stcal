@@ -1,12 +1,12 @@
 """
+Sky Image Module.
+
 The ``skyimage`` module contains algorithms that are used by
 ``skymatch`` to manage all of the information for footprints (image outlines)
 on the sky as well as perform useful operations on these outlines such as
 computing intersections and statistics in the overlap regions.
 
 :Authors: Mihai Cara (contact: help@stsci.edu)
-
-
 """
 
 # STDLIB
@@ -32,8 +32,10 @@ __all__ = [
 
 
 class DataAccessor(abc.ABC):
-    """Base class for all data accessors. Provides a common interface to
-    access data.
+    """
+    Base class for all data accessors.
+
+    Provides a common interface to access data.
     """
 
     @abc.abstractmethod
@@ -111,6 +113,8 @@ class NDArrayMappedAccessor(DataAccessor):
 
 class SkyImage:
     """
+    Container for a single sky image.
+
     Container that holds information about properties of a *single*
     image such as:
 
@@ -332,6 +336,8 @@ class SkyImage:
     @property
     def radec(self):
         """
+        RA and DEC.
+
         Get RA and DEC of the vertices of the bounding polygon as a
         `~numpy.ndarray` of shape (N, 2) where N is the number of vertices + 1.
         """
@@ -344,6 +350,8 @@ class SkyImage:
 
     def intersection(self, skyimage):
         """
+        Find the intersection of a `SkyImage` object with another.
+
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
         :py:class:`~spherical_geometry.polygon.SphericalPolygon`
@@ -453,6 +461,8 @@ class SkyImage:
         binwidth=0.1,
     ):
         """
+        Set built-in sky statistics.
+
         Replace already set `skystat` with a "built-in" version of a
         statistics callable object used to measure sky background.
 
@@ -600,9 +610,7 @@ class SkyImage:
         return skyval, npix, polyarea
 
     def copy(self):
-        """
-        Return a shallow copy of the `SkyImage` object.
-        """
+        """Return a shallow copy of the `SkyImage` object."""
         si = SkyImage(
             image=None,
             wcs_fwd=self.wcs_fwd,
@@ -630,6 +638,8 @@ class SkyImage:
 
 class SkyGroup:
     """
+    Container for multiple `SkyImage` objects.
+
     Holds multiple :py:class:`SkyImage` objects whose sky background values
     must be adjusted together.
 
@@ -678,6 +688,8 @@ class SkyGroup:
     @property
     def radec(self):
         """
+        RA and DEC.
+
         Get RA and DEC of the vertices of the bounding polygon as a
         `~numpy.ndarray` of shape (N, 2) where N is the number of vertices + 1.
 
@@ -691,6 +703,8 @@ class SkyGroup:
 
     def intersection(self, skyimage):
         """
+        Find intersection with this `SkyGroup` object.
+
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
         :py:class:`~spherical_geometry.polygon.SphericalPolygon`

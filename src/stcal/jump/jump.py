@@ -500,7 +500,7 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
 
 def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
-    """Draw a filled ellipse in a small array at a given (returned) location
+    """Draw a filled ellipse in a small array at a given (returned) location.
 
     Parameters
     ----------
@@ -1157,7 +1157,9 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2d_kernel):
 
 
 def convolve_fast(inarray, kernel, copy=False):
-    """Convolve an array with a kernel, interpolating over NaNs.
+    """
+    Convolve an array with a kernel, interpolating over NaNs.
+
     Faster version of astropy.convolution.convolve(preserve_nan=True)
 
     Parameters

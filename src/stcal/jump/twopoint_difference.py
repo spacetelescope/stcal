@@ -585,7 +585,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
 
 def check_group_counts(nints, total_sigclip_groups, twopt_p):
     """
-    Determine whether there are enough usable groups for the two sigma clip options
+    Determine whether there are enough usable groups for the two sigma clip options.
 
     Parameters
     ----------

@@ -1,6 +1,4 @@
-"""
-Utility functions for outlier detection routines
-"""
+"""Utility functions for outlier detection routines."""
 
 import warnings
 
@@ -32,6 +30,8 @@ __all__ = [
 
 def medfilt(arr, kern_size):
     """
+    Median filter for an n-dimensional array.
+
     scipy.signal.medfilt (and many other median filters) have undefined behavior
     for nan inputs. See: https://github.com/scipy/scipy/issues/4800
 
@@ -125,6 +125,8 @@ def flag_crs(
     snr,
 ):
     """
+    Flag cosmic rays (CRs) in non-dithered data.
+
     Straightforward detection of outliers for non-dithered data since
     sci_err includes all noise sources (photon, read, and flat for baseline).
 
@@ -220,8 +222,7 @@ def flag_resampled_crs(
 
 def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=0.0):
     """
-    Resample the median data to recreate an input image based on
-    the blot wcs.
+    Resample the median data to recreate an input image based on the blot wcs.
 
     Parameters
     ----------
@@ -308,6 +309,8 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
 
 def reproject(wcs1, wcs2):
     """
+    Compute a reprojection function between two WCSs.
+
     Given two WCSs return a function which takes pixel
     coordinates in wcs1 and computes them in wcs2.
 

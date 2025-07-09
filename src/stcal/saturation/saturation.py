@@ -21,6 +21,8 @@ def flag_saturated_pixels(
     bias=None,
 ):
     """
+    Flag saturated pixels in the data.
+
     Short Summary
     -------------
     Apply flagging for saturation based on threshold values stored in the
@@ -230,6 +232,8 @@ def flag_saturated_pixels(
 
 def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
     """
+    Find and flag pixels adjacent to saturated pixels.
+
     plane_gdq : ndarray
         The data quality flags of the current.
 
@@ -299,6 +303,8 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
 def plane_saturation(plane, sat_thresh, dqflags):
     """
+    Compute saturation and A/D floor flags for a 2D plane.
+
     Plane : ndarray, 2D float
         The plane to check for saturation and A/D floor.
 

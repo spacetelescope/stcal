@@ -121,6 +121,8 @@ def ramp_fit(
     suppress_one_group=False,
 ):
     """
+    Perform the ramp fit on the input data model.
+
     Calculate the count rate for each pixel in all data cube sections and all
     integrations, equal to the slope for all sections (intervals between
     cosmic rays) of the pixel's ramp divided by the effective integration time.
@@ -193,6 +195,8 @@ def ramp_fit(
 
 def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores):
     """
+    Perform the ramp fit computation.
+
     This function begins the ramp fit computation after the creation of the
     RampData class.  It determines the proper path for computation to take
     depending on the choice of ramp fitting algorithms (which is only ordinary
@@ -274,8 +278,9 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
 
 def suppress_one_good_group_ramps(ramp_data):
     """
-    Finds one group ramps in each integration and suppresses them, i.e. turns
-    them into zero group ramps.
+    Finds one group ramps in each integration and suppresses them.
+
+    I.E. turns them into zero group ramps.
 
     Parameter
     ---------

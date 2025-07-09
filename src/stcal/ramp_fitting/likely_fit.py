@@ -360,8 +360,7 @@ def get_readtimes(ramp_data):
 
 def compute_image_info(integ_class, ramp_data):
     """
-    Combine all integrations into a single image of rates,
-    variances, and DQ flags.
+    Combine all integrations into a single image of rates, variances, and DQ flags.
 
     Parameters
     ----------
@@ -946,7 +945,8 @@ def compute_Phis(ndiffs, npix, beta, phi, sgn):
 
 def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
     """
-    EQN 4, Paper II
+    EQN 4, Paper II.
+
     This one is defined later in the paper and is used for jump detection.
 
     Parameters
@@ -981,7 +981,7 @@ def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
 
 def compute_Thetas(ndiffs, npix, beta, theta, sgn):
     """
-    EQN 47
+    EQN 47.
 
     Parameters
     ----------
@@ -1013,7 +1013,7 @@ def compute_Thetas(ndiffs, npix, beta, theta, sgn):
 
 def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):
     """
-    EQN 48
+    EQN 48.
 
     Parameters
     ----------
