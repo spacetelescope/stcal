@@ -423,9 +423,15 @@ class Resample:
             A dictionary of data model attributes and values.
 
         """
-        assert self._output_wcs is not None
-        assert np.array_equiv(self._output_wcs.array_shape, self._output_array_shape)
-        assert self._output_pixel_scale
+        if self._output_wcs is None:
+            raise ValueError("Output WCS must be provided to create an output model.")
+        if not np.array_equiv(self._output_wcs.array_shape, self._output_array_shape):
+            raise ValueError(
+                "Output WCS array shape does not match the expected output "
+                f"array shape: {self._output_wcs.array_shape} != {self._output_array_shape}"
+            )
+        if not self._output_pixel_scale:
+            raise ValueError("Output pixel scale must be provided to create an output model.")
 
         pix_area = self._output_pixel_scale**2
 
@@ -646,7 +652,8 @@ class Resample:
 
         """
         # TODO: do we need this to just raise a custom
-        assert isinstance(model, dict)
+        if not isinstance(model, dict):
+            raise TypeError(f"Expected input model to be a dictionary, got {type(model)} instead.")
         min_attributes = [
             # arrays:
             "data",
@@ -1196,7 +1203,8 @@ class Resample:
         fields of the output model.
 
         """
-        assert self._n_res_models
+        if not self._n_res_models:
+            raise ValueError("No resampled models available.")
         # basic exposure time attributes:
         self._output_model["exposure_time"] = self._total_exposure_time
         self._output_model["start_time"] = min(self._exptime_start)

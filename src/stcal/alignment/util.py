@@ -551,7 +551,7 @@ def wcs_from_footprints(
     ref_wcs: gwcs.wcs.WCS,
     ref_wcsinfo: dict,
     transform: astropy.modeling.models.Model | None = None,
-    bounding_box: Sequence | None = None,
+    bounding_box: Sequence | None = None,  # noqa: ARG001  preserve API
     pscale_ratio: float | None = None,
     pscale: float | None = None,
     rotation: float | None = None,

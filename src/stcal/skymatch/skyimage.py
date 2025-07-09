@@ -544,7 +544,7 @@ class SkyImage:
             elif isinstance(overlap, SphericalPolygon):
                 radec = []
                 polyarea = 0.0
-                for p in overlap._polygons:
+                for p in overlap._polygons:  # noqa: SLF001  SphericalGeometry should make this public
                     intersection = self.intersection(SphericalPolygon([p]))
                     polyarea1 = np.fabs(intersection.area())
                     if polyarea1 == 0.0:
