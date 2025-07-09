@@ -20,7 +20,7 @@ from astropy import wcs as fitswcs
 from astropy import coordinates as coord
 from astropy.modeling import models as astmodels
 from astropy import units as u
-# from gwcs.wcstools import wcs_from_fiducial
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -450,12 +450,42 @@ def sregion_to_footprint(s_region: str) -> np.ndarray:
 
 
 def _compute_bounding_box_with_offsets(
-        footprints,
-        transform,
-        fiducial,
-        crpix,
-        shape
-        ):
+        footprints: list[np.ndarray],
+        transform: astmodels.Model,
+        fiducial: Sequence,
+        crpix: Sequence | None,
+        shape: Sequence | None
+        ) -> Tuple[tuple, tuple, tuple]:
+    """
+    Calculates axis minimum values and bounding box.
+    Calculates the offsets to the transform.
+
+    Parameters
+    ----------
+    footprints : list
+        A list of numpy arrays each of shape (N, 2) containing the
+        (RA, Dec) vertices demarcating the footprint of the input WCSs.
+    transform : ~astmodel.Model
+        A transform including scaling and rotation.
+    fiducial : tuple
+        A tuple containing the world coordinates of the fiducial point.
+    crpix : list or tuple, None, optional
+        0-indexed pixel coordinates of the reference pixel.
+    shape : tuple, None, optional
+        Shape (using `numpy.ndarray` convention) of the image array associated
+        with the ``ref_wcs``.
+    Returns
+    -------
+    tuple
+        A tuple containing the bounding box region in the format
+        ((x0_lower, x0_upper), (x1_lower, x1_upper), ...).
+    tuple
+        Shape of the image. When ``shape`` argument is `None`, shape is
+        determined from the upper limit of the computed bounding box, otherwise
+        input value of ``shape`` is returned.
+    tuple
+        A tuple with the offsets of the reference pixel to be added to the WCS's transform.
+    """
     domain_bounds = np.hstack([transform.inverse(*f.T) for f in footprints])
     domain_min = np.min(domain_bounds, axis=1)
     domain_max = np.max(domain_bounds, axis=1)
@@ -536,7 +566,7 @@ def wcs_from_sregions(
         A dictionary containing the WCS FITS keywords and corresponding values.
 
     transform : ~astropy.modeling.Model, None, optional
-        A transform, passed to :py:func:`gwcs.wcstools.wcs_from_fiducial`
+        A transform, the inverse of which is used to transform the `fiducial` to detecor coordinates.
         If not supplied `Scaling | Rotation` is computed from ``refmodel``.
 
     pscale_ratio : float, None, optional
@@ -577,7 +607,6 @@ def wcs_from_sregions(
         The WCS object corresponding to the combined input footprints.
 
     """
-    # TODO: Deprecate transform?
     footprints = [sregion_to_footprint(s_region)
                   if isinstance(s_region, str) else s_region
                   for s_region in footprints]
