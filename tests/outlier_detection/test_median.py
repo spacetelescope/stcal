@@ -173,7 +173,7 @@ def test_on_disk_median_bad_inputs(tmp_path):
         _OnDiskMedian(shape, dtype="float3", tempdir=tempdir)
 
     with pytest.raises(FileNotFoundError):
-        _OnDiskMedian(shape, dtype="float32", tempdir="dne")
+        _OnDiskMedian(shape, dtype="float32", tempdir="does_not_exist")
 
     # ensure unreasonable buffer size will get set to minimum reasonable buffer
     min_buffer = np.dtype(dtype).itemsize*frame_shape[1]*library_length

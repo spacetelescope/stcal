@@ -67,7 +67,7 @@ def build_mask(dqarr, good_bits, flag_name_map=None):
 def build_driz_weight(model, weight_type=None, good_bits=None,
                       flag_name_map=None):
     """ Create a weight map that is used for weighting input images when
-    they are co-added to the ouput model.
+    they are co-added to the output model.
 
     Parameters
     ----------
@@ -86,7 +86,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         the exposure time otherwise for pixels not flagged in the DQ array of
         the model. The default value of `None` will
         set weights to 1 for pixels not flagged in the DQ array of the model.
-        Pixels flagged as "bad" in the DQ array will have thier weights
+        Pixels flagged as "bad" in the DQ array will have their weights
         set to 0.
 
     good_bits : int, str, None, optional
@@ -312,11 +312,11 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
         Y-coordinate of the top edge of a rectangle.
 
     dx : int, float, None, optional
-        Desired spacing between ajacent points alog horizontal edges of
+        Desired spacing between adjacent points along horizontal edges of
         the rectangle.
 
     dy : int, float, None, optional
-        Desired spacing between ajacent points alog vertical edges of
+        Desired spacing between adjacent points along vertical edges of
         the rectangle.
 
     shrink : int, optional

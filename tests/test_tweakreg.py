@@ -95,7 +95,7 @@ def test_create_catalog(wcsobj):
 
 def test_create_catalog_graceful_failure(wcsobj):
     """
-    Ensure catalog retuns zero sources instead of failing outright
+    Ensure catalog returns zero sources instead of failing outright
     when the bounding box is too small to find any sources
     """
     wcsobj.bounding_box = ((0, 0.5), (0, 0.5))

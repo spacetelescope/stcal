@@ -240,7 +240,7 @@ struct ramp_data {
     int dropframes;                 /* The number of dropped frames in an integration */
     int groupgap;                   /* The group gap */
     int nframes;                    /* The number of frames */
-    real_t ped_tmp;                 /* Intermediate pedestal caclulation */
+    real_t ped_tmp;                 /* Intermediate pedestal calculation */
     int suppress1g;                 /* Suppress one group ramps */
     real_t effintim;                /* Effective integration time */
     real_t one_group_time;          /* Time for ramps with only 0th good group */
@@ -1275,7 +1275,7 @@ compute_integration_segments(
         struct ramp_data * rd,  /* Ramp fitting data */
         struct pixel_ramp * pr, /* Pixel ramp fitting data */
         struct segment_list * segs, /* Segment list */
-        int chargeloss,         /* Chargeloss compuation boolean */
+        int chargeloss,         /* Chargeloss computation boolean */
         npy_intp integ)         /* Current integration */
 {
     int ret = 0;
@@ -1346,7 +1346,7 @@ compute_integration_segments(
  * When the list is empty, the head is NULL, so when adding the initial
  * node, make the head point to the new node.  When adding the initial
  * node, the list will only have one node, so the tail will point to the
- * intial node as well.
+ * initial node as well.
  *
  * When the list is not empty, add the new node to the list as the tail.
  * This has the effect of having an ordered linked list with the head being
@@ -1724,11 +1724,11 @@ get_float2(
         npy_intp row,           /* Row index into object */
         npy_intp col)           /* Column index into object */
 {
-    float ans;
+    float answer;
 
-    ans = VOID_2_FLOAT(PyArray_GETPTR2(obj, row, col));
+    answer = VOID_2_FLOAT(PyArray_GETPTR2(obj, row, col));
 
-    return ans;
+    return answer;
 }
 
 /* Get a float from a 4-D NDARRAY */
@@ -1740,11 +1740,11 @@ get_float4(
     npy_intp row,           /* Row index into object */
     npy_intp col)           /* Column index into object */
 {
-    float ans;
+    float answer;
 
-    ans = VOID_2_FLOAT(PyArray_GETPTR4(obj, integ, group, row, col));
+    answer = VOID_2_FLOAT(PyArray_GETPTR4(obj, integ, group, row, col));
 
-    return ans;
+    return answer;
 }
 
 /* Get a float from a 3-D NDARRAY. */
@@ -1755,11 +1755,11 @@ get_float3(
     npy_intp row,           /* Row index into object */
     npy_intp col)           /* Column index into object */
 {
-    float ans;
+    float answer;
 
-    ans = VOID_2_FLOAT(PyArray_GETPTR3(obj, integ, row, col));
+    answer = VOID_2_FLOAT(PyArray_GETPTR3(obj, integ, row, col));
 
-    return ans;
+    return answer;
 }
 
 /* Get a uint32_t from a 2-D NDARRAY. */
@@ -2516,22 +2516,22 @@ median_rate_integration_sort_cmp(
 {
     real_t a = VOID_2_REAL(aa);
     real_t b = VOID_2_REAL(bb);
-    int ans = 0;
+    int answer = 0;
 
     /* Sort low to high, where NaN is high */
     if (isnan(b)) {
         if (isnan(a)) {
-            ans = 0;        /* a == b */
+            answer = 0;        /* a == b */
         } else {
-            ans = -1;       /* a < b */
+            answer = -1;       /* a < b */
         }
     } else if (isnan(a)) {
-        ans = 1;            /* a > b */
+        answer = 1;            /* a > b */
     } else {
-        ans = (a < b) ? -1 : 1;
+        answer = (a < b) ? -1 : 1;
     }
 
-    return ans;
+    return answer;
 }
 
 /*
@@ -2921,7 +2921,7 @@ END:
 }
 
 /*
- * With the newly computed segements after removing the CHARGELOSS
+ * With the newly computed segments after removing the CHARGELOSS
  * flag, recompute the read noise variance for each segment.
  */
 static double
@@ -3152,7 +3152,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default(
         struct pixel_ramp * pr,     /* The pixel ramp data */
         struct simple_ll_node * seg,/* The integration segment */
         npy_intp integ,             /* The integration number */
-        int segnum)                 /* Teh segment number */
+        int segnum)                 /* The segment number */
 {
     int ret = 0;
     real_t snr, power;
@@ -3724,7 +3724,7 @@ save_ramp_fit(
 static int
 segment_snr(
         real_t * snr,               /* The signal to noise ratio for a segment */
-        npy_intp integ,             /* The intergration number */
+        npy_intp integ,             /* The integration number */
         struct ramp_data * rd,      /* The ramp data */
         struct pixel_ramp * pr,     /* The pixel ramp data */
         struct simple_ll_node * seg,/* The integration segment */

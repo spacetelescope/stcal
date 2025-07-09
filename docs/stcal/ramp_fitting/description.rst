@@ -270,7 +270,7 @@ The combined variance of the slope is the sum of the variances:
 The square-root of the combined variance is stored in the ERR array of the output product.
 
 The overall slope depends on the slope and the combined variance of the slope of each integration's
-segments, so is a sum over integration values computed from the segements:
+segments, so is a sum over integration values computed from the segments:
 
 .. math::    
     slope_{o} = \frac{ \sum_{i}{ \frac{slope_{i}} {var^C_{i}}}} { \sum_{i}{ \frac{1} {var^C_{i}}}}

@@ -92,7 +92,7 @@ def _abs_deriv(array):
     if np.issubdtype(array.dtype, np.floating):
         out[np.isnan(array)] = np.nan
 
-    # compute row-wise absolute diffference
+    # compute row-wise absolute difference
     row_diff = np.abs(np.diff(array, axis=0))
     np.putmask(out[1:], np.isfinite(row_diff), row_diff)  # no need to do max yet
 

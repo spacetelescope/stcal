@@ -854,8 +854,8 @@ class Resample:
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
-            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
-            of Y-coordinates of input pixels in the ouput coordinate frame.
+            pixels in the output frame and ``pixmap[..., 1]`` forms a 2D array
+            of Y-coordinates of input pixels in the output coordinate frame.
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -904,7 +904,7 @@ class Resample:
 
     def finalize(self):
         """ Performs final computations from any intermediate values,
-        sets ouput model values, and optionally frees temporary/intermediate
+        sets output model values, and optionally frees temporary/intermediate
         objects.
 
         ``finalize`` calls :py:meth:`~Resample.finalize_resample_variance` and
@@ -1009,8 +1009,8 @@ class Resample:
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
-            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
-            of Y-coordinates of input pixels in the ouput coordinate frame.
+            pixels in the output frame and ``pixmap[..., 1]`` forms a 2D array
+            of Y-coordinates of input pixels in the output coordinate frame.
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -1251,7 +1251,7 @@ class Resample:
 
     def finalize_time_info(self):
         """ Perform final computations for the total time and update relevant
-        fileds of the output model.
+        fields of the output model.
 
         """
         assert self._n_res_models

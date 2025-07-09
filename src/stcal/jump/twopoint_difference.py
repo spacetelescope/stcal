@@ -418,12 +418,12 @@ def det_jump_sigma_clipping(
     warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
 
     axis = 0 if twopt_p.only_use_ints else (0, 1)
-    clipped_diffs, alow, ahigh = stats.sigma_clip(
+    clipped_diffs, a_low, a_high = stats.sigma_clip(
         first_diffs, sigma=twopt_p.normal_rej_thresh,
         axis=axis, masked=True, return_bounds=True)
 
     # get the standard deviation from the bounds of sigma clipping
-    stddev = 0.5 * (ahigh - alow) / twopt_p.normal_rej_thresh
+    stddev = 0.5 * (a_high - a_low) / twopt_p.normal_rej_thresh
     jump_candidates = clipped_diffs.mask
     sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
     jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set

@@ -235,6 +235,11 @@ line_length = 110
 
 [tool.codespell]
 skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
+ignore-words-list = """
+    usig,
+    nd,
+    lik,
+"""
 
 [tool.cibuildwheel.macos]
 archs = [

@@ -318,7 +318,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
 
 def setup_pdq(jump_data):
     """
-    Prepare the pixel DQ array for procesing, removing invalid data.
+    Prepare the pixel DQ array for processing, removing invalid data.
 
     Parameters
     ----------
@@ -1095,7 +1095,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     Returns
     -------
     bigcontours : list 
-        list of OpenCV countours
+        list of OpenCV contours
     """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
