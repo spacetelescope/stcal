@@ -42,7 +42,13 @@ def test_simulated_ramps(use_unit, use_dq):
         dq |= bad
 
     output = ramp.fit_ramps_casertano(
-        resultants, dq, read_noise, ROMAN_READ_TIME, read_pattern, threshold_constant=0, threshold_intercept=0
+        resultants,
+        dq,
+        read_noise,
+        ROMAN_READ_TIME,
+        read_pattern,
+        threshold_constant=0,
+        threshold_intercept=0,
     )  # set the threshold parameters
     #   to demo the interface. This
     #   will raise an error if

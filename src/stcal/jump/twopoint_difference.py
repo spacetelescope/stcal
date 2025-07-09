@@ -2,7 +2,6 @@ import logging
 import warnings
 
 import numpy as np
-import warnings
 from astropy import stats
 from astropy.utils.exceptions import AstropyUserWarning
 
@@ -60,7 +59,9 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         total_noise_min_grps_fails = True
 
     if total_noise_min_grps_fails and sig_clip_grps_fails:
-        log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
+        log.info(
+            "Jump Step was skipped because exposure has less than the minimum number of usable groups"
+        )
         dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
 
@@ -125,7 +126,15 @@ def jump_detection_post_processing(
     # nor donotuse is set.
     if twopt_p.flag_4_neighbors:
         gdq, row_below_gdq, row_above_gdq = flag_four_neighbors(
-            gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
+            gdq,
+            nints,
+            ngroups,
+            first_diffs,
+            median_diffs,
+            sigma,
+            row_below_gdq,
+            row_above_gdq,
+            twopt_p,
         )
 
     # Flag n groups after jumps above the specified thresholds to
@@ -292,7 +301,6 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     ratio : ndarray
         Used for threshold comparison
     """
-
     nints, ndiffs_int, nrows, ncols = first_diffs_abs.shape
     median_diffs_iter = np.zeros((nrows, ncols), np.float32)
 
@@ -339,7 +347,9 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     return cr_pixel, ratio
 
 
-def look_for_more_than_one_jump(gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p):
+def look_for_more_than_one_jump(
+    gdq, nints, first_diffs, median_diffs, sigma, first_diffs_finite, twopt_p
+):
     """
     Detect jumps using enough diffs in ints to look for more than one jump.
 
@@ -365,7 +375,6 @@ def look_for_more_than_one_jump(gdq, nints, first_diffs, median_diffs, sigma, fi
     gdq : ndarray
         The updated group DQ array.
     """
-
     # compute 'ratio' for each group. this is the value that will be
     # compared to 'threshold' to classify jumps. subtract the median of
     # first_diffs from first_diffs, take the abs. value and divide by sigma.
@@ -382,7 +391,9 @@ def look_for_more_than_one_jump(gdq, nints, first_diffs, median_diffs, sigma, fi
     return gdq
 
 
-def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p):
+def det_jump_sigma_clipping(
+    gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p
+):
     """
     Detect jumps using sigma clipping.
 
@@ -409,9 +420,7 @@ def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finit
         Flagged group DQ array.
     """
     log.info(
-        " Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
-            str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)
-        )
+        f" Jump Step using sigma clip {str(total_groups)} greater than {str(twopt_p.minimum_sigclip_groups)}, rejection threshold {str(twopt_p.normal_rej_thresh)}"
     )
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
@@ -748,7 +757,6 @@ def calc_med_first_diffs(in_first_diffs):
         integrations for each pixel in in_first_diffs. Will be either
         1d or 2d depending on the shape of in_first_diffs.
     """
-
     # We will modify our copy of first_diffs by setting some pixels to NaN.
     first_diffs = in_first_diffs.copy()
     nints, ndiffs = first_diffs.shape[:2]

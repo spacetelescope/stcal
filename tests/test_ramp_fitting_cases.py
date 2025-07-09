@@ -1,7 +1,6 @@
 import inspect
 from pathlib import Path
 
-import pytest
 import numpy as np
 import numpy.testing as npt
 
@@ -61,7 +60,9 @@ def test_pix_0():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     # [data, dq, err, var_p, var_r]
@@ -69,7 +70,16 @@ def test_pix_0():
 
     # Set truth values for OPTIONAL results:
     # [slope, sigslope, var_poisson, var_rnoise, yint, sigyint, ped, weights]
-    o_true = [1.0117551, 4.874572, 0.0020202, 0.00647973, 15.911023, 27.789335, 13.988245, 13841.038]
+    o_true = [
+        1.0117551,
+        4.874572,
+        0.0020202,
+        0.00647973,
+        15.911023,
+        27.789335,
+        13.988245,
+        13841.038,
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -100,7 +110,9 @@ def test_pix_1():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.8999999, JUMP, 1.05057204, 0.03454545, 1.0691562]
@@ -131,7 +143,9 @@ def test_pix_2():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [0.84833729, JUMP, 0.42747884, 0.00454545, 0.1781927]
@@ -172,7 +186,9 @@ def test_pix_3():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.0746869, JUMP, 0.12186482, 0.00227273, 0.01257831]
@@ -212,7 +228,9 @@ def test_pix_4():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.5, GOOD, 1.047105, 0.02727273, 1.0691562]
@@ -293,7 +311,9 @@ def test_pix_5():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.076075, JUMP, 0.16134359, 0.00227273, 0.02375903]
@@ -335,7 +355,9 @@ def test_pix_6():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [6.092052, JUMP, 0.14613187, 0.0025974, 0.01875712]
@@ -374,7 +396,9 @@ def test_pix_7():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.0757396, JUMP, 0.12379601, 0.0025974, 0.01272805]
@@ -405,13 +429,24 @@ def test_pix_8():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [0.98561335, JUMP, 0.1848883, 0.00363636, 0.03054732]
 
     # Set truth values for OPTIONAL results:
-    o_true = [0.98561335, 9.920554, 0.00363636, 0.03054732, 16.508228, 39.383667, 14.014386, 855.78046]
+    o_true = [
+        0.98561335,
+        9.920554,
+        0.00363636,
+        0.03054732,
+        16.508228,
+        39.383667,
+        14.014386,
+        855.78046,
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -437,7 +472,9 @@ def test_pix_9():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [0.9999994, JUMP, 0.22721863, 0.0030303, 0.048598]
@@ -478,7 +515,9 @@ def test_pix_10():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.0, JUMP, 0.21298744, 0.0025974, 0.04276625]
@@ -517,7 +556,9 @@ def test_pix_11():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.0, GOOD, 1.042755, 0.01818182, 1.0691562]
@@ -551,7 +592,9 @@ def test_pix_12():
     ramp_data.groupdq[0, :, 0, 1] = np.array([SAT, SAT])
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results for pixel 1:
     # slope, dq, err, var_p, var_r
@@ -603,7 +646,9 @@ def test_miri_0():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
@@ -635,13 +680,24 @@ def test_miri_1():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.1996487, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.1996487, 6.450687, 0.0025974, 0.01272805, 126.110214, 27.842508, 123.800354, 4257.684]
+    o_true = [
+        1.1996487,
+        6.450687,
+        0.0025974,
+        0.01272805,
+        126.110214,
+        27.842508,
+        123.800354,
+        4257.684,
+    ]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -667,7 +723,9 @@ def test_miri_2():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
@@ -699,7 +757,9 @@ def test_miri_3():
     ramp_data.groupdq[0, :, 0, 0] = np.array(dq)
 
     save_opt, ncores, algo = True, "none", DEFAULT_OLS
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     # Set truth values for PRIMARY results:
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]

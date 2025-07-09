@@ -77,7 +77,9 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=Non
         zpdq = np.zeros(zframe.shape[-2:], dtype=pdq.dtype)
 
         # Linearly correct ZEROFRAME
-        zdata, _ = linearity_correction_branch(zframe, zdq, zpdq, zlin_coeffs, zlin_dq, dqflags, True)
+        zdata, _ = linearity_correction_branch(
+            zframe, zdq, zpdq, zlin_coeffs, zlin_dq, dqflags, True
+        )
 
         # Ensure bad data remains bad.
         zdata[wh_zero] = 0.0
@@ -158,7 +160,7 @@ def linearity_correction_branch(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zfr
 
 def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
     """
-    dataplane : ndarray
+    Dataplane : ndarray
         The 2D array of the frame/group plane of pixels to linearly correct.
 
     gdqplane : ndarray
@@ -181,7 +183,9 @@ def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
     # Only use the corrected signal where the original signal value
     # has not been flagged by the saturation step.
     # Otherwise use the original signal.
-    dataplane[:, :] = np.where(np.bitwise_and(gdqplane[:, :], dqflags["SATURATED"]), dataplane[:, :], scorr)
+    dataplane[:, :] = np.where(
+        np.bitwise_and(gdqplane[:, :], dqflags["SATURATED"]), dataplane[:, :], scorr
+    )
 
 
 def correct_for_NaN(lin_coeffs, pixeldq, dqflags):

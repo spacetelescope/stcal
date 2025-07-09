@@ -159,7 +159,13 @@ def test_expected_fails_bad_separation():
 
     with pytest.raises(TweakregError):
         absolute_align(
-            correctors, "GAIADR3", None, None, None, abs_separation=separation, abs_tolerance=tolerance
+            correctors,
+            "GAIADR3",
+            None,
+            None,
+            None,
+            abs_separation=separation,
+            abs_tolerance=tolerance,
         )
 
 
@@ -221,7 +227,9 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
     assert refcat.meta["name"] == CATALOG_FNAME
 
     # find refcat from web
-    refcat = _parse_refcat(TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
+    refcat = _parse_refcat(
+        TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch
+    )
     assert isinstance(refcat, Table)
     assert refcat.meta["name"] == TEST_CATALOG
 
@@ -333,7 +341,9 @@ def test_relative_align(example_input, input_catalog, with_shift):
 
 def test_absolute_align(example_input, input_catalog):
     correctors = [
-        construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, input_catalog, dm.meta.group_id)
+        construct_wcs_corrector(
+            dm.meta.wcs, dm.meta.wcsinfo.instance, input_catalog, dm.meta.group_id
+        )
         for dm in example_input
     ]
 

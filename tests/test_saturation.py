@@ -116,7 +116,9 @@ def test_read_pattern_saturation_flagging_dnu():
     )
 
     # Make sure that groups after the third get flagged
-    assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
+    assert np.all(
+        gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]]
+    )
 
 
 def test_group2_saturation_flagging_with_bias():
@@ -174,7 +176,15 @@ def test_group2_saturation_flagging_with_bias():
     ]
 
     gdq, pdq, _ = flag_saturated_pixels(
-        data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern, bias=bias
+        data,
+        gdq,
+        pdq,
+        sat_thresh,
+        sat_dq,
+        ATOD_LIMIT,
+        DQFLAGS,
+        read_pattern=read_pattern,
+        bias=bias,
     )
 
     # Make sure that groups after the second get flagged
@@ -260,19 +270,112 @@ def test_adjacent_pixel_flagging():
     assert np.all(
         sat_locs[1]
         == np.array(
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+            ]
         )
     )
     assert np.all(
         sat_locs[2]
         == np.array(
-            [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4]
+            [
+                0,
+                0,
+                0,
+                1,
+                1,
+                1,
+                2,
+                2,
+                2,
+                3,
+                3,
+                3,
+                4,
+                4,
+                4,
+                0,
+                0,
+                0,
+                1,
+                1,
+                1,
+                2,
+                2,
+                2,
+                3,
+                3,
+                3,
+                4,
+                4,
+                4,
+            ]
         )
     )
     assert np.all(
         sat_locs[3]
         == np.array(
-            [0, 1, 2, 0, 1, 2, 2, 3, 4, 2, 3, 4, 2, 3, 4, 0, 1, 2, 0, 1, 2, 2, 3, 4, 2, 3, 4, 2, 3, 4]
+            [
+                0,
+                1,
+                2,
+                0,
+                1,
+                2,
+                2,
+                3,
+                4,
+                2,
+                3,
+                4,
+                2,
+                3,
+                4,
+                0,
+                1,
+                2,
+                0,
+                1,
+                2,
+                2,
+                3,
+                4,
+                2,
+                3,
+                4,
+                2,
+                3,
+                4,
+            ]
         )
     )
 

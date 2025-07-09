@@ -33,10 +33,16 @@ def make_gwcs(crpix, crval, pscale, shape):
     scale = astmodels.Scale(pscale, name="cdelt1") & astmodels.Scale(pscale, name="cdelt2")
     transform = pc_matrix | scale
 
-    out_frame = cf.CelestialFrame(name="world", axes_names=("lon", "lat"), reference_frame=coord.ICRS())
+    out_frame = cf.CelestialFrame(
+        name="world", axes_names=("lon", "lat"), reference_frame=coord.ICRS()
+    )
     input_frame = cf.Frame2D(name="detector")
     wnew = wcs_from_fiducial(
-        fiducial, coordinate_frame=out_frame, projection=prj, transform=transform, input_frame=input_frame
+        fiducial,
+        coordinate_frame=out_frame,
+        projection=prj,
+        transform=transform,
+        input_frame=input_frame,
     )
 
     output_bounding_box = ((-0.5, float(shape[1]) - 0.5), (-0.5, float(shape[0]) - 0.5))

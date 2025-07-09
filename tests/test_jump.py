@@ -9,7 +9,6 @@ from stcal.jump.jump import (
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
-    find_first_good_group,
     detect_jumps_data,
 )
 
@@ -71,7 +70,15 @@ def test_nirspec_saturated_pix():
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     # Setup the needed input pixel and DQ values
-    jump_data.data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176, 1116.3828, 1936.9746]
+    jump_data.data[0, :, 1, 1] = [
+        639854.75,
+        4872.451,
+        -17861.791,
+        14022.15,
+        22320.176,
+        1116.3828,
+        1936.9746,
+    ]
     jump_data.gdq[0, :, 1, 1] = [0, 0, 0, 0, 0, SAT, SAT]
     jump_data.data[0, :, 0, 1] = [
         8.25666812e05,
@@ -84,7 +91,15 @@ def test_nirspec_saturated_pix():
     ]
     # 2 non-sat groups means only 1 non-sat diff, so no jumps should be flagged
     jump_data.gdq[0, :, 0, 1] = [0, 0, SAT, SAT, SAT, SAT, SAT]
-    jump_data.data[0, :, 1, 0] = [1228767.0, 46392.234, -3245.6553, 7762.413, 37190.76, 266611.62, 5072.4434]
+    jump_data.data[0, :, 1, 0] = [
+        1228767.0,
+        46392.234,
+        -3245.6553,
+        7762.413,
+        37190.76,
+        266611.62,
+        5072.4434,
+    ]
     jump_data.gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, SAT]
 
     jump_data.nframes = nframes
@@ -595,7 +610,11 @@ def test_inside_ellipse6():
 
 def test_inside_ellipes5():
     point = (1110.5, 870.5)
-    ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
+    ellipse = (
+        (1111.0001220703125, 870.5000610351562),
+        (10.60660171508789, 10.60660171508789),
+        45.0,
+    )
     result = point_inside_ellipse(point, ellipse)
     assert result
 

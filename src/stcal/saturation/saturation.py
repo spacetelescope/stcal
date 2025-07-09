@@ -1,4 +1,3 @@
-import copy
 import logging
 
 import numpy as np
@@ -299,7 +298,7 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
 def plane_saturation(plane, sat_thresh, dqflags):
     """
-    plane : ndarray, 2D float
+    Plane : ndarray, 2D float
         The plane to check for saturation and A/D floor.
 
     sat_thresh : `np.array`

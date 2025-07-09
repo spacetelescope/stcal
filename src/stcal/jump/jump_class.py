@@ -449,7 +449,7 @@ class JumpData:
     def get_jump_data_options(self):
         """Return string of jump_data option."""
         oline = f"{DELIM}\n"
-        oline += f"JumpData Options\n"
+        oline += "JumpData Options\n"
         oline += f"nframes = {self.nframes}\n"
         oline += f"rejection_thresh = {self.rejection_thresh}\n"
         oline += f"three_grp_thresh = {self.three_grp_thresh}\n"

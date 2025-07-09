@@ -82,7 +82,9 @@ def create_astrometric_catalog(
     radius, fiducial = compute_radius(wcs)
 
     # perform query for this field-of-view
-    ref_dict = get_catalog(fiducial[0], fiducial[1], epoch=epoch, search_radius=radius, catalog=catalog)
+    ref_dict = get_catalog(
+        fiducial[0], fiducial[1], epoch=epoch, search_radius=radius, catalog=catalog
+    )
     if len(ref_dict) == 0:
         return ref_dict
 
@@ -192,11 +194,15 @@ def get_catalog(
     try:
         rawcat = requests.get(service_url, headers=headers, timeout=timeout)
     except requests.exceptions.ConnectionError:
-        raise requests.exceptions.ConnectionError("Could not connect to the VO API server. Try again later.")
+        raise requests.exceptions.ConnectionError(
+            "Could not connect to the VO API server. Try again later."
+        )
     except requests.exceptions.Timeout:
         raise requests.exceptions.Timeout("The request to the VO API server timed out.")
     except requests.exceptions.RequestException:
-        raise requests.exceptions.RequestException("There was an unexpected error with the request.")
+        raise requests.exceptions.RequestException(
+            "There was an unexpected error with the request."
+        )
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     rstr = r_contents.split("\r\n")
     # remove initial line describing the number of sources returned

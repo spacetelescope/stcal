@@ -133,7 +133,9 @@ def _params():
     return params
 
 
-@pytest.mark.parametrize(("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params())
+@pytest.mark.parametrize(
+    ("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params()
+)
 def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, nrows, ncols):
     """Check that if nframes>1 or groupgap>0, then the pipeline reconstructs
     the dark reference file to match the frame averaging and groupgap
@@ -159,7 +161,7 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
     manual_avg = np.zeros((ngroups), dtype=np.float32)
 
     # Manually average the input data to compare with pipeline output
-    for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind):
+    for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind, strict=False):
         # Average the data frames
         newframe = np.mean(dark.data[gstart:gend, 10, 10])
         manual_avg[newgp] = newframe

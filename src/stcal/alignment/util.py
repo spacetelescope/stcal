@@ -5,8 +5,7 @@ from __future__ import annotations
 import functools
 import logging
 import re
-import typing
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 import warnings
 
 if TYPE_CHECKING:
@@ -138,7 +137,9 @@ def _generate_tranform(
         if sky_axes:
             if not pscale:
                 pscale = compute_scale(wcs, ref_fiducial, pscale_ratio=pscale_ratio)
-            transform.append(astmodels.Scale(pscale, name="cdelt1") & astmodels.Scale(pscale, name="cdelt2"))
+            transform.append(
+                astmodels.Scale(pscale, name="cdelt1") & astmodels.Scale(pscale, name="cdelt2")
+            )
 
         if transform:
             transform = functools.reduce(lambda x, y: x | y, transform)
@@ -152,7 +153,7 @@ def _get_bounding_box_with_offsets(
     fiducial: Sequence,
     crpix: Sequence | None,
     shape: Sequence | None,
-) -> Tuple[tuple, tuple, astmodels.Model]:
+) -> tuple[tuple, tuple, astmodels.Model]:
     """
     Calculates axis minimum values and bounding box.
     Calculates the offsets to the transform.
@@ -179,7 +180,6 @@ def _get_bounding_box_with_offsets(
 
     Returns
     -------
-
     tuple
         A tuple containing the bounding box region in the format
         ((x0_lower, x0_upper), (x1_lower, x1_upper), ...).
@@ -202,12 +202,12 @@ def _get_bounding_box_with_offsets(
     if crpix is None:
         # shift the coordinates by domain_min so that all input footprints
         # will project to positive coordinates in the offsetted ref_wcs
-        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min))
+        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min, strict=False))
 
     else:
         # assume 0-based CRPIX and require that fiducial would map to the user
         # defined crpix value:
-        offsets = tuple(crp - ncrp for ncrp, crp in zip(native_crpix, crpix))
+        offsets = tuple(crp - ncrp for ncrp, crp in zip(native_crpix, crpix, strict=False))
 
     # Also offset domain limits:
     domain_min += offsets
@@ -222,7 +222,7 @@ def _get_bounding_box_with_offsets(
         shape = tuple(shape)
         bounding_box = tuple(
             (max(0, int(dmin + 0.5)) - 0.5, min(int(dmax + 0.5), sz) - 0.5)
-            for dmin, dmax, sz in zip(domain_min, domain_max, shape[::-1])
+            for dmin, dmax, sz in zip(domain_min, domain_max, shape[::-1], strict=False)
         )
 
     model = astmodels.Shift(-offsets[0], name="crpix1")
@@ -313,7 +313,9 @@ def _calculate_new_wcs(
     )
 
     if any(d < 2 for d in shape):
-        raise ValueError("Computed shape for the output image using provided WCS parameters is too small.")
+        raise ValueError(
+            "Computed shape for the output image using provided WCS parameters is too small."
+        )
 
     wcs_new.insert_transform("detector", offsets, after=True)
     wcs_new.bounding_box = bounding_box
@@ -761,7 +763,8 @@ def wcs_from_sregions(
 
     """
     footprints = [
-        sregion_to_footprint(s_region) if isinstance(s_region, str) else s_region for s_region in footprints
+        sregion_to_footprint(s_region) if isinstance(s_region, str) else s_region
+        for s_region in footprints
     ]
     fiducial = _calculate_fiducial(footprints, crval=crval)
 

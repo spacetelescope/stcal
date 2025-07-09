@@ -157,7 +157,9 @@ def do_correction_data(science_data, dark_data, dark_output=None):
                 dark_data, sci_nints, sci_ngroups, sci_nframes, sci_groupgap
             )
         else:
-            averaged_dark = average_dark_frames_3d(dark_data, sci_ngroups, sci_nframes, sci_groupgap)
+            averaged_dark = average_dark_frames_3d(
+                dark_data, sci_ngroups, sci_nframes, sci_groupgap
+            )
 
         # Save the frame-averaged dark data that was just created,
         # if requested by the user
@@ -380,7 +382,9 @@ def subtract_dark(science_data, dark_data):
             #
             # For science integrations beyond the number of
             # dark integrations, use the last dark integration
-            dark_sci = dark_data.data[i] if i < dark_nints and int_start == 1 else dark_data.data[-1]
+            dark_sci = (
+                dark_data.data[i] if i < dark_nints and int_start == 1 else dark_data.data[-1]
+            )
         else:
             # Use single-integration dark data
             dark_sci = dark_data.data

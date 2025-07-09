@@ -165,7 +165,6 @@ def flag_resampled_crs(
 
     Parameters
     ----------
-
     sci_data : numpy.ndarray
         "Science" data possibly containing outliers
 
@@ -254,9 +253,9 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
     """
     # Compute the mapping between the input and output pixel coordinates
     pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_shape)
-    log.debug("Pixmap shape: {}".format(pixmap[:, :, 0].shape))
-    log.debug("Sci shape: {}".format(blot_shape))
-    log.info("Blotting {} <-- {}".format(blot_shape, median_data.shape))
+    log.debug(f"Pixmap shape: {pixmap[:, :, 0].shape}")
+    log.debug(f"Sci shape: {blot_shape}")
+    log.info(f"Blotting {blot_shape} <-- {median_data.shape}")
 
     outsci = np.full(blot_shape, fillval, dtype=np.float32)
 
@@ -301,7 +300,7 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
         Computed pixmap.
     """
     bb = wcs_bbox_from_shape(in_shape)
-    log.debug("Bounding box from data shape: {}".format(bb))
+    log.debug(f"Bounding box from data shape: {bb}")
 
     grid = gwcs.wcstools.grid_from_bounding_box(bb)
     return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
@@ -327,7 +326,6 @@ def reproject(wcs1, wcs2):
         Function to compute the transformations.  It takes x, y
         positions in ``wcs1`` and returns x, y positions in ``wcs2``.
     """
-
     try:
         forward_transform = wcs1.pixel_to_world_values
         backward_transform = wcs2.world_to_pixel_values

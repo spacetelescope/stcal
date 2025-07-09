@@ -26,7 +26,12 @@ _SQRT2 = math.sqrt(2.0)
 SINGLE_GROUP_REFCAT = ["GAIADR3", "GAIADR2", "GAIADR1"]
 _SINGLE_GROUP_REFCAT_STR = ",".join(SINGLE_GROUP_REFCAT)
 
-__all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT", "filter_catalog_by_bounding_box"]
+__all__ = [
+    "relative_align",
+    "absolute_align",
+    "SINGLE_GROUP_REFCAT",
+    "filter_catalog_by_bounding_box",
+]
 
 
 class TweakregError(BaseException):
@@ -98,7 +103,9 @@ def relative_align(
         raise
 
     with warnings.catch_warnings(record=True) as w:
-        is_small = _is_wcs_correction_small(correctors, use2dhist, searchrad, tolerance, xoffset, yoffset)
+        is_small = _is_wcs_correction_small(
+            correctors, use2dhist, searchrad, tolerance, xoffset, yoffset
+        )
         msg = "".join([str(mess.message) for mess in w])
         if not is_small:
             msg += " Skipping relative alignment..."
@@ -395,7 +402,11 @@ def construct_wcs_corrector(
 
     return JWSTWCSCorrector(
         wcs=wcs,
-        wcsinfo={"roll_ref": refang["roll_ref"], "v2_ref": refang["v2_ref"], "v3_ref": refang["v3_ref"]},
+        wcsinfo={
+            "roll_ref": refang["roll_ref"],
+            "v2_ref": refang["v2_ref"],
+            "v3_ref": refang["v3_ref"],
+        },
         # catalog and group_id are required meta
         meta={
             "catalog": catalog,

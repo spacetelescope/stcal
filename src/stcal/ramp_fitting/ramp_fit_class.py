@@ -55,7 +55,9 @@ class RampData:
 
         self.debug = False
 
-    def set_arrays(self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None, zeroframe=None):
+    def set_arrays(
+        self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None, zeroframe=None
+    ):
         """
         Set the arrays needed for ramp fitting.
 
@@ -206,10 +208,10 @@ class RampData:
 
     def dbg_print_pixel_info(self, row, col):
         print("-" * 80)
-        print(f"    data")
+        print("    data")
         for integ in range(self.data.shape[0]):
             print(f"[{integ}] {self.data[integ, :, row, col]}")
-        print(f"    groupdq")
+        print("    groupdq")
         for integ in range(self.data.shape[0]):
             print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
         # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
@@ -249,7 +251,9 @@ class RampData:
         fd.write(f"{indent}ramp_data.start_row = 0\n")
         fd.write(f"{indent}ramp_data.num_rows = 1\n\n")
 
-        fd.write(f"{indent}ramp_data.suppress_one_group_ramps = {self.suppress_one_group_ramps}\n\n")
+        fd.write(
+            f"{indent}ramp_data.suppress_one_group_ramps = {self.suppress_one_group_ramps}\n\n"
+        )
 
         nints, ngroups, nrows, ncols = self.data.shape
         fd.write(f"{indent}data = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.float32)\n")
@@ -286,12 +290,17 @@ class RampData:
 
         for integ in range(nints):
             arr_str = np.array2string(
-                self.groupdq[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", "
+                self.groupdq[integ, :, row, col],
+                precision=12,
+                max_line_width=np.nan,
+                separator=", ",
             )
             fd.write(f"{indent}gdq[{integ}, :, 0, 0] = np.array({arr_str})\n")
         fd.write("\n")
 
-        arr_str = np.array2string(self.pixeldq[row, col], precision=12, max_line_width=np.nan, separator=", ")
+        arr_str = np.array2string(
+            self.pixeldq[row, col], precision=12, max_line_width=np.nan, separator=", "
+        )
         fd.write(f"{indent}pdq[0, 0] = {arr_str}\n\n")
 
         if self.zeroframe is not None:

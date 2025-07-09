@@ -2,7 +2,6 @@ import logging
 import warnings
 
 import numpy as np
-from scipy.ndimage import median_filter
 from astropy.nddata.bitmask import (
     bitfield_to_boolean_mask,
     interpret_bit_flags,
@@ -122,7 +121,9 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
             inv_variance[~np.isfinite(inv_variance)] = 1
             result = inv_variance * dqmask
         else:
-            warnings.warn("'var_rnoise' array not available. Setting drizzle weight map to 1", RuntimeWarning)
+            warnings.warn(
+                "'var_rnoise' array not available. Setting drizzle weight map to 1", RuntimeWarning
+            )
             result = dqmask
 
     elif weight_type == "exptime":
@@ -183,7 +184,6 @@ def compute_mean_pixel_area(wcs, shape=None):
 
     Notes
     -----
-
     This function takes the outline of the region in which the average is
     computed (a rectangle defined by either the bounding box or
     ``wcs.array_shape`` or the ``shape``) and projects it to world coordinates.
@@ -263,7 +263,9 @@ def compute_mean_pixel_area(wcs, shape=None):
 
     sky_area = SphericalPolygon.from_radec(ra, dec, center=wcenter).area()
     if sky_area > 2 * np.pi:
-        log.warning("Unexpectedly large computed sky area for an image. Setting area to: 4*Pi - area")
+        log.warning(
+            "Unexpectedly large computed sky area for an image. Setting area to: 4*Pi - area"
+        )
         sky_area = 4 * np.pi - sky_area
     if image_area == 0:
         log.error("Image area is zero; cannot compute pixel area.")
@@ -281,7 +283,6 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  #
 
     Parameters
     ----------
-
     xmin : int
         X-coordinate of the left edge of a rectangle.
 
@@ -308,7 +309,6 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  #
 
     Returns
     -------
-
     x : numpy.ndarray
         An array of X-coordinates of points along the perimiter
         of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and

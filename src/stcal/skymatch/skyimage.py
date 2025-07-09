@@ -22,7 +22,13 @@ from spherical_geometry.polygon import SphericalPolygon
 from .skystatistics import SkyStats
 
 
-__all__ = ["SkyImage", "SkyGroup", "DataAccessor", "NDArrayInMemoryAccessor", "NDArrayMappedAccessor"]
+__all__ = [
+    "SkyImage",
+    "SkyGroup",
+    "DataAccessor",
+    "NDArrayInMemoryAccessor",
+    "NDArrayMappedAccessor",
+]
 
 
 class DataAccessor(abc.ABC):
@@ -437,7 +443,14 @@ class SkyImage:
         self._poly_area = np.fabs(self._polygon.area())
 
     def set_builtin_skystat(
-        self, skystat="median", lower=None, upper=None, nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1
+        self,
+        skystat="median",
+        lower=None,
+        upper=None,
+        nclip=5,
+        lsigma=4.0,
+        usigma=4.0,
+        binwidth=0.1,
     ):
         """
         Replace already set `skystat` with a "built-in" version of a
@@ -559,7 +572,7 @@ class SkyImage:
 
                 # set pixels in 'fill_mask' that are inside a polygon to True:
                 x, y = self.wcs_inv(ra, dec, with_bounding_box=False)
-                poly_vert = list(zip(*[x, y]))
+                poly_vert = list(zip(*[x, y], strict=False))
 
                 polygon = region.Polygon(True, poly_vert)
                 fill_mask = polygon.scan(fill_mask)
@@ -633,7 +646,9 @@ class SkyGroup:
             self._images = []
             for im in images:
                 if not isinstance(im, SkyImage):
-                    raise TypeError("Each element of the 'images' parameter must be an 'SkyImage' object.")
+                    raise TypeError(
+                        "Each element of the 'images' parameter must be an 'SkyImage' object."
+                    )
                 self._images.append(im)
 
         else:
@@ -790,7 +805,6 @@ class SkyGroup:
             sky statistics.
 
         """
-
         if len(self._images) == 0:
             return None, 0, 0.0
 

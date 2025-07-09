@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 
 import sys
@@ -61,7 +60,9 @@ def test_long_integration():
     ramp_data.data[0, 291:, 0, 0] = 320 * 3
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
-    slopes, cube, optional = ramp_fit_data(ramp_data, save_opt, rnoise_array, gain_array, algo, wt, ncores)
+    slopes, cube, optional = ramp_fit_data(
+        ramp_data, save_opt, rnoise_array, gain_array, algo, wt, ncores
+    )
 
     np.testing.assert_almost_equal(slopes[0], 0.65, 2)
 
@@ -388,7 +389,12 @@ def jp_2326_test_setup():
     ramp_data = RampData()
     ramp_data.set_arrays(data=data, groupdq=gdq, pixeldq=pdq, average_dark_current=dark_current)
     ramp_data.set_meta(
-        name="MIRI", frame_time=2.77504, group_time=2.77504, groupgap=0, nframes=1, drop_frames1=None
+        name="MIRI",
+        frame_time=2.77504,
+        group_time=2.77504,
+        groupgap=0,
+        nframes=1,
+        drop_frames1=None,
     )
     ramp_data.set_dqflags(dqflags)
 
@@ -489,7 +495,12 @@ def test_2_group_cases():
     ramp_data.set_arrays(data, groupdq, pixeldq, average_dark_current=dark_current)
 
     ramp_data.set_meta(
-        name="NIRSPEC", frame_time=14.58889, group_time=14.58889, groupgap=0, nframes=1, drop_frames1=None
+        name="NIRSPEC",
+        frame_time=14.58889,
+        group_time=14.58889,
+        groupgap=0,
+        nframes=1,
+        drop_frames1=None,
     )
 
     ramp_data.set_dqflags(dqflags)
@@ -569,7 +580,9 @@ def run_one_group_ramp_suppression(nints, suppress):
 
     algo = DEFAULT_OLS
     save_opt, ncores = False, "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     return slopes, cube, dims
 
@@ -845,7 +858,9 @@ def test_zeroframe():
     ramp_data, gain, rnoise = create_zero_frame_data()
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     tol = 1.0e-5
 
@@ -960,7 +975,9 @@ def test_only_good_0th_group():
     ramp_data, gain, rnoise = create_only_good_0th_group_data()
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
+    )
 
     tol = 1.0e-5
 
@@ -1255,7 +1272,28 @@ def get_new_saturation():
         SAT,
     ]
     ramp.groupdq[0, :, 0, 1] = np.array(dq)
-    dq = [SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT, SAT]
+    dq = [
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+        SAT,
+    ]
     ramp.groupdq[1, :, 0, 1] = np.array(dq)
 
     # Set up col 2
@@ -1394,11 +1432,14 @@ def test_invalid_integrations():
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([5291.4556, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
+    check = np.array(
+        [5291.4556, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32
+    )
     np.testing.assert_allclose(cdata[:, 0, 0], check, tol, tol)
 
     check = np.array(
-        [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
+        [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU],
+        dtype=np.uint8,
     )
     # np.testing.assert_allclose(cdq[:, 0, 0], check, tol, tol)  # XXX double
 
@@ -1697,7 +1738,12 @@ def setup_inputs(dims, var, tm):
     ramp_data = RampData()
     ramp_data.set_arrays(data=data, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
     ramp_data.set_meta(
-        name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0, nframes=nframes, drop_frames1=None
+        name="MIRI",
+        frame_time=dtime,
+        group_time=gtime,
+        groupgap=0,
+        nframes=nframes,
+        drop_frames1=None,
     )
     ramp_data.set_dqflags(dqflags)
 
@@ -1767,9 +1813,16 @@ def create_test_2seg_obs(
     # Set up RampData class
     ramp_data = RampData()
     dark_current = np.zeros((nrows, ncols), dtype=np.float32)
-    ramp_data.set_arrays(data=outdata, groupdq=outgdq, pixeldq=pixdq, average_dark_current=dark_current)
+    ramp_data.set_arrays(
+        data=outdata, groupdq=outgdq, pixeldq=pixdq, average_dark_current=dark_current
+    )
     ramp_data.set_meta(
-        name="MIRI", frame_time=dtime, group_time=gtime, groupgap=0, nframes=nframes, drop_frames1=None
+        name="MIRI",
+        frame_time=dtime,
+        group_time=gtime,
+        groupgap=0,
+        nframes=nframes,
+        drop_frames1=None,
     )
     ramp_data.set_dqflags(dqflags)
 
@@ -1792,7 +1845,8 @@ def dbg_print(string):
     """
     Print string with line number and filename.
     """
-    import inspect, os
+    import inspect
+    import os
 
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
@@ -1920,21 +1974,27 @@ def print_integ(integ_info):
 
 
 def print_optional_data(optional):
-    oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = optional
+    oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = (
+        optional
+    )
     print("Optional results slopes:")
     print(f"Dimensions: {oslope.shape}")
     print(oslope)
 
 
 def print_optional_poisson(optional):
-    oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = optional
+    oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = (
+        optional
+    )
     print("Optional results Poisson:")
     print(f"Dimensions: {ovar_poisson.shape}")
     print(ovar_poisson)
 
 
 def print_optional_rnoise(optional):
-    oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = optional
+    oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = (
+        optional
+    )
     print("Optional results read noise:")
     print(f"Dimensions: {ovar_rnoise.shape}")
     print(ovar_rnoise)

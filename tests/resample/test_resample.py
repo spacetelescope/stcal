@@ -10,10 +10,7 @@ from stcal.resample.utils import (
 )
 
 import numpy as np
-from drizzle.utils import calc_pixmap
 
-from stcal.resample import Resample
-from stcal.resample.utils import build_driz_weight
 from stcal.alignment.util import wcs_from_footprints
 
 from .helpers import (
@@ -37,7 +34,10 @@ class _CustomResample(Resample):
         )
 
         weight_ref = build_driz_weight(
-            model, weight_type=self.weight_type, good_bits=self.good_bits, flag_name_map=self.dq_flag_name_map
+            model,
+            weight_type=self.weight_type,
+            good_bits=self.good_bits,
+            flag_name_map=self.dq_flag_name_map,
         )
 
         xyrange = resample_range(data.shape, wcs.bounding_box)
@@ -247,7 +247,9 @@ def test_resample_add_model_hook():
     resample = _CustomResample(n_input_models=nmodels, output_wcs=output_wcs, weight_type="exptime")
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
 
-    im = make_input_model(shape=shape, crpix=crpix, crval=crval, pscale=pscale, group_id=1, exptime=10.0)
+    im = make_input_model(
+        shape=shape, crpix=crpix, crval=crval, pscale=pscale, group_id=1, exptime=10.0
+    )
 
     with pytest.raises(RuntimeError, match="raised by subclass' add_model_hook") as err_info:
         resample.add_model(im)
@@ -266,7 +268,9 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
 
     output_wcs = wcs_from_footprints([wcs], wcs, wcsinfo, pscale_ratio=pscale_ratio)
 
-    weight = build_driz_weight(model, weight_type=weight_type, good_bits=0, flag_name_map=JWST_DQ_FLAG_DEF)
+    weight = build_driz_weight(
+        model, weight_type=weight_type, good_bits=0, flag_name_map=JWST_DQ_FLAG_DEF
+    )
 
     resample = Resample(
         n_input_models=1,

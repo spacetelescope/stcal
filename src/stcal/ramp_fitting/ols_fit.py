@@ -3,7 +3,6 @@
 import logging
 import multiprocessing
 import time
-import warnings
 from multiprocessing import cpu_count
 import sys
 
@@ -108,7 +107,9 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
     return image_info, integ_info, opt_info
 
 
-def ols_ramp_fit_multiprocessing(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices):
+def ols_ramp_fit_multiprocessing(
+    ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+):
     """
     Fit a ramp using ordinary least squares. Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
@@ -298,7 +299,9 @@ def get_opt_slice(opt_info, opt_slice, row_start, nrows):
         The number of rows int the current slice.
     """
     (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
-    (oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag) = opt_slice
+    (oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag) = (
+        opt_slice
+    )
 
     srow, erow = row_start, row_start + nrows
 
@@ -429,7 +432,9 @@ def get_max_segs_crs(pool_results):
     return seg_max, crs_max
 
 
-def compute_slices_for_starmap(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices):
+def compute_slices_for_starmap(
+    ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
+):
     """
     Creates the slices needed for each process for multiprocessing.  The slices
     for the arguments needed for ols_ramp_fit_single.
@@ -616,7 +621,9 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
         ramp_data.drop_frames1 = 0
 
     log.debug("Running ols_slope_fitter")
-    image_info, integ_info, opt_info = ols_slope_fitter(ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
+    image_info, integ_info, opt_info = ols_slope_fitter(
+        ramp_data, gain_2d, readnoise_2d, weighting, save_opt
+    )
 
     c_end = time.time()
 
@@ -703,7 +710,9 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     readnoise_2d, rn_bswap = handle_array_endianness(readnoise_2d, sys_order)
 
     ramp_data.data, _ = handle_array_endianness(ramp_data.data, sys_order)
-    ramp_data.average_dark_current, _ = handle_array_endianness(ramp_data.average_dark_current, sys_order)
+    ramp_data.average_dark_current, _ = handle_array_endianness(
+        ramp_data.average_dark_current, sys_order
+    )
     ramp_data.groupdq, _ = handle_array_endianness(ramp_data.groupdq, sys_order)
     ramp_data.pixeldq, _ = handle_array_endianness(ramp_data.pixeldq, sys_order)
 

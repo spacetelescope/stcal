@@ -114,7 +114,14 @@ def test_compute_mean_pixel_area(wcs_gwcs):
 
 @pytest.mark.parametrize(
     "unit,result",
-    [("Jy", True), ("MJy", True), ("MJy/sr", False), ("DN/s", False), ("bad_unit", False), (None, False)],
+    [
+        ("Jy", True),
+        ("MJy", True),
+        ("MJy/sr", False),
+        ("DN/s", False),
+        ("bad_unit", False),
+        (None, False),
+    ],
 )
 def test_is_flux_density(unit, result):
     assert is_flux_density(unit) is result

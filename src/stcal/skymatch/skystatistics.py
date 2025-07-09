@@ -26,12 +26,20 @@ class SkyStats:
     """
 
     def __init__(
-        self, skystat="mean", lower=None, upper=None, nclip=5, lsig=4.0, usig=4.0, binwidth=0.1, **kwargs
+        self,
+        skystat="mean",
+        lower=None,
+        upper=None,
+        nclip=5,
+        lsig=4.0,
+        usig=4.0,
+        binwidth=0.1,
+        **kwargs,
     ):
         """Initializes the SkyStats object.
 
         Parameters
-        -----------
+        ----------
         skystat : optional
             possible values are'mode', 'median', 'mode', 'midpt".
             Sets the statistics that will be returned by `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
@@ -108,13 +116,13 @@ cgi-bin/gethelp.cgi?gstatistics>`_
         """Computes statistics on data.
 
         Parameters
-        -----------
+        ----------
         data : numpy.ndarray
             A numpy array of values for which the statistics needs to be
             computed.
 
         Returns
-        --------
+        -------
         statistics : tuple
             A tuple of two values: (`skyvalue`, `npix`), where `skyvalue` is
             the statistics specified by the `skystat` parameter during the

@@ -186,7 +186,9 @@ def ramp_fit(
     # data models.
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
-    return ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores)
+    return ramp_fit_data(
+        ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores
+    )
 
 
 def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores):
@@ -240,7 +242,7 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
     ngroups = ramp_data.data.shape[1]
     if algorithm.upper() == "LIKELY" and ngroups < likely_fit.LIKELY_MIN_NGROUPS:
         log.info(
-            f"When selecting the LIKELY ramp fitting algorithm the"
+            "When selecting the LIKELY ramp fitting algorithm the"
             " ngroups needs to be a minimum of {likely_fit.LIKELY_MIN_NGROUPS},"
             " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
             " is being changed to OLS_C"
@@ -248,7 +250,9 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
         algorithm = "OLS_C"
 
     if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
-        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(ramp_data, readnoise_2d, gain_2d)
+        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
+            ramp_data, readnoise_2d, gain_2d
+        )
     else:
         # Default to OLS_C.
         # Get readnoise array for calculation of variance of noiseless ramps, and

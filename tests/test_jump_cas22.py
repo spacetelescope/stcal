@@ -160,9 +160,13 @@ def test_fill_fixed_values(ramp_data):
 
     # Split into the different types of data
     t_bar_diffs = fixed[FixedOffsets.single_t_bar_diff : FixedOffsets.double_t_bar_diff + 1, :]
-    t_bar_diff_sqrs = fixed[FixedOffsets.single_t_bar_diff_sqr : FixedOffsets.double_t_bar_diff_sqr + 1, :]
+    t_bar_diff_sqrs = fixed[
+        FixedOffsets.single_t_bar_diff_sqr : FixedOffsets.double_t_bar_diff_sqr + 1, :
+    ]
     read_recip = fixed[FixedOffsets.single_read_recip : FixedOffsets.double_read_recip + 1, :]
-    var_slope_vals = fixed[FixedOffsets.single_var_slope_val : FixedOffsets.double_var_slope_val + 1, :]
+    var_slope_vals = fixed[
+        FixedOffsets.single_var_slope_val : FixedOffsets.double_var_slope_val + 1, :
+    ]
 
     # Sanity check that these are all the right shape
     assert t_bar_diffs.shape == (2, n_resultants - 1)
@@ -182,7 +186,9 @@ def test_fill_fixed_values(ramp_data):
     assert np.all(t_bar_diffs[1, :-1] == t_bar[2:] - t_bar[:-2])
     assert np.all(t_bar_diff_sqrs[1, :-1] == (t_bar[2:] - t_bar[:-2]) ** 2)
     assert np.all(read_recip[1, :-1] == np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
-    assert np.all(var_slope_vals[1, :-1] == (tau[2:] + tau[:-2] - 2 * np.minimum(t_bar[2:], t_bar[:-2])))
+    assert np.all(
+        var_slope_vals[1, :-1] == (tau[2:] + tau[:-2] - 2 * np.minimum(t_bar[2:], t_bar[:-2]))
+    )
 
     # Last double diff should be NaN
     assert np.isnan(t_bar_diffs[1, -1])
@@ -210,7 +216,9 @@ def _generate_resultants(read_pattern, n_pixels=1):
     # Use Poisson process to simulate the accumulation of the ramp
     ramp_value = np.zeros(n_pixels, dtype=np.float32)  # Last value of ramp
     for index, reads in enumerate(read_pattern):
-        resultant_total = np.zeros(n_pixels, dtype=np.float32)  # Total of all reads in this resultant
+        resultant_total = np.zeros(
+            n_pixels, dtype=np.float32
+        )  # Total of all reads in this resultant
         for _ in reads:
             # Compute the next value of the ramp
             #   Using a Poisson process for the flux
@@ -272,7 +280,9 @@ def test__fill_pixel_values(pixel_data):
 
     # Split into the different types of data
     local_slopes = pixel[PixelOffsets.single_local_slope : PixelOffsets.double_local_slope + 1, :]
-    var_read_noise = pixel[PixelOffsets.single_var_read_noise : PixelOffsets.double_var_read_noise + 1, :]
+    var_read_noise = pixel[
+        PixelOffsets.single_var_read_noise : PixelOffsets.double_var_read_noise + 1, :
+    ]
 
     # Sanity check that these are all the right shape
     assert local_slopes.shape == (2, n_resultants - 1)
@@ -288,7 +298,9 @@ def test__fill_pixel_values(pixel_data):
     )
 
     # Double diffs
-    assert np.all(local_slopes[1, :-1] == (resultants[2:] - resultants[:-2]) / (t_bar[2:] - t_bar[:-2]))
+    assert np.all(
+        local_slopes[1, :-1] == (resultants[2:] - resultants[:-2]) / (t_bar[2:] - t_bar[:-2])
+    )
     assert np.all(
         var_read_noise[1, :-1]
         == np.float32(READ_NOISE**2) * (np.float32(1 / n_reads[2:]) + np.float32(1 / n_reads[:-2]))
@@ -347,12 +359,18 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
         assert okay.all()
 
     output = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump, include_diagnostic=True
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        use_jump=use_jump,
+        include_diagnostic=True,
     )
     assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
-    for fit, use in zip(output.fits, okay):
+    for fit, use in zip(output.fits, okay, strict=False):
         if not use_dq and not use_jump:
             ##### The not use_jump makes this NOT test for false positives #####
             # Check that the data generated does not generate any false positives
@@ -389,10 +407,16 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
     dq = np.zeros(resultants.shape, dtype=np.int32)
 
     output = fit_ramps(
-        resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump, include_diagnostic=True
+        resultants,
+        dq,
+        read_noise,
+        READ_TIME,
+        read_pattern,
+        use_jump=use_jump,
+        include_diagnostic=True,
     )
 
-    for fit, par, var in zip(output.fits, output.parameters, output.variances):
+    for fit, par, var in zip(output.fits, output.parameters, output.variances, strict=False):
         assert par[Parameter.intercept] == 0
         assert par[Parameter.slope] == fit["average"]["slope"]
 
@@ -465,20 +489,26 @@ def test_find_jumps(jump_data):
     output = fit_ramps(
         resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True, include_diagnostic=True
     )
-    assert len(output.fits) == len(jump_reads)  # sanity check that a fit/jump is set for every pixel
+    assert len(output.fits) == len(
+        jump_reads
+    )  # sanity check that a fit/jump is set for every pixel
 
     chi2 = 0
     incorrect_too_few = 0
     incorrect_too_many = 0
     incorrect_does_not_capture = 0
     incorrect_other = 0
-    for fit, jump_index, resultant_index in zip(output.fits, jump_reads, jump_resultants):
+    for fit, jump_index, resultant_index in zip(
+        output.fits, jump_reads, jump_resultants, strict=False
+    ):
         # Check that the jumps are detected correctly
         if jump_index == 0:
             # There is no way to detect a jump if it is in the very first read
             # The very first pixel in this case has a jump in the first read
             assert len(fit["jumps"]) == 0
-            assert resultant_index == 0  # sanity check that the jump is indeed in the first resultant
+            assert (
+                resultant_index == 0
+            )  # sanity check that the jump is indeed in the first resultant
 
             # Test the correct ramp_index was recorded:
             assert len(fit["index"]) == 1
@@ -499,7 +529,8 @@ def test_find_jumps(jump_data):
 
             # The two resultants excluded should be adjacent
             jump_correct = [
-                (jump in (resultant_index, resultant_index - 1, resultant_index + 1)) for jump in fit["jumps"]
+                (jump in (resultant_index, resultant_index - 1, resultant_index + 1))
+                for jump in fit["jumps"]
             ]
             if not all(jump_correct):
                 incorrect_other += 1
@@ -529,7 +560,13 @@ def test_find_jumps(jump_data):
         chi2 += (fit["average"]["slope"] - FLUX) ** 2 / total_var
 
     # Check that the average chi2 is ~1.
-    chi2 /= N_PIXELS - incorrect_too_few - incorrect_too_many - incorrect_does_not_capture - incorrect_other
+    chi2 /= (
+        N_PIXELS
+        - incorrect_too_few
+        - incorrect_too_many
+        - incorrect_does_not_capture
+        - incorrect_other
+    )
     assert np.abs(chi2 - 1) < CHI2_TOL
 
 
@@ -559,7 +596,7 @@ def test_jump_dq_set(jump_data):
         resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True, include_diagnostic=True
     )
 
-    for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
+    for fit, pixel_dq in zip(output.fits, output.dq.transpose(), strict=False):
         # Check that all jumps found get marked
         assert (pixel_dq[fit["jumps"]] == JUMP_DET).all()
 

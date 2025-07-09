@@ -104,7 +104,9 @@ def test_basic_ramp():
 
     # Fit with likelihood
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data = cube[0][0, 0, 0]
     ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
@@ -116,7 +118,9 @@ def test_basic_ramp():
 
     # Check against OLS fit
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
     np.testing.assert_allclose(data, cube1[0][0, 0, 0], tol)
 
 
@@ -132,11 +136,15 @@ def test_basic_ramp_multi_pixel():
 
     # Fit with likelihood
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     # Fit with OLS
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data, dq, vp, vr, err = slopes
     data1, dq1, vp1, vr1, err1 = slopes1
@@ -161,11 +169,15 @@ def test_basic_ramp_2integ():
 
     # Fit with likelihood
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     # Check against OLS fit
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     tol = 1.0e-5
     np.testing.assert_allclose(cube[0], cube1[0], tol)
@@ -180,14 +192,18 @@ def test_flagged_ramp():
     ramp_data, gain2d, rnoise2d = create_flagged_ramp_data()
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data = cube[0][0, 0, 0]
     dq = cube[1][0, 0, 0]
 
     # Check against OLS.
     algo = "OLS"
-    slopes1, cube1, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data_ols = cube1[0][0, 0, 0]
     dq_ols = cube1[1][0, 0, 0]
@@ -223,7 +239,9 @@ def test_random_ramp():
     ramp_data.groupdq[0, :, 0, 0] = dq
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data, dq, vp, vr, err = slopes
     tol = 1.0e-4
@@ -242,7 +260,9 @@ def test_long_ramp():
     ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data = cube[0][0, 0, 0]
     ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
@@ -253,7 +273,9 @@ def test_long_ramp():
 
     # Check against OLS.
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
     np.testing.assert_allclose(data, cube1[0][0, 0, 0], tol)
 
 
@@ -281,7 +303,9 @@ def test_short_group_ramp(nframes):
     ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols, nframes)
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data = cube[0][0, 0, 0]
     ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
@@ -292,7 +316,9 @@ def test_short_group_ramp(nframes):
 
     # Check against OLS.
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
     np.testing.assert_allclose(data, cube1[0][0, 0, 0], tol)
 
 
@@ -313,7 +339,9 @@ def test_small_good_groups():
     ramp_data.groupdq[0, :ngood, 0, 0] = GOOD
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     lik_slope = slopes[0][0, 0]
 
@@ -354,7 +382,9 @@ def test_jump_detect():
         ramp_data.data[0, :, 1, 1] = ramp
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     data, dq, vp, vr, err = slopes
     slope_est = base / ramp_data.group_time
@@ -392,14 +422,18 @@ def test_zeroframe():
 
     # Fit with likelihood
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     # Expected value
     np.testing.assert_allclose(slopes[0], 0.372503, 1e-5)
 
     # Check against OLS fit
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     # Fit will not be identical to OLS for unrealistic zeroframe
     tol = 1e-3
@@ -415,14 +449,18 @@ def test_zeroframe_bad_group(caplog):
 
     # Fit with likelihood
     save_opt, algo, ncores = False, "LIKELY", "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
 
     # Warning is issued
     assert "Zero frame is present, but the first group has < 2 reads" in caplog.text
 
     # Check against OLS fit - it should be the same, since the zeroframe is ignored in this case
     algo = "OLS"
-    slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes1, cube1, ols_opt1 = ramp_fit_data(
+        ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
+    )
     tol = 1e-7
     np.testing.assert_allclose(slopes[0], slopes1[0], tol)
 

@@ -59,7 +59,9 @@ def _create_wcs_object_without_distortion(
 
 
 def _create_wcs_and_datamodel(fiducial_world, shape, pscale):
-    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
+    wcs = _create_wcs_object_without_distortion(
+        fiducial_world=fiducial_world, shape=shape, pscale=pscale
+    )
     ra_ref, dec_ref = fiducial_world[0], fiducial_world[1]
     return DataModel(
         ra_ref=ra_ref,
@@ -136,7 +138,9 @@ def test_compute_fiducial(footprint):
     fiducial_world = (0, 0)  # in deg
     pscale = (0.000014, 0.000014)  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
+    wcs = _create_wcs_object_without_distortion(
+        fiducial_world=fiducial_world, shape=shape, pscale=pscale
+    )
     if footprint:
         footprint = wcs.footprint()
         computed_fiducial = _compute_fiducial_from_footprints([footprint])
@@ -155,7 +159,9 @@ def test_compute_scale(pscales):
     fiducial_world = (0, 0)  # in deg
     pscale = (pscales[0], pscales[1])  # in deg/pixel
 
-    wcs = _create_wcs_object_without_distortion(fiducial_world=fiducial_world, shape=shape, pscale=pscale)
+    wcs = _create_wcs_object_without_distortion(
+        fiducial_world=fiducial_world, shape=shape, pscale=pscale
+    )
     expected_scale = np.sqrt(pscale[0] * pscale[1])
 
     computed_scale = compute_scale(wcs=wcs, fiducial=fiducial_world)
@@ -413,8 +419,11 @@ def test_compute_s_region_imaging(model, bounding_box, data):
         *model.meta.wcs(2.5, -0.5),
     ]
     shape = data.shape if data is not None else None
-    model.meta.wcsinfo.s_region = compute_s_region_imaging(model.meta.wcs, shape=shape, center=False)
+    model.meta.wcsinfo.s_region = compute_s_region_imaging(
+        model.meta.wcs, shape=shape, center=False
+    )
     updated_s_region_coords = [float(x) for x in model.meta.wcsinfo.s_region.split(" ")[3:]]
     assert all(
-        np.isclose(x, y) for x, y in zip(updated_s_region_coords, expected_s_region_coords, strict=False)
+        np.isclose(x, y)
+        for x, y in zip(updated_s_region_coords, expected_s_region_coords, strict=False)
     )

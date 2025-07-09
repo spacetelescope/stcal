@@ -40,11 +40,15 @@ def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
         2-dimensional computed median array
     """
     with warnings.catch_warnings():
-        warnings.filterwarnings(action="ignore", message="All-NaN slice encountered", category=RuntimeWarning)
+        warnings.filterwarnings(
+            action="ignore", message="All-NaN slice encountered", category=RuntimeWarning
+        )
         output_arr = np.empty(cube.shape[1:], dtype=cube.dtype)
         for i in range(output_arr.shape[0]):
             # np.nanmedian allocates lots of memory; this for loop gets around that
-            np.nanmedian(cube[:, i, :], axis=0, overwrite_input=overwrite_input, out=output_arr[i, :])
+            np.nanmedian(
+                cube[:, i, :], axis=0, overwrite_input=overwrite_input, out=output_arr[i, :]
+            )
         return output_arr
 
 
@@ -92,7 +96,9 @@ class MedianComputer:
         if self.in_memory:
             computer: Any = np.empty(full_shape, dtype=dtype)
         else:
-            computer = _OnDiskMedian(full_shape, dtype=dtype, buffer_size=buffer_size, tempdir=tempdir)
+            computer = _OnDiskMedian(
+                full_shape, dtype=dtype, buffer_size=buffer_size, tempdir=tempdir
+            )
         self._median_computer: Any = computer
 
     def append(self, data: np.ndarray, idx: int | None = None) -> None:
@@ -216,7 +222,11 @@ class _DiskAppendableArray:
 
 class _OnDiskMedian:
     def __init__(
-        self, shape: tuple, dtype: str | np.dtype = "float32", tempdir: str = "", buffer_size: int = 0
+        self,
+        shape: tuple,
+        dtype: str | np.dtype = "float32",
+        tempdir: str = "",
+        buffer_size: int = 0,
     ) -> None:
         """
         Set up temporary files to perform operations on a stack of 2-D input
@@ -311,7 +321,10 @@ class _OnDiskMedian:
             shp = self.slice_shape
             if i == self.nsections - 1:
                 # last section has whatever shape is left over
-                shp = (self.frame_shape[0] - (self.nsections - 1) * self.section_nrows, self.frame_shape[1])
+                shp = (
+                    self.frame_shape[0] - (self.nsections - 1) * self.section_nrows,
+                    self.frame_shape[1],
+                )
             arr = _DiskAppendableArray(shp, dtype, self._temp_path / f"{i}.bin")
             temp_arrays.append(arr)
         return temp_arrays

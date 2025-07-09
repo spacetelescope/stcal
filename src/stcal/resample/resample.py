@@ -304,7 +304,6 @@ class Resample:
 
         Parameters
         ----------
-
         model : dict, None
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines. In particular, it
@@ -352,7 +351,6 @@ class Resample:
 
         Parameters
         ----------
-
         model : dict, None
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines. In particular, it
@@ -419,7 +417,6 @@ class Resample:
 
         Returns
         -------
-
         output_model : dict
             A dictionary of data model attributes and values.
 
@@ -567,7 +564,10 @@ class Resample:
 
             # update output model if "pixel_scale_ratio" was never
             # set previously:
-            if self._output_model is not None and self._output_model.get("pixel_scale_ratio") is None:
+            if (
+                self._output_model is not None
+                and self._output_model.get("pixel_scale_ratio") is None
+            ):
                 self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
     def reset_arrays(self, n_input_models=None):
@@ -740,7 +740,10 @@ class Resample:
         log.info("Resampling science and variance data")
 
         weight = build_driz_weight(
-            model, weight_type=self.weight_type, good_bits=self.good_bits, flag_name_map=self.dq_flag_name_map
+            model,
+            weight_type=self.weight_type,
+            good_bits=self.good_bits,
+            flag_name_map=self.dq_flag_name_map,
         )
 
         # apply sky subtraction
@@ -927,7 +930,8 @@ class Resample:
 
     def init_variance_arrays(self):
         """Allocate arrays that hold co-added resampled variances and their
-        weights."""
+        weights.
+        """
         shape = self.output_array_shape
 
         self._variance_info = {}
@@ -1042,7 +1046,9 @@ class Resample:
             mask = (var >= 0) & np.isfinite(var) & (weight > 0)
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "overflow encountered", RuntimeWarning)
-                wsum[mask] = np.nansum([wsum[mask], var[mask] * weight[mask] * weight[mask]], axis=0)
+                wsum[mask] = np.nansum(
+                    [wsum[mask], var[mask] * weight[mask] * weight[mask]], axis=0
+                )
             self._variance_info[varname]["wt"][mask] += weight[mask]
 
     def finalize_resample_variance(self, output_model):
@@ -1099,7 +1105,9 @@ class Resample:
         """
         variance = model.get(name)
         if variance is None or variance.size == 0:
-            log.debug(f"No data for '{name}' for model {repr(_get_model_name(model))}. Skipping ...")
+            log.debug(
+                f"No data for '{name}' for model {repr(_get_model_name(model))}. Skipping ..."
+            )
             return
 
         elif variance.shape != model["data"].shape:
@@ -1214,7 +1222,9 @@ class Resample:
             return False
 
         elif array_data.shape != sci_data.shape:
-            log.warning(f"Data shape mismatch for '{array_name}' for model {repr(model_name)}. Skipping ...")
+            log.warning(
+                f"Data shape mismatch for '{array_name}' for model {repr(model_name)}. Skipping ..."
+            )
             return False
 
         return True

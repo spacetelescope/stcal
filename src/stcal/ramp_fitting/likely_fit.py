@@ -601,7 +601,9 @@ def fit_ramps(
         # result = compute_jump_detects(
         #     result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta, covar
         # )
-        result = compute_jump_detects(result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta)
+        result = compute_jump_detects(
+            result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta
+        )
 
     return result
 
@@ -693,7 +695,9 @@ def compute_jump_detects(result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta
         result.jumpval_one_omit = b
 
         # Use the best-fit a, b to get chi squared
-        result.chisq_one_omit = A + a**2 * C - 2 * a * B + b**2 * Cinv_diag - 2 * b * dB + 2 * a * b * dC
+        result.chisq_one_omit = (
+            A + a**2 * C - 2 * a * B + b**2 * Cinv_diag - 2 * b * dB + 2 * a * b * dC
+        )
 
         # invert the covariance matrix of a, b to get the uncertainty on a
         result.uncert_one_omit = np.sqrt(Cinv_diag / (C * Cinv_diag - dC**2))
@@ -816,7 +820,9 @@ def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, 
         warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
         for i in range(2, ndiffs + 1):
-            theta[i] = alpha[i - 1] / scale * theta[i - 1] - beta[i - 2] ** 2 / scale**2 * theta[i - 2]
+            theta[i] = (
+                alpha[i - 1] / scale * theta[i - 1] - beta[i - 2] ** 2 / scale**2 * theta[i - 2]
+            )
 
             # Scaling every ten steps in safe for alpha up to 1e20
             # or so and incurs a negligible computational cost for
@@ -1040,7 +1046,9 @@ def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):
     return ThetaD
 
 
-def matrix_computations(ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD):
+def matrix_computations(
+    ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD
+):
     """
     Compute matrix computations needed for ramp fitting.
 
@@ -1189,10 +1197,14 @@ def get_ramp_result(
     result.weights = dC / C
 
     result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
-    result.var_poisson += 2 * np.sum(result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
+    result.var_poisson += 2 * np.sum(
+        result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0
+    )
 
     result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
-    result.var_rnoise += 2 * np.sum(result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0)
+    result.var_rnoise += 2 * np.sum(
+        result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0
+    )
 
     warnings.resetwarnings()
 
