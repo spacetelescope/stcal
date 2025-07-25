@@ -22,7 +22,7 @@ dependencies = [
     "gwcs >=0.22.0",
     "tweakwcs >=0.8.8",
     "requests >=2.22",
-    "spherical-geometry>=1.2.22"
+    "sphersgeo @ git+https://github.com/spacetelescope/sphersgeo.git@main",
 ]
 license-files = ["LICENSE"]
 dynamic = [

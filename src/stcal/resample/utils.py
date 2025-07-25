@@ -8,7 +8,7 @@ from astropy.nddata.bitmask import (
     interpret_bit_flags,
 )
 from astropy import units as u
-from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-untyped]
+from sphersgeo import SphericalPolygon,ArcString, MultiSphericalPoint
 
 
 __all__ = [
@@ -274,7 +274,7 @@ def compute_mean_pixel_area(wcs, shape=None):
     world = wcs(*center)
     wcenter = (world[spatial_idx[0]], world[spatial_idx[1]])
 
-    sky_area = SphericalPolygon.from_radec(ra, dec, center=wcenter).area()
+    sky_area = SphericalPolygon(ArcString(MultiSphericalPoint.from_lonlats(np.stack([ra, dec], axis=1))), interior_point=wcenter).area
     if sky_area > 2 * np.pi:
         log.warning(
             "Unexpectedly large computed sky area for an image. "
