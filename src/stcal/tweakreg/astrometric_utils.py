@@ -70,8 +70,8 @@ def create_astrometric_catalog(
         If `num_sources` is negative, return that number of the faintest
         sources.  By default, all sources are returned.
 
-    timeout : int
-        Maximum time to wait for the catalog service to respond.
+    timeout : float
+        Maximum time to wait (in seconds) for the catalog service to respond.
 
 
 

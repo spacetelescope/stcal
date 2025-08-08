@@ -129,7 +129,7 @@ def absolute_align(correctors: list,
                    abs_nclip: int = 3,
                    abs_sigma: float = 3.0,
                    clip_accum: bool = False,
-                   timeout: int = TIMEOUT,) -> list:
+                   timeout: float = TIMEOUT,) -> list:
 
     if abs_separation <= _SQRT2 * abs_tolerance:
         msg = ("Parameter 'abs_separation' must be larger than "
