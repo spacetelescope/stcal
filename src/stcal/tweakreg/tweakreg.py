@@ -20,7 +20,7 @@ from tweakwcs.matchutils import XYXYMatch
 
 from stcal.alignment import wcs_from_sregions
 
-from .astrometric_utils import create_astrometric_catalog
+from .astrometric_utils import TIMEOUT, create_astrometric_catalog
 
 _SQRT2 = math.sqrt(2.0)
 SINGLE_GROUP_REFCAT = ["GAIADR3", "GAIADR2", "GAIADR1"]
@@ -128,7 +128,8 @@ def absolute_align(correctors: list,
                    abs_fitgeometry: str = "rshift",
                    abs_nclip: int = 3,
                    abs_sigma: float = 3.0,
-                   clip_accum: bool = False,) -> list:
+                   clip_accum: bool = False,
+                   timeout: int = TIMEOUT,) -> list:
 
     if abs_separation <= _SQRT2 * abs_tolerance:
         msg = ("Parameter 'abs_separation' must be larger than "
@@ -142,7 +143,8 @@ def absolute_align(correctors: list,
                             ref_wcsinfo,
                             epoch,
                             save_abs_catalog=save_abs_catalog,
-                            output_dir=abs_catalog_output_dir)
+                            output_dir=abs_catalog_output_dir,
+                            timeout=timeout)
 
     # Check that there are enough GAIA sources for a reliable/valid fit
     num_ref = len(ref_cat)
@@ -221,7 +223,8 @@ def _parse_refcat(abs_refcat: str | Path,
                   wcsinfo: dict,
                   epoch: str | astropy.time.Time,
                   save_abs_catalog: bool = False,
-                  output_dir: str | None = None) -> Table:
+                  output_dir: str | None = None,
+                  timeout: int = TIMEOUT) -> Table:
     """
     Figure out if abs_refcat is an input filename or
     the name of a GAIA catalog. If the former, load it,
@@ -251,6 +254,7 @@ def _parse_refcat(abs_refcat: str | Path,
             combined_wcs, epoch,
             catalog=gaia_cat_name,
             output=output_name,
+            timeout=timeout,
         )
         ref_table.meta["name"] = gaia_cat_name # accessed by tweakwcs log message
         return ref_table

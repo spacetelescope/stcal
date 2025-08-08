@@ -36,7 +36,8 @@ def create_astrometric_catalog(
         output="ref_cat.ecsv",
         gaia_only=False,
         table_format="ascii.ecsv",
-        num_sources=None):
+        num_sources=None,
+        timeout=TIMEOUT):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
     Parameters
@@ -69,6 +70,9 @@ def create_astrometric_catalog(
         If `num_sources` is negative, return that number of the faintest
         sources.  By default, all sources are returned.
 
+    timeout : int
+        Maximum time to wait for the catalog service to respond.
+
 
 
     Notes
@@ -91,7 +95,7 @@ def create_astrometric_catalog(
         epoch=epoch,
         search_radius=radius,
         catalog=catalog,
-        timeout=TIMEOUT
+        timeout=timeout
     )
     if len(ref_dict) == 0:
         return ref_dict
