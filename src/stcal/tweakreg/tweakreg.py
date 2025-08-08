@@ -224,7 +224,7 @@ def _parse_refcat(abs_refcat: str | Path,
                   epoch: str | astropy.time.Time,
                   save_abs_catalog: bool = False,
                   output_dir: str | None = None,
-                  timeout: int = TIMEOUT) -> Table:
+                  timeout: float = TIMEOUT) -> Table:
     """
     Figure out if abs_refcat is an input filename or
     the name of a GAIA catalog. If the former, load it,
