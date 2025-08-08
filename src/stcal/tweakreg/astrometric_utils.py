@@ -90,7 +90,9 @@ def create_astrometric_catalog(
         fiducial[1],
         epoch=epoch,
         search_radius=radius,
-        catalog=catalog)
+        catalog=catalog,
+        timeout=TIMEOUT
+    )
     if len(ref_dict) == 0:
         return ref_dict
 
