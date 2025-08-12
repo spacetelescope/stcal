@@ -1,4 +1,4 @@
-.. _velocity_aberration
+.. _velocity_aberration:
 
 =========================
 Velocity Aberration Utils
