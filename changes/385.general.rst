@@ -1,1 +1,1 @@
-add velocity aberration calculations
+Add utility functions for calculating velocity aberration.
