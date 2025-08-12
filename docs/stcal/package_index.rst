@@ -11,3 +11,4 @@ Package Index
    outlier_detection/index.rst
    resample/index.rst
    skymatch/index.rst
+   velocity_aberration.rst
