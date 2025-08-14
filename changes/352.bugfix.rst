@@ -1,1 +1,0 @@
-Fix a bug in ``resample``, first introduced in https://github.com/spacetelescope/jwst/pull/7894, due which the intensity of resampled images was incorrectly adjusted to minimize the error in flux computations while using an incorrect procedure.

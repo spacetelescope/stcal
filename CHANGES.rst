@@ -1,3 +1,32 @@
+1.15.0 (2025-08-14)
+===================
+
+Bug Fixes
+---------
+
+- Fix a bug in ``resample``, first introduced in
+  https://github.com/spacetelescope/jwst/pull/7894, due which the intensity of
+  resampled images was incorrectly adjusted to minimize the error in flux
+  computations while using an incorrect procedure. (`#352
+  <https://github.com/spacetelescope/stcal/issues/352>`_)
+
+
+General
+-------
+
+- test with latest version of Python (`#346
+  <https://github.com/spacetelescope/stcal/issues/346>`_)
+- For the likelihood algorithm for ramp fitting, use a separately downlinked
+  zeroframe if available, independent of the remaining first group data. (`#372
+  <https://github.com/spacetelescope/stcal/issues/372>`_)
+- Use ``gwcs.FITSImagingWCSTransform`` in the WCS of Level3 files. (`#378
+  <https://github.com/spacetelescope/stcal/issues/378>`_)
+- Add catalog timeout parameter from user-level funcs to utility funcs (`#384
+  <https://github.com/spacetelescope/stcal/issues/384>`_)
+- Add utility functions for calculating velocity aberration. (`#385
+  <https://github.com/spacetelescope/stcal/issues/385>`_)
+
+
 1.14.0 (2025-06-18)
 ===================
 
