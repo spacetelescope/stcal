@@ -16,7 +16,7 @@ import tempfile
 # THIRD-PARTY
 import numpy as np
 from gwcs import region
-from spherical_geometry.polygon import SphericalPolygon
+from sphersgeo import SphericalPolygon
 
 # LOCAL
 from . skystatistics import SkyStats
@@ -216,7 +216,7 @@ class SkyImage:
         # create spherical polygon bounding the image
         if image is None or wcs_fwd is None or wcs_inv is None:
             self._radec = [(np.array([]), np.array([]))]
-            self._polygon = SphericalPolygon([])
+            self._polygon = None
             self._poly_area = 0.0
 
         else:
@@ -340,18 +340,18 @@ class SkyImage:
         """
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
-        :py:class:`~spherical_geometry.polygon.SphericalPolygon`
+        :py:class:`~sphersgeo.SphericalPolygon`
         object.
 
         Parameters
         ----------
-        skyimage : SkyImage, SkyGroup, spherical_geometry.polygon.SphericalPolygon
+        skyimage : SkyImage, SkyGroup, sphersgeo.SphericalPolygon
             Another object that should be intersected with this `SkyImage`.
 
         Returns
         -------
         polygon : `SphericalPolygon`
-            A :py:class:`~spherical_geometry.polygon.SphericalPolygon` that is
+            A :py:class:`~sphersgeo.SphericalPolygon` that is
             the intersection of this `SkyImage` and `skyimage`.
 
         """
@@ -360,9 +360,7 @@ class SkyImage:
         else:
             other = skyimage
 
-        pts1 = np.sort(list(self._polygon.points)[0], axis=0)
-        pts2 = np.sort(list(other.points)[0], axis=0)
-        if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
+        if self._polygon == other:
             intersect_poly = self._polygon.copy()
         else:
             intersect_poly = self._polygon.intersection(other)
@@ -433,8 +431,8 @@ class SkyImage:
         dec[-1] = dec[0]
 
         self._radec = [(ra, dec)]
-        self._polygon = SphericalPolygon.from_radec(ra, dec)
-        self._poly_area = np.fabs(self._polygon.area())
+        self._polygon = SphericalPolygon(ArcString(MultiSphericalPoint.from_lonlats(np.stack([ra, dec], axis=1))))
+        self._poly_area = np.fabs(self._polygon.area)
 
     def set_builtin_skystat(self, skystat='median', lower=None, upper=None,
                             nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1):
@@ -464,7 +462,7 @@ class SkyImage:
         ----------
         overlap : SkyImage, SkyGroup, `SphericalPolygon`, list[tuple[typing.Any]], None, optional
             Another `SkyImage`, `SkyGroup`,
-            :py:class:`spherical_geometry.polygon.SphericalPolygon`, or
+            :py:class:`sphersgeo.SphericalPolygon`, or
             a list of tuples of (RA, DEC) of vertices of a spherical
             polygon. This parameter is used to indicate that sky statistics
             should computed only in the region of intersection of *this*
@@ -514,41 +512,35 @@ class SkyImage:
 
             if isinstance(overlap, SkyImage):
                 intersection = self.intersection(overlap)
-                polyarea = np.fabs(intersection.area())
-                radec = list(intersection.to_radec())
+                polyarea = np.fabs(intersection.area)
+                radec = list(intersection.boundary.points.to_lonlats())
 
             elif isinstance(overlap, SkyGroup):
                 radec = []
                 polyarea = 0.0
                 for im in overlap:
                     intersection = self.intersection(im)
-                    polyarea1 = np.fabs(intersection.area())
+                    polyarea1 = np.fabs(intersection.area)
                     if polyarea1 == 0.0:
                         continue
                     polyarea += polyarea1
-                    radec += list(intersection.to_radec())
+                    radec += list(intersection.boundary.points.to_lonlats())
 
             elif isinstance(overlap, SphericalPolygon):
-                radec = []
-                polyarea = 0.0
-                for p in overlap._polygons:
-                    intersection = self.intersection(SphericalPolygon([p]))
-                    polyarea1 = np.fabs(intersection.area())
-                    if polyarea1 == 0.0:
-                        continue
-                    polyarea += polyarea1
-                    radec += list(intersection.to_radec())
+                intersection = self.intersection(SphericalPolygon([p]))
+                polyarea = np.fabs(intersection.area)
+                radec = list(intersection.boundary.points.to_lonlats())
 
             else:  # assume a list of (ra, dec) tuples:
                 radec = []
                 polyarea = 0.0
                 for r, d in overlap:
                     poly = SphericalPolygon.from_radec(r, d)
-                    polyarea1 = np.fabs(poly.area())
+                    polyarea1 = np.fabs(poly.area)
                     if polyarea1 == 0.0 or len(r) < 4:
                         continue
                     polyarea += polyarea1
-                    radec.append(self.intersection(poly).to_radec())
+                    radec.append(self.intersection(poly).boundary.points.to_lonlats())
 
             if polyarea == 0.0:
                 return None, 0, 0.0
@@ -682,7 +674,7 @@ class SkyGroup:
         """
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
-        :py:class:`~spherical_geometry.polygon.SphericalPolygon`
+        :py:class:`~sphersgeo.SphericalPolygon`
         object.
 
         Parameters
@@ -693,7 +685,7 @@ class SkyGroup:
         Returns
         -------
         intersect_poly : `SphericalPolygon`
-            A :py:class:`~spherical_geometry.polygon.SphericalPolygon` that is
+            A :py:class:`~sphersgeo.SphericalPolygon` that is
             the intersection of this `SkyImage` and `skyimage`.
 
         """
@@ -717,7 +709,7 @@ class SkyGroup:
             self._radec = []
         else:
             self._polygon = SphericalPolygon.multi_union(polygons)
-            self._radec = list(self._polygon.to_radec())
+            self._radec = list(self._polygon.boundary.points.to_lonlats())
 
     def __len__(self):
         return len(self._images)
@@ -769,7 +761,7 @@ class SkyGroup:
         ----------
         overlap : SkyImage, SkyGroup, `SphericalPolygon`, list[tuple[typing.Any]], None, optional
             Another `SkyImage`, `SkyGroup`,
-            :py:class:`spherical_geometry.polygon.SphericalPolygon`, or
+            :py:class:`sphersgeo.SphericalPolygon`, or
             a list of tuples of (RA, DEC) of vertices of a spherical
             polygon. This parameter is used to indicate that sky statistics
             should computed only in the region of intersection of *this*
