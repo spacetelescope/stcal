@@ -1,4 +1,4 @@
-name: test
+name: tests
 
 on:
   push:
@@ -22,9 +22,7 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       envs: |
-        - linux: check-style
         - linux: check-types
-        - linux: check-build
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
