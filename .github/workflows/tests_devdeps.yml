@@ -21,7 +21,7 @@ concurrency:
 jobs:
   test:
     if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
     with:
       envs: |
         - linux: py311-devdeps-xdist
@@ -29,7 +29,7 @@ jobs:
         - linux: py313-devdeps-xdist
   test_downstream:
     if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run devdeps tests')))
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v2
     with:
       setenv: |
         CRDS_PATH: /tmp/data/crds_cache
