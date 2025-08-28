@@ -2,7 +2,7 @@
 name = "stcal"
 description = "STScI tools and algorithms used in calibration pipelines"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 authors = [
     { name = "STScI", email = "help@stsci.edu" },
 ]
