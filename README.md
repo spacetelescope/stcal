@@ -14,7 +14,7 @@ STScI Calibration algorithms and tools.
 > STCAL requires Python 3.10 or above and a C compiler for dependencies.
 
 > [!IMPORTANT]
-> Linux and MacOS platforms are tested and supported. Windows is not currently supported.\*\*
+> Linux and MacOS platforms are tested and supported. Windows is not currently supported.
 
 > [!WARNING]
 > Installation on MacOS Mojave 10.14 will fail due to lack of a stable build for dependency `opencv-python`.
