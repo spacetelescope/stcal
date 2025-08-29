@@ -65,11 +65,11 @@ repos:
   #       types_or:
   #         - yaml
   #         - markdown
-  # # format TOML
-  # - repo: https://github.com/ComPWA/taplo-pre-commit
-  #   rev: v0.9.3
-  #   hooks:
-  #     - id: taplo-format
+  # format TOML
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
+    hooks:
+      - id: taplo-format
   # # validate numpy-style docstrings
   # - repo: https://github.com/numpy/numpydoc
   #   rev: v1.9.0
