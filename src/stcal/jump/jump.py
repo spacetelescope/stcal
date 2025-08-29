@@ -7,15 +7,17 @@ import time
 import warnings
 
 import astropy.stats as stats
-import cv2 as cv
 import numpy as np
+import skimage
 from astropy.convolution import Ring2DKernel, convolve
 from numpy.typing import NDArray
 from scipy import signal
+from scipy.spatial import ConvexHull
 
 from stcal.jump.jump_class import JumpData
 
 from . import twopoint_difference as twopt
+from .circle import Circle
 from .twopoint_difference_class import TwoPointParams
 
 log = logging.getLogger(__name__)
@@ -556,21 +558,18 @@ def ellipse_subim(
     iy1 = max(xc - dn_over_2, 0)
     iy2 = min(xc + dn_over_2 + 1, shape[0])
 
-    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1, 3), dtype=np.uint8)
-    image = cv.ellipse(
-        image,
-        (yc - ix1, xc - iy1),
-        (round(axis1 / 2), round(axis2 / 2)),
-        alpha,
-        0,
-        360,
-        (0, 0, value),
-        -1,
+    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1), dtype=np.uint8)
+    saty, satx = skimage.draw.ellipse(
+        r=yc - ix1,
+        c=xc - iy1,
+        r_radius=round(axis1/2),
+        c_radius=round(axis2/2),
+        shape=image.shape,
+        rotation=alpha,
     )
+    image[saty, satx] = value
 
-    # The last ("blue") part contains the filled ellipse that we want.
-    subimage = image[:, :, 2]
-    return (iy1, iy2, ix1, ix2), subimage
+    return (iy1, iy2, ix1, ix2), image
 
 
 def extend_ellipses(
@@ -652,6 +651,16 @@ def extend_ellipses(
     return gdq_cube, num_ellipses
 
 
+def find_circles(dqplane: np.ndarray, bitmask: np.ndarray, min_area: float) -> list[Circle]:
+    # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
+    # area and return a list of the minimum enclosing circle parameters.
+    
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
+    contours = skimage.measure.find_contours(pixels)
+    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
+    return [circle for circle in (Circle.from_points(con) for con in bigcontours) if circle is not None]
+
+
 def find_ellipses(dqplane: NDArray[int], bitmask: int, min_area: float) -> list[NDArray[int]]:
     """
     Find ellipses based on DQ masks in bitmask.
@@ -675,14 +684,25 @@ def find_ellipses(dqplane: NDArray[int], bitmask: int, min_area: float) -> list[
     # Using an input DQ plane this routine will find the groups of pixels with
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
-    pixels = np.bitwise_and(dqplane, bitmask)
-    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
+    contours = skimage.measure.find_contours(pixels)
+    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
 
     # minAreaRect is used because fitEllipse requires 5 points and it is
     # possible to have a contour
     # with just 4 points.
-    return [cv.minAreaRect(con) for con in bigcontours]
+    rectangles = [
+        minimum_bounding_rectangle(con) for con in bigcontours
+    ]
+
+    return [
+        (
+            tuple(np.flip(np.mean(rectangle[[0, 2], :], axis=0))),
+            tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
+            -np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
+        )
+        for rectangle in rectangles
+    ]
 
 
 def make_snowballs(
@@ -768,6 +788,78 @@ def make_snowballs(
 
     return gdq, snowballs, persist_jumps
 
+def minimum_bounding_rectangle(points: np.ndarray) -> np.ndarray:
+    """
+    Find the smallest bounding rectangle for a set of points.
+    Returns a set of points representing the corners of the bounding box.
+    https://stackoverflow.com/questions/13542855/algorithm-to-find-the-minimum-area-rectangle-for-given-points-in-order-to-comput
+
+    :param points: an nx2 matrix of coordinates
+    :rval: an nx2 matrix of coordinates
+    """
+    pi2 = np.pi / 2.0
+
+    # get the convex hull for the points
+    hull_points = points[ConvexHull(points).vertices]
+    
+    # calculate edge angles
+    edges = np.zeros((len(hull_points) - 1, 2))
+    edges = hull_points[1:] - hull_points[:-1]
+
+    angles = np.zeros(len(edges))
+    angles = np.arctan2(edges[:, 1], edges[:, 0])
+
+    angles = np.abs(np.mod(angles, pi2))
+    angles = np.unique(angles)
+
+    # find rotation matrices
+    # XXX both work
+    rotations = np.vstack(
+        [np.cos(angles), np.cos(angles - pi2), np.cos(angles + pi2), np.cos(angles)]
+    ).T
+    #     rotations = np.vstack([
+    #         np.cos(angles),
+    #         -np.sin(angles),
+    #         np.sin(angles),
+    #         np.cos(angles)]).T
+    rotations = rotations.reshape((-1, 2, 2))
+
+    # apply rotations to the hull
+    rot_points = np.dot(rotations, hull_points.T)
+
+    # find the bounding points
+    min_x = np.nanmin(rot_points[:, 0], axis=1)
+    max_x = np.nanmax(rot_points[:, 0], axis=1)
+    min_y = np.nanmin(rot_points[:, 1], axis=1)
+    max_y = np.nanmax(rot_points[:, 1], axis=1)
+
+    # find the box with the best area
+    areas = (max_x - min_x) * (max_y - min_y)
+    best_idx = np.argmin(areas)
+
+    # return the best box
+    x1 = max_x[best_idx]
+    x2 = min_x[best_idx]
+    y1 = max_y[best_idx]
+    y2 = min_y[best_idx]
+    r = rotations[best_idx]
+
+    rval = np.zeros((4, 2))
+    rval[0] = np.dot([x1, y2], r)
+    rval[1] = np.dot([x2, y2], r)
+    rval[2] = np.dot([x2, y1], r)
+    rval[3] = np.dot([x1, y1], r)
+
+    return rval
+
+def area_of_polygon(xy: np.ndarray) -> float:
+    """
+    apply shoelace algorithm on collection of xy vertex pairs
+    https://stackoverflow.com/questions/24467972/calculate-area-of-polygon-given-x-y-coordinates
+    """
+    return float(0.5 * np.abs(
+        np.dot(xy[:, 0], np.roll(xy[:, 1], 1)) - np.dot(xy[:, 1], np.roll(xy[:, 0], 1))
+    ))
 
 def point_inside_ellipse(point: tuple[float, float], ellipse: NDArray[int]) -> bool:
     """
@@ -903,7 +995,16 @@ def find_faint_extended(
 
             # get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
-            ellipses = [cv.minAreaRect(con) for con in bigcontours]
+            rectangles = [minimum_bounding_rectangle(con) for con in bigcontours]
+            ellipses = [
+                (
+                    tuple(np.mean(rectangle[[0, 2], :], axis=0)),
+                    tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
+                    np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
+                )
+                for rectangle in rectangles
+            ]
+
             image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
             expand_by_ratio, expansion = True, 1.0
             image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
@@ -942,7 +1043,7 @@ def find_faint_extended(
 
 def max_flux_showers(
     jump_data: JumpData, nints: int, indata: NDArray[float], ingdq: NDArray[int], gdq: NDArray[int]
-):
+) -> NDArray[int]:
     """
     Ensure that flagging showers didn't change final fluxes by more than allowed.
 
@@ -1071,8 +1172,15 @@ def process_ellipses(
         axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
         alpha = ellipse[2]
         color = (0, 0, jump_data.fl_jump)
-        image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1)
-
+        ellipse_rr, ellipse_cc = skimage.draw.ellipse(
+            r=cen[0],
+            c=cen[1],
+            r_radius=axes[0],
+            c_radius=axes[1],
+            shape=image.shape,
+            rotation=alpha,
+        )
+        image[ellipse_rr, ellipse_cc, :] = color
     return image
 
 
@@ -1181,11 +1289,10 @@ def get_bigcontours(
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
-    contours, hierarchy = cv.findContours(
-            extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours = skimage.measure.find_contours(extended_emission)
 
     #  get the contours that are above the minimum size
-    bigcontours = [con for con in contours if cv.contourArea(con) > jump_data.extend_min_area]
+    bigcontours = [con for con in contours if area_of_polygon(con) > jump_data.extend_min_area]
     return bigcontours 
 
 
