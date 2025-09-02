@@ -1,64 +1,64 @@
 documentation:
   - changed-files:
-    - all-globs-to-any-file: ["*.rst", "!CHANGES.rst"]
-    - any-glob-to-any-file:
-      - "docs/**/*"
-      - "*.md"
-      - ".readthedocs.yaml"
-      - "LICENSE"
+      - all-globs-to-any-file: ["*.rst", "!CHANGES.rst"]
+      - any-glob-to-any-file:
+          - "docs/**/*"
+          - "*.md"
+          - ".readthedocs.yaml"
+          - "LICENSE"
 
 installation:
   - changed-files:
-    - any-glob-to-any-file:
-      - "pyproject.toml"
-      - "setup.*"
-      - "requirements-*.txt"
-      - "MANIFEST.in"
+      - any-glob-to-any-file:
+          - "pyproject.toml"
+          - "setup.*"
+          - "requirements-*.txt"
+          - "MANIFEST.in"
 
 # --------------------------------------- testing ---------------------------------------
 
 automation:
   - changed-files:
-    - any-glob-to-any-file:
-      - ".github/**"
-      - ".bandit.yaml"
-      - ".codecov.yml"
+      - any-glob-to-any-file:
+          - ".github/**"
+          - ".bandit.yaml"
+          - ".codecov.yml"
 
 testing:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/tests/**"
-      - ".github/workflows/ci*.yml"
-      - "conftest.py"
+      - any-glob-to-any-file:
+          - "**/tests/**"
+          - ".github/workflows/ci*.yml"
+          - "conftest.py"
 
 # --------------------------------------- modules ---------------------------------------
 
 dark_current:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/*dark_current*"
-      - "**/*dark_current*/**"
+      - any-glob-to-any-file:
+          - "**/*dark_current*"
+          - "**/*dark_current*/**"
 
 jump:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/*jump*"
-      - "**/*jump*/**"
+      - any-glob-to-any-file:
+          - "**/*jump*"
+          - "**/*jump*/**"
 
 linearity:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/*linearity*"
-      - "**/*linearity*/**"
+      - any-glob-to-any-file:
+          - "**/*linearity*"
+          - "**/*linearity*/**"
 
 ramp_fitting:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/*ramp_fitting*"
-      - "**/*ramp_fitting*/**"
+      - any-glob-to-any-file:
+          - "**/*ramp_fitting*"
+          - "**/*ramp_fitting*/**"
 
 saturation:
   - changed-files:
-    - any-glob-to-any-file:
-      - "**/*saturation*"
-      - "**/*saturation*/**"
+      - any-glob-to-any-file:
+          - "**/*saturation*"
+          - "**/*saturation*/**"
