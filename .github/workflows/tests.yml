@@ -19,12 +19,12 @@ concurrency:
 
 jobs:
   check:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@28e947497bed4d6ec3fa1d66d198e95a1d17bc63 # v2.2.1
     with:
       envs: |
         - linux: check-types
   test:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@28e947497bed4d6ec3fa1d66d198e95a1d17bc63 # v2.2.1
     with:
       envs: |
         - linux: py311-oldestdeps-cov-xdist
@@ -36,7 +36,7 @@ jobs:
           coverage: codecov
         - macos: py3-xdist
   test_downstream:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@28e947497bed4d6ec3fa1d66d198e95a1d17bc63 # v2.2.1
     with:
       setenv: |
         CRDS_PATH: /tmp/data/crds_cache
