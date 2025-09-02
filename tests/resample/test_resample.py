@@ -58,7 +58,7 @@ class _CustomResample(Resample):
 
 
 @pytest.mark.parametrize(
-    "weight_type", ["ivm", "exptime"]
+    "weight_type", ["ivm", "exptime", "ivm-sky"]
 )
 def test_resample_mostly_defaults(weight_type):
     crval = (150.0, 2.0)
@@ -305,7 +305,7 @@ def test_resample_add_model_hook():
 
 @pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
 @pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
-@pytest.mark.parametrize("weight_type", ["exptime", "ivm"])
+@pytest.mark.parametrize("weight_type", ["exptime", "ivm", "ivm-sky"])
 def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel,
                              weight_type):
     """ test surface-brightness photometry """
