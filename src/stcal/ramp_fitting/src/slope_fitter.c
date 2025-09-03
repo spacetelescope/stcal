@@ -966,8 +966,9 @@ ERROR:
     clean_rate_product(&rate_prod);
     clean_rateint_product(&rateint_prod);
 
-    // This steals no references, but you’re passing borrowed refs. This works only
-    // because `Py_None` is immortal since Python 3.10 — older versions would leak.
+    // Py_None is a regular object in older versions of pythong, so
+    // increment the reference count.  In later versions, this may
+    // not be necessary.
     Py_INCREF(Py_None);
     Py_INCREF(Py_None);
     Py_INCREF(Py_None);
