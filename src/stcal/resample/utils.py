@@ -120,7 +120,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     
     if weight_type == "ivm":
         inv_variance = _get_inverse_variance(
-            model.get("var_rnoise"),
+            model["var_rnoise"],
             data.shape, "var_rnoise",
             1,
             RuntimeWarning
@@ -133,7 +133,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
 
     elif weight_type == "ivm-sky":
         inv_sky_variance = _get_inverse_variance(
-                model.get("var_sky"),
+                model["var_sky"],
                 data.shape,
                 "var_sky",
                 0,
