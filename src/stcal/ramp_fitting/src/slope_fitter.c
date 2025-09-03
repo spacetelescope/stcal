@@ -966,19 +966,13 @@ ERROR:
     clean_rate_product(&rate_prod);
     clean_rateint_product(&rateint_prod);
 
-    /* Return (None, None, None) */
-#if 0
-    Review from ChatGPT:
-This steals no references, but you’re passing borrowed refs. This works only
-because `Py_None` is immortal since Python 3.10 — older versions would leak.
-👉 Safer:
+    // This steals no references, but you’re passing borrowed refs. This works only
+    // because `Py_None` is immortal since Python 3.10 — older versions would leak.
+    Py_INCREF(Py_None);
+    Py_INCREF(Py_None);
+    Py_INCREF(Py_None);
 
-```c
-Py_INCREF(Py_None);
-Py_INCREF(Py_None);
-Py_INCREF(Py_None);
-```
-#endif
+    /* Return (None, None, None) */
     result = Py_BuildValue("(NNN)", Py_None, Py_None, Py_None);
 
 CLEANUP:
