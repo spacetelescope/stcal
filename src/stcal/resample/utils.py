@@ -78,10 +78,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         The weighting type for adding models' data. For
         ``weight_type="ivm"``, the weighting will be
         determined per-pixel using the inverse of the read noise
-        (VAR_RNOISE) array stored in each input image. If the
-        ``VAR_RNOISE`` array does not exist,
-        the variance is set to 1 for all pixels (i.e., equal weighting).
-        If ``weight_type="ivm-sky"``, the weighting will be determined
+        (VAR_RNOISE) array stored in each input image. If
+        ``weight_type="ivm-sky"``, the weighting will be determined
         by the inverse of the sky variance ``VAR_SKY``. If the ``VAR_SKY``
         array does not exist, the variance is set to 0 for all pixels
         (i.e., equal weighting).  If ``weight_type="exptime"``, the 
@@ -120,10 +118,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     
     if weight_type == "ivm":
         inv_variance = _get_inverse_variance(
-            model["var_rnoise"],
-            data.shape, "var_rnoise",
-            1,
-            RuntimeWarning
+            model["var_rnoise"] if "var_rnoise" in model else None,
+            data.shape, 
         )
         result = inv_variance * dqmask
 
@@ -133,11 +129,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
 
     elif weight_type == "ivm-sky":
         inv_sky_variance = _get_inverse_variance(
-                model["var_sky"],
+                model["var_sky"] if "var_sky" in model else None,
                 data.shape,
-                "var_sky",
-                0,
-                RuntimeWarning
         )
         result = inv_sky_variance * dqmask
 
@@ -431,12 +424,27 @@ def is_flux_density(bunit):
     return flux_density
 
 
-def _get_inverse_variance(array, data_shape, array_name, nan_fill, warn_type):
+def _get_inverse_variance(array, data_shape):
+    """
+    Compute the inverse variance array for weighting.
+
+    Parameters
+    ----------
+    array : numpy.ndarray or None
+        Input variance array (e.g., VAR_RNOISE or VAR_SKY).
+    data_shape : tuple
+        Expected shape of the output array.
+
+    Returns
+    -------
+    inv : numpy.ndarray
+        Inverse variance array. If input array is missing or has wrong shape,
+        returns an array filled with zeros of shape `data_shape`.
+    """
     if array is not None and array.shape == data_shape:
         with np.errstate(divide="ignore", invalid="ignore"):
             inv = 1.0 / array
-        inv[~np.isfinite(inv)] = nan_fill
+        inv[~np.isfinite(inv)] = 0
     else:
-        warnings.warn(f"'{array_name}' array not available. Setting drizzle weight map to 1", warn_type)
-        inv = 1.0
+        inv = np.full(data_shape, 0, dtype=np.float32)
     return inv
