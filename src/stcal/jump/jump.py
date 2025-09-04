@@ -5,23 +5,26 @@ import logging
 import multiprocessing
 import time
 import warnings
-from scipy import signal
 
-import numpy as np
-import cv2 as cv
 import astropy.stats as stats
+import numpy as np
+import skimage
+from astropy.convolution import Ring2DKernel, convolve
+from numpy.typing import NDArray
+from scipy import signal
+from scipy.spatial import ConvexHull
 
-from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
+from stcal.jump.jump_class import JumpData
 
-from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
+from .circle import Circle
+from .twopoint_difference_class import TwoPointParams
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def detect_jumps_data(jump_data):
+def detect_jumps_data(jump_data: JumpData) -> tuple[NDArray[int], NDArray[int], int, int, float]:
     """
     Detect jumps and their side effects, such as showers and snowballs.
 
@@ -126,7 +129,14 @@ def detect_jumps_data(jump_data):
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
 
-def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
+def twopoint_diff_multi(
+    jump_data: JumpData,
+    twopt_params: TwoPointParams,
+    data: NDArray[float],
+    gdq: NDArray[int],
+    readnoise_2d: NDArray[float],
+    n_slices: int,
+) -> tuple[NDArray[int], int, float]:
     """
     Split data for jump detection multiprocessing.
     
@@ -177,7 +187,12 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     return reassemble_sliced_data(real_result, jump_data, gdq, yinc)
 
 
-def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
+def reassemble_sliced_data(
+    real_result: tuple[NDArray[int], NDArray[int], NDArray[int]],
+    jump_data: JumpData,
+    gdq: NDArray[int],
+    yinc: int,
+) -> tuple[NDArray[int], int, float]:
     """
     Reassemble the data from each process for multiprocessing.
 
@@ -253,8 +268,13 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     return gdq, total_primary_crs, stddev
 
 
-
-def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
+def slice_data(
+    twopt_params: TwoPointParams,
+    data: NDArray[float],
+    gdq: NDArray[int],
+    readnoise_2d: NDArray[float],
+    n_slices: int,
+) -> tuple[list[tuple[NDArray[float], NDArray[int], NDArray[float], TwoPointParams]], int]:
     """
     Create a slice of data for each process for multiprocessing.
 
@@ -316,7 +336,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     return slices, yinc
 
 
-def setup_pdq(jump_data):
+def setup_pdq(jump_data: JumpData) -> NDArray[int]:
     """
     Prepare the pixel DQ array for procesing, removing invalid data.
 
@@ -337,7 +357,9 @@ def setup_pdq(jump_data):
     return pdq
 
 
-def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
+def flag_large_events(
+    gdq: NDArray[int], jump_flag: int, sat_flag: int, jump_data: JumpData
+) -> tuple[NDArray[int], int]:
     """
     Control the creation of expanded regions that are flagged as jumps.
 
@@ -417,10 +439,16 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     return gdq, total_snowballs
 
 
-def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
+def extend_saturation(
+    cube: NDArray[int],
+    grp: int,
+    sat_ellipses: list[NDArray[int]],
+    jump_data: NDArray[float],
+    persist_jumps: NDArray[int],
+) -> tuple[NDArray[int], NDArray[int]]:
     """
     Extend the saturated ellipses that are larger than the min_sat_radius.
-    
+
     Parameters
     ----------
     cube : ndarray
@@ -484,7 +512,9 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     return cube, persist_jumps
 
 
-def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
+def ellipse_subim(
+    ceny: float, cenx: float, axis1: float, axis2: float, alpha: float, value: int, shape: tuple[int, int]
+) -> tuple[tuple[int, int, int, int], NDArray[int]]:
     """Draw a filled ellipse in a small array at a given (returned) location
     Parameters
     ----------
@@ -528,28 +558,30 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     iy1 = max(xc - dn_over_2, 0)
     iy2 = min(xc + dn_over_2 + 1, shape[0])
 
-    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1, 3), dtype=np.uint8)
-    image = cv.ellipse(
-        image,
-        (yc - ix1, xc - iy1),
-        (round(axis1 / 2), round(axis2 / 2)),
-        alpha,
-        0,
-        360,
-        (0, 0, value),
-        -1,
+    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1), dtype=np.uint8)
+    saty, satx = skimage.draw.ellipse(
+        r=yc - ix1,
+        c=xc - iy1,
+        r_radius=round(axis1/2),
+        c_radius=round(axis2/2),
+        shape=image.shape,
+        rotation=alpha,
     )
+    image[saty, satx] = value
 
-    # The last ("blue") part contains the filled ellipse that we want.
-    subimage = image[:, :, 2]
-    return (iy1, iy2, ix1, ix2), subimage
-
+    return (iy1, iy2, ix1, ix2), image
 
 
 def extend_ellipses(
-    gdq_cube, intg, grp, ellipses, jump_data,
-    expansion=1.9, expand_by_ratio=True, num_grps_masked=1,
-):
+    gdq_cube: NDArray[int],
+    intg: int,
+    grp: int,
+    ellipses: list[NDArray[int]],
+    jump_data: JumpData,
+    expansion: float = 1.9,
+    expand_by_ratio: bool = True,
+    num_grps_masked: int = 1,
+) -> tuple[NDArray[int], int]:
     """
     Extend the ellipses.
 
@@ -610,7 +642,6 @@ def extend_ellipses(
         # Propagate forward by num_grps_masked groups.
 
         for flg_grp in range(grp, min(grp + num_grps_masked + 1, ngroups)):
-
             # Only propagate the snowball forward to unsaturated pixels.
 
             sat_pix = gdq_cube[intg, flg_grp, iy1:iy2, ix1:ix2] & jump_data.fl_sat
@@ -619,7 +650,18 @@ def extend_ellipses(
 
     return gdq_cube, num_ellipses
 
-def find_ellipses(dqplane, bitmask, min_area):
+
+def find_circles(dqplane: np.ndarray, bitmask: np.ndarray, min_area: float) -> list[Circle]:
+    # Using an input DQ plane this routine will find the groups of pixels with at least the minimum
+    # area and return a list of the minimum enclosing circle parameters.
+    
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
+    contours = skimage.measure.find_contours(pixels)
+    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
+    return [circle for circle in (Circle.from_points(con) for con in bigcontours) if circle is not None]
+
+
+def find_ellipses(dqplane: NDArray[int], bitmask: int, min_area: float) -> list[NDArray[int]]:
     """
     Find ellipses based on DQ masks in bitmask.
 
@@ -642,20 +684,37 @@ def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
-    pixels = np.bitwise_and(dqplane, bitmask)
-    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
+    contours = skimage.measure.find_contours(pixels)
+    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
 
     # minAreaRect is used because fitEllipse requires 5 points and it is
     # possible to have a contour
     # with just 4 points.
-    return [cv.minAreaRect(con) for con in bigcontours]
+    rectangles = [
+        minimum_bounding_rectangle(con) for con in bigcontours
+    ]
+
+    return [
+        (
+            tuple(np.flip(np.mean(rectangle[[0, 2], :], axis=0))),
+            tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
+            -np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
+        )
+        for rectangle in rectangles
+    ]
 
 
 def make_snowballs(
-    gdq, integration, group, jump_ellipses, sat_ellipses,
-    next_sat_ellipses, jump_data, persist_jumps
-):
+    gdq: NDArray[int],
+    integration: int,
+    group: int,
+    jump_ellipses: list[NDArray[int]],
+    sat_ellipses: list[NDArray[int]],
+    next_sat_ellipses: list[NDArray[int]],
+    jump_data: JumpData,
+    persist_jumps: NDArray[int],
+) -> tuple[NDArray[int], list[NDArray[int]], NDArray[int]]:
     """
     Find snowballs.
 
@@ -729,8 +788,80 @@ def make_snowballs(
 
     return gdq, snowballs, persist_jumps
 
+def minimum_bounding_rectangle(points: np.ndarray) -> np.ndarray:
+    """
+    Find the smallest bounding rectangle for a set of points.
+    Returns a set of points representing the corners of the bounding box.
+    https://stackoverflow.com/questions/13542855/algorithm-to-find-the-minimum-area-rectangle-for-given-points-in-order-to-comput
 
-def point_inside_ellipse(point, ellipse):
+    :param points: an nx2 matrix of coordinates
+    :rval: an nx2 matrix of coordinates
+    """
+    pi2 = np.pi / 2.0
+
+    # get the convex hull for the points
+    hull_points = points[ConvexHull(points).vertices]
+    
+    # calculate edge angles
+    edges = np.zeros((len(hull_points) - 1, 2))
+    edges = hull_points[1:] - hull_points[:-1]
+
+    angles = np.zeros(len(edges))
+    angles = np.arctan2(edges[:, 1], edges[:, 0])
+
+    angles = np.abs(np.mod(angles, pi2))
+    angles = np.unique(angles)
+
+    # find rotation matrices
+    # XXX both work
+    rotations = np.vstack(
+        [np.cos(angles), np.cos(angles - pi2), np.cos(angles + pi2), np.cos(angles)]
+    ).T
+    #     rotations = np.vstack([
+    #         np.cos(angles),
+    #         -np.sin(angles),
+    #         np.sin(angles),
+    #         np.cos(angles)]).T
+    rotations = rotations.reshape((-1, 2, 2))
+
+    # apply rotations to the hull
+    rot_points = np.dot(rotations, hull_points.T)
+
+    # find the bounding points
+    min_x = np.nanmin(rot_points[:, 0], axis=1)
+    max_x = np.nanmax(rot_points[:, 0], axis=1)
+    min_y = np.nanmin(rot_points[:, 1], axis=1)
+    max_y = np.nanmax(rot_points[:, 1], axis=1)
+
+    # find the box with the best area
+    areas = (max_x - min_x) * (max_y - min_y)
+    best_idx = np.argmin(areas)
+
+    # return the best box
+    x1 = max_x[best_idx]
+    x2 = min_x[best_idx]
+    y1 = max_y[best_idx]
+    y2 = min_y[best_idx]
+    r = rotations[best_idx]
+
+    rval = np.zeros((4, 2))
+    rval[0] = np.dot([x1, y2], r)
+    rval[1] = np.dot([x2, y2], r)
+    rval[2] = np.dot([x2, y1], r)
+    rval[3] = np.dot([x1, y1], r)
+
+    return rval
+
+def area_of_polygon(xy: np.ndarray) -> float:
+    """
+    apply shoelace algorithm on collection of xy vertex pairs
+    https://stackoverflow.com/questions/24467972/calculate-area-of-polygon-given-x-y-coordinates
+    """
+    return float(0.5 * np.abs(
+        np.dot(xy[:, 0], np.roll(xy[:, 1], 1)) - np.dot(xy[:, 1], np.roll(xy[:, 0], 1))
+    ))
+
+def point_inside_ellipse(point: tuple[float, float], ellipse: NDArray[int]) -> bool:
     """
     Detect if a point is inside an ellipse.
 
@@ -752,7 +883,7 @@ def point_inside_ellipse(point, ellipse):
     return delta_center < major_axis
 
 
-def near_edge(jump, low_threshold, high_threshold):
+def near_edge(jump: NDArray[int], low_threshold: float, high_threshold: float) -> bool:
     """
     Test whether the center of a jump is close to the edge of the detector.
 
@@ -785,7 +916,13 @@ def near_edge(jump, low_threshold, high_threshold):
 
 
 def find_faint_extended(
-        indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_for_shower=10):
+    indata: NDArray[float],
+    ingdq: NDArray[int],
+    pdq: NDArray[int],
+    readnoise_2d: NDArray[float],
+    jump_data: JumpData,
+    min_diffs_for_shower: int = 10,
+) -> tuple[NDArray[int], int]:
     """
     Flag groups based on showers detected.
 
@@ -858,7 +995,16 @@ def find_faint_extended(
 
             # get the minimum enclosing rectangle which is the same as the
             # minimum enclosing ellipse
-            ellipses = [cv.minAreaRect(con) for con in bigcontours]
+            rectangles = [minimum_bounding_rectangle(con) for con in bigcontours]
+            ellipses = [
+                (
+                    tuple(np.mean(rectangle[[0, 2], :], axis=0)),
+                    tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
+                    np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
+                )
+                for rectangle in rectangles
+            ]
+
             image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
             expand_by_ratio, expansion = True, 1.0
             image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
@@ -895,7 +1041,9 @@ def find_faint_extended(
     return gdq, total_showers
 
 
-def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
+def max_flux_showers(
+    jump_data: JumpData, nints: int, indata: NDArray[float], ingdq: NDArray[int], gdq: NDArray[int]
+) -> NDArray[int]:
     """
     Ensure that flagging showers didn't change final fluxes by more than allowed.
 
@@ -960,7 +1108,7 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
     return gdq
 
 
-def count_dnu_groups(gdq, jump_data):
+def count_dnu_groups(gdq: NDArray[int], jump_data: JumpData) -> int:
     """
     Count the number of groups are flagged as DO_NOT_USE.
 
@@ -986,7 +1134,13 @@ def count_dnu_groups(gdq, jump_data):
     return num_grps_donotuse
 
 
-def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
+def process_ellipses(
+    ellipses: list[NDArray[int]],
+    image: NDArray[float],
+    expand_by_ratio: bool,
+    expansion: float,
+    jump_data: JumpData,
+) -> NDArray[float]:
     """
     Draw ellipses onto an image.
 
@@ -1018,12 +1172,21 @@ def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
         axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
         alpha = ellipse[2]
         color = (0, 0, jump_data.fl_jump)
-        image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1)
-
+        ellipse_rr, ellipse_cc = skimage.draw.ellipse(
+            r=cen[0],
+            c=cen[1],
+            r_radius=axes[0],
+            c_radius=axes[1],
+            shape=image.shape,
+            rotation=alpha,
+        )
+        image[ellipse_rr, ellipse_cc, :] = color
     return image
 
 
-def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
+def compute_axes(
+    expand_by_ratio: bool, ellipse: NDArray[int], expansion: float, jump_data: JumpData
+) -> tuple[int, int]:
     """
     Expand the ellipse by the expansion factor.
 
@@ -1067,7 +1230,15 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     return (round(axis1 / 2), round(axis2 / 2))
 
 
-def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+def get_bigcontours(
+    ratio: NDArray[float],
+    intg: int,
+    grp: int,
+    gdq: NDArray[int],
+    pdq: NDArray[int],
+    jump_data: JumpData,
+    ring_2D_kernel: Ring2DKernel,
+) -> list[NDArray[int]]:
     """Perform convolution to find contours larger than a minimum area.
 
     Parameters
@@ -1118,16 +1289,14 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
-    contours, hierarchy = cv.findContours(
-            extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours = skimage.measure.find_contours(extended_emission)
 
     #  get the contours that are above the minimum size
-    bigcontours = [con for con in contours if cv.contourArea(con) > jump_data.extend_min_area]
+    bigcontours = [con for con in contours if area_of_polygon(con) > jump_data.extend_min_area]
     return bigcontours 
 
 
-
-def convolve_fast(inarray, kernel, copy=False):
+def convolve_fast(inarray: NDArray[float], kernel: NDArray[float], copy: bool = False) -> NDArray[float]:
     """Convolve an array with a kernel, interpolating over NaNs.
     Faster version of astropy.convolution.convolve(preserve_nan=True)
     Parameters
@@ -1185,7 +1354,9 @@ def convolve_fast(inarray, kernel, copy=False):
     return convolved_array
 
 
-def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
+def diff_meddiff_int(
+    intg: int, median_diffs: NDArray[float], sigma: NDArray[float], first_diffs_masked: NDArray[float]
+) -> NDArray[float]:
     """
     Compute the SNR ratio of each difference.
 
@@ -1217,7 +1388,9 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     return ratio
 
 
-def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
+def diff_meddiff_grp(
+    intg: int, grp: int, median: float, stddev: float, first_diffs_masked: NDArray[float]
+) -> NDArray[float]:
     """
     Find the median difference group.
 
@@ -1255,7 +1428,7 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
     return ratio
 
 
-def nan_invalid_data(data, gdq, jump_data):
+def nan_invalid_data(data: NDArray[float], gdq: NDArray[int], jump_data: JumpData) -> NDArray[float]:
     """
     Mark flagged data as invalid by setting the science data to NaN.
 
@@ -1286,7 +1459,7 @@ def nan_invalid_data(data, gdq, jump_data):
     return data
 
 
-def find_first_good_group(int_gdq, do_not_use):
+def find_first_good_group(int_gdq: NDArray[int], do_not_use: int) -> NDArray[float]:
     """
     Find first good group.
 
@@ -1316,7 +1489,7 @@ def find_first_good_group(int_gdq, do_not_use):
     return first_good_group
 
 
-def calc_num_slices(n_rows, max_cores, max_available):
+def calc_num_slices(n_rows: int, max_cores: int, max_available: int) -> int:
     """
     Compute the number of data slices needed for multiprocessesing.
 
