@@ -446,5 +446,5 @@ def _get_inverse_variance(array, data_shape):
             inv = 1.0 / array
         inv[~np.isfinite(inv)] = 0
     else:
-        inv = np.full(data_shape, 0, dtype=np.float32)
+        inv = np.full(data_shape, 1, dtype=np.float32)
     return inv
