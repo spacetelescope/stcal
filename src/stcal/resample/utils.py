@@ -116,14 +116,16 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     if weight_type == "ivm":
         inv_variance = _get_inverse_variance(
             model["var_rnoise"] if "var_rnoise" in model else None,
-            data.shape
+            data.shape,
+            "var_rnoise",
         )
         result = inv_variance * dqmask
 
     elif weight_type == "ivm-sky":
         inv_sky_variance = _get_inverse_variance(
             model["var_sky"] if "var_sky" in model else None,
-            data.shape
+            data.shape,
+            "var_sky",
         )
         result = inv_sky_variance * dqmask
 
@@ -421,7 +423,7 @@ def is_flux_density(bunit):
     return flux_density
 
 
-def _get_inverse_variance(array, data_shape):
+def _get_inverse_variance(array, data_shape, array_name):
     """
     Compute the inverse variance array for weighting.
 
@@ -443,6 +445,11 @@ def _get_inverse_variance(array, data_shape):
             inv = 1.0 / array
         inv[~np.isfinite(inv)] = 0  # zeros for bad pixels
     else:
+        warnings.warn(
+            f"'{array_name}' array not available. "
+            "Setting drizzle weight map to 1",
+            RuntimeWarning
+        )
         inv = np.full(data_shape, 1, dtype=np.float32)   # ones for missing/misshaped array
 
     return inv

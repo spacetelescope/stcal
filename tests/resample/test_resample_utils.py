@@ -11,6 +11,7 @@ from stcal.resample.utils import (
     is_flux_density,
     is_imaging_wcs,
     resample_range,
+    _get_inverse_variance,
 )
 
 from . helpers import make_input_model, JWST_DQ_FLAG_DEF
@@ -155,3 +156,22 @@ def test_unsupported_weight_type(weight_type):
     model = make_input_model((10, 10))
     with pytest.raises(ValueError, match=fr"^Invalid weight type: {repr(weight_type)}"):
         build_driz_weight(model, weight_type=weight_type)
+
+
+@pytest.mark.parametrize("array_name", ["var_rnoise", "var_sky"])
+def test_get_inverse_variance_valid_and_invalid(array_name):
+    arr = np.array([[4.0, 0.0], [np.nan, 1.0]])
+    inv = _get_inverse_variance(arr, arr.shape, array_name)
+    assert np.isclose(inv[0, 0], 0.25)
+    assert inv[0, 1] == 0
+    assert inv[1, 0] == 0
+    assert inv[1, 1] == 1.0
+    # Wrong shape
+    with pytest.warns(RuntimeWarning, match=f"'{array_name}' array not available."):
+        inv2 = _get_inverse_variance(None, (2, 2), array_name)
+    assert np.all(inv2 == 1)
+    with pytest.warns(RuntimeWarning, match=f"'{array_name}' array not available."):
+        inv3 = _get_inverse_variance(np.ones((1, 1)), (2, 2), array_name)
+    assert np.all(inv3 == 1)
+
+
