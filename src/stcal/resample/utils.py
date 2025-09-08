@@ -79,7 +79,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         and ``weight_type="ivm-sky"``, the weighting will be determined
         per-pixel using the inverse of either the read noise (VAR_RNOISE) or
         sky variance (VAR_SKY) arrays, respectively. If the array does not
-        exist, the weight is set to 1 for all pixels (i.e., zero weighting).
+        exist, the weight is set to 1 for all pixels (i.e., equal weighting).
         If ``weight_type="exptime"``, the weight will be set equal to the
         measurement time when available and to the exposure time otherwise for
         pixels not flagged in the DQ array of the model. The default value of
