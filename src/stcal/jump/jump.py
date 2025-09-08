@@ -503,14 +503,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     iy2 = min(xc + dn_over_2 + 1, shape[0])
 
     image = np.zeros(shape=(iy2 - iy1, ix2 - ix1), dtype=np.uint8)
-    saty, satx = skimage.draw.ellipse(
-        r=yc - ix1,
-        c=xc - iy1,
-        r_radius=round(axis1/2),
-        c_radius=round(axis2/2),
-        shape=image.shape,
-        rotation=alpha,
-    )
+    saty, satx = sk_ellipse((iy2 - iy1, ix2 - ix1), (yc - ix1,xc - iy1), (round(axis1/2), round(axis2/2)), alpha, value)
     image[saty, satx] = value
 
     return (iy1, iy2, ix1, ix2), image
@@ -614,24 +607,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
-    contours = skimage.measure.find_contours(pixels)
-    bigcontours = [con for con in contours if area_of_polygon(con) > min_area]
-
-    # minAreaRect is used because fitEllipse requires 5 points and it is
-    # possible to have a contour
-    # with just 4 points.
-    rectangles = [
-        minimum_bounding_rectangle(con) for con in bigcontours
-    ]
-
-    return [
-        (
-            tuple(np.flip(np.mean(rectangle[[0, 2], :], axis=0))),
-            tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
-            -np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
-        )
-        for rectangle in rectangles
-    ]
+    return sk_filter_areas(pixels, min_area)
 
 
 def make_snowballs(
@@ -835,24 +811,12 @@ def find_faint_extended(
             if nints >= jump_data.minimum_sigclip_groups:
                 ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
-            bigcontours = get_bigcontours(
-                    ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
+            ellipses = get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
 
-            # get the minimum enclosing rectangle which is the same as the
-            # minimum enclosing ellipse
-            rectangles = [minimum_bounding_rectangle(con) for con in bigcontours]
-            ellipses = [
-                (
-                    tuple(np.mean(rectangle[[0, 2], :], axis=0)),
-                    tuple(np.hypot(*np.diff(rectangle[[0, 1, 2], :], axis=0))),
-                    np.degrees(np.arctan2(*np.flip(np.diff(rectangle[[3, 0], :], axis=0)[0]))),
-                )
-                for rectangle in rectangles
-            ]
-
-            image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
-            expand_by_ratio, expansion = True, 1.0
-            image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
+            # image is created, written to, and never used?
+            # image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
+            # expand_by_ratio, expansion = True, 1.0
+            # image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
 
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
@@ -1009,14 +973,7 @@ def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
         axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
         alpha = ellipse[2]
         color = (0, 0, jump_data.fl_jump)
-        ellipse_rr, ellipse_cc = skimage.draw.ellipse(
-            r=cen[0],
-            c=cen[1],
-            r_radius=axes[0],
-            c_radius=axes[1],
-            shape=image.shape,
-            rotation=alpha,
-        )
+        ellipse_rr, ellipse_cc = sk_ellipse(image.shape, cen, axes, alpha, color[2])
         image[ellipse_rr, ellipse_cc, :] = color
     return image
 
@@ -1065,7 +1022,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     return (round(axis1 / 2), round(axis2 / 2))
 
 
-def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     """Perform convolution to find contours larger than a minimum area.
 
     Parameters
@@ -1092,8 +1049,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
     Returns
     -------
-    bigcontours : list 
-        list of OpenCV countours
+    list of computed ellipses
     """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
@@ -1116,11 +1072,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
-    contours = skimage.measure.find_contours(extended_emission)
-
-    #  get the contours that are above the minimum size
-    bigcontours = [con for con in contours if area_of_polygon(con) > jump_data.extend_min_area]
-    return bigcontours 
+    return sk_filter_areas(extended_emission, jump_data.extend_min_area)
 
 
 
@@ -1311,3 +1263,42 @@ def find_first_good_group(int_gdq, do_not_use):
             break
 
     return first_good_group
+
+
+def sk_ellipse(shape: tuple[int, int], center: tuple[float, float], axes: tuple[float, float], angle:float, value:int) -> tuple[list[int], list[int]]:
+    # The sub-pixel fudge here is to nudge
+    # the skimage ellipse slightly closer to
+    # what opencv would produce. There is no
+    # exact match (as far as I can tell) but
+    # empirically this made things "close"
+    # where the skimage ellipse had some extra
+    # and some missing edge pixels (rather
+    # than only missing edge pixels without the fudge).
+    return skimage.draw.ellipse(
+        center[1], center[0],
+        axes[1] + 0.25, axes[0] + 0.25,
+        shape,
+        -np.radians(angle),
+    )
+
+def sk_filter_areas(image: NDArray[float], threshold:float)-> list[tuple[tuple[float, float], tuple[int, int], float]]:
+    lim = skimage.measure.label(image)
+    min_areas = []
+    for region in skimage.measure.regionprops(lim):
+        # region.area returns the number of pixels in the region
+        # this does not match cv.contourArea which instead returns
+        # a smaller value where a 2x2 pixel region returns a contourArea of 1.
+        if region.area_filled < threshold:
+            continue
+        # wait util after area check so calculating the more expensive
+        # region properties is only done for areas that pass threshold
+        w = region.axis_major_length - 1
+        h = region.axis_minor_length - 1
+        # opencv returns
+        # [[cy, cx], [dy, dx], [angle]]
+        # where angle is in degrees, not sure what 0 is
+        min_areas.append((
+            (float(region.centroid[1]), float(region.centroid[0])),
+            (h, w),
+            -np.degrees(region.orientation)))
+    return min_areas
