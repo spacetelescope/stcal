@@ -966,15 +966,8 @@ ERROR:
     clean_rate_product(&rate_prod);
     clean_rateint_product(&rateint_prod);
 
-    // Py_None is a regular object in older versions of pythong, so
-    // increment the reference count.  In later versions, this may
-    // not be necessary.
-    Py_INCREF(Py_None);
-    Py_INCREF(Py_None);
-    Py_INCREF(Py_None);
-
     /* Return (None, None, None) */
-    result = Py_BuildValue("(NNN)", Py_None, Py_None, Py_None);
+    result = Py_BuildValue("(OOO)", Py_None, Py_None, Py_None);
 
 CLEANUP:
     FREE_RAMP_DATA(rd);
