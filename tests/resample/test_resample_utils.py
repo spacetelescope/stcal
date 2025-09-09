@@ -170,7 +170,6 @@ def test_build_driz_weight_none(weight_type, var_array_name):
     model = make_input_model((10, 10))
 
     del model[var_array_name]
-    breakpoint()
 
     weight_map = build_driz_weight(model, weight_type=weight_type)
 
