@@ -194,9 +194,9 @@ def test_get_inverse_variance_valid_and_invalid(array_name):
     # Wrong shape
     with pytest.warns(RuntimeWarning, match=f"'{array_name}' array not available."):
         inv2 = _get_inverse_variance(None, (2, 2), array_name)
-    assert np.testing.assert_array_equal(inv2, 1)
+    np.testing.assert_array_equal(inv2, 1)
     with pytest.warns(RuntimeWarning, match=f"'{array_name}' array not available."):
         inv3 = _get_inverse_variance(np.ones((1, 1)), (2, 2), array_name)
-    assert np.testing.assert_array_equal(inv3, 1)
+    np.testing.assert_array_equal(inv3, 1)
 
 
