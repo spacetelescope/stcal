@@ -115,13 +115,6 @@ def detect_jumps_data(jump_data):
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
-        # Back out the applied gain to the SCI and readnoise arrays so they're
-        #    back in units of DN
-        data /= jump_data.gain_2d
-        readnoise_2d /= jump_data.gain_2d
-
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
 
