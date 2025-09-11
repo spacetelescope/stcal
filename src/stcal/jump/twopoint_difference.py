@@ -67,7 +67,8 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     gdq, first_diffs, median_diffs, sigma = run_jump_detection(
         dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
 
-    num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
+    # sum by integration to avoid large temporary arrays
+    num_primary_crs = np.sum([np.count_nonzero(per_group_dq & twopt_p.fl_jump) for per_group_dq in gdq])
 
     gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
         gdq, nints, ngroups, first_diffs, median_diffs, sigma,
