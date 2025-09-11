@@ -176,16 +176,19 @@ def run_jump_detection(
     """
     # set 'saturated' or 'do not use' pixels to nan in data
     dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
-    
+
     # calculate the differences between adjacent groups (first diffs)
     # Bad data will be NaN; np.nanmedian will be used later.
     first_diffs = np.diff(dat, axis=1)
     first_diffs_finite = np.isfinite(first_diffs)
-    
+
     # calc. the median of first_diffs for each pixel along the group axis
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-        median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
+        # take nanmedian one row at a time to reduce memory usage
+        median_diffs = np.empty(first_diffs.shape[-2:], first_diffs.dtype)
+        for row in range(first_diffs.shape[2]):
+            np.nanmedian(first_diffs[:, :, row, :], axis=(0, 1), out=median_diffs[row])
 
     # calculate sigma for each pixel
     sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / twopt_p.nframes)
