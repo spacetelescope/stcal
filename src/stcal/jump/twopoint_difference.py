@@ -64,7 +64,7 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
         dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
         return gdq, row_below_gdq, row_above_gdq, -99, dummy
 
-    gdq, first_diffs, median_diffs, sigma, stddev = run_jump_detection(
+    gdq, first_diffs, median_diffs, sigma = run_jump_detection(
         dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
 
     num_primary_crs = np.sum(gdq & twopt_p.fl_jump == twopt_p.fl_jump)
@@ -72,18 +72,11 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
         gdq, nints, ngroups, first_diffs, median_diffs, sigma,
         row_below_gdq, row_above_gdq, twopt_p)
-            
-    if stddev is not None:
-        return gdq, row_below_gdq, row_above_gdq, num_primary_crs, stddev
 
-    if twopt_p.only_use_ints:
-        dummy = np.zeros((dataa.shape[1] - 1, dataa.shape[2], dataa.shape[3]), dtype=np.float32)
-    else:
-        dummy = np.zeros((dataa.shape[2], dataa.shape[3]), dtype=np.float32)
+    # TODO update jwst to not expect stddev (which it did not use)
+    return gdq, row_below_gdq, row_above_gdq, num_primary_crs, None
 
-    return gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy
 
-    
 def jump_detection_post_processing(
     gdq, nints, ngroups, first_diffs, median_diffs, sigma, row_below_gdq, row_above_gdq, twopt_p
 ):
@@ -197,9 +190,8 @@ def run_jump_detection(
     sigma[sigma == 0.] = np.nan
 
     # Test to see if there are enough groups to use sigma clipping
-    stddev = None
     if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
-        gdq, stddev = det_jump_sigma_clipping(
+        gdq = det_jump_sigma_clipping(
             gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
         if min_usable_diffs >= twopt_p.min_diffs_single_pass:
@@ -208,7 +200,7 @@ def run_jump_detection(
         else:  # low number of diffs requires iterative flagging
             gdq = iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p)
 
-    return gdq, first_diffs, median_diffs, sigma, stddev
+    return gdq, first_diffs, median_diffs, sigma
 
 
 def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
@@ -426,7 +418,6 @@ def det_jump_sigma_clipping(
         axis=axis, masked=True, return_bounds=True)
 
     # get the standard deviation from the bounds of sigma clipping
-    stddev = 0.5 * (ahigh - alow) / twopt_p.normal_rej_thresh
     jump_candidates = clipped_diffs.mask
     sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
     jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
@@ -444,7 +435,7 @@ def det_jump_sigma_clipping(
                 gdq[integ, grp][jump_only] = 0
                 
     warnings.resetwarnings()
-    return gdq, stddev
+    return gdq
 
 
 def check_sigma_clip_groups(nints, total_groups, twopt_p):
