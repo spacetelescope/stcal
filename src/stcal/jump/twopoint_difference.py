@@ -367,13 +367,11 @@ def look_for_more_than_one_jump(
     # The jump mask is the ratio greater than the threshold and the
     # difference is usable.  Loop over integrations to minimize the memory
     # footprint.
-    jump_mask = np.zeros(first_diffs.shape, dtype=bool)
     for i in range(nints):
-        absdiff = np.abs(first_diffs[i] - median_diffs[np.newaxis, :])
-        ratio = absdiff / sigma[np.newaxis, :]
-        jump_candidates = ratio > twopt_p.normal_rej_thresh
-        jump_mask = jump_candidates & first_diffs_finite[i]
-        gdq[i, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
+        for gi in range(1, gdq[i].shape[0]):
+            # compare jump to threshold
+            jump_candidates = (np.abs(first_diffs[i, gi-1] - median_diffs) / sigma) > twopt_p.normal_rej_thresh
+            gdq[i, gi] |= (jump_candidates & first_diffs_finite[i, gi-1]) * np.uint8(twopt_p.fl_jump)
     return gdq
 
 
