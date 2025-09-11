@@ -10,13 +10,13 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-def find_crs(dataa, group_dq, read_noise, twopt_p):
+def find_crs(data, group_dq, read_noise, twopt_p):
     """
     Detect jump due to cosmic rays using the two point difference method.
 
     Parameters
     ----------
-    dataa: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
+    data: float, 4D array (num_ints, num_groups, num_rows,  num_cols)
         input ramp data
     group_dq : int, 4D array
         group DQ flags
@@ -34,17 +34,18 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
     row_above_gdq : int, 3D array (num_ints, num_groups, num_cols)
         pixels above current row also to be flagged as a CR
     """
-    dat, gdq, read_noise_2 = set_up_data(dataa, group_dq, read_noise, twopt_p)
+    # pre-calculate
+    read_noise_2 = read_noise ** 2
 
     # Get data characteristics
-    nints, ngroups, nrows, ncols = dataa.shape
+    nints, ngroups, nrows, ncols = data.shape
     ndiffs = (ngroups - 1) * nints
 
     # Create arrays for output
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
     row_below_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
 
-    ngroups_ans = groups_all_set_dnu(nints, ngroups, gdq, twopt_p)
+    ngroups_ans = groups_all_set_dnu(nints, ngroups, group_dq, twopt_p)
     min_usable_groups = ngroups_ans[0]
     total_groups = ngroups_ans[1]
     min_usable_diffs = ngroups_ans[2]
@@ -61,21 +62,20 @@ def find_crs(dataa, group_dq, read_noise, twopt_p):
 
     if total_noise_min_grps_fails and sig_clip_grps_fails:
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        dummy = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
-        return gdq, row_below_gdq, row_above_gdq, -99, dummy
+        return group_dq, row_below_gdq, row_above_gdq, -99, None
 
-    gdq, first_diffs, median_diffs, sigma = run_jump_detection(
-        dat, gdq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
+    group_dq, first_diffs, median_diffs, sigma = run_jump_detection(
+        data, group_dq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
 
     # sum by integration to avoid large temporary arrays
-    num_primary_crs = np.sum([np.count_nonzero(per_group_dq & twopt_p.fl_jump) for per_group_dq in gdq])
+    num_primary_crs = np.sum([np.count_nonzero(per_group_dq & twopt_p.fl_jump) for per_group_dq in group_dq])
 
-    gdq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
-        gdq, nints, ngroups, first_diffs, median_diffs, sigma,
+    group_dq, row_below_gdq, row_above_gdq = jump_detection_post_processing(
+        group_dq, nints, ngroups, first_diffs, median_diffs, sigma,
         row_below_gdq, row_above_gdq, twopt_p)
 
     # TODO update jwst to not expect stddev (which it did not use)
-    return gdq, row_below_gdq, row_above_gdq, num_primary_crs, None
+    return group_dq, row_below_gdq, row_above_gdq, num_primary_crs, None
 
 
 def jump_detection_post_processing(
@@ -635,43 +635,6 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
                    total_noise_min_grps_fails, total_sigclip_groups)
 
     return ngroups_ans
-
-
-def set_up_data(dataa, group_dq, read_noise, twopt_p):
-    """
-    Creates copies, if desired, and squares the read noise.
-
-    Parameters
-    ----------
-    dataa : ndarray
-        The science data.
-    group_dq : ndarray
-        The group DQ array.
-    read_noise : ndarray
-        The pixel readnoise reference array.
-    twopt_p : TwoPointParams
-        Class containing two point difference parameters.
-
-    Returns
-    -------
-    dat : ndarray
-        The science data.
-    gdq : ndarray
-        The group DQ array.
-    read_noise_2 : ndarray
-        The square of the read noise reference array.
-    """
-    # copy data and group DQ array
-    if twopt_p.copy_arrs:
-        dat = dataa.copy()
-        gdq = group_dq.copy()
-    else:
-        dat = dataa
-        gdq = group_dq
-
-    read_noise_2 = read_noise**2
-
-    return dat, gdq, read_noise_2
 
 
 def propagate_flags(boolean_flag, n_groups_flag):

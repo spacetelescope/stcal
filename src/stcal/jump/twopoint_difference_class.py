@@ -1,7 +1,7 @@
 class TwoPointParams:
     """Contains data needed for computing two point difference."""
 
-    def __init__(self, jump_data=None, copy_arrs=False):
+    def __init__(self, jump_data=None):
         """
         Initialize TwoPointParams instance.
 
@@ -9,9 +9,6 @@ class TwoPointParams:
         ----------
         jump_data : JumpData
             Class containing parameters and methods to detect jumps.
-
-        copy_arrs : bool
-            Should the arrays be copied.
         """
         if jump_data is not None:
             self.normal_rej_thresh = jump_data.rejection_thresh
@@ -68,8 +65,6 @@ class TwoPointParams:
             self.only_use_ints = None
             self.min_diffs_single_pass = None
 
-        self.copy_arrs = copy_arrs
-
     def __repr__(self):
         """Create __repr__ string."""
         delim = "-" * 60
@@ -101,7 +96,6 @@ class TwoPointParams:
         ostr += f"only_use_ints = {self.only_use_ints}\n"
         ostr += f"min_diffs_single_pass = {self.min_diffs_single_pass}\n\n"
 
-        ostr += f"copy_arrs = {self.copy_arrs}\n"
         ostr += f"{delim}\n"
 
         return ostr
