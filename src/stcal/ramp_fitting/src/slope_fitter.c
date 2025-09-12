@@ -967,7 +967,7 @@ ERROR:
     clean_rateint_product(&rateint_prod);
 
     /* Return (None, None, None) */
-    result = Py_BuildValue("(NNN)", Py_None, Py_None, Py_None);
+    result = Py_BuildValue("(OOO)", Py_None, Py_None, Py_None);
 
 CLEANUP:
     FREE_RAMP_DATA(rd);
@@ -1141,16 +1141,18 @@ clean_ramp_data(
          */
         for (idx=0; idx < rd->cube_sz; ++idx) {
             current = rd->segs[idx];
-            if (current) {
+            while (current) {
                 next = current->flink;
+                memset(current, 0, sizeof(*current));
                 SET_FREE(current);
                 current = next;
             }
 
             /* CR list */
             cr_current = rd->crs[idx];
-            if (cr_current) {
+            while (cr_current) {
                 cr_next = cr_current->flink;
+                memset(cr_current, 0, sizeof(*cr_current));
                 SET_FREE(cr_current);
                 cr_current = cr_next;
             }
@@ -1513,7 +1515,7 @@ static struct pixel_ramp *
 create_pixel_ramp(
         struct ramp_data * rd) /* The ramp fitting data */
 {
-    struct pixel_ramp * pr = (struct pixel_ramp*)calloc(1, sizeof(*rd));
+    struct pixel_ramp * pr = (struct pixel_ramp*)calloc(1, sizeof(*pr));
     char msg[256] = {0};
 
     /* Make sure memory allocation worked */
@@ -1577,27 +1579,27 @@ create_rate_product(
     dims[1] = rd->ncols;
 
     rate->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rate->slope) {
+    if (NULL==rate->slope) {
         goto FAILED_ALLOC;
     }
 
     rate->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
-    if (Py_None==(PyObject*)rate->dq) {
+    if (NULL==rate->dq) {
         goto FAILED_ALLOC;
     }
 
     rate->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rate->var_poisson) {
+    if (NULL==rate->var_poisson) {
         goto FAILED_ALLOC;
     }
 
     rate->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rate->var_rnoise) {
+    if (NULL==rate->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
     rate->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rate->var_err) {
+    if (NULL==rate->var_err) {
         goto FAILED_ALLOC;
     }
 
@@ -1636,27 +1638,27 @@ create_rateint_product(
     dims[2] = rd->ncols;
 
     rateint->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rateint->slope) {
+    if (NULL==rateint->slope) {
         goto FAILED_ALLOC;
     }
 
     rateint->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
-    if (Py_None==(PyObject*)rateint->dq) {
+    if (NULL==rateint->dq) {
         goto FAILED_ALLOC;
     }
 
     rateint->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rateint->var_poisson) {
+    if (NULL==rateint->var_poisson) {
         goto FAILED_ALLOC;
     }
 
     rateint->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rateint->var_rnoise) {
+    if (NULL==rateint->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
     rateint->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (Py_None==(PyObject*)rateint->var_err) {
+    if (NULL==rateint->var_err) {
         goto FAILED_ALLOC;
     }
 
