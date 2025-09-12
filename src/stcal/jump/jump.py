@@ -87,7 +87,7 @@ def detect_jumps_data(jump_data):
     n_rows = data.shape[2]
     n_slices = calc_num_slices(n_rows, jump_data.max_cores, max_available)
 
-    twopt_params = TwoPointParams(jump_data, False)
+    twopt_params = TwoPointParams(jump_data)
     if n_slices == 1:
         twopt_params.minimum_groups = 3  # XXX Should this be hard coded as 3?
         gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = twopt.find_crs(
@@ -114,13 +114,6 @@ def detect_jumps_data(jump_data):
 
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
-
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
-        # Back out the applied gain to the SCI and readnoise arrays so they're
-        #    back in units of DN
-        data /= jump_data.gain_2d
-        readnoise_2d /= jump_data.gain_2d
 
     # Return the updated data quality arrays
     return gdq, pdq, total_primary_crs, number_extended_events, stddev
@@ -291,7 +284,6 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     # Each element of slices is a tuple of
     # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
     #  four_grp_thresh, nframes)
-    twopt_params.copy_arrs = False  # we don't need to copy arrays again in find_crs
     for i in range(n_slices - 1):
         slices.insert(
             i,
