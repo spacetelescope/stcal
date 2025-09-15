@@ -91,7 +91,7 @@ def test_nirspec_saturated_pix():
     jump_data.min_jump_to_flag_neighbors = 10
     jump_data.flag_4_neighbors = True
 
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps_data(jump_data)
+    gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     # Check the results. There should not be any pixels with DQ values of 6, which
     # is saturated (2) plus jump (4). All the DQ's should be either just 2 or just 4.
@@ -127,7 +127,7 @@ def test_multiprocessing():
     jump_data.min_jump_to_flag_neighbors = 100
     jump_data.flag_4_neighbors = True
 
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps_data(jump_data)
+    gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 5, 1] == JUMP
     assert gdq[0, 4, 6, 1] == DNU
@@ -147,7 +147,7 @@ def test_multiprocessing():
     jump_data.min_jump_to_flag_neighbors = 100
     jump_data.flag_4_neighbors = True
 
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps_data(jump_data)
+    gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 5, 1] == JUMP
     assert gdq[0, 4, 6, 1] == DNU  #This value would have been DNU | JUMP without the fix.
@@ -175,7 +175,7 @@ def test_multiprocessing_big():
     jump_data.min_jump_to_flag_neighbors = 100
     jump_data.flag_4_neighbors = True
 
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps_data(jump_data)
+    gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 204, 5] == JUMP
     assert gdq[0, 4, 205, 5] == JUMP
@@ -198,7 +198,7 @@ def test_multiprocessing_big():
     jump_data.min_jump_to_flag_neighbors = 100
     jump_data.flag_4_neighbors = True
 
-    gdq, pdq, total_primary_crs, number_extended_events, stddev = detect_jumps_data(jump_data)
+    gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 204, 5] == JUMP
     assert gdq[0, 4, 205, 5] == JUMP

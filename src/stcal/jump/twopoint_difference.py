@@ -74,8 +74,7 @@ def find_crs(data, group_dq, read_noise, twopt_p):
         group_dq, nints, ngroups, first_diffs, median_diffs, sigma,
         row_below_gdq, row_above_gdq, twopt_p)
 
-    # TODO update jwst to not expect stddev (which it did not use)
-    return group_dq, row_below_gdq, row_above_gdq, num_primary_crs, None
+    return group_dq, row_below_gdq, row_above_gdq, num_primary_crs
 
 
 def jump_detection_post_processing(
