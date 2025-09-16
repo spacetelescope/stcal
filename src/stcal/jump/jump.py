@@ -58,9 +58,6 @@ def detect_jumps_data(jump_data):
 
     number_extended_events : int
         the number of showers or XXX found
-
-    stddev : float
-        standard deviation computed during sigma clipping
     """
     sat, jump, dnu = jump_data.fl_sat, jump_data.fl_jump, jump_data.fl_dnu
     number_extended_events = 0
@@ -87,13 +84,13 @@ def detect_jumps_data(jump_data):
     n_rows = data.shape[2]
     n_slices = calc_num_slices(n_rows, jump_data.max_cores, max_available)
 
-    twopt_params = TwoPointParams(jump_data, False)
+    twopt_params = TwoPointParams(jump_data)
     if n_slices == 1:
         twopt_params.minimum_groups = 3  # XXX Should this be hard coded as 3?
-        gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = twopt.find_crs(
+        gdq, row_below_dq, row_above_dq, total_primary_crs = twopt.find_crs(
                     data, gdq, readnoise_2d, twopt_params)
     else:
-        gdq, total_primary_crs, stddev = twopoint_diff_multi(
+        gdq, total_primary_crs = twopoint_diff_multi(
             jump_data, twopt_params, data, gdq, readnoise_2d, n_slices)
 
     # remove redundant bits in pixels that have jump flagged but were
@@ -115,15 +112,8 @@ def detect_jumps_data(jump_data):
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
-        # Back out the applied gain to the SCI and readnoise arrays so they're
-        #    back in units of DN
-        data /= jump_data.gain_2d
-        readnoise_2d /= jump_data.gain_2d
-
     # Return the updated data quality arrays
-    return gdq, pdq, total_primary_crs, number_extended_events, stddev
+    return gdq, pdq, total_primary_crs, number_extended_events
 
 
 def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
@@ -157,9 +147,6 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
 
     total_primary_crs : int
         total number of primary cosmic rays computed
-
-    stddev : float
-        standard deviation computed during sigma clipping
     """
     slices, yinc = slice_data(twopt_params, data, gdq, readnoise_2d, n_slices)
 
@@ -185,7 +172,7 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     ----------
     real_result : tuple
         The tuple return values from twopt.find_crs
-        (gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy/stddev)
+        (gdq, row_below_gdq, row_above_gdq, num_primary_crs)
 
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
@@ -204,10 +191,6 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
 
     total_primary_crs : int
         Total number of primary cosmic rays detected.
-
-    stddev : float
-        standard deviation computed during sigma clipping
-
     """
     nints, ngroups, nrows, ncols = gdq.shape
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
@@ -217,25 +200,13 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     # Reconstruct gdq, the row_above_gdq, and the row_below_gdq from the
     # slice result
     total_primary_crs = 0
-    if jump_data.only_use_ints:
-        stddev = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
-    else:
-        stddev = np.zeros((nrows, ncols), dtype=np.float32)
 
     # Reassemble the data
     for k, resultslice in enumerate(real_result):
         if len(real_result) == k + 1:  # last result
             gdq[:, :, k * yinc: nrows, :] = resultslice[0]
-            if jump_data.only_use_ints:
-                stddev[:, k * yinc: nrows, :] = resultslice[4]
-            else:
-                stddev[k * yinc: nrows, :] = resultslice[4]
         else:
             gdq[:, :, k * yinc: (k + 1) * yinc, :] = resultslice[0]
-            if jump_data.only_use_ints:
-                stddev[:, k * yinc: (k + 1) * yinc, :] = resultslice[4]
-            else:
-                stddev[k * yinc : (k + 1) * yinc, :] = resultslice[4]
         row_below_gdq[:, :, :] = resultslice[1]
         row_above_gdq[:, :, :] = resultslice[2]
         total_primary_crs += resultslice[3]
@@ -250,7 +221,7 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
         # save the neighbors to be flagged that will be in the next slice
         previous_row_above_gdq = row_above_gdq.copy()
 
-    return gdq, total_primary_crs, stddev
+    return gdq, total_primary_crs
 
 
 
@@ -291,7 +262,6 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     # Each element of slices is a tuple of
     # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
     #  four_grp_thresh, nframes)
-    twopt_params.copy_arrs = False  # we don't need to copy arrays again in find_crs
     for i in range(n_slices - 1):
         slices.insert(
             i,
