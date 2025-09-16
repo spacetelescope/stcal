@@ -438,7 +438,8 @@ def _get_inverse_variance(array, data_shape, array_name):
     -------
     inv : numpy.ndarray
         Inverse variance array. If input array is missing or has wrong shape,
-        returns an array filled with zeros of shape `data_shape`.
+        returns an array filled with ones of shape `data_shape`.  Otherwise the inverse of the variance
+        array is returned, with invalid values replaced by zeros.
     """
     if array is not None and array.shape == data_shape:
         with np.errstate(divide="ignore", invalid="ignore"):
