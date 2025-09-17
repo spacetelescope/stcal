@@ -166,7 +166,7 @@ def twopoint_diff_multi(
     # pool = ctx.Pool(processes=1)
     # Starts each slice in its own process. Starmap allows more than one
     # parameter to be passed.
-    real_result = pool.starmap(twopt.find_crs, slices)
+    real_result = tuple(pool.starmap(twopt.find_crs, slices))
     pool.close()
     pool.join()
 
@@ -740,8 +740,8 @@ def point_inside_ellipse(point: tuple[float, float], ellipse: NDArray[int]) -> b
     -------
     Boolean decision if point is in ellipse
     """
-    delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
-    major_axis = max(ellipse[1][0], ellipse[1][1])
+    delta_center = float(np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2))
+    major_axis = float(max(ellipse[1][0], ellipse[1][1]))
 
     return delta_center < major_axis
 
@@ -771,10 +771,10 @@ def near_edge(jump: NDArray[int], low_threshold: float, high_threshold: float) -
     Boolean : True if ellipse is close to the detector's edge.
     """
     return (
-        jump[0][0] < low_threshold
-        or jump[0][1] < low_threshold
-        or jump[0][0] > high_threshold
-        or jump[0][1] > high_threshold
+        float(jump[0][0]) < low_threshold
+        or float(jump[0][1]) < low_threshold
+        or float(jump[0][0]) > high_threshold
+        or float(jump[0][1]) > high_threshold
     )
 
 
@@ -862,7 +862,7 @@ def find_faint_extended(
 
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
-                all_ellipses.append([intg, grp, ellipses])
+                all_ellipses.append((intg, grp, ellipses))
                 # Reset the warnings filter to its original state
 
     warnings.resetwarnings()
@@ -874,7 +874,9 @@ def find_faint_extended(
         # can flag future groups and would confuse the detection algorithm if
         # we worked on groups that already had some flagged showers.
         for showers in all_ellipses:
-            intg, grp, ellipses = showers[:3]
+            intg = showers[0]
+            grp = showers[1]
+            ellipses = showers[2]
             total_showers += len(ellipses)
             gdq, num = extend_ellipses(
                 gdq,
@@ -1255,8 +1257,8 @@ def diff_meddiff_grp(
     ratio : ndarray
         SNR ratio
     """
-    median_diffs = median[grp - 1]
-    sigma = stddev[grp - 1]
+    median_diffs = np.array(median)
+    sigma = np.array(stddev)
 
     # The difference from the median difference for each group
     e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
@@ -1348,9 +1350,9 @@ def calc_num_slices(n_rows: int, max_cores: int, max_available: int) -> int:
     The number of slices to slice the data into.
     """
     n_slices = 1
-    if max_cores.isnumeric():
+    if isinstance(max_cores, np.numbers.Number):
         n_slices = int(max_cores)
-    elif max_cores.lower() == "none" or max_cores.lower() == "one":
+    elif isinstance(max_cores, str) and (max_cores.lower() == "none" or max_cores.lower() == "one"):
         n_slices = 1
     elif max_cores == "quarter":
         n_slices = max_available // 4 or 1
@@ -1371,7 +1373,7 @@ def sk_ellipse(shape: tuple[int, int], center: tuple[float, float], axes: tuple[
     # where the skimage ellipse had some extra
     # and some missing edge pixels (rather
     # than only missing edge pixels without the fudge).
-    return skimage.draw.ellipse(
+    return skimage.draw.ellipse( # type: ignore[no-any-return]
         center[1], center[0],
         axes[1] + 0.25, axes[0] + 0.25,
         shape,
