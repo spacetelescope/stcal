@@ -146,8 +146,8 @@ def fit_ramps(float[:, :] resultants,
 
     # Raise error if input data is inconsistent
     if n_resultants != len(read_pattern):
-        raise RuntimeError(f'The read pattern length {len(read_pattern)} does not '
-                           f'match number of resultants {n_resultants}')
+        raise RuntimeError(f"The read pattern length {len(read_pattern)} does not "
+                           f"match number of resultants {n_resultants}")
 
     # Compute the main metadata from the read pattern and cast it to memory views
     cdef ReadPattern metadata = from_read_pattern(read_pattern, read_time, n_resultants)

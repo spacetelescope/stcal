@@ -1,46 +1,64 @@
 documentation:
-  - "docs/**/*"
-  - any: ["*.rst", "!CHANGES.rst"]
-  - "*.md"
-  - ".readthedocs.yaml"
-  - "LICENSE"
+  - changed-files:
+      - all-globs-to-any-file: ["*.rst", "!CHANGES.rst"]
+      - any-glob-to-any-file:
+          - "docs/**/*"
+          - "*.md"
+          - ".readthedocs.yaml"
+          - "LICENSE"
 
 installation:
-  - "pyproject.toml"
-  - "setup.*"
-  - "requirements-*.txt"
-  - "MANIFEST.in"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "pyproject.toml"
+          - "setup.*"
+          - "requirements-*.txt"
+          - "MANIFEST.in"
 
 # --------------------------------------- testing ---------------------------------------
 
 automation:
-  - ".github/**"
-  - ".bandit.yaml"
-  - ".codecov.yml"
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - ".bandit.yaml"
+          - ".codecov.yml"
 
 testing:
-  - "**/tests/**"
-  - ".github/workflows/ci*.yml"
-  - "conftest.py"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/tests/**"
+          - ".github/workflows/ci*.yml"
+          - "conftest.py"
 
 # --------------------------------------- modules ---------------------------------------
 
 dark_current:
-  - "**/*dark_current*"
-  - "**/*dark_current*/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*dark_current*"
+          - "**/*dark_current*/**"
 
 jump:
-  - "**/*jump*"
-  - "**/*jump*/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*jump*"
+          - "**/*jump*/**"
 
 linearity:
-  - "**/*linearity*"
-  - "**/*linearity*/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*linearity*"
+          - "**/*linearity*/**"
 
 ramp_fitting:
-  - "**/*ramp_fitting*"
-  - "**/*ramp_fitting*/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*ramp_fitting*"
+          - "**/*ramp_fitting*/**"
 
 saturation:
-  - "**/*saturation*"
-  - "**/*saturation*/**"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*saturation*"
+          - "**/*saturation*/**"
