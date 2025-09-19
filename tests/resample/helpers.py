@@ -108,7 +108,7 @@ def make_input_model(shape, crpix=(0, 0), crval=(0, 0), pscale=2.0e-5,
         "subtracted": False,
     }
 
-    for arr in ["var_flat", "var_rnoise", "var_poisson"]:
+    for arr in ["var_flat", "var_rnoise", "var_poisson", "var_sky"]:
         model[arr] = np.ones(shape, dtype=np.float32)
 
     model["err"] = np.sqrt(3.0) * np.ones(shape, dtype=np.float32)
@@ -148,7 +148,7 @@ def make_nrcb5_model(wcs_wcsinfo, group_id=1, exptime=1):
         "subtracted": False,
     }
 
-    for arr in ["var_flat", "var_rnoise", "var_poisson"]:
+    for arr in ["var_flat", "var_rnoise", "var_poisson", "var_sky"]:
         model[arr] = np.zeros(shape, dtype=np.float32)
 
     model["err"] = np.zeros(shape, dtype=np.float32)
@@ -179,6 +179,7 @@ def make_output_model(crpix, crval, pscale, shape):
         "var_rnoise": None,
         "var_flat": None,
         "var_poisson": None,
+        "var_sky": None,
         "err": None,
 
         # drizzle info:

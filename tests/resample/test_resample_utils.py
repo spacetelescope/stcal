@@ -11,6 +11,7 @@ from stcal.resample.utils import (
     is_flux_density,
     is_imaging_wcs,
     resample_range,
+    _get_inverse_variance,
 )
 
 from . helpers import make_input_model, JWST_DQ_FLAG_DEF
@@ -120,15 +121,18 @@ def test_is_flux_density(unit, result):
     assert is_flux_density(unit) is result
 
 
-@pytest.mark.parametrize("weight_type", ["ivm", "exptime"])
+@pytest.mark.parametrize("weight_type", ["ivm", "exptime", "ivm-sky"])
 def test_build_driz_weight(weight_type):
     """Check that correct weight map is returned of different weight types"""
 
     model = make_input_model((10, 10))
 
+    # N.B.: all variance arrays are initialized to 1
+
     model["dq"][0] = JWST_DQ_FLAG_DEF.DO_NOT_USE
     model["measurement_time"] = 10.0
     model["var_rnoise"] /= 10.0
+    model["var_sky"] /= 10.0
 
     weight_map = build_driz_weight(
         model,
@@ -140,10 +144,32 @@ def test_build_driz_weight(weight_type):
     assert weight_map.dtype == np.float32
 
 
-@pytest.mark.parametrize("weight_type", ["ivm", None])
+@pytest.mark.parametrize("weight_type", ["ivm", "exptime", "ivm-sky"])
 def test_build_driz_weight_zeros(weight_type):
-    """Check that zero or not finite weight maps get set to 1"""
+    """Check that zero or not finite variance arrays return proper weight
+    map."""
     model = make_input_model((10, 10))
+
+    model["measurement_time"] = 0.0
+    model["var_rnoise"] *= 0
+    model["var_sky"] *= np.inf
+
+    weight_map = build_driz_weight(model, weight_type=weight_type)
+
+    assert_array_equal(weight_map, 0)
+
+
+@pytest.mark.parametrize("weight_type,var_array_name", [("ivm", "var_rnoise"),
+                                                        ("exptime",
+                                                         "measurement_time"),
+                                                        ("ivm-sky", "var_sky"),
+                                                        ])
+def test_build_driz_weight_none(weight_type, var_array_name):
+    """Check that missing variance array returns equally weighted map set
+    to 1."""
+    model = make_input_model((10, 10))
+
+    del model[var_array_name]
 
     weight_map = build_driz_weight(model, weight_type=weight_type)
 
@@ -155,3 +181,22 @@ def test_unsupported_weight_type(weight_type):
     model = make_input_model((10, 10))
     with pytest.raises(ValueError, match=fr"^Invalid weight type: {repr(weight_type)}"):
         build_driz_weight(model, weight_type=weight_type)
+
+
+@pytest.mark.parametrize("array_name", ["var_rnoise", "var_sky"])
+def test_get_inverse_variance_valid_and_invalid(array_name):
+    arr = np.array([[4.0, 0.0], [np.nan, 1.0]])
+    inv = _get_inverse_variance(arr, arr.shape, array_name)
+    assert np.isclose(inv[0, 0], 0.25)
+    assert inv[0, 1] == 0
+    assert inv[1, 0] == 0
+    assert inv[1, 1] == 1.0
+    # Wrong shape
+    with pytest.warns(RuntimeWarning, match=f"'{array_name}' array not available."):
+        inv2 = _get_inverse_variance(None, (2, 2), array_name)
+    np.testing.assert_array_equal(inv2, 1)
+    with pytest.warns(RuntimeWarning, match=f"'{array_name}' array not available."):
+        inv3 = _get_inverse_variance(np.ones((1, 1)), (2, 2), array_name)
+    np.testing.assert_array_equal(inv3, 1)
+
+

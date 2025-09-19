@@ -74,20 +74,18 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     model : dict
         Input model: a dictionary of relevant keywords and values.
 
-    weight_type : {"exptime", "ivm"}, None, optional
-        The weighting type for adding models' data. For
-        ``weight_type="ivm"``, the weighting will be
-        determined per-pixel using the inverse of the read noise
-        (VAR_RNOISE) array stored in each input image. If the
-        ``VAR_RNOISE`` array does not exist,
-        the variance is set to 1 for all pixels (i.e., equal weighting).
-        If ``weight_type="exptime"``, the weight will be set equal
-        to the measurement time when available and to
-        the exposure time otherwise for pixels not flagged in the DQ array of
-        the model. The default value of `None` will
-        set weights to 1 for pixels not flagged in the DQ array of the model.
-        Pixels flagged as "bad" in the DQ array will have thier weights
-        set to 0.
+    weight_type : {"exptime", "ivm", "ivm-sky"}, None, optional
+        The weighting type for adding models' data. For ``weight_type="ivm"``
+        and ``weight_type="ivm-sky"``, the weighting will be determined
+        per-pixel using the inverse of either the read noise (VAR_RNOISE) or
+        sky variance (VAR_SKY) arrays, respectively. If the array does not
+        exist, the weight is set to 1 for all pixels (i.e., equal weighting).
+        If ``weight_type="exptime"``, the weight will be set equal to the
+        measurement time when available and to the exposure time otherwise for
+        pixels not flagged in the DQ array of the model. The default value of
+        `None` will set weights to 1 for pixels not flagged in the DQ array of
+        the model. Pixels flagged as "bad" in the DQ array will have their
+        weights set to 0.
 
     good_bits : int, str, None, optional
         An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -101,7 +99,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         A `~astropy.nddata.BitFlagNameMap` object or a dictionary that provides
         mapping from mnemonic bit flag names to integer bit values in order to
         translate mnemonic flags to numeric values when ``bit_flags``
-        that are comma- or '+'-separated list of menmonic bit flag names.
+        that are comma- or '+'-separated list of mnemonic bit flag names.
 
     """
     data = model["data"]
@@ -115,23 +113,23 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         flag_name_map=flag_name_map,
     )
 
-    if weight_type == 'ivm':
-        var_rnoise = model["var_rnoise"]
-        if (var_rnoise is not None and
-                var_rnoise.shape == data.shape):
-            with np.errstate(divide="ignore", invalid="ignore"):
-                inv_variance = var_rnoise**-1
-            inv_variance[~np.isfinite(inv_variance)] = 1
-            result = inv_variance * dqmask
-        else:
-            warnings.warn(
-                "'var_rnoise' array not available. "
-                "Setting drizzle weight map to 1",
-                RuntimeWarning
-            )
-            result = dqmask
+    if weight_type == "ivm":
+        inv_variance = _get_inverse_variance(
+            model["var_rnoise"] if "var_rnoise" in model else None,
+            data.shape,
+            "var_rnoise",
+        )
+        result = inv_variance * dqmask
 
-    elif weight_type == 'exptime':
+    elif weight_type == "ivm-sky":
+        inv_sky_variance = _get_inverse_variance(
+            model["var_sky"] if "var_sky" in model else None,
+            data.shape,
+            "var_sky",
+        )
+        result = inv_sky_variance * dqmask
+
+    elif weight_type == "exptime":
         exptime, _ = get_tmeasure(model)
         result = np.float32(exptime) * dqmask
 
@@ -141,7 +139,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     else:
         raise ValueError(
             f"Invalid weight type: {repr(weight_type)}."
-            "Allowed weight types are 'ivm', 'exptime', or None."
+            "Allowed weight types are 'ivm', 'ivm-sky', 'exptime', or None."
         )
 
     return result.astype(np.float32)
@@ -423,3 +421,36 @@ def is_flux_density(bunit):
     except (ValueError, TypeError):
         flux_density = False
     return flux_density
+
+
+def _get_inverse_variance(array, data_shape, array_name):
+    """
+    Compute the inverse variance array for weighting.
+
+    Parameters
+    ----------
+    array : numpy.ndarray or None
+        Input variance array.
+    data_shape : tuple
+        Expected shape of the output array.
+
+    Returns
+    -------
+    inv : numpy.ndarray
+        Inverse variance array. If input array is missing or has wrong shape,
+        returns an array filled with ones of shape `data_shape`.  Otherwise the inverse of the variance
+        array is returned, with invalid values replaced by zeros.
+    """
+    if array is not None and array.shape == data_shape:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            inv = 1.0 / array
+        inv[~np.isfinite(inv)] = 0  # zeros for bad pixels
+    else:
+        warnings.warn(
+            f"'{array_name}' array not available. "
+            "Setting drizzle weight map to 1",
+            RuntimeWarning
+        )
+        inv = np.full(data_shape, 1, dtype=np.float32)   # ones for missing/misshaped array
+
+    return inv
