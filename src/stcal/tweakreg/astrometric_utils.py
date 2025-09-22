@@ -203,4 +203,6 @@ def get_catalog(
             "There was an unexpected error with the request."
         )
     r_contents = rawcat.content.decode()  # convert from bytes to a String
+    if r_contents.startswith("No data records"):
+        r_contents = "\n"
     return Table.read(r_contents, format="csv", comment='#')
