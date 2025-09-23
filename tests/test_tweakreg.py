@@ -246,7 +246,7 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
     assert refcat.meta["name"] == TEST_CATALOG
 
 
-def test_parse_sky_centroid(abs_refcat):
+def test_parse_sky_centroid(caplog, abs_refcat):
 
     # make a SkyCoord object out of the RA and DEC columns
     sky_centroid = SkyCoord(abs_refcat["ra"], abs_refcat["dec"], unit="deg")
@@ -254,8 +254,11 @@ def test_parse_sky_centroid(abs_refcat):
 
     # test case where ra, dec, and sky_centroid are all present
     cat = abs_refcat.copy()
-    with pytest.warns(UserWarning):
-        cat_out = _parse_sky_centroid(cat)
+    cat_out = _parse_sky_centroid(cat)
+
+    # warning for duplicate columns is logged
+    assert "Ignoring sky_centroid" in caplog.text
+
     assert isinstance(cat_out, Table)
     assert np.all(abs_refcat["ra"] == cat_out["RA"])
     assert np.all(abs_refcat["dec"] == cat_out["DEC"])
