@@ -6,7 +6,6 @@ from gwcs.wcstools import grid_from_bounding_box
 from stcal.alignment import util
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def calc_pixmap(in_wcs, out_wcs, shape=None):

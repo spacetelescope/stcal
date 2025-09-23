@@ -23,7 +23,6 @@ from astropy import units as u
 
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 __all__ = [
     "compute_scale",

@@ -14,7 +14,6 @@ from stcal.alignment.util import wcs_bbox_from_shape
 
 import logging
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 __all__ = [

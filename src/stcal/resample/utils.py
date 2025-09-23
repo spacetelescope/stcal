@@ -22,7 +22,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def resample_range(data_shape, bbox=None):
