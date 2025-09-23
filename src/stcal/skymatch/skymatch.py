@@ -19,7 +19,6 @@ __all__ = ['skymatch']
 __local_debug__ = True
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def skymatch(images, skymethod='global+match', match_down=True, subtract=False):
