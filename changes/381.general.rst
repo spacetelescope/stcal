@@ -1,0 +1,4 @@
+Add caching to the ``tweakreg.astrometric_utils.get_catalog`` function to avoid
+repeated calls to the VO web service for the same parameters. This will improve
+performance and reduce the load on the service.  Also, testing from romancal for
+``get_catalog`` has been moved to stcal.

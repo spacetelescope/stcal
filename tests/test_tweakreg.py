@@ -8,10 +8,12 @@ import asdf
 import contextlib
 import numpy as np
 import pytest
+from astropy import units as u
 from astropy.modeling.models import Shift
 from astropy.table import Table
 from astropy.time import Time
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, get_body_barycentric
+from astropy.stats import mad_std
 
 from stcal.tweakreg import astrometric_utils as amutils
 from stcal.tweakreg.tweakreg import (
@@ -41,6 +43,8 @@ DATADIR = "data"
 # something
 BKG_LEVEL = 0.001
 N_EXAMPLE_SOURCES = 21
+
+ARAD = np.pi / 180.0
 
 
 class MockConnectionError:
@@ -86,6 +90,278 @@ def test_get_catalog(wcsobj):
     assert len(cat) == EXPECTED_NUM_SOURCES
 
 
+@pytest.mark.parametrize(
+    "ra, dec, sr",
+    [
+        (10, 10, 0.1),
+        (10, -10, 0.1),
+        (0, 0, 0.01),
+    ],
+)
+@pytest.mark.parametrize("catalog_name", ["GAIADR1", "GAIADR2", "GAIADR3"])
+def test_get_catalog_using_valid_parameters(ra, dec, sr, catalog_name):
+    """Test that get_catalog works properly with valid input parameters."""
+
+    assert len(amutils.get_catalog(ra, dec, search_radius=sr, catalog=catalog_name)) > 0
+
+
+@pytest.mark.parametrize(
+    "ra, dec, sr, catalog_name",
+    [
+        (10, 10, 0.1, "GAIDR3"),
+        (-10, 10, 0.1, "GAIADR3"),
+        (10, 100, 0.1, "GAIADR3"),
+        (10, 100, 0.1, ""),
+        (None, 100, 0.1, "GAIADR3"),
+        (10, 10, 0.00014, "GAIADR3"),  # very small search radius -> no sources
+    ],
+)
+def test_get_catalog_using_invalid_parameters(ra, dec, sr, catalog_name):
+    """Test that get_catalog returns an empty table for invalid input parameters."""
+
+    assert len(amutils.get_catalog(ra, dec, search_radius=sr, catalog=catalog_name)) == 0
+
+
+@pytest.mark.parametrize(
+    "ra, dec, epoch",
+    [
+        (10, 10, 2000),
+        (10, 10, 2010.3),
+        (10, 10, 2030),
+        (10, -10, 2000),
+        (10, -10, 2010.3),
+        (10, -10, 2030),
+        (0, 0, 2000),
+        (0, 0, 2010.3),
+        (0, 0, 2030),
+    ],
+)
+def test_get_catalog_using_epoch(ra, dec, epoch):
+    """Test that get_catalog returns coordinates corrected by proper motion
+    and parallax. The idea is to fetch data for a specific epoch from the MAST VO API
+    and compare them with the expected coordinates for that epoch.
+    First, the data for a specific coordinates and epoch are fetched from the MAST VO
+    API. Then, the data for the same coordinates are fetched for the Gaia's reference
+    epoch of 2016.0, and corrected for proper motion and parallax using explicit
+    calculations for the initially specified epoch. We then compare the results between
+    the returned coordinates from the MAST VO API and the manually updated
+    coordinates."""
+
+    def get_parallax_correction_barycenter(epoch, gaia_ref_epoch_coords):
+        """
+        Calculates the parallax correction in the Earth barycenter frame for a given epoch
+        and Gaia reference epoch coordinates (i.e. Gaia coordinates at the reference epoch).
+
+        Parameters
+        ----------
+        epoch : float
+            The epoch for which the parallax correction is calculated.
+        gaia_ref_epoch_coords : dict
+            The Gaia reference epoch coordinates, including 'ra', 'dec', and 'parallax'.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the delta_ra and delta_dec values of the parallax correction
+            in degrees.
+
+        Examples
+        --------
+        .. code-block :: python
+            epoch = 2022.5
+            gaia_coords = {'ra': 180.0, 'dec': 45.0, 'parallax': 10.0}
+            correction = get_parallax_correction_earth_barycenter(epoch, gaia_coords)
+            print(correction)
+            (0.001, -0.002)
+        """
+
+        obs_date = Time(epoch, format="decimalyear")
+        earths_center_barycentric_coords = get_body_barycentric(
+            "earth", obs_date, ephemeris="builtin"
+        )
+        earth_X = earths_center_barycentric_coords.x
+        earth_Y = earths_center_barycentric_coords.y
+        earth_Z = earths_center_barycentric_coords.z
+
+        # angular displacement components
+        # (see eq. 8.15 of "Spherical Astronomy" by Robert M. Green)
+        delta_ra = (
+            u.Quantity(gaia_ref_epoch_coords["parallax"], unit="mas").to(u.rad)
+            * (1 / np.cos(gaia_ref_epoch_coords["dec"] * ARAD))
+            * (
+                earth_X.value * np.sin(gaia_ref_epoch_coords["ra"] * ARAD)
+                - earth_Y.value * np.cos(gaia_ref_epoch_coords["ra"] * ARAD)
+            )
+        ).to("deg")
+        delta_dec = (
+            u.Quantity(gaia_ref_epoch_coords["parallax"], unit="mas").to(u.rad)
+            * (
+                earth_X.value
+                * np.cos(gaia_ref_epoch_coords["ra"] * ARAD)
+                * np.sin(gaia_ref_epoch_coords["dec"] * ARAD)
+                + earth_Y.value
+                * np.sin(gaia_ref_epoch_coords["ra"] * ARAD)
+                * np.sin(gaia_ref_epoch_coords["dec"] * ARAD)
+                - earth_Z.value * np.cos(gaia_ref_epoch_coords["dec"] * ARAD)
+            )
+        ).to("deg")
+
+        return delta_ra, delta_dec
+
+    def get_proper_motion_correction(epoch, gaia_ref_epoch_coords, gaia_ref_epoch):
+        """
+        Calculates the proper motion correction for a given epoch and Gaia reference epoch
+        coordinates.
+
+        Parameters
+        ----------
+        epoch : float
+            The epoch for which the proper motion correction is calculated.
+        gaia_ref_epoch_coords : dict
+            A dictionary containing Gaia reference epoch coordinates.
+        gaia_ref_epoch : float
+            The Gaia reference epoch.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        .. code-block:: python
+        epoch = 2022.5
+        gaia_coords = {
+            "ra": 180.0,
+            "dec": 45.0,
+            "pmra": 2.0,
+            "pmdec": 1.5
+        }
+        gaia_ref_epoch = 2020.0
+        get_proper_motion_correction(epoch, gaia_coords, gaia_ref_epoch)
+        """
+
+        expected_new_dec = (
+            np.array(
+                gaia_ref_epoch_coords["dec"] * 3600
+                + (epoch - gaia_ref_epoch) * gaia_ref_epoch_coords["pmdec"] / 1000
+            )
+            / 3600
+        )
+        average_dec = np.array(
+            [
+                np.mean([new, old])
+                for new, old in zip(
+                    expected_new_dec, gaia_ref_epoch_coords["dec"], strict=False
+                )
+            ]
+        )
+        pmra = gaia_ref_epoch_coords["pmra"] / np.cos(np.deg2rad(average_dec))
+
+        # angular displacement components
+        gaia_ref_epoch_coords["pm_delta_dec"] = u.Quantity(
+            (epoch - gaia_ref_epoch) * gaia_ref_epoch_coords["pmdec"] / 1000,
+            unit=u.arcsec,
+        ).to(u.deg)
+        gaia_ref_epoch_coords["pm_delta_ra"] = u.Quantity(
+            (epoch - gaia_ref_epoch) * (pmra / 1000), unit=u.arcsec
+        ).to(u.deg)
+
+    def get_parallax_correction(epoch, gaia_ref_epoch_coords):
+        """
+        Calculates the parallax correction for a given epoch and Gaia reference epoch
+        coordinates.
+
+        Parameters
+        ----------
+        epoch : float
+            The epoch for which to calculate the parallax correction.
+        gaia_ref_epoch_coords : dict
+            A dictionary containing the Gaia reference epoch coordinates:
+            - "ra" : float
+                The right ascension in degrees.
+            - "dec" : float
+                The declination in degrees.
+            - "parallax" : float
+                The parallax in milliarcseconds (mas).
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This function calculates the parallax correction for a given epoch and Gaia
+        reference epoch coordinates. It uses the `get_parallax_correction_barycenter`
+        and `get_parallax_correction_mast` functions to obtain the parallax corrections
+        based on different coordinate frames.
+
+        Examples
+        --------
+        This function is typically used to add parallax correction columns to a main table
+        of Gaia reference epoch coordinates.
+
+        .. code-block:: python
+
+            epoch = 2023.5
+            gaia_coords = {"ra": 180.0, "dec": 30.0, "parallax": 2.5}
+            get_parallax_correction(epoch, gaia_coords)
+        """
+
+        # get parallax correction using textbook calculations (i.e. Earth's barycenter)
+        parallax_corr = get_parallax_correction_barycenter(
+            epoch=epoch, gaia_ref_epoch_coords=gaia_ref_epoch_coords
+        )
+
+        # add parallax corrections columns to the main table
+        gaia_ref_epoch_coords["parallax_delta_ra"] = parallax_corr[0]
+        gaia_ref_epoch_coords["parallax_delta_dec"] = parallax_corr[1]
+
+
+    result = amutils.get_catalog(ra, dec, epoch=epoch)
+
+    # updated coordinates at the provided epoch
+    returned_ra = np.array(result["ra"])
+    returned_dec = np.array(result["dec"])
+
+    # get GAIA data and update coords to requested epoch using pm measurements
+    gaia_ref_epoch = 2016.0
+    gaia_ref_epoch_coords_all = amutils.get_catalog(ra, dec, epoch=gaia_ref_epoch)
+
+    gaia_ref_epoch_coords = gaia_ref_epoch_coords_all  # [mask]
+
+    # calculate proper motion corrections
+    get_proper_motion_correction(
+        epoch=epoch,
+        gaia_ref_epoch_coords=gaia_ref_epoch_coords,
+        gaia_ref_epoch=gaia_ref_epoch,
+    )
+    # calculate parallax corrections
+    get_parallax_correction(epoch=epoch, gaia_ref_epoch_coords=gaia_ref_epoch_coords)
+
+    # calculate the expected coordinates value after corrections have been applied to
+    # Gaia's reference epoch coordinates
+
+    # textbook (barycentric frame)
+    expected_ra = (
+        gaia_ref_epoch_coords["ra"]
+        + gaia_ref_epoch_coords["pm_delta_ra"]
+        + gaia_ref_epoch_coords["parallax_delta_ra"]
+    )
+    expected_dec = (
+        gaia_ref_epoch_coords["dec"]
+        + gaia_ref_epoch_coords["pm_delta_dec"]
+        + gaia_ref_epoch_coords["parallax_delta_dec"]
+    )
+
+    assert len(result) > 0
+
+    # adopted tolerance: 2.8e-9 deg -> 10 uas (~0.0001 pix)
+    assert np.median(returned_ra - expected_ra) < 2.8e-9
+    assert np.median(returned_dec - expected_dec) < 2.8e-9
+
+    assert mad_std(returned_ra - expected_ra) < 2.8e-9
+    assert mad_std(returned_dec - expected_dec) < 2.8e-9
+
 def test_create_catalog(wcsobj):
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
@@ -95,6 +371,69 @@ def test_create_catalog(wcsobj):
     )
     # check that we got expected number of sources
     assert len(gcat) == EXPECTED_NUM_SOURCES
+
+
+@pytest.mark.parametrize("num_sources", [5, 10, 15])
+def test_create_catalog_variable_num_sources(wcsobj, num_sources):
+    """
+    Test fetching data from supported catalogs with variable number of sources.
+    """
+    # Create catalog
+    gcat = amutils.create_astrometric_catalog(
+        wcsobj, "2016.0",
+        catalog=TEST_CATALOG,
+        output=None,
+        num_sources=num_sources,
+    )
+    # check that we got expected number of sources
+    assert len(gcat) == num_sources
+
+
+@pytest.mark.parametrize(
+    "catalog, epoch, start_time",
+    [
+        ("GAIADR1", "2000.0", 2000),
+        ("GAIADR2", "2010", 2010),
+        ("GAIADR3", "2030.0", 2030),
+        ("GAIADR3", "J2000", None),
+        ("GAIADR3", 2030.0, 2030),
+        ("GAIADR3", None , None),
+    ],
+)
+def test_create_catalog_different_epochs(wcsobj, catalog, epoch, start_time):
+    """
+    Test fetching data from supported catalogs with different epochs.
+    """
+    # Create catalog
+    gcat = amutils.create_astrometric_catalog(
+        wcsobj, epoch,
+        catalog=catalog,
+        output=None,
+    )
+    if start_time is None:
+        assert "epoch" not in gcat
+
+    else:
+        assert (gcat["epoch"] == start_time).all()
+
+
+@pytest.mark.parametrize("write_format", ["ascii.ecsv", "fits"])
+def test_write_astrometric_catalog(wcsobj, write_format, tmp_path):
+    """
+    Test writing the astrometric catalog to a file in different formats.
+    """
+
+    filename = tmp_path /f"astrometric_catalog.{write_format}"
+    assert not filename.exists(), f"Catalog file {filename} already exists."
+
+    amutils.create_astrometric_catalog(
+        wcsobj, "2016.0",
+        catalog=TEST_CATALOG,
+        output=filename,
+        table_format=write_format,
+    )
+
+    assert filename.exists(), f"Catalog file {filename} was not created."
 
 
 def test_create_catalog_graceful_failure(wcsobj):
@@ -380,11 +719,9 @@ def test_absolute_align(example_input, input_catalog):
 def test_get_catalog_timeout():
     """Test that get_catalog can raise an exception on timeout."""
 
-    with pytest.raises(Exception) as exec_info:
+    with pytest.raises(requests.exceptions.Timeout), contextlib.suppress(requests.exceptions.ConnectionError):
         for dt in np.arange(1, 0, -0.01):
-            with contextlib.suppress(requests.exceptions.ConnectionError):
-                amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt)
-    assert exec_info.type == requests.exceptions.Timeout
+            amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt, override=True)
 
 
 def test_get_catalog_raises_connection_error(monkeypatch):
@@ -392,7 +729,5 @@ def test_get_catalog_raises_connection_error(monkeypatch):
 
     monkeypatch.setattr("requests.get", MockConnectionError)
 
-    with pytest.raises(Exception) as exec_info:
-        amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3")
-
-    assert exec_info.type == requests.exceptions.ConnectionError
+    with pytest.raises(requests.exceptions.ConnectionError):
+        amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", override=True)
