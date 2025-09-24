@@ -23,7 +23,7 @@ from stcal.alignment import wcs_from_sregions
 from .astrometric_utils import TIMEOUT, create_astrometric_catalog
 
 _SQRT2 = math.sqrt(2.0)
-SINGLE_GROUP_REFCAT = ["GAIADR3", "GAIADR2", "GAIADR1"]
+SINGLE_GROUP_REFCAT = ["GAIAREFCAT", "GAIADR3", "GAIADR2", "GAIADR1"]
 _SINGLE_GROUP_REFCAT_STR = ",".join(SINGLE_GROUP_REFCAT)
 
 __all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT",
