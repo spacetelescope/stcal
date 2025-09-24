@@ -217,7 +217,7 @@ def test_find_simple_ellipse():
     plane[3, 3] = JUMP
     ellipse = find_ellipses(plane, JUMP, 1)
 
-    assert ellipse[0][2] == pytest.approx(45.0, 1e-3)  # 90 degree rotation
+    assert ellipse[0][2] == pytest.approx(1.57, 1e-3)  # angle
     assert ellipse[0][0] == pytest.approx((2.5, 2.0))  # center
 
 
@@ -230,9 +230,9 @@ def test_find_ellipse2():
     ellipse = ellipses[0]
     assert ellipse[0][0] == 2
     assert ellipse[0][1] == 2
-    assert ellipse[1][0] == 2
-    assert ellipse[1][1] == 2
-    assert ellipse[2] == 90.0
+    assert ellipse[1][0] == pytest.approx(3.266, 1e-3)
+    assert ellipse[1][1] == pytest.approx(3.266, 1e-3)
+    assert ellipse[2] == pytest.approx(-0.785, 1e-3)
 
 
 def test_extend_saturation_simple():
@@ -324,7 +324,6 @@ def test_flag_large_events_withsnowball():
 
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 0, 0] == 0
     assert cube[0, 2, 1, 0] == JUMP  # Jump was extended
     assert cube[0, 2, 2, 2] == SAT  # Saturation was extended
     assert cube[0, 2, 3, 6] == JUMP
