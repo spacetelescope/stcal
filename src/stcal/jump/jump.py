@@ -1278,7 +1278,7 @@ def sk_ellipse(shape: tuple[int, int], center: tuple[float, float], axes: tuple[
         center[1], center[0],
         axes[1], axes[0],
         shape,
-        -np.radians(angle),
+        angle,
     )
 
 def sk_filter_areas(image: NDArray[float], threshold:float)-> list[tuple[tuple[float, float], tuple[int, int], float]]:
@@ -1296,5 +1296,5 @@ def sk_filter_areas(image: NDArray[float], threshold:float)-> list[tuple[tuple[f
         min_areas.append((
             (float(region.centroid[1]), float(region.centroid[0])),
             (region.axis_minor_length, region.axis_major_length),
-            -np.degrees(region.orientation)))
+            region.orientation))
     return min_areas
