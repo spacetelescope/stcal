@@ -1,1 +1,0 @@
-Removed Gaia-only option from create_astrometric_catalog.

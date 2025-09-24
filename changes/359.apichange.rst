@@ -1,1 +1,0 @@
-Add inverse of sky variance as an option to weight type for drizzle.
