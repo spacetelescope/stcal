@@ -109,6 +109,10 @@ def detect_jumps_data(jump_data):
         log.info("Total showers= %i", num_showers)
         number_extended_events = num_showers  # XXX overwritten
 
+    # This controls flagging of micrometeorite flashes
+    if (jump_data.mmflashfrac < 1.0):
+        gdq = find_micrometeorite_flashes(gdq, jump, jump_data.mmflashfrac)
+
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
@@ -1319,3 +1323,60 @@ def calc_num_slices(n_rows, max_cores, max_available):
 
     # Make sure we don't have more slices than rows or available cores.
     return min([n_rows, n_slices, max_available])
+
+
+# Find micrometeorite flashes
+def find_micrometeorite_flashes(gdq, jump_flag, mmflashfrac, mmflashnmax=5):
+    """
+    This routine looks for micrometeorite flashes that light up the entire array in a small number
+    of groups.  It does this by looking for cases where greater than mmflash_pct percent
+    of the array is flagged as 'JUMP_DET', and flags the entire array as JUMP_DET in such cases.
+    Since such flashes are rare (a few per instrument per year, although they can affect 2-3 groups)
+    this routine also applies a safety catch to ensure that not too many are flagged in any one
+    exposure due to unexpected detector effects.
+    Parameters
+    ----------
+    gdq : int, 4D array
+        Group dq array
+    jump_flag : int
+        DQ flag for jump detection.
+    mmflashfrac : float
+        Fraction of the array that can be flagged as a jump before the entire array
+        will be flagged.
+    mmflashnmax : float
+        Maximum number of groups in any given exposure that can be affected by
+        micrometeorites before we declare a detection failure and flag nothing.
+    Returns
+    -------
+    gdq : int, 4D array
+        Updated group dq array
+    """
+    log.info("Looking for micrometeorite flashes")
+    nints, ngroups, nrows, ncols = gdq.shape
+    npix = nrows * ncols # Number of pixels in array
+
+    # Initial loop over integrations + groups to find flashes
+    flash_int, flash_group = [], []
+
+    # Loop over integrations
+    for ii in range(0, nints):
+        # Loop over groups
+        for jj in range(0, ngroups):
+            indx = np.where(gdq[ii, jj, :, :] & jump_flag != 0)
+            fraction = float(len(indx[0])) / npix
+            if (fraction > mmflashfrac):
+                flash_int.append(ii)
+                flash_group.append(jj)
+
+    # If an unrealistically large number of flashes were found, fail out
+    nflash=len(flash_int)
+    if (nflash > mmflashnmax):
+        log.info(f"Unreasonably large number of possible micrometeorite flashes detected ({nflash})")
+        log.info("Quitting micrometeorite routine and flagging nothing.")
+    else:
+        for kk in range(0, nflash):
+            ii, jj = flash_int[kk], flash_group[kk]
+            gdq[ii, jj, :, :] = gdq[ii, jj, :, :] | jump_flag
+            log.info(f"Flagged a micrometeorite flash in integ = {ii}, group = {jj}")
+
+    return gdq
