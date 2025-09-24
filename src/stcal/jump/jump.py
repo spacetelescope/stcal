@@ -812,16 +812,11 @@ def find_faint_extended(
 
             ellipses = get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
 
-            # image is created, written to, and never used?
-            # image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
-            # expand_by_ratio, expansion = True, 1.0
-            # image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
-
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
-                # Reset the warnings filter to its original state
 
+    # Reset the warnings filter to its original state
     warnings.resetwarnings()
     total_showers = 0
 
@@ -1264,15 +1259,7 @@ def find_first_good_group(int_gdq, do_not_use):
     return first_good_group
 
 
-def sk_ellipse(shape: tuple[int, int], center: tuple[float, float], axes: tuple[float, float], angle:float, value:int) -> tuple[list[int], list[int]]:
-    # The sub-pixel fudge here is to nudge
-    # the skimage ellipse slightly closer to
-    # what opencv would produce. There is no
-    # exact match (as far as I can tell) but
-    # empirically this made things "close"
-    # where the skimage ellipse had some extra
-    # and some missing edge pixels (rather
-    # than only missing edge pixels without the fudge).
+def sk_ellipse(shape, center, axes, angle, value):
     return skimage.draw.ellipse(
         center[1], center[0],
         axes[1], axes[0],
@@ -1280,18 +1267,15 @@ def sk_ellipse(shape: tuple[int, int], center: tuple[float, float], axes: tuple[
         angle,
     )
 
-def sk_filter_areas(image: NDArray[float], threshold:float)-> list[tuple[tuple[float, float], tuple[int, int], float]]:
+
+def sk_filter_areas(image, threshold):
     lim = skimage.measure.label(image)
     min_areas = []
     for region in skimage.measure.regionprops(lim):
-        # region.area returns the number of pixels in the region
-        # this does not match cv.contourArea which instead returns
-        # a smaller value where a 2x2 pixel region returns a contourArea of 1.
         if region.area_filled < threshold:
             continue
-        # opencv returns
+        # to match the open opencv return
         # [[cy, cx], [dy, dx], [angle]]
-        # where angle is in degrees, not sure what 0 is
         min_areas.append((
             (float(region.centroid[1]), float(region.centroid[0])),
             (region.axis_minor_length, region.axis_major_length),
