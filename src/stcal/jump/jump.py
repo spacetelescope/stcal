@@ -508,7 +508,6 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     return (iy1, iy2, ix1, ix2), image
 
 
-
 def extend_ellipses(
     gdq_cube, intg, grp, ellipses, jump_data,
     expansion=1.9, expand_by_ratio=True, num_grps_masked=1,
@@ -933,43 +932,6 @@ def count_dnu_groups(gdq, jump_data):
             if np.all(np.bitwise_and(gdq[integ, grp, :, :], jump_data.fl_dnu)):
                 num_grps_donotuse += 1
     return num_grps_donotuse
-
-
-def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
-    """
-    Draw ellipses onto an image.
-
-    Parameters
-    ----------
-    ellipses : list
-        List of ellipses
-
-    image : ndarray
-        The image on which to draw the ellipses.
-
-    expand_by_ratio : bool
-        Should the ellipses be expanded?
-
-    expansion : float
-        The ellipse expansion factor
-
-    jump_data : JumpData
-        Class containing parameters and methods to detect jumps.
-
-    Returns
-    -------
-    image : ndarray
-        The image with ellipses drawn on it.
-    """
-    for ellipse in ellipses:
-        ceny, cenx = ellipse[0][0], ellipse[0][1]
-        cen = (round(ellipse[0][0]), round(ellipse[0][1]))
-        axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
-        alpha = ellipse[2]
-        color = (0, 0, jump_data.fl_jump)
-        ellipse_rr, ellipse_cc = sk_ellipse(image.shape, cen, axes, alpha, color[2])
-        image[ellipse_rr, ellipse_cc, :] = color
-    return image
 
 
 def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
