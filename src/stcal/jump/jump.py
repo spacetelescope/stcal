@@ -8,7 +8,6 @@ import warnings
 from scipy import signal
 
 import numpy as np
-import cv2 as cv
 import astropy.stats as stats
 import numpy as np
 import skimage
