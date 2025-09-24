@@ -1276,7 +1276,7 @@ def sk_ellipse(shape: tuple[int, int], center: tuple[float, float], axes: tuple[
     # than only missing edge pixels without the fudge).
     return skimage.draw.ellipse(
         center[1], center[0],
-        axes[1] + 0.25, axes[0] + 0.25,
+        axes[1], axes[0],
         shape,
         -np.radians(angle),
     )
@@ -1290,15 +1290,11 @@ def sk_filter_areas(image: NDArray[float], threshold:float)-> list[tuple[tuple[f
         # a smaller value where a 2x2 pixel region returns a contourArea of 1.
         if region.area_filled < threshold:
             continue
-        # wait util after area check so calculating the more expensive
-        # region properties is only done for areas that pass threshold
-        w = region.axis_major_length - 1
-        h = region.axis_minor_length - 1
         # opencv returns
         # [[cy, cx], [dy, dx], [angle]]
         # where angle is in degrees, not sure what 0 is
         min_areas.append((
             (float(region.centroid[1]), float(region.centroid[0])),
-            (h, w),
+            (region.axis_minor_length, region.axis_major_length),
             -np.degrees(region.orientation)))
     return min_areas
