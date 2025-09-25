@@ -802,7 +802,7 @@ class Resample:
         add_image_kwargs = {
             'exptime': model["exposure_time"],
             'pixmap': pixmap,
-            'scale': iscale,
+            'scale': self.pixel_scale_ratio,
             'weight_map': weight,
             'wht_scale': 1.0,
             'pixfrac': self.pixfrac,
@@ -813,7 +813,9 @@ class Resample:
             'ymax': ymax,
         }
 
-        self._driz.add_image(data, **add_image_kwargs)
+        f = (iscale / self.pixel_scale_ratio)**2
+
+        self._driz.add_image(data * f, **add_image_kwargs)
         self.add_model_hook(model, pixmap, iscale, weight,
                             xmin, xmax, ymin, ymax)
 
@@ -823,7 +825,7 @@ class Resample:
             self._output_model["pointings"] += 1
 
         if self._compute_err == "driz_err":
-            self._driz_error.add_image(model["err"], **add_image_kwargs)
+            self._driz_error.add_image(model["err"] * f, **add_image_kwargs)
 
         if self._enable_var:
             self.resample_variance_arrays(model, pixmap, iscale, weight,
@@ -1187,11 +1189,13 @@ class Resample:
         # Call 'drizzle' to perform image combination
         log.info(f"Drizzling {variance.shape} --> {output_shape}")
 
+        f = (iscale / self.pixel_scale_ratio)**2
+
         driz.add_image(
-            data=np.sqrt(variance),
+            data=np.sqrt(variance) * f,
             exptime=model["exposure_time"],
             pixmap=pixmap,
-            scale=iscale,
+            scale=self.pixel_scale_ratio,
             weight_map=weight_map,
             wht_scale=1.0,
             pixfrac=self.pixfrac,
