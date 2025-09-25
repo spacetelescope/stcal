@@ -1,3 +1,41 @@
+1.15.1 (2025-09-24)
+===================
+
+Changes to API
+--------------
+
+- Add inverse of sky variance as an option to weight type for drizzle. (`#359
+  <https://github.com/spacetelescope/stcal/issues/359>`_)
+- Removed Gaia-only option from create_astrometric_catalog. (`#406
+  <https://github.com/spacetelescope/stcal/issues/406>`_)
+
+
+Bug Fixes
+---------
+
+- Fix memory management in ramp fitting C-extension. (`#399
+  <https://github.com/spacetelescope/stcal/issues/399>`_)
+
+
+General
+-------
+
+- The changes are: (1) handle "ivm" and "ivm-sky" cases identically: for "ivm",
+  calculate 1/var_rnoise, setting non-finite to 0, and if missing or shape
+  mismatch, return all ones (equal weighting); for "ivm-sky", calculate
+  1/var_sky, setting non-finite to 0, and if missing or shape mismatch, return
+  all ones (equal weighting); (2) always multiply the result by the DQ mask;
+  (3) the fallback for a missing variance array is an array filled with ones
+  (equal weighting). (`#359
+  <https://github.com/spacetelescope/stcal/issues/359>`_)
+- Add upper pin not allowing python 3.14. (`#396
+  <https://github.com/spacetelescope/stcal/issues/396>`_)
+- Improve memory usage of jump detection. (`#403
+  <https://github.com/spacetelescope/stcal/issues/403>`_)
+- Made GAIAREFCAT the default astrometric reference catalog. (`#406
+  <https://github.com/spacetelescope/stcal/issues/406>`_)
+
+
 1.15.0 (2025-08-14)
 ===================
 
