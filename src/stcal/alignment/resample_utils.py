@@ -63,6 +63,11 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     -------
     str
         The combined s_region.
+    
+    Raises
+    ------
+    ValueError
+        If there is no overlap between the input s_regions and the intersection footprint.
     """
     footprints = np.array([util.sregion_to_footprint(sregion) for sregion in sregion_list])
 
@@ -119,6 +124,26 @@ def _polygons_to_sregion(polygons):
     return s_region.strip()
 
 
+def _convert_to_array(polygon):
+    """
+    Convert a Shapely polygon to a numpy array and simplify it to minimize number of vertices.
+
+    Parameters
+    ----------
+    polygon : shapely.geometry.Polygon
+        Input polygon.
+
+    Returns
+    -------
+    np.ndarray
+        2D array of shape (N, 2) representing the polygon vertices.
+    """
+    x, y = polygon.exterior.coords.xy
+    poly_out = np.vstack([x, y]).T
+    poly_out = poly_out[:-1]  # remove duplicate last point
+    return _simplify_by_angle(poly_out)
+
+
 def combine_footprints(footprints):
     """
     Combine a list of footprints into one or more combined footprints using a Shapely union.
@@ -141,11 +166,7 @@ def combine_footprints(footprints):
         combined_footprints = combined_footprints.geoms
     combined_polys = []
     for poly in combined_footprints:
-        x, y = poly.exterior.coords.xy
-        combined_poly = np.vstack([x, y]).T
-        combined_poly = combined_poly[:-1]  # remove duplicate last point
-        combined_poly = _simplify_by_angle(combined_poly)
-        combined_polys.append(combined_poly)
+        combined_polys.append(_convert_to_array(poly))
     return combined_polys
 
 
@@ -171,11 +192,7 @@ def _intersect_with_bbox(polygons, bbox):
         polygon = shapely.geometry.Polygon(polygon)
         intersection = shapely.intersection(polygon, intersect_polygon)
         if not intersection.is_empty:
-            x, y = intersection.exterior.coords.xy
-            poly_out = np.vstack([x, y]).T
-            poly_out = poly_out[:-1]  # remove duplicate last point
-            poly_out = _simplify_by_angle(poly_out)
-            final_polygons.append(poly_out)
+            final_polygons.append(_convert_to_array(intersection))
     return final_polygons
 
 
