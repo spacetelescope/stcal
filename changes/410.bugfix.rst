@@ -1,0 +1,1 @@
+Removed extra item from ``twopoint_difference.find_crs`` early return, to match number of expected items.
