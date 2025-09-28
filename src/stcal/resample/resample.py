@@ -802,6 +802,12 @@ class Resample:
         add_image_kwargs = {
             'exptime': model["exposure_time"],
             'pixmap': pixmap,
+            # input images are multiplied by scale^2 in drizzle and also it is
+            # used to compute kernel size. Because in the past 'scale' was set
+            # to iscale (typically 1.0 for imaging data), we set 'scale' to
+            # pixel_scale_ratio to get correct kernel sizing,
+            # but we must divide input data by pixel_scale_ratio^2 by
+            # in order to maintain the same behavior as before
             'scale': self.pixel_scale_ratio,
             'weight_map': weight,
             'wht_scale': 1.0,
@@ -813,9 +819,12 @@ class Resample:
             'ymax': ymax,
         }
 
-        f = (iscale / self.pixel_scale_ratio)**2
+        # a factor used to multiply input image data so that we can pass
+        # actual pixel scale ratio so that kernels can be resized correctly
+        # while getting the same output as before:
+        scale_factor = np.float32((iscale / self.pixel_scale_ratio)**2)
 
-        self._driz.add_image(data * f, **add_image_kwargs)
+        self._driz.add_image(data * scale_factor, **add_image_kwargs)
         self.add_model_hook(model, pixmap, iscale, weight,
                             xmin, xmax, ymin, ymax)
 
@@ -825,7 +834,10 @@ class Resample:
             self._output_model["pointings"] += 1
 
         if self._compute_err == "driz_err":
-            self._driz_error.add_image(model["err"] * f, **add_image_kwargs)
+            self._driz_error.add_image(
+                model["err"] * scale_factor,
+                **add_image_kwargs
+            )
 
         if self._enable_var:
             self.resample_variance_arrays(model, pixmap, iscale, weight,
@@ -1189,10 +1201,13 @@ class Resample:
         # Call 'drizzle' to perform image combination
         log.info(f"Drizzling {variance.shape} --> {output_shape}")
 
-        f = (iscale / self.pixel_scale_ratio)**2
+        # a factor used to multiply input image data so that we can pass
+        # actual pixel scale ratio so that kernels can be resized correctly
+        # while getting the same output as before:
+        scale_factor = np.float32((iscale / self.pixel_scale_ratio)**2)
 
         driz.add_image(
-            data=np.sqrt(variance) * f,
+            data=np.sqrt(variance) * scale_factor,
             exptime=model["exposure_time"],
             pixmap=pixmap,
             scale=self.pixel_scale_ratio,
@@ -1206,7 +1221,7 @@ class Resample:
             ymax=ymax,
         )
 
-        return driz.out_img ** 2
+        return driz.out_img**2
 
     def init_time_counters(self):
         """ Initialize variables/arrays needed to process exposure time. """
