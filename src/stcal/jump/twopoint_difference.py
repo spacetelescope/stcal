@@ -62,7 +62,7 @@ def find_crs(data, group_dq, read_noise, twopt_p):
 
     if total_noise_min_grps_fails and sig_clip_grps_fails:
         log.info("Jump Step was skipped because exposure has less than the minimum number of usable groups")
-        return group_dq, row_below_gdq, row_above_gdq, -99, None
+        return group_dq, row_below_gdq, row_above_gdq, -99
 
     group_dq, first_diffs, median_diffs, sigma = run_jump_detection(
         data, group_dq, ndiffs, read_noise_2, nints, ngroups, total_groups, min_usable_diffs, twopt_p)
