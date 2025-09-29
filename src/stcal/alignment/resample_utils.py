@@ -11,7 +11,8 @@ log.setLevel(logging.DEBUG)
 
 
 def calc_pixmap(in_wcs, out_wcs, shape=None):
-    """Return a pixel grid map from input frame to output frame.
+    """
+    Return a pixel grid map from input frame to output frame.
 
     Parameters
     ----------
@@ -210,6 +211,10 @@ def _simplify_by_angle(coords, point_thresh=5e-2, angle_thresh=1e-6):
     ----------
     coords : np.ndarray
         2D array of shape (N, 2) representing the polygon vertices.
+    point_thresh : float, optional
+        Threshold for considering two points to be the same (in pixels).
+    angle_thresh : float, optional
+        Threshold for considering three points to be collinear (in radians).
 
     Returns
     -------
@@ -233,9 +238,7 @@ def _simplify_by_angle(coords, point_thresh=5e-2, angle_thresh=1e-6):
     # Check closeness
     # We only need to check closeness in one direction, to avoid removing both points
     # if there's a duplicated pair. Wrapped indices ensure no bugs with first/last points.
-    close_to_previous = (np.abs(v1[:, 0]) < point_thresh) & (np.abs(v1[:, 1]) < point_thresh)
-    #close_to_next = (np.abs(v2[:, 0]) < point_thresh) & (np.abs(v2[:, 1]) < point_thresh)
-    close = close_to_previous # | close_to_next
+    close = (np.abs(v1[:, 0]) < point_thresh) & (np.abs(v1[:, 1]) < point_thresh)
 
     # Slopes
     m1 = v1[:, 1] / (v1[:, 0] + 1e-12)
