@@ -394,3 +394,25 @@ def test_sregion_no_overlap(complex_footprint_set, det2world):
     with pytest.raises(ValueError) as excinfo:
         combine_sregions(sregion_list, det2world, intersect_footprint=bbox)
     assert str(excinfo.value) == "No overlap between input s_regions and intersection footprint"
+
+
+def test_duplicate_tolerance():
+    """
+    Test duplicated point tolerances.
+
+    Ensure that two points different by 1/50 pixel are treated as the same.
+    Ensure that two points different by >1/10 pixel are treated as different.
+    """
+    footprint_with_duplicate = np.array(
+        [
+            [0.0, 0.0],
+            [0.0 + 0.1, 0.0 + 0.1], # this should be kept
+            [1.0, 0.0],
+            [1.0, 1.0],
+            [1.0 + 0.02, 1.0 + 0.02], # this should be removed by duplicate check
+            [0.0, 1.0],
+            [0.0, 0.5], # this should be removed by angle check since it's along the edge
+        ]
+    )
+    combined = combine_footprints([footprint_with_duplicate])
+    assert combined[0].shape == (5, 2)

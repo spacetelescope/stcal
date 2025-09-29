@@ -196,9 +196,15 @@ def _intersect_with_bbox(polygons, bbox):
     return final_polygons
 
 
-def _simplify_by_angle(coords, point_thresh=1e-6, angle_thresh=1e-6):
+def _simplify_by_angle(coords, point_thresh=5e-2, angle_thresh=1e-6):
     """
     Simplify a polygon by removing points that are collinear with their neighbors.
+
+    MAST has a check for duplicated points in their code which is set to 1e-7 deg.
+    This code is meant to be used in pixel space; for NIRCam, 1 pixel is about 0.031 arcsec,
+    and 1e-7 deg is about 0.36 mas or a factor of 100 smaller.
+    So we need to make the tolerance bigger than that: 1/10 pixel makes sense.
+    This doesn't matter for the angle threshold
 
     Parameters
     ----------
@@ -225,9 +231,11 @@ def _simplify_by_angle(coords, point_thresh=1e-6, angle_thresh=1e-6):
     v2 = p2 - p1
 
     # Check closeness
-    close1 = (np.abs(v1[:, 0]) < point_thresh) & (np.abs(v1[:, 1]) < point_thresh)
-    close2 = (np.abs(v2[:, 0]) < point_thresh) & (np.abs(v2[:, 1]) < point_thresh)
-    close = close1 | close2
+    # We only need to check closeness in one direction, to avoid removing both points
+    # if there's a duplicated pair. Wrapped indices ensure no bugs with first/last points.
+    close_to_previous = (np.abs(v1[:, 0]) < point_thresh) & (np.abs(v1[:, 1]) < point_thresh)
+    #close_to_next = (np.abs(v2[:, 0]) < point_thresh) & (np.abs(v2[:, 1]) < point_thresh)
+    close = close_to_previous # | close_to_next
 
     # Slopes
     m1 = v1[:, 1] / (v1[:, 0] + 1e-12)
