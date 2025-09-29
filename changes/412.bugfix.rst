@@ -1,0 +1,1 @@
+Fix a bug in resample due to which the "turbo", "gaussian", and "lanczos" resample kernels were not properly rescaled by pixel scale ratio.
