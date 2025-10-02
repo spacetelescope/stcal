@@ -49,8 +49,11 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
 
     Parameters
     ----------
-    sregion_list : list of str
-        List of s_regions from input models.
+    sregion_list : list[str] or list[np.ndarray]
+        List of s_regions from input models. If an element is a string,
+        it will be converted to a footprint using `util.sregion_to_footprint`.
+        If an element is already a footprint (2-D array of shape (N, 2)),
+        it will be used directly.
     det2world : `~astropy.modeling.Model`
         WCS detector-to-world transform for the resampled data.
         Must take in exactly two inputs (x, y) and return exactly two outputs (RA, Dec).
@@ -70,7 +73,11 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     ValueError
         If there is no overlap between the input s_regions and the intersection footprint.
     """
-    footprints = np.array([util.sregion_to_footprint(sregion) for sregion in sregion_list])
+    footprints = np.array([
+        util.sregion_to_footprint(sregion)
+        if isinstance(sregion, str) else sregion
+        for sregion in sregion_list
+    ])
 
     # convert from world to pixel coordinates
     footprints_flat = footprints.reshape(-1, 2)
