@@ -356,7 +356,8 @@ def test_sregion_complex(complex_footprint_set, det2world):
     assert region_shapes == expected_shapes
 
 
-def test_sregion_intersection(complex_footprint_set, det2world):
+@pytest.mark.parametrize("footprints_are_str", [True, False])
+def test_sregion_intersection(complex_footprint_set, det2world, footprints_are_str):
     """
     Test for a complex set of footprints intersected with a bounding box.
 
@@ -371,7 +372,11 @@ def test_sregion_intersection(complex_footprint_set, det2world):
             [178.5, 1.5],
         ]
     )
-    sregion_list = _footprints_to_sregion_list(complex_footprint_set)
+    if footprints_are_str:
+        sregion_list = _footprints_to_sregion_list(complex_footprint_set)
+    else:
+        sregion_list = complex_footprint_set
+
     combined_sregion = combine_sregions(sregion_list, det2world, intersect_footprint=bbox)
 
     assert combined_sregion.count("POLYGON ICRS") == 2
