@@ -1,3 +1,21 @@
+1.15.2 (2025-09-25)
+===================
+
+Bug Fixes
+---------
+
+- Removed Gaia-only option from create_astrometric_catalog. (`#406
+  <https://github.com/spacetelescope/stcal/issues/406>`_)
+- Removed extra item from ``twopoint_difference.find_crs`` early return, to
+  match number of expected items. (`#410
+  <https://github.com/spacetelescope/stcal/issues/410>`_)
+
+General
+-------
+
+- Made GAIAREFCAT the default astrometric reference catalog. (`#406
+  <https://github.com/spacetelescope/stcal/issues/406>`_)
+
 1.15.1 (2025-09-24)
 ===================
 
@@ -6,8 +24,6 @@ Changes to API
 
 - Add inverse of sky variance as an option to weight type for drizzle. (`#359
   <https://github.com/spacetelescope/stcal/issues/359>`_)
-- Removed Gaia-only option from create_astrometric_catalog. (`#406
-  <https://github.com/spacetelescope/stcal/issues/406>`_)
 
 
 Bug Fixes
@@ -32,8 +48,6 @@ General
   <https://github.com/spacetelescope/stcal/issues/396>`_)
 - Improve memory usage of jump detection. (`#403
   <https://github.com/spacetelescope/stcal/issues/403>`_)
-- Made GAIAREFCAT the default astrometric reference catalog. (`#406
-  <https://github.com/spacetelescope/stcal/issues/406>`_)
 
 
 1.15.0 (2025-08-14)
