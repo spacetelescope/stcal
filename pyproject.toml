@@ -21,6 +21,7 @@ dependencies = [
   "tweakwcs >=0.8.8",
   "requests >=2.22",
   "spherical-geometry>=1.2.22",
+  "shapely>=2.1.1",
 ]
 license-files = ["LICENSE"]
 dynamic = ["version"]
