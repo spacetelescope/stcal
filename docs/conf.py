@@ -79,7 +79,7 @@ html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
 html_use_index = True
 
 # Enable nitpicky mode - which ensures that all references in the docs resolve.
-nitpicky = False  # True does not work with enumerated parameter values
+nitpicky = True
 
 nitpick_ignore = [
     ("py:class", "optional"),
@@ -87,4 +87,3 @@ nitpick_ignore = [
     ("py:class", "stsci.imagestats.ImageStats"),  # intersphinx isn't working here
     ("py:class", "spherical_geometry.polygon.SphericalPolygon"), # intersphinx isn't working here
 ]
-

@@ -31,8 +31,8 @@ def compute_va_effects_vector(velocity_x, velocity_y, velocity_z, u):
         vernal equinox, y toward right ascension 90 degrees and declination
         0, z toward the north celestial pole.
 
-    u : numpy.array([u0, u1, u2])
-        The vector form of right ascension and declination of the target (or some other
+    u : numpy.ndarray
+        The vector form (``[u0, u1, u2]``) of right ascension and declination of the target (or some other
         point, such as the center of a detector) in the barycentric coordinate
         system.  The equator and equinox should be the same as the coordinate
         system for the velocity.
@@ -44,8 +44,8 @@ def compute_va_effects_vector(velocity_x, velocity_y, velocity_z, u):
         this value to obtain the image scale corrected for the "aberration
         of starlight" due to the velocity of JWST with respect to the Sun.
 
-    u_corr : numpy.array([ua0, ua1, ua2])
-        Apparent position vector in the moving telescope frame.
+    u_corr : numpy.ndarray
+        Apparent position vector (``[ua0, ua1, ua2]``) in the moving telescope frame.
     """
     beta = np.array([velocity_x, velocity_y, velocity_z]) / SPEED_OF_LIGHT
     beta2 = np.dot(beta, beta)  # |beta|^2
