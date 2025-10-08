@@ -66,7 +66,7 @@ def test_varying_groups():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.array_equal(out_gdq[0, :, 0, 0], [0, 0, 0, 4, 0])
@@ -92,7 +92,7 @@ def test_multint_pixel():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -109,7 +109,7 @@ def test_nocrs_noflux():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 0  # no CR found
@@ -127,7 +127,7 @@ def test_5grps_cr3_noflux():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -149,13 +149,13 @@ def test_4grps_2ints_cr2_noflux():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert(4 == np.max(out_gdq))  # a CR was found
 
     # XXX not sure why this is run a second time
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -179,7 +179,7 @@ def test_6grps_negative_differences_zeromedian():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 0  # no CR was found
@@ -197,7 +197,7 @@ def test_5grps_cr2_negjumpflux():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -218,7 +218,7 @@ def test_3grps_cr2_noflux():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -241,7 +241,7 @@ def test_2ints_2grps_noflux():
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
     twopt_p.minimum_groups = 2
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert(np.array_equal([0, 4], out_gdq[0, :, 1, 1]))
@@ -260,7 +260,7 @@ def test_4grps_cr2_noflux():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -283,7 +283,7 @@ def test_6grps_cr2_nframe2():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -308,7 +308,7 @@ def test_4grps_twocrs_2nd_4th():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -329,7 +329,7 @@ def test_5grps_twocrs_2nd_5th():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -351,7 +351,7 @@ def test_5grps_twocrs_2nd_5thbig():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -378,7 +378,7 @@ def test_10grps_twocrs_2nd_8th_big():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -405,7 +405,7 @@ def test_10grps_twocrs_10percenthit():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -427,7 +427,7 @@ def test_5grps_twocrs_2nd_5thbig_nframes2():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -450,7 +450,7 @@ def test_6grps_twocrs_2nd_5th():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -473,7 +473,7 @@ def test_6grps_twocrs_2nd_5th_nframes2():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -502,7 +502,7 @@ def test_6grps_twocrs_twopixels_nframes2():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -525,7 +525,7 @@ def test_5grps_cr2_negslope():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -548,7 +548,7 @@ def test_6grps_1cr():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert out_gdq[0, 5, 100, 100] == 4
@@ -571,7 +571,7 @@ def test_7grps_1cr():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert out_gdq[0, 6, 100, 100] == 4
@@ -595,7 +595,7 @@ def test_8grps_1cr():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert out_gdq[0, 6, 100, 100] == 4
@@ -621,7 +621,7 @@ def test_9grps_1cr_1sat():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert out_gdq[0, 6, 1, 1] == 4
@@ -649,7 +649,7 @@ def test_10grps_1cr_2sat():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert out_gdq[0, 6, 100, 100] == 4
@@ -679,7 +679,7 @@ def test_11grps_1cr_3sat():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert out_gdq[0, 6, 1, 1] == 4
@@ -709,7 +709,7 @@ def test_11grps_0cr_3donotuse():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.array_equal([0, 0, 0, 0, 0, 0, 0, 0], out_gdq[0, 1:-2, 100, 100])
@@ -731,7 +731,7 @@ def test_5grps_nocr():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
 
@@ -752,7 +752,7 @@ def test_6grps_nocr():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
 
@@ -769,7 +769,7 @@ def test_10grps_cr2_gt3sigma():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -789,7 +789,7 @@ def test_10grps_cr2_3sigma_nocr():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 0  # a CR was found
@@ -810,7 +810,7 @@ def test_10grps_cr2_gt3sigma_2frames():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -831,7 +831,7 @@ def test_10grps_cr2_gt3sigma_2frames_offdiag():
     twopt_p = default_twopt_p(
         rej=3, _1drej=3, _3drej=3, nframes=2, _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     assert np.max(out_gdq) == 4  # a CR was found
@@ -928,7 +928,7 @@ def test_det_jump_sigma_clipping():
 
     twopt_p = sigclip_twopt_p()
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs, stddev = find_crs(
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
         data, gdq, read_noise, twopt_p)
 
     jump = DQFLAGS["JUMP_DET"]
