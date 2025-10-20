@@ -774,21 +774,32 @@ class Resample:
         xmin, xmax, ymin, ymax = resample_range(data.shape, wcs.bounding_box)
 
         add_image_kwargs = {
-            "exptime": model["exposure_time"],
-            "pixmap": pixmap,
-            "scale": iscale,
-            "weight_map": weight,
-            "wht_scale": 1.0,
-            "pixfrac": self.pixfrac,
-            "in_units": "cps",
-            "xmin": xmin,
-            "xmax": xmax,
-            "ymin": ymin,
-            "ymax": ymax,
+            'exptime': model["exposure_time"],
+            'pixmap': pixmap,
+            'iscale': iscale,
+            'pixel_scale_ratio': self.pixel_scale_ratio,
+            'weight_map': weight,
+            'wht_scale': 1.0,
+            'pixfrac': self.pixfrac,
+            'in_units': 'cps',
+            'xmin': xmin,
+            'xmax': xmax,
+            'ymin': ymin,
+            'ymax': ymax,
         }
 
         self._driz.add_image(data, **add_image_kwargs)
-        self.add_model_hook(model, pixmap, iscale, weight, xmin, xmax, ymin, ymax)
+        self.add_model_hook(
+            model=model,
+            pixmap=pixmap,
+            pixel_scale_ratio=self.pixel_scale_ratio,
+            iscale=iscale,
+            weight_map=weight,
+            xmin=xmin,
+            xmax=xmax,
+            ymin=ymin,
+            ymax=ymax,
+        )
 
         if (group_id := model["group_id"]) not in self._group_ids:
             self.update_time(model)
@@ -799,7 +810,17 @@ class Resample:
             self._driz_error.add_image(model["err"], **add_image_kwargs)
 
         if self._enable_var:
-            self.resample_variance_arrays(model, pixmap, iscale, weight, xmin, xmax, ymin, ymax)
+            self.resample_variance_arrays(
+                model,
+                pixmap,
+                self.pixel_scale_ratio,
+                iscale,
+                weight,
+                xmin,
+                xmax,
+                ymin,
+                ymax
+            )
 
         # update output model (variance is too expensive so it's omitted)
         self._output_model["data"] = self._driz.out_img
@@ -811,11 +832,9 @@ class Resample:
             # use resampled error
             self._output_model["err"] = self._driz_error.out_img
 
-    def add_model_hook(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """
-        Perform additional processing while resampling.
-
-        A hook method called by the :py:meth:`~Resample.add_model` method.
+    def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale,
+                       weight_map, xmin, xmax, ymin, ymax):
+        """ A hook method called by the :py:meth:`~Resample.add_model` method.
         It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
 
@@ -834,6 +853,13 @@ class Resample:
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
             pixels in the output frame and ``pixmap[..., 1]`` forms a 2D array
             of Y-coordinates of input pixels in the output coordinate frame.
+
+        pixel_scale_ratio : float
+            Pixel scale ratio defined as the ratio of the output pixel scale
+            to the first input model's pixel scale computed from ``model``
+            WCS at the fiducial point (taken as the ``ref_ra`` and
+            ``ref_dec`` from the ``wcsinfo`` meta attribute of the first input
+            image).
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -971,11 +997,9 @@ class Resample:
                 "wt": np.zeros(shape, dtype=var_dtype),
             }
 
-    def resample_variance_arrays(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """
-        Resample variance arrays.
-
-        Resample and co-add variance arrays using appropriate weights
+    def resample_variance_arrays(self, model, pixmap, pixel_scale_ratio,
+                                 iscale, weight_map, xmin, xmax, ymin, ymax):
+        """ Resample and co-add variance arrays using appropriate weights
         and update total weights.
 
         Parameters
@@ -991,6 +1015,13 @@ class Resample:
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
             pixels in the output frame and ``pixmap[..., 1]`` forms a 2D array
             of Y-coordinates of input pixels in the output coordinate frame.
+
+        pixel_scale_ratio : float
+            Pixel scale ratio defined as the ratio of the output
+            pixel scale to the first input model's pixel scale computed from this
+            model's WCS at the fiducial point (taken as the ``ref_ra`` and
+            ``ref_dec`` from the ``wcsinfo`` meta attribute of the first input
+            image).
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -1032,13 +1063,14 @@ class Resample:
         # Do the read noise variance first, so it can be
         # used for weights if needed
         pars = {
-            "pixmap": pixmap,
-            "iscale": iscale,
-            "weight_map": weight_map,
-            "xmin": xmin,
-            "xmax": xmax,
-            "ymin": ymin,
-            "ymax": ymax,
+            'pixmap': pixmap,
+            'pixel_scale_ratio': pixel_scale_ratio,
+            'iscale': iscale,
+            'weight_map': weight_map,
+            'xmin': xmin,
+            'xmax': xmax,
+            'ymin': ymin,
+            'ymax': ymax,
         }
 
         for varname in self.variance_array_names:
@@ -1120,9 +1152,10 @@ class Resample:
             del self._variance_info
             self._finalized = True
 
-    def _resample_one_variance_array(
-        self, name, model, iscale, weight_map, pixmap, xmin=None, xmax=None, ymin=None, ymax=None
-    ):
+    def _resample_one_variance_array(self, name, model, pixel_scale_ratio,
+                                     iscale, weight_map, pixmap,
+                                     xmin=None, xmax=None, ymin=None,
+                                     ymax=None):
         """Resample one variance image from an input model.
 
         The error image is passed to drizzle instead of the variance in order
@@ -1154,7 +1187,8 @@ class Resample:
             data=np.sqrt(variance),
             exptime=model["exposure_time"],
             pixmap=pixmap,
-            scale=iscale,
+            iscale=iscale,
+            pixel_scale_ratio=pixel_scale_ratio,
             weight_map=weight_map,
             wht_scale=1.0,
             pixfrac=self.pixfrac,
