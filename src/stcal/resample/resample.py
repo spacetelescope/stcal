@@ -776,8 +776,8 @@ class Resample:
         add_image_kwargs = {
             'exptime': model["exposure_time"],
             'pixmap': pixmap,
-            'iscale': iscale,
             'pixel_scale_ratio': self.pixel_scale_ratio,
+            'iscale': iscale,
             'weight_map': weight,
             'wht_scale': 1.0,
             'pixfrac': self.pixfrac,
@@ -811,15 +811,15 @@ class Resample:
 
         if self._enable_var:
             self.resample_variance_arrays(
-                model,
-                pixmap,
-                self.pixel_scale_ratio,
-                iscale,
-                weight,
-                xmin,
-                xmax,
-                ymin,
-                ymax
+                model=model,
+                pixmap=pixmap,
+                pixel_scale_ratio=self.pixel_scale_ratio,
+                iscale=iscale,
+                weight_map=weight,
+                xmin=xmin,
+                xmax=xmax,
+                ymin=ymin,
+                ymax=ymax
             )
 
         # update output model (variance is too expensive so it's omitted)
