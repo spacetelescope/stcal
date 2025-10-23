@@ -557,7 +557,7 @@ class Resample:
         ):
             # If input image is in flux density units, correct the
             # flux for the user-specified change to the spatial dimension
-            iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
+            iscale = 1.0 / self.pixel_scale_ratio
 
         else:
             iscale = 1.0
