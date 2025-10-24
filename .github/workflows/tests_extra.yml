@@ -13,7 +13,7 @@ concurrency:
 jobs:
   test:
     if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run extra tests')))
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@28e947497bed4d6ec3fa1d66d198e95a1d17bc63 # v2.2.1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@930ac90540ecc5f43ba6d3d176efd25cd5f3c6c2 # v2.2.2
     with:
       envs: |
         - macos: py311-xdist
@@ -22,7 +22,7 @@ jobs:
         - macos: py3-devdeps-xdist
   test_downstream:
     if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run extra tests')))
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@28e947497bed4d6ec3fa1d66d198e95a1d17bc63 # v2.2.1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@930ac90540ecc5f43ba6d3d176efd25cd5f3c6c2 # v2.2.2
     with:
       setenv: |
         CRDS_PATH: /tmp/data/crds_cache
