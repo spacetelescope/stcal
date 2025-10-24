@@ -111,6 +111,11 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     gdq0_sat = np.bitwise_and(gdq_sect[0], sat)
     pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(pixeldq_sect[gdq0_sat != 0], sat | dnu)
 
+    # If saturation occurs mark the appropriate flag.
+    sat_loc = np.bitwise_and(gdq_sect, sat)
+    sat_check = np.where(sat_loc.sum(axis=0) > 0)
+    pixeldq_sect[sat_check] = np.bitwise_or(pixeldq_sect[sat_check], sat)
+
     # If jump occurs mark the appropriate flag.
     jump_loc = np.bitwise_and(gdq_sect, jump)
     jump_check = np.where(jump_loc.sum(axis=0) > 0)
@@ -144,11 +149,11 @@ def dq_compress_final(dq_int, ramp_data):
     dnu = np.uint32(ramp_data.flags_do_not_use)
     sat = np.uint32(ramp_data.flags_saturated)
 
-    # Remove DO_NOT_USE and SATURATED because they need special handling.
-    # These flags are not set in the final pixel DQ array by simply being set
+    # Remove DO_NOT_USE because it needs special handling.
+    # This flag is not set in the final pixel DQ array by simply being set
     # in one of the integrations.
-    not_sat_or_dnu = np.uint32(~(dnu | sat))
-    final_dq = np.bitwise_and(final_dq, not_sat_or_dnu)
+    not_dnu = np.uint32(~dnu)
+    final_dq = np.bitwise_and(final_dq, not_dnu)
 
     # If all integrations are DO_NOT_USE or SATURATED, then set DO_NOT_USE.
     set_if_total_integ(final_dq, dq_int, dnu | sat, dnu)
