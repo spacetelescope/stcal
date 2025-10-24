@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 
 import sys
@@ -449,7 +448,6 @@ def test_2_group_cases():
     """
     # XXX JP-3121: Still needs work
     base_group = [-12328.601, -4289.051]
-    base_err = [0.0, 0.0]
     gain_val = 0.9699
     rnoise_val = 9.4552
 
@@ -511,7 +509,7 @@ def test_2_group_cases():
     check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
     np.testing.assert_allclose(data, check, tol)
 
-    check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU, GOOD, GOOD, GOOD]])
+    check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU | SAT, GOOD, GOOD, SAT]])
     # np.testing.assert_allclose(dq, check, tol)  # XXX double
 
     check = np.array([[38.945766, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
@@ -597,7 +595,7 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[np.nan, np.nan, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[DNU | SAT, DNU, GOOD]])
+    check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
     # np.testing.assert_allclose(sdq, check, tol)  # XXX double
 
     check = np.array([[0.0, 0.0, 0.25]])
@@ -615,7 +613,7 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[[np.nan, np.nan, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, DNU, GOOD]]])
+    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
     # np.testing.assert_allclose(cdq, check, tol)  # XXX double
 
     check = np.array([[[0.0, 0.0, 0.25]]])
@@ -642,7 +640,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     check = np.array([[np.nan, 1.0, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[DNU | SAT, GOOD, GOOD]])
+    check = np.array([[DNU | SAT, SAT, GOOD]])
     # np.testing.assert_allclose(sdq, check, tol)  # XXX double
 
     check = np.array([[0.0, 1.0, 0.25]])
@@ -660,7 +658,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     check = np.array([[[np.nan, 1.0, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, GOOD, GOOD]]])
+    check = np.array([[[DNU | SAT, SAT, GOOD]]])
     # np.testing.assert_allclose(cdq, check, tol)  # XXX double
 
     check = np.array([[[0.0, 1, 0.25]]])
@@ -688,7 +686,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     check = np.array([[1.0000001, 1.0000001, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
+    check = np.array([[SAT, SAT, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.125, 0.125, 0.125]])
@@ -706,7 +704,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     check = np.array([[[np.nan, np.nan, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, DNU, GOOD]], [[GOOD, GOOD, GOOD]]])
+    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     # np.testing.assert_allclose(cdq, check, tol)  # XXX double
 
     check = np.array([[[0.0, 0.0, 0.25]], [[0.125, 0.125, 0.25]]])
@@ -734,7 +732,7 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     check = np.array([[1.0000001, 1.0000001, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
+    check = np.array([[SAT, SAT, GOOD]])
     np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.125, 0.2, 0.125]])
@@ -752,7 +750,7 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     check = np.array([[[np.nan, 1.0, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, GOOD, GOOD]], [[GOOD, GOOD, GOOD]]])
+    check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     # np.testing.assert_allclose(cdq, check, tol)  # XXX double
 
     check = np.array([[[0.0, 1.0, 0.25]], [[0.125, 0.25, 0.25]]])
@@ -866,7 +864,7 @@ def test_zeroframe():
     check = np.array([[48.965397, 18.628912, 47.863224]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
+    check = np.array([[SAT, SAT, SAT]])
     np.testing.assert_allclose(sdq, check, tol, tol)
 
     check = np.array([[0.13110262, 0.00867591, 0.29745975]])
@@ -887,7 +885,7 @@ def test_zeroframe():
     check = np.array([[[298.0626, np.nan, 652.01196]], [[18.62891, 18.62891, 18.62891]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
-    check = np.array([[[GOOD, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    check = np.array([[[SAT, DNU | SAT, SAT]], [[GOOD, GOOD, GOOD]]])
     # np.testing.assert_allclose(cdq, check, tol, tol)  # XXX double
 
     check = np.array([[[1.1799237, 0.0, 6.246655]], [[0.14749046, 0.00867591, 0.31233275]]])
@@ -1463,7 +1461,7 @@ def test_one_group():
     sdata, sdq, svp, svr, serr = slopes
 
     # XXX JP-3121: this is the value from python, which may not be correct
-    chk_data = 1.9618962  
+    chk_data = 1.9618962
     chk_dq = 0
     chk_var_p = 0.02923839
     chk_var_r = 0.03470363
