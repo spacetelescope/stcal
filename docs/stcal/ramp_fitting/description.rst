@@ -195,11 +195,11 @@ Segment-specific Computations
 +++++++++++++++++++++++++++++
 The variance of the slope of a segment due to read noise is:
 
-.. math::  
+.. math::
    var^R_{s} = \frac{12 \ R^2 }{ (ngroups_{s}^3 - ngroups_{s})(tgroup^2)(gain^2) } \,,
 
-where :math:`R` is the noise in the difference between 2 frames, 
-:math:`ngroups_{s}` is the number of groups in the segment, and :math:`tgroup` is the group 
+where :math:`R` is the noise in the difference between 2 frames,
+:math:`ngroups_{s}` is the number of groups in the segment, and :math:`tgroup` is the group
 time in seconds (from the keyword TGROUP).  The divide by gain converts to
 :math:`DN`.  For the special case where as segment has length 1, the
 :math:`ngroups_{s}` is set to :math:`2`.
@@ -272,7 +272,7 @@ The square-root of the combined variance is stored in the ERR array of the outpu
 The overall slope depends on the slope and the combined variance of the slope of each integration's
 segments, so is a sum over integration values computed from the segements:
 
-.. math::    
+.. math::
     slope_{o} = \frac{ \sum_{i}{ \frac{slope_{i}} {var^C_{i}}}} { \sum_{i}{ \frac{1} {var^C_{i}}}}
 
 
@@ -300,7 +300,7 @@ Data Quality Propagation
 For a given pixel, if all groups in an integration are flagged as DO_NOT_USE or
 SATURATED, then that pixel will be flagged as DO_NOT_USE in the corresponding
 integration in the "rateints" product.  Note this does NOT mean that all groups
-are flagged as SATURATED, nor that all groups are flagged as DO_NOT_USE.  For
+are flagged as DO_NOT_USE.  For
 example, slope calculations that are suppressed due to a ramp containing only
 one good group will be flagged as DO_NOT_USE in the
 first group, but not necessarily any other group, while only groups two and
@@ -308,13 +308,12 @@ beyond are flagged as SATURATED.  Further, only if all integrations in the "rate
 product are flagged as DO_NOT_USE, then the pixel will be flagged as DO_NOT_USE
 in the "rate" product.
 
-For a given pixel, if all groups in an integration are flagged as SATURATED,
-then that pixel will be flagged as SATURATED and DO_NOT_USE in the corresponding
-integration in the "rateints" product.  This is different from the above case in
-that this is only for all groups flagged as SATURATED, not for some combination
-of DO_NOT_USE and SATURATED.  Further, only if all integrations in the "rateints"
-product are flagged as SATURATED, then the pixel will be flagged as SATURATED
-and DO_NOT_USE in the "rate" product.
+For a given pixel, if any groups in an integration are flagged as SATURATED,
+then that pixel will be flagged as SATURATED in the corresponding
+integration in the "rateints" product.
+Furthermore, if any integration in the "rateints"
+product is flagged as SATURATED, then the pixel will be flagged as SATURATED
+in the "rate" product.
 
 For a given pixel, if any group in an integration is flagged as JUMP_DET, then
 that pixel will be flagged as JUMP_DET in the corresponding integration in the
@@ -338,12 +337,12 @@ group/resultant directly, the likelihood algorithm is based on differences of
 the groups/resultants :math:`d_i = r_i - r_{i-1}`.  The model used to determine
 the slope/countrate, :math:`a`, is:
 
-.. math::    
+.. math::
     \chi^2 = ({\bf d} - a \cdot {\bf 1})^T C ({\bf d} - a \cdot {\bf 1}) \,,
 
-Differentiating, setting to zero, then solving for :math:`a` results in 
+Differentiating, setting to zero, then solving for :math:`a` results in
 
-.. math::    
+.. math::
     a = ({\bf 1}^T C {\bf d})({\bf 1}^T C {\bf 1})^T \,,
 
 The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of the

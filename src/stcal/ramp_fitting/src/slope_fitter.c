@@ -14,17 +14,6 @@
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
 
-/*
-To build C code, make sure the setup.py file is correct and
-lists all extensions, then run:
-
-python setup.py build_ext --inplace
-
-        or
-
-pip install -e .
- */
-
 /* ========================================================================= */
 /*                               TYPEDEFs                                    */
 /* ------------------------------------------------------------------------- */
@@ -2746,6 +2735,7 @@ ramp_fit_pixel(
     int ret = 0;
     npy_intp integ;
     int sat_cnt = 0, dnu_cnt = 0;
+    int set_rate_sat_flag = 0;
 
     /* Ramp fitting depends on the averaged median rate for each integration */
     if (compute_median_rate(rd, pr)) {
@@ -2777,20 +2767,28 @@ ramp_fit_pixel(
             dnu_cnt++;
             pr->rateints[integ].slope = NAN;
         }
+
+        if (rd->save_opt) {
+            get_pixel_ramp_integration_segments_and_pedestal(integ, pr, rd);
+        }
+
         if (pr->rateints[integ].dq & rd->sat) {
             sat_cnt++;
             pr->rateints[integ].slope = NAN;
         }
 
-        if (rd->save_opt) {
-            get_pixel_ramp_integration_segments_and_pedestal(integ, pr, rd);
+        // The partial saturation must go here to not mess up pedestal computations
+        if (pr->stats[integ].cnt_sat > 0) {
+            pr->rateints[integ].dq |= rd->sat;
+            set_rate_sat_flag = 1;
         }
     }
 
     if (rd->nints == dnu_cnt) {
         pr->rate.dq |= rd->dnu;
     }
-    if (rd->nints == sat_cnt) {
+
+    if (sat_cnt == rd->nints) {
         pr->rate.dq |= rd->sat;
     }
 
@@ -2813,6 +2811,11 @@ ramp_fit_pixel(
         pr->rate.var_poisson = 0.;
         pr->rate.var_rnoise = 0.;
         pr->rate.var_err = 0.;
+    }
+
+    // Partial saturation flagging must be done here
+    if (set_rate_sat_flag) {
+        pr->rate.dq |= rd->sat;
     }
 
     if (!isnan(pr->rate.slope)) {
@@ -2968,6 +2971,7 @@ ramp_fit_pixel_integration(
         goto END;
     }
 
+    // Whole ramp not usable
     if (rd->ngroups == pr->stats[integ].cnt_dnu_sat) {
         pr->rateints[integ].dq |= rd->dnu;
         if (rd->ngroups == pr->stats[integ].cnt_sat) {
