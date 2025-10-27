@@ -17,6 +17,13 @@ from astropy.convolution import convolve
 from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
 
+###################################################
+#        HELP!!
+import sys
+sys.path.insert(1, "/Users/kmacdonald/code/common")
+from print_statements import dbg_print
+###################################################
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -336,6 +343,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     total_snowballs = 0
     nints, ngrps, nrows, ncols = gdq.shape
     persist_jumps = np.zeros(shape=(nints, nrows, ncols), dtype=np.uint8)
+
     for integration in range(nints):
         for group in range(1, ngrps):
             current_gdq = gdq[integration, group, :, :]
@@ -352,6 +360,11 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
                 not_current_sat = np.logical_not(current_sat)
                 next_new_sat = next_sat * not_current_sat
 
+            import ipdb; ipdb.set_trace()
+            # dbg_print("Here")
+
+            # XXX Could be a bug. next_new_sat is created conditionally.  Also,
+            #     for the last group, this is reused. Should it be?
             next_sat_ellipses = find_ellipses(next_new_sat, sat_flag, jump_data.min_sat_area)
             sat_ellipses = find_ellipses(new_sat, sat_flag, jump_data.min_sat_area)
 
@@ -613,6 +626,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
+    # XXX here
     contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
 
