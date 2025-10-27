@@ -27,6 +27,7 @@ license-files = ["LICENSE"]
 dynamic = ["version"]
 
 [project.optional-dependencies]
+jump = ["opencv-python-headless >=4.6.0.66"]
 docs = [
   "numpydoc",
   "packaging >=17",
