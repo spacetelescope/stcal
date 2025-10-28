@@ -104,6 +104,10 @@ class JumpData:
         self.after_jump_flag_e1 = None
         self.after_jump_flag_e2 = None
 
+        # For persistence flagging
+        self.persistence_fname = None
+        self.persistence = False
+
         # Snowball information for near-IR
         #  Turns on Snowball detector for NIR detectors
         self.expand_large_events = False
