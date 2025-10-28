@@ -17,13 +17,6 @@ from astropy.convolution import convolve
 from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
 
-###################################################
-#        HELP!!
-import sys
-sys.path.insert(1, "/Users/kmacdonald/code/common")
-from print_statements import dbg_print
-###################################################
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
