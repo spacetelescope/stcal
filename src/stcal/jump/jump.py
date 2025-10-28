@@ -470,7 +470,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     axis2 : float
         The other (full) axis of the ellipse
     alpha : float
-        Angle (in degrees) between axis1 and x
+        Angle (in radians) between axis1 and x
     value : unsigned 8-bit integer
         Value to fill the image with
     shape : (int, int)
@@ -1222,9 +1222,11 @@ def find_first_good_group(int_gdq, do_not_use):
 
 
 def sk_ellipse(shape, center, axes, angle, value):
+    if axes[1] == 0 or axes[0] == 0:
+        return [], []
     return skimage.draw.ellipse(
         center[1], center[0],
-        axes[1] + 0.25, axes[0] + 0.25,
+        axes[1], axes[0],
         shape,
         angle,
     )
@@ -1245,5 +1247,5 @@ def sk_filter_areas(image, threshold):
         min_areas.append((
             (float(region.centroid[1]), float(region.centroid[0])),
             (h, w),
-            -np.degrees(region.orientation)))
+            region.orientation))
     return min_areas
