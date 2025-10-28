@@ -1260,7 +1260,7 @@ def calc_num_slices(n_rows, max_cores, max_available):
 def sk_ellipse(shape, center, axes, angle, value):
     return skimage.draw.ellipse(
         center[1], center[0],
-        axes[1], axes[0],
+        axes[1] + 0.25, axes[0] + 0.25,
         shape,
         angle,
     )
@@ -1272,10 +1272,14 @@ def sk_filter_areas(image, threshold):
     for region in skimage.measure.regionprops(lim):
         if region.area_filled < threshold:
             continue
-        # to match the open opencv return
+        # wait util after area check so calculating the more expensive
+        # region properties is only done for areas that pass threshold
+        w = region.axis_major_length - 1
+        h = region.axis_minor_length - 1
+        # opencv returns
         # [[cy, cx], [dy, dx], [angle]]
         min_areas.append((
             (float(region.centroid[1]), float(region.centroid[0])),
-            (region.axis_minor_length, region.axis_major_length),
-            region.orientation))
+            (h, w),
+            -np.degrees(region.orientation)))
     return min_areas
