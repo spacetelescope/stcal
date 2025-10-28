@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 from astropy.stats import sigma_clip
-from drizzle.cdrizzle import tblot
+from drizzle.resample import blot_image
 from scipy import ndimage
 from skimage.util import view_as_windows
 import gwcs
@@ -259,8 +259,8 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
     # what we've been doing up until now, so more investigation is needed
     # before a change is made.  Preferably, fix tblot in drizzle.
     pixmap[np.isnan(pixmap)] = -1
-    tblot(median_data, pixmap, outsci, scale=pix_ratio, kscale=1.0,
-          interp='linear', exptime=1.0, misval=fillval, sinscl=1.0)
+    outsci = blot_image(median_data, pixmap, iscale=1.0 / pix_ratio**2,
+                        interp='linear', fillval=fillval, sinscl=1.0)
 
     return outsci
 
