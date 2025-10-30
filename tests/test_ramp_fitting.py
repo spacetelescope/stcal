@@ -1,11 +1,10 @@
-import pytest
 import numpy as np
 
 import sys
 
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
-from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # c extension
+from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # C extension
 from stcal.ramp_fitting.utils import compute_num_slices
 
 
@@ -34,8 +33,6 @@ DEFAULT_OLS = "OLS_C"
 #                           Test Suite
 
 def test_long_integration():
-    """
-    """
     nints, nrows, ncols = 1, 1, 1
     rnoise_val, gain_val = 0.1, 40.0
     nframes, gtime, ftime = 1, 3, 3
@@ -181,7 +178,7 @@ def test_neg_med_rates_multi_integrations_slopes():
     assert sdata[0, 0] < 0.0
     assert svp[0, 0] == 0.0
     assert svr[0, 0] != 0.0
-    # assert np.sqrt(svr[0, 0]) == serr[0, 0]  # XXX double
+    np.testing.assert_allclose(np.sqrt(svr[0, 0]), serr[0, 0])
 
 
 def test_neg_med_rates_multi_integration_integ():
@@ -288,10 +285,9 @@ def test_neg_with_avgdark():
 
     sdata, sdq, svp, svr, serr = slopes
     assert sdata[0, 0] < 0.0
-    # XXX check this
-    # np.testing.assert_almost_equal(svp[0,0], 0.11, 2)
+    np.testing.assert_almost_equal(svp[0, 0], 0.11, 2)
     assert svr[0, 0] != 0.0
-    np.testing.assert_almost_equal(np.sqrt(svp[0,0] + svr[0,0]), serr[0,0], 2)
+    np.testing.assert_almost_equal(np.sqrt(svp[0, 0] + svr[0, 0]), serr[0, 0], 2)
 
 
 def test_utils_dq_compress_final():
@@ -339,17 +335,17 @@ def test_utils_dq_compress_final():
     idq = cube[1]  # Should be [[[3 3 0]], [[3 0 0 ]]]
 
     # Make sure DO_NOT_USE is set in the expected integrations.
-    # assert idq[0, 0, 0] & dqflags["DO_NOT_USE"]  # XXX double
-    # assert idq[1, 0, 0] & dqflags["DO_NOT_USE"]  # XXX double
+    assert idq[0, 0, 0] & dqflags["DO_NOT_USE"]
+    assert idq[1, 0, 0] & dqflags["DO_NOT_USE"]
 
-    # assert idq[0, 0, 1] & dqflags["DO_NOT_USE"]  # XXX double
-    # assert not (idq[1, 0, 1] & dqflags["DO_NOT_USE"])  # XXX double
+    assert idq[0, 0, 1] & dqflags["DO_NOT_USE"]
+    assert not (idq[1, 0, 1] & dqflags["DO_NOT_USE"])
 
     assert not (idq[0, 0, 2] & dqflags["DO_NOT_USE"])
     assert not (idq[1, 0, 2] & dqflags["DO_NOT_USE"])
 
     # Make sure DO_NOT_USE is set in the expected final DQ.
-    # assert dq[0, 0] & dqflags["DO_NOT_USE"]  # XXX double
+    assert dq[0, 0] & dqflags["DO_NOT_USE"]
     assert not (dq[0, 1] & dqflags["DO_NOT_USE"])
     assert not (dq[0, 2] & dqflags["DO_NOT_USE"])
 
@@ -399,6 +395,7 @@ def jp_2326_test_setup():
 
     return ramp_data, gain, rnoise
 
+
 def test_miri_ramp_dnu_at_ramp_beginning():
     """
     Tests a MIRI ramp with DO_NOT_USE in the first two groups and last group.
@@ -447,9 +444,7 @@ def test_2_group_cases():
     Tests the special cases of 2 group ramps.  Create multiple pixel ramps
     with two groups to test the various DQ cases.
     """
-    # XXX JP-3121: Still needs work
     base_group = [-12328.601, -4289.051]
-    base_err = [0.0, 0.0]
     gain_val = 0.9699
     rnoise_val = 9.4552
 
@@ -512,7 +507,7 @@ def test_2_group_cases():
     np.testing.assert_allclose(data, check, tol)
 
     check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU, GOOD, GOOD, GOOD]])
-    # np.testing.assert_allclose(dq, check, tol)  # XXX double
+    np.testing.assert_allclose(dq, check, tol)
 
     check = np.array([[38.945766, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
     np.testing.assert_allclose(vp, check, tol)
@@ -586,7 +581,6 @@ def test_one_group_ramp_suppressed_one_integration():
     """
     Tests one group ramp fitting where suppression turned on.
     """
-    # XXX current test
     slopes, cube, dims = run_one_group_ramp_suppression(1, True)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
@@ -598,7 +592,7 @@ def test_one_group_ramp_suppressed_one_integration():
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[DNU | SAT, DNU, GOOD]])
-    # np.testing.assert_allclose(sdq, check, tol)  # XXX double
+    np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.0, 0.0, 0.25]])
     np.testing.assert_allclose(svp, check, tol)
@@ -616,7 +610,7 @@ def test_one_group_ramp_suppressed_one_integration():
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, DNU, GOOD]]])
-    # np.testing.assert_allclose(cdq, check, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.0, 0.0, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
@@ -643,7 +637,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     np.testing.assert_allclose(sdata, check, tol)
 
     check = np.array([[DNU | SAT, GOOD, GOOD]])
-    # np.testing.assert_allclose(sdq, check, tol)  # XXX double
+    np.testing.assert_allclose(sdq, check, tol)
 
     check = np.array([[0.0, 1.0, 0.25]])
     np.testing.assert_allclose(svp, check, tol)
@@ -661,7 +655,7 @@ def test_one_group_ramp_not_suppressed_one_integration():
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, GOOD, GOOD]]])
-    # np.testing.assert_allclose(cdq, check, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.0, 1, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
@@ -707,7 +701,7 @@ def test_one_group_ramp_suppressed_two_integrations():
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, DNU, GOOD]], [[GOOD, GOOD, GOOD]]])
-    # np.testing.assert_allclose(cdq, check, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.0, 0.0, 0.25]], [[0.125, 0.125, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
@@ -753,7 +747,7 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     np.testing.assert_allclose(cdata, check, tol)
 
     check = np.array([[[DNU | SAT, GOOD, GOOD]], [[GOOD, GOOD, GOOD]]])
-    # np.testing.assert_allclose(cdq, check, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol)
 
     check = np.array([[[0.0, 1.0, 0.25]], [[0.125, 0.25, 0.25]]])
     np.testing.assert_allclose(cvp, check, tol)
@@ -788,7 +782,6 @@ def create_zero_frame_data():
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     zframe = np.ones(shape=(nints, nrows, ncols), dtype=np.float32)
     dark_current = np.zeros((nrows, ncols), dtype=np.float32)
-
 
     # Create base ramps for each pixel in each integration.
     base_slope = 2000.0
@@ -845,6 +838,7 @@ def test_zeroframe():
     A two integration three pixel image.
 
     The first integration:
+
     1. Good first group with the remainder of the ramp being saturated.
     2. Saturated ramp.
     3. Saturated ramp with ZEROFRAME data used for the first group.
@@ -888,7 +882,7 @@ def test_zeroframe():
     np.testing.assert_allclose(cdata, check, tol, tol)
 
     check = np.array([[[GOOD, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
-    # np.testing.assert_allclose(cdq, check, tol, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol, tol)
 
     check = np.array([[[1.1799237, 0.0, 6.246655]], [[0.14749046, 0.00867591, 0.31233275]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
@@ -903,6 +897,7 @@ def test_zeroframe():
 def create_only_good_0th_group_data():
     """
     Create three ramps to the the good 0th group.
+
     1. An all good ramp.
     2. A saturated ramp starting at group 2 with the first two groups good.
     3. A saturated ramp starting at group 1 with only group 0 good.
@@ -918,7 +913,6 @@ def create_only_good_0th_group_data():
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
     dark_current = np.zeros((nrows, ncols), dtype=np.float32)
-
 
     # Create base ramps for each pixel in each integration.
     base_slope = 2000.0
@@ -964,6 +958,7 @@ def create_only_good_0th_group_data():
 def test_only_good_0th_group():
     """
     Tests three ramps to the the good 0th group.
+
     1. An all good ramp.
     2. A saturated ramp starting at group 2 with the first two groups good.
     3. A saturated ramp starting at group 1 with only group 0 good.
@@ -1082,7 +1077,7 @@ def test_dq_multi_int_dnu():
     np.testing.assert_allclose(cdata, check, tol, tol)
 
     check = np.array([[[dqflags["DO_NOT_USE"]]], [[0]]])
-    # np.testing.assert_allclose(cdq, check, tol, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol, tol)
 
     check = np.array([[[0.0]], [[0.00086759]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
@@ -1118,13 +1113,11 @@ def test_multi_more_cores_than_rows():
     requested_slices = compute_num_slices(requested_slices, nrows, max_available_cores)
     assert requested_slices == 1
 
-    """
-    NOTE: The following is useful only on computers with more than
-          one available processor.  Running this test on one
-          processor does NOT test the safety features of multi-
-          processing preventing the number of processors used
-          being no more than the number of processors requested.
-    """
+    # NOTE: The following is useful only on computers with more than
+    #       one available processor.  Running this test on one
+    #       processor does NOT test the safety features of multi-
+    #       processing preventing the number of processors used
+    #       being no more than the number of processors requested.
     ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
     bramp = np.array(
         [
@@ -1158,6 +1151,7 @@ def test_multi_more_cores_than_rows():
 def get_new_saturation():
     """
     Three columns (pixels) with two integrations each.
+
     1. One integ good, one partially saturated.
     2. One integ partially saturated, one fully saturated.
     2. Both integrations fully saturated.
@@ -1312,7 +1306,7 @@ def test_new_saturation():
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[JUMP, JUMP, DNU | SAT]])
-    # np.testing.assert_allclose(sdq, check, tol, tol)  # XXX double
+    np.testing.assert_allclose(sdq, check, tol, tol)
 
     check = np.array([[0.00033543, 0.00043342, 0.0]])
     np.testing.assert_allclose(svp, check, tol, tol)
@@ -1330,7 +1324,7 @@ def test_new_saturation():
     np.testing.assert_allclose(cdata, check, tol, tol)
 
     check = np.array([[[GOOD, JUMP, DNU | SAT]], [[JUMP, DNU | SAT, DNU | SAT]]])
-    # np.testing.assert_allclose(cdq, check, tol, tol)  # XXX double
+    np.testing.assert_allclose(cdq, check, tol, tol)
 
     check = np.array([[[0.00054729, 0.00043342, 0.0]], [[0.00086654, 0.0, 0.0]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
@@ -1352,8 +1346,8 @@ def test_invalid_integrations():
     suppress_one_group is defaulted to True.  With this data and flag set
     there are only two good integrations.
     """
-    # XXX The C code runs different than the python code.  The variances are
-    #     computed differently and have been accounted for.
+    # Ken: The C code runs different than the python code. The variances are
+    #      computed differently and have been accounted for.
     nints, ngroups, nrows, ncols = 8, 5, 1, 1
     rnval, gval = 6.097407, 5.5
     frame_time, nframes, groupgap = 2.77504, 1, 0
@@ -1404,7 +1398,7 @@ def test_invalid_integrations():
     np.testing.assert_allclose(sdata, check, tol, tol)
 
     check = np.array([[JUMP]])
-    # np.testing.assert_allclose(sdq, check, tol, tol)  # XXX double
+    np.testing.assert_allclose(sdq, check, tol, tol)
 
     check = np.array([[44.503918]])
     np.testing.assert_allclose(svp, check, tol, tol)
@@ -1424,7 +1418,7 @@ def test_invalid_integrations():
     check = np.array(
         [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
     )
-    # np.testing.assert_allclose(cdq[:, 0, 0], check, tol, tol)  # XXX double
+    np.testing.assert_allclose(cdq[:, 0, 0], check, tol, tol)
 
     check = np.array([89.007835, 0.0, 0.0, 89.007835, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
     np.testing.assert_allclose(cvp[:, 0, 0], check, tol, tol)
@@ -1432,7 +1426,7 @@ def test_invalid_integrations():
     check = np.array([4.8278294, 0.0, 0.0, 4.8278294, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
     np.testing.assert_allclose(cvr[:, 0, 0], check, tol, tol)
 
-    # XXX This needs to be verified for the two group ramp special case.
+    # Ken: This needs to be verified for the two group ramp special case.
     check = np.array([9.686893, 0.0, 0.0, 9.686893, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
     np.testing.assert_allclose(cerr[:, 0, 0], check, tol, tol)
 
@@ -1444,7 +1438,6 @@ def test_one_group():
     nints, ngroups, nrows, ncols = 1, 1, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
-    # frame_time, nframes, groupgap = 10.736, 1, 0
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval
@@ -1462,16 +1455,15 @@ def test_one_group():
     tol = 1e-5
     sdata, sdq, svp, svr, serr = slopes
 
-    # XXX JP-3121: this is the value from python, which may not be correct
-    chk_data = 1.9618962  
+    # JP-3121: 1.9618962 was the value from python, which may not be correct
+    chk_data = 3.923792
+
     chk_dq = 0
     chk_var_p = 0.02923839
     chk_var_r = 0.03470363
     chk_var_e = 0.2528676
 
-
-    # XXX Investigate.  Now python may be wrong.
-    # assert abs(sdata[0, 0] - chk_data) < tol
+    assert abs(sdata[0, 0] - chk_data) < tol
     assert sdq[0, 0] == chk_dq
     assert abs(svp[0, 0] - chk_var_p) < tol
     assert abs(svr[0, 0] - chk_var_r) < tol
@@ -1511,7 +1503,6 @@ def test_refcounter():
     nints, ngroups, nrows, ncols = 1, 1, 1, 1
     rnval, gval = 10.0, 5.0
     frame_time, nframes, groupgap = 10.736, 4, 1
-    # frame_time, nframes, groupgap = 10.736, 1, 0
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval
@@ -1551,6 +1542,7 @@ def test_cext_chargeloss():
     the resegmentation, the readnoise is recalculated.
 
     There are four pixels:
+
     0. A clean ramp.
     1. A jump at group 3 (zero based) and CHARGELOSS starting at group 7.
     2. A jump at group 3 (zero based) and SATURATED starting at group 7.
@@ -1560,9 +1552,7 @@ def test_cext_chargeloss():
     """
     nints, ngroups, nrows, ncols = 1, 10, 1, 4
     rnval, gval = 0.7071, 1.
-    # frame_time, nframes, groupgap = 1., 1, 0
     frame_time, nframes, groupgap = 10.6, 1, 0
-    group_time = 10.6
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval
@@ -1628,7 +1618,6 @@ def test_crmag():
     nints, ngroups, nrows, ncols = 1, 10, 1, 2
     rnval, gval = 0.7071, 1.
     frame_time, nframes, groupgap = 10.6, 1, 0
-    group_time = 10.6
 
     dims = nints, ngroups, nrows, ncols
     var = rnval, gval
@@ -1681,7 +1670,7 @@ def create_blank_ramp_data(dims, var, tm):
     data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
-    dark_current = np.zeros(shape=(nrows, ncols), dtype = np.float32)
+    dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
     ramp_data = RampData()
     ramp_data.set_arrays(data=data, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
@@ -1743,8 +1732,6 @@ def create_test_2seg_obs(
         nrows, tm, rate=0, Poisson=True, grptime=2.77,
         gain=4.0, bias=3000, sat_group=0, sat_value=100000.
 ):
-    """
-    """
     # Set up data
     nframes, gtime, dtime = tm
     rng = np.random.default_rng()
@@ -1809,8 +1796,6 @@ def create_test_2seg_obs(
     return ramp_data, readnoise_array, gain_array
 
 
-# -----------------------------------------------------------------------------
-
 ###############################################################################
 # The functions below are only used for DEBUGGING tests and developing tests. #
 ###############################################################################
@@ -1819,12 +1804,15 @@ def dbg_print(string):
     """
     Print string with line number and filename.
     """
-    import inspect, os
+    import inspect
+    import os
+
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
     finfo = inspect.getframeinfo(cf.f_back)
     fname = os.path.basename(finfo.filename)
     print(f"[{fname}:{line_number}] {string}")
+
 
 def print_real_check(real, check, label=None):
     import inspect
@@ -1984,8 +1972,7 @@ def print_all_info(slopes, cube, optional):
     """
     sdata, sdq, svp, svr, serr = slopes
     idata, idq, ivp, ivr, ierr = cube
-    oslope, osigslope, ovp, ovr, \
-        oyint, osigyint, opedestal, oweights, ocrmag = optional
+    oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
     """
 
     print(" ")
