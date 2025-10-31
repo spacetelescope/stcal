@@ -7,7 +7,6 @@ from astropy import stats
 from astropy.utils.exceptions import AstropyUserWarning
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def find_crs(data, group_dq, read_noise, twopt_p):

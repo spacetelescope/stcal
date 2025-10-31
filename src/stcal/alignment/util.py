@@ -20,7 +20,6 @@ from astropy.modeling import models as astmodels
 
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 __all__ = [
     "compute_scale",

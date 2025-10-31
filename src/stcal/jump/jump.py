@@ -18,7 +18,6 @@ from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def detect_jumps_data(jump_data):

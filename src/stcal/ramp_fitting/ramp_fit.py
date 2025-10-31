@@ -24,7 +24,6 @@ from . import (
 )
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 

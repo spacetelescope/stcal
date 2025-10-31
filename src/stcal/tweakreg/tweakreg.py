@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import Counter
 import math
 import warnings
@@ -28,6 +29,8 @@ _SINGLE_GROUP_REFCAT_STR = ",".join(SINGLE_GROUP_REFCAT)
 
 __all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT",
            "filter_catalog_by_bounding_box"]
+
+log = logging.getLogger(__name__)
 
 
 class TweakregError(BaseException):
@@ -298,7 +301,7 @@ def _parse_sky_centroid(catalog: Table) -> Table:
         if ncentroid > 0:
             msg = ("Absolute reference catalog contains both RA/DEC "
                    "and sky_centroid columns. Ignoring sky_centroid.")
-            warnings.warn(msg, stacklevel=2)
+            log.warning(msg)
             catalog.remove_column("sky_centroid")
         return catalog
 
