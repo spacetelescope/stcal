@@ -11,3 +11,10 @@ News fragment change types
 - ``<PR#>.apichange.rst``: Change to public API
 - ``<PR#>.bugfix.rst``: Fixes an issue
 - ``<PR#>.general.rst``: Infrastructure or miscellaneous changes
+
+Note
+----
+
+This README was adapted from the Astropy changelog readme under the terms
+of BSD license, which in turn adapted from the Numpy changelog readme under
+the terms of the MIT licence.
