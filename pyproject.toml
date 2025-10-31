@@ -210,13 +210,7 @@ archs = ["auto", "aarch64"]
 [tool.coverage]
 
 [tool.coverage.run]
-omit = [
-  "config.py",
-  "config-3.py",
-  "*.rmap",
-  "tests/*",
-  "*/tests/*",
-]
+omit = ["config.py", "config-3.py", "*.rmap", "tests/*", "*/tests/*"]
 
 [tool.coverage.report]
 exclude_lines = [
