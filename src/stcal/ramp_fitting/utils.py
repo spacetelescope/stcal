@@ -112,6 +112,8 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):
     gdq0_sat = np.bitwise_and(gdq_sect[0], sat)
     pixeldq_sect[gdq0_sat != 0] = np.bitwise_or(pixeldq_sect[gdq0_sat != 0], sat | dnu)
 
+    # ADD???
+
     # If jump occurs mark the appropriate flag.
     jump_loc = np.bitwise_and(gdq_sect, jump)
     jump_check = np.where(jump_loc.sum(axis=0) > 0)
