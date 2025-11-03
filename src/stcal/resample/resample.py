@@ -103,8 +103,10 @@ class Resample:
             dimension, so the flux is confined to a quarter of the pixel area
             when the square kernel is used.
 
-        kernel : {"square", "gaussian", "point", "turbo", "lanczos2", "lanczos3"}, optional
-            The name of the kernel used to combine the input. The choice of
+        kernel : str, optional
+            The name of the kernel used to combine the input:
+            "square", "gaussian", "point", "turbo", "lanczos2", or "lanczos3".
+            The choice of
             kernel controls the distribution of flux over the kernel.
             The square kernel is the default.
 
@@ -123,8 +125,8 @@ class Resample:
             pixels with no contributions from input images will be set to this
             ``fillval`` value.
 
-        weight_type : {"ivm", "exptime", "ivm-sky"}, optional
-            The weighting type for adding models' data. For
+        weight_type : str, optional
+            The weighting type ("ivm", "exptime", or "ivm-sky") for adding models' data. For
             ``weight_type="ivm"`` (the default), the weighting will be
             determined per-pixel using the inverse of the read noise
             (VAR_RNOISE) array stored in each input image. If the
@@ -203,7 +205,9 @@ class Resample:
         enable_var : bool, optional
             Indicates whether to resample variance arrays.
 
-        compute_err : {"from_var", "driz_err"}, None, optional
+        compute_err : str or None, optional
+            Options are "from_var" or "driz_err":
+
             - ``"from_var"``: compute output model's error array from
               all (Poisson, flat, readout) resampled variance arrays.
               Setting ``compute_err`` to ``"from_var"`` will assume
@@ -389,7 +393,7 @@ class Resample:
 
         Parameters
         ----------
-        output_wcs : WCS object
+        output_wcs : gwcs.wcs.WCS
             A WCS object corresponding to the output (resampled) image.
 
         estimate_output_shape : bool, optional
@@ -853,8 +857,8 @@ class Resample:
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines.
 
-        pixmap : 3D array
-            A mapping from input image (``data``) coordinates to resampled
+        pixmap : np.ndarray
+            A mapping (3D array) from input image (``data``) coordinates to resampled
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
@@ -911,8 +915,8 @@ class Resample:
         sets ouput model values, and optionally frees temporary/intermediate
         objects.
 
-        ``finalize`` calls :py:meth:`~Resample.finalize_resample_variance` and
-        :py:meth:`~Resample.finalize_time_info`.
+        ``finalize`` calls :py:meth:`~stcal.resample.Resample.finalize_resample_variance` and
+        :py:meth:`~stcal.resample.Resample.finalize_time_info`.
 
         .. warning::
           Once the resample process has been finalized, adding new models to
@@ -1008,8 +1012,8 @@ class Resample:
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines.
 
-        pixmap : 3D array
-            A mapping from input image (``data``) coordinates to resampled
+        pixmap : np.ndarray
+            A mapping (3D array) from input image (``data``) coordinates to resampled
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
@@ -1112,9 +1116,8 @@ class Resample:
 
         output_model : dict, None
             A dictionary containing data arrays and other attributes that
-            will be used to add new models to. use
-            :py:meth:`Resample.output_model_attributes` to get the list of
-            keywords that must be present. When ``accumulate`` is `False`,
+            will be used to add new models to.
+            When ``accumulate`` is `False`,
             only the WCS object of the model will be used. When ``accumulate``
             is `True`, new models will be added to the existing data in the
             ``output_model``.

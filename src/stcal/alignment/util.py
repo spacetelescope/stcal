@@ -1,7 +1,6 @@
 """Common utility functions for datamodel alignment."""
 from __future__ import annotations
 
-import functools
 import logging
 import re
 from typing import TYPE_CHECKING, Tuple
@@ -13,13 +12,11 @@ if TYPE_CHECKING:
     import astropy
 
 import gwcs
-from gwcs import coordinate_frames as cf
 from gwcs import FITSImagingWCSTransform
 import numpy as np
 from astropy import wcs as fitswcs
 from astropy import coordinates as coord
 from astropy.modeling import models as astmodels
-from astropy import units as u
 
 
 log = logging.getLogger(__name__)
@@ -442,7 +439,7 @@ def sregion_to_footprint(s_region: str) -> np.ndarray:
 
     Returns
     -------
-    footprint : np.array
+    footprint : np.ndarray
         A 2D array of the footprint of the region, shape (N, 2)
     """
     no_prefix = re.sub(r"[a-zA-Z]", "", s_region)
