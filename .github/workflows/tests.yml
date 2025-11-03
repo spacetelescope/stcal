@@ -23,6 +23,7 @@ jobs:
     with:
       envs: |
         - linux: check-types
+          python-version: 3.13
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@930ac90540ecc5f43ba6d3d176efd25cd5f3c6c2 # v2.2.2
     with:
@@ -30,9 +31,7 @@ jobs:
         - linux: py311-oldestdeps-cov-xdist
         - linux: py311-xdist
         - linux: py312-xdist
-        # `tox` does not currently respect `requires-python` versions when creating testing environments;
-        # if this breaks, add an upper pin to `requires-python` and revert this py3 to the latest working version
-        - linux: py3-cov-xdist
+        - linux: py313-cov-xdist
           coverage: codecov
         - macos: py313-xdist
   test_downstream:

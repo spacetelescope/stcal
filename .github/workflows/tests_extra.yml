@@ -18,6 +18,7 @@ jobs:
       envs: |
         - macos: py311-xdist
         - macos: py312-xdist
+        - macos: py313-xdist
         - linux: py3-devdeps-xdist
         - macos: py3-devdeps-xdist
   test_downstream:
