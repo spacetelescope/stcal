@@ -207,8 +207,6 @@ archs = ["x86_64", "arm64"]
 [tool.cibuildwheel.linux]
 archs = ["auto", "aarch64"]
 
-[tool.coverage]
-
 [tool.coverage.run]
 omit = ["config.py", "config-3.py", "*.rmap", "tests/*", "*/tests/*"]
 
