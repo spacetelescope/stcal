@@ -30,7 +30,7 @@ repos:
       - id: text-unicode-replacement-char
   # lint and format
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.3
+    rev: v0.14.3
     hooks:
       - id: ruff-check
         args:
@@ -84,14 +84,14 @@ repos:
           - black==22.12.0
   # sort imports in Cython code
   - repo: https://github.com/pycqa/isort
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: isort
         name: isort (cython)
         types: [cython]
   # lint Cython code
   - repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.17.0
+    rev: v0.18.1
     hooks:
       - id: cython-lint
       - id: double-quote-cython-strings
