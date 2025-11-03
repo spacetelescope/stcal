@@ -231,6 +231,7 @@ def test_resample_error_scaling(compute_err):
         output_wcs=output_model,
         weight_type=weight_type,
         compute_err=compute_err,
+        fillval=np.nan,
     )
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
 
