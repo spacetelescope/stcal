@@ -8,8 +8,12 @@ import warnings
 from scipy import signal
 
 import numpy as np
-import cv2 as cv
 import astropy.stats as stats
+import numpy as np
+import skimage
+from astropy.convolution import Ring2DKernel, convolve
+from scipy import signal
+from scipy.spatial import ConvexHull
 
 from astropy.convolution import Ring2DKernel
 from astropy.convolution import convolve
@@ -467,7 +471,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     axis2 : float
         The other (full) axis of the ellipse
     alpha : float
-        Angle (in degrees) between axis1 and x
+        Angle (in radians) between axis1 and x
     value : unsigned 8-bit integer
         Value to fill the image with
     shape : (int, int)
@@ -498,22 +502,11 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     iy1 = max(xc - dn_over_2, 0)
     iy2 = min(xc + dn_over_2 + 1, shape[0])
 
-    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1, 3), dtype=np.uint8)
-    image = cv.ellipse(
-        image,
-        (yc - ix1, xc - iy1),
-        (round(axis1 / 2), round(axis2 / 2)),
-        alpha,
-        0,
-        360,
-        (0, 0, value),
-        -1,
-    )
+    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1), dtype=np.uint8)
+    saty, satx = sk_ellipse((iy2 - iy1, ix2 - ix1), (yc - ix1,xc - iy1), (round(axis1/2), round(axis2/2)), alpha, value)
+    image[saty, satx] = value
 
-    # The last ("blue") part contains the filled ellipse that we want.
-    subimage = image[:, :, 2]
-    return (iy1, iy2, ix1, ix2), subimage
-
+    return (iy1, iy2, ix1, ix2), image
 
 
 def extend_ellipses(
@@ -612,14 +605,8 @@ def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
-    pixels = np.bitwise_and(dqplane, bitmask)
-    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
-
-    # minAreaRect is used because fitEllipse requires 5 points and it is
-    # possible to have a contour
-    # with just 4 points.
-    return [cv.minAreaRect(con) for con in bigcontours]
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
+    return sk_filter_areas(pixels, min_area)
 
 
 def make_snowballs(
@@ -823,21 +810,13 @@ def find_faint_extended(
             if nints >= jump_data.minimum_sigclip_groups:
                 ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
-            bigcontours = get_bigcontours(
-                    ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
-
-            # get the minimum enclosing rectangle which is the same as the
-            # minimum enclosing ellipse
-            ellipses = [cv.minAreaRect(con) for con in bigcontours]
-            image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
-            expand_by_ratio, expansion = True, 1.0
-            image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
+            ellipses = get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
 
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
-                # Reset the warnings filter to its original state
 
+    # Reset the warnings filter to its original state
     warnings.resetwarnings()
     total_showers = 0
 
@@ -956,43 +935,6 @@ def count_dnu_groups(gdq, jump_data):
     return num_grps_donotuse
 
 
-def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
-    """
-    Draw ellipses onto an image.
-
-    Parameters
-    ----------
-    ellipses : list
-        List of ellipses
-
-    image : ndarray
-        The image on which to draw the ellipses.
-
-    expand_by_ratio : bool
-        Should the ellipses be expanded?
-
-    expansion : float
-        The ellipse expansion factor
-
-    jump_data : JumpData
-        Class containing parameters and methods to detect jumps.
-
-    Returns
-    -------
-    image : ndarray
-        The image with ellipses drawn on it.
-    """
-    for ellipse in ellipses:
-        ceny, cenx = ellipse[0][0], ellipse[0][1]
-        cen = (round(ellipse[0][0]), round(ellipse[0][1]))
-        axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
-        alpha = ellipse[2]
-        color = (0, 0, jump_data.fl_jump)
-        image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1)
-
-    return image
-
-
 def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     """
     Expand the ellipse by the expansion factor.
@@ -1037,7 +979,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     return (round(axis1 / 2), round(axis2 / 2))
 
 
-def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     """Perform convolution to find contours larger than a minimum area.
 
     Parameters
@@ -1064,8 +1006,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
     Returns
     -------
-    bigcontours : list 
-        list of OpenCV countours
+    list of computed ellipses
     """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
@@ -1088,12 +1029,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
-    contours, hierarchy = cv.findContours(
-            extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
-    #  get the contours that are above the minimum size
-    bigcontours = [con for con in contours if cv.contourArea(con) > jump_data.extend_min_area]
-    return bigcontours 
+    return sk_filter_areas(extended_emission, jump_data.extend_min_area)
 
 
 
@@ -1319,3 +1255,33 @@ def calc_num_slices(n_rows, max_cores, max_available):
 
     # Make sure we don't have more slices than rows or available cores.
     return min([n_rows, n_slices, max_available])
+
+
+def sk_ellipse(shape, center, axes, angle, value):
+    if axes[1] == 0 or axes[0] == 0:
+        return [], []
+    return skimage.draw.ellipse(
+        center[1], center[0],
+        axes[1], axes[0],
+        shape,
+        angle,
+    )
+
+
+def sk_filter_areas(image, threshold):
+    lim = skimage.measure.label(image)
+    min_areas = []
+    for region in skimage.measure.regionprops(lim):
+        if region.area_filled < threshold:
+            continue
+        # wait util after area check so calculating the more expensive
+        # region properties is only done for areas that pass threshold
+        w = region.axis_major_length - 1
+        h = region.axis_minor_length - 1
+        # opencv returns
+        # [[cy, cx], [dy, dx], [angle]]
+        min_areas.append((
+            (float(region.centroid[1]), float(region.centroid[0])),
+            (h, w),
+            region.orientation))
+    return min_areas
