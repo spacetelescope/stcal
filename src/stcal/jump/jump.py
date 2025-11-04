@@ -16,6 +16,7 @@ from astropy.convolution import convolve
 
 from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
+from stcal.multiprocessing import compute_num_cores
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -82,7 +83,7 @@ def detect_jumps_data(jump_data):
     # figure out how many slices to make based on 'max_cores'
     max_available = multiprocessing.cpu_count()
     n_rows = data.shape[2]
-    n_slices = calc_num_slices(n_rows, jump_data.max_cores, max_available)
+    n_slices = compute_num_cores(jump_data.max_cores, n_rows, max_available)
 
     twopt_params = TwoPointParams(jump_data)
     if n_slices == 1:
@@ -1284,38 +1285,3 @@ def find_first_good_group(int_gdq, do_not_use):
             break
 
     return first_good_group
-
-
-def calc_num_slices(n_rows, max_cores, max_available):
-    """
-    Compute the number of data slices needed for multiprocessesing.
-
-    Parameters
-    ----------
-    n_rows : int
-        The number of rows of the science data.
-
-    max_cores : str
-        The number of processes requested.
-
-    max_available ; int
-        The maximum number of CPU cores available.
-
-    Returns
-    -------
-    The number of slices to slice the data into.
-    """
-    n_slices = 1
-    if max_cores.isnumeric():
-        n_slices = int(max_cores)
-    elif max_cores.lower() == "none" or max_cores.lower() == "one":
-        n_slices = 1
-    elif max_cores == "quarter":
-        n_slices = max_available // 4 or 1
-    elif max_cores == "half":
-        n_slices = max_available // 2 or 1
-    elif max_cores == "all":
-        n_slices = max_available
-
-    # Make sure we don't have more slices than rows or available cores.
-    return min([n_rows, n_slices, max_available])

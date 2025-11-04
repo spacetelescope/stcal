@@ -3,7 +3,6 @@ import pytest
 from astropy.io import fits
 from stcal.jump.jump_class import JumpData
 from stcal.jump.jump import (
-    calc_num_slices,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
@@ -594,22 +593,3 @@ def test_inside_ellipes5():
     ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
     result = point_inside_ellipse(point, ellipse)
     assert result
-
-
-def test_calc_num_slices():
-    n_rows = 20
-    max_available_cores = 10
-    assert calc_num_slices(n_rows, "none", max_available_cores) == 1
-    assert calc_num_slices(n_rows, "half", max_available_cores) == 5
-    assert calc_num_slices(n_rows, "3", max_available_cores) == 3
-    assert calc_num_slices(n_rows, "7", max_available_cores) == 7
-    assert calc_num_slices(n_rows, "21", max_available_cores) == 10
-    assert calc_num_slices(n_rows, "quarter", max_available_cores) == 2
-    assert calc_num_slices(n_rows, "7.5", max_available_cores) == 1
-    assert calc_num_slices(n_rows, "one", max_available_cores) == 1
-    assert calc_num_slices(n_rows, "-5", max_available_cores) == 1
-    assert calc_num_slices(n_rows, "all", max_available_cores) == 10
-    assert calc_num_slices(n_rows, "3/4", max_available_cores) == 1
-    n_rows = 9
-    assert calc_num_slices(n_rows, "21", max_available_cores) == 9
-
