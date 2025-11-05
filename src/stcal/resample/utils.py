@@ -2,7 +2,6 @@ import logging
 import warnings
 
 import numpy as np
-from scipy.ndimage import median_filter
 from astropy.nddata.bitmask import (
     bitfield_to_boolean_mask,
     interpret_bit_flags,
@@ -74,9 +73,10 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     model : dict
         Input model: a dictionary of relevant keywords and values.
 
-    weight_type : {"exptime", "ivm", "ivm-sky"}, None, optional
-        The weighting type for adding models' data. For ``weight_type="ivm"``
-        and ``weight_type="ivm-sky"``, the weighting will be determined
+    weight_type : str or None, optional
+        The weighting type ("exptime", "ivm", or "ivm-sky") for adding models' data.
+        For ``weight_type="ivm"`` and ``weight_type="ivm-sky"``,
+        the weighting will be determined
         per-pixel using the inverse of either the read noise (VAR_RNOISE) or
         sky variance (VAR_SKY) arrays, respectively. If the array does not
         exist, the weight is set to 1 for all pixels (i.e., equal weighting).
