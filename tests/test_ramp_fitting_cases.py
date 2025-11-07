@@ -1,7 +1,6 @@
 import inspect
 from pathlib import Path
 
-import pytest
 import numpy as np
 import numpy.testing as npt
 

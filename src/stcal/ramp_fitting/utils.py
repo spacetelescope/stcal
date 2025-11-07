@@ -2,7 +2,6 @@
 #
 # utils.py: utility functions
 import logging
-import warnings
 
 import numpy as np
 

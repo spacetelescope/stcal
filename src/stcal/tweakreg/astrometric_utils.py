@@ -1,7 +1,6 @@
 import os
 
 import requests
-from astropy import table
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table

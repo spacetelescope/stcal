@@ -94,7 +94,7 @@ src = ["src", "tests", "docs"]
 [tool.ruff.lint]
 select = [
   #"F",      # Pyflakes (part of default flake8)
-  "F401",  # Module imported but unused
+  "F401", # Module imported but unused
   #"W", "E", # pycodestyle (part of default flake8)
   #"I",      # isort (import sorting)
   # "N",      # pep8-naming
