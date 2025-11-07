@@ -157,7 +157,7 @@ ignore = [
   "D401", # First line of docstring should be in imperative mood
   "D404", # First word of docstring should not be This
 ]
-exclude = ["docs", "build", "dist", ".tox", ".eggs"]
+exclude = ["docs", "build", "dist", ".tox", ".eggs", "__init__.py"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = ["S101", "D"]
