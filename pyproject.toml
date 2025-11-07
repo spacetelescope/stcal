@@ -77,9 +77,7 @@ addopts = [
 ]
 testpaths = ["tests", "src/stcal", "docs"]
 norecursedirs = ["benchmarks", ".asv", ".eggs", ".tox", "build", "venv"]
-filterwarnings = [
-  "error",
-]
+filterwarnings = ["error"]
 markers = ["soctests"]
 
 [tool.ruff]
