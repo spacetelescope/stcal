@@ -1,7 +1,7 @@
 import os
+import warnings
 
 import requests
-from astropy import table
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
@@ -145,6 +145,8 @@ def get_catalog(
     search_radius=0.1,
     catalog="GAIADR3",
     timeout=TIMEOUT,
+    apply_pm=True,
+    pm_err_max=None,
 ):
     """Extract catalog from VO web service.
 
@@ -156,9 +158,10 @@ def get_catalog(
     declination : float
         Declination (Dec) of center of field-of-view (in decimal degrees)
 
-    epoch : float, optional
+    epoch : float or None, optional
         Reference epoch used to update the coordinates for proper motion
-        (in decimal year). Default: 2016.0
+        (in decimal year). If None, do not apply proper motion at all.
+        Default: 2016.0
 
     search_radius : float, optional
         Search radius (in decimal degrees) from field-of-view center to use
@@ -170,6 +173,12 @@ def get_catalog(
     timeout : float, optional
         Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
 
+    pm_err_max : float or None, optional
+        If not None, only use stars with proper motion errors for both
+        RA and Dec less than the given value in the unit of mas/yr,
+        and do not use any stars with invalid proper motion values.
+        Otherwise, no check is done. Default: None
+
     Returns
     -------
     csv : `~astropy.table.Table`
@@ -177,18 +186,14 @@ def get_catalog(
 
     """
     service_type = "vo/CatalogSearch.aspx"
-    spec_str = "RA={}&DEC={}&EPOCH={}&SR={}&FORMAT={}&CAT={}"
     headers = {"Content-Type": "text/csv"}
     fmt = "CSV"
 
-    spec = spec_str.format(
-        right_ascension,
-        declination,
-        epoch,
-        search_radius,
-        fmt,
-        catalog
-    )
+    # ref: https://outerspace.stsci.edu/spaces/MASTDATA/pages/176435487/Catalog+Access
+    if epoch is not None:
+        spec = f"RA={right_ascension}&DEC={declination}&EPOCH={epoch}&SR={search_radius}&FORMAT={fmt}&CAT={catalog}"
+    else:  # No proper motion applied
+        spec = f"RA={right_ascension}&DEC={declination}&SR={search_radius}&FORMAT={fmt}&CAT={catalog}"
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     try:
         rawcat = requests.get(service_url, headers=headers, timeout=timeout)
@@ -205,4 +210,19 @@ def get_catalog(
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"
-    return Table.read(r_contents, format="csv", comment='#')
+    csv = Table.read(r_contents, format="csv", comment='#')
+
+    if pm_err_max is None:
+        filtered_csv = csv
+
+    # ref: https://irsa.ipac.caltech.edu/data/Gaia/dr3/gaia_dr3_source_colDescriptions.html
+    elif (("pm" not in csv.colnames) or ("pmra" not in csv.colnames) or ("pmdec" not in csv.colnames)  or ("pmra_error" not in csv.colnames) or ("pmdec_error" not in csv.colnames)):
+        warnings.warn(f"pm_err_max={pm_err_max} but required columns not found, ignoring...")
+        filtered_csv = csv
+
+    else:
+        good = ((~csv["pm"].mask) & (~csv["pmra"].mask) & (~csv["pmdec"].mask) & (csv["pmra_error"] < pm_err_max) & (csv["pmdec_error"] < pm_err_max))
+        filtered_csv = csv[good].copy()
+        del csv
+
+    return filtered_csv
