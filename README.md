@@ -1,14 +1,12 @@
 # STCAL
 
 [![Documentation Status](https://readthedocs.org/projects/stcal/badge/?version=latest)](http://stcal.readthedocs.io/en/latest/?badge=latest)
-
-[![CI](https://github.com/spacetelescope/stcal/actions/workflows/ci.yml/badge.svg)](https://github.com/spacetelescope/stcal/actions/workflows/ci.yml)
-
+[![CI](https://github.com/spacetelescope/stcal/actions/workflows/tests.yml/badge.svg)](https://github.com/spacetelescope/stcal/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/spacetelescope/stcal/branch/main/graph/badge.svg?token=C1LO00W9CZ)](https://codecov.io/gh/spacetelescope/stcal)
 
 STScI Calibration algorithms and tools.
 
-![STScI Logo](docs/_static/stsci_logo.png)
+<img src="docs/_static/stsci_pri_combo_mark_white.png" width="300"/>
 
 > [!IMPORTANT]
 > STCAL requires Python 3.10 or above and a C compiler for dependencies.
