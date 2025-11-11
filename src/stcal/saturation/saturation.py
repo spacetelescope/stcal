@@ -5,7 +5,6 @@ import numpy as np
 from scipy import ndimage
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def flag_saturated_pixels(

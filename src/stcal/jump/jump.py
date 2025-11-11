@@ -19,7 +19,6 @@ from . import twopoint_difference as twopt
 from stcal.multiprocessing import compute_num_cores
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def detect_jumps_data(jump_data):

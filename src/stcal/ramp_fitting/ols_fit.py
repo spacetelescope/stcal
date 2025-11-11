@@ -13,14 +13,9 @@ from .slope_fitter import ols_slope_fitter  # c extension
 from . import ramp_fit_class
 from stcal.multiprocessing import compute_num_cores
 
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
-
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores):

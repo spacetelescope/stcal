@@ -2,10 +2,14 @@ version: 2
 updates:
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directory: ".github/workflows"
     target-branch: "main"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      actions:
+        patterns:
+          - "*"
     reviewers:
       - "zacharyburnett"
 
@@ -14,6 +18,10 @@ updates:
     directory: "/"
     target-branch: "main"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      actions:
+        patterns:
+          - "*"
     reviewers:
       - "zacharyburnett"
