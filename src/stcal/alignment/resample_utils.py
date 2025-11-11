@@ -7,7 +7,6 @@ import shapely.geometry   # type: ignore[import-untyped]
 from stcal.alignment import util
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def calc_pixmap(in_wcs, out_wcs, shape=None):
