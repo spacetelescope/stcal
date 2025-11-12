@@ -178,7 +178,6 @@ module = [
   "astropy.*",
   "gwcs.*",
   "tweakwcs.*",
-  "stdatamodels.*",
   "asdf.*",
   "scipy.*",
   "drizzle.*",
