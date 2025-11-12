@@ -178,7 +178,6 @@ module = [
   "astropy.*",
   "gwcs.*",
   "tweakwcs.*",
-  "stdatamodels.*",
   "asdf.*",
   "scipy.*",
   "drizzle.*",
@@ -228,3 +227,6 @@ name = "Bug Fixes"
 
 [tool.towncrier.fragment.general]
 name = "General"
+
+[tool.towncrier.fragment.removal]
+name = "Removal"

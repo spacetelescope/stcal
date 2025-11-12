@@ -11,6 +11,7 @@ News fragment change types
 - ``<PR#>.apichange.rst``: Change to public API
 - ``<PR#>.bugfix.rst``: Fixes an issue
 - ``<PR#>.general.rst``: Infrastructure or miscellaneous changes
+- ``<PR#>.removal.rst``: Removals and deprecations
 
 Note
 ----

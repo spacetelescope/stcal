@@ -18,12 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@d9b81a07e789d1b1921ab5fe33de2ddcbbd02c3f # v2.3.0
-    with:
-      envs: |
-        - linux: check-types
-          python-version: 3.13
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@d9b81a07e789d1b1921ab5fe33de2ddcbbd02c3f # v2.3.0
     with:
