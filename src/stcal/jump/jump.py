@@ -12,7 +12,6 @@ import cv2 as cv
 import astropy.stats as stats
 
 from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
 
 from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt

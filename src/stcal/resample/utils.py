@@ -1,5 +1,4 @@
 import logging
-import warnings
 
 import numpy as np
 from astropy.nddata.bitmask import (

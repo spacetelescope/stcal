@@ -3,7 +3,6 @@
 import logging
 import multiprocessing
 import time
-import warnings
 from multiprocessing import cpu_count
 import sys
 
