@@ -145,7 +145,6 @@ def get_catalog(
     search_radius=0.1,
     catalog="GAIADR3",
     timeout=TIMEOUT,
-    apply_pm=True,
     pm_err_max=None,
 ):
     """Extract catalog from VO web service.
