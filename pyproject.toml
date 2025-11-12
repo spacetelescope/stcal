@@ -227,3 +227,6 @@ name = "Bug Fixes"
 
 [tool.towncrier.fragment.general]
 name = "General"
+
+[tool.towncrier.fragment.removal]
+name = "Removal"
