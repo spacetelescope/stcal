@@ -306,6 +306,42 @@ def setup_pdq(jump_data):
     return pdq
 
 
+def get_persistence_array_from_file(persistence_fname):
+    """
+    Load the persistence array from a file.
+
+    Parameters
+    ----------
+    persistence_fname : str
+        The filename for the persistence array.
+
+    Returns
+    -------
+    persistence : ndarray
+        The persistence array (2D)
+    """
+    log.info("Loading persistence array from %s", persistence_fname)
+    return np.load(persistence_fname)
+
+def get_persistence_array(jump_data, nrows, ncols):
+    """
+    Set the persistence array.
+
+    Parameters
+    ----------
+    jump_data : JumpData
+        Class containing parameters and methods to detect jumps.
+
+    Returns
+    -------
+    persistence : ndarray
+        The persistence array (2D)
+    """
+    if jump_data.persistence_fname is not None:
+        return get_persistence_array_from_file(jump_data.persistence_fname)
+    return np.zeros((nrows, ncols), dtype=np.uint8)
+
+
 def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     """
     Control the creation of expanded regions that are flagged as jumps.
@@ -335,6 +371,12 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     total_snowballs = 0
     nints, ngrps, nrows, ncols = gdq.shape
     persist_jumps = np.zeros(shape=(nints, nrows, ncols), dtype=np.uint8)
+
+    # XXX Put persistence flagging here
+    # XXX Should this always be done?
+    if jump_data.persistence:
+        persistence = get_persistence_array(jump_data, nrows, ncols)
+
     for integration in range(nints):
         for group in range(1, ngrps):
             current_gdq = gdq[integration, group, :, :]
@@ -351,6 +393,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
                 not_current_sat = np.logical_not(current_sat)
                 next_new_sat = next_sat * not_current_sat
 
+            # XXX Could be a bug. next_new_sat is created conditionally.  Also,
+            #     for the last group, this is reused. Should it be?
             next_sat_ellipses = find_ellipses(next_new_sat, sat_flag, jump_data.min_sat_area)
             sat_ellipses = find_ellipses(new_sat, sat_flag, jump_data.min_sat_area)
 
@@ -371,6 +415,13 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
                 gdq, integration, group, snowballs, jump_data,
                 expansion=jump_data.expand_factor, num_grps_masked=0,
             )
+            if jump_data.persistence:
+                if integration == 0 and jump_data.persistence_fname is None:
+                    # Use collected flags from all groups as persistence arrays for
+                    # later integrations.
+                    persistence |= gdq[integration, group, :, :]
+                else:
+                    gdq[integration, group, :, :] |= persistence
 
     #  Test to see if the flagging of the saturated cores will be
     #  extended into the subsequent integrations. Persist_jumps contains
@@ -612,6 +663,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask)
+    # XXX here
     contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
 
