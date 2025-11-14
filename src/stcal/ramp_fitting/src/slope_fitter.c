@@ -588,9 +588,6 @@ static int
 ramp_fit_pixel(struct ramp_data * rd, struct pixel_ramp * pr);
 
 static int
-ramp_fit_pixel_partial_sat(struct ramp_data * rd, struct pixel_ramp * pr);
-
-static int
 ramp_fit_pixel_rnoise_chargeloss(struct ramp_data * rd, struct pixel_ramp * pr);
 
 static double
@@ -1282,7 +1279,6 @@ compute_integration_segments(
         groupdq = pr->groupdq + integ * pr->ngroups;
     }
 
-    // XXX kmacdo - SAT handling for needs to be revisited
     /* If the whole integration is saturated, then no valid slope. */
     if ( (!chargeloss) && (groupdq[0] & rd->sat)) {
         pr->rateints[integ].dq |= rd->dnu;
@@ -2550,21 +2546,6 @@ ols_slope_fit_pixels(
             if (ramp_fit_pixel(rd, pr)) {
                 return 1;
             }
-            // XXX kmacdo - SAT handling for needs to be revisited
-            //     This is probably a good place to do this to do the
-            //     modifications desired for the partial SAT ramps.
-            //     Loop over each integration and use:
-            //         if 0 < pr->stats[integ].cnt_sat < pr->ngroups
-            //     Then the ramp is only partially saturated and you
-            //     can flag how you like and set the data values to
-            //     what you like. I suggest a new function to do that.
-            //
-            //     At this point, the SAT flag is set for fully saturated
-            //     ramps only. Therefore you can set the partially saturated
-            //     ramps here.
-            if (ramp_fit_pixel_partial_sat(rd, pr)) {
-                return 1;
-            }
 
             if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
@@ -2780,6 +2761,7 @@ ramp_fit_pixel(
     int ret = 0;
     npy_intp integ;
     int sat_cnt = 0, dnu_cnt = 0;
+    int set_rate_sat_flag = 0;
 
     /* Ramp fitting depends on the averaged median rate for each integration */
     if (compute_median_rate(rd, pr)) {
@@ -2811,20 +2793,28 @@ ramp_fit_pixel(
             dnu_cnt++;
             pr->rateints[integ].slope = NAN;
         }
+
+        if (rd->save_opt) {
+            get_pixel_ramp_integration_segments_and_pedestal(integ, pr, rd);
+        }
+
         if (pr->rateints[integ].dq & rd->sat) {
             sat_cnt++;
             pr->rateints[integ].slope = NAN;
         }
 
-        if (rd->save_opt) {
-            get_pixel_ramp_integration_segments_and_pedestal(integ, pr, rd);
+        // The partial saturation must go here to not mess up pedestal computations
+        if (pr->stats[integ].cnt_sat > 0) {
+            pr->rateints[integ].dq |= rd->sat;
+            set_rate_sat_flag = 1;
         }
     }
 
     if (rd->nints == dnu_cnt) {
         pr->rate.dq |= rd->dnu;
     }
-    if (rd->nints == sat_cnt) {
+
+    if (sat_cnt == rd->nints) {
         pr->rate.dq |= rd->sat;
     }
 
@@ -2850,6 +2840,11 @@ ramp_fit_pixel(
         pr->rate.var_err = 0.;
     }
 
+    // Partial saturation flagging must be done here
+    if (set_rate_sat_flag) {
+        pr->rate.dq |= rd->sat;
+    }
+
     if (!isnan(pr->rate.slope)) {
         pr->rate.slope = pr->rate.slope / pr->invvar_e_sum;
     }
@@ -2859,34 +2854,6 @@ ramp_fit_pixel(
 END:
     return ret;
 }
-
-static int
-ramp_fit_pixel_partial_sat(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
-{
-    npy_intp integ;
-    int partial_sat_found = 0;
-
-    for (integ = 0; integ < pr->nints; ++integ) {
-        if ((pr->stats[integ].cnt_sat > 0) &&
-            (pr->stats[integ].cnt_sat < pr->ngroups)) {
-            /* Partially saturated ramp found */
-            partial_sat_found = 1;
-            pr->rateints[integ].dq |= rd->sat;
-        }
-    }
-
-    // XXX Not sure if this is the desired behavior
-#if 0
-    if (partial_sat_found) {
-        pr->rate.dq |= rd->sat;
-    }
-#endif
-
-    return 0;
-}
-
 
 /*
  * Recompute read noise variance for ramps with the CHARGELOSS flag.
@@ -3034,6 +3001,7 @@ ramp_fit_pixel_integration(
         goto END;
     }
 
+    // Whole ramp not usable
     if (rd->ngroups == pr->stats[integ].cnt_dnu_sat) {
         pr->rateints[integ].dq |= rd->dnu;
         if (rd->ngroups == pr->stats[integ].cnt_sat) {
