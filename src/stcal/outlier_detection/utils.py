@@ -310,9 +310,9 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape, fast=True):
         # interpolation and return the result.
 
         fx = interpolate.RectBivariateSpline(x_coarse, y_coarse,
-                                             pixmap_coarse[0], kx=1, ky=1)
+                                             pixmap_coarse[0], kx=3, ky=3)
         fy = interpolate.RectBivariateSpline(x_coarse, y_coarse,
-                                             pixmap_coarse[1], kx=1, ky=1)
+                                             pixmap_coarse[1], kx=3, ky=3)
 
         return np.dstack([fx(x, y), fy(x, y)])
 
