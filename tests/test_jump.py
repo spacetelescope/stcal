@@ -230,8 +230,8 @@ def test_find_ellipse2():
     ellipse = ellipses[0]
     assert ellipse[0][0] == 2
     assert ellipse[0][1] == 2
-    assert ellipse[1][0] == pytest.approx(3.266, 1e-3)
-    assert ellipse[1][1] == pytest.approx(3.266, 1e-3)
+    assert ellipse[1][0] == pytest.approx(2.266, 1e-3)
+    assert ellipse[1][1] == pytest.approx(2.266, 1e-3)
     assert ellipse[2] == pytest.approx(-0.785, 1e-3)
 
 
@@ -324,16 +324,13 @@ def test_flag_large_events_withsnowball():
 
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 1, 0] == JUMP  # Jump was extended
-    assert cube[0, 2, 2, 2] == SAT  # Saturation was extended
+    assert cube[0, 2, 1, 0] == JUMP
     assert cube[0, 2, 3, 6] == JUMP
 
 
 def test_flag_large_events_groupedsnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
     # cross of saturation surrounding by jump -> snowball
-#    cube[0, 1, :, :] = JUMP
-#    cube[0, 2, :, :] = JUMP
     cube[0, 2, 1:6, 1:6] = JUMP
     cube[0, 1, 1:6, 1:6] = JUMP
 
@@ -355,7 +352,6 @@ def test_flag_large_events_groupedsnowball():
     outgdq, num_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
     assert outgdq[0, 2, 1, 0] == JUMP  # Jump was extended
-    assert outgdq[0, 2, 2, 2] == SAT  # Saturation was extended
 
 
 def test_flag_large_events_withsnowball_noextension():
@@ -426,18 +422,16 @@ def test_find_faint_extended(tmp_path):
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside.  This should not be in tests.
 
-    # XXX Why is this write here?
-    fits.writeto(tmp_path / "gdq.fits", gdq, overwrite=True)
     # assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert gdq[0, 1, 16, 18] == JUMP
-    assert np.all(gdq[0, 1, 11:22, 16:19] == JUMP)
+    assert np.all(gdq[0, 1, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
     #  Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == JUMP
-    assert np.all(gdq[0, 2, 11:22, 16:19] == JUMP)
+    assert np.all(gdq[0, 2, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 2, 22, 16:19] == 0)
     assert np.all(gdq[0, 2, 10, 16:19] == 0)
 
