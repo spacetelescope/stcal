@@ -11,9 +11,8 @@ import numpy as np
 import astropy.stats as stats
 import numpy as np
 import skimage
-from astropy.convolution import Ring2DKernel, convolve
+from astropy.convolution import Ring2DKernel
 from scipy import signal
-from scipy.spatial import ConvexHull
 
 from astropy.convolution import Ring2DKernel
 
