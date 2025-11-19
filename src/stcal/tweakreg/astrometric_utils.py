@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import requests
 from astropy import units as u
@@ -144,6 +145,7 @@ def get_catalog(
     search_radius=0.1,
     catalog="GAIADR3",
     timeout=TIMEOUT,
+    good_pm_only=True,
 ):
     """Extract catalog from VO web service.
 
@@ -169,10 +171,14 @@ def get_catalog(
     timeout : float, optional
         Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
 
+    good_pm_only : bool, optional
+        Only return rows with good proper motion (PM) values.
+        For Gaia DR3, this means they are not masked out. Default: True
+
     Returns
     -------
-    csv : `~astropy.table.Table`
-        CSV object of returned sources with all columns as provided by catalog
+    filtered_csv : `~astropy.table.Table`
+        CSV object of returned sources with all columns as provided by catalog.
 
     """
     service_type = "vo/CatalogSearch.aspx"
@@ -204,4 +210,19 @@ def get_catalog(
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"
-    return Table.read(r_contents, format="csv", comment='#')
+    csv = Table.read(r_contents, format="csv", comment='#')
+
+    if not good_pm_only:
+        filtered_csv = csv
+
+    # ref: https://irsa.ipac.caltech.edu/data/Gaia/dr3/gaia_dr3_source_colDescriptions.html
+    elif ("pm" not in csv.colnames) or ("pmra" not in csv.colnames) or ("pmdec" not in csv.colnames):
+        warnings.warn(f"good_pm_only={good_pm_only} but required columns not found, ignoring...")
+        filtered_csv = csv
+
+    else:
+        good = ((~csv["pm"].mask) & (~csv["pmra"].mask) & (~csv["pmdec"].mask))
+        filtered_csv = csv[good].copy()
+        del csv
+
+    return filtered_csv
