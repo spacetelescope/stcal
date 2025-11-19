@@ -1,6 +1,7 @@
 import os
 import warnings
 
+import numpy as np
 import requests
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -145,7 +146,7 @@ def get_catalog(
     search_radius=0.1,
     catalog="GAIADR3",
     timeout=TIMEOUT,
-    good_pm_only=True,
+    strict_cols=("pmra", "pmdec"),
 ):
     """Extract catalog from VO web service.
 
@@ -171,9 +172,9 @@ def get_catalog(
     timeout : float, optional
         Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
 
-    good_pm_only : bool, optional
-        Only return rows with good proper motion (PM) values.
-        For Gaia DR3, this means they are not masked out. Default: True
+    strict_cols : tuple or None, optional
+        Only return rows with good (unmasked) values for all the given columns.
+        Default values are tuned for Gaia DR3 proper motion. Default: ``('pmra', 'pmdec')``
 
     Returns
     -------
@@ -212,16 +213,17 @@ def get_catalog(
         r_contents = "\n"
     csv = Table.read(r_contents, format="csv", comment='#')
 
-    if not good_pm_only:
-        filtered_csv = csv
+    if not strict_cols or len(csv) == 0:
+        return csv
 
-    # ref: https://irsa.ipac.caltech.edu/data/Gaia/dr3/gaia_dr3_source_colDescriptions.html
-    elif ("pm" not in csv.colnames) or ("pmra" not in csv.colnames) or ("pmdec" not in csv.colnames):
-        warnings.warn(f"good_pm_only={good_pm_only} but required columns not found, ignoring...")
+    has_all_strict_cols = np.all([cn in csv.colnames for cn in strict_cols])
+
+    if not has_all_strict_cols:
+        warnings.warn(f"strict_cols={strict_cols} but required columns not found, ignoring...")
         filtered_csv = csv
 
     else:
-        good = ((~csv["pm"].mask) & (~csv["pmra"].mask) & (~csv["pmdec"].mask))
+        good = np.bitwise_and.reduce([~csv[cn].mask for cn in strict_cols])
         filtered_csv = csv[good].copy()
         del csv
 
