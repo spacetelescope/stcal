@@ -166,12 +166,18 @@ def run_jump_detection(
     sigma : ndarray
         The sigma for each pixel.
     """
+
     # set 'saturated' or 'do not use' pixels to nan in data
     dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
 
     # calculate the differences between adjacent groups (first diffs)
     # Bad data will be NaN; np.nanmedian will be used later.
-    first_diffs = np.diff(dat, axis=1)
+
+    # Normalize by the difference in mean group times.  This array of
+    # mean group times can be as simple as np.array([1]) to reproduce
+    # legacy behavior.
+
+    first_diffs = np.diff(dat, axis=1) / twopt_p.dt_group[None, :, None, None]
     first_diffs_finite = np.isfinite(first_diffs)
 
     # calc. the median of first_diffs for each pixel along the group axis
@@ -182,14 +188,23 @@ def run_jump_detection(
         for row in range(first_diffs.shape[2]):
             np.nanmedian(first_diffs[:, :, row, :], axis=(0, 1), out=median_diffs[row])
 
-    # calculate sigma for each pixel
-    sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / twopt_p.nframes)
+    # calculate sigma for each pixel and group.
+    # This is a 3D array.  If groups are equally spaced with equal numbers
+    # of reads, the first dimension could be 1.
+    # Factor of 0.5 because read_noise_2 is CDS.
+    # First compute the uncertainty in counts, then scale to counts/time.
+    sigma = np.sqrt(np.abs(median_diffs) * twopt_p.dt_group[:, None, None] +
+                    read_noise_2 / (0.5 * twopt_p.n_reads_groupdiff[:, None, None]))
+    sigma /= twopt_p.dt_group[:, None, None]
 
     # reset sigma so pxels with 0 readnoise are not flagged as jumps
     sigma[sigma == 0.] = np.nan
 
-    # Test to see if there are enough groups to use sigma clipping
-    if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
+    # Test to see if all groups are uniform and if there are enough
+    # groups to use sigma clipping
+    if (np.std(twopt_p.n_reads_groupdiff) == 0 and
+        np.std(twopt_p.dt_group) == 0 and
+        check_sigma_clip_groups(nints, total_groups, twopt_p)):
         gdq = det_jump_sigma_clipping(
             gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
@@ -297,8 +312,11 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     else:
         median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
         
-    # calculate sigma for each pixel
-    sigma_iter = np.sqrt(np.abs(median_diffs_iter) + read_noise_2 / twopt_p.nframes)
+    # calculate sigma for each pixel and group
+    sigma_iter = np.sqrt(np.abs(median_diffs_iter) * twopt_p.dt_group[:, None, None] +
+                         read_noise_2 / (0.5 * twopt_p.n_reads_groupdiff[:, None, None]))
+    sigma_iter /= twopt_p.dt_group[:, None, None]
+
     # reset sigma so pixels with 0 readnoise are not flagged as jumps
     sigma_iter[sigma_iter == 0.0] = np.nan
 
@@ -310,7 +328,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
 
     e_jump = np.zeros(first_diffs_abs.shape, dtype=np.float32)
     e_jump[:, :, index] = first_diffs_abs[:, :, index] - median_diffs_iter[index]
-    ratio = np.abs(e_jump) / sigma_iter[np.newaxis, :, :]
+    ratio = np.abs(e_jump) / sigma_iter[None, :, :, :]
 
     # create a 2d array containing the value of the largest 'ratio'
     # for each pixel and each integration.
@@ -368,8 +386,16 @@ def look_for_more_than_one_jump(
     # footprint.
     for i in range(nints):
         for gi in range(1, gdq[i].shape[0]):
+
+            # Sigma could be defined separately for each group, or it could
+            # be the same for each group.  Need to catch these two cases.
+            if sigma.shape[0] == 1:
+                sig = sigma[0]
+            else:
+                sig = sigma[gi - 1]
+
             # compare jump to threshold
-            jump_candidates = (np.abs(first_diffs[i, gi-1] - median_diffs) / sigma) > twopt_p.normal_rej_thresh
+            jump_candidates = (np.abs(first_diffs[i, gi-1] - median_diffs) / sig) > twopt_p.normal_rej_thresh
             gdq[i, gi] |= (jump_candidates & first_diffs_finite[i, gi-1]) * np.uint8(twopt_p.fl_jump)
     return gdq
 
@@ -496,7 +522,15 @@ def flag_four_neighbors(
     """
     for i in range(nints):
         for j in range(ngroups - 1):
-            ratio = np.abs(first_diffs[i, j] - median_diffs)/sigma
+
+            # Sigma could be defined separately for each group, or it could
+            # be the same for each group.  Need to catch these two cases.
+            if sigma.shape[0] == 1:
+                sig = sigma[0]
+            else:
+                sig = sigma[j]
+
+            ratio = np.abs(first_diffs[i, j] - median_diffs) / sig
             jump_set = gdq[i, j + 1] & twopt_p.fl_jump != 0
             flag = (ratio < twopt_p.max_jump_to_flag_neighbors) & \
                 (ratio > twopt_p.min_jump_to_flag_neighbors) & \
@@ -537,7 +571,10 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
         The group DQ array.
     """
     for i in range(nints):
+        # first_diffs are now in units of counts/time
         ejump = first_diffs[i] - median_diffs[np.newaxis, :]
+        # Scale to units of counts
+        ejump *= twopt_p.dt_group[:, None, None]
         jump_set = gdq[i] & twopt_p.fl_jump != 0
 
         bigjump = np.zeros(jump_set.shape, dtype=bool)
