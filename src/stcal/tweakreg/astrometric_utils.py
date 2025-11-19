@@ -213,7 +213,7 @@ def get_catalog(
         r_contents = "\n"
     csv = Table.read(r_contents, format="csv", comment='#')
 
-    if not strict_cols or len(csv) == 0:
+    if (not strict_cols) or (len(csv) == 0) or (csv.mask is None):
         return csv
 
     has_all_strict_cols = np.all([cn in csv.colnames for cn in strict_cols])
