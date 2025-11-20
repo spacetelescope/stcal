@@ -469,7 +469,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     axis2 : float
         The other (full) axis of the ellipse
     alpha : float
-        Angle (in radians) between axis1 and x
+        Angle (in degrees) between axis1 and x
     value : unsigned 8-bit integer
         Value to fill the image with
     shape : (int, int)
@@ -501,7 +501,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     iy2 = min(xc + dn_over_2 + 1, shape[0])
 
     image = np.zeros(shape=(iy2 - iy1, ix2 - ix1), dtype=np.uint8)
-    saty, satx = sk_ellipse((iy2 - iy1, ix2 - ix1), (yc - ix1,xc - iy1), (round(axis1/2), round(axis2/2)), alpha, value)
+    saty, satx = _sk_ellipse((iy2 - iy1, ix2 - ix1), (yc - ix1,xc - iy1), (round(axis1/2), round(axis2/2)), alpha)
     image[saty, satx] = value
 
     return (iy1, iy2, ix1, ix2), image
@@ -604,7 +604,7 @@ def find_ellipses(dqplane, bitmask, min_area):
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
     pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
-    return sk_filter_areas(pixels, min_area)
+    return _sk_filter_areas(pixels, min_area)
 
 
 def make_snowballs(
@@ -1027,7 +1027,7 @@ def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
-    return sk_filter_areas(extended_emission, jump_data.extend_min_area)
+    return _sk_filter_areas(extended_emission, jump_data.extend_min_area)
 
 
 
@@ -1220,18 +1220,61 @@ def find_first_good_group(int_gdq, do_not_use):
     return first_good_group
 
 
-def sk_ellipse(shape, center, axes, angle, value):
+def _sk_ellipse(shape, center, axes, angle):
+    """
+    Generate coordinates for an ellipse.
+
+    Parameters
+    ----------
+    shape : tuple
+        Image shape
+
+    center : list of float
+        Center coordinate (x, y)
+
+    axes : list of float
+        Ellipse axes/radii
+
+    angle: float
+        Ellipse angle in degrees
+
+    Returns
+    -------
+    ndarray
+        Array of ellipse coordinates.
+    """
     if axes[1] == 0 or axes[0] == 0:
         return [], []
     return skimage.draw.ellipse(
         center[1], center[0],
         axes[1], axes[0],
         shape,
-        angle,
+        np.radians(angle),
     )
 
 
-def sk_filter_areas(image, threshold):
+def _sk_filter_areas(image, threshold):
+    """
+    Find contiguous areas larger than some threshold.
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary image.
+
+    threshold : float
+        Minimum area threshold used to filter returned areas.
+
+    Returns
+    -------
+    list
+        List of found areas. Each area is a rotated rectangular
+        region encoded as is a 3 element list of values.
+        The first element is a list of 2 floats encoding the
+        center column and row. Element 2 is a list of 2 floats encoding
+        the area minor and major axis lengths. Element 3 is a float
+        encoding the rotation angle of the area in degrees.
+    """
     lim = skimage.measure.label(image)
     min_areas = []
     for region in skimage.measure.regionprops(lim):
@@ -1246,5 +1289,5 @@ def sk_filter_areas(image, threshold):
         min_areas.append((
             (float(region.centroid[1]), float(region.centroid[0])),
             (h, w),
-            region.orientation))
+            np.degrees(region.orientation)))
     return min_areas
