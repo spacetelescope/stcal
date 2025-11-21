@@ -167,7 +167,7 @@ def compute_scale(
         raise ValueError(msg)
 
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", "invalid value", RuntimeWarning)
+        warnings.filterwarnings("ignore", "invalid value encountered in sqrt", RuntimeWarning)
         crpix = np.array(wcs.invert(*fiducial, with_bounding_box=False))
 
     delta = np.zeros_like(crpix)
