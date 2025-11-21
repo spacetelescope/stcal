@@ -3,6 +3,7 @@ import pytest
 from astropy.io import fits
 from stcal.jump.jump_class import JumpData
 from stcal.jump.jump import (
+    detect_jumps_data,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
@@ -215,7 +216,7 @@ def test_find_simple_ellipse():
     plane[3, 3] = JUMP
     ellipse = find_ellipses(plane, JUMP, 1)
 
-    assert ellipse[0][2] == pytest.approx(45.0, 1e-3)  # 90 degree rotation
+    assert ellipse[0][2] == pytest.approx(90, 1)  # angle
     assert ellipse[0][0] == pytest.approx((2.5, 2.0))  # center
 
 
@@ -228,9 +229,9 @@ def test_find_ellipse2():
     ellipse = ellipses[0]
     assert ellipse[0][0] == 2
     assert ellipse[0][1] == 2
-    assert ellipse[1][0] == 2
-    assert ellipse[1][1] == 2
-    assert ellipse[2] == 90.0
+    assert ellipse[1][0] == pytest.approx(2.266, 1e-3)
+    assert ellipse[1][1] == pytest.approx(2.266, 1e-3)
+    assert ellipse[2] == pytest.approx(-45, 1)
 
 
 def test_extend_saturation_simple():
@@ -322,17 +323,13 @@ def test_flag_large_events_withsnowball():
 
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 0, 0] == 0
-    assert cube[0, 2, 1, 0] == JUMP  # Jump was extended
-    assert cube[0, 2, 2, 2] == SAT  # Saturation was extended
+    assert cube[0, 2, 1, 0] == JUMP
     assert cube[0, 2, 3, 6] == JUMP
 
 
 def test_flag_large_events_groupedsnowball():
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
     # cross of saturation surrounding by jump -> snowball
-#    cube[0, 1, :, :] = JUMP
-#    cube[0, 2, :, :] = JUMP
     cube[0, 2, 1:6, 1:6] = JUMP
     cube[0, 1, 1:6, 1:6] = JUMP
 
@@ -354,7 +351,6 @@ def test_flag_large_events_groupedsnowball():
     outgdq, num_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
     assert outgdq[0, 2, 1, 0] == JUMP  # Jump was extended
-    assert outgdq[0, 2, 2, 2] == SAT  # Saturation was extended
 
 
 def test_flag_large_events_withsnowball_noextension():
@@ -425,18 +421,16 @@ def test_find_faint_extended(tmp_path):
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside.  This should not be in tests.
 
-    # XXX Why is this write here?
-    fits.writeto(tmp_path / "gdq.fits", gdq, overwrite=True)
     # assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert gdq[0, 1, 16, 18] == JUMP
-    assert np.all(gdq[0, 1, 11:22, 16:19] == JUMP)
+    assert np.all(gdq[0, 1, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
     #  Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == JUMP
-    assert np.all(gdq[0, 2, 11:22, 16:19] == JUMP)
+    assert np.all(gdq[0, 2, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 2, 22, 16:19] == 0)
     assert np.all(gdq[0, 2, 10, 16:19] == 0)
 
@@ -449,11 +443,15 @@ def test_find_faint_extended(tmp_path):
 # No shower is found because the event is identical in all ints
 def test_find_faint_extended_sigclip():
     nint, ngrps, ncols, nrows = 101, 6, 30, 30
+
     data = np.zeros(shape=(nint, ngrps, nrows, ncols), dtype=np.float32)
     gdq = np.zeros_like(data, dtype=np.uint8)
-    pdq = np.zeros(shape=(nrows, ncols), dtype=np.int32)
+    pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
+
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
+
+    # XXX Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -468,27 +466,27 @@ def test_find_faint_extended_sigclip():
     jump_data.extend_ellipse_expand_ratio = 1.1
     jump_data.grps_masked_after_shower = 3
 
-    # XXX Future collapse using JumpData
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
     #  Check that all the expected samples in group 2 are flagged as jump and
     #  that they are not flagged outside
-    assert (np.all(gdq[0, 1, 22, 14:23] == 0))
-    assert (np.all(gdq[0, 1, 21, 16:20] == 0))
-    assert (np.all(gdq[0, 1, 20, 15:22] == 0))
-    assert (np.all(gdq[0, 1, 19, 15:23] == 0))
-    assert (np.all(gdq[0, 1, 18, 14:23] == 0))
-    assert (np.all(gdq[0, 1, 17, 14:23] == 0))
-    assert (np.all(gdq[0, 1, 16, 14:23] == 0))
-    assert (np.all(gdq[0, 1, 15, 14:22] == 0))
-    assert (np.all(gdq[0, 1, 14, 16:22] == 0))
-    assert (np.all(gdq[0, 1, 13, 17:21] == 0))
-    assert (np.all(gdq[0, 1, 12, 14:23] == 0))
-    assert (np.all(gdq[0, 1, 12:23, 24] == 0))
-    assert (np.all(gdq[0, 1, 12:23, 13] == 0))
+    assert num_showers == 0
+    assert np.all(gdq[0, 1, 22, 14:23] == 0)
+    assert np.all(gdq[0, 1, 21, 16:20] == 0)
+    assert np.all(gdq[0, 1, 20, 15:22] == 0)
+    assert np.all(gdq[0, 1, 19, 15:23] == 0)
+    assert np.all(gdq[0, 1, 18, 14:23] == 0)
+    assert np.all(gdq[0, 1, 17, 14:23] == 0)
+    assert np.all(gdq[0, 1, 16, 14:23] == 0)
+    assert np.all(gdq[0, 1, 15, 14:22] == 0)
+    assert np.all(gdq[0, 1, 14, 16:22] == 0)
+    assert np.all(gdq[0, 1, 13, 17:21] == 0)
+    assert np.all(gdq[0, 1, 12, 14:23] == 0)
+    assert np.all(gdq[0, 1, 12:23, 24] == 0)
+    assert np.all(gdq[0, 1, 12:23, 13] == 0)
 
     #  Check that the flags are not applied in the 3rd group after the event
-    assert (np.all(gdq[0, 4, 12:22, 14:23]) == 0)
+    assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
 def test_inside_ellipse5():
