@@ -2,7 +2,7 @@
 name = "stcal"
 description = "STScI tools and algorithms used in calibration pipelines"
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11"
 authors = [{ name = "STScI" }]
 classifiers = [
   "Intended Audience :: Science/Research",
@@ -13,15 +13,15 @@ dependencies = [
   "astropy >=6.0.0",
   "drizzle >=2.0.1",
   "scipy >=1.14.1",
-  "scikit-image>=0.20.0",
+  "scikit-image>=0.21.0",
   "numpy >=1.25.0",
-  "opencv-python-headless >=4.6.0.66",
   "asdf >=3.3.0",
   "gwcs >=0.25.2",
   "tweakwcs >=0.8.8",
   "requests >=2.22",
-  "spherical-geometry>=1.2.22",
-  "shapely>=2.1.1",
+  "spherical-geometry >=1.2.22",
+  "stsci.imagestats >=1.8.3",
+  "shapely >=2.1.1",
 ]
 license-files = ["LICENSE"]
 dynamic = ["version"]
@@ -93,6 +93,7 @@ src = ["src", "tests", "docs"]
 [tool.ruff.lint]
 select = [
   #"F",      # Pyflakes (part of default flake8)
+  "F401", # Module imported but unused
   #"W", "E", # pycodestyle (part of default flake8)
   #"I",      # isort (import sorting)
   # "N",      # pep8-naming
@@ -155,7 +156,7 @@ ignore = [
   "D401", # First line of docstring should be in imperative mood
   "D404", # First word of docstring should not be This
 ]
-exclude = ["docs", "build", "dist", ".tox", ".eggs"]
+exclude = ["docs", "build", "dist", ".tox", ".eggs", "__init__.py"]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = ["S101", "D"]
@@ -176,7 +177,6 @@ module = [
   "astropy.*",
   "gwcs.*",
   "tweakwcs.*",
-  "stdatamodels.*",
   "asdf.*",
   "scipy.*",
   "drizzle.*",
@@ -226,3 +226,6 @@ name = "Bug Fixes"
 
 [tool.towncrier.fragment.general]
 name = "General"
+
+[tool.towncrier.fragment.removal]
+name = "Removal"

@@ -11,7 +11,6 @@ from typing import Any
 import numpy as np
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 _ONE_MB = 1 << 20
 

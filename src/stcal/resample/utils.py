@@ -1,5 +1,4 @@
 import logging
-import warnings
 
 import numpy as np
 from astropy.nddata.bitmask import (
@@ -21,7 +20,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def resample_range(data_shape, bbox=None):
@@ -446,10 +444,9 @@ def _get_inverse_variance(array, data_shape, array_name):
             inv = 1.0 / array
         inv[~np.isfinite(inv)] = 0  # zeros for bad pixels
     else:
-        warnings.warn(
+        log.warning(
             f"'{array_name}' array not available. "
             "Setting drizzle weight map to 1",
-            RuntimeWarning
         )
         inv = np.full(data_shape, 1, dtype=np.float32)   # ones for missing/misshaped array
 

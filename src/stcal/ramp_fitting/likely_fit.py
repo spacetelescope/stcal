@@ -13,7 +13,6 @@ SQRT2 = np.sqrt(2)
 LIKELY_MIN_NGROUPS = 4
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):

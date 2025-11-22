@@ -1,23 +1,18 @@
 # STCAL
 
 [![Documentation Status](https://readthedocs.org/projects/stcal/badge/?version=latest)](http://stcal.readthedocs.io/en/latest/?badge=latest)
-
-[![CI](https://github.com/spacetelescope/stcal/actions/workflows/ci.yml/badge.svg)](https://github.com/spacetelescope/stcal/actions/workflows/ci.yml)
-
+[![CI](https://github.com/spacetelescope/stcal/actions/workflows/tests.yml/badge.svg)](https://github.com/spacetelescope/stcal/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/spacetelescope/stcal/branch/main/graph/badge.svg?token=C1LO00W9CZ)](https://codecov.io/gh/spacetelescope/stcal)
 
 STScI Calibration algorithms and tools.
 
-![STScI Logo](docs/_static/stsci_logo.png)
+<img src="docs/_static/stsci_pri_combo_mark_white.png" width="300"/>
 
 > [!IMPORTANT]
 > STCAL requires Python 3.10 or above and a C compiler for dependencies.
 
 > [!IMPORTANT]
 > Linux and MacOS platforms are tested and supported. Windows is not currently supported.
-
-> [!WARNING]
-> Installation on MacOS Mojave 10.14 will fail due to lack of a stable build for dependency `opencv-python`.
 
 `STCAL` is intended to be used as a support package for calibration pipeline
 software, such as the `JWST` and `Roman` calibration pipelines. `STCAL` is a

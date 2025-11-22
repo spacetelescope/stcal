@@ -3,23 +3,18 @@
 import logging
 import multiprocessing
 import time
-import warnings
 from multiprocessing import cpu_count
 import sys
 
 import numpy as np
 
 from .slope_fitter import ols_slope_fitter  # c extension
-from . import ramp_fit_class, utils
-
-
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+from . import ramp_fit_class
+from stcal.multiprocessing import compute_num_cores
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
@@ -67,7 +62,7 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
     # Determine number of slices to use for multi-processor computations
     nrows = ramp_data.data.shape[2]
     num_available_cores = cpu_count()
-    number_slices = utils.compute_num_slices(max_cores, nrows, num_available_cores)
+    number_slices = compute_num_cores(max_cores, nrows, num_available_cores)
     log.info(f"Number of multiprocessing slices: {number_slices}")
 
     # For MIRI datasets having >1 group, if all pixels in the final group are
