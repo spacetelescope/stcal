@@ -166,7 +166,9 @@ def compute_scale(
         msg = "If input WCS is spectral, a disp_axis must be given"
         raise ValueError(msg)
 
-    crpix = np.array(wcs.invert(*fiducial, with_bounding_box=False))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", "invalid value encountered in sqrt", RuntimeWarning)
+        crpix = np.array(wcs.invert(*fiducial, with_bounding_box=False))
 
     delta = np.zeros_like(crpix)
     spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
