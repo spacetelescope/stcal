@@ -25,7 +25,7 @@ from . helpers import (
 
 
 class _CustomResample(Resample):
-    def add_model_hook(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
+    def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax):
 
         data = model["data"]
         wcs = model["wcs"]
