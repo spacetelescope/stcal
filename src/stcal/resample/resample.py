@@ -574,7 +574,7 @@ class Resample:
 
             # If input image is in flux density units, correct the
             # flux for the user-specified change to the spatial dimension
-            iscale = 1.0 / math.sqrt(self.pixel_scale_ratio)
+            iscale = 1.0 / self.pixel_scale_ratio
 
         else:
             iscale = 1.0
@@ -805,7 +805,8 @@ class Resample:
         add_image_kwargs = {
             'exptime': model["exposure_time"],
             'pixmap': pixmap,
-            'scale': iscale,
+            'pixel_scale_ratio': self.pixel_scale_ratio,
+            'iscale': iscale,
             'weight_map': weight,
             'wht_scale': 1.0,
             'pixfrac': self.pixfrac,
@@ -817,8 +818,17 @@ class Resample:
         }
 
         self._driz.add_image(data, **add_image_kwargs)
-        self.add_model_hook(model, pixmap, iscale, weight,
-                            xmin, xmax, ymin, ymax)
+        self.add_model_hook(
+            model=model,
+            pixmap=pixmap,
+            pixel_scale_ratio=self.pixel_scale_ratio,
+            iscale=iscale,
+            weight_map=weight,
+            xmin=xmin,
+            xmax=xmax,
+            ymin=ymin,
+            ymax=ymax,
+        )
 
         if (group_id := model["group_id"]) not in self._group_ids:
             self.update_time(model)
@@ -829,8 +839,17 @@ class Resample:
             self._driz_error.add_image(model["err"], **add_image_kwargs)
 
         if self._enable_var:
-            self.resample_variance_arrays(model, pixmap, iscale, weight,
-                                          xmin, xmax, ymin, ymax)
+            self.resample_variance_arrays(
+                model=model,
+                pixmap=pixmap,
+                pixel_scale_ratio=self.pixel_scale_ratio,
+                iscale=iscale,
+                weight_map=weight,
+                xmin=xmin,
+                xmax=xmax,
+                ymin=ymin,
+                ymax=ymax
+            )
 
         # update output model (variance is too expensive so it's omitted)
         self._output_model["data"] = self._driz.out_img
@@ -842,8 +861,8 @@ class Resample:
             # use resampled error
             self._output_model["err"] = self._driz_error.out_img
 
-    def add_model_hook(self, model, pixmap, iscale, weight_map,
-                       xmin, xmax, ymin, ymax):
+    def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale,
+                       weight_map, xmin, xmax, ymin, ymax):
         """ A hook method called by the :py:meth:`~Resample.add_model` method.
         It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
@@ -863,6 +882,13 @@ class Resample:
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
             pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
             of Y-coordinates of input pixels in the ouput coordinate frame.
+
+        pixel_scale_ratio : float
+            Pixel scale ratio defined as the ratio of the output pixel scale
+            to the first input model's pixel scale computed from ``model``
+            WCS at the fiducial point (taken as the ``ref_ra`` and
+            ``ref_dec`` from the ``wcsinfo`` meta attribute of the first input
+            image).
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -993,15 +1019,13 @@ class Resample:
             # note: output_array_types is a defaultdict, so this will succeed
             # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
-            wsum = np.full(shape, np.nan, dtype=var_dtype)
-            wt = np.zeros(shape, dtype=var_dtype)
             self._variance_info[noise_type] = {
                 "wsum": np.full(shape, np.nan, dtype=var_dtype),
                 "wt": np.zeros(shape, dtype=var_dtype),
             }
 
-    def resample_variance_arrays(self, model, pixmap, iscale,
-                                 weight_map, xmin, xmax, ymin, ymax):
+    def resample_variance_arrays(self, model, pixmap, pixel_scale_ratio,
+                                 iscale, weight_map, xmin, xmax, ymin, ymax):
         """ Resample and co-add variance arrays using appropriate weights
         and update total weights.
 
@@ -1018,6 +1042,13 @@ class Resample:
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
             pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
             of Y-coordinates of input pixels in the ouput coordinate frame.
+
+        pixel_scale_ratio : float
+            Pixel scale ratio defined as the ratio of the output
+            pixel scale to the first input model's pixel scale computed from this
+            model's WCS at the fiducial point (taken as the ``ref_ra`` and
+            ``ref_dec`` from the ``wcsinfo`` meta attribute of the first input
+            image).
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -1060,6 +1091,7 @@ class Resample:
         # used for weights if needed
         pars = {
             'pixmap': pixmap,
+            'pixel_scale_ratio': pixel_scale_ratio,
             'iscale': iscale,
             'weight_map': weight_map,
             'xmin': xmin,
@@ -1149,8 +1181,8 @@ class Resample:
             del self._variance_info
             self._finalized = True
 
-    def _resample_one_variance_array(self, name, model, iscale,
-                                     weight_map, pixmap,
+    def _resample_one_variance_array(self, name, model, pixel_scale_ratio,
+                                     iscale, weight_map, pixmap,
                                      xmin=None, xmax=None, ymin=None,
                                      ymax=None):
         """Resample one variance image from an input model.
@@ -1193,7 +1225,8 @@ class Resample:
             data=np.sqrt(variance),
             exptime=model["exposure_time"],
             pixmap=pixmap,
-            scale=iscale,
+            iscale=iscale,
+            pixel_scale_ratio=pixel_scale_ratio,
             weight_map=weight_map,
             wht_scale=1.0,
             pixfrac=self.pixfrac,
