@@ -37,7 +37,9 @@ def create_astrometric_catalog(
         output="ref_cat.ecsv",
         table_format="ascii.ecsv",
         num_sources=None,
-        timeout=TIMEOUT):
+        timeout=TIMEOUT,
+        strict_cols=("pmra", "pmdec"),
+):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
     Parameters
@@ -70,17 +72,19 @@ def create_astrometric_catalog(
     timeout : float
         Maximum time to wait (in seconds) for the catalog service to respond.
 
-
-
-    Notes
-    -----
-    This function will point to astrometric catalog web service defined
-    through the use of the ASTROMETRIC_CATALOG_URL environment variable.
+    strict_cols : tuple or None, optional
+        Only return rows with good (unmasked) values for all the given columns.
+        Default values are tuned for Gaia DR3 proper motion. Default: ``('pmra', 'pmdec')``
 
     Returns
     -------
     ref_table : `~astropy.table.Table`
         Astropy Table object of the catalog
+
+    Notes
+    -----
+    This function will point to astrometric catalog web service defined
+    through the use of the ASTROMETRIC_CATALOG_URL environment variable.
     """
     # start by creating a composite field-of-view for all inputs
     radius, fiducial = compute_radius(wcs)
@@ -92,12 +96,15 @@ def create_astrometric_catalog(
         epoch=epoch,
         search_radius=radius,
         catalog=catalog,
-        timeout=timeout
+        timeout=timeout,
+        strict_cols=strict_cols,
     )
     if len(ref_dict) == 0:
         return ref_dict
 
-    colnames = ("ra", "dec", "mag", "objID", "epoch")
+    colnames = ["ra", "dec", "mag", "objID", "epoch"]
+    if strict_cols:
+        colnames += strict_cols
     ref_table = ref_dict[colnames]
 
     # Add catalog name as meta data
