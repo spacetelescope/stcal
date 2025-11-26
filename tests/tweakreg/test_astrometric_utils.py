@@ -1,4 +1,3 @@
-import contextlib
 import time
 
 import psutil
