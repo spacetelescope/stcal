@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 import hats
 
@@ -64,9 +65,8 @@ def filter_hc_catalog(cat, ra, dec, radius_arcsec, columns=None):
     ]
     pyarrow_filter = _generate_pyarrow_filters_from_moc(filtered_cat)
     list_dfs = [
-        hats.io.file_io.read_parquet_file_to_pandas(
-            path, columns=columns, filters=pyarrow_filter
-        ) for path in paths
+        pq.ParquetDataset(str(path), filters=pyarrow_filter).read(columns=columns).to_pandas()
+        for path in paths
     ]
     df = pd.concat(list_dfs)
     return hats.search.region_search.cone_filter(df, ra, dec, radius_arcsec, filtered_cat.catalog_info)
