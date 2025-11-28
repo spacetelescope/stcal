@@ -159,5 +159,9 @@ def get_catalog(
         columns = COL_NAMES
     radius_arcsec = search_radius * 3600
     df = _get_gaia_DR3_sources(S3_URL, right_ascension, declination, radius_arcsec, epoch, list(columns))
-    return Table.from_pandas(df)
-
+    t = Table.from_pandas(df)
+    # TODO "mag", "objID", "epoch": are these correct?
+    t.add_column(t["phot_g_mean_mag"], name="mag")
+    t.add_column(t["source_id"], name="objID")
+    t.add_column(t["ref_epoch"], name="epoch")
+    return t
