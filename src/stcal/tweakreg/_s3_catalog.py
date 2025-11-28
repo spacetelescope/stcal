@@ -1,16 +1,21 @@
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+from astropy import coordinates
+from astropy import units as u
+from astropy.table import Table
+from astropy.time import Time
 
 import hats
 
+__all__ = ["get_catalog"]
+
+
 # No support for GAIADR2 or GAIADR1
 # GAIAREFCAT same as GAIADR3?
-SUPPORTED = ["GAIAREFCAT", "GAIADR3"]
 S3_URL = "s3://stpubdata/gaia/gaia_dr3/public/hats/gaia/"
 MAX_PYARROW_FILTERS = 10
 SPATIAL_INDEX_COLUMN = "_healpix_29"
-TIMEOUT = 30.0  # in seconds FIXME unused
 # source_id -> objID
 # epoch?
 # mag? phot_g_mean_mag?
@@ -55,7 +60,7 @@ def _generate_pyarrow_filters_from_moc(filtered_catalog):
     return pyarrow_filter
 
 
-def filter_hc_catalog(cat, ra, dec, radius_arcsec, columns=None):
+def _filter_hc_catalog(cat, ra, dec, radius_arcsec, epoch=None, columns=None):
     # filter by spatial area
     filtered_cat = cat.filter_by_cone(ra, dec, radius_arcsec)
     paths = [
@@ -69,21 +74,56 @@ def filter_hc_catalog(cat, ra, dec, radius_arcsec, columns=None):
         for path in paths
     ]
     df = pd.concat(list_dfs)
+    if epoch is not None:
+        df = _correct_for_proper_motion(df, epoch)
     return hats.search.region_search.cone_filter(df, ra, dec, radius_arcsec, filtered_cat.catalog_info)
 
 
-def get_gaia_DR3_sources(gaia_dr3_uri, ra, dec, radius_arcsec, columns=None):
+def _get_gaia_DR3_sources(gaia_dr3_uri, ra, dec, radius_arcsec, epoch=None, columns=None):
     cat = hats.read_hats(gaia_dr3_uri)
-    return filter_hc_catalog(cat, ra, dec, radius_arcsec, columns=columns)
+    return _filter_hc_catalog(cat, ra, dec, radius_arcsec, epoch=epoch, columns=columns)
+
+
+def _correct_for_proper_motion(catalog, epoch):
+    # remove rows without pmra, pmdec, parallax
+    catalog = catalog.dropna(subset=('pmra', 'pmdec', 'parallax'))
+    #catalog = catalog[~(catalog['pmra'].mask | catalog['pmdec'].mask | catalog['parallax'].mask)]
+    dt = epoch - catalog['ref_epoch'].to_numpy()
+    unitspherical = coordinates.UnitSphericalRepresentation(
+        catalog['ra'].to_numpy() * u.deg,
+        catalog['dec'].to_numpy() * u.deg,
+    )
+    xyz = unitspherical.to_cartesian().xyz
+    unit_vectors = unitspherical.unit_vectors()
+    rahat = unit_vectors['lon'].xyz
+    dechat = unit_vectors['lat'].xyz
+    # TODO scale?
+    earthcoord = coordinates.get_body_barycentric('earth', Time(epoch, format="decimalyear"))
+    earthcoord = earthcoord.xyz.to(u.AU).value
+    radpermas = np.pi / (180 * 3600 * 1000)
+    pmra = catalog['pmra'].to_numpy()
+    pmdec = catalog['pmdec'].to_numpy()
+    newxyz = (
+        xyz + rahat * dt * radpermas * pmra + dechat * dt * radpermas * pmdec)
+    plx = catalog['parallax'].to_numpy()
+    newxyz -= (rahat * earthcoord.dot(rahat) * plx * radpermas
+               + dechat * earthcoord.dot(dechat) * plx * radpermas)
+    # stars move in the opposite direction of the earth -> minus sign
+    newunitspherical = coordinates.UnitSphericalRepresentation.from_cartesian(
+        coordinates.CartesianRepresentation(newxyz))
+    newra = newunitspherical.lon
+    newdec = newunitspherical.lat
+    catalog['ra'] = newra.to(u.deg).value
+    catalog['dec'] = newdec.to(u.deg).value
+    return catalog
 
 
 def get_catalog(
     right_ascension,
     declination,
-    epoch=2016.0,
+    epoch=None,
     search_radius=0.1,
-    catalog="GAIADR3",
-    timeout=TIMEOUT,
+    catalog=S3_URL,
     columns=None,
 ):
     """Extract catalog from S3 web service.
@@ -98,7 +138,7 @@ def get_catalog(
 
     epoch : float, optional
         Reference epoch used to update the coordinates for proper motion
-        (in decimal year). Default: 2016.0
+        (in decimal year). Default: None
 
     search_radius : float, optional
         Search radius (in decimal degrees) from field-of-view center to use
@@ -115,14 +155,9 @@ def get_catalog(
     `~astropy.table.Table`
         Table of returned sources with all columns as provided by catalog
     """
-    # TODO epoch?
-    # TODO columns?
     if columns is None:
         columns = COL_NAMES
-    # TODO timeout?
     radius_arcsec = search_radius * 3600
-    # TODO convert pandas to astropy table
-    # TODO map columns back to expected names (or update downstream code)
-    # TODO correct for proper motion
-    return get_gaia_DR3_sources(S3_URL, right_ascension, declination, radius_arcsec, list(columns))
+    df = _get_gaia_DR3_sources(S3_URL, right_ascension, declination, radius_arcsec, epoch, list(columns))
+    return Table.from_pandas(df)
 
