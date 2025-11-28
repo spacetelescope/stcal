@@ -243,7 +243,7 @@ def _parse_refcat(abs_refcat: str | Path,
         output_name = None
 
     gaia_cat_name = abs_refcat.upper()
-    if gaia_cat_name in SINGLE_GROUP_REFCAT:
+    if gaia_cat_name in SINGLE_GROUP_REFCAT or gaia_cat_name.startswith("s3://"):
 
         # combine all aligned wcs to compute a new footprint to
         # filter the absolute catalog sources
