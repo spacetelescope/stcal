@@ -6,6 +6,7 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 from stcal.alignment import compute_fiducial
+from . import _s3_catalog
 
 ASTROMETRIC_CAT_ENVVAR = "ASTROMETRIC_CATALOG_URL"
 DEF_CAT_URL = "https://gsss.stsci.edu/webservices"
