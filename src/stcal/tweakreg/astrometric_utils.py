@@ -169,15 +169,14 @@ def get_catalog(
         CSV object of returned sources with all columns as provided by catalog
 
     """
-    # if catalog in _s3_catalog.SUPPORTED:
-    #     return _s3_catalog.get_catalog(
-    #         right_ascension,
-    #         declination,
-    #         epoch,
-    #         search_radius,
-    #         catalog,
-    #         timeout,
-    #     )
+    if catalog.startswith("s3://"):
+        return _s3_catalog.get_catalog(
+            right_ascension,
+            declination,
+            epoch,
+            search_radius,
+            catalog,
+        )
     service_type = "vo/CatalogSearch.aspx"
     headers = {"Content-Type": "text/csv"}
 
