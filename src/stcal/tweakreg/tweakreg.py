@@ -242,8 +242,13 @@ def _parse_refcat(abs_refcat: str | Path,
     else:
         output_name = None
 
-    gaia_cat_name = abs_refcat.upper()
-    if gaia_cat_name in SINGLE_GROUP_REFCAT or gaia_cat_name.startswith("s3://"):
+    if abs_refcat.startswith("s3://"):
+        cat_name = abs_refcat
+    elif abs_refcat.upper() in SINGLE_GROUP_REFCAT:
+        cat_name = abs_refcat.upper()
+    else:
+        cat_name = None
+    if cat_name:
 
         # combine all aligned wcs to compute a new footprint to
         # filter the absolute catalog sources
@@ -255,11 +260,11 @@ def _parse_refcat(abs_refcat: str | Path,
 
         ref_table = create_astrometric_catalog(
             combined_wcs, epoch,
-            catalog=gaia_cat_name,
+            catalog=cat_name,
             output=output_name,
             timeout=timeout,
         )
-        ref_table.meta["name"] = gaia_cat_name # accessed by tweakwcs log message
+        ref_table.meta["name"] = cat_name # accessed by tweakwcs log message
         return ref_table
 
     if Path(abs_refcat).is_file():
