@@ -34,7 +34,6 @@ EXPECTED_NUM_SOURCES = 2469
 # more recent WCS with a defined input frame is necessary for some tests
 WCS_NAME_2 = "nrcb1-wcs.asdf"
 
-TEST_CATALOG = "GAIADR3"
 CATALOG_FNAME = "ref_cat.ecsv"
 DATADIR = "data"
 
@@ -54,7 +53,12 @@ def _wcsobj():
         return asdf_file.tree["wcs"]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", params=["GAIAREFCAT", "GAIADR3_S3"])
+def abs_catalog(request):
+    return request.param
+
+
+@pytest.fixture()
 def wcsobj():
     return _wcsobj()
 
@@ -75,29 +79,35 @@ def test_radius(wcsobj):
     np.testing.assert_allclose(radius, EXPECTED_RADIUS, rtol=1e-6)
 
 
-def test_get_catalog(wcsobj):
+def test_get_catalog(wcsobj, abs_catalog):
     # Get radius and fiducial
     radius, fiducial = amutils.compute_radius(wcsobj)
 
     # Get the catalog
-    cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                              catalog=TEST_CATALOG)
+    cat = amutils.get_catalog(
+        fiducial[0],
+        fiducial[1],
+        search_radius=radius,
+        epoch=None,
+        catalog=abs_catalog,
+    )
 
     assert len(cat) == EXPECTED_NUM_SOURCES
 
 
-def test_create_catalog(wcsobj):
+def test_create_catalog(wcsobj, abs_catalog):
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
-        wcsobj, "2016.0",
-        catalog=TEST_CATALOG,
+        wcsobj,
+        None,
+        catalog=abs_catalog,
         output=None,
     )
     # check that we got expected number of sources
     assert len(gcat) == EXPECTED_NUM_SOURCES
 
 
-def test_create_catalog_graceful_failure(wcsobj):
+def test_create_catalog_graceful_failure(wcsobj, abs_catalog):
     """
     Ensure catalog retuns zero sources instead of failing outright
     when the bounding box is too small to find any sources
@@ -106,8 +116,8 @@ def test_create_catalog_graceful_failure(wcsobj):
 
     # Create catalog
     gcat = amutils.create_astrometric_catalog(
-        wcsobj, "2016.0",
-        catalog=TEST_CATALOG,
+        wcsobj, 2016.0,
+        catalog=abs_catalog,
         output=None,
     )
     # check that we got expected number of sources
@@ -214,15 +224,15 @@ def datamodel(wcsobj2, group_id=None):
 
 
 @pytest.fixture(scope="module")
-def abs_refcat(datamodel):
+def abs_refcat(datamodel, abs_catalog):
 
     wcsobj = datamodel.meta.wcs
     radius, fiducial = amutils.compute_radius(wcsobj)
     return amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                               catalog=TEST_CATALOG)
+                               catalog=abs_catalog)
 
 
-def test_parse_refcat(datamodel, abs_refcat, tmp_path):
+def test_parse_refcat(datamodel, abs_refcat, tmp_path, abs_catalog):
 
     correctors = fake_correctors(0.0)
     cat = abs_refcat
@@ -241,9 +251,9 @@ def test_parse_refcat(datamodel, abs_refcat, tmp_path):
     assert refcat.meta["name"] == CATALOG_FNAME
 
     # find refcat from web
-    refcat = _parse_refcat(TEST_CATALOG, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
+    refcat = _parse_refcat(abs_catalog, correctors, datamodel.meta.wcs, datamodel.meta.wcsinfo, epoch)
     assert isinstance(refcat, Table)
-    assert refcat.meta["name"] == TEST_CATALOG
+    assert refcat.meta["name"] == abs_catalog
 
 
 def test_parse_sky_centroid(caplog, abs_refcat):
@@ -293,7 +303,7 @@ def test_parse_sky_centroid(caplog, abs_refcat):
 
 
 @pytest.fixture(scope="module")
-def input_catalog(datamodel):
+def input_catalog(datamodel, abs_catalog):
     """Get catalog from gaia, transform it to x,y in the image frame,
     use it as an input catalog"""
     # Get radius and fiducial
@@ -302,7 +312,7 @@ def input_catalog(datamodel):
 
     # Get the catalog
     cat = amutils.get_catalog(fiducial[0], fiducial[1], search_radius=radius,
-                              catalog=TEST_CATALOG)
+                              catalog=abs_catalog)
 
     x, y = w.world_to_pixel_values(cat["ra"].value, cat["dec"].value)
     return Table({"x": x, "y": y})
@@ -359,7 +369,7 @@ def test_relative_align(example_input, input_catalog, with_shift):
         assert abs_delta < 1E-12
 
 
-def test_absolute_align(example_input, input_catalog):
+def test_absolute_align(example_input, input_catalog, abs_catalog):
 
     correctors = [construct_wcs_corrector(dm.meta.wcs,
                                           dm.meta.wcsinfo.instance,
@@ -368,7 +378,7 @@ def test_absolute_align(example_input, input_catalog):
 
     ref_model = example_input[0]
     result = absolute_align(correctors,
-                            TEST_CATALOG,
+                            abs_catalog,
                             ref_wcs=ref_model.meta.wcs,
                             ref_wcsinfo=ref_model.meta.wcsinfo,
                             epoch=Time(ref_model.meta.observation.date).decimalyear,

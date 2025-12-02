@@ -6,8 +6,9 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 from stcal.alignment import compute_fiducial
-from . import _s3_catalog
+from stcal.tweakreg._s3_catalog import S3_CATALOGS, get_s3_catalog
 
+GSSS_CATALOGS = ["GAIAREFCAT", "GAIADR3", "GAIADR2", "GAIADR1"]
 ASTROMETRIC_CAT_ENVVAR = "ASTROMETRIC_CATALOG_URL"
 DEF_CAT_URL = "https://gsss.stsci.edu/webservices"
 
@@ -170,8 +171,8 @@ def get_catalog(
         CSV object of returned sources with all columns as provided by catalog
 
     """
-    if catalog.startswith("s3://"):
-        return _s3_catalog.get_catalog(
+    if catalog in S3_CATALOGS:
+        return get_s3_catalog(
             right_ascension,
             declination,
             epoch,

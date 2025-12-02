@@ -11,9 +11,10 @@ import hats
 __all__ = ["get_catalog"]
 
 
-# No support for GAIADR2 or GAIADR1
-# GAIAREFCAT same as GAIADR3?
-S3_URL = "s3://stpubdata/gaia/gaia_dr3/public/hats/gaia/"
+S3_NAMES_TO_CATALOGS = {
+    "GAIADR3_S3": "s3://stpubdata/gaia/gaia_dr3/public/hats/gaia/",
+}
+S3_CATALOGS = list(S3_NAMES_TO_CATALOGS.keys())
 MAX_PYARROW_FILTERS = 10
 SPATIAL_INDEX_COLUMN = "_healpix_29"
 # source_id -> objID
@@ -79,7 +80,7 @@ def _filter_hc_catalog(cat, ra, dec, radius_arcsec, epoch=None, columns=None):
     return hats.search.region_search.cone_filter(df, ra, dec, radius_arcsec, filtered_cat.catalog_info)
 
 
-def _get_gaia_DR3_sources(gaia_dr3_uri, ra, dec, radius_arcsec, epoch=None, columns=None):
+def _get_hats_sources(gaia_dr3_uri, ra, dec, radius_arcsec, epoch=None, columns=None):
     cat = hats.read_hats(gaia_dr3_uri)
     return _filter_hc_catalog(cat, ra, dec, radius_arcsec, epoch=epoch, columns=columns)
 
@@ -113,17 +114,17 @@ def _correct_for_proper_motion(catalog, epoch):
         coordinates.CartesianRepresentation(newxyz))
     newra = newunitspherical.lon
     newdec = newunitspherical.lat
-    catalog['ra'] = newra.to(u.deg).value
-    catalog['dec'] = newdec.to(u.deg).value
+    catalog.loc[:, 'ra'] = newra.to(u.deg).value
+    catalog.loc[:, 'dec'] = newdec.to(u.deg).value
     return catalog
 
 
-def get_catalog(
+def get_s3_catalog(
     right_ascension,
     declination,
     epoch=None,
     search_radius=0.1,
-    catalog=S3_URL,
+    catalog="GAIADR3_S3",
     columns=None,
 ):
     """Extract catalog from S3 web service.
@@ -145,7 +146,7 @@ def get_catalog(
         for sources from catalog.  Default: 0.1 degrees
 
     catalog : str, optional
-        Name of catalog to query, as defined by web-service. Default: 'GAIADR3'
+        Name of catalog to query, as defined by web-service. Default: 'GAIADR3_S3'
 
     timeout : float, optional
         Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
@@ -155,10 +156,11 @@ def get_catalog(
     `~astropy.table.Table`
         Table of returned sources with all columns as provided by catalog
     """
+    s3_url = S3_NAMES_TO_CATALOGS[catalog]
     if columns is None:
         columns = COL_NAMES
     radius_arcsec = search_radius * 3600
-    df = _get_gaia_DR3_sources(S3_URL, right_ascension, declination, radius_arcsec, epoch, list(columns))
+    df = _get_hats_sources(s3_url, right_ascension, declination, radius_arcsec, epoch, list(columns))
     t = Table.from_pandas(df)
     # TODO "mag", "objID", "epoch": are these correct?
     t.add_column(t["phot_g_mean_mag"], name="mag")
