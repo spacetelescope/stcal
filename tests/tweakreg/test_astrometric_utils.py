@@ -4,7 +4,7 @@ import psutil
 import pytest
 
 from stcal.tweakreg.astrometric_utils import get_catalog as gc
-from stcal.tweakreg._s3_catalog import get_catalog as s3gc
+from stcal.tweakreg._s3_catalog import get_s3_catalog as s3gc
 
 
 class TrackNetUsage:
