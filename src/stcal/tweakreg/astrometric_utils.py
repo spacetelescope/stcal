@@ -178,6 +178,7 @@ def get_catalog(
             epoch,
             search_radius,
             catalog,
+            timeout=timeout,
         )
     service_type = "vo/CatalogSearch.aspx"
     headers = {"Content-Type": "text/csv"}

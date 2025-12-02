@@ -1,3 +1,5 @@
+import concurrent.futures
+
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
@@ -36,6 +38,7 @@ COL_NAMES = (
     "pmdec_error",
     "phot_g_mean_mag",
 )
+
 
 def _generate_pyarrow_filters_from_moc(filtered_catalog):
     pyarrow_filter = []
@@ -126,6 +129,7 @@ def get_s3_catalog(
     search_radius=0.1,
     catalog="GAIADR3_S3",
     columns=None,
+    timeout=120,
 ):
     """Extract catalog from S3 web service.
 
@@ -160,7 +164,12 @@ def get_s3_catalog(
     if columns is None:
         columns = COL_NAMES
     radius_arcsec = search_radius * 3600
-    df = _get_hats_sources(s3_url, right_ascension, declination, radius_arcsec, epoch, list(columns))
+
+    # hats provides no way to define a timeout so use a thread
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_get_hats_sources, s3_url, right_ascension, declination, radius_arcsec, epoch, list(columns))
+        df = future.result(timeout=timeout)
+
     t = Table.from_pandas(df)
     # TODO "mag", "objID", "epoch": are these correct?
     t.add_column(t["phot_g_mean_mag"], name="mag")
