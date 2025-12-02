@@ -19,10 +19,6 @@ S3_NAMES_TO_CATALOGS = {
 S3_CATALOGS = list(S3_NAMES_TO_CATALOGS.keys())
 MAX_PYARROW_FILTERS = 10
 SPATIAL_INDEX_COLUMN = "_healpix_29"
-# source_id -> objID
-# epoch?
-# mag? phot_g_mean_mag?
-# pm?
 COL_NAMES = (
     "ra",
     "ra_error",
@@ -30,13 +26,13 @@ COL_NAMES = (
     "dec_error",
     "parallax",
     "parallax_error",
-    "source_id",
-    "ref_epoch",
+    "source_id",  # objID
+    "ref_epoch",  # epoch
     "pmra",
     "pmra_error",
     "pmdec",
     "pmdec_error",
-    "phot_g_mean_mag",
+    "phot_g_mean_mag",  # mag
 )
 
 
@@ -101,7 +97,6 @@ def _correct_for_proper_motion(catalog, epoch):
     unit_vectors = unitspherical.unit_vectors()
     rahat = unit_vectors['lon'].xyz
     dechat = unit_vectors['lat'].xyz
-    # TODO scale?
     earthcoord = coordinates.get_body_barycentric('earth', Time(epoch, format="decimalyear"))
     earthcoord = earthcoord.xyz.to(u.AU).value
     radpermas = np.pi / (180 * 3600 * 1000)
@@ -161,17 +156,14 @@ def get_s3_catalog(
         Table of returned sources with all columns as provided by catalog
     """
     s3_url = S3_NAMES_TO_CATALOGS[catalog]
-    if columns is None:
-        columns = COL_NAMES
     radius_arcsec = search_radius * 3600
 
     # hats provides no way to define a timeout so use a thread
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(_get_hats_sources, s3_url, right_ascension, declination, radius_arcsec, epoch, list(columns))
+        future = executor.submit(_get_hats_sources, s3_url, right_ascension, declination, radius_arcsec, epoch, list(COL_NAMES))
         df = future.result(timeout=timeout)
 
     t = Table.from_pandas(df)
-    # TODO "mag", "objID", "epoch": are these correct?
     t.add_column(t["phot_g_mean_mag"], name="mag")
     t.add_column(t["source_id"], name="objID")
     t.add_column(t["ref_epoch"], name="epoch")
