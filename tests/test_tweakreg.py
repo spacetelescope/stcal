@@ -5,7 +5,6 @@ from copy import deepcopy
 from pathlib import Path
 
 import asdf
-import contextlib
 import numpy as np
 import pytest
 from astropy.modeling.models import Shift
@@ -390,14 +389,11 @@ def test_absolute_align(example_input, input_catalog, abs_catalog):
     assert abs_delta < 1E-12
 
 
-def test_get_catalog_timeout():
+def test_get_catalog_timeout(abs_catalog):
     """Test that get_catalog can raise an exception on timeout."""
 
-    with pytest.raises(Exception) as exec_info:
-        for dt in np.arange(1, 0, -0.01):
-            with contextlib.suppress(requests.exceptions.ConnectionError):
-                amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt)
-    assert exec_info.type == requests.exceptions.Timeout
+    with pytest.raises(TimeoutError):
+        amutils.get_catalog(10, 10, search_radius=0.1, catalog=abs_catalog, timeout=0.1)
 
 
 def test_get_catalog_raises_connection_error(monkeypatch):
@@ -405,7 +401,5 @@ def test_get_catalog_raises_connection_error(monkeypatch):
 
     monkeypatch.setattr("requests.get", MockConnectionError)
 
-    with pytest.raises(Exception) as exec_info:
+    with pytest.raises(requests.exceptions.ConnectionError):
         amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3")
-
-    assert exec_info.type == requests.exceptions.ConnectionError
