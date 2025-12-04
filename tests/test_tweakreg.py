@@ -389,11 +389,12 @@ def test_absolute_align(example_input, input_catalog, abs_catalog):
     assert abs_delta < 1E-12
 
 
+@pytest.mark.skip(reason="gsss doesn't always timeout")
 def test_get_catalog_timeout(abs_catalog):
     """Test that get_catalog can raise an exception on timeout."""
 
     with pytest.raises(TimeoutError):
-        amutils.get_catalog(10, 10, search_radius=0.1, catalog=abs_catalog, timeout=0.1)
+        amutils.get_catalog(10, 10, search_radius=0.1, catalog=abs_catalog, timeout=0.001)
 
 
 def test_get_catalog_raises_connection_error(monkeypatch):
