@@ -182,7 +182,6 @@ def get_s3_catalog(
     epoch=None,
     search_radius=0.1,
     catalog="GAIADR3_S3",
-    columns=None,
     timeout=120,
 ):
     """Extract catalog from S3 web service.
@@ -216,7 +215,7 @@ def get_s3_catalog(
     """
     s3_url = S3_NAMES_TO_CATALOGS[catalog]
 
-    # hats provides no way to define a timeout so use a thread
+    # use a thread to allow setting a timeout
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(_get_hats_sources, s3_url, right_ascension, declination, search_radius, epoch, list(COL_NAMES))
         table = future.result(timeout=timeout)
