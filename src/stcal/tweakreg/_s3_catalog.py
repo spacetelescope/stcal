@@ -1,3 +1,4 @@
+import functools
 import concurrent.futures
 
 import numpy as np
@@ -62,66 +63,78 @@ def _correct_for_proper_motion(catalog, epoch):
         coordinates.CartesianRepresentation(newxyz))
     newra = newunitspherical.lon
     newdec = newunitspherical.lat
-    # TODO check that units aren't lost
     catalog['ra'] = newra.to(u.deg).value
     catalog['dec'] = newdec.to(u.deg).value
     return catalog
 
 
-def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=None):
-    # open pyarrow filesystem for accessing files
-    fs, fs_path = pyarrow.fs.FileSystem.from_uri(gaia_dr3_uri)
-
-    # get the partition_info file: Npix, Norder
+@functools.lru_cache
+def _get_partition_info(uri):
+    # open the filesystem here to allow this to be cached (FileSystem instances aren't hashable)
+    fs, fs_path = pyarrow.fs.FileSystem.from_uri(uri)
     csv_file = csv.read_csv(fs.open_input_file(fs_path +  "/partition_info.csv"))
-    n_order = csv_file['Norder'].to_numpy()
-    n_pix = csv_file['Npix'].to_numpy()
-    hats_pixels = [(int(o), int(p)) for o, p in zip(n_order, n_pix)]
-    max_depth = n_order.max()
-    min_depth = n_order.min()
+    return fs, fs_path, np.vstack((csv_file['Norder'].to_numpy(), csv_file['Npix'].to_numpy())).T
 
-    # perform cone search at max depth
-    hp = HEALPix(nside=2 ** max_depth, order='nested')
-    ipix = hp.cone_search_lonlat(ra * u.deg, dec * u.deg, search_radius * u.deg)
-    depth = np.full(ipix.shape, max_depth)
 
-    # generate depth 29 ranges for cone search
-    dr = np.vstack((ipix << ((29 - depth) * 2), (ipix + 1) << ((29 - depth) * 2))).T
+def _cone_search(ra, dec, search_radius, depth):
+    hp = HEALPix(nside=2 ** depth, order='nested')
+    return hp.cone_search_lonlat(ra * u.deg, dec * u.deg, search_radius * u.deg)
 
-    # find matching pixels in catalog
-    pixels = set()
-    for (i, d) in zip(ipix, depth):
-        # for each pixel in the query
-        pix = (int(d), int(i))
-        while pix[0] >= min_depth:
-            if pix in hats_pixels:
-                pixels.add(pix)
+
+def _generate_depth_29_ranges(pixels, depth):
+    depth_array = np.full(pixels.shape, depth)
+    return np.vstack((pixels << ((29 - depth_array) * 2), (pixels + 1) << ((29 - depth_array) * 2))).T
+
+
+def _find_pixels_in_catalog(catalog_pixels, search_pixels, search_depth):
+    min_depth = catalog_pixels[:, 0].min()
+    if search_depth < min_depth:
+        raise ValueError(f"Invalid search_depth {search_depth} < {min_depth}")
+    pixels_by_depth = {}
+    for d, i in catalog_pixels.tolist():
+        if d not in pixels_by_depth:
+            pixels_by_depth[d] = set()
+        pixels_by_depth[d].add(i)
+    matching_pixels = set()
+    for i in search_pixels:
+        depth = search_depth
+        while depth >= min_depth:
+            if i in pixels_by_depth.get(depth, set()):
+                matching_pixels.add((depth, i))
                 break
-            pix = (pix[0] - 1, pix[1] >> 2)
-    pixels = list(pixels)
+            depth = depth - 1
+            i = i >> 2
+    return list(matching_pixels)
 
-    # convert pixels to paths
+
+def _pixels_to_paths(pixels, fs_path):
     paths = []
     for pixel in pixels:
         depth, number = pixel
         directory = int(number / 10000) * 10000
         paths.append(f"{fs_path}/dataset/Norder={depth}/Dir={directory}/Npix={number}.parquet")
+    return paths
 
-    # convert depth 29 ranges to pyarrow filters
+
+def _depth_29_ranges_to_filters(dr):
     filters = []
     for hpx_range in dr:
         filters.append(
             [(SPATIAL_INDEX_COLUMN, ">=", hpx_range[0]), (SPATIAL_INDEX_COLUMN, "<", hpx_range[1])]
         )
+    return filters
 
-    # read and combine data
+
+def _read_table(paths, fs, filters, columns):
     ds = pq.ParquetDataset(paths, filesystem=fs, filters=filters).read(columns=columns)
     table = Table({name: ds[name].to_numpy() for name in ds.column_names}, masked=True)
     # mask na values
     for colname in table.colnames:
         table[colname].mask = np.isnan(table[colname].data.data)
+    return table
 
-    # do the final, accurate cone search
+
+def _filter_table(table, ra, dec, search_radius):
     ra_rad = np.radians(table['ra'])
     dec_rad = np.radians(table['dec'])
     ra0 = np.radians(ra)
@@ -133,7 +146,34 @@ def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=
     cos_separation = np.clip(cos_angle, -1.0, 1.0)
 
     cos_radius = np.cos(np.radians(search_radius))
-    return Table(table[cos_separation >= cos_radius])
+    return table[cos_separation >= cos_radius]
+
+
+def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=None):
+    # get the partition_info file: Norder, Npix
+    fs, fs_path, hats_pixels = _get_partition_info(gaia_dr3_uri)
+    max_depth = hats_pixels[:, 0].max()
+
+    # perform cone search at max depth
+    ipix = _cone_search(ra, dec, search_radius, max_depth)
+
+    # generate depth 29 ranges for cone search
+    dr = _generate_depth_29_ranges(ipix, max_depth)
+
+    # find matching pixels in catalog
+    pixels = _find_pixels_in_catalog(hats_pixels, ipix, max_depth)
+
+    # convert pixels to paths
+    paths = _pixels_to_paths(pixels, fs_path)
+
+    # convert depth 29 ranges to pyarrow filters
+    filters = _depth_29_ranges_to_filters(dr)
+
+    # read and combine data
+    table = _read_table(paths, fs, filters, columns)
+
+    # do the final, accurate cone search
+    return _filter_table(table, ra, dec, search_radius)
 
 
 def get_s3_catalog(
