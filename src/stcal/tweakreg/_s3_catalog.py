@@ -9,7 +9,7 @@ from astropy.time import Time
 import pyarrow.fs
 import pyarrow.csv as csv
 import pyarrow.parquet as pq
-from cdshealpix.nested import cone_search
+from astropy_healpix import HEALPix
 
 
 __all__ = ["get_catalog"]
@@ -69,10 +69,6 @@ def _correct_for_proper_motion(catalog, epoch):
 
 
 def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=None):
-    ra_lon = coordinates.Longitude(ra * u.deg)
-    dec_lat = coordinates.Latitude(dec * u.deg)
-    sr_deg = search_radius * u.deg
-
     # open pyarrow filesystem for accessing files
     fs, fs_path = pyarrow.fs.FileSystem.from_uri(gaia_dr3_uri)
 
@@ -85,7 +81,9 @@ def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=
     min_depth = n_order.min()
 
     # perform cone search at max depth
-    ipix, depth, _ = cone_search(ra_lon, dec_lat, sr_deg, max_depth)
+    hp = HEALPix(nside=2 ** max_depth, order='nested')
+    ipix = hp.cone_search_lonlat(ra * u.deg, dec * u.deg, search_radius * u.deg)
+    depth = np.full(ipix.shape, max_depth)
 
     # generate depth 29 ranges for cone search
     dr = np.vstack((ipix << ((29 - depth) * 2), (ipix + 1) << ((29 - depth) * 2))).T
