@@ -202,6 +202,8 @@ skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
+# Disable free-threading builds on all platforms
+skip = "cp3??t-*"
 
 [tool.cibuildwheel.linux]
 archs = ["auto", "aarch64"]
