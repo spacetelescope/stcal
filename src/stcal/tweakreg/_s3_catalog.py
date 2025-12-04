@@ -118,7 +118,10 @@ def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=
 
     # read and combine data
     ds = pq.ParquetDataset(paths, filesystem=fs, filters=filters).read(columns=columns)
-    table = Table({name: ds[name].to_numpy() for name in ds.column_names})
+    table = Table({name: ds[name].to_numpy() for name in ds.column_names}, masked=True)
+    # mask na values
+    for colname in table.colnames:
+        table[colname].mask = np.isnan(table[colname].data.data)
 
     # do the final, accurate cone search
     ra_rad = np.radians(table['ra'])
