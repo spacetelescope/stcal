@@ -157,3 +157,73 @@ def test_zero_frame():
     zcheck = np.zeros((nints, nrows, ncols), dtype=float)
     zcheck[0, 0, :] = np.array([1.22106063, 0.0])
     np.testing.assert_almost_equal(new_zframe, zcheck, decimal=5)
+
+
+def test_read_level_correction():
+    """
+    Test read-level linearity correction that accounts for averaging of
+    multiple reads into resultants.
+    """
+    # Set up test data
+    nints, ngroups, nrows, ncols = 1, 5, 10, 10
+    data = np.ones((nints, ngroups, nrows, ncols), dtype=np.float32)
+    gdq = np.zeros((nints, ngroups, nrows, ncols), dtype=np.uint32)
+    pdq = np.zeros((nrows, ncols), dtype=np.uint32)
+
+    # Create some test ramp data
+    for g in range(ngroups):
+        data[0, g, :, :] = 1000.0 * (g + 1)
+
+    # Set up linearity coefficients
+    ncoeffs = 5
+    lin_coeffs = np.zeros((ncoeffs, nrows, ncols), dtype=np.float32)
+    lin_coeffs[0, :, :] = 0.0
+    lin_coeffs[1, :, :] = 1.0
+    lin_coeffs[2, :, :] = 1e-6
+    lin_coeffs[3, :, :] = -1e-11
+    lin_coeffs[4, :, :] = 1e-16
+
+    # Set up inverse linearity coefficients (approximate inverse)
+    ilin_coeffs = np.zeros((ncoeffs, nrows, ncols), dtype=np.float32)
+    ilin_coeffs[0, :, :] = 0.0
+    ilin_coeffs[1, :, :] = 1.0
+    ilin_coeffs[2, :, :] = -1e-6
+    ilin_coeffs[3, :, :] = 1e-11
+    ilin_coeffs[4, :, :] = -1e-16
+
+    lin_dq = np.zeros((nrows, ncols), dtype=np.uint32)
+
+    # Set up read pattern - example MA table
+    # [[0], [1], [2, 3], [4, 5], [6]]
+    read_pattern = [[0], [1], [2, 3], [4, 5], [6]]
+    frametime = 3.04  # seconds
+
+    # Set up saturation values
+    satval = np.full((nrows, ncols), 65000.0, dtype=np.float32)
+
+    # Test with read-level correction
+    output_data, output_pdq, _ = linearity_correction(
+        data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS,
+        ilin_coeffs=ilin_coeffs,
+        read_pattern=read_pattern,
+        frametime=frametime,
+        satval=satval
+    )
+
+    # Basic checks: output should have same shape and be corrected
+    assert output_data.shape == data.shape
+    assert output_pdq.shape == pdq.shape
+
+    # The corrected data should be different from input (linearity was applied)
+    assert not np.allclose(output_data, data)
+
+    # Test that traditional method still works (backward compatibility)
+    output_data_trad, output_pdq_trad, _ = linearity_correction(
+        data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS
+    )
+
+    assert output_data_trad.shape == data.shape
+    assert output_pdq_trad.shape == pdq.shape
+
+    # The two methods should give different results since they use different algorithms
+    assert not np.allclose(output_data, output_data_trad)
