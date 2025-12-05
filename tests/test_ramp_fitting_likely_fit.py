@@ -38,7 +38,7 @@ def create_blank_ramp_data(dims, var, tm):
     data = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.float32)
     pixdq = np.zeros(shape=(nrows, ncols), dtype=np.uint32)
     gdq = np.zeros(shape=(nints, ngroups, nrows, ncols), dtype=np.uint8)
-    dark_current = np.zeros(shape=(nrows, ncols), dtype = np.float32)
+    dark_current = np.zeros(shape=(nrows, ncols), dtype=np.float32)
 
     ramp_data = RampData()
     ramp_data.set_arrays(data=data, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current)
@@ -152,7 +152,7 @@ def test_basic_ramp_multi_pixel():
     data_tol = 1e-4
     err_tol = 0.1
     np.testing.assert_allclose(data, data1, data_tol)
-    np.testing.assert_allclose(dq, dq1)
+    np.testing.assert_array_equal(dq, dq1)
     np.testing.assert_allclose(vp, vp1, err_tol)
     np.testing.assert_allclose(vr, vr1, err_tol)
     np.testing.assert_allclose(err, err1, err_tol)
@@ -266,8 +266,7 @@ def test_long_ramp():
 
     data = cube[0][0, 0, 0]
     ddiff = (ramp_data.data[0, ngroups-1, 0, 0] - ramp_data.data[0, 0, 0, 0])
-    check = ddiff / float(ngroups-1)
-    check = check / ramp_data.group_time
+    check = ddiff / ((ngroups - 1) * ramp_data.group_time)
     tol = 1.e-5
     np.testing.assert_allclose(data, check, tol)
 
@@ -309,8 +308,7 @@ def test_short_group_ramp(nframes):
 
     data = cube[0][0, 0, 0]
     ddiff = (ramp_data.data[0, ngroups-1, 0, 0] - ramp_data.data[0, 0, 0, 0])
-    check = ddiff / float(ngroups-1)
-    check = check / ramp_data.group_time
+    check = ddiff / ((ngroups - 1) * ramp_data.group_time)
     tol = 1.e-5
     np.testing.assert_allclose(data, check, tol)
 
@@ -467,10 +465,10 @@ def test_zeroframe_bad_group(caplog):
     np.testing.assert_allclose(slopes[0], slopes1[0], tol)
 
 
-
 # -----------------------------------------------------------------
 #                              DEBUG
 # -----------------------------------------------------------------
+
 def dbg_print_basic_ramp(ramp_data, pix=(0, 0)):
     row, col = pix
     nints = ramp_data.data.shape[0]
