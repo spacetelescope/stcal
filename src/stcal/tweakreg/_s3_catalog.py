@@ -182,7 +182,7 @@ def get_s3_catalog(
     epoch=None,
     search_radius=0.1,
     catalog="GAIADR3_S3",
-    timeout=120,
+    timeout=600,
 ):
     """Extract catalog from S3 web service.
 
@@ -206,7 +206,7 @@ def get_s3_catalog(
         Name of catalog to query, as defined by web-service. Default: 'GAIADR3_S3'
 
     timeout : float, optional
-        Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
+        Timeout in seconds to wait for the catalog web service to respond. Default: 600.0 s
 
     Returns
     -------
