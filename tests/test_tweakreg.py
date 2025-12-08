@@ -400,6 +400,11 @@ def test_get_catalog_timeout():
     assert exec_info.type == requests.exceptions.Timeout
 
 
+def test_s3_catalog_timeout():
+    with pytest.raises(TimeoutError):
+        amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3_S3", timeout=0.001)
+
+
 def test_get_catalog_raises_connection_error(monkeypatch):
     """Test that get_catalog can raise an exception on connection error."""
 
