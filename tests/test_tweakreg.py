@@ -1,5 +1,6 @@
 """Test astrometric utility functions for alignment"""
 
+import contextlib
 import copy
 from copy import deepcopy
 from pathlib import Path
@@ -389,12 +390,14 @@ def test_absolute_align(example_input, input_catalog, abs_catalog):
     assert abs_delta < 1E-12
 
 
-@pytest.mark.skip(reason="gsss doesn't always timeout")
-def test_get_catalog_timeout(abs_catalog):
+def test_get_catalog_timeout():
     """Test that get_catalog can raise an exception on timeout."""
 
-    with pytest.raises(TimeoutError):
-        amutils.get_catalog(10, 10, search_radius=0.1, catalog=abs_catalog, timeout=0.001)
+    with pytest.raises(Exception) as exec_info:
+        for dt in np.arange(1, 0, -0.01):
+            with contextlib.suppress(requests.exceptions.ConnectionError):
+                amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3", timeout=dt)
+    assert exec_info.type == requests.exceptions.Timeout
 
 
 def test_get_catalog_raises_connection_error(monkeypatch):
