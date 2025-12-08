@@ -196,7 +196,7 @@ def get_catalog(
             "Could not connect to the VO API server. Try again later."
         )
     except requests.exceptions.Timeout:
-        raise TimeoutError("The request to the VO API server timed out.")
+        raise requests.exceptions.Timeout("The request to the VO API server timed out.")
     except requests.exceptions.RequestException:
         raise requests.exceptions.RequestException(
             "There was an unexpected error with the request."
