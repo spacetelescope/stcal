@@ -407,3 +407,15 @@ def test_get_catalog_raises_connection_error(monkeypatch):
 
     with pytest.raises(requests.exceptions.ConnectionError):
         amutils.get_catalog(10, 10, search_radius=0.1, catalog="GAIADR3")
+
+
+@pytest.mark.parametrize("epoch", [None, 2025.1])
+def test_catalogs_match(epoch):
+    gsss = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3")
+    s3 = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3_S3")
+    if epoch:
+        gsss = gsss[~(gsss["pmra"].mask)]
+    gsss.sort("objID")
+    s3.sort("objID")
+    np.testing.assert_allclose(gsss["ra"], s3["ra"], rtol=1e-7)
+    np.testing.assert_allclose(gsss["dec"], s3["dec"], rtol=1e-7)
