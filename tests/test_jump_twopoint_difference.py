@@ -92,8 +92,7 @@ def uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3,
 
     return twopt_p
 
-
-def test_varying_groups():
+def test_uneven_groups():
 
     read_times = [[1], [2, 3], [4, 5, 6], [7, 8, 9, 10, 11], [12]]
     
@@ -134,8 +133,7 @@ def test_varying_groups():
     assert np.array_equal(out_gdq[0, :, 1, 0], [0, 0, 0, 4, 0])
     assert np.array_equal(out_gdq[0, :, 1, 1], [0, 0, 0, 0, 0])
 
-
-def test_uneven_groups():
+def test_varying_groups():
     nints, ngroups, nrows, ncols = 1, 5, 2, 2
     dims = nints, ngroups, nrows, ncols
     rnoise = 8
