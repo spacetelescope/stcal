@@ -14,14 +14,13 @@
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
 
-
 /*
 To build C code, make sure the setup.py file is correct and
 lists all extensions, then run:
 
 python setup.py build_ext --inplace
 
-        or 
+        or
 
 pip install -e .
  */
@@ -30,7 +29,7 @@ pip install -e .
 /*                               TYPEDEFs                                    */
 /* ------------------------------------------------------------------------- */
 
-/* 
+/*
  * Toggle internal arrays from float to doubles.  The REAL_IS_DOUBLE is used
  * for preprocessor switches in the code.  If a developer prefers to use a
  * float for internal arrays, this macro can be set to zero to switch from
@@ -59,9 +58,9 @@ typedef enum {
 static npy_intp current_integration;
 static pid_t g_pid;
 char g_log_name[PATH_MAX];
-FILE * g_log = NULL;
+FILE *g_log = NULL;
 
-/* 
+/*
  * Deals with invalid data.  This is one of the ways the python code dealt with
  * the limitations of numpy that aren't necessary in this code.  The LARGE_VARIANCE
  * variable has been removed from use in this code, but due to some strange,
@@ -73,7 +72,6 @@ const real_t LARGE_VARIANCE = 1.e8;
 const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 /* ------------------------------------------------------------------------- */
 
-
 /* ========================================================================= */
 /*                                MACROS                                     */
 /* ------------------------------------------------------------------------- */
@@ -82,87 +80,93 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
 #define DBL "16.10f"
 
 /* Is more general and non-type dependent. */
-#define BSWAP32(X) ((((X) & 0xff000000) >> 24) | \
-                    (((X) & 0x00ff0000) >> 8) |  \
-                    (((X) & 0x0000ff00) << 8) |  \
-                    (((X) & 0x000000ff) << 24))
+#define BSWAP32(X)                                                                        \
+    ((((X) & 0xff000000) >> 24) | (((X) & 0x00ff0000) >> 8) | (((X) & 0x0000ff00) << 8) | \
+     (((X) & 0x000000ff) << 24))
 
 /* Pointers should be set to NULL once freed. */
-#define SET_FREE(X) if (X) {free(X); (X) = NULL;}
-#define FCLOSE(FD) if (FD) {fclose(FD); (FD) = NULL;}
+#define SET_FREE(X) \
+    if (X) {        \
+        free(X);    \
+        (X) = NULL; \
+    }
+#define FCLOSE(FD)   \
+    if (FD) {        \
+        fclose(FD);  \
+        (FD) = NULL; \
+    }
 
-/* 
+/*
  * Wraps the clean_ramp_data function.  Ensure all allocated
  * memory gets deallocated properly for the ramp_data data
  * structure, as well as the allocation allocation for the
  * data structure itself.
  */
-#define FREE_RAMP_DATA(RD) \
-    if (RD) { \
+#define FREE_RAMP_DATA(RD)   \
+    if (RD) {                \
         clean_ramp_data(rd); \
-        free(RD); \
-        (RD) = NULL; \
+        free(RD);            \
+        (RD) = NULL;         \
     }
 
-/* 
+/*
  * Wraps the clean_pixel_ramp function.  Ensure all allocated
  * memory gets deallocated properly for the pixel_ramp data
  * structure, as well as the allocation allocation for the
  * data structure itself.
  */
-#define FREE_PIXEL_RAMP(PR) \
-    if (PR) { \
+#define FREE_PIXEL_RAMP(PR)   \
+    if (PR) {                 \
         clean_pixel_ramp(PR); \
-        SET_FREE(PR); \
+        SET_FREE(PR);         \
     }
 
-/* 
+/*
  * Wraps the clean_segment_list function.  Ensure all allocated
  * memory gets deallocated properly for the segment_list data
  * structure, as well as the allocation allocation for the
  * data structure itself.
  */
-#define FREE_SEGS_LIST(N, S) \
-    if (S) { \
+#define FREE_SEGS_LIST(N, S)      \
+    if (S) {                      \
         clean_segment_list(N, S); \
-        SET_FREE(S);\
+        SET_FREE(S);              \
     }
 
 /* Complicated dereferencing and casting using a label. */
-#define VOID_2_FLOAT(A) (*((float*)(A)))
-#define VOID_2_REAL(A) (*((real_t*)(A)))
-#define VOID_2_U32(A) (*((uint32_t*)(A)))
-#define VOID_2_U8(A) (*((uint8_t*)(A)))
+#define VOID_2_FLOAT(A) (*((float *) (A)))
+#define VOID_2_REAL(A)  (*((real_t *) (A)))
+#define VOID_2_U32(A)   (*((uint32_t *) (A)))
+#define VOID_2_U8(A)    (*((uint8_t *) (A)))
 
 /* Print macros to include meta information about the print statement */
-#define ols_base_print(F,L,...) \
-    do { \
-        if (F) { \
+#define ols_base_print(F, L, ...)                               \
+    do {                                                        \
+        if (F) {                                                \
             fprintf(F, "%s - [C:%d::%d] ", L, __LINE__, g_pid); \
-            fprintf(F, __VA_ARGS__); \
-        }\
-    } while(0)
+            fprintf(F, __VA_ARGS__);                            \
+        }                                                       \
+    } while (0)
 #define dbg_ols_print(...) ols_base_print(stdout, "Debug", __VA_ARGS__)
 #define err_ols_print(...) ols_base_print(stderr, "Error", __VA_ARGS__)
 
-#define dbg_ols_print_pixel(PR) \
-    printf("[C:%d] Pixel (%ld, %ld)\n", __LINE__, (PR)->row, (PR)->col)
+#define dbg_ols_print_pixel(PR) printf("[C:%d] Pixel (%ld, %ld)\n", __LINE__, (PR)->row, (PR)->col)
 
-#define log_ols_print(...) do { \
-    ols_base_print(g_log, "Log", __VA_ARGS__); \
-    if (g_log) { \
-        fflush(g_log); \
-    } \
-} while(0)
+#define log_ols_print(...)                         \
+    do {                                           \
+        ols_base_print(g_log, "Log", __VA_ARGS__); \
+        if (g_log) {                               \
+            fflush(g_log);                         \
+        }                                          \
+    } while (0)
 
-#define dbg_pyerr(S) \
-    do { \
-        print_delim(); \
+#define dbg_pyerr(S)              \
+    do {                          \
+        print_delim();            \
         dbg_ols_print("%s\n", S); \
-        PyErr_Print(); \
-        print_delim(); \
-    } while(0)
-
+        PyErr_Print();            \
+        print_delim();            \
+    } while (0)
 
 /* ------------------------------------------------------------------------- */
 
@@ -175,47 +179,47 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  */
 struct ramp_data {
     /* The dimensions for the ramp data */
-    npy_intp nints;     /* The number of integrations */
-    npy_intp ngroups;   /* The number of groups per integration */
-    npy_intp nrows;     /* The number of rows of an image */
-    npy_intp ncols;     /* The number of columns of an image */
+    npy_intp nints;   /* The number of integrations */
+    npy_intp ngroups; /* The number of groups per integration */
+    npy_intp nrows;   /* The number of rows of an image */
+    npy_intp ncols;   /* The number of columns of an image */
 
-    ssize_t cube_sz;   /* The size of an integration cube */
-    ssize_t image_sz;  /* The size of an image */
-    ssize_t ramp_sz;   /* The size of a pixel ramp */
+    ssize_t cube_sz;  /* The size of an integration cube */
+    ssize_t image_sz; /* The size of an image */
+    ssize_t ramp_sz;  /* The size of a pixel ramp */
 
     /* Functions to get the proper data. */
-    float (*get_data)(PyArrayObject*, npy_intp, npy_intp, npy_intp, npy_intp);
-    uint32_t (*get_pixeldq)(PyArrayObject*, npy_intp, npy_intp);
-    float (*get_gain)(PyArrayObject*, npy_intp, npy_intp);
-    float (*get_rnoise)(PyArrayObject*, npy_intp, npy_intp);
-    float (*get_zframe)(PyArrayObject*, npy_intp, npy_intp, npy_intp);
-    float (*get_dcurrent)(PyArrayObject*, npy_intp, npy_intp);
+    float (*get_data)(PyArrayObject *, npy_intp, npy_intp, npy_intp, npy_intp);
+    uint32_t (*get_pixeldq)(PyArrayObject *, npy_intp, npy_intp);
+    float (*get_gain)(PyArrayObject *, npy_intp, npy_intp);
+    float (*get_rnoise)(PyArrayObject *, npy_intp, npy_intp);
+    float (*get_zframe)(PyArrayObject *, npy_intp, npy_intp, npy_intp);
+    float (*get_dcurrent)(PyArrayObject *, npy_intp, npy_intp);
 
     /* The 4-D arrays with dimensions (nints, ngroups, nrows, ncols) */
-    PyArrayObject * data;       /* The 4-D science data */
-    PyArrayObject * groupdq;    /* The 4-D group DQ array */
+    PyArrayObject *data;    /* The 4-D science data */
+    PyArrayObject *groupdq; /* The 4-D group DQ array */
 
-    PyArrayObject * orig_gdq;   /* The 4-D group DQ array */
+    PyArrayObject *orig_gdq; /* The 4-D group DQ array */
 
     /* The 2-D arrays with dimensions (nrows, ncols) */
-    PyArrayObject * pixeldq;    /* The 2-D pixel DQ array */
-    PyArrayObject * gain;       /* The 2-D gain array */
-    PyArrayObject * rnoise ;    /* The 2-D read noise array */
-    PyArrayObject * dcurrent;   /* The 2-D average dark current array */
-    PyArrayObject * zframe;     /* The 2-D ZEROFRAME array */
+    PyArrayObject *pixeldq;  /* The 2-D pixel DQ array */
+    PyArrayObject *gain;     /* The 2-D gain array */
+    PyArrayObject *rnoise;   /* The 2-D read noise array */
+    PyArrayObject *dcurrent; /* The 2-D average dark current array */
+    PyArrayObject *zframe;   /* The 2-D ZEROFRAME array */
 
-    int special1;   /* Count of segments of length 1 */
-    int special2;   /* Count of segments of length 2 */
+    int special1; /* Count of segments of length 1 */
+    int special2; /* Count of segments of length 2 */
 
     /*
-     * Group and Pixel flags: 
+     * Group and Pixel flags:
      * DO_NOT USE, JUMP_DET, SATURATED, NO_GAIN_VALUE, UNRELIABLE_SLOPE,
      * CHARGELOSS, and a user defined "invalid" flag.
      */
     uint32_t dnu, jump, sat, ngval, uslope, chargeloss, invalid;
 
-    /* 
+    /*
      * This is used only if the save_opt is non-zero, i.e., the option to
      * save the optional results product must be turned on.
      *
@@ -226,29 +230,29 @@ struct ramp_data {
      * (nints, max_num_segs, nrows, ncols).
      */
 
-    int save_opt;                   /* Save optional results value */
-    int max_num_segs;               /* Max number of segments over all ramps. */
-    struct simple_ll_node ** segs;  /* The segment list for each ramp. */
-    int max_num_crs;                /* Max number of segments over all ramps. */
-    struct cr_node ** crs;          /* The segment list for each ramp. */
-    real_t * pedestal;              /* The pedestal computed for each ramp. */
+    int save_opt;                 /* Save optional results value */
+    int max_num_segs;             /* Max number of segments over all ramps. */
+    struct simple_ll_node **segs; /* The segment list for each ramp. */
+    int max_num_crs;              /* Max number of segments over all ramps. */
+    struct cr_node **crs;         /* The segment list for each ramp. */
+    real_t *pedestal;             /* The pedestal computed for each ramp. */
 
     /* Meta data */
-    uint32_t suppress_one_group;    /* Boolean to suppress one group */
-    real_t frame_time;              /* The frame time */
-    real_t group_time;              /* The group time */
-    int dropframes;                 /* The number of dropped frames in an integration */
-    int groupgap;                   /* The group gap */
-    int nframes;                    /* The number of frames */
-    real_t ped_tmp;                 /* Intermediate pedestal caclulation */
-    int suppress1g;                 /* Suppress one group ramps */
-    real_t effintim;                /* Effective integration time */
-    real_t one_group_time;          /* Time for ramps with only 0th good group */
-    weight_t weight;                /* The weighting for OLS */
+    uint32_t suppress_one_group; /* Boolean to suppress one group */
+    real_t frame_time;           /* The frame time */
+    real_t group_time;           /* The group time */
+    int dropframes;              /* The number of dropped frames in an integration */
+    int groupgap;                /* The group gap */
+    int nframes;                 /* The number of frames */
+    real_t ped_tmp;              /* Intermediate pedestal caclulation */
+    int suppress1g;              /* Suppress one group ramps */
+    real_t effintim;             /* Effective integration time */
+    real_t one_group_time;       /* Time for ramps with only 0th good group */
+    weight_t weight;             /* The weighting for OLS */
 
     /* Multiprocessing Slice Data */
-    int start_row;  /* Slice starts at this row in the unsliced data */
-    int num_rows;   /* The number of rows in this slice */
+    int start_row; /* Slice starts at this row in the unsliced data */
+    int num_rows;  /* The number of rows in this slice */
 
     /* Debug switch */
     int debug;
@@ -275,20 +279,20 @@ struct pixel_fit {
  * require better memory management.
  */
 struct simple_ll_node {
-    struct simple_ll_node * flink;  /* The forward link */
-    npy_intp start;                 /* The start group */
-    npy_intp end;                   /* The end group */
-    ssize_t length;                 /* The end group */
+    struct simple_ll_node *flink; /* The forward link */
+    npy_intp start;               /* The start group */
+    npy_intp end;                 /* The end group */
+    ssize_t length;               /* The end group */
 
     /* The computed values of the segment */
-    real_t slope;        /* Slope of segment */
-    real_t sigslope;     /* Uncertainty in the segment slope */
-    real_t var_p;        /* Poisson variance */
-    real_t var_r;        /* Readnoise variance */
-    real_t var_e;        /* Total variance */
-    real_t yint;         /* Y-intercept */
-    real_t sigyint;      /* Uncertainty in the Y-intercept */
-    real_t weight;       /* Sum of weights */
+    real_t slope;    /* Slope of segment */
+    real_t sigslope; /* Uncertainty in the segment slope */
+    real_t var_p;    /* Poisson variance */
+    real_t var_r;    /* Readnoise variance */
+    real_t var_e;    /* Total variance */
+    real_t yint;     /* Y-intercept */
+    real_t sigyint;  /* Uncertainty in the Y-intercept */
+    real_t weight;   /* Sum of weights */
 }; /* END: struct simple_ll_node */
 
 /*
@@ -296,10 +300,10 @@ struct simple_ll_node {
  * for computation of each ramp for ramp fitting.
  */
 struct segment_list {
-    struct simple_ll_node * head;   /* The head node of the list */
-    struct simple_ll_node * tail;   /* The tail node of the list */
-    ssize_t size;                   /* The number of segments */
-    npy_intp max_segment_length;    /* The max group length of a segment */
+    struct simple_ll_node *head; /* The head node of the list */
+    struct simple_ll_node *tail; /* The tail node of the list */
+    ssize_t size;                /* The number of segments */
+    npy_intp max_segment_length; /* The max group length of a segment */
 }; /* END: struct segment_list */
 
 /*
@@ -314,27 +318,27 @@ struct segment_list {
 
 /* Cosmic ray node for linked list */
 struct cr_node {
-    struct cr_node * flink; /* Next cosmic ray (forward link). */
-    real_t crmag;           /* The magnitude of the cosmic ray. */
+    struct cr_node *flink; /* Next cosmic ray (forward link). */
+    real_t crmag;          /* The magnitude of the cosmic ray. */
 };
 
 /* The list structure for cosmic rays. */
 struct cr_list {
-    struct cr_node * head;  /* The head node of the list */
-    struct cr_node * tail;  /* The tail node of the list */
-    ssize_t size;           /* The size of the list */
+    struct cr_node *head; /* The head node of the list */
+    struct cr_node *tail; /* The tail node of the list */
+    ssize_t size;         /* The size of the list */
 };
 
 /*
  * For each integration, count how many groups had certain flags set.
  */
 struct integ_gdq_stats {
-    int cnt_sat;        /* SATURATED count */
-    int cnt_dnu;        /* DO_NOT_USE count */
-    int cnt_dnu_sat;    /* SATURATED | DO_NOT_USE count */
-    int cnt_good;       /* GOOD count */
-    int jump_det;       /* Boolean for JUMP_DET */
-    int chargeloss;     /* Boolean for CHARGELOSS */
+    int cnt_sat;     /* SATURATED count */
+    int cnt_dnu;     /* DO_NOT_USE count */
+    int cnt_dnu_sat; /* SATURATED | DO_NOT_USE count */
+    int cnt_good;    /* GOOD count */
+    int jump_det;    /* Boolean for JUMP_DET */
+    int chargeloss;  /* Boolean for CHARGELOSS */
 }; /* END: struct integ_gdq_stats */
 
 /*
@@ -347,37 +351,37 @@ struct pixel_ramp {
     npy_intp ngroups; /* The number of integrations and groups per integration */
     ssize_t ramp_sz;  /* The total size of the 2-D arrays */
 
-    real_t * data;          /* The 2-D ramp data (nints, ngroups) */
-    uint32_t * groupdq;     /* The group DQ pixel array */
-    uint32_t * orig_gdq;    /* The copy of the original group DQ pixel array */
+    real_t *data;       /* The 2-D ramp data (nints, ngroups) */
+    uint32_t *groupdq;  /* The group DQ pixel array */
+    uint32_t *orig_gdq; /* The copy of the original group DQ pixel array */
 
     uint32_t pixeldq; /* The pixel DQ pixel */
     real_t gain;      /* The pixel gain */
-    real_t rnoise ;   /* The pixel read noise */
+    real_t rnoise;    /* The pixel read noise */
     real_t zframe;    /* The pixel ZEROFRAME */
     real_t dcurrent;  /* The pixel average dark current */
 
     /* Timing bool */
-    uint8_t * is_zframe;    /* Boolean to use ZEROFRAME */
-    uint8_t * is_0th;       /* Boolean to use zeroeth group timing*/
+    uint8_t *is_zframe; /* Boolean to use ZEROFRAME */
+    uint8_t *is_0th;    /* Boolean to use zeroeth group timing*/
 
     /* C computed values */
     real_t median_rate;  /* The median rate of the pixel */
     real_t invvar_e_sum; /* Intermediate calculation needed for final slope */
 
     /* This needs to be an array for each integration */
-    ssize_t max_num_segs;           /* Max number of segments in an integration */
-    struct segment_list * segs;     /* Array of integration segments */
+    ssize_t max_num_segs;      /* Max number of segments in an integration */
+    struct segment_list *segs; /* Array of integration segments */
 
     /* This needs to be an array for each integration */
     ssize_t max_crs;
-    struct cr_list * crs;
+    struct cr_list *crs;
 
-    struct integ_gdq_stats * stats; /* Array of integration GDQ stats */
+    struct integ_gdq_stats *stats; /* Array of integration GDQ stats */
 
     /* initialize and clean */
-    struct pixel_fit rate;          /* Image information */
-    struct pixel_fit * rateints;    /* Cube information */
+    struct pixel_fit rate;      /* Image information */
+    struct pixel_fit *rateints; /* Cube information */
 
     pid_t pid;
 }; /* END: struct pixel_ramp */
@@ -394,11 +398,11 @@ struct ols_calcs {
  */
 struct rate_product {
     int is_none;
-    PyArrayObject * slope;          /* Slopes */
-    PyArrayObject * dq;             /* Data quality */
-    PyArrayObject * var_poisson;    /* Poisson variance */
-    PyArrayObject * var_rnoise;     /* Read noise variance */
-    PyArrayObject * var_err;        /* Total variance */
+    PyArrayObject *slope;       /* Slopes */
+    PyArrayObject *dq;          /* Data quality */
+    PyArrayObject *var_poisson; /* Poisson variance */
+    PyArrayObject *var_rnoise;  /* Read noise variance */
+    PyArrayObject *var_err;     /* Total variance */
 }; /* END: struct rate_product */
 
 /*
@@ -406,30 +410,30 @@ struct rate_product {
  */
 struct rateint_product {
     int is_none;
-    PyArrayObject * slope;          /* Slopes */
-    PyArrayObject * dq;             /* Data quality */
-    PyArrayObject * var_poisson;    /* Poisson variance */
-    PyArrayObject * var_rnoise;     /* Read noise variance */
-    PyArrayObject * var_err;        /* Total variance */
+    PyArrayObject *slope;       /* Slopes */
+    PyArrayObject *dq;          /* Data quality */
+    PyArrayObject *var_poisson; /* Poisson variance */
+    PyArrayObject *var_rnoise;  /* Read noise variance */
+    PyArrayObject *var_err;     /* Total variance */
 }; /* END: struct rateint_product */
 
 /*
  * The optional results product data structure.
  */
 struct opt_res_product {
-    PyArrayObject * slope;      /* Slope of segment */
-    PyArrayObject * sigslope;   /* Uncertainty in the segment slope */
+    PyArrayObject *slope;    /* Slope of segment */
+    PyArrayObject *sigslope; /* Uncertainty in the segment slope */
 
-    PyArrayObject * var_p;      /* Poisson variance */
-    PyArrayObject * var_r;      /* Readnoise variance */
+    PyArrayObject *var_p; /* Poisson variance */
+    PyArrayObject *var_r; /* Readnoise variance */
 
-    PyArrayObject * yint;       /* Y-intercept */
-    PyArrayObject * sigyint;    /* Uncertainty in the Y-intercept */
+    PyArrayObject *yint;    /* Y-intercept */
+    PyArrayObject *sigyint; /* Uncertainty in the Y-intercept */
 
-    PyArrayObject * pedestal;   /* Pedestal */
-    PyArrayObject * weights;    /* Weights */
+    PyArrayObject *pedestal; /* Pedestal */
+    PyArrayObject *weights;  /* Weights */
 
-    PyArrayObject * cr_mag;     /* Cosmic ray magnitudes */
+    PyArrayObject *cr_mag; /* Cosmic ray magnitudes */
 }; /* END: struct opt_res_product */
 
 /* ------------------------------------------------------------------------- */
@@ -442,245 +446,230 @@ struct opt_res_product {
 /*                            Worker Functions                               */
 /* ------------------------------------------------------------------------- */
 static int
-add_segment_to_list(struct segment_list * segs, npy_intp start, npy_intp end);
+add_segment_to_list(struct segment_list *segs, npy_intp start, npy_intp end);
 
 static PyObject *
-build_opt_res(struct ramp_data * rd);
+build_opt_res(struct ramp_data *rd);
 
 static void
-clean_opt_res(struct opt_res_product * opt_res);
+clean_opt_res(struct opt_res_product *opt_res);
 
 static void
-clean_pixel_ramp(struct pixel_ramp * pr);
+clean_pixel_ramp(struct pixel_ramp *pr);
 
 static void
-clean_ramp_data(struct ramp_data * pr);
+clean_ramp_data(struct ramp_data *pr);
 
 static void
-clean_rate_product(struct rate_product * rate_prod);
+clean_rate_product(struct rate_product *rate_prod);
 
 static void
-clean_rateint_product(struct rateint_product * rateint_prod);
+clean_rateint_product(struct rateint_product *rateint_prod);
 
 static void
-clean_segment_list(npy_intp nints, struct segment_list * segs);
+clean_segment_list(npy_intp nints, struct segment_list *segs);
 
 static void
-clean_segment_list_basic(struct segment_list * segs);
+clean_segment_list_basic(struct segment_list *segs);
 
 static int
 compute_integration_segments(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct segment_list * segs,
-    int chargeloss, npy_intp integ);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct segment_list *segs, int chargeloss,
+    npy_intp integ);
 
 static int
-cr_list_add(struct cr_list * crs, real_t crmag);
+cr_list_add(struct cr_list *crs, real_t crmag);
 
 static void
-cr_list_clean(struct cr_list * crs);
+cr_list_clean(struct cr_list *crs);
 
 static int
-create_opt_res(struct opt_res_product * opt_res, struct ramp_data * rd);
+create_opt_res(struct opt_res_product *opt_res, struct ramp_data *rd);
 
 static struct pixel_ramp *
-create_pixel_ramp(struct ramp_data * rd);
+create_pixel_ramp(struct ramp_data *rd);
 
 static int
-create_rate_product(struct rate_product * rate_prod, struct ramp_data * rd);
+create_rate_product(struct rate_product *rate_prod, struct ramp_data *rd);
 
 static int
-create_rateint_product(struct rateint_product * rateint_prod, struct ramp_data * rd);
+create_rateint_product(struct rateint_product *rateint_prod, struct ramp_data *rd);
 
 static float
-get_float2(PyArrayObject * obj, npy_intp row,  npy_intp col);
+get_float2(PyArrayObject *obj, npy_intp row, npy_intp col);
 
 static float
-get_float4(
-    PyArrayObject * obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
+get_float4(PyArrayObject *obj, npy_intp integ, npy_intp group, npy_intp row, npy_intp col);
 
 static float
-get_float3(
-    PyArrayObject * obj, npy_intp integ, npy_intp row, npy_intp col);
+get_float3(PyArrayObject *obj, npy_intp integ, npy_intp row, npy_intp col);
 
 static uint32_t
-get_uint32_2(
-    PyArrayObject * obj, npy_intp row, npy_intp col);
+get_uint32_2(PyArrayObject *obj, npy_intp row, npy_intp col);
 
 static void
-get_pixel_ramp(
-    struct pixel_ramp * pr, struct ramp_data * rd, npy_intp row, npy_intp col);
+get_pixel_ramp(struct pixel_ramp *pr, struct ramp_data *rd, npy_intp row, npy_intp col);
 
 static void
 get_pixel_ramp_integration(
-    struct pixel_ramp * pr, struct ramp_data * rd,
-    npy_intp row, npy_intp col, npy_intp integ, npy_intp group, npy_intp idx);
+    struct pixel_ramp *pr, struct ramp_data *rd, npy_intp row, npy_intp col, npy_intp integ,
+    npy_intp group, npy_intp idx);
 
 static void
-get_pixel_ramp_meta(
-    struct pixel_ramp * pr, struct ramp_data * rd, npy_intp row, npy_intp col);
+get_pixel_ramp_meta(struct pixel_ramp *pr, struct ramp_data *rd, npy_intp row, npy_intp col);
 
 static void
-get_pixel_ramp_zero(struct pixel_ramp * pr);
+get_pixel_ramp_zero(struct pixel_ramp *pr);
 
 static void
 get_pixel_ramp_integration_segments_and_pedestal(
-    npy_intp integ, struct pixel_ramp * pr, struct ramp_data * rd);
+    npy_intp integ, struct pixel_ramp *pr, struct ramp_data *rd);
 
 static struct ramp_data *
-get_ramp_data(PyObject * args);
+get_ramp_data(PyObject *args);
 
 static int
-get_ramp_data_arrays(PyObject * Py_ramp_data, struct ramp_data * rd);
+get_ramp_data_arrays(PyObject *Py_ramp_data, struct ramp_data *rd);
 
 static void
-get_ramp_data_meta(PyObject * Py_ramp_data, struct ramp_data * rd);
+get_ramp_data_meta(PyObject *Py_ramp_data, struct ramp_data *rd);
 
 static int
-get_ramp_data_parse(PyObject ** Py_ramp_data, struct ramp_data * rd, PyObject * args);
+get_ramp_data_parse(PyObject **Py_ramp_data, struct ramp_data *rd, PyObject *args);
 
 static int
-get_ramp_data_new_validate(struct ramp_data * rd);
+get_ramp_data_new_validate(struct ramp_data *rd);
 
 static void
-get_ramp_data_dimensions(struct ramp_data * rd);
+get_ramp_data_dimensions(struct ramp_data *rd);
 
 static void
-get_ramp_data_getters(struct ramp_data * rd);
+get_ramp_data_getters(struct ramp_data *rd);
 
 static int
-compute_median_rate(struct ramp_data * rd, struct pixel_ramp * pr);
+compute_median_rate(struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
-median_rate_1ngroup(struct ramp_data * rd, struct pixel_ramp * pr);
+median_rate_1ngroup(struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
-median_rate_default(struct ramp_data * rd, struct pixel_ramp * pr);
+median_rate_default(struct ramp_data *rd, struct pixel_ramp *pr);
 
 static real_t *
-median_rate_get_data (
-    real_t * data, npy_intp integ, struct ramp_data * rd, struct pixel_ramp * pr);
+median_rate_get_data(real_t *data, npy_intp integ, struct ramp_data *rd, struct pixel_ramp *pr);
 
 static uint8_t *
-median_rate_get_dq (
-    uint8_t * data, npy_intp integ, struct ramp_data * rd, struct pixel_ramp * pr);
+median_rate_get_dq(uint8_t *data, npy_intp integ, struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
 median_rate_integration(
-    real_t * mrate, real_t * int_data, uint8_t * int_dq,
-    struct ramp_data * rd, struct pixel_ramp * pr);
+    real_t *mrate, real_t *int_data, uint8_t *int_dq, struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
 median_rate_integration_sort(
-    real_t * loc_integ, uint8_t * int_dq,
-    struct ramp_data * rd, struct pixel_ramp * pr);
+    real_t *loc_integ, uint8_t *int_dq, struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
-median_rate_integration_sort_cmp(const void * aa, const void * bb);
+median_rate_integration_sort_cmp(const void *aa, const void *bb);
 
 static int
 ols_slope_fit_pixels(
-    struct ramp_data * rd, struct pixel_ramp * pr,
-    struct rate_product * rate_prod, struct rateint_product * rateint_prod);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct rate_product *rate_prod,
+    struct rateint_product *rateint_prod);
 
 static PyObject *
-package_results(
-    struct rate_product * rate, struct rateint_product * rateints,
-    struct ramp_data * rd);
+package_results(struct rate_product *rate, struct rateint_product *rateints, struct ramp_data *rd);
 
 static void
-prune_segment_list(struct segment_list * segs);
+prune_segment_list(struct segment_list *segs);
 
 static float
-py_ramp_data_get_float(PyObject * rd, const char * attr);
+py_ramp_data_get_float(PyObject *rd, const char *attr);
 
 static int
-py_ramp_data_get_int(PyObject * rd, const char * attr);
+py_ramp_data_get_int(PyObject *rd, const char *attr);
 
 static int
-ramp_fit_pixel(struct ramp_data * rd, struct pixel_ramp * pr);
+ramp_fit_pixel(struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
-ramp_fit_pixel_rnoise_chargeloss(struct ramp_data * rd, struct pixel_ramp * pr);
+ramp_fit_pixel_rnoise_chargeloss(struct ramp_data *rd, struct pixel_ramp *pr);
 
 static double
 ramp_fit_pixel_rnoise_chargeloss_segs(
-    struct ramp_data * rd, struct pixel_ramp * pr,
-    struct segment_list * segs, npy_intp integ);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct segment_list *segs, npy_intp integ);
 
 static void
 ramp_fit_pixel_rnoise_chargeloss_remove(
-    struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+    struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ);
 
 static int
-ramp_fit_pixel_integration(
-    struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+ramp_fit_pixel_integration(struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ);
 
 static int
-ramp_fit_pixel_integration_fit_slope(
-    struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+ramp_fit_pixel_integration_fit_slope(struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ);
 
 static int
 ramp_fit_pixel_integration_fit_slope_seg(
-    struct simple_ll_node * current,
-    struct ramp_data * rd, struct pixel_ramp * pr,
-    npy_intp integ, int segnum);
+    struct simple_ll_node *current, struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ,
+    int segnum);
 
 static int
 ramp_fit_pixel_integration_fit_slope_seg_default(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct simple_ll_node * seg,
-    npy_intp integ, int segnum);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct simple_ll_node *seg, npy_intp integ,
+    int segnum);
 
 static int
 ramp_fit_pixel_integration_fit_slope_seg_len1(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct simple_ll_node * seg,
-    npy_intp integ, int segnum);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct simple_ll_node *seg, npy_intp integ,
+    int segnum);
 
 static int
 ramp_fit_pixel_integration_fit_slope_seg_len2(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct simple_ll_node * seg,
-    npy_intp integ, int segnum);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct simple_ll_node *seg, npy_intp integ,
+    int segnum);
 
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct simple_ll_node * seg,
-    npy_intp integ, int segnum, real_t power);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct simple_ll_node *seg, npy_intp integ,
+    int segnum, real_t power);
 
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct simple_ll_node * seg,
-    struct ols_calcs * ols, npy_intp integ, int segnum, real_t power);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct simple_ll_node *seg, struct ols_calcs *ols,
+    npy_intp integ, int segnum, real_t power);
 
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
-    struct ramp_data * rd, struct pixel_ramp * pr, struct simple_ll_node * seg,
-    struct ols_calcs * ols, npy_intp integ, int segnum, real_t power);
+    struct ramp_data *rd, struct pixel_ramp *pr, struct simple_ll_node *seg, struct ols_calcs *ols,
+    npy_intp integ, int segnum, real_t power);
 
 static real_t
-real_nan_median(real_t * arr, npy_intp len);
+real_nan_median(real_t *arr, npy_intp len);
 
 static int
-save_opt_res(struct opt_res_product * opt_res, struct ramp_data * rd);
+save_opt_res(struct opt_res_product *opt_res, struct ramp_data *rd);
 
 static int
-save_ramp_fit(struct rateint_product * rateint_prod, struct rate_product * rate_prod,
-    struct pixel_ramp * pr);
+save_ramp_fit(
+    struct rateint_product *rateint_prod, struct rate_product *rate_prod, struct pixel_ramp *pr);
 
 static real_t
-segment_len1_timing(struct ramp_data * rd, struct pixel_ramp * pr, npy_intp integ);
+segment_len1_timing(struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ);
 
 static real_t
-segment_rnoise_default(struct ramp_data * rd, struct pixel_ramp * pr, real_t seglen);
+segment_rnoise_default(struct ramp_data *rd, struct pixel_ramp *pr, real_t seglen);
 
 static real_t
-segment_rnoise_len1(struct ramp_data * rd, struct pixel_ramp * pr, real_t timing);
+segment_rnoise_len1(struct ramp_data *rd, struct pixel_ramp *pr, real_t timing);
 
 static real_t
-segment_rnoise_len2(struct ramp_data * rd, struct pixel_ramp * pr);
+segment_rnoise_len2(struct ramp_data *rd, struct pixel_ramp *pr);
 
 static int
 segment_snr(
-    real_t * snr, npy_intp integ, struct ramp_data * rd,
-    struct pixel_ramp * pr, struct simple_ll_node * seg, int segnum);
+    real_t *snr, npy_intp integ, struct ramp_data *rd, struct pixel_ramp *pr,
+    struct simple_ll_node *seg, int segnum);
 
 static real_t
 snr_power(real_t snr);
@@ -690,75 +679,73 @@ snr_power(real_t snr);
 /*                            Debug Functions                                */
 /* ------------------------------------------------------------------------- */
 static void
-print_cr_pixel(struct pixel_ramp * pr, int line);
+print_cr_pixel(struct pixel_ramp *pr, int line);
 
 static void
-print_cr_pixel_integ(
-        struct pixel_ramp * pr, struct cr_list * crs, npy_intp integ, int line);
+print_cr_pixel_integ(struct pixel_ramp *pr, struct cr_list *crs, npy_intp integ, int line);
 
 static void
-print_real_array(char * label, real_t * arr, int len, int ret, int line);
+print_real_array(char *label, real_t *arr, int len, int ret, int line);
 
 static void
-print_intp_array(npy_intp * arr, int len, int ret);
+print_intp_array(npy_intp *arr, int len, int ret);
 
 static void
 print_npy_types();
 
 static void
-print_ols_calcs(struct ols_calcs * ols, npy_intp integ, int segnum, int line);
+print_ols_calcs(struct ols_calcs *ols, npy_intp integ, int segnum, int line);
 
 static void
-print_pixel_ramp_data(struct ramp_data * rd, struct pixel_ramp * pr, int line);
+print_pixel_ramp_data(struct ramp_data *rd, struct pixel_ramp *pr, int line);
 
 static void
-print_pixel_ramp_dq(struct ramp_data * rd, struct pixel_ramp * pr, int line);
+print_pixel_ramp_dq(struct ramp_data *rd, struct pixel_ramp *pr, int line);
 
 static void
-print_pixel_ramp_info(struct ramp_data * rd, struct pixel_ramp * pr, int line);
+print_pixel_ramp_info(struct ramp_data *rd, struct pixel_ramp *pr, int line);
 
 static void
-print_pixel_ramp_stats(struct pixel_ramp * pr, int line);
+print_pixel_ramp_stats(struct pixel_ramp *pr, int line);
 
 static void
-print_PyArrayObject_info(PyArrayObject * obj);
+print_PyArrayObject_info(PyArrayObject *obj);
 
 static void
-print_ramp_data_info(struct ramp_data * rd);
+print_ramp_data_info(struct ramp_data *rd);
 
 static void
-print_ramp_data_types(struct ramp_data * rd, int line);
+print_ramp_data_types(struct ramp_data *rd, int line);
 
 static void
-print_rd_type_info(struct ramp_data * rd);
+print_rd_type_info(struct ramp_data *rd);
 
 static void
-print_segment_list(npy_intp nints, struct segment_list * segs, int line);
+print_segment_list(npy_intp nints, struct segment_list *segs, int line);
 
 static void
-print_segment_list_basic(struct segment_list * segs, int line);
+print_segment_list_basic(struct segment_list *segs, int line);
 
 static void
-print_segment_list_integ(npy_intp integ, struct segment_list * segs, int line);
+print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line);
 
 static void
 print_segment(
-    struct simple_ll_node * seg, struct ramp_data * rd, struct pixel_ramp * pr,
-    npy_intp integ, int segnum, int line);
+    struct simple_ll_node *seg, struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ,
+    int segnum, int line);
 
 static void
 print_segment_opt_res(
-    struct simple_ll_node * seg, struct ramp_data * rd,
-    npy_intp integ, int segnum, int line);
+    struct simple_ll_node *seg, struct ramp_data *rd, npy_intp integ, int segnum, int line);
 
 static void
-print_stats(struct pixel_ramp * pr, npy_intp integ, int line); 
+print_stats(struct pixel_ramp *pr, npy_intp integ, int line);
 
 static void
-print_uint8_array(uint8_t * arr, int len, int ret, int line);
+print_uint8_array(uint8_t *arr, int len, int ret, int line);
 
 static void
-print_uint32_array(uint32_t * arr, int len, int ret, int line);
+print_uint32_array(uint32_t *arr, int len, int ret, int line);
 /* ========================================================================= */
 
 /* ========================================================================= */
@@ -767,22 +754,25 @@ print_uint32_array(uint32_t * arr, int len, int ret, int line);
 
 /* Translate 2-D (integ, group) to a 1-D index. */
 static inline npy_intp
-get_ramp_index(struct ramp_data * rd, npy_intp integ, npy_intp group) {
+get_ramp_index(struct ramp_data *rd, npy_intp integ, npy_intp group)
+{
     return rd->ngroups * integ + group;
 }
 
 /* Translate 3-D (integ, row, col) to a 1-D index. */
 static inline npy_intp
-get_cube_index(struct ramp_data * rd, npy_intp integ, npy_intp row, npy_intp col) {
+get_cube_index(struct ramp_data *rd, npy_intp integ, npy_intp row, npy_intp col)
+{
     return rd->image_sz * integ + rd->ncols * row + col;
 }
 
 /* Print a line delimiter for visual separation.  Used for debugging. */
 static inline void
-print_delim() {
+print_delim()
+{
     int k;
     const char c = '-';
-    for (k=0; k<80; ++k) {
+    for (k = 0; k < 80; ++k) {
         printf("%c", c);
     }
     printf("\n");
@@ -790,20 +780,21 @@ print_delim() {
 
 /* Print a line delimiter for visual separation.  Used for debugging. */
 static inline void
-print_delim_char(char c, int len) {
+print_delim_char(char c, int len)
+{
     int k;
-    for (k=0; k<len; ++k) {
+    for (k = 0; k < len; ++k) {
         printf("%c", c);
     }
     printf("\n");
 }
 
-/* 
+/*
  * Used to determine if a pixel is in a list.
  * This is a debugging function.
  */
 static inline int
-is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
+is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 {
     /* Pixel list */
     // JP-3669 - (1804, 173)
@@ -813,14 +804,14 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
     npy_intp row;
     int k;
 
-    return 0;  /* XXX Null function */
+    return 0; /* XXX Null function */
 
     rows[0] = 1804;
     cols[0] = 173;
 
-    for (k=0; k<len; ++k) {
+    for (k = 0; k < len; ++k) {
         row = pr->row + rd->start_row;
-        if (row==rows[k] && pr->col==cols[k]) {
+        if (row == rows[k] && pr->col == cols[k]) {
             return 1;
         }
     }
@@ -828,28 +819,30 @@ is_pix_in_list(struct ramp_data * rd, struct pixel_ramp * pr)
 }
 
 static inline long long
-print_pid_info(long long prev, int line, char * label) {
+print_pid_info(long long prev, int line, char *label)
+{
     struct rusage res_usage;
-    long long now_time = (long long)time(NULL);
+    long long now_time = (long long) time(NULL);
     long long mem_usage = -1;
     long long diff = 0;
     pid_t pid = getpid();
     // dbg_ols_print("PID:  %d\n", pid);
 
     getrusage(RUSAGE_SELF, &res_usage);
-    mem_usage =  res_usage.ru_maxrss;
+    mem_usage = res_usage.ru_maxrss;
     if (prev > 0) {
         diff = mem_usage - prev;
-        dbg_ols_print("[%d] time: %lld, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n",
-            line, now_time, mem_usage, diff, prev, pid, label);
+        dbg_ols_print(
+            "[%d] time: %lld, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n", line, now_time,
+            mem_usage, diff, prev, pid, label);
     } else {
-        dbg_ols_print("[%d] time: %lld, Mem: %lld, diff: %lld, pid: %d  '%s'\n",
-            line, now_time, mem_usage, diff, pid, label);
+        dbg_ols_print(
+            "[%d] time: %lld, Mem: %lld, diff: %lld, pid: %d  '%s'\n", line, now_time, mem_usage,
+            diff, pid, label);
     }
 
     return mem_usage;
 }
-
 
 /* ------------------------------------------------------------------------- */
 /*                              PROC LOGGER                                  */
@@ -861,32 +854,32 @@ print_pid_info(long long prev, int line, char * label) {
  * checkers in place such that the logger is simply ignored.  Maybe a more intelligent
  * system should be put in place to create a logger directory, but for now this
  * suffices.
- * 
+ *
  * I created this to debug multirpocessing.  The logger captures process information
  * into separate logs, so any failures can be determined on a per process bases.
  * Redirection from the command line behaves unexpectedly when multiple processes print
  * to the terminal and copy and pasting from the terminal is lacking due to the amount
  * of data that possibly needs to be copied.
- * 
+ *
  * Each process has its own log and each log has a timestamp, so if you have successive
  * runs, each can be separated by time, as well as process ID.
  */
 void
-set_up_logger() {
-    const char * log_dir = NULL;
+set_up_logger()
+{
+    const char *log_dir = NULL;
     char tbuffer[128];
     time_t now = time(NULL);
-    struct tm * curr_tm = localtime(&now);
+    struct tm *curr_tm = localtime(&now);
     int sz;
-    const char * string_fmt = "%Y_%m_%d_%H%M%S";
+    const char *string_fmt = "%Y_%m_%d_%H%M%S";
 
     return;
 
     memset(tbuffer, 0, 128);
     strftime(tbuffer, 127, string_fmt, curr_tm);
 
-    sz = snprintf(g_log_name, PATH_MAX-1, "%s/%s_pid_%d_logger.txt",
-            log_dir, tbuffer, g_pid);
+    sz = snprintf(g_log_name, PATH_MAX - 1, "%s/%s_pid_%d_logger.txt", log_dir, tbuffer, g_pid);
 
     dbg_ols_print("g_log_name = %s\n", g_log_name);
 
@@ -900,7 +893,11 @@ set_up_logger() {
 /*                            Module Functions                                */
 /* ------------------------------------------------------------------------- */
 
-#define SET_DEBUGGING do { setlocale(LC_ALL, "en_US"); set_up_logger(); } while(0)
+#define SET_DEBUGGING               \
+    do {                            \
+        setlocale(LC_ALL, "en_US"); \
+        set_up_logger();            \
+    } while (0)
 
 /*
  * This is the entry point into the C extension for ramp fitting.  It gets the
@@ -915,35 +912,33 @@ set_up_logger() {
  */
 static PyObject *
 ols_slope_fitter(
-        PyObject * module,  /* The ramp fitting module for the C extension. */
-        PyObject * args)    /* The arguments for the C extension */
+    PyObject *module, /* The ramp fitting module for the C extension. */
+    PyObject *args)   /* The arguments for the C extension */
 {
-    PyObject * result = Py_None;
-    struct ramp_data * rd = NULL;
-    struct pixel_ramp * pr = NULL;
+    PyObject *result = Py_None;
+    struct ramp_data *rd = NULL;
+    struct pixel_ramp *pr = NULL;
     struct rate_product rate_prod = {0};
     struct rateint_product rateint_prod = {0};
 
-    g_pid = getpid();  /* Global variable to track the PID. */
+    g_pid = getpid(); /* Global variable to track the PID. */
 
     // SET_DEBUGGING;
 
     /* Allocate, fill, and validate ramp data */
     rd = get_ramp_data(args);
-    if (NULL == rd) { 
+    if (NULL == rd) {
         goto ERROR;
     }
 
     /* Prepare output products */
-    if (create_rate_product(&rate_prod, rd) ||
-        create_rateint_product(&rateint_prod, rd))
-    {
+    if (create_rate_product(&rate_prod, rd) || create_rateint_product(&rateint_prod, rd)) {
         goto ERROR;
     }
 
     /* Prepare the pixel ramp data structure */
     pr = create_pixel_ramp(rd);
-    if (NULL==pr) {
+    if (NULL == pr) {
         goto ERROR;
     }
 
@@ -954,7 +949,7 @@ ols_slope_fitter(
 
     /* Package up results to be returned */
     result = package_results(&rate_prod, &rateint_prod, rd);
-    if ((NULL==result) || (Py_None==(PyObject*)result)) {
+    if ((NULL == result) || (Py_None == (PyObject *) result)) {
         goto ERROR;
     }
 
@@ -993,21 +988,21 @@ CLEANUP:
  */
 static int
 add_segment_to_list(
-        struct segment_list * segs, /* The list to add the segment to. */
-        npy_intp start,             /* The start, inclusive, of the segment. */
-        npy_intp end)               /* The end, non-inclusive, of the segment. */
+    struct segment_list *segs, /* The list to add the segment to. */
+    npy_intp start,            /* The start, inclusive, of the segment. */
+    npy_intp end)              /* The end, non-inclusive, of the segment. */
 {
-    struct simple_ll_node * seg = NULL;
-    const char * msg = "Couldn't allocate memory for segment.";
+    struct simple_ll_node *seg = NULL;
+    const char *msg = "Couldn't allocate memory for segment.";
 
     /* Ignore length 1 segments if longer segments exist */
-    if ((1==(end-start)) && (segs->max_segment_length > 1)) {
+    if ((1 == (end - start)) && (segs->max_segment_length > 1)) {
         return 0;
     }
 
     /* Make sure memory allocation worked */
-    seg = (struct simple_ll_node*)calloc(1, sizeof(*seg));
-    if (NULL==seg) {
+    seg = (struct simple_ll_node *) calloc(1, sizeof(*seg));
+    if (NULL == seg) {
         PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
         return 1;
@@ -1043,11 +1038,10 @@ add_segment_to_list(
  * Build the optional results class to be returned from ramp fitting.
  */
 static PyObject *
-build_opt_res(
-        struct ramp_data * rd) /* The ramp fitting data */
+build_opt_res(struct ramp_data *rd) /* The ramp fitting data */
 {
     struct opt_res_product opt_res = {0};
-    PyObject * opt_res_info = Py_None;
+    PyObject *opt_res_info = Py_None;
 
     /* Make PyObjectArray's */
     if (create_opt_res(&opt_res, rd)) {
@@ -1061,17 +1055,15 @@ build_opt_res(
     }
 
     /* Package arrays into output tuple */
-    opt_res_info = Py_BuildValue("NNNNNNNNN",
-        opt_res.slope, opt_res.sigslope, opt_res.var_p, opt_res.var_r,
-        opt_res.yint, opt_res.sigyint, opt_res.pedestal, opt_res.weights,
-        opt_res.cr_mag);
+    opt_res_info = Py_BuildValue(
+        "NNNNNNNNN", opt_res.slope, opt_res.sigslope, opt_res.var_p, opt_res.var_r, opt_res.yint,
+        opt_res.sigyint, opt_res.pedestal, opt_res.weights, opt_res.cr_mag);
 
     return opt_res_info;
 }
 
 static void
-clean_opt_res(
-        struct opt_res_product * opt_res)
+clean_opt_res(struct opt_res_product *opt_res)
 {
     Py_XDECREF(opt_res->slope);
     Py_XDECREF(opt_res->sigslope);
@@ -1089,13 +1081,12 @@ clean_opt_res(
  * for the data structure itself.
  */
 static void
-clean_pixel_ramp(
-        struct pixel_ramp * pr)  /* Ramp fitting data for a pixel. */
+clean_pixel_ramp(struct pixel_ramp *pr) /* Ramp fitting data for a pixel. */
 {
-    npy_intp integ; 
+    npy_intp integ;
 
     if (NULL == pr) {
-        return;  /* Nothing to do */
+        return; /* Nothing to do */
     }
 
     /* Free all internal arrays */
@@ -1109,9 +1100,9 @@ clean_pixel_ramp(
 
     /* Clean up the allocated memory for the linked lists. */
     FREE_SEGS_LIST(pr->nints, pr->segs);
-    
+
     /* XXX Clean CR list */
-    for (integ=0; integ < pr->nints; ++integ) {
+    for (integ = 0; integ < pr->nints; ++integ) {
         cr_list_clean(&(pr->crs[integ]));
     }
     SET_FREE(pr->crs);
@@ -1119,14 +1110,13 @@ clean_pixel_ramp(
 
 /* Cleans up the ramp data structure */
 static void
-clean_ramp_data(
-        struct ramp_data * rd) /* The ramp fitting data structure */
+clean_ramp_data(struct ramp_data *rd) /* The ramp fitting data structure */
 {
     npy_intp idx;
-    struct simple_ll_node * current;
-    struct simple_ll_node * next;
-    struct cr_node * cr_current;
-    struct cr_node * cr_next;
+    struct simple_ll_node *current;
+    struct simple_ll_node *next;
+    struct cr_node *cr_current;
+    struct cr_node *cr_next;
 
     Py_XDECREF(rd->data);
     Py_XDECREF(rd->groupdq);
@@ -1139,7 +1129,7 @@ clean_ramp_data(
          *  For each pixel, check to see if there is any allocated
          *  memory for the linked list of ramp segments and free them.
          */
-        for (idx=0; idx < rd->cube_sz; ++idx) {
+        for (idx = 0; idx < rd->cube_sz; ++idx) {
             current = rd->segs[idx];
             while (current) {
                 next = current->flink;
@@ -1168,8 +1158,7 @@ clean_ramp_data(
  * Cleans up the rate product data structure.
  */
 static void
-clean_rate_product(
-        struct rate_product * rate_prod)  /* Rate product data structure */
+clean_rate_product(struct rate_product *rate_prod) /* Rate product data structure */
 {
     /* Free all arrays */
     Py_XDECREF(rate_prod->slope);
@@ -1191,8 +1180,7 @@ clean_rate_product(
  * Cleans up the rate producte data structure.
  */
 static void
-clean_rateint_product(
-        struct rateint_product * rateint_prod)  /* Rateints product data structure */
+clean_rateint_product(struct rateint_product *rateint_prod) /* Rateints product data structure */
 {
     /* Free all arrays */
     Py_XDECREF(rateint_prod->slope);
@@ -1216,20 +1204,20 @@ clean_rateint_product(
  */
 static void
 clean_segment_list(
-        npy_intp nints,             /* The number of integrations */
-        struct segment_list * segs) /* The list of segments for the integration */
+    npy_intp nints,            /* The number of integrations */
+    struct segment_list *segs) /* The list of segments for the integration */
 {
     npy_intp integ;
-    struct simple_ll_node * current = NULL;
-    struct simple_ll_node * next = NULL;
+    struct simple_ll_node *current = NULL;
+    struct simple_ll_node *next = NULL;
 
-    /* 
+    /*
      * Clean each list for each integration.   Each integration for
      * each pixel is segmented.  For each integration, there is a
      * linked list of segments, so walk the linked lists and free
      * each node in each list.
      */
-    for (integ=0; integ < nints; ++integ) {
+    for (integ = 0; integ < nints; ++integ) {
         current = segs[integ].head;
         while (current) {
             next = current->flink;
@@ -1248,16 +1236,15 @@ clean_segment_list(
  * out all elements.
  */
 static void
-clean_segment_list_basic(
-        struct segment_list * segs) /* The segment list to clean */
+clean_segment_list_basic(struct segment_list *segs) /* The segment list to clean */
 {
-    struct simple_ll_node * current = NULL;
-    struct simple_ll_node * next = NULL;
+    struct simple_ll_node *current = NULL;
+    struct simple_ll_node *next = NULL;
 
     current = segs->head;
 
     /* Zero and free memory allocated for each node in list  */
-    while(current) {
+    while (current) {
         next = current->flink;
         memset(current, 0, sizeof(*current));
         SET_FREE(current);
@@ -1274,16 +1261,16 @@ clean_segment_list_basic(
  */
 static int
 compute_integration_segments(
-        struct ramp_data * rd,  /* Ramp fitting data */
-        struct pixel_ramp * pr, /* Pixel ramp fitting data */
-        struct segment_list * segs, /* Segment list */
-        int chargeloss,         /* Chargeloss compuation boolean */
-        npy_intp integ)         /* Current integration */
+    struct ramp_data *rd,      /* Ramp fitting data */
+    struct pixel_ramp *pr,     /* Pixel ramp fitting data */
+    struct segment_list *segs, /* Segment list */
+    int chargeloss,            /* Chargeloss compuation boolean */
+    npy_intp integ)            /* Current integration */
 {
     int ret = 0;
-    uint32_t * groupdq = NULL;
+    uint32_t *groupdq = NULL;
     npy_intp idx, start, end;
-    int in_seg=0;
+    int in_seg = 0;
 
     if (chargeloss) {
         groupdq = pr->orig_gdq + integ * pr->ngroups;
@@ -1292,7 +1279,7 @@ compute_integration_segments(
     }
 
     /* If the whole integration is saturated, then no valid slope. */
-    if ( (!chargeloss) && (groupdq[0] & rd->sat)) {
+    if ((!chargeloss) && (groupdq[0] & rd->sat)) {
         pr->rateints[integ].dq |= rd->dnu;
         pr->rateints[integ].dq |= rd->sat;
         pr->rateints[integ].slope = NAN;
@@ -1300,11 +1287,11 @@ compute_integration_segments(
     }
 
     /* Find all flagged groups and segment based on those flags. */
-    for (idx=0; idx < pr->ngroups; ++idx) {
+    for (idx = 0; idx < pr->ngroups; ++idx) {
         if (0 == groupdq[idx]) {
             if (!in_seg) {
                 /* A new segment is detected */
-                if (idx > 0 && groupdq[idx-1]==rd->jump) {
+                if (idx > 0 && groupdq[idx - 1] == rd->jump) {
                     /* Include jumps as first group of next group */
                     start = idx - 1;
                 } else {
@@ -1357,21 +1344,21 @@ compute_integration_segments(
  */
 static int
 cr_list_add(
-        struct cr_list * crs, /* Cosmic ray list for integration ramp. */
-        real_t crmag)         /* The cosmic ray magnitude to be added */
+    struct cr_list *crs, /* Cosmic ray list for integration ramp. */
+    real_t crmag)        /* The cosmic ray magnitude to be added */
 {
-    struct cr_node * new_node = (struct cr_node*)calloc(1, sizeof(*new_node));
-    const char * msg = "Couldn't allocate memory for cosmic ray node.";
+    struct cr_node *new_node = (struct cr_node *) calloc(1, sizeof(*new_node));
+    const char *msg = "Couldn't allocate memory for cosmic ray node.";
 
-    if (NULL==new_node){
-        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+    if (NULL == new_node) {
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
         return 1;
     }
 
     new_node->crmag = crmag;
 
-    if (0==crs->size) {
+    if (0 == crs->size) {
         /*
          * The linked list is empty, with no nodes.  Adding a node will make
          * a list of size 1.  Therefore, the head and the tail are the same.
@@ -1397,17 +1384,16 @@ cr_list_add(
 }
 
 static void
-cr_list_clean(
-        struct cr_list * crs)
+cr_list_clean(struct cr_list *crs)
 {
-    struct cr_node *current=NULL, *next=NULL;
+    struct cr_node *current = NULL, *next = NULL;
 
-    if (NULL==crs) {
+    if (NULL == crs) {
         return;
     }
 
     current = crs->head;
-    while(current) {
+    while (current) {
         next = current->flink;
         memset(current, 0, sizeof(*current));
         SET_FREE(current);
@@ -1422,15 +1408,15 @@ cr_list_clean(
  */
 static int
 create_opt_res(
-        struct opt_res_product * opt_res, /* The optional results product */
-        struct ramp_data * rd)            /* The ramp fitting data */
+    struct opt_res_product *opt_res, /* The optional results product */
+    struct ramp_data *rd)            /* The ramp fitting data */
 {
     const npy_intp nd = 4;
     npy_intp dims[nd];
     const npy_intp pnd = 3;
     npy_intp pdims[pnd];
-    const int fortran = 0;  /* Want C order */
-    const char * msg = "Couldn't allocate memory for opt_res products.";
+    const int fortran = 0; /* Want C order */
+    const char *msg = "Couldn't allocate memory for opt_res products.";
 
     dims[0] = rd->nints;
     dims[1] = rd->max_num_segs;
@@ -1438,37 +1424,37 @@ create_opt_res(
     dims[3] = rd->ncols;
 
     /* Note fortran = 0 */
-    opt_res->slope = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->slope = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->slope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigslope = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->sigslope = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->sigslope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_p = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->var_p = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->var_p) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_r = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->var_r = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->var_r) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->yint = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->yint = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->yint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigyint = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->sigyint = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->sigyint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->weights = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->weights = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->weights) {
         goto FAILED_ALLOC;
     }
@@ -1476,14 +1462,14 @@ create_opt_res(
     pdims[0] = rd->nints;
     pdims[1] = rd->nrows;
     pdims[2] = rd->ncols;
-    opt_res->pedestal = (PyArrayObject*)PyArray_ZEROS(pnd, pdims, NPY_FLOAT, fortran);
+    opt_res->pedestal = (PyArrayObject *) PyArray_ZEROS(pnd, pdims, NPY_FLOAT, fortran);
     if (!opt_res->pedestal) {
         goto FAILED_ALLOC;
     }
 
     /* cr_mag has different dimensions */
     dims[1] = rd->max_num_crs;
-    opt_res->cr_mag = (PyArrayObject*)PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->cr_mag = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
     if (!opt_res->cr_mag) {
         goto FAILED_ALLOC;
     }
@@ -1512,16 +1498,15 @@ FAILED_ALLOC:
  * for each pixel in the exposure.
  */
 static struct pixel_ramp *
-create_pixel_ramp(
-        struct ramp_data * rd) /* The ramp fitting data */
+create_pixel_ramp(struct ramp_data *rd) /* The ramp fitting data */
 {
-    struct pixel_ramp * pr = (struct pixel_ramp*)calloc(1, sizeof(*pr));
+    struct pixel_ramp *pr = (struct pixel_ramp *) calloc(1, sizeof(*pr));
     char msg[256] = {0};
 
     /* Make sure memory allocation worked */
-    if (NULL==pr) {
+    if (NULL == pr) {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
-        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
         goto END;
     }
@@ -1531,28 +1516,27 @@ create_pixel_ramp(
     pr->ramp_sz = rd->ramp_sz;
 
     /* Allocate array data */
-    pr->data = (real_t*)calloc(pr->ramp_sz, sizeof(pr->data[0]));
-    pr->groupdq = (uint32_t*)calloc(pr->ramp_sz, sizeof(pr->groupdq[0]));
+    pr->data = (real_t *) calloc(pr->ramp_sz, sizeof(pr->data[0]));
+    pr->groupdq = (uint32_t *) calloc(pr->ramp_sz, sizeof(pr->groupdq[0]));
 
-    if (((PyObject*)rd->orig_gdq) != Py_None) {
-        pr->orig_gdq = (uint32_t*)calloc(pr->ramp_sz, sizeof(pr->orig_gdq[0]));
+    if (((PyObject *) rd->orig_gdq) != Py_None) {
+        pr->orig_gdq = (uint32_t *) calloc(pr->ramp_sz, sizeof(pr->orig_gdq[0]));
     }
 
     /* This is an array of integrations for the fit for each integration */
-    pr->rateints = (struct pixel_fit*)calloc(pr->nints, sizeof(pr->rateints[0]));
-    pr->stats = (struct integ_gdq_stats*)calloc(pr->nints, sizeof(pr->stats[0]));
-    pr->segs = (struct segment_list*)calloc(pr->nints, sizeof(pr->segs[0]));
-    pr->crs = (struct cr_list*)calloc(pr->nints, sizeof(pr->crs[0]));
+    pr->rateints = (struct pixel_fit *) calloc(pr->nints, sizeof(pr->rateints[0]));
+    pr->stats = (struct integ_gdq_stats *) calloc(pr->nints, sizeof(pr->stats[0]));
+    pr->segs = (struct segment_list *) calloc(pr->nints, sizeof(pr->segs[0]));
+    pr->crs = (struct cr_list *) calloc(pr->nints, sizeof(pr->crs[0]));
 
     pr->is_zframe = calloc(pr->nints, sizeof(pr->is_zframe[0]));
     pr->is_0th = calloc(pr->nints, sizeof(pr->is_0th[0]));
 
-    if ((NULL==pr->data) || (NULL==pr->groupdq) ||  (NULL==pr->rateints) ||
-        (NULL==pr->segs) || (NULL==pr->stats) || (NULL==pr->is_zframe) ||
-        (NULL==pr->is_0th) || (NULL==pr->crs))
-    {
+    if ((NULL == pr->data) || (NULL == pr->groupdq) || (NULL == pr->rateints) ||
+        (NULL == pr->segs) || (NULL == pr->stats) || (NULL == pr->is_zframe) ||
+        (NULL == pr->is_0th) || (NULL == pr->crs)) {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
-        PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
         FREE_PIXEL_RAMP(pr);
         goto END;
@@ -1567,39 +1551,39 @@ END:
  */
 static int
 create_rate_product(
-        struct rate_product * rate, /* The rate product */
-        struct ramp_data * rd)      /* The ramp fitting data */
+    struct rate_product *rate, /* The rate product */
+    struct ramp_data *rd)      /* The ramp fitting data */
 {
     const npy_intp nd = 2;
     npy_intp dims[nd];
     const int fortran = 0;
-    const char * msg = "Couldn't allocate memory for rate products.";
+    const char *msg = "Couldn't allocate memory for rate products.";
 
     dims[0] = rd->nrows;
     dims[1] = rd->ncols;
 
-    rate->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rate->slope) {
+    rate->slope = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rate->slope) {
         goto FAILED_ALLOC;
     }
 
-    rate->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
-    if (NULL==rate->dq) {
+    rate->dq = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
+    if (NULL == rate->dq) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rate->var_poisson) {
+    rate->var_poisson = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rate->var_poisson) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rate->var_rnoise) {
+    rate->var_rnoise = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rate->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rate->var_err) {
+    rate->var_err = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rate->var_err) {
         goto FAILED_ALLOC;
     }
 
@@ -1614,7 +1598,7 @@ FAILED_ALLOC:
     Py_XDECREF(rate->var_poisson);
     Py_XDECREF(rate->var_rnoise);
     Py_XDECREF(rate->var_err);
-    PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+    PyErr_SetString(PyExc_MemoryError, (const char *) msg);
     err_ols_print("%s\n", msg);
 
     return 1;
@@ -1625,40 +1609,40 @@ FAILED_ALLOC:
  */
 static int
 create_rateint_product(
-        struct rateint_product * rateint, /* The rateints product */
-        struct ramp_data * rd)            /* The ramp fitting data */
+    struct rateint_product *rateint, /* The rateints product */
+    struct ramp_data *rd)            /* The ramp fitting data */
 {
     const npy_intp nd = 3;
     npy_intp dims[nd];
     const int fortran = 0;
-    const char * msg = "Couldn't allocate memory for rateint products.";
+    const char *msg = "Couldn't allocate memory for rateint products.";
 
     dims[0] = rd->nints;
     dims[1] = rd->nrows;
     dims[2] = rd->ncols;
 
-    rateint->slope = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rateint->slope) {
+    rateint->slope = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rateint->slope) {
         goto FAILED_ALLOC;
     }
 
-    rateint->dq = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
-    if (NULL==rateint->dq) {
+    rateint->dq = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
+    if (NULL == rateint->dq) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_poisson = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rateint->var_poisson) {
+    rateint->var_poisson = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rateint->var_poisson) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_rnoise = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rateint->var_rnoise) {
+    rateint->var_rnoise = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rateint->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_err = (PyArrayObject*)PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
-    if (NULL==rateint->var_err) {
+    rateint->var_err = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    if (NULL == rateint->var_err) {
         goto FAILED_ALLOC;
     }
 
@@ -1673,7 +1657,7 @@ FAILED_ALLOC:
     Py_XDECREF(rateint->var_poisson);
     Py_XDECREF(rateint->var_rnoise);
     Py_XDECREF(rateint->var_err);
-    PyErr_SetString(PyExc_MemoryError, (const char*)msg);
+    PyErr_SetString(PyExc_MemoryError, (const char *) msg);
     err_ols_print("%s\n", msg);
 
     return 1;
@@ -1685,19 +1669,19 @@ FAILED_ALLOC:
  */
 static real_t
 real_nan_median(
-        real_t * arr, /* Array in which to find the median */
-        npy_intp len) /* Length of array */
+    real_t *arr,  /* Array in which to find the median */
+    npy_intp len) /* Length of array */
 {
     real_t med = -1.;
     npy_intp nan_idx = 0, med_idx;
 
     /* Find first NaN.  The median will be only of the non-NaN data. */
-    while(nan_idx < len && !isnan(arr[nan_idx])) {
+    while (nan_idx < len && !isnan(arr[nan_idx])) {
         nan_idx++;
     }
 
     /* Some special cases */
-    switch(nan_idx) {
+    switch (nan_idx) {
         case 0:
             return NAN;
         case 1:
@@ -1713,7 +1697,7 @@ real_nan_median(
     if (nan_idx & 1) {
         med = arr[med_idx];
     } else {
-        med = (arr[med_idx] + arr[med_idx-1]) / 2.;
+        med = (arr[med_idx] + arr[med_idx - 1]) / 2.;
     }
 
     return med;
@@ -1722,9 +1706,9 @@ real_nan_median(
 /* Get a float from a 2-D NDARRAY */
 static float
 get_float2(
-        PyArrayObject * obj,    /* Object from which to get float */
-        npy_intp row,           /* Row index into object */
-        npy_intp col)           /* Column index into object */
+    PyArrayObject *obj, /* Object from which to get float */
+    npy_intp row,       /* Row index into object */
+    npy_intp col)       /* Column index into object */
 {
     float ans;
 
@@ -1736,11 +1720,11 @@ get_float2(
 /* Get a float from a 4-D NDARRAY */
 static float
 get_float4(
-    PyArrayObject * obj,    /* Object from which to get float */
-    npy_intp integ,         /* Integration index into object */
-    npy_intp group,         /* Group index into object */
-    npy_intp row,           /* Row index into object */
-    npy_intp col)           /* Column index into object */
+    PyArrayObject *obj, /* Object from which to get float */
+    npy_intp integ,     /* Integration index into object */
+    npy_intp group,     /* Group index into object */
+    npy_intp row,       /* Row index into object */
+    npy_intp col)       /* Column index into object */
 {
     float ans;
 
@@ -1752,10 +1736,10 @@ get_float4(
 /* Get a float from a 3-D NDARRAY. */
 static float
 get_float3(
-    PyArrayObject * obj,    /* Object from which to get float */
-    npy_intp integ,         /* Integration index into object */
-    npy_intp row,           /* Row index into object */
-    npy_intp col)           /* Column index into object */
+    PyArrayObject *obj, /* Object from which to get float */
+    npy_intp integ,     /* Integration index into object */
+    npy_intp row,       /* Row index into object */
+    npy_intp col)       /* Column index into object */
 {
     float ans;
 
@@ -1767,9 +1751,9 @@ get_float3(
 /* Get a uint32_t from a 2-D NDARRAY. */
 static uint32_t
 get_uint32_2(
-    PyArrayObject * obj,    /* Object from which to get float */
-    npy_intp row,           /* Row index into object */
-    npy_intp col)           /* Column index into object */
+    PyArrayObject *obj, /* Object from which to get float */
+    npy_intp row,       /* Row index into object */
+    npy_intp col)       /* Column index into object */
 {
     return VOID_2_U32(PyArray_GETPTR2(obj, row, col));
 }
@@ -1788,10 +1772,10 @@ get_uint32_2(
  */
 static void
 get_pixel_ramp(
-        struct pixel_ramp * pr, /* Pixel ramp data */
-        struct ramp_data * rd,  /* Ramp data */
-        npy_intp row,           /* Pixel row */
-        npy_intp col)           /* Pixel column */
+    struct pixel_ramp *pr, /* Pixel ramp data */
+    struct ramp_data *rd,  /* Ramp data */
+    npy_intp row,          /* Pixel row */
+    npy_intp col)          /* Pixel column */
 {
     npy_intp integ, group;
     ssize_t idx = 0, integ_idx;
@@ -1810,8 +1794,8 @@ get_pixel_ramp(
             get_pixel_ramp_integration(pr, rd, row, col, integ, group, idx);
 
             /* Capture CR magnitudes of optional results product is requested */
-            if (rd->save_opt && (group>0) && (pr->groupdq[idx] & rd->jump)) {
-                crmag = pr->data[idx] - pr->data[idx-1];
+            if (rd->save_opt && (group > 0) && (pr->groupdq[idx] & rd->jump)) {
+                crmag = pr->data[idx] - pr->data[idx - 1];
                 cr_list_add(&(pr->crs[integ]), crmag);
             }
             idx++;
@@ -1819,12 +1803,11 @@ get_pixel_ramp(
         pr->max_crs = (pr->max_crs < pr->crs[integ].size) ? pr->crs[integ].size : pr->max_crs;
         /* Check for 0th group and ZEROFRAME */
         if (!rd->suppress1g) {
-            if ((1==pr->stats[integ].cnt_good) && (0==pr->groupdq[integ_idx])) {
+            if ((1 == pr->stats[integ].cnt_good) && (0 == pr->groupdq[integ_idx])) {
                 pr->is_0th[integ] = 1;
-            } else if ((0==pr->stats[integ].cnt_good) &&
-                       ((PyObject*)rd->zframe) != Py_None) {
-                zframe = (real_t)rd->get_zframe(rd->zframe, integ, row, col);
-                if (0. != zframe ) {
+            } else if ((0 == pr->stats[integ].cnt_good) && ((PyObject *) rd->zframe) != Py_None) {
+                zframe = (real_t) rd->get_zframe(rd->zframe, integ, row, col);
+                if (0. != zframe) {
                     pr->data[integ_idx] = zframe;
                     pr->groupdq[integ_idx] = 0;
                     pr->stats[integ].cnt_good = 1;
@@ -1852,21 +1835,19 @@ get_pixel_ramp(
  */
 static void
 get_pixel_ramp_integration(
-        struct pixel_ramp * pr, /* Pixel ramp data */
-        struct ramp_data * rd,  /* Ramp data */
-        npy_intp row,           /* Pixel row index */
-        npy_intp col,           /* Pixel column index */
-        npy_intp integ,         /* Current integration */
-        npy_intp group,         /* Current group */
-        npy_intp idx)           /* Index into object */
+    struct pixel_ramp *pr, /* Pixel ramp data */
+    struct ramp_data *rd,  /* Ramp data */
+    npy_intp row,          /* Pixel row index */
+    npy_intp col,          /* Pixel column index */
+    npy_intp integ,        /* Current integration */
+    npy_intp group,        /* Current group */
+    npy_intp idx)          /* Index into object */
 {
     /* For a single byte, no endianness handling necessary. */
-    pr->groupdq[idx] = VOID_2_U8(PyArray_GETPTR4(
-        rd->groupdq, integ, group, row, col));
+    pr->groupdq[idx] = VOID_2_U8(PyArray_GETPTR4(rd->groupdq, integ, group, row, col));
 
-    if (((PyObject*)rd->orig_gdq) != Py_None) {
-        pr->orig_gdq[idx] = VOID_2_U8(PyArray_GETPTR4(
-            rd->orig_gdq, integ, group, row, col));
+    if (((PyObject *) rd->orig_gdq) != Py_None) {
+        pr->orig_gdq[idx] = VOID_2_U8(PyArray_GETPTR4(rd->orig_gdq, integ, group, row, col));
     }
 
     /* Compute group DQ statistics */
@@ -1876,7 +1857,7 @@ get_pixel_ramp_integration(
     if (pr->groupdq[idx] & rd->chargeloss) {
         pr->stats[integ].chargeloss = 1;
     }
-    if (0==pr->groupdq[idx]) {
+    if (0 == pr->groupdq[idx]) {
         pr->stats[integ].cnt_good++;
     } else if (pr->groupdq[idx] & rd->dnu) {
         pr->stats[integ].cnt_dnu++;
@@ -1900,10 +1881,10 @@ get_pixel_ramp_integration(
  */
 static void
 get_pixel_ramp_meta(
-        struct pixel_ramp * pr, /* Pixel ramp data */
-        struct ramp_data * rd,  /* Ramp data */
-        npy_intp row,           /* Pixel row */
-        npy_intp col)           /* Pixel column */
+    struct pixel_ramp *pr, /* Pixel ramp data */
+    struct ramp_data *rd,  /* Ramp data */
+    npy_intp row,          /* Pixel row */
+    npy_intp col)          /* Pixel column */
 {
     /* Get pixel and dimension data */
     pr->row = row;
@@ -1912,11 +1893,11 @@ get_pixel_ramp_meta(
 
     pr->pixeldq = rd->get_pixeldq(rd->pixeldq, row, col);
 
-    pr->gain = (real_t)rd->get_gain(rd->gain, row, col);
+    pr->gain = (real_t) rd->get_gain(rd->gain, row, col);
     if (pr->gain <= 0. || isnan(pr->gain)) {
         pr->pixeldq |= (rd->dnu | rd->ngval);
     }
-    for (integ=0; integ<rd->nints; ++integ) {
+    for (integ = 0; integ < rd->nints; ++integ) {
         pr->rateints[integ].dq = pr->pixeldq;
     }
     pr->rnoise = (real_t) rd->get_rnoise(rd->rnoise, row, col);
@@ -1929,8 +1910,7 @@ get_pixel_ramp_meta(
  * for the next pixel.
  */
 static void
-get_pixel_ramp_zero(
-        struct pixel_ramp * pr) /* Pixel ramp data */
+get_pixel_ramp_zero(struct pixel_ramp *pr) /* Pixel ramp data */
 {
     pr->pixeldq = 0.;
     pr->gain = 0.;
@@ -1938,7 +1918,7 @@ get_pixel_ramp_zero(
 
     /* Zero out flags */
     memset(pr->is_zframe, 0, pr->nints * sizeof(pr->is_zframe[0]));
-    memset(pr->is_0th , 0, pr->nints * sizeof(pr->is_0th[0]));
+    memset(pr->is_0th, 0, pr->nints * sizeof(pr->is_0th[0]));
 
     /* C computed values */
     pr->median_rate = 0.;  /* The median rate of the pixel */
@@ -1953,9 +1933,9 @@ get_pixel_ramp_zero(
  */
 static void
 get_pixel_ramp_integration_segments_and_pedestal(
-        npy_intp integ,             /* The current integration */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        struct ramp_data * rd)      /* The ramp data */
+    npy_intp integ,        /* The current integration */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    struct ramp_data *rd)  /* The ramp data */
 {
     npy_intp idx, idx_pr;
     real_t fframe, int_slope;
@@ -2008,20 +1988,19 @@ get_pixel_ramp_integration_segments_and_pedestal(
  * arguments, then fill out a ramp data structure to be used for ramp fitting.
  */
 static struct ramp_data *
-get_ramp_data(
-        PyObject * args)    /* The C extension module arguments */
+get_ramp_data(PyObject *args) /* The C extension module arguments */
 {
-    struct ramp_data * rd = calloc(1, sizeof(*rd));  /* Allocate memory */
-    PyObject * Py_ramp_data = NULL;
-    char * msg = "Couldn't allocate memory for ramp data structure.";
+    struct ramp_data *rd = calloc(1, sizeof(*rd)); /* Allocate memory */
+    PyObject *Py_ramp_data = NULL;
+    char *msg = "Couldn't allocate memory for ramp data structure.";
 
     /* Make sure memory allocation worked */
-    if (NULL==rd) {
+    if (NULL == rd) {
         PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
         goto END;
     }
-    
+
     if (get_ramp_data_parse(&Py_ramp_data, rd, args)) {
         FREE_RAMP_DATA(rd);
         goto END;
@@ -2037,16 +2016,16 @@ get_ramp_data(
 
     /* One time computations. */
     rd->effintim = (rd->nframes + rd->groupgap) * rd->frame_time;
-    rd->one_group_time = ((float)rd->nframes + 1.) * (float)rd->frame_time / 2.;
+    rd->one_group_time = ((float) rd->nframes + 1.) * (float) rd->frame_time / 2.;
 
     /* Allocate optional results arrays. */
     if (rd->save_opt) {
         rd->max_num_segs = -1;
-        rd->segs = (struct simple_ll_node **)calloc(rd->cube_sz, sizeof(rd->segs[0]));
-        rd->crs = (struct cr_node **)calloc(rd->cube_sz, sizeof(rd->crs[0]));
-        rd->pedestal = (real_t*)calloc(rd->cube_sz, sizeof(rd->pedestal[0]));
+        rd->segs = (struct simple_ll_node **) calloc(rd->cube_sz, sizeof(rd->segs[0]));
+        rd->crs = (struct cr_node **) calloc(rd->cube_sz, sizeof(rd->crs[0]));
+        rd->pedestal = (real_t *) calloc(rd->cube_sz, sizeof(rd->pedestal[0]));
 
-        if ((NULL==rd->segs) || (NULL==rd->pedestal)){
+        if ((NULL == rd->segs) || (NULL == rd->pedestal)) {
             PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
             FREE_RAMP_DATA(rd);
@@ -2064,16 +2043,16 @@ END:
  */
 static int
 get_ramp_data_arrays(
-        PyObject * Py_ramp_data, /* The inputted RampData */
-        struct ramp_data * rd)   /* The ramp data */
+    PyObject *Py_ramp_data, /* The inputted RampData */
+    struct ramp_data *rd)   /* The ramp data */
 {
     /* Get numpy arrays */
-    rd->data = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "data");
-    rd->groupdq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "groupdq");
-    rd->orig_gdq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "orig_gdq");
-    rd->pixeldq = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "pixeldq");
-    rd->zframe = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "zeroframe");
-    rd->dcurrent = (PyArrayObject*)PyObject_GetAttrString(Py_ramp_data, "average_dark_current");
+    rd->data = (PyArrayObject *) PyObject_GetAttrString(Py_ramp_data, "data");
+    rd->groupdq = (PyArrayObject *) PyObject_GetAttrString(Py_ramp_data, "groupdq");
+    rd->orig_gdq = (PyArrayObject *) PyObject_GetAttrString(Py_ramp_data, "orig_gdq");
+    rd->pixeldq = (PyArrayObject *) PyObject_GetAttrString(Py_ramp_data, "pixeldq");
+    rd->zframe = (PyArrayObject *) PyObject_GetAttrString(Py_ramp_data, "zeroframe");
+    rd->dcurrent = (PyArrayObject *) PyObject_GetAttrString(Py_ramp_data, "average_dark_current");
 
     /* Validate numpy array types */
     if (get_ramp_data_new_validate(rd)) {
@@ -2094,10 +2073,10 @@ get_ramp_data_arrays(
  */
 static void
 get_ramp_data_meta(
-        PyObject * Py_ramp_data, /* The RampData class */
-        struct ramp_data * rd)   /* The ramp data */
+    PyObject *Py_ramp_data, /* The RampData class */
+    struct ramp_data *rd)   /* The ramp data */
 {
-    PyObject * test = Py_None;
+    PyObject *test = Py_None;
 
     /* Get integer meta data */
     rd->groupgap = py_ramp_data_get_int(Py_ramp_data, "groupgap");
@@ -2151,8 +2130,8 @@ get_ramp_data_meta(
     rd->debug = py_ramp_data_get_int(Py_ramp_data, "debug");
 
     /* Get float meta data */
-    rd->group_time = (real_t)py_ramp_data_get_float(Py_ramp_data, "group_time");
-    rd->frame_time = (real_t)py_ramp_data_get_float(Py_ramp_data, "frame_time");
+    rd->group_time = (real_t) py_ramp_data_get_float(Py_ramp_data, "group_time");
+    rd->frame_time = (real_t) py_ramp_data_get_float(Py_ramp_data, "frame_time");
 }
 
 /*
@@ -2160,17 +2139,17 @@ get_ramp_data_meta(
  */
 static int
 get_ramp_data_parse(
-        PyObject ** Py_ramp_data, /* The RampData class */
-        struct ramp_data * rd,    /* The ramp data */
-        PyObject * args)          /* The C extension module arguments */
+    PyObject **Py_ramp_data, /* The RampData class */
+    struct ramp_data *rd,    /* The ramp data */
+    PyObject *args)          /* The C extension module arguments */
 {
-    char * weight = NULL;
-    const char * optimal = "optimal";
-    char * msg = NULL;
+    char *weight = NULL;
+    const char *optimal = "optimal";
+    char *msg = NULL;
 
-    if (!PyArg_ParseTuple(args, "OOOsI:get_ramp_data",
-                Py_ramp_data, &(rd->gain), &(rd->rnoise),
-                &weight, &rd->save_opt)) {
+    if (!PyArg_ParseTuple(
+            args, "OOOsI:get_ramp_data", Py_ramp_data, &(rd->gain), &(rd->rnoise), &weight,
+            &rd->save_opt)) {
         msg = "Parsing arguments failed.";
         PyErr_SetString(PyExc_ValueError, msg);
         err_ols_print("%s\n", msg);
@@ -2179,8 +2158,8 @@ get_ramp_data_parse(
 
     if (!strcmp(weight, optimal)) {
         rd->weight = WEIGHTED;
-    //} else if (!strcmp(weight, unweighted)) {
-    //    rd->weight = UNWEIGHTED;
+        //} else if (!strcmp(weight, unweighted)) {
+        //    rd->weight = UNWEIGHTED;
     } else {
         msg = "Bad value for weighting.";
         PyErr_SetString(PyExc_ValueError, msg);
@@ -2198,20 +2177,14 @@ get_ramp_data_parse(
  * the correct data types.
  */
 static int
-get_ramp_data_new_validate(
-        struct ramp_data * rd) /* the ramp data */
+get_ramp_data_new_validate(struct ramp_data *rd) /* the ramp data */
 {
-    char * msg = NULL;
+    char *msg = NULL;
 
     /* Validate the types for each of the ndarrays */
-    if (!(
-            (NPY_FLOAT==PyArray_TYPE(rd->data)) &&
-            (NPY_UBYTE == PyArray_TYPE(rd->groupdq)) &&
-            (NPY_UINT32 == PyArray_TYPE(rd->pixeldq)) &&
-            (NPY_FLOAT==PyArray_TYPE(rd->dcurrent)) &&
-            (NPY_FLOAT==PyArray_TYPE(rd->gain)) &&
-            (NPY_FLOAT==PyArray_TYPE(rd->rnoise))
-         )) {
+    if (!((NPY_FLOAT == PyArray_TYPE(rd->data)) && (NPY_UBYTE == PyArray_TYPE(rd->groupdq)) &&
+          (NPY_UINT32 == PyArray_TYPE(rd->pixeldq)) && (NPY_FLOAT == PyArray_TYPE(rd->dcurrent)) &&
+          (NPY_FLOAT == PyArray_TYPE(rd->gain)) && (NPY_FLOAT == PyArray_TYPE(rd->rnoise)))) {
         msg = "Bad type array for pass ndarrays to C.";
         PyErr_SetString(PyExc_TypeError, msg);
         err_ols_print("%s\n", msg);
@@ -2219,7 +2192,7 @@ get_ramp_data_new_validate(
     }
 
     /* ZEROFRAME could be NoneType, so needed a separate check */
-    if ((((PyObject*)rd->zframe) != Py_None) && (NPY_FLOAT != PyArray_TYPE(rd->zframe))) {
+    if ((((PyObject *) rd->zframe) != Py_None) && (NPY_FLOAT != PyArray_TYPE(rd->zframe))) {
         msg = "Bad type array ZEROFRAME.";
         PyErr_SetString(PyExc_TypeError, msg);
         err_ols_print("%s\n", msg);
@@ -2233,10 +2206,9 @@ get_ramp_data_new_validate(
  * Get dimensional information about the data.
  */
 static void
-get_ramp_data_dimensions(
-        struct ramp_data * rd) /* The ramp data */
+get_ramp_data_dimensions(struct ramp_data *rd) /* The ramp data */
 {
-    npy_intp * dims;
+    npy_intp *dims;
 
     /* Unpack the data dimensions */
     dims = PyArray_DIMS(rd->data);
@@ -2256,8 +2228,7 @@ get_ramp_data_dimensions(
  * Set getter functions based on type and dimensions.
  */
 static void
-get_ramp_data_getters(
-        struct ramp_data * rd) /* The ramp data */
+get_ramp_data_getters(struct ramp_data *rd) /* The ramp data */
 {
     rd->get_data = get_float4;
 
@@ -2276,8 +2247,8 @@ get_ramp_data_getters(
  */
 static int
 compute_median_rate(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     if (1 == rd->ngroups) {
         return median_rate_1ngroup(rd, pr);
@@ -2290,18 +2261,18 @@ compute_median_rate(
  */
 static int
 median_rate_1ngroup(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     npy_intp idx, integ;
     real_t accum_mrate = 0.;
     real_t timing = rd->one_group_time;
 
-    for (integ=0; integ < rd->nints; integ++) {
+    for (integ = 0; integ < rd->nints; integ++) {
         idx = get_ramp_index(rd, integ, 0);
         accum_mrate += (pr->data[idx] / timing);
     }
-    pr->median_rate = accum_mrate / (real_t)rd->nints;
+    pr->median_rate = accum_mrate / (real_t) rd->nints;
 
     return 0;
 }
@@ -2311,18 +2282,18 @@ median_rate_1ngroup(
  */
 static int
 median_rate_default(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     int ret = 0;
-    real_t * int_data = (real_t*)calloc(pr->ngroups, sizeof(*int_data));
-    uint8_t * int_dq = (uint8_t*)calloc(pr->ngroups, sizeof(*int_dq));
+    real_t *int_data = (real_t *) calloc(pr->ngroups, sizeof(*int_data));
+    uint8_t *int_dq = (uint8_t *) calloc(pr->ngroups, sizeof(*int_dq));
     npy_intp integ, start_idx;
     real_t mrate = 0., accum_mrate = 0.;
-    const char * msg = "Couldn't allocate memory for median rates.";
+    const char *msg = "Couldn't allocate memory for median rates.";
 
     /* Make sure memory allocation worked */
-    if (NULL==int_data || NULL==int_dq) {
+    if (NULL == int_data || NULL == int_dq) {
         PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
         ret = 1;
@@ -2361,9 +2332,9 @@ median_rate_default(
         }
         accum_mrate += mrate;
     }
-    
+
     /* The pixel median rate is the average of the integration median rates. */
-    pr->median_rate = accum_mrate /= (float)pr->nints;
+    pr->median_rate = accum_mrate /= (float) pr->nints;
 
 END:
     SET_FREE(int_data);
@@ -2375,11 +2346,11 @@ END:
  * Get integration data to compute the median rate for an integration.
  */
 static real_t *
-median_rate_get_data (
-        real_t * data,          /* Integration data */
-        npy_intp integ,         /* The integration number */
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+median_rate_get_data(
+    real_t *data,          /* Integration data */
+    npy_intp integ,        /* The integration number */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     npy_intp start_idx = get_ramp_index(rd, integ, 0);
 
@@ -2392,15 +2363,15 @@ median_rate_get_data (
  * Get integration DQ to compute the median rate for an integration.
  */
 static uint8_t *
-median_rate_get_dq (
-        uint8_t * data,         /* Integration data quality */
-        npy_intp integ,         /* The integration number */
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+median_rate_get_dq(
+    uint8_t *data,         /* Integration data quality */
+    npy_intp integ,        /* The integration number */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     npy_intp group, idx = get_ramp_index(rd, integ, 0);
 
-    for (group=0; group<pr->ngroups; ++group) {
+    for (group = 0; group < pr->ngroups; ++group) {
         idx = get_ramp_index(rd, integ, group);
         data[group] = pr->groupdq[idx];
     }
@@ -2416,19 +2387,19 @@ median_rate_get_dq (
  */
 static int
 median_rate_integration(
-        real_t * mrate,         /* The NaN median rate */
-        real_t * int_data,      /* The integration data */
-        uint8_t * int_dq,       /* The integration data quality */
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    real_t *mrate,         /* The NaN median rate */
+    real_t *int_data,      /* The integration data */
+    uint8_t *int_dq,       /* The integration data quality */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     int ret = 0;
-    real_t * loc_integ = (real_t*)calloc(pr->ngroups, sizeof(*loc_integ));
-    const char * msg = "Couldn't allocate memory for integration median rate.";
+    real_t *loc_integ = (real_t *) calloc(pr->ngroups, sizeof(*loc_integ));
+    const char *msg = "Couldn't allocate memory for integration median rate.";
     npy_intp k, loc_integ_len;
 
     /* Make sure memory allocation worked */
-    if (NULL==loc_integ) {
+    if (NULL == loc_integ) {
         PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
         ret = 1;
@@ -2436,7 +2407,7 @@ median_rate_integration(
     }
 
     /* Create a local copy because it will be modiified */
-    for (k=0; k<pr->ngroups; ++k) {
+    for (k = 0; k < pr->ngroups; ++k) {
         if (int_dq[k] & rd->dnu) {
             loc_integ[k] = NAN;
             continue;
@@ -2447,7 +2418,7 @@ median_rate_integration(
     /* Sort first differences with NaN's based on DQ flags */
     median_rate_integration_sort(loc_integ, int_dq, rd, pr);
 
-    /* 
+    /*
      * Get the NaN median using the sorted first differences.  Note that the
      * first differences has a length ngroups-1.
      */
@@ -2470,25 +2441,25 @@ END:
  */
 static int
 median_rate_integration_sort(
-        real_t * loc_integ,     /* Local copy of integration data */
-        uint8_t * int_dq,       /* The integration data quality */
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    real_t *loc_integ,     /* Local copy of integration data */
+    uint8_t *int_dq,       /* The integration data quality */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     npy_intp k, ngroups = pr->ngroups;
     real_t loc0 = loc_integ[0];
     int nan_cnt = 0, all_nan = 1;
 
     /* Compute first differences */
-    if (1 == ngroups ) {
+    if (1 == ngroups) {
         return nan_cnt;
     } else {
-        for (k=0; k<ngroups-1; ++k) {
-            if (rd->jump & int_dq[k+1]) {
+        for (k = 0; k < ngroups - 1; ++k) {
+            if (rd->jump & int_dq[k + 1]) {
                 /* NaN out jumps */
                 loc_integ[k] = NAN;
             } else {
-                loc_integ[k] = loc_integ[k+1] - loc_integ[k];
+                loc_integ[k] = loc_integ[k + 1] - loc_integ[k];
             }
             if (isnan(loc_integ[k])) {
                 nan_cnt++;
@@ -2505,7 +2476,7 @@ median_rate_integration_sort(
     /* XXX */
     // print_real_array("Pre-sort: ", loc_integ, ngroups-1, 1, __LINE__);
     /* NaN sort first differences */
-    qsort(loc_integ, ngroups-1, sizeof(loc_integ[0]), median_rate_integration_sort_cmp);
+    qsort(loc_integ, ngroups - 1, sizeof(loc_integ[0]), median_rate_integration_sort_cmp);
 
     return nan_cnt;
 }
@@ -2513,8 +2484,8 @@ median_rate_integration_sort(
 /* The comparison function for qsort with NaN's */
 static int
 median_rate_integration_sort_cmp(
-        const void * aa, /* First comparison element */
-        const void * bb) /* Second comparison element */
+    const void *aa, /* First comparison element */
+    const void *bb) /* Second comparison element */
 {
     real_t a = VOID_2_REAL(aa);
     real_t b = VOID_2_REAL(bb);
@@ -2523,12 +2494,12 @@ median_rate_integration_sort_cmp(
     /* Sort low to high, where NaN is high */
     if (isnan(b)) {
         if (isnan(a)) {
-            ans = 0;        /* a == b */
+            ans = 0; /* a == b */
         } else {
-            ans = -1;       /* a < b */
+            ans = -1; /* a < b */
         }
     } else if (isnan(a)) {
-        ans = 1;            /* a > b */
+        ans = 1; /* a > b */
     } else {
         ans = (a < b) ? -1 : 1;
     }
@@ -2541,10 +2512,10 @@ median_rate_integration_sort_cmp(
  */
 static int
 ols_slope_fit_pixels(
-        struct ramp_data * rd,                  /* The ramp data */
-        struct pixel_ramp * pr,                 /* The pixel ramp data */
-        struct rate_product * rate_prod,        /* The rate product */
-        struct rateint_product * rateint_prod)  /* The rateints product */
+    struct ramp_data *rd,                 /* The ramp data */
+    struct pixel_ramp *pr,                /* The pixel ramp data */
+    struct rate_product *rate_prod,       /* The rate product */
+    struct rateint_product *rateint_prod) /* The rateints product */
 {
     npy_intp row, col;
 
@@ -2580,8 +2551,8 @@ ols_slope_fit_pixels(
  */
 static void
 print_ramp_data_types(
-        struct ramp_data * rd,  /* The ramp data */
-        int line)               /* Calling line number */
+    struct ramp_data *rd, /* The ramp data */
+    int line)             /* Calling line number */
 {
     printf("[%s:%d]\n", __FILE__, line);
     printf("NPY_DOUBLE = %d\n", NPY_DOUBLE);
@@ -2601,23 +2572,24 @@ print_ramp_data_types(
  */
 static PyObject *
 package_results(
-        struct rate_product * rate,         /* The rate product */
-        struct rateint_product * rateints,  /* The rateints product */
-        struct ramp_data * rd)              /* The ramp data */
+    struct rate_product *rate,        /* The rate product */
+    struct rateint_product *rateints, /* The rateints product */
+    struct ramp_data *rd)             /* The ramp data */
 {
-    PyObject * image_info = Py_None;
-    PyObject * cube_info = Py_None;
-    PyObject * opt_res = Py_None;
-    PyObject * result = Py_None;
+    PyObject *image_info = Py_None;
+    PyObject *cube_info = Py_None;
+    PyObject *opt_res = Py_None;
+    PyObject *result = Py_None;
 
-    image_info = Py_BuildValue("(NNNNN)", 
-        rate->slope, rate->dq, rate->var_poisson, rate->var_rnoise, rate->var_err);
+    image_info = Py_BuildValue(
+        "(NNNNN)", rate->slope, rate->dq, rate->var_poisson, rate->var_rnoise, rate->var_err);
     if (!image_info) {
         goto FAILED_ALLOC;
     }
 
-    cube_info = Py_BuildValue("(NNNNN)", 
-        rateints->slope, rateints->dq, rateints->var_poisson, rateints->var_rnoise, rateints->var_err);
+    cube_info = Py_BuildValue(
+        "(NNNNN)", rateints->slope, rateints->dq, rateints->var_poisson, rateints->var_rnoise,
+        rateints->var_err);
     if (!cube_info) {
         goto FAILED_ALLOC;
     }
@@ -2646,7 +2618,8 @@ FAILED_ALLOC:
  * arrays and the expected type values.
  */
 static void
-print_rd_type_info(struct ramp_data * rd) { /* The ramp data */
+print_rd_type_info(struct ramp_data *rd)
+{ /* The ramp data */
     print_delim();
     print_npy_types();
     dbg_ols_print("data = %d (%d)\n", PyArray_TYPE(rd->data), NPY_FLOAT);
@@ -2663,12 +2636,11 @@ print_rd_type_info(struct ramp_data * rd) { /* The ramp data */
  * longer than one group.
  */
 static void
-prune_segment_list(
-        struct segment_list * segs)  /* Linked list of segments */
+prune_segment_list(struct segment_list *segs) /* Linked list of segments */
 {
-    struct simple_ll_node * seg = NULL;
-    struct simple_ll_node * prev = NULL;
-    struct simple_ll_node * next = NULL;
+    struct simple_ll_node *seg = NULL;
+    struct simple_ll_node *prev = NULL;
+    struct simple_ll_node *next = NULL;
 
     /*
      * Nothing to do if one or fewer segments are in list or the max segment
@@ -2698,7 +2670,7 @@ prune_segment_list(
     seg = segs->head;
     while (seg) {
         next = seg->flink;
-        if (1==seg->length) {
+        if (1 == seg->length) {
             /* Remove segment from list */
             if (seg == segs->head) {
                 segs->head = seg->flink;
@@ -2721,14 +2693,14 @@ prune_segment_list(
  */
 static float
 py_ramp_data_get_float(
-        PyObject * rd,      /* The RampData class */
-        const char * attr)  /* The attribute to get from the class */
+    PyObject *rd,     /* The RampData class */
+    const char *attr) /* The attribute to get from the class */
 {
-    PyObject * Obj;
+    PyObject *Obj;
     float val;
 
     Obj = PyObject_GetAttrString(rd, attr);
-    val = (float)PyFloat_AsDouble(Obj);
+    val = (float) PyFloat_AsDouble(Obj);
     Py_XDECREF(Obj);
 
     return val;
@@ -2740,26 +2712,27 @@ py_ramp_data_get_float(
  */
 static int
 py_ramp_data_get_int(
-        PyObject * rd,      /* The RampData class */
-        const char * attr)  /* The attribute to get from the class */
+    PyObject *rd,     /* The RampData class */
+    const char *attr) /* The attribute to get from the class */
 {
-    PyObject * Obj;
+    PyObject *Obj;
     int val;
 
     Obj = PyObject_GetAttrString(rd, attr);
-    val = (int)PyLong_AsLong(Obj);
+    val = (int) PyLong_AsLong(Obj);
     Py_XDECREF(Obj);
 
     return val;
 }
 
-#define DBG_RATE_INFO do { \
-    dbg_ols_print("(%ld, %ld) median rate = %f\n", pr->row, pr->col, pr->median_rate); \
-    dbg_ols_print("Rate slope: %f\n", pr->rate.slope); \
-    dbg_ols_print("Rate DQ: %f\n", pr->rate.dq); \
-    dbg_ols_print("Rate var_p: %f\n", pr->rate.var_poisson); \
-    dbg_ols_print("Rate var_r: %f\n\n", pr->rate.var_rnoise); \
-} while(0)
+#define DBG_RATE_INFO                                                                      \
+    do {                                                                                   \
+        dbg_ols_print("(%ld, %ld) median rate = %f\n", pr->row, pr->col, pr->median_rate); \
+        dbg_ols_print("Rate slope: %f\n", pr->rate.slope);                                 \
+        dbg_ols_print("Rate DQ: %f\n", pr->rate.dq);                                       \
+        dbg_ols_print("Rate var_p: %f\n", pr->rate.var_poisson);                           \
+        dbg_ols_print("Rate var_r: %f\n\n", pr->rate.var_rnoise);                          \
+    } while (0)
 
 /*
  * Ramp fit a pixel ramp.
@@ -2767,8 +2740,8 @@ py_ramp_data_get_int(
  */
 static int
 ramp_fit_pixel(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     int ret = 0;
     npy_intp integ;
@@ -2792,14 +2765,14 @@ ramp_fit_pixel(
     clean_segment_list(pr->nints, pr->segs);
 
     /* Compute the ramp fit per each integration. */
-    for (integ=0; integ < pr->nints; ++integ) {
+    for (integ = 0; integ < pr->nints; ++integ) {
         current_integration = integ;
 
         if (ramp_fit_pixel_integration(rd, pr, integ)) {
             ret = 1;
             goto END;
         }
-        
+
         if (pr->rateints[integ].dq & rd->dnu) {
             dnu_cnt++;
             pr->rateints[integ].slope = NAN;
@@ -2824,8 +2797,7 @@ ramp_fit_pixel(
     if (pr->rate.var_poisson > 0.) {
         pr->rate.var_poisson = 1. / pr->rate.var_poisson;
     }
-    if ((pr->rate.var_poisson >= LARGE_VARIANCE_THRESHOLD)
-         || (pr->rate.var_poisson < 0.)){
+    if ((pr->rate.var_poisson >= LARGE_VARIANCE_THRESHOLD) || (pr->rate.var_poisson < 0.)) {
         pr->rate.var_poisson = 0.;
     }
     if (pr->rate.var_rnoise > 0.) {
@@ -2858,20 +2830,20 @@ END:
  */
 static int
 ramp_fit_pixel_rnoise_chargeloss(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     int ret = 0;
     int is_chargeloss = 0;
     npy_intp integ;
     struct segment_list segs;
-    real_t invvar_r, evar_r=0.;
-    const char * msg = "pr->orig_gdq is NULL.";
+    real_t invvar_r, evar_r = 0.;
+    const char *msg = "pr->orig_gdq is NULL.";
 
     /* Remove any left over junk in the memory, just in case */
     memset(&segs, 0, sizeof(segs));
 
-    for (integ=0; integ < pr->nints; ++integ) {
+    for (integ = 0; integ < pr->nints; ++integ) {
         if (0 == pr->stats[integ].chargeloss) {
             /* No CHARGELOSS flag in integration */
             if (pr->rateints[integ].var_rnoise > 0.) {
@@ -2928,23 +2900,20 @@ END:
  */
 static double
 ramp_fit_pixel_rnoise_chargeloss_segs(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        struct segment_list * segs,
-        npy_intp integ)
+    struct ramp_data *rd, struct pixel_ramp *pr, struct segment_list *segs, npy_intp integ)
 {
-    struct simple_ll_node * current = NULL;
-    real_t svar_r, invvar_r=0., timing = 0., seglen;
+    struct simple_ll_node *current = NULL;
+    real_t svar_r, invvar_r = 0., timing = 0., seglen;
 
     /* Compute readnoise for new segments */
     for (current = segs->head; current; current = current->flink) {
-        if (1==current->length) {
+        if (1 == current->length) {
             timing = segment_len1_timing(rd, pr, integ);
             svar_r = segment_rnoise_len1(rd, pr, timing);
-        } else if (2==current->length) {
+        } else if (2 == current->length) {
             svar_r = segment_rnoise_len2(rd, pr);
         } else {
-            seglen = (real_t)current->length;
+            seglen = (real_t) current->length;
             svar_r = segment_rnoise_default(rd, pr, seglen);
         }
         if (svar_r > 0.) {
@@ -2966,15 +2935,15 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
  */
 static void
 ramp_fit_pixel_rnoise_chargeloss_remove(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr, /* The pixel ramp data */
-        npy_intp integ)         /* The current integration */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    npy_intp integ)        /* The current integration */
 {
-    uint8_t  dnu_chg = rd->dnu | rd->chargeloss;
+    uint8_t dnu_chg = rd->dnu | rd->chargeloss;
     npy_intp group;
     int32_t idx;
 
-    for (group=0; group<pr->ngroups; ++group) {
+    for (group = 0; group < pr->ngroups; ++group) {
         idx = get_ramp_index(rd, integ, group);
         if (rd->chargeloss & pr->orig_gdq[idx]) {
             /* It is assumed that DO_NOT_USE also needs to be removed */
@@ -2988,9 +2957,9 @@ ramp_fit_pixel_rnoise_chargeloss_remove(
  */
 static int
 ramp_fit_pixel_integration(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr, /* The pixel ramp data */
-        npy_intp integ)         /* The integration number */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    npy_intp integ)        /* The integration number */
 {
     int ret = 0;
 
@@ -3005,7 +2974,7 @@ ramp_fit_pixel_integration(
             pr->rateints[integ].dq |= rd->sat;
         }
         return 0;
-    } 
+    }
 
     ramp_fit_pixel_integration_fit_slope(rd, pr, integ);
 
@@ -3013,38 +2982,42 @@ END:
     return ret;
 }
 
-#define DBG_SEG_ID do {\
-    dbg_ols_print("   *** [Integ: %ld] (%ld, %ld) Seg: %d, Length: %ld, Start: %ld, End: %ld\n", \
-        integ, pr->row, pr->col, segcnt, current->length, current->start, current->end); \
-} while(0)
+#define DBG_SEG_ID                                                                                \
+    do {                                                                                          \
+        dbg_ols_print(                                                                            \
+            "   *** [Integ: %ld] (%ld, %ld) Seg: %d, Length: %ld, Start: %ld, End: %ld\n", integ, \
+            pr->row, pr->col, segcnt, current->length, current->start, current->end);             \
+    } while (0)
 
-#define DBG_INTEG_INFO do {\
-    dbg_ols_print("Integ %ld slope: %.10f\n", integ, pr->rateints[integ].slope); \
-    dbg_ols_print("Integ %ld dq: %.10f\n", integ, pr->rateints[integ].dq); \
-    dbg_ols_print("Integ %ld var_p: %.10f\n", integ, pr->rateints[integ].var_poisson); \
-    dbg_ols_print("Integ %ld var_r: %.10f\n\n", integ, pr->rateints[integ].var_rnoise); \
-} while(0)
+#define DBG_INTEG_INFO                                                                      \
+    do {                                                                                    \
+        dbg_ols_print("Integ %ld slope: %.10f\n", integ, pr->rateints[integ].slope);        \
+        dbg_ols_print("Integ %ld dq: %.10f\n", integ, pr->rateints[integ].dq);              \
+        dbg_ols_print("Integ %ld var_p: %.10f\n", integ, pr->rateints[integ].var_poisson);  \
+        dbg_ols_print("Integ %ld var_r: %.10f\n\n", integ, pr->rateints[integ].var_rnoise); \
+    } while (0)
 
-#define DBG_DEFAULT_SEG do {\
-    dbg_ols_print("current->slope = %.10f\n", current->slope); \
-    dbg_ols_print("current->var_p = %.10f\n", current->var_p); \
-    dbg_ols_print("current->var_r = %.10f\n", current->var_r); \
-    dbg_ols_print("current->var_e = %.10f\n", current->var_e); \
-} while(0)
+#define DBG_DEFAULT_SEG                                            \
+    do {                                                           \
+        dbg_ols_print("current->slope = %.10f\n", current->slope); \
+        dbg_ols_print("current->var_p = %.10f\n", current->var_p); \
+        dbg_ols_print("current->var_r = %.10f\n", current->var_r); \
+        dbg_ols_print("current->var_e = %.10f\n", current->var_e); \
+    } while (0)
 
 /*
  * Fit a slope to a pixel integration.
  */
 static int
 ramp_fit_pixel_integration_fit_slope(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr, /* The pixel ramp data */
-        npy_intp integ)         /* The integration number */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    npy_intp integ)        /* The integration number */
 {
     int ret = 0;
     int segcnt = 0;
-    struct simple_ll_node * current = NULL;
-    real_t invvar_r=0., invvar_p=0., invvar_e=0., slope_i_num=0., var_err;
+    struct simple_ll_node *current = NULL;
+    real_t invvar_r = 0., invvar_p = 0., invvar_e = 0., slope_i_num = 0., var_err;
 
     if (pr->segs[integ].size == 0) {
         return ret;
@@ -3056,8 +3029,7 @@ ramp_fit_pixel_integration_fit_slope(
 
         // DBG_SEG_ID;  /* XXX */
 
-        ret = ramp_fit_pixel_integration_fit_slope_seg(
-                    current, rd, pr, integ, segcnt);
+        ret = ramp_fit_pixel_integration_fit_slope_seg(current, rd, pr, integ, segcnt);
         if (-1 == ret) {
             continue;
         }
@@ -3065,7 +3037,7 @@ ramp_fit_pixel_integration_fit_slope(
         // DBG_DEFAULT_SEG; /* XXX */
 
         invvar_r += (1. / current->var_r);
-	    if (current->var_p > 0.) {
+        if (current->var_p > 0.) {
             invvar_p += (1. / current->var_p);
         }
 
@@ -3121,28 +3093,25 @@ ramp_fit_pixel_integration_fit_slope(
  */
 static int
 ramp_fit_pixel_integration_fit_slope_seg(
-        struct simple_ll_node * current, /* The current segment */
-        struct ramp_data * rd,           /* The ramp data */
-        struct pixel_ramp * pr,          /* The pixel ramp data */
-        npy_intp integ,                  /* The integration number */
-        int segnum)                      /* The segment number */
+    struct simple_ll_node *current, /* The current segment */
+    struct ramp_data *rd,           /* The ramp data */
+    struct pixel_ramp *pr,          /* The pixel ramp data */
+    npy_intp integ,                 /* The integration number */
+    int segnum)                     /* The segment number */
 {
     // dbg_ols_print("[%ld] segnum = %d, length = %ld\n", integ, segnum, current->length);
     if (1 == current->length) {
         // dbg_ols_print("(%ld, %ld) Segment %d has length 1\n", pr->row, pr->col, segnum);
         rd->special1++;
-        return ramp_fit_pixel_integration_fit_slope_seg_len1(
-                rd, pr, current, integ, segnum);
+        return ramp_fit_pixel_integration_fit_slope_seg_len1(rd, pr, current, integ, segnum);
     } else if (2 == current->length) {
         // dbg_ols_print("(%ld, %ld) Segment %d has length 2\n", pr->row, pr->col, segnum);
         rd->special2++;
-        return ramp_fit_pixel_integration_fit_slope_seg_len2(
-                    rd, pr, current, integ, segnum);
+        return ramp_fit_pixel_integration_fit_slope_seg_len2(rd, pr, current, integ, segnum);
     }
     // dbg_ols_print("(%ld, %ld) Segment %d has length >2\n", pr->row, pr->col, segnum);
 
-    return ramp_fit_pixel_integration_fit_slope_seg_default(
-                    rd, pr, current, integ, segnum);
+    return ramp_fit_pixel_integration_fit_slope_seg_default(rd, pr, current, integ, segnum);
 }
 
 /*
@@ -3150,11 +3119,11 @@ ramp_fit_pixel_integration_fit_slope_seg(
  */
 static int
 ramp_fit_pixel_integration_fit_slope_seg_default(
-        struct ramp_data * rd,      /* The ramp data */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        struct simple_ll_node * seg,/* The integration segment */
-        npy_intp integ,             /* The integration number */
-        int segnum)                 /* Teh segment number */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The integration segment */
+    npy_intp integ,             /* The integration number */
+    int segnum)                 /* Teh segment number */
 {
     int ret = 0;
     real_t snr, power;
@@ -3180,11 +3149,11 @@ ramp_fit_pixel_integration_fit_slope_seg_default(
  */
 static int
 ramp_fit_pixel_integration_fit_slope_seg_len1(
-        struct ramp_data * rd,      /* The ramp data */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        struct simple_ll_node * seg,/* The ingtegration segment */
-        npy_intp integ,             /* The integration number */
-        int segnum)                 /* The segment integration */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The ingtegration segment */
+    npy_intp integ,             /* The integration number */
+    int segnum)                 /* The segment integration */
 {
     npy_intp idx;
     real_t timing = segment_len1_timing(rd, pr, integ);
@@ -3199,7 +3168,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     if (pr->median_rate > 0.) {
         seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
     } else {
-        seg->var_p = (pr->dcurrent)/pden;
+        seg->var_p = (pr->dcurrent) / pden;
     }
 
     /* Segment read noise variance */
@@ -3220,9 +3189,9 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
  */
 static real_t
 segment_len1_timing(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr, /* The pixel ramp data */
-        npy_intp integ)         /* The current integration */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    npy_intp integ)        /* The current integration */
 {
     if (!rd->suppress1g) {
         if (pr->is_0th[integ]) {
@@ -3239,15 +3208,15 @@ segment_len1_timing(
  */
 static real_t
 segment_rnoise_len1(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr, /* The pixel ramp data */
-        real_t timing)          /* The first group timing */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    real_t timing)         /* The first group timing */
 {
     real_t rnum, rden;
 
     rnum = pr->rnoise / timing;
     rnum = 12. * rnum * rnum;
-    rden = 6.;  /* seglen * seglen * seglen - seglen; where siglen = 2 */
+    rden = 6.; /* seglen * seglen * seglen - seglen; where siglen = 2 */
     rden = rden * pr->gain * pr->gain;
 
     return rnum / rden;
@@ -3259,15 +3228,15 @@ segment_rnoise_len1(
  */
 static int
 ramp_fit_pixel_integration_fit_slope_seg_len2(
-        struct ramp_data * rd,      /* The ramp data */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        struct simple_ll_node * seg,/* The integration segment */
-        npy_intp integ,             /* The integration number */
-        int segnum)                 /* The segment number */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The integration segment */
+    npy_intp integ,             /* The integration number */
+    int segnum)                 /* The segment number */
 {
     npy_intp idx;
     real_t data_diff, _2nd_read, data0, data1, pden;
-    real_t sqrt2 = 1.41421356;  /* The square root of 2 */
+    real_t sqrt2 = 1.41421356; /* The square root of 2 */
     real_t tmp, wt;
 
     // dbg_ols_print("   *** Seg %d, Length: %ld (%ld, %ld) ***\n",
@@ -3276,8 +3245,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     /* Special case of 2 group segment */
     idx = get_ramp_index(rd, integ, seg->start);
     data0 = pr->data[idx];
-    data1 = pr->data[idx+1];
-    data_diff = pr->data[idx+1] - pr->data[idx];
+    data1 = pr->data[idx + 1];
+    data_diff = pr->data[idx + 1] - pr->data[idx];
     seg->slope = data_diff / rd->group_time;
 
     /* Segment Poisson variance */
@@ -3285,7 +3254,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     if (pr->median_rate > 0.) {
         seg->var_p = (pr->median_rate + pr->dcurrent) / pden;
     } else {
-        seg->var_p = (pr->dcurrent)/pden;
+        seg->var_p = (pr->dcurrent) / pden;
     }
 
     /* Segment read noise variance */
@@ -3297,7 +3266,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
 
     if (rd->save_opt) {
         seg->sigslope = sqrt2 * pr->rnoise;
-        _2nd_read = (real_t)seg->start + 1.;
+        _2nd_read = (real_t) seg->start + 1.;
         seg->yint = data1 * (1. - _2nd_read) + data0 * _2nd_read;
         seg->sigyint = seg->sigslope;
 
@@ -3316,8 +3285,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
  */
 static real_t
 segment_rnoise_len2(
-        struct ramp_data * rd,  /* The ramp data */
-        struct pixel_ramp * pr) /* The pixel ramp data */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr) /* The pixel ramp data */
 {
     real_t rnum, rden;
 
@@ -3334,15 +3303,15 @@ segment_rnoise_len2(
  */
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted(
-        struct ramp_data * rd,          /* The ramp data */
-        struct pixel_ramp * pr,         /* The pixel ramp data */
-        struct simple_ll_node * seg,    /* The integration ramp */
-        npy_intp integ,                 /* The integration number */
-        int segnum,                     /* The segment number */
-        real_t power)                   /* The power of the segment */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The integration ramp */
+    npy_intp integ,             /* The integration number */
+    int segnum,                 /* The segment number */
+    real_t power)               /* The power of the segment */
 {
     struct ols_calcs ols = {0};
-    
+
     /* Make sure the initial values are zero */
     memset(&ols, 0, sizeof(ols));
     ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
@@ -3359,31 +3328,31 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted(
  */
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
-        struct ramp_data * rd,          /* The ramp data */
-        struct pixel_ramp * pr,         /* The pixel ramp data */
-        struct simple_ll_node * seg,    /* The intgration segment */
-        struct ols_calcs * ols,         /* Intermediate calculations */
-        npy_intp integ,                 /* The integration number */
-        int segnum,                     /* The segment number */
-        real_t power)                   /* The power of the segment */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The intgration segment */
+    struct ols_calcs *ols,      /* Intermediate calculations */
+    npy_intp integ,             /* The integration number */
+    int segnum,                 /* The segment number */
+    real_t power)               /* The power of the segment */
 {
     npy_intp idx, group;
     real_t mid, weight, invrn2, invmid, data, xval, xwt;
-    
+
     /* Find midpoint for weight computation */
-    mid = (real_t)(seg->length - 1) / 2.;
+    mid = (real_t) (seg->length - 1) / 2.;
     invmid = 1. / mid;
     invrn2 = 1. / (pr->rnoise * pr->rnoise);
 
     idx = get_ramp_index(rd, integ, seg->start);
-    for (group=0; group < seg->length; ++group) {
+    for (group = 0; group < seg->length; ++group) {
         /* Compute the optimal weight (is 0 based). */
-        xval = (real_t)group;
+        xval = (real_t) group;
         weight = fabs((xval - mid) * invmid);
         weight = powf(weight, power) * invrn2;
 
         /* Adjust xval to the actual group number in the ramp. */
-        xval += (real_t)seg->start;
+        xval += (real_t) seg->start;
 
         data = pr->data[idx + group];
         data = (isnan(data)) ? 0. : data;
@@ -3398,17 +3367,17 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
     }
 }
 
-#define DBG_OLS_CALCS do { \
-    dbg_ols_print("sumx = %f\n", sumx); \
-    dbg_ols_print("sumxx = %f\n", sumxx); \
-    dbg_ols_print("sumy = %f\n", sumy); \
-    dbg_ols_print("sumxy = %f\n", sumxy); \
-    dbg_ols_print("sumw = %f\n", sumw); \
-    dbg_ols_print("num = %f\n", num); \
-    dbg_ols_print("den = %f\n", den); \
-    dbg_ols_print("slope = %f\n", slope); \
-} while(0)
-
+#define DBG_OLS_CALCS                         \
+    do {                                      \
+        dbg_ols_print("sumx = %f\n", sumx);   \
+        dbg_ols_print("sumxx = %f\n", sumxx); \
+        dbg_ols_print("sumy = %f\n", sumy);   \
+        dbg_ols_print("sumxy = %f\n", sumxy); \
+        dbg_ols_print("sumw = %f\n", sumw);   \
+        dbg_ols_print("num = %f\n", num);     \
+        dbg_ols_print("den = %f\n", den);     \
+        dbg_ols_print("slope = %f\n", slope); \
+    } while (0)
 
 /*
  * From the intermediate values compute the optimally weighted
@@ -3416,17 +3385,17 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
  */
 static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
-        struct ramp_data * rd,      /* The ramp data */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        struct simple_ll_node * seg,/* The integration segment */
-        struct ols_calcs * ols,     /* Intermediate calculations */
-        npy_intp integ,             /* The integration number */
-        int segnum,                 /* The segment number */
-        real_t power)               /* The power of the segment */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The integration segment */
+    struct ols_calcs *ols,      /* Intermediate calculations */
+    npy_intp integ,             /* The integration number */
+    int segnum,                 /* The segment number */
+    real_t power)               /* The power of the segment */
 {
-    real_t slope, num, den, invden, pden=0., seglen;
-    real_t sumx=ols->sumx, sumxx=ols->sumxx, sumy=ols->sumy,
-          sumxy=ols->sumxy, sumw=ols->sumw;
+    real_t slope, num, den, invden, pden = 0., seglen;
+    real_t sumx = ols->sumx, sumxx = ols->sumxx, sumy = ols->sumy, sumxy = ols->sumxy,
+           sumw = ols->sumw;
 
     den = (sumw * sumxx - sumx * sumx);
     num = (sumw * sumxy - sumx * sumy);
@@ -3443,7 +3412,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     seg->yint = (sumxx * sumy - sumx * sumxy) * invden;
     seg->sigyint = sqrt(sumxx * invden);
 
-    seglen = (real_t)seg->length;
+    seglen = (real_t) seg->length;
 
     /* Segment Poisson variance */
     pden = (rd->group_time * pr->gain * (seglen - 1.));
@@ -3470,14 +3439,14 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
  */
 static real_t
 segment_rnoise_default(
-        struct ramp_data * rd,      /* The ramp data */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        real_t seglen)              /* The segment length */
+    struct ramp_data *rd,  /* The ramp data */
+    struct pixel_ramp *pr, /* The pixel ramp data */
+    real_t seglen)         /* The segment length */
 {
     real_t rnum, rden;
 
     if ((pr->gain <= 0.) || (isnan(pr->gain))) {
-        return  0.;
+        return 0.;
     }
     rnum = pr->rnoise / rd->group_time;
     rnum = 12. * rnum * rnum;
@@ -3493,17 +3462,17 @@ segment_rnoise_default(
  */
 static int
 save_opt_res(
-        struct opt_res_product * opt_res, /* The optional results product */
-        struct ramp_data * rd)            /* The ramp data */
+    struct opt_res_product *opt_res, /* The optional results product */
+    struct ramp_data *rd)            /* The ramp data */
 {
-    void * ptr = NULL;
+    void *ptr = NULL;
     npy_intp integ, crnum, segnum, row, col, idx;
     const int msg_size = 1024;
     char msg[msg_size];
-    struct simple_ll_node * current;
-    struct simple_ll_node * next;
-    struct cr_node * cr_current;
-    struct cr_node * cr_next;
+    struct simple_ll_node *current;
+    struct simple_ll_node *next;
+    struct cr_node *cr_current;
+    struct cr_node *cr_next;
 #if REAL_IS_DOUBLE
     float float_tmp;
 #endif
@@ -3513,9 +3482,9 @@ save_opt_res(
            in the ramp_data to floats to be put into the opt_res.
      */
 
-    for (integ=0; integ < rd->nints; integ++) {
-        for (row=0; row < rd->nrows; row++) {
-            for (col=0; col < rd->ncols; col++) {
+    for (integ = 0; integ < rd->nints; integ++) {
+        for (row = 0; row < rd->nrows; row++) {
+            for (col = 0; col < rd->ncols; col++) {
                 idx = get_cube_index(rd, integ, row, col);
 
                 ptr = PyArray_GETPTR3(opt_res->pedestal, integ, row, col);
@@ -3528,16 +3497,18 @@ save_opt_res(
 
                 segnum = 0;
                 current = rd->segs[idx];
-                while(current) {
+                while (current) {
                     if (segnum > rd->max_num_segs) {
                         memset(msg, 0, msg_size);
-                        snprintf(msg, msg_size-1, "(%ld, %ld, %ld) Bad segment loop.\n", integ, row, col);
+                        snprintf(
+                            msg, msg_size - 1, "(%ld, %ld, %ld) Bad segment loop.\n", integ, row,
+                            col);
                         err_ols_print("%s", msg);
                         PyErr_SetString(PyExc_IndexError, msg);
                         return 1;
                     }
                     next = current->flink;
-                    //print_segment_opt_res(current, rd, integ, segnum, __LINE__);
+                    // print_segment_opt_res(current, rd, integ, segnum, __LINE__);
 
                     ptr = PyArray_GETPTR4(opt_res->slope, integ, segnum, row, col);
 #if REAL_IS_DOUBLE
@@ -3602,10 +3573,12 @@ save_opt_res(
                 if (rd->max_num_crs > 0) {
                     crnum = 0;
                     cr_current = rd->crs[idx];
-                    while(cr_current) {
+                    while (cr_current) {
                         if (crnum > rd->max_num_crs) {
                             memset(msg, 0, msg_size);
-                            snprintf(msg, msg_size-1, "(%ld, %ld, %ld) Bad CR loop.\n", integ, row, col);
+                            snprintf(
+                                msg, msg_size - 1, "(%ld, %ld, %ld) Bad CR loop.\n", integ, row,
+                                col);
                             err_ols_print("%s", msg);
                             PyErr_SetString(PyExc_IndexError, msg);
                             return 1;
@@ -3635,11 +3608,11 @@ save_opt_res(
  */
 static int
 save_ramp_fit(
-        struct rateint_product * rateint_prod,  /* The rateints product */
-        struct rate_product * rate_prod,        /* The rate product */
-        struct pixel_ramp * pr)                 /* The pixel ramp data */
+    struct rateint_product *rateint_prod, /* The rateints product */
+    struct rate_product *rate_prod,       /* The rate product */
+    struct pixel_ramp *pr)                /* The pixel ramp data */
 {
-    void * ptr = NULL;
+    void *ptr = NULL;
     npy_intp integ;
 #if REAL_IS_DOUBLE
     float float_tmp;
@@ -3682,7 +3655,7 @@ save_ramp_fit(
 #endif
 
     /* Get rateints product information for the pixel */
-    for (integ=0; integ < pr->nints; integ++) {
+    for (integ = 0; integ < pr->nints; integ++) {
         ptr = PyArray_GETPTR3(rateint_prod->slope, integ, pr->row, pr->col);
 #if REAL_IS_DOUBLE
         float_tmp = (float) pr->rateints[integ].slope;
@@ -3725,12 +3698,12 @@ save_ramp_fit(
 /* Compute the signal to noise ratio of the segment. */
 static int
 segment_snr(
-        real_t * snr,               /* The signal to noise ratio for a segment */
-        npy_intp integ,             /* The intergration number */
-        struct ramp_data * rd,      /* The ramp data */
-        struct pixel_ramp * pr,     /* The pixel ramp data */
-        struct simple_ll_node * seg,/* The integration segment */
-        int segnum)                 /* The segment number */
+    real_t *snr,                /* The signal to noise ratio for a segment */
+    npy_intp integ,             /* The intergration number */
+    struct ramp_data *rd,       /* The ramp data */
+    struct pixel_ramp *pr,      /* The pixel ramp data */
+    struct simple_ll_node *seg, /* The integration segment */
+    int segnum)                 /* The segment number */
 {
     npy_intp idx_s, idx_e;
     real_t data, num, den, S, start, end, sqrt_den = 0.;
@@ -3756,19 +3729,18 @@ segment_snr(
 
 /* Compute the weighting power based on the SNR. */
 static real_t
-snr_power(
-        real_t snr)  /* The signal to noise ratio of a segment */
+snr_power(real_t snr) /* The signal to noise ratio of a segment */
 {
     if (snr < 5.) {
-        return  0.;
+        return 0.;
     } else if (snr < 10.) {
-        return  0.4;
+        return 0.4;
     } else if (snr < 20.) {
-        return  1.;
+        return 1.;
     } else if (snr < 50.) {
-        return  3.;
+        return 3.;
     } else if (snr < 100.) {
-        return  6.;
+        return 6.;
     }
     return 10.;
 }
@@ -3783,8 +3755,7 @@ snr_power(
  * used for debugging and development purposes.
  */
 static void
-print_ramp_data_info(
-        struct ramp_data * rd)
+print_ramp_data_info(struct ramp_data *rd)
 {
     printf("    Data\n");
     printf("Dims = [%ld, %ld, %ld, %ld]\n", rd->nints, rd->ngroups, rd->nrows, rd->ncols);
@@ -3804,26 +3775,25 @@ print_ramp_data_info(
 }
 
 static void
-print_segment_list(
-        npy_intp nints,
-        struct segment_list * segs,
-        int line)
+print_segment_list(npy_intp nints, struct segment_list *segs, int line)
 {
     npy_intp integ;
-    struct simple_ll_node * current;
-    struct simple_ll_node * next;
-    const char * indent = "    ";
+    struct simple_ll_node *current;
+    struct simple_ll_node *next;
+    const char *indent = "    ";
 
     print_delim();
     printf("[%d] Ingegration Segments\n", line);
-    for (integ=0; integ<nints; ++integ) {
+    for (integ = 0; integ < nints; ++integ) {
         current = segs[integ].head;
-        printf("%sSegments of Integration [%ld] has %ld segment(s), with max length %ld.\n",
-            indent, integ, segs[integ].size, segs[integ].max_segment_length);
-        while(current) {
+        printf(
+            "%sSegments of Integration [%ld] has %ld segment(s), with max length %ld.\n", indent,
+            integ, segs[integ].size, segs[integ].max_segment_length);
+        while (current) {
             next = current->flink;
-            printf("%s%s(%ld, %ld) - %ld\n",
-                indent, indent, current->start, current->end, current->length);
+            printf(
+                "%s%s(%ld, %ld) - %ld\n", indent, indent, current->start, current->end,
+                current->length);
             current = next;
         }
     }
@@ -3831,45 +3801,35 @@ print_segment_list(
 }
 
 static void
-print_segment_list_basic(
-        struct segment_list * segs,
-        int line)
+print_segment_list_basic(struct segment_list *segs, int line)
 {
-    struct simple_ll_node * current;
+    struct simple_ll_node *current;
 
     print_delim();
     dbg_ols_print("[%d] %zd segments\n", line, segs->size);
-    for (current=segs->head; current; current=current->flink) {
+    for (current = segs->head; current; current = current->flink) {
         dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
     }
     print_delim();
 }
 
 static void
-print_segment_list_integ(
-        npy_intp integ,
-        struct segment_list * segs,
-        int line)
+print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line)
 {
-    struct simple_ll_node * current;
+    struct simple_ll_node *current;
 
     print_delim();
     dbg_ols_print("[%d] Integration %ld has %zd segments\n", line, integ, segs[integ].size);
-    for (current=segs[integ].head; current; current=current->flink) {
+    for (current = segs[integ].head; current; current = current->flink) {
         dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
     }
     print_delim();
 }
 
-
 static void
 print_segment(
-        struct simple_ll_node * seg,
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        npy_intp integ,
-        int segnum,
-        int line)
+    struct simple_ll_node *seg, struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ,
+    int segnum, int line)
 {
     npy_intp idx, group;
 
@@ -3878,7 +3838,7 @@ print_segment(
         printf("[%d] - ", line);
     }
     printf("Integration %ld, segment %d, has length %ld.\n", integ, segnum, seg->length);
-    
+
     idx = get_ramp_index(rd, integ, seg->start);
     printf("Science Data\n[%" DBL, pr->data[idx]);
     for (group = seg->start + 1; group < seg->end; ++group) {
@@ -3886,7 +3846,7 @@ print_segment(
         printf(", %" DBL, pr->data[idx]);
     }
     printf("]\n");
-    
+
     idx = get_ramp_index(rd, integ, seg->start);
     printf("Group DQ\n[%02x", pr->groupdq[idx]);
     for (group = seg->start + 1; group < seg->end; ++group) {
@@ -3899,35 +3859,32 @@ print_segment(
 
 static void
 print_segment_opt_res(
-        struct simple_ll_node * seg,
-        struct ramp_data * rd,
-        npy_intp integ,
-        int segnum,
-        int line)
+    struct simple_ll_node *seg, struct ramp_data *rd, npy_intp integ, int segnum, int line)
 {
-        print_delim();
-        printf("[%d] Integration: %ld, Segment: %d\n", line, integ, segnum);
+    print_delim();
+    printf("[%d] Integration: %ld, Segment: %d\n", line, integ, segnum);
 
-        printf("slope    = %f\n", seg->slope);
-        printf(" **slope = %f (divide by group time)\n", seg->slope / rd->group_time);
-        printf("sigslope = %f\n", seg->sigslope);
+    printf("slope    = %f\n", seg->slope);
+    printf(" **slope = %f (divide by group time)\n", seg->slope / rd->group_time);
+    printf("sigslope = %f\n", seg->sigslope);
 
-        printf("yint     = %f\n", seg->yint);
-        printf("sigyint  = %f\n", seg->sigyint);
+    printf("yint     = %f\n", seg->yint);
+    printf("sigyint  = %f\n", seg->sigyint);
 
-        printf("var_p    = %f\n", seg->var_p);
-        printf("var_r    = %f\n", seg->var_r);
+    printf("var_p    = %f\n", seg->var_p);
+    printf("var_r    = %f\n", seg->var_r);
 
-        printf("yint     = %f\n", seg->yint);
-        printf("sigyint  = %f\n", seg->sigyint);
+    printf("yint     = %f\n", seg->yint);
+    printf("sigyint  = %f\n", seg->sigyint);
 
-        printf("weight   = %f\n", seg->weight);
+    printf("weight   = %f\n", seg->weight);
 
-        print_delim();
+    print_delim();
 }
 
 static void
-print_stats(struct pixel_ramp * pr, npy_intp integ, int line) {
+print_stats(struct pixel_ramp *pr, npy_intp integ, int line)
+{
     print_delim();
     printf("[%d] GDQ stats for integration %ld\n", line, integ);
     dbg_ols_print("    cnt_sat = %d\n", pr->stats[integ].cnt_sat);
@@ -3939,10 +3896,11 @@ print_stats(struct pixel_ramp * pr, npy_intp integ, int line) {
 }
 
 static void
-print_uint8_array(uint8_t * arr, int len, int ret, int line) {
+print_uint8_array(uint8_t *arr, int len, int ret, int line)
+{
     int k;
 
-    if (line>0) {
+    if (line > 0) {
         printf("[Line %d] ", line);
     }
 
@@ -3951,7 +3909,7 @@ print_uint8_array(uint8_t * arr, int len, int ret, int line) {
         return;
     }
     printf("[%02x", arr[0]);
-    for (k=1; k<len; ++k) {
+    for (k = 1; k < len; ++k) {
         printf(", %02x", arr[k]);
     }
     printf("]");
@@ -3962,7 +3920,8 @@ print_uint8_array(uint8_t * arr, int len, int ret, int line) {
 }
 
 static void
-print_uint32_array(uint32_t * arr, int len, int ret, int line) {
+print_uint32_array(uint32_t *arr, int len, int ret, int line)
+{
     int k;
 
     printf("[%d] ", line);
@@ -3972,7 +3931,7 @@ print_uint32_array(uint32_t * arr, int len, int ret, int line) {
         return;
     }
     printf("[%d", arr[0]);
-    for (k=1; k<len; ++k) {
+    for (k = 1; k < len; ++k) {
         printf(", %d", arr[k]);
     }
     printf("]");
@@ -3983,7 +3942,7 @@ print_uint32_array(uint32_t * arr, int len, int ret, int line) {
 }
 
 static void
-print_ols_calcs(struct ols_calcs * ols, npy_intp integ, int segnum, int line)
+print_ols_calcs(struct ols_calcs *ols, npy_intp integ, int segnum, int line)
 {
     print_delim();
     printf("*** [%d] Segment %d, Integration %ld ***\n", line, segnum, integ);
@@ -3996,10 +3955,8 @@ print_ols_calcs(struct ols_calcs * ols, npy_intp integ, int segnum, int line)
 }
 
 static void
-print_pixel_ramp_data(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        int line) {
+print_pixel_ramp_data(struct ramp_data *rd, struct pixel_ramp *pr, int line)
+{
     npy_intp integ, group;
     ssize_t idx;
 
@@ -4017,10 +3974,8 @@ print_pixel_ramp_data(
     }
 }
 static void
-print_pixel_ramp_dq(
-        struct ramp_data * rd,
-        struct pixel_ramp * pr,
-        int line) {
+print_pixel_ramp_dq(struct ramp_data *rd, struct pixel_ramp *pr, int line)
+{
     npy_intp integ, group;
     ssize_t idx;
 
@@ -4039,7 +3994,8 @@ print_pixel_ramp_dq(
 }
 
 static void
-print_pixel_ramp_info(struct ramp_data * rd, struct pixel_ramp * pr, int line) {
+print_pixel_ramp_info(struct ramp_data *rd, struct pixel_ramp *pr, int line)
+{
     print_delim();
     printf("[%s, %d] Pixel (%ld, %ld)\n", __FUNCTION__, line, pr->row, pr->col);
     printf("Data:\n");
@@ -4051,10 +4007,11 @@ print_pixel_ramp_info(struct ramp_data * rd, struct pixel_ramp * pr, int line) {
 }
 
 static void
-print_real_array(char * label, real_t * arr, int len, int ret, int line) {
+print_real_array(char *label, real_t *arr, int len, int ret, int line)
+{
     int k;
 
-    if (line>0) {
+    if (line > 0) {
         printf("[Line %d] ", line);
     }
 
@@ -4067,7 +4024,7 @@ print_real_array(char * label, real_t * arr, int len, int ret, int line) {
         return;
     }
     printf("[%f", arr[0]);
-    for (k=1; k<len; ++k) {
+    for (k = 1; k < len; ++k) {
         printf(", %.10f", arr[k]);
     }
     printf("]");
@@ -4082,12 +4039,11 @@ print_real_array(char * label, real_t * arr, int len, int ret, int line) {
  * This is a debugging function.
  */
 static void
-print_cr_pixel(struct pixel_ramp * pr, int line)
+print_cr_pixel(struct pixel_ramp *pr, int line)
 {
     npy_intp integ;
 
-    for (integ=0; integ<pr->nints; integ++)
-    {
+    for (integ = 0; integ < pr->nints; integ++) {
         print_cr_pixel_integ(pr, &(pr->crs[integ]), integ, line);
     }
 }
@@ -4097,30 +4053,29 @@ print_cr_pixel(struct pixel_ramp * pr, int line)
  * This is a debugging function.
  */
 static void
-print_cr_pixel_integ(
-        struct pixel_ramp * pr, struct cr_list * crs, npy_intp integ, int line)
+print_cr_pixel_integ(struct pixel_ramp *pr, struct cr_list *crs, npy_intp integ, int line)
 {
-    struct cr_node * node = NULL;
+    struct cr_node *node = NULL;
 
     printf("[%d] Pixel (%ld, %ld) Integ %ld, CRs:", line, pr->row, pr->col, integ);
-    if (0==crs->size) {
+    if (0 == crs->size) {
         printf(" (null)\n");
     }
 
-    for (node=crs->head; node; ) {
+    for (node = crs->head; node;) {
         printf(" %.4f", node->crmag);
         node = node->flink;
     }
     printf("\n");
 }
 
-
 /*
  * This prints an integer array.  If the 'ret' value is non-zero,
  * then print a character after the array.
  */
 static void
-print_intp_array(npy_intp * arr, int len, int ret) {
+print_intp_array(npy_intp *arr, int len, int ret)
+{
     int k;
 
     if (len < 1) {
@@ -4128,7 +4083,7 @@ print_intp_array(npy_intp * arr, int len, int ret) {
         return;
     }
     printf("[%ld", arr[0]);
-    for (k=1; k<len; ++k) {
+    for (k = 1; k < len; ++k) {
         printf(", %ld", arr[k]);
     }
     printf("]");
@@ -4139,13 +4094,13 @@ print_intp_array(npy_intp * arr, int len, int ret) {
 }
 
 static void
-print_pixel_ramp_stats(struct pixel_ramp * pr, int line)
+print_pixel_ramp_stats(struct pixel_ramp *pr, int line)
 {
     npy_intp integ;
 
     print_delim();
     printf("[%d] Pixel ramp stats: \n", line);
-    for (integ=0; integ<pr->nints; ++integ) {
+    for (integ = 0; integ < pr->nints; ++integ) {
         print_stats(pr, integ, __LINE__);
         printf("\n");
     }
@@ -4157,10 +4112,11 @@ print_pixel_ramp_stats(struct pixel_ramp * pr, int line)
  * used for debugging and development.
  */
 static void
-print_PyArrayObject_info(PyArrayObject * obj) {
+print_PyArrayObject_info(PyArrayObject *obj)
+{
     int ndims = -1, flags = 0;
-    npy_intp * dims = NULL;
-    npy_intp * strides = NULL;
+    npy_intp *dims = NULL;
+    npy_intp *strides = NULL;
 
     ndims = PyArray_NDIM(obj);
     dims = PyArray_DIMS(obj);
@@ -4173,22 +4129,22 @@ print_PyArrayObject_info(PyArrayObject * obj) {
     print_intp_array(strides, ndims, 1);
 
     printf("flags:\n");
-    if (NPY_ARRAY_C_CONTIGUOUS & flags ) {
-        printf("    NPY_ARRAY_C_CONTIGUOUS\n"); 
+    if (NPY_ARRAY_C_CONTIGUOUS & flags) {
+        printf("    NPY_ARRAY_C_CONTIGUOUS\n");
     }
-    if (NPY_ARRAY_F_CONTIGUOUS & flags ) {
+    if (NPY_ARRAY_F_CONTIGUOUS & flags) {
         printf("    NPY_ARRAY_F_CONTIGUOUS\n");
     }
-    if (NPY_ARRAY_OWNDATA & flags ) {
+    if (NPY_ARRAY_OWNDATA & flags) {
         printf("    NPY_ARRAY_OWNDATA\n");
     }
-    if (NPY_ARRAY_ALIGNED & flags ) {
+    if (NPY_ARRAY_ALIGNED & flags) {
         printf("    NPY_ARRAY_ALIGNED\n");
     }
-    if (NPY_ARRAY_WRITEABLE & flags ) {
+    if (NPY_ARRAY_WRITEABLE & flags) {
         printf("    NPY_ARRAY_WRITEABLE\n");
     }
-    if (NPY_ARRAY_WRITEBACKIFCOPY & flags ) {
+    if (NPY_ARRAY_WRITEBACKIFCOPY & flags) {
         printf("    NPY_ARRAY_WRITEBACKIFCOPY\n");
     }
 }
@@ -4197,20 +4153,21 @@ print_PyArrayObject_info(PyArrayObject * obj) {
  * Print the values of NPY_{types}.
  */
 static void
-print_npy_types() {
-    printf("NPY_BOOL = %d\n",NPY_BOOL);
-    printf("NPY_BYTE = %d\n",NPY_BYTE);
-    printf("NPY_UBYTE = %d\n",NPY_UBYTE);
-    printf("NPY_SHORT = %d\n",NPY_SHORT);
-    printf("NPY_INT = %d\n",NPY_INT);
-    printf("NPY_UINT = %d\n",NPY_UINT);
+print_npy_types()
+{
+    printf("NPY_BOOL = %d\n", NPY_BOOL);
+    printf("NPY_BYTE = %d\n", NPY_BYTE);
+    printf("NPY_UBYTE = %d\n", NPY_UBYTE);
+    printf("NPY_SHORT = %d\n", NPY_SHORT);
+    printf("NPY_INT = %d\n", NPY_INT);
+    printf("NPY_UINT = %d\n", NPY_UINT);
 
-    printf("NPY_FLOAT = %d\n",NPY_FLOAT);
-    printf("NPY_DOUBLE = %d\n",NPY_DOUBLE);
+    printf("NPY_FLOAT = %d\n", NPY_FLOAT);
+    printf("NPY_DOUBLE = %d\n", NPY_DOUBLE);
 
-    printf("NPY_VOID = %d\n",NPY_VOID);
-    printf("NPY_NTYPES_LEGACY = %d\n",NPY_NTYPES_LEGACY);
-    printf("NPY_NOTYPE = %d\n",NPY_NOTYPE);
+    printf("NPY_VOID = %d\n", NPY_VOID);
+    printf("NPY_NTYPES_LEGACY = %d\n", NPY_NTYPES_LEGACY);
+    printf("NPY_NOTYPE = %d\n", NPY_NOTYPE);
     /*
     NPY_SHORT
     NPY_USHORT
@@ -4233,40 +4190,35 @@ print_npy_types() {
 }
 /* ========================================================================= */
 
-
 /* ========================================================================= */
 /*                            Python Module API                              */
 /* ------------------------------------------------------------------------- */
-static PyMethodDef
-ols_slope_fitter_methods[] =
-{
+static PyMethodDef ols_slope_fitter_methods[] = {
     {
         "ols_slope_fitter",
-	    ols_slope_fitter,
-	    METH_VARARGS,
+        ols_slope_fitter,
+        METH_VARARGS,
         "Compute the slope and variances using ramp fitting OLS.",
     },
-    {NULL, NULL, 0, NULL}               /* Sentinel */
+    {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-
-static struct PyModuleDef
-moduledef = {
+static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
-    "slope_fitter",                     /* m_name */
-    "Computes slopes and variances",    /* m_doc */
-    -1,                                 /* m_size */
-    ols_slope_fitter_methods,           /* m_methods */
-    NULL,                               /* m_reload */
-    NULL,                               /* m_traverse */
-    NULL,                               /* m_clear */
-    NULL,                               /* m_free */
+    "slope_fitter",                  /* m_name */
+    "Computes slopes and variances", /* m_doc */
+    -1,                              /* m_size */
+    ols_slope_fitter_methods,        /* m_methods */
+    NULL,                            /* m_reload */
+    NULL,                            /* m_traverse */
+    NULL,                            /* m_clear */
+    NULL,                            /* m_free */
 };
 
 PyMODINIT_FUNC
 PyInit_slope_fitter(void)
 {
-    PyObject* m;
+    PyObject *m;
     m = PyModule_Create(&moduledef);
     import_array();
     return m;
