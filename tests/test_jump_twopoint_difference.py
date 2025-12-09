@@ -48,6 +48,8 @@ def default_twopt_p(
     twopt_p.min_diffs_single_pass = 10
 
     twopt_p.copy_arrs = True
+    twopt_p.dt_group = np.ones(1)
+    twopt_p.n_reads_groupdiff = np.ones(1)*2*twopt_p.nframes
 
     return twopt_p
 
@@ -864,6 +866,9 @@ def sigclip_twopt_p():
     # twopt_p.only_use_ints = True
     twopt_p.only_use_ints = False
     twopt_p.min_diffs_single_pass = 10
+
+    twopt_p.dt_group = np.ones(1)
+    twopt_p.n_reads_groupdiff = np.ones(1)*2*twopt_p.nframes
 
     twopt_p.copy_arrs = False
 
