@@ -1,3 +1,5 @@
+import numpy as np
+
 INDENT = "    "
 DELIM = "-" * 80
 
