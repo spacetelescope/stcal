@@ -19,8 +19,8 @@ jobs:
         - macos: py311-xdist
         - macos: py312-xdist
         - macos: py313-xdist
-        - linux: py313-devdeps-xdist
-        - macos: py313-devdeps-xdist
+        - linux: py314-devdeps-xdist
+        - macos: py314-devdeps-xdist
   test_downstream:
     if: (github.repository == 'spacetelescope/stcal' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run extra tests')))
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@9f1fedda61294df4c004c05519a3fbf3b8e1f32f # v2.3.1
@@ -30,5 +30,5 @@ jobs:
         CRDS_CLIENT_RETRY_COUNT: 3
         CRDS_CLIENT_RETRY_DELAY_SECONDS: 20
       envs: |
-        - linux: py313-jwst-devdeps
+        - linux: py314-jwst-devdeps
         - linux: py313-romancal-devdeps
