@@ -8,7 +8,6 @@ from stcal.jump.jump import (
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
-    detect_jumps_data
 )
 
 DQFLAGS = {
@@ -39,7 +38,7 @@ def create_jump_data(dims, gain, rnoise, tm):
 
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
     gain2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * gain
-    rnoise2d = np.ones(shape=(nrows, ncols) , dtype=np.float32) * rnoise
+    rnoise2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnoise
 
     jump_data = JumpData(gain2d=gain2d, rnoise2d=rnoise2d, dqflags=DQFLAGS)
     jump_data.init_arrays_from_arrays(data, gdq, pdq)
@@ -63,21 +62,23 @@ def test_nirspec_saturated_pix():
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     # Setup the needed input pixel and DQ values
-    jump_data.data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176,
-                              1116.3828, 1936.9746]
+    jump_data.data[0, :, 1, 1] = [
+        639854.75, 4872.451, -17861.791, 14022.15, 22320.176,
+        1116.3828, 1936.9746]
     jump_data.gdq[0, :, 1, 1] = [0, 0, 0, 0, 0, SAT, SAT]
-    jump_data.data[0, :, 0, 1] = [8.25666812e+05, -1.10471914e+05, 1.95755371e+02, 1.83118457e+03,
-                              1.72250879e+03, 1.81733496e+03, 1.65188281e+03]
+    jump_data.data[0, :, 0, 1] = [
+        8.25666812e+05, -1.10471914e+05, 1.95755371e+02, 1.83118457e+03,
+        1.72250879e+03, 1.81733496e+03, 1.65188281e+03]
     # 2 non-sat groups means only 1 non-sat diff, so no jumps should be flagged
     jump_data.gdq[0, :, 0, 1] = [0, 0, SAT, SAT, SAT, SAT, SAT]
-    jump_data.data[0, :, 1, 0] = [1228767., 46392.234, -3245.6553, 7762.413,
-                              37190.76, 266611.62, 5072.4434]
+    jump_data.data[0, :, 1, 0] = [
+        1228767., 46392.234, -3245.6553, 7762.413,
+        37190.76, 266611.62, 5072.4434]
     jump_data.gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, SAT]
 
     jump_data.nframes = nframes
@@ -148,7 +149,7 @@ def test_multiprocessing():
     gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 5, 1] == JUMP
-    assert gdq[0, 4, 6, 1] == DNU  #This value would have been DNU | JUMP without the fix.
+    assert gdq[0, 4, 6, 1] == DNU  # This value would have been DNU | JUMP without the fix.
 
 
 def test_multiprocessing_big():
@@ -157,7 +158,6 @@ def test_multiprocessing_big():
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
@@ -200,7 +200,7 @@ def test_multiprocessing_big():
 
     assert gdq[0, 4, 204, 5] == JUMP
     assert gdq[0, 4, 205, 5] == JUMP
-    assert gdq[0, 4, 204, 6] == DNU  #This value would have been 5 without the fix.
+    assert gdq[0, 4, 204, 6] == DNU  # This value would have been 5 without the fix.
 
 
 def test_find_simple_ellipse():
@@ -237,7 +237,6 @@ def test_extend_saturation_simple():
     cube = np.zeros(shape=(5, 7, 7), dtype=np.uint8)
     persist_jumps = np.zeros(shape=(7, 7), dtype=np.uint8)
     grp = 1
-    min_sat_radius_extend = 1
     cube[1, 3, 3] = SAT
     cube[1, 2, 3] = SAT
     cube[1, 3, 4] = SAT
@@ -249,7 +248,6 @@ def test_extend_saturation_simple():
 
     jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_radius_extend = 1.1
-
 
     new_cube, persist_jumps = extend_saturation(
         cube, grp, sat_circles, jump_data, persist_jumps)
@@ -397,7 +395,7 @@ def test_find_faint_extended(tmp_path):
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
 
-    # XXX Probably should not generate random data for CI tests.
+    # Ken M: Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -417,8 +415,8 @@ def test_find_faint_extended(tmp_path):
     readnoise = readnoise * np.sqrt(2)
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside.  This should not be in tests.
+    # Check that all the expected samples in group 2 are flagged as jump and
+    # that they are not flagged outside.  This should not be in tests.
 
     # assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
@@ -426,7 +424,7 @@ def test_find_faint_extended(tmp_path):
     assert np.all(gdq[0, 1, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
-    #  Check that the same area is flagged in the first group after the event
+    # Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == JUMP
     assert np.all(gdq[0, 2, 12:21, 16:19] == JUMP)
@@ -435,7 +433,7 @@ def test_find_faint_extended(tmp_path):
 
     assert np.all(gdq[0, 3:, :, :]) == 0
 
-    #  Check that the flags are not applied in the 3rd group after the event
+    # Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
@@ -450,7 +448,7 @@ def test_find_faint_extended_sigclip():
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
 
-    # XXX Probably should not generate random data for CI tests.
+    # Ken M: Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -467,8 +465,8 @@ def test_find_faint_extended_sigclip():
 
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside
+    # Check that all the expected samples in group 2 are flagged as jump and
+    # that they are not flagged outside
     assert num_showers == 0
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert np.all(gdq[0, 1, 21, 16:20] == 0)
@@ -484,7 +482,7 @@ def test_find_faint_extended_sigclip():
     assert np.all(gdq[0, 1, 12:23, 24] == 0)
     assert np.all(gdq[0, 1, 12:23, 13] == 0)
 
-    #  Check that the flags are not applied in the 3rd group after the event
+    # Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
