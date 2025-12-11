@@ -723,7 +723,7 @@ def point_inside_ellipse(point, ellipse):
     Parameters
     ----------
     point : tuple
-        Point of interest.
+        Point of interest in the format of ``(x, y)``.
 
     ellipse : tuple
         Ellipse for testing in the format of
@@ -734,10 +734,29 @@ def point_inside_ellipse(point, ellipse):
     bool
         Boolean decision if point is in ellipse.
     """
-    delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
-    major_axis = max(ellipse[1][0], ellipse[1][1])
+    # https://stackoverflow.com/questions/37031356/check-if-points-are-inside-ellipse-faster-than-contains-point-method
 
-    return delta_center < major_axis
+    angle = np.radians(180 - ellipse[2])
+    cos_angle = np.cos(angle)
+    sin_angle = np.sin(angle)
+
+    xc = point[0] - ellipse[0][0]
+    yc = point[1] - ellipse[0][1]
+
+    xct = xc * cos_angle - yc * sin_angle
+    yct = xc * sin_angle + yc * cos_angle
+
+    if ellipse[1][1] >= ellipse[1][0]:
+        semi_major_axis = ellipse[1][1]
+        semi_minor_axis = ellipse[1][0]
+    else:
+        semi_major_axis = ellipse[1][0]
+        semi_minor_axis = ellipse[1][1]
+
+    rad_cc = ((xct**2 / semi_major_axis**2) +
+              (yct**2 / semi_minor_axis**2))
+
+    return rad_cc <= 1
 
 
 def near_edge(jump, low_threshold, high_threshold):

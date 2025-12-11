@@ -491,7 +491,9 @@ def test_find_faint_extended_sigclip():
     ("ellipse", "point"),
     [(((0, 0), (1, 2), -10), (1, 0.6)),
      (((0, 0), (1, 2), 0), (1, 0.5)),
-     (((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0), (1110.5, 870.5))])
+     (((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0), (1110.5, 870.5)),
+     (((0, 0), (10, 5), 0), (0, 0)),
+     (((0, 0), (10, 5), 0), (8, 0))])
 def test_point_inside_ellipse(ellipse, point):
     assert point_inside_ellipse(point, ellipse)
 
@@ -499,8 +501,6 @@ def test_point_inside_ellipse(ellipse, point):
 @pytest.mark.parametrize(
     ("ellipse", "point"),
     [(((0, 0), (1, 2), 0), (3, 0.5)),
-     (((0, 0), (10, 5), 0), (0, 0)),
-     (((0, 0), (10, 5), 0), (8, 0)),
      (((0, 0), (10, 5), 0), (0, 8))])
 def test_point_outside_ellipse(ellipse, point):
     assert not point_inside_ellipse(point, ellipse)
