@@ -498,6 +498,9 @@ def test_point_inside_ellipse(ellipse, point):
 
 @pytest.mark.parametrize(
     ("ellipse", "point"),
-    [(((0, 0), (1, 2), 0), (3, 0.5))])
+    [(((0, 0), (1, 2), 0), (3, 0.5)),
+     (((0, 0), (10, 5), 0), (0, 0)),
+     (((0, 0), (10, 5), 0), (8, 0)),
+     (((0, 0), (10, 5), 0), (0, 8))])
 def test_point_outside_ellipse(ellipse, point):
     assert not point_inside_ellipse(point, ellipse)
