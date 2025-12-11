@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from astropy.io import fits
+
 from stcal.jump.jump_class import JumpData
 from stcal.jump.jump import (
     extend_saturation,
@@ -486,29 +487,17 @@ def test_find_faint_extended_sigclip():
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
-def test_inside_ellipse5():
-    ellipse = ((0, 0), (1, 2), -10)
-    point = (1, 0.6)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
+@pytest.mark.parametrize(
+    ("ellipse", "point"),
+    [(((0, 0), (1, 2), -10), (1, 0.6)),
+     (((0, 0), (1, 2), 0), (1, 0.5)),
+     (((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0), (1110.5, 870.5))])
+def test_point_inside_ellipse(ellipse, point):
+    assert point_inside_ellipse(point, ellipse)
 
 
-def test_inside_ellipse4():
-    ellipse = ((0, 0), (1, 2), 0)
-    point = (1, 0.5)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
-
-
-def test_inside_ellipse6():
-    ellipse = ((0, 0), (1, 2), 0)
-    point = (3, 0.5)
-    result = point_inside_ellipse(point, ellipse)
-    assert not result
-
-
-def test_inside_ellipes5():
-    point = (1110.5, 870.5)
-    ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
+@pytest.mark.parametrize(
+    ("ellipse", "point"),
+    [(((0, 0), (1, 2), 0), (3, 0.5))])
+def test_point_outside_ellipse(ellipse, point):
+    assert not point_inside_ellipse(point, ellipse)
