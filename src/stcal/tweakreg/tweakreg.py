@@ -21,11 +21,10 @@ from tweakwcs.matchutils import XYXYMatch
 
 from stcal.alignment import wcs_from_sregions
 
-from .astrometric_utils import TIMEOUT, create_astrometric_catalog
+from .astrometric_utils import GSSS_CATALOGS, S3_CATALOGS, TIMEOUT, create_astrometric_catalog
 
 _SQRT2 = math.sqrt(2.0)
-SINGLE_GROUP_REFCAT = ["GAIAREFCAT", "GAIADR3", "GAIADR2", "GAIADR1"]
-_SINGLE_GROUP_REFCAT_STR = ",".join(SINGLE_GROUP_REFCAT)
+SINGLE_GROUP_REFCAT = GSSS_CATALOGS + S3_CATALOGS
 
 __all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT",
            "filter_catalog_by_bounding_box"]
@@ -269,7 +268,7 @@ def _parse_refcat(abs_refcat: str | Path,
 
     msg = (f"Invalid 'abs_refcat' value: {abs_refcat}. 'abs_refcat' must be "
            "a path to an existing file name or one of the supported "
-           f"reference catalogs: {_SINGLE_GROUP_REFCAT_STR}.")
+           f"reference catalogs: {'.'.join(SINGLE_GROUP_REFCAT)}.")
     raise ValueError(msg)
 
 
