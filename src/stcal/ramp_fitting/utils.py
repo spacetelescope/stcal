@@ -155,10 +155,10 @@ def dq_compress_final(dq_int, ramp_data):
     not_dnu = np.uint32(~dnu)
     final_dq = np.bitwise_and(final_dq, not_dnu)
 
-    # If all integrations are DO_NOT_USE or SATURATED, then set DO_NOT_USE.
-    set_if_total_integ(final_dq, dq_int, dnu | sat, dnu)
+    # If all integrations are DO_NOT_USE, then set DO_NOT_USE.
+    set_if_total_integ(final_dq, dq_int, dnu, dnu)
 
-    # If all integrations have SATURATED, then set DO_NOT_USE and SATURATED.
-    set_if_total_integ(final_dq, dq_int, sat, dnu | sat)
+    # If all integrations have SATURATED, then set SATURATED.
+    set_if_total_integ(final_dq, dq_int, sat, sat)
 
     return final_dq
