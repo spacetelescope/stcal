@@ -106,7 +106,7 @@ def test_pix_1():
     )
 
     # Set truth values for PRIMARY results:
-    p_true = [1.8999999, JUMP, 1.05057204, 0.03454545, 1.0691562]
+    p_true = [1.8999999, JUMP | SAT, 1.05057204, 0.03454545, 1.0691562]
 
     # Set truth values for OPTIONAL results:
     o_true = [1.9, 56.870003, 0.03454545, 1.0691562, -3.0, 56.870003, 13.1, 0.82091206]
@@ -139,7 +139,7 @@ def test_pix_2():
     )
 
     # Set truth values for PRIMARY results:
-    p_true = [0.84833729, JUMP, 0.42747884, 0.00454545, 0.1781927]
+    p_true = [0.84833729, JUMP | SAT, 0.42747884, 0.00454545, 0.1781927]
 
     # Set truth values for OPTIONAL results for all segments
     o_true = [
@@ -224,7 +224,7 @@ def test_pix_4():
     )
 
     # Set truth values for PRIMARY results:
-    p_true = [1.5, GOOD, 1.047105, 0.02727273, 1.0691562]
+    p_true = [1.5, SAT, 1.047105, 0.02727273, 1.0691562]
 
     # Set truth values for OPTIONAL results:
     o_true = [1.5, 0.0, 0.02727273, 1.0691562, 0.0, 0.0, 13.5, 0.8318386]
@@ -425,7 +425,7 @@ def test_pix_8():
     )
 
     # Set truth values for PRIMARY results:
-    p_true = [0.98561335, JUMP, 0.1848883, 0.00363636, 0.03054732]
+    p_true = [0.98561335, JUMP | SAT, 0.1848883, 0.00363636, 0.03054732]
 
     # Set truth values for OPTIONAL results:
     o_true = [0.98561335, 9.920554, 0.00363636, 0.03054732, 16.508228, 39.383667, 14.014386, 855.78046]
@@ -543,7 +543,7 @@ def test_pix_11():
     )
 
     # Set truth values for PRIMARY results:
-    p_true = [1.0, GOOD, 1.042755, 0.01818182, 1.0691562]
+    p_true = [1.0, SAT, 1.042755, 0.01818182, 1.0691562]
 
     # Set truth values for OPTIONAL results:
     o_true = [1.0, 56.870003, 0.01818182, 1.0691562, 15.0, 56.870003, 14.0, 0.84580624]
@@ -582,7 +582,7 @@ def test_pix_12():
     # slope, dq, err, var_p, var_r
     # slope = group1 / deltatime = 15 / 10 = 1.5
     # dq = 2 (saturation) because group2 is saturated, but DNU is *not* set
-    p_true = [1.5, GOOD, 1.047105, 0.027273, 1.069156]
+    p_true = [1.5, SAT, 1.047105, 0.027273, 1.069156]
 
     # Set truth values for OPTIONAL results:
     # slope, sig_slope, var_p, var_r, yint, sig_yint, pedestal, weights
