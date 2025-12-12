@@ -9,6 +9,7 @@ from stcal.jump.jump import (
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
+    detect_jumps_data
 )
 
 DQFLAGS = {
