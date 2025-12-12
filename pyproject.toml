@@ -94,6 +94,7 @@ src = ["src", "tests", "docs"]
 select = [
   #"F",      # Pyflakes (part of default flake8)
   "F401", # Module imported but unused
+  "F811", # Redefinition of unused
   #"W", "E", # pycodestyle (part of default flake8)
   #"I",      # isort (import sorting)
   # "N",      # pep8-naming

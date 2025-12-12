@@ -10,10 +10,7 @@ from stcal.resample.utils import (
 )
 
 import numpy as np
-from drizzle.utils import calc_pixmap
 
-from stcal.resample import Resample
-from stcal.resample.utils import build_driz_weight
 from stcal.alignment.util import wcs_from_footprints
 
 from . helpers import (
