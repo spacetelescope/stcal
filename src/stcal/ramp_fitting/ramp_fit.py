@@ -27,6 +27,8 @@ log = logging.getLogger(__name__)
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
+__all__ = ["create_ramp_fit_class", "ramp_fit", "ramp_fit_data", "suppress_one_good_group_ramps"]
+
 
 def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=False):
     """
@@ -199,7 +201,8 @@ def ramp_fit_data(
     depending on the choice of ramp fitting algorithms (which is only ordinary
     least squares right now) and the choice of single or muliprocessing.
 
-
+    Parameters
+    ----------
     ramp_data : RampData
         Input data necessary for computing ramp fitting.
 
@@ -247,7 +250,11 @@ def ramp_fit_data(
                   " but ngroups = {ngroups}.  Due to this, the ramp fitting algorithm"
                   " is being changed to OLS_C")
         algorithm = "OLS_C"
-        
+
+    # Suppress one group ramps, if desired.
+    if ramp_data.suppress_one_group_ramps:
+        suppress_one_good_group_ramps(ramp_data)
+
     if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
         image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
             ramp_data, readnoise_2d, gain_2d
@@ -258,10 +265,6 @@ def ramp_fit_data(
         #   gain array in case optimal weighting is to be done
         nframes = ramp_data.nframes
         readnoise_2d *= gain_2d / np.sqrt(2.0 * nframes)
-
-        # Suppress one group ramps, if desired.
-        if ramp_data.suppress_one_group_ramps:
-            suppress_one_good_group_ramps(ramp_data)
 
         # Compute ramp fitting using ordinary least squares.
         image_info, integ_info, opt_info = ols_fit.ols_ramp_fit_multi(

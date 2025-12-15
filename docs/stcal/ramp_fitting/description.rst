@@ -297,8 +297,8 @@ in the "rate" product they contain values for the exposure as a whole.
 
 Data Quality Propagation
 ------------------------
-For a given pixel, if all groups in an integration are flagged as DO_NOT_USE or
-SATURATED, then that pixel will be flagged as DO_NOT_USE in the corresponding
+For a given pixel, if all groups in an integration are flagged as DO_NOT_USE,
+then that pixel will be flagged as DO_NOT_USE in the corresponding
 integration in the "rateints" product.  Note this does NOT mean that all groups
 are flagged as DO_NOT_USE.  For
 example, slope calculations that are suppressed due to a ramp containing only
@@ -350,7 +350,7 @@ differences.  Because the covariance matrix is tridiagonal, the  computational
 complexity reduces from :math:`O(n^3)` to :math:`O(n)`.  To see the detailed
 derivation and computations implemented, refer to the links above.
 The Poisson and read noise  computations are based on equations (27) and (28), in
-`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__
+`Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__.
 
 For more details, especially for the jump detection portion in the liklihood
 algorithm, see

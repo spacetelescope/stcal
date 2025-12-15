@@ -593,10 +593,7 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     check = np.array([[np.nan, np.nan, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
-    else:  # LIKELY
-        check = np.array([[DNU | SAT, SAT, GOOD]])
+    check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
     np.testing.assert_equal(sdq, check)
 
     if algo == DEFAULT_OLS:
@@ -623,10 +620,7 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     check = np.array([[[np.nan, np.nan, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
-    else:  # LIKELY
-        check = np.array([[[DNU | SAT, SAT, GOOD]]])
+    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
     np.testing.assert_equal(cdq, check)
 
     if algo == DEFAULT_OLS:
@@ -761,10 +755,7 @@ def test_one_group_ramp_suppressed_two_integrations(algo):
     check = np.array([[[np.nan, np.nan, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
-    else:  # LIKELY
-        check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     np.testing.assert_equal(cdq, check)
 
     if algo == DEFAULT_OLS:
@@ -1446,10 +1437,7 @@ def test_new_saturation(algo):
         check = np.array([[2.794573, 2.793989, np.nan]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[JUMP | SAT, JUMP | SAT, DNU | SAT]])
-    else:  # LIKELY
-        check = np.array([[JUMP | SAT, JUMP | DNU | SAT, DNU | SAT]])
+    check = np.array([[JUMP | SAT, JUMP | SAT, DNU | SAT]])
     np.testing.assert_equal(sdq, check)
 
     if algo == DEFAULT_OLS:
@@ -1566,10 +1554,7 @@ def test_invalid_integrations(algo):
         check = np.array([[5576.588]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[JUMP | SAT]])
-    else:  # LIKELY
-        check = np.array([[JUMP | SAT | DNU]])
+    check = np.array([[JUMP | SAT]])
     np.testing.assert_equal(sdq, check)
 
     if algo == DEFAULT_OLS:
@@ -1599,14 +1584,9 @@ def test_invalid_integrations(algo):
         check = np.array([np.nan, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
     np.testing.assert_allclose(cdata[:, 0, 0], check, tol, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array(
-            [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
-        )
-    else:  # LIKELY
-        check = np.array(
-            [JUMP, JUMP, JUMP, GOOD, JUMP, JUMP, JUMP, JUMP], dtype=np.uint8
-        )
+    check = np.array(
+        [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
+    )
     check |= SAT
     np.testing.assert_equal(cdq[:, 0, 0], check)
 
