@@ -747,11 +747,11 @@ def point_inside_ellipse(point, ellipse):
     yct = xc * sin_angle + yc * cos_angle
 
     if ellipse[1][1] >= ellipse[1][0]:
-        semi_major_axis = ellipse[1][1]
-        semi_minor_axis = ellipse[1][0]
+        semi_major_axis = ellipse[1][1] * 0.5
+        semi_minor_axis = ellipse[1][0] * 0.5
     else:
-        semi_major_axis = ellipse[1][0]
-        semi_minor_axis = ellipse[1][1]
+        semi_major_axis = ellipse[1][0] * 0.5
+        semi_minor_axis = ellipse[1][1] * 0.5
 
     rad_cc = ((xct**2 / semi_major_axis**2) +
               (yct**2 / semi_minor_axis**2))
@@ -1326,7 +1326,7 @@ def _sk_filter_areas(image, threshold):
         region encoded as is a 3 element list of values.
         The first element is a tuple of 2 floats encoding the
         center column and row. Element 2 is a tuple of 2 floats encoding
-        the area minor and major axis lengths. Element 3 is a float
+        the area minor and major axis full lengths. Element 3 is a float
         encoding the rotation angle of the area in degrees. Format:
         ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``
     """
@@ -1335,8 +1335,9 @@ def _sk_filter_areas(image, threshold):
     for region in skimage.measure.regionprops(lim):
         if region.area_filled < threshold:
             continue
-        # wait until after area check so calculating the more expensive
-        # region properties is only done for areas that pass threshold
+        # Wait until after area check so calculating the more expensive
+        # region properties is only done for areas that pass threshold.
+        # https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_regionprops.html#measure-region-properties
         w = region.axis_major_length - 1
         h = region.axis_minor_length - 1
         min_areas.append((
