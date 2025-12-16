@@ -201,9 +201,7 @@ def run_jump_detection(
 
     # Test to see if all groups are uniform and if there are enough
     # groups to use sigma clipping
-    if (np.std(twopt_p.n_reads_groupdiff) == 0 and
-        np.std(twopt_p.dt_group) == 0 and
-        check_sigma_clip_groups(nints, total_groups, twopt_p)):
+    if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
         gdq = det_jump_sigma_clipping(
             gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
@@ -476,8 +474,15 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
     Returns
     -------
     boolean
-        Are there enough groups to use sigma clipping.
+        Are there enough groups to use sigma clipping?
+        Returns False if groups are uneven, e.g., for Roman.
     """
+    # We cannot apply this test for uneven groups.
+    all_grps_uniform = (np.std(twopt_p.n_reads_groupdiff) == 0 and
+                        np.std(twopt_p.dt_group) == 0)
+    if not all_grps_uniform:
+        return False
+
     test1 = (twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups)
     test2 = (not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups)
     return test1 or test2
