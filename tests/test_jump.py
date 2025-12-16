@@ -3,7 +3,6 @@ import pytest
 from astropy.io import fits
 from stcal.jump.jump_class import JumpData
 from stcal.jump.jump import (
-    detect_jumps_data,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
