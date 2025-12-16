@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import special
 
 
 class IntegInfo:
@@ -166,15 +165,15 @@ class Covar:
             a resultant.
         """
         # Equations (4) and (11) in paper 1.
-        mean_t, tau, N, delta_t = self._compute_means_and_taus(readtimes)
+        mean_t, tau, n_reads, delta_t = self._compute_means_and_taus(readtimes)
 
         self.delta_t = delta_t
         self.mean_t = mean_t
         self.tau = tau
-        self.Nreads = N
+        self.Nreads = n_reads
 
         # Equations (28) and (29) in paper 1.
-        self._compute_alphas_and_betas(mean_t, tau, N, delta_t)
+        self._compute_alphas_and_betas(mean_t, tau, n_reads, delta_t)
 
     def _compute_means_and_taus(self, readtimes):
         """
@@ -189,40 +188,31 @@ class Covar:
         """
         mean_t = []  # mean time of the resultant as defined in the paper
         tau = []  # variance-weighted mean time of the resultant
-        N = []  # Number of reads per resultant
+        n_reads = []  # Number of reads per resultant
 
         for times in readtimes:
-            mean_t += [np.mean(times)]
+            mean_t.append(np.mean(times))
 
             if hasattr(times, "__len__"):
                 # eqn 11
-                N += [len(times)]
-                k = np.arange(1, N[-1] + 1)
-                if False:
-                    tau += [
-                        1
-                        / N[-1] ** 2
-                        * np.sum((2 * N[-1] + 1 - 2 * k) * np.array(times))
-                    ]
-                    # tau += [(np.sum((2*N[-1] + 1 - 2*k)*np.array(times))) / N[-1]**2]
-                else:
-                    length = N[-1]
-                    tmp0 = (2 * length + 1) - (2 * k)
-                    sm = np.sum(tmp0 * np.array(times))
-                    tmp = sm / length**2
-                    tau.append(tmp)
+                length = len(times)
+                n_reads.append(length)
+                k = np.arange(1, length + 1)
+                weight = (2 * length + 1) - (2 * k)
+                tau.append(np.sum(weight * np.array(times)) / length**2)
+
             else:
-                tau += [times]
-                N += [1]
+                tau.append(times)
+                n_reads.append(1)
 
         # readtimes is a list of lists, so mean_t is the list of each
         # mean of each list.
         mean_t = np.array(mean_t)
         tau = np.array(tau)
-        N = np.array(N)
+        n_reads = np.array(n_reads)
         delta_t = mean_t[1:] - mean_t[:-1]
 
-        return mean_t, tau, N, delta_t
+        return mean_t, tau, n_reads, delta_t
 
     def _compute_alphas_and_betas(self, mean_t, tau, N, delta_t):
         """
@@ -247,75 +237,3 @@ class Covar:
 
         self.alpha_phnoise = (tau[:-1] + tau[1:] - 2 * mean_t[:-1]) / delta_t**2
         self.beta_phnoise = (mean_t[1:-1] - tau[1:-1]) / (delta_t[1:] * delta_t[:-1])
-
-    def calc_bias(self, countrates, sig, cvec, da=1e-7):
-        """
-        Calculate the bias in the best-fit count rate from estimating the covariance matrix.
-
-        Section 5 of paper 1.
-
-        Arguments:
-        Parameters
-        ----------
-        countrates : ndarray
-            Array of count rates at which the bias is desired.
-
-        sig : float
-            Single read noise.
-
-        cvec : ndarray
-            Weight vector on resultant differences for initial estimation
-            of count rate for the covariance matrix. Will be renormalized
-            inside this function.
-
-        da : float
-            Fraction of the count rate plus sig**2 to use for finite difference
-            estimate of the derivative.  Optional parameter.  Default 1e-7.
-
-        Returns
-        -------
-        bias : ndarray
-            Bias of the best-fit count rate from using cvec plus the observed
-            resultants to estimate the covariance matrix.
-        """
-        raise NotImplementedError('Bias calculations are not implemented.')
-
-        alpha = countrates[np.newaxis, :] * self.alpha_phnoise[:, np.newaxis]
-        alpha += sig**2 * self.alpha_readnoise[:, np.newaxis]
-        beta = countrates[np.newaxis, :] * self.beta_phnoise[:, np.newaxis]
-        beta += sig**2 * self.beta_readnoise[:, np.newaxis]
-
-        # we only want the weights; it doesn't matter what the count rates are.
-        n = alpha.shape[0]
-        z = np.zeros((len(cvec), len(countrates)))
-        result_low_a = fit_ramps(z, self, sig, countrateguess=countrates)
-
-        # try to avoid problems with roundoff error
-        da_incr = da * (countrates[np.newaxis, :] + sig**2)
-
-        dalpha = da_incr * self.alpha_phnoise[:, np.newaxis]
-        dbeta = da_incr * self.beta_phnoise[:, np.newaxis]
-        result_high_a = fit_ramps(z, self, sig, countrateguess=countrates + da_incr)
-        # finite difference approximation to dw/da
-
-        dw_da = (result_high_a.weights - result_low_a.weights) / da_incr
-
-        bias = np.zeros(len(countrates))
-        c = cvec / np.sum(cvec)
-
-        for i in range(len(countrates)):
-
-            C = np.zeros((n, n))
-            for j in range(n):
-                C[j, j] = alpha[j, i]
-            for j in range(n - 1):
-                C[j + 1, j] = C[j, j + 1] = beta[j, i]
-
-            bias[i] = np.linalg.multi_dot([c[np.newaxis, :], C, dw_da[:, i]])
-
-            sig_a = np.sqrt(
-                np.linalg.multi_dot([c[np.newaxis, :], C, c[:, np.newaxis]])
-            )
-            bias[i] *= 0.5 * (1 + special.erf(countrates[i] / sig_a / 2**0.5))
-
-        return bias

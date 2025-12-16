@@ -3,8 +3,7 @@
 :py:func:`~stcal.skymatch.skymatch.skymatch`
 and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
-
+:Authors: Mihai Cara
 
 """
 # THIRD PARTY

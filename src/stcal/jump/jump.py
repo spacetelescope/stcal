@@ -8,17 +8,16 @@ import warnings
 from scipy import signal
 
 import numpy as np
-import cv2 as cv
 import astropy.stats as stats
-
+import skimage
 from astropy.convolution import Ring2DKernel
-from astropy.convolution import convolve
+
 
 from .twopoint_difference_class import TwoPointParams
 from . import twopoint_difference as twopt
+from stcal.multiprocessing import compute_num_cores
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def detect_jumps_data(jump_data):
@@ -58,9 +57,6 @@ def detect_jumps_data(jump_data):
 
     number_extended_events : int
         the number of showers or XXX found
-
-    stddev : float
-        standard deviation computed during sigma clipping
     """
     sat, jump, dnu = jump_data.fl_sat, jump_data.fl_jump, jump_data.fl_dnu
     number_extended_events = 0
@@ -85,15 +81,15 @@ def detect_jumps_data(jump_data):
     # figure out how many slices to make based on 'max_cores'
     max_available = multiprocessing.cpu_count()
     n_rows = data.shape[2]
-    n_slices = calc_num_slices(n_rows, jump_data.max_cores, max_available)
+    n_slices = compute_num_cores(jump_data.max_cores, n_rows, max_available)
 
-    twopt_params = TwoPointParams(jump_data, False)
+    twopt_params = TwoPointParams(jump_data)
     if n_slices == 1:
         twopt_params.minimum_groups = 3  # XXX Should this be hard coded as 3?
-        gdq, row_below_dq, row_above_dq, total_primary_crs, stddev = twopt.find_crs(
+        gdq, row_below_dq, row_above_dq, total_primary_crs = twopt.find_crs(
                     data, gdq, readnoise_2d, twopt_params)
     else:
-        gdq, total_primary_crs, stddev = twopoint_diff_multi(
+        gdq, total_primary_crs = twopoint_diff_multi(
             jump_data, twopt_params, data, gdq, readnoise_2d, n_slices)
 
     # remove redundant bits in pixels that have jump flagged but were
@@ -115,15 +111,8 @@ def detect_jumps_data(jump_data):
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", ".*in divide.*", RuntimeWarning)
-        # Back out the applied gain to the SCI and readnoise arrays so they're
-        #    back in units of DN
-        data /= jump_data.gain_2d
-        readnoise_2d /= jump_data.gain_2d
-
     # Return the updated data quality arrays
-    return gdq, pdq, total_primary_crs, number_extended_events, stddev
+    return gdq, pdq, total_primary_crs, number_extended_events
 
 
 def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
@@ -157,9 +146,6 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
 
     total_primary_crs : int
         total number of primary cosmic rays computed
-
-    stddev : float
-        standard deviation computed during sigma clipping
     """
     slices, yinc = slice_data(twopt_params, data, gdq, readnoise_2d, n_slices)
 
@@ -185,7 +171,7 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     ----------
     real_result : tuple
         The tuple return values from twopt.find_crs
-        (gdq, row_below_gdq, row_above_gdq, num_primary_crs, dummy/stddev)
+        (gdq, row_below_gdq, row_above_gdq, num_primary_crs)
 
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
@@ -204,10 +190,6 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
 
     total_primary_crs : int
         Total number of primary cosmic rays detected.
-
-    stddev : float
-        standard deviation computed during sigma clipping
-
     """
     nints, ngroups, nrows, ncols = gdq.shape
     row_above_gdq = np.zeros((nints, ngroups, ncols), dtype=np.uint8)
@@ -217,25 +199,13 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
     # Reconstruct gdq, the row_above_gdq, and the row_below_gdq from the
     # slice result
     total_primary_crs = 0
-    if jump_data.only_use_ints:
-        stddev = np.zeros((ngroups - 1, nrows, ncols), dtype=np.float32)
-    else:
-        stddev = np.zeros((nrows, ncols), dtype=np.float32)
 
     # Reassemble the data
     for k, resultslice in enumerate(real_result):
         if len(real_result) == k + 1:  # last result
             gdq[:, :, k * yinc: nrows, :] = resultslice[0]
-            if jump_data.only_use_ints:
-                stddev[:, k * yinc: nrows, :] = resultslice[4]
-            else:
-                stddev[k * yinc: nrows, :] = resultslice[4]
         else:
             gdq[:, :, k * yinc: (k + 1) * yinc, :] = resultslice[0]
-            if jump_data.only_use_ints:
-                stddev[:, k * yinc: (k + 1) * yinc, :] = resultslice[4]
-            else:
-                stddev[k * yinc : (k + 1) * yinc, :] = resultslice[4]
         row_below_gdq[:, :, :] = resultslice[1]
         row_above_gdq[:, :, :] = resultslice[2]
         total_primary_crs += resultslice[3]
@@ -250,7 +220,7 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
         # save the neighbors to be flagged that will be in the next slice
         previous_row_above_gdq = row_above_gdq.copy()
 
-    return gdq, total_primary_crs, stddev
+    return gdq, total_primary_crs
 
 
 
@@ -291,7 +261,6 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     # Each element of slices is a tuple of
     # (data, gdq, readnoise_2d, rejection_thresh, three_grp_thresh,
     #  four_grp_thresh, nframes)
-    twopt_params.copy_arrs = False  # we don't need to copy arrays again in find_crs
     for i in range(n_slices - 1):
         slices.insert(
             i,
@@ -528,22 +497,11 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     iy1 = max(xc - dn_over_2, 0)
     iy2 = min(xc + dn_over_2 + 1, shape[0])
 
-    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1, 3), dtype=np.uint8)
-    image = cv.ellipse(
-        image,
-        (yc - ix1, xc - iy1),
-        (round(axis1 / 2), round(axis2 / 2)),
-        alpha,
-        0,
-        360,
-        (0, 0, value),
-        -1,
-    )
+    image = np.zeros(shape=(iy2 - iy1, ix2 - ix1), dtype=np.uint8)
+    saty, satx = _sk_ellipse((iy2 - iy1, ix2 - ix1), (yc - ix1,xc - iy1), (round(axis1/2), round(axis2/2)), alpha)
+    image[saty, satx] = value
 
-    # The last ("blue") part contains the filled ellipse that we want.
-    subimage = image[:, :, 2]
-    return (iy1, iy2, ix1, ix2), subimage
-
+    return (iy1, iy2, ix1, ix2), image
 
 
 def extend_ellipses(
@@ -642,14 +600,8 @@ def find_ellipses(dqplane, bitmask, min_area):
     # Using an input DQ plane this routine will find the groups of pixels with
     # at least the minimum
     # area and return a list of the minimum enclosing ellipse parameters.
-    pixels = np.bitwise_and(dqplane, bitmask)
-    contours, hierarchy = cv.findContours(pixels, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    bigcontours = [con for con in contours if cv.contourArea(con) > min_area]
-
-    # minAreaRect is used because fitEllipse requires 5 points and it is
-    # possible to have a contour
-    # with just 4 points.
-    return [cv.minAreaRect(con) for con in bigcontours]
+    pixels = np.bitwise_and(dqplane, bitmask) if bitmask is not None else dqplane
+    return _sk_filter_areas(pixels, min_area)
 
 
 def make_snowballs(
@@ -853,21 +805,13 @@ def find_faint_extended(
             if nints >= jump_data.minimum_sigclip_groups:
                 ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
-            bigcontours = get_bigcontours(
-                    ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
-
-            # get the minimum enclosing rectangle which is the same as the
-            # minimum enclosing ellipse
-            ellipses = [cv.minAreaRect(con) for con in bigcontours]
-            image = np.zeros(shape=(nrows, ncols, 3), dtype=np.uint8)
-            expand_by_ratio, expansion = True, 1.0
-            image = process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data)
+            ellipses = get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
 
             if len(ellipses) > 0:
                 # add all the showers for this integration to the list
                 all_ellipses.append([intg, grp, ellipses])
-                # Reset the warnings filter to its original state
 
+    # Reset the warnings filter to its original state
     warnings.resetwarnings()
     total_showers = 0
 
@@ -986,43 +930,6 @@ def count_dnu_groups(gdq, jump_data):
     return num_grps_donotuse
 
 
-def process_ellipses(ellipses, image, expand_by_ratio, expansion, jump_data):
-    """
-    Draw ellipses onto an image.
-
-    Parameters
-    ----------
-    ellipses : list
-        List of ellipses
-
-    image : ndarray
-        The image on which to draw the ellipses.
-
-    expand_by_ratio : bool
-        Should the ellipses be expanded?
-
-    expansion : float
-        The ellipse expansion factor
-
-    jump_data : JumpData
-        Class containing parameters and methods to detect jumps.
-
-    Returns
-    -------
-    image : ndarray
-        The image with ellipses drawn on it.
-    """
-    for ellipse in ellipses:
-        ceny, cenx = ellipse[0][0], ellipse[0][1]
-        cen = (round(ellipse[0][0]), round(ellipse[0][1]))
-        axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
-        alpha = ellipse[2]
-        color = (0, 0, jump_data.fl_jump)
-        image = cv.ellipse(image, cen, axes, alpha, 0, 360, color, -1)
-
-    return image
-
-
 def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     """
     Expand the ellipse by the expansion factor.
@@ -1067,7 +974,7 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     return (round(axis1 / 2), round(axis2 / 2))
 
 
-def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
+def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     """Perform convolution to find contours larger than a minimum area.
 
     Parameters
@@ -1094,8 +1001,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
     Returns
     -------
-    bigcontours : list 
-        list of OpenCV countours
+    list of computed ellipses
     """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
@@ -1118,12 +1024,7 @@ def get_bigcontours(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
 
     #  find the contours of the extended emission
-    contours, hierarchy = cv.findContours(
-            extended_emission, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
-    #  get the contours that are above the minimum size
-    bigcontours = [con for con in contours if cv.contourArea(con) > jump_data.extend_min_area]
-    return bigcontours 
+    return _sk_filter_areas(extended_emission, jump_data.extend_min_area)
 
 
 
@@ -1316,36 +1217,74 @@ def find_first_good_group(int_gdq, do_not_use):
     return first_good_group
 
 
-def calc_num_slices(n_rows, max_cores, max_available):
+def _sk_ellipse(shape, center, axes, angle):
     """
-    Compute the number of data slices needed for multiprocessesing.
+    Generate coordinates for an ellipse.
 
     Parameters
     ----------
-    n_rows : int
-        The number of rows of the science data.
+    shape : tuple
+        Image shape
 
-    max_cores : str
-        The number of processes requested.
+    center : list of float
+        Center coordinate (x, y)
 
-    max_available ; int
-        The maximum number of CPU cores available.
+    axes : list of float
+        Ellipse axes/radii
+
+    angle: float
+        Ellipse angle in degrees
 
     Returns
     -------
-    The number of slices to slice the data into.
+    ndarray
+        Array of ellipse coordinates.
     """
-    n_slices = 1
-    if max_cores.isnumeric():
-        n_slices = int(max_cores)
-    elif max_cores.lower() == "none" or max_cores.lower() == "one":
-        n_slices = 1
-    elif max_cores == "quarter":
-        n_slices = max_available // 4 or 1
-    elif max_cores == "half":
-        n_slices = max_available // 2 or 1
-    elif max_cores == "all":
-        n_slices = max_available
+    if axes[1] == 0 or axes[0] == 0:
+        return [], []
+    return skimage.draw.ellipse(
+        center[1], center[0],
+        axes[1], axes[0],
+        shape,
+        np.radians(angle),
+    )
 
-    # Make sure we don't have more slices than rows or available cores.
-    return min([n_rows, n_slices, max_available])
+
+def _sk_filter_areas(image, threshold):
+    """
+    Find contiguous areas larger than some threshold.
+
+    Parameters
+    ----------
+    image : ndarray
+        Binary image.
+
+    threshold : float
+        Minimum area threshold used to filter returned areas.
+
+    Returns
+    -------
+    list
+        List of found areas. Each area is a rotated rectangular
+        region encoded as is a 3 element list of values.
+        The first element is a list of 2 floats encoding the
+        center column and row. Element 2 is a list of 2 floats encoding
+        the area minor and major axis lengths. Element 3 is a float
+        encoding the rotation angle of the area in degrees.
+    """
+    lim = skimage.measure.label(image)
+    min_areas = []
+    for region in skimage.measure.regionprops(lim):
+        if region.area_filled < threshold:
+            continue
+        # wait util after area check so calculating the more expensive
+        # region properties is only done for areas that pass threshold
+        w = region.axis_major_length - 1
+        h = region.axis_minor_length - 1
+        # opencv returns
+        # [[cy, cx], [dy, dx], [angle]]
+        min_areas.append((
+            (float(region.centroid[1]), float(region.centroid[0])),
+            (h, w),
+            np.degrees(region.orientation)))
+    return min_areas

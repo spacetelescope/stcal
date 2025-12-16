@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from drizzle.utils import calc_pixmap
@@ -8,6 +10,8 @@ from stcal.resample.utils import (
 )
 
 import numpy as np
+
+from stcal.alignment.util import wcs_from_footprints
 
 from . helpers import (
     make_gwcs,
@@ -51,7 +55,7 @@ class _CustomResample(Resample):
 
 
 @pytest.mark.parametrize(
-    "weight_type", ["ivm", "exptime"]
+    "weight_type", ["ivm", "exptime", "ivm-sky"]
 )
 def test_resample_mostly_defaults(weight_type):
     crval = (150.0, 2.0)
@@ -126,14 +130,9 @@ def test_resample_mostly_defaults(weight_type):
 
 
 @pytest.mark.parametrize(
-    "compute_err,weight_type",
-    [
-        ("from_var", "ivm"),
-        ("from_var", "exptime"),
-        ("driz_err", "ivm")
-    ]
+    "compute_err", ["from_var", "driz_err"]
 )
-def test_resample_compute_error_mode(compute_err, weight_type):
+def test_resample_compute_error_mode(compute_err):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -153,7 +152,7 @@ def test_resample_compute_error_mode(compute_err, weight_type):
     resample = Resample(
         n_input_models=nmodels,
         output_wcs=output_model,
-        weight_type=weight_type,
+        weight_type="ivm",
         compute_err=compute_err,
     )
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
@@ -175,9 +174,7 @@ def test_resample_compute_error_mode(compute_err, weight_type):
         im["data"][:, :] = data_val
 
         ttime += exptime
-        if weight_type == "ivm":
-            exptime = 1
-        influx += exptime * data_val
+        influx += data_val
 
         resample.add_model(im)
 
@@ -200,6 +197,69 @@ def test_resample_compute_error_mode(compute_err, weight_type):
     assert np.nansum(resample.output_model["var_flat"]) > 0.0
     assert np.nansum(resample.output_model["var_poisson"]) > 0.0
     assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
+
+@pytest.mark.parametrize(
+    "compute_err",
+    [
+        ("from_var"),
+        ("driz_err")
+    ]
+)
+def test_resample_error_scaling(compute_err):
+    crval = (150.0, 2.0)
+    crpix = (500.0, 500.0)
+    shape = (1000, 1000)
+    out_shape = (500, 500)
+    weight_type = 'exptime'
+    pscale_in = 0.1 / 3600 # Input pixel scale 0.1 arcsec
+    pscale_out = 0.2 / 3600 # Output pixel scale 0.2 arcsec
+    sb_in = 1.0 # Input surface brightness
+    sb_err_in = 0.1 # Input surface brightness error
+
+    output_model = make_output_model(
+        crpix=(250, 250),
+        crval=crval,
+        pscale=pscale_out,
+        shape=out_shape,
+    )
+
+    resample = Resample(
+        n_input_models=1,
+        output_wcs=output_model,
+        weight_type=weight_type,
+        compute_err=compute_err,
+    )
+    resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
+
+    im = make_input_model(
+        shape=shape,
+        crpix=tuple(i - 6 for i in crpix),
+        crval=crval,
+        pscale=pscale_in,
+        group_id=1
+    )
+    im["data"][:, :] = sb_in
+    im["err"][:, :] = sb_err_in
+    im["var_poisson"][:, :] = sb_err_in ** 2
+    im["var_rnoise"][:, :] = 0
+    im["var_flat"][:, :] = 0
+    resample.add_model(im)
+
+    resample.finalize()
+
+    odata = resample.output_model["data"]
+    oerr = resample.output_model["err"]
+
+    # Surface brightness should be unchanged with new pixel scale
+    assert np.allclose(np.nanmedian(odata),
+                       sb_in,
+                       atol=0,
+                       rtol=1e-6)
+    # Surface brightness error should have scaled with pixel area
+    assert np.allclose(np.nanmedian(oerr),
+                       sb_err_in * (pscale_in / pscale_out),
+                       atol=0,
+                       rtol=1e-6)
 
 
 def test_resample_add_model_hook():
@@ -240,3 +300,67 @@ def test_resample_add_model_hook():
     with pytest.raises(RuntimeError, match="raised by subclass' add_model_hook") as err_info:
         resample.add_model(im)
 
+@pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
+@pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
+@pytest.mark.parametrize("weight_type", ["exptime", "ivm", "ivm-sky"])
+def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel,
+                             weight_type):
+    """ test surface-brightness photometry """
+    model = nrcb5_many_fluxes
+
+    wcs = model["wcs"]
+    wcsinfo = model["wcsinfo"]
+    stars = model["stars"]
+
+    output_wcs = wcs_from_footprints(
+        [wcs],
+        wcs,
+        wcsinfo,
+        pscale_ratio=pscale_ratio
+    )
+
+    weight = build_driz_weight(
+        model,
+        weight_type=weight_type,
+        good_bits=0,
+        flag_name_map=JWST_DQ_FLAG_DEF
+    )
+
+    resample = Resample(
+        n_input_models=1,
+        output_wcs={"wcs": output_wcs},
+        weight_type=weight_type,
+        enable_var=False,
+        compute_err=False,
+        fillval="NAN",
+        kernel=kernel
+    )
+    resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
+    resample.add_model(model)
+    resample.finalize()
+
+    # for efficiency, instead of doing this patch-by-patch,
+    # multiply resampled data by resampled image weight
+    out_wht = resample.output_model['wht']
+    out_wdata = resample.output_model["data"] * out_wht
+
+    in_wdata = model["data"] * weight
+
+    pixmap = calc_pixmap(
+        wcs,
+        output_wcs,
+        model["data"].shape,
+    )
+
+    dim3 = (slice(None, None, None), )
+
+    for _, _, sl in stars:
+        wfin = in_wdata[sl].sum()
+        xyout = pixmap[sl + dim3]
+        xmin = math.floor(xyout[:, :, 0].min() - 0.5)
+        xmax = math.ceil(xyout[:, :, 0].max() + 1.5)
+        ymin = math.floor(xyout[:, :, 1].min() - 0.5)
+        ymax = math.ceil(xyout[:, :, 1].max() + 1.5)
+        wfout = np.nansum(out_wdata[ymin:ymax, xmin:xmax])
+
+        assert np.allclose(wfin, wfout, rtol=1.0e-6, atol=0.0)

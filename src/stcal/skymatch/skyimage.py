@@ -4,8 +4,7 @@ The ``skyimage`` module contains algorithms that are used by
 on the sky as well as perform useful operations on these outlines such as
 computing intersections and statistics in the overlap regions.
 
-:Authors: Mihai Cara (contact: help@stsci.edu)
-
+:Authors: Mihai Cara
 
 """
 

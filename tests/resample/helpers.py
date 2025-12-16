@@ -7,6 +7,7 @@ from gwcs.wcstools import wcs_from_fiducial
 import numpy as np
 
 from stcal.alignment import compute_s_region_imaging
+from stcal.resample.utils import compute_mean_pixel_area
 
 
 class JWST_DQ_FLAG_DEF(BitFlagNameMap):
@@ -107,10 +108,50 @@ def make_input_model(shape, crpix=(0, 0), crval=(0, 0), pscale=2.0e-5,
         "subtracted": False,
     }
 
-    for arr in ["var_flat", "var_rnoise", "var_poisson"]:
+    for arr in ["var_flat", "var_rnoise", "var_poisson", "var_sky"]:
         model[arr] = np.ones(shape, dtype=np.float32)
 
     model["err"] = np.sqrt(3.0) * np.ones(shape, dtype=np.float32)
+
+    return model
+
+
+def make_nrcb5_model(wcs_wcsinfo, group_id=1, exptime=1):
+    wcs, wcsinfo = wcs_wcsinfo
+    shape = wcs.array_shape
+    pixel_area = compute_mean_pixel_area(wcs)
+
+    model = {
+        "data": np.zeros(shape, dtype=np.float32),
+        "dq": np.zeros(shape, dtype=np.int32),
+
+        # meta:
+        "filename": "",
+        "group_id": group_id,
+        "s_region": compute_s_region_imaging(wcs),
+        "wcs": wcs,
+        "wcsinfo": wcsinfo,
+        "bunit_data": "MJy",
+
+        "exposure_time": exptime,
+        "start_time": 0.0,
+        "end_time": exptime,
+        "duration": exptime,
+        "measurement_time": exptime,
+        "effective_exposure_time": exptime,
+        "elapsed_exposure_time": exptime,
+
+        "pixelarea_steradians": pixel_area,
+        "pixelarea_arcsecsq": pixel_area * (np.rad2deg(1) * 3600)**2,
+
+        "level": 0.0,  # sky level
+        "subtracted": False,
+    }
+
+    for arr in ["var_flat", "var_rnoise", "var_poisson", "var_sky"]:
+        model[arr] = np.zeros(shape, dtype=np.float32)
+
+    model["err"] = np.zeros(shape, dtype=np.float32)
 
     return model
 
@@ -138,6 +179,7 @@ def make_output_model(crpix, crval, pscale, shape):
         "var_rnoise": None,
         "var_flat": None,
         "var_poisson": None,
+        "var_sky": None,
         "err": None,
 
         # drizzle info:

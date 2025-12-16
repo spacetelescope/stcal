@@ -1,8 +1,6 @@
 import logging
-import warnings
 
 import numpy as np
-from scipy.ndimage import median_filter
 from astropy.nddata.bitmask import (
     bitfield_to_boolean_mask,
     interpret_bit_flags,
@@ -22,7 +20,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 
 def resample_range(data_shape, bbox=None):
@@ -74,20 +71,19 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     model : dict
         Input model: a dictionary of relevant keywords and values.
 
-    weight_type : {"exptime", "ivm"}, None, optional
-        The weighting type for adding models' data. For
-        ``weight_type="ivm"``, the weighting will be
-        determined per-pixel using the inverse of the read noise
-        (VAR_RNOISE) array stored in each input image. If the
-        ``VAR_RNOISE`` array does not exist,
-        the variance is set to 1 for all pixels (i.e., equal weighting).
-        If ``weight_type="exptime"``, the weight will be set equal
-        to the measurement time when available and to
-        the exposure time otherwise for pixels not flagged in the DQ array of
-        the model. The default value of `None` will
-        set weights to 1 for pixels not flagged in the DQ array of the model.
-        Pixels flagged as "bad" in the DQ array will have thier weights
-        set to 0.
+    weight_type : str or None, optional
+        The weighting type ("exptime", "ivm", or "ivm-sky") for adding models' data.
+        For ``weight_type="ivm"`` and ``weight_type="ivm-sky"``,
+        the weighting will be determined
+        per-pixel using the inverse of either the read noise (VAR_RNOISE) or
+        sky variance (VAR_SKY) arrays, respectively. If the array does not
+        exist, the weight is set to 1 for all pixels (i.e., equal weighting).
+        If ``weight_type="exptime"``, the weight will be set equal to the
+        measurement time when available and to the exposure time otherwise for
+        pixels not flagged in the DQ array of the model. The default value of
+        `None` will set weights to 1 for pixels not flagged in the DQ array of
+        the model. Pixels flagged as "bad" in the DQ array will have their
+        weights set to 0.
 
     good_bits : int, str, None, optional
         An integer bit mask, `None`, a Python list of bit flags, a comma-,
@@ -101,7 +97,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         A `~astropy.nddata.BitFlagNameMap` object or a dictionary that provides
         mapping from mnemonic bit flag names to integer bit values in order to
         translate mnemonic flags to numeric values when ``bit_flags``
-        that are comma- or '+'-separated list of menmonic bit flag names.
+        that are comma- or '+'-separated list of mnemonic bit flag names.
 
     """
     data = model["data"]
@@ -115,23 +111,23 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
         flag_name_map=flag_name_map,
     )
 
-    if weight_type == 'ivm':
-        var_rnoise = model["var_rnoise"]
-        if (var_rnoise is not None and
-                var_rnoise.shape == data.shape):
-            with np.errstate(divide="ignore", invalid="ignore"):
-                inv_variance = var_rnoise**-1
-            inv_variance[~np.isfinite(inv_variance)] = 1
-            result = inv_variance * dqmask
-        else:
-            warnings.warn(
-                "'var_rnoise' array not available. "
-                "Setting drizzle weight map to 1",
-                RuntimeWarning
-            )
-            result = dqmask
+    if weight_type == "ivm":
+        inv_variance = _get_inverse_variance(
+            model["var_rnoise"] if "var_rnoise" in model else None,
+            data.shape,
+            "var_rnoise",
+        )
+        result = inv_variance * dqmask
 
-    elif weight_type == 'exptime':
+    elif weight_type == "ivm-sky":
+        inv_sky_variance = _get_inverse_variance(
+            model["var_sky"] if "var_sky" in model else None,
+            data.shape,
+            "var_sky",
+        )
+        result = inv_sky_variance * dqmask
+
+    elif weight_type == "exptime":
         exptime, _ = get_tmeasure(model)
         result = np.float32(exptime) * dqmask
 
@@ -141,7 +137,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
     else:
         raise ValueError(
             f"Invalid weight type: {repr(weight_type)}."
-            "Allowed weight types are 'ivm', 'exptime', or None."
+            "Allowed weight types are 'ivm', 'ivm-sky', 'exptime', or None."
         )
 
     return result.astype(np.float32)
@@ -253,7 +249,7 @@ def compute_mean_pixel_area(wcs, shape=None):
 
         limits = [ymin, xmax, ymax, xmin]
 
-        for j in range(4):
+        for _ in range(4):
             sl = [b, r, t, l][k]
             if not (np.all(np.isfinite(ra[sl])) and
                     np.all(np.isfinite(dec[sl]))):
@@ -281,6 +277,9 @@ def compute_mean_pixel_area(wcs, shape=None):
             "Setting area to: 4*Pi - area"
         )
         sky_area = 4 * np.pi - sky_area
+    if image_area == 0:
+        log.error("Image area is zero; cannot compute pixel area.")
+        return None
     pix_area = sky_area / image_area
 
     return pix_area
@@ -361,9 +360,9 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
     nx = xmax - xmin + 1
     ny = ymax - ymin + 1
 
-    if dx is None:
+    if dx is None or dx <= 0:
         dx = nx
-    if dy is None:
+    if dy is None or dy <= 0:
         dy = ny
 
     if nx - 2 * shrink < 1 or ny - 2 * shrink < 1:
@@ -420,3 +419,35 @@ def is_flux_density(bunit):
     except (ValueError, TypeError):
         flux_density = False
     return flux_density
+
+
+def _get_inverse_variance(array, data_shape, array_name):
+    """
+    Compute the inverse variance array for weighting.
+
+    Parameters
+    ----------
+    array : numpy.ndarray or None
+        Input variance array.
+    data_shape : tuple
+        Expected shape of the output array.
+
+    Returns
+    -------
+    inv : numpy.ndarray
+        Inverse variance array. If input array is missing or has wrong shape,
+        returns an array filled with ones of shape `data_shape`.  Otherwise the inverse of the variance
+        array is returned, with invalid values replaced by zeros.
+    """
+    if array is not None and array.shape == data_shape:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            inv = 1.0 / array
+        inv[~np.isfinite(inv)] = 0  # zeros for bad pixels
+    else:
+        log.warning(
+            f"'{array_name}' array not available. "
+            "Setting drizzle weight map to 1",
+        )
+        inv = np.full(data_shape, 1, dtype=np.float32)   # ones for missing/misshaped array
+
+    return inv

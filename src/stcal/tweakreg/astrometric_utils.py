@@ -1,7 +1,6 @@
 import os
 
 import requests
-from astropy import table
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
@@ -34,9 +33,9 @@ def create_astrometric_catalog(
         epoch,
         catalog="GAIADR3",
         output="ref_cat.ecsv",
-        gaia_only=False,
         table_format="ascii.ecsv",
-        num_sources=None):
+        num_sources=None,
+        timeout=TIMEOUT):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
     Parameters
@@ -61,13 +60,13 @@ def create_astrometric_catalog(
         Filename to give to the astrometric catalog read in from the master
         catalog web service.  If None, no file will be written out.
 
-    gaia_only : bool, optional
-        Specify whether or not to only use sources from GAIA in output catalog
-
     num_sources : int
         Maximum number of brightest/faintest sources to return in catalog.
         If `num_sources` is negative, return that number of the faintest
         sources.  By default, all sources are returned.
+
+    timeout : float
+        Maximum time to wait (in seconds) for the catalog service to respond.
 
 
 
@@ -90,7 +89,9 @@ def create_astrometric_catalog(
         fiducial[1],
         epoch=epoch,
         search_radius=radius,
-        catalog=catalog)
+        catalog=catalog,
+        timeout=timeout
+    )
     if len(ref_dict) == 0:
         return ref_dict
 
@@ -99,25 +100,10 @@ def create_astrometric_catalog(
 
     # Add catalog name as meta data
     ref_table.meta["catalog"] = catalog
-    ref_table.meta["gaia_only"] = gaia_only
 
     # rename coordinate columns to be consistent with tweakwcs
     ref_table.rename_column("ra", "RA")
     ref_table.rename_column("dec", "DEC")
-
-    # Append GAIA ID as a new column to the table...
-    gaia_sources = []
-    for source in ref_dict:
-        if "GAIAsourceID" in source:
-            g = source["GAIAsourceID"]
-            if gaia_only and g.strip() == "":
-                continue
-        else:
-            g = "-1"  # indicator for no source ID extracted
-        gaia_sources.append(g)
-
-    gaia_col = table.Column(data=gaia_sources, name="GaiaID", dtype="U25")
-    ref_table.add_column(gaia_col)
 
     # sort table by magnitude, fainter to brightest
     ref_table.sort("mag", reverse=True)
@@ -190,7 +176,7 @@ def get_catalog(
 
     """
     service_type = "vo/CatalogSearch.aspx"
-    spec_str = "RA={}&DEC={}&EPOCH={}&SR={}&FORMAT={}&CAT={}&MINDET=5"
+    spec_str = "RA={}&DEC={}&EPOCH={}&SR={}&FORMAT={}&CAT={}"
     headers = {"Content-Type": "text/csv"}
     fmt = "CSV"
 
@@ -216,9 +202,6 @@ def get_catalog(
             "There was an unexpected error with the request."
         )
     r_contents = rawcat.content.decode()  # convert from bytes to a String
-    rstr = r_contents.split("\r\n")
-    # remove initial line describing the number of sources returned
-    # CRITICAL to proper interpretation of CSV data
-    del rstr[0]
-
-    return Table.read(rstr, format="csv")
+    if r_contents.startswith("No data records"):
+        r_contents = "\n"
+    return Table.read(r_contents, format="csv", comment='#')

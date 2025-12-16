@@ -16,7 +16,6 @@
 import logging
 
 import numpy as np
-from astropy import units as u
 
 from . import (
     likely_fit, # used only if algorithm is "LIKELY"
@@ -25,7 +24,6 @@ from . import (
 )
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
@@ -38,6 +36,10 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     ----------
     model : data model
         input data model, assumed to be of type RampModel
+
+    algorithm : str
+        'OLS_C' specifies that ordinary least squares should be used;
+        'LIKELY' specifies that maximum likelihood should be used.
 
     dqflags : dict
         The data quality flags needed for ramp fitting.
@@ -53,31 +55,37 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     """
     ramp_data = ramp_fit_class.RampData()
 
-    if not hasattr(model, 'average_dark_current'):
-        dark_current_array = np.zeros_like(model.pixeldq)
-    else:
+    if model.hasattr("average_dark_current"):
         dark_current_array = model.average_dark_current
+    else:
+        dark_current_array = np.zeros(model.pixeldq.shape, dtype=np.float32)
+
+    if model.hasattr("zeroframe"):
+        zeroframe = model.zeroframe
+    else:
+        zeroframe = None
 
     orig_gdq = None
     if algorithm.upper() == "OLS_C":
-        wh_chargeloss = np.where(np.bitwise_and(model.groupdq.astype(np.uint32), dqflags['CHARGELOSS']))
-        if len(wh_chargeloss[0]) > 0:
+        wh_chargeloss = model.groupdq & dqflags['CHARGELOSS']
+        if np.any(wh_chargeloss > 0):
             orig_gdq = model.groupdq.copy()
         del wh_chargeloss
 
-    if isinstance(model.data, u.Quantity):
-        ramp_data.set_arrays(model.data.value, model.groupdq,
-                             model.pixeldq, dark_current_array)
-    else:
-        ramp_data.set_arrays(
-            model.data,
-            model.groupdq,
-            model.pixeldq,
-            dark_current_array,
-            orig_gdq)
+    ramp_data.set_arrays(
+        model.data,
+        model.groupdq,
+        model.pixeldq,
+        dark_current_array,
+        orig_gdq=orig_gdq,
+        zeroframe=zeroframe,
+    )
 
-    # Attribute may not be supported by all pipelines.  Default is NoneType.
-    drop_frames1 = model.meta.exposure.drop_frames1 if hasattr(model, "drop_frames1") else None
+    # Attribute may not be supported by all pipelines.  Default is None.
+    if hasattr(model.meta.exposure, "drop_frames1"):
+        drop_frames1 = model.meta.exposure.drop_frames1
+    else:
+        drop_frames1 = None
     ramp_data.set_meta(
         name=model.meta.instrument.name,
         frame_time=model.meta.exposure.frame_time,
@@ -87,11 +95,7 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
         drop_frames1=drop_frames1,
     )
 
-    if "zero_frame" in model.meta.exposure and model.meta.exposure.zero_frame:
-        ramp_data.zeroframe = model.zeroframe
-
     ramp_data.algorithm = algorithm
-
     if hasattr(model.meta.exposure, "read_pattern"):
         ramp_data.read_pattern = [list(reads) for reads in model.meta.exposure.read_pattern]
 
@@ -182,12 +186,12 @@ def ramp_fit(
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
     return ramp_fit_data(
-        ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+        ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores
     )
 
 
 def ramp_fit_data(
-    ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, dqflags
+    ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores
 ):
     """
     This function begins the ramp fit computation after the creation of the
@@ -222,10 +226,6 @@ def ramp_fit_data(
         values are 'quarter', 'half', and 'all'. This is the fraction of cores
         to use for multi-proc. The total number of cores includes the SMT cores
         (Hyper Threading for Intel).
-
-    dqflags : dict
-        A dictionary with at least the following keywords:
-        DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
     Returns
     -------
