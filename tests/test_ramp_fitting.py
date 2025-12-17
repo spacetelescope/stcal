@@ -593,7 +593,10 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     check = np.array([[np.nan, np.nan, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
+    else:  # LIKELY
+        check = np.array([[DNU | SAT, SAT, GOOD]])
     np.testing.assert_equal(sdq, check)
 
     if algo == DEFAULT_OLS:
@@ -620,7 +623,10 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     check = np.array([[[np.nan, np.nan, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[DNU | SAT, SAT, GOOD]]])
     np.testing.assert_equal(cdq, check)
 
     if algo == DEFAULT_OLS:
@@ -755,7 +761,10 @@ def test_one_group_ramp_suppressed_two_integrations(algo):
     check = np.array([[[np.nan, np.nan, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     np.testing.assert_equal(cdq, check)
 
     if algo == DEFAULT_OLS:
@@ -1584,9 +1593,14 @@ def test_invalid_integrations(algo):
         check = np.array([np.nan, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
     np.testing.assert_allclose(cdata[:, 0, 0], check, tol, tol)
 
-    check = np.array(
-        [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
-    )
+    if algo == DEFAULT_OLS:
+        check = np.array(
+            [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
+        )
+    else:  # LIKELY
+        check = np.array(
+            [JUMP, JUMP, JUMP, GOOD, JUMP, JUMP, JUMP, JUMP], dtype=np.uint8
+        )
     check |= SAT
     np.testing.assert_equal(cdq[:, 0, 0], check)
 
