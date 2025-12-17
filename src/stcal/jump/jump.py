@@ -96,7 +96,6 @@ def detect_jumps_data(jump_data):
     readnoise_2d = jump_data.rnoise_2d * jump_data.gain_2d
 
     # also apply to the after_jump thresholds
-    # Ken M: Maybe move this computation
     jump_data.after_jump_flag_e1 = jump_data.after_jump_flag_dn1 * np.nanmedian(jump_data.gain_2d)
     jump_data.after_jump_flag_e2 = jump_data.after_jump_flag_dn2 * np.nanmedian(jump_data.gain_2d)
 
@@ -111,7 +110,7 @@ def detect_jumps_data(jump_data):
 
     twopt_params = TwoPointParams(jump_data)
     if n_slices == 1:
-        twopt_params.minimum_groups = 3  # Ken M: Should this be hard coded as 3?
+        twopt_params.minimum_groups = 3
         gdq, row_below_dq, row_above_dq, total_primary_crs = twopt.find_crs(
                     data, gdq, readnoise_2d, twopt_params)
     else:
