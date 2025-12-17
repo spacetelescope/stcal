@@ -46,6 +46,11 @@ of the input data.
 
 If ``abs_refcat`` is set to 'GAIADR3_S3' the `HATS <https://hats.readthedocs.io/en/stable/>`_
 package will be used to access an S3 bucket containing a partitioned Gaia data release 3 catalog.
+When using the S3 catalog and a specified epoch, source positions are corrected internally by
+propagating the position to the given epoch using the Gaia proper motions and parallaxes
+(and throwing away any sources without computed proper motions and parallaxes).
+Parallaxes are computed as if the observer were located at the Earth barycenter.
+
 The combined source catalog 
 then gets cross-matched and fit to this astrometric reference catalog.
 The results of this one fit then gets back-propagated to all the
