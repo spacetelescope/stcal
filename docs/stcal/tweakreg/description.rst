@@ -45,14 +45,14 @@ of the input data.
 .. _STScI MAST Catalogs: https://outerspace.stsci.edu/display/MASTDATA/Catalog+Access
 
 If ``abs_refcat`` is set to 'GAIADR3_S3' the `HATS <https://hats.readthedocs.io/en/stable/>`_
-package will be used to access an S3 bucket containing a partitioned GAIA data release 3 catalog.
+package will be used to access an S3 bucket containing a partitioned Gaia data release 3 catalog.
 The combined source catalog 
 then gets cross-matched and fit to this astrometric reference catalog.
 The results of this one fit then gets back-propagated to all the
 input images to align them all to the astrometric reference frame while
 maintaining the relative alignment between the images.
 
-For this part of alignment, instead of one of the above GAIA catalogs, users can
+For this part of alignment, instead of one of the above Gaia catalogs, users can
 supply an external reference catalog by providing a path to an existing
 file. A user-supplied catalog must contain ``'RA'`` and ``'DEC'`` columns
 indicating reference source world coordinates (in degrees). An optional column
