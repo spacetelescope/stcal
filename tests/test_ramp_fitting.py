@@ -1,6 +1,7 @@
-import numpy as np
-
 import sys
+
+import numpy as np
+import pytest
 
 from stcal.multiprocessing import compute_num_cores
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
@@ -439,7 +440,8 @@ def test_miri_ramp_dnu_and_jump_at_ramp_beginning():
     assert abs(s2[0, 0] - answer) < tol
 
 
-def test_2_group_cases():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_2_group_cases(algo):
     """
     Tests the special cases of 2 group ramps.  Create multiple pixel ramps
     with two groups to test the various DQ cases.
@@ -494,7 +496,7 @@ def test_2_group_cases():
     ramp_data.set_dqflags(dqflags)
 
     # Run ramp fit on RampData
-    save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
+    save_opt, wt, ncores = True, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(
         ramp_data, save_opt, rnoise, gain, algo, wt, ncores
     )
@@ -506,8 +508,8 @@ def test_2_group_cases():
     check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
     np.testing.assert_allclose(data, check, tol)
 
-    check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU, GOOD, GOOD, GOOD]])
-    np.testing.assert_allclose(dq, check, tol)
+    check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU | SAT, GOOD, GOOD, SAT]])
+    np.testing.assert_equal(dq, check)
 
     check = np.array([[38.945766, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
     np.testing.assert_allclose(vp, check, tol)
@@ -519,7 +521,7 @@ def test_2_group_cases():
     np.testing.assert_allclose(err, check, tol)
 
 
-def run_one_group_ramp_suppression(nints, suppress):
+def run_one_group_ramp_suppression(nints, suppress, algo=DEFAULT_OLS):
     """
     Forms the base of the one group suppression tests.  Create three ramps
     using three pixels with two integrations.  In the first integration:
@@ -568,7 +570,6 @@ def run_one_group_ramp_suppression(nints, suppress):
 
     ramp_data.suppress_one_group_ramps = suppress
 
-    algo = DEFAULT_OLS
     save_opt, ncores = False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
         ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores
@@ -577,11 +578,12 @@ def run_one_group_ramp_suppression(nints, suppress):
     return slopes, cube, dims
 
 
-def test_one_group_ramp_suppressed_one_integration():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_one_group_ramp_suppressed_one_integration(algo):
     """
     Tests one group ramp fitting where suppression turned on.
     """
-    slopes, cube, dims = run_one_group_ramp_suppression(1, True)
+    slopes, cube, dims = run_one_group_ramp_suppression(1, True, algo=algo)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
 
@@ -591,16 +593,28 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[np.nan, np.nan, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[DNU | SAT, DNU, GOOD]])
-    np.testing.assert_allclose(sdq, check, tol)
+    if algo == DEFAULT_OLS:
+        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
+    else:  # LIKELY
+        check = np.array([[DNU | SAT, SAT, GOOD]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.0, 0.0, 0.25]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.0, 0.0, 0.25]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 0.259842]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[0.0, 0.0, 4.999999]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.0, 0.0, 4.999999]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 5.000079]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0.0, 0.0, 2.2912877]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.0, 0.0, 2.2912877]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 2.293452]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
@@ -609,70 +623,108 @@ def test_one_group_ramp_suppressed_one_integration():
     check = np.array([[[np.nan, np.nan, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, DNU, GOOD]]])
-    np.testing.assert_allclose(cdq, check, tol)
+    if algo == DEFAULT_OLS:
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[DNU | SAT, SAT, GOOD]]])
+    np.testing.assert_equal(cdq, check)
 
-    check = np.array([[[0.0, 0.0, 0.25]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 0.0, 0.25]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 0.259842]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0.0, 0.0, 4.999999]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 0.0, 4.999999]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 5.000079]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0.0, 0.0, 2.291288]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 0.0, 2.291288]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 2.293452]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
-def test_one_group_ramp_not_suppressed_one_integration():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_one_group_ramp_not_suppressed_one_integration(algo):
     """
     Tests one group ramp fitting where suppression turned off.
     """
-    slopes, cube, dims = run_one_group_ramp_suppression(1, False)
+    slopes, cube, dims = run_one_group_ramp_suppression(1, False, algo=algo)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
 
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[np.nan, 1.0, 1.0000001]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[np.nan, 1.0, 1.0000001]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 1]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[DNU | SAT, GOOD, GOOD]])
-    np.testing.assert_allclose(sdq, check, tol)
+    check = np.array([[DNU | SAT, SAT, GOOD]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.0, 1.0, 0.25]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.0, 1.0, 0.25]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 0.259842]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[0.0, 100.0, 5.0000005]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.0, 100.0, 5.0000005]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 5.000079]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[0.0, 10.049875, 2.291288]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.0, 10.049875, 2.291288]])
+    else:  # LIKELY
+        check = np.array([[np.nan, np.nan, 2.293452]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan, 1.0, 1.0000001]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[np.nan, 1.0, 1.0000001]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 1]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, GOOD, GOOD]]])
-    np.testing.assert_allclose(cdq, check, tol)
+    check = np.array([[[DNU | SAT, SAT, GOOD]]])
+    np.testing.assert_equal(cdq, check)
 
-    check = np.array([[[0.0, 1, 0.25]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 1, 0.25]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 0.259842]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0.0, 100.0, 5.0000005]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 100.0, 5.0000005]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 5.000079]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0.0, 10.049875, 2.291288]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 10.049875, 2.291288]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 2.293452]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
-def test_one_group_ramp_suppressed_two_integrations():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_one_group_ramp_suppressed_two_integrations(algo):
     """
     Test one good group ramp and two integrations with
     suppression suppression turned on.
     """
-    slopes, cube, dims = run_one_group_ramp_suppression(2, True)
+    slopes, cube, dims = run_one_group_ramp_suppression(2, True, algo=algo)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
 
@@ -682,16 +734,25 @@ def test_one_group_ramp_suppressed_two_integrations():
     check = np.array([[1.0000001, 1.0000001, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
-    np.testing.assert_allclose(sdq, check, tol)
+    check = np.array([[SAT, SAT, GOOD]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.125, 0.125, 0.125]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.125, 0.125, 0.125]])
+    else:  # LIKELY
+        check = np.array([[0.259842, 0.259842, 0.129921]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[4.999998, 4.999998, 2.4999995]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[4.999998, 4.999998, 2.4999995]])
+    else:  # LIKELY
+        check = np.array([[5.000079, 5.000079, 2.500039]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[2.263846, 2.263846, 1.620185]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[2.263846, 2.263846, 1.620185]])
+    else:  # LIKELY
+        check = np.array([[2.293452, 2.293452, 1.621715]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
@@ -700,25 +761,38 @@ def test_one_group_ramp_suppressed_two_integrations():
     check = np.array([[[np.nan, np.nan, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, DNU, GOOD]], [[GOOD, GOOD, GOOD]]])
-    np.testing.assert_allclose(cdq, check, tol)
+    if algo == DEFAULT_OLS:
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    np.testing.assert_equal(cdq, check)
 
-    check = np.array([[[0.0, 0.0, 0.25]], [[0.125, 0.125, 0.25]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 0.0, 0.25]], [[0.125, 0.125, 0.25]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 0.259842]], [[0.259842, 0.259842, 0.259842]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0.0, 0.0, 4.999999]], [[4.999999, 4.999999, 4.999999]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 0.0, 4.999999]], [[4.999999, 4.999999, 4.999999]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 5.000079]], [[5.000079, 5.000079, 5.000079]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0.0, 0.0, 2.291288]], [[2.2638464, 2.2638464, 2.291288]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 0.0, 2.291288]], [[2.2638464, 2.2638464, 2.291288]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 2.293452]], [[2.293452, 2.293452, 2.293452]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
-def test_one_group_ramp_not_suppressed_two_integrations():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_one_group_ramp_not_suppressed_two_integrations(algo):
     """
     Test one good group ramp and two integrations with
     suppression suppression turned off.
     """
-    slopes, cube, dims = run_one_group_ramp_suppression(2, False)
+    slopes, cube, dims = run_one_group_ramp_suppression(2, False, algo=algo)
     nints, ngroups, nrows, ncols = dims
     tol = 1e-5
 
@@ -728,34 +802,55 @@ def test_one_group_ramp_not_suppressed_two_integrations():
     check = np.array([[1.0000001, 1.0000001, 1.0000001]])
     np.testing.assert_allclose(sdata, check, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
-    np.testing.assert_allclose(sdq, check, tol)
+    check = np.array([[SAT, SAT, GOOD]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.125, 0.2, 0.125]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.125, 0.2, 0.125]])
+    else:  # LIKELY
+        check = np.array([[0.259842, 0.259842, 0.129921]])
     np.testing.assert_allclose(svp, check, tol)
 
-    check = np.array([[5.0, 4.7619047, 2.5000002]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[5.0, 4.7619047, 2.5000002]])
+    else:  # LIKELY
+        check = np.array([[5.000079, 5.000079, 2.500039]])
     np.testing.assert_allclose(svr, check, tol)
 
-    check = np.array([[2.2638464, 2.2275333, 1.6201853]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[2.2638464, 2.2275333, 1.6201853]])
+    else:  # LIKELY
+        check = np.array([[2.293452, 2.293452, 1.621715]])
     np.testing.assert_allclose(serr, check, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[np.nan, 1.0, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[np.nan, 1.0, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 1]], [[1, 1, 1]]])
     np.testing.assert_allclose(cdata, check, tol)
 
-    check = np.array([[[DNU | SAT, GOOD, GOOD]], [[GOOD, GOOD, GOOD]]])
-    np.testing.assert_allclose(cdq, check, tol)
+    check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    np.testing.assert_equal(cdq, check)
 
-    check = np.array([[[0.0, 1.0, 0.25]], [[0.125, 0.25, 0.25]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 1.0, 0.25]], [[0.125, 0.25, 0.25]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 0.259842]], [[0.259842, 0.259842, 0.259842]]])
     np.testing.assert_allclose(cvp, check, tol)
 
-    check = np.array([[[0.0, 100.0, 5.0000005]], [[5.0000005, 5.0000005, 5.0000005]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 100.0, 5.0000005]], [[5.0000005, 5.0000005, 5.0000005]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 5.000079]], [[5.000079, 5.000079, 5.000079]]])
     np.testing.assert_allclose(cvr, check, tol)
 
-    check = np.array([[[0.0, 10.049875, 2.291288]], [[2.2638464, 2.291288, 2.291288]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.0, 10.049875, 2.291288]], [[2.2638464, 2.291288, 2.291288]]])
+    else:  # LIKELY
+        check = np.array([[[np.nan, np.nan, 2.293452]], [[2.293452, 2.293452, 2.293452]]])
     np.testing.assert_allclose(cerr, check, tol)
 
 
@@ -833,7 +928,8 @@ def create_zero_frame_data():
     return ramp_data, gain, rnoise
 
 
-def test_zeroframe():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_zeroframe(algo):
     """
     A two integration three pixel image.
 
@@ -847,7 +943,7 @@ def test_zeroframe():
     """
     ramp_data, gain, rnoise = create_zero_frame_data()
 
-    algo, save_opt, ncores = DEFAULT_OLS, False, "none"
+    save_opt, ncores = False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
         ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
@@ -857,19 +953,34 @@ def test_zeroframe():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[48.965397, 18.628912, 47.863224]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[48.965397, 18.628912, 47.863224]])
+    else:  # LIKELY
+        check = np.array([[22.101093, 18.628912, 18.628912]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
-    np.testing.assert_allclose(sdq, check, tol, tol)
+    if algo == DEFAULT_OLS:
+        check = np.array([[SAT, SAT, SAT]])
+    else:  # LIKELY
+        check = np.array([[SAT | JUMP, SAT | JUMP, SAT | JUMP]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.13110262, 0.00867591, 0.29745975]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.13110262, 0.00867591, 0.29745975]])
+    else:  # LIKELY
+        check = np.array([[0.022977, 0.021125, 0.021125]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[0.00043035, 0.0004338, 0.00043293]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.00043035, 0.0004338, 0.00043293]])
+    else:  # LIKELY
+        check = np.array([[0.001787, 0.001021, 0.001021]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.36267212, 0.09544477, 0.54579544]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.36267212, 0.09544477, 0.54579544]])
+    else:  # LIKELY
+        check = np.array([[0.157366, 0.148817, 0.148817]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
@@ -878,19 +989,34 @@ def test_zeroframe():
     # The third pixel in integration zero has good data
     # because the zeroframe has good data, so the ramp
     # is not fully saturated.
-    check = np.array([[[298.0626, np.nan, 652.01196]], [[18.62891, 18.62891, 18.62891]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[298.0626, np.nan, 652.01196]], [[18.62891, 18.62891, 18.62891]]])
+    else:  # LIKELY
+        check = np.array([[[62.09636, np.nan, np.nan]], [[18.628912, 18.628912, 18.628912]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
-    check = np.array([[[GOOD, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
-    np.testing.assert_allclose(cdq, check, tol, tol)
+    if algo == DEFAULT_OLS:
+        check = np.array([[[SAT, DNU | SAT, SAT]], [[GOOD, GOOD, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[SAT, DNU | SAT, DNU | SAT]], [[JUMP, JUMP, JUMP]]])
+    np.testing.assert_equal(cdq, check)
 
-    check = np.array([[[1.1799237, 0.0, 6.246655]], [[0.14749046, 0.00867591, 0.31233275]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[1.1799237, 0.0, 6.246655]], [[0.14749046, 0.00867591, 0.31233275]]])
+    else:  # LIKELY
+        check = np.array([[[0.449862, np.nan, np.nan]], [[0.021125, 0.021125, 0.021125]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[0.03470363, 0.0, 0.21689774]], [[0.0004338, 0.0004338, 0.0004338]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.03470363, 0.0, 0.21689774]], [[0.0004338, 0.0004338, 0.0004338]]])
+    else:  # LIKELY
+        check = np.array([[[0.144598, np.nan, np.nan]], [[0.001021, 0.001021, 0.001021]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
-    check = np.array([[[1.1021013, 0.0, 2.542352]], [[0.38460922, 0.09544477, 0.55925536]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[1.1021013, 0.0, 2.542352]], [[0.38460922, 0.09544477, 0.55925536]]])
+    else:  # LIKELY
+        check = np.array([[[0.771013, np.nan, np.nan]], [[0.148817, 0.148817, 0.148817]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
@@ -955,7 +1081,8 @@ def create_only_good_0th_group_data():
     return ramp_data, gain, rnoise
 
 
-def test_only_good_0th_group():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_only_good_0th_group(algo):
     """
     Tests three ramps to the the good 0th group.
 
@@ -966,7 +1093,7 @@ def test_only_good_0th_group():
     # Dimensions are (1, 5, 1, 3)
     ramp_data, gain, rnoise = create_only_good_0th_group_data()
 
-    algo, save_opt, ncores = DEFAULT_OLS, False, "none"
+    save_opt, ncores = False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
         ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores
     )
@@ -982,19 +1109,31 @@ def test_only_good_0th_group():
     # Because the number of groups used in the first two ramps are different
     # the variances are expected to be different, even though the slopes
     # should be the same.
-    check = np.array([[37.257824, 37.257824, 496.77103]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[37.257824, 37.257824, 496.77103]])
+    else:  # LIKELY
+        check = np.array([[37.257824, 37.257824, np.nan]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    check = np.array([[GOOD, GOOD, GOOD]])
-    np.testing.assert_allclose(sdq, check, tol, tol)
+    check = np.array([[GOOD, SAT, SAT]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.03470363, 0.13881457, 6.169534]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.03470363, 0.13881457, 6.169534]])
+    else:  # LIKELY
+        check = np.array([[0.033848, 0.124933, np.nan]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[0.00086759, 0.01735182, 0.19279794]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.00086759, 0.01735182, 0.19279794]])
+    else:  # LIKELY
+        check = np.array([[0.001072, 0.017352, np.nan]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.18860336, 0.39517894, 2.5223665]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.18860336, 0.39517894, 2.5223665]])
+    else:  # LIKELY
+        check = np.array([[0.186867, 0.377207, np.nan]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Cube checks ignored because the data has only one integration.
@@ -1278,7 +1417,8 @@ def get_new_saturation():
     return ramp, gain, rnoise
 
 
-def test_new_saturation():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_new_saturation(algo):
     """
     Test the updated saturation flag setting implemented
     in JP-2988.  Integration level saturation is now only
@@ -1290,7 +1430,7 @@ def test_new_saturation():
     """
     ramp, gain, rnoise = get_new_saturation()
 
-    save_opt, ncores, algo = False, "none", DEFAULT_OLS
+    save_opt, ncores = False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
         ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
@@ -1300,41 +1440,66 @@ def test_new_saturation():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[2.795187, 2.795632, np.nan]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[2.795187, 2.795632, np.nan]])
+    else:  # LIKELY
+        check = np.array([[2.794573, 2.793989, np.nan]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    check = np.array([[JUMP, JUMP, DNU | SAT]])
-    np.testing.assert_allclose(sdq, check, tol, tol)
+    check = np.array([[JUMP | SAT, JUMP | SAT, DNU | SAT]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[0.00033543, 0.00043342, 0.0]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.00033543, 0.00043342, 0.0]])
+    else:  # LIKELY
+        check = np.array([[0.000343, 0.000919, np.nan]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[5.9019785e-06, 6.1970772e-05, 0.0000000e00]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[5.9019785e-06, 6.1970772e-05, 0.0000000e00]])
+    else:  # LIKELY
+        check = np.array([[2.159041e-05, 1.161445e-04, np.nan]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[0.01847528, 0.02225729, 0.0]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.01847528, 0.02225729, 0.0]])
+    else:  # LIKELY
+        check = np.array([[0.019085, 0.032173, np.nan]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([[[2.7949152, 2.7956316, np.nan]], [[2.7956493, np.nan, np.nan]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[2.7949152, 2.7956316, np.nan]], [[2.7956493, np.nan, np.nan]]])
+    else:  # LIKELY
+        check = np.array([[[2.794889, 2.793989, np.nan]], [[2.793989, np.nan, np.nan]]])
     np.testing.assert_allclose(cdata, check, tol, tol)
 
-    check = np.array([[[GOOD, JUMP, DNU | SAT]], [[JUMP, DNU | SAT, DNU | SAT]]])
+    check = np.array([[[GOOD, JUMP | SAT, DNU | SAT]], [[JUMP | SAT, DNU | SAT, DNU | SAT]]])
     np.testing.assert_allclose(cdq, check, tol, tol)
 
-    check = np.array([[[0.00054729, 0.00043342, 0.0]], [[0.00086654, 0.0, 0.0]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.00054729, 0.00043342, 0.0]], [[0.00086654, 0.0, 0.0]]])
+    else:  # LIKELY
+        check = np.array([[[0.000545, 0.000919, np.nan]], [[0.000919, np.nan, np.nan]]])
     np.testing.assert_allclose(cvp, check, tol, tol)
 
-    check = np.array([[[6.5232398e-06, 6.1970772e-05, 0.0]], [[6.1970772e-05, 0.0, 0.0]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[6.5232398e-06, 6.1970772e-05, 0.0]], [[6.1970772e-05, 0.0, 0.0]]])
+    else:  # LIKELY
+        check = np.array([[[1.717069e-05, 1.161445e-04, np.nan]], [[1.161445e-04, np.nan, np.nan]]])
     np.testing.assert_allclose(cvr, check, tol, tol)
 
-    check = np.array([[[0.02353317, 0.02258242, 0.0]], [[0.03073696, 0.0, 0.0]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[0.02353317, 0.02258242, 0.0]], [[0.03073696, 0.0, 0.0]]])
+    else:  # LIKELY
+        check = np.array([[[0.023707, 0.032173, np.nan]], [[0.032173, np.nan, np.nan]]])
     np.testing.assert_allclose(cerr, check, tol, tol)
 
 
-def test_invalid_integrations():
+@pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
+def test_invalid_integrations(algo):
     """
     Tests a multi-integration data set with bad data in multiple integrations
     to ensure these integrations to do not contribute to the final slope
@@ -1382,7 +1547,7 @@ def test_invalid_integrations():
 
     ramp.suppress_one_group_ramps = True
 
-    save_opt, ncores, algo = False, "none", DEFAULT_OLS
+    save_opt, ncores = False, "none"
     slopes, cube, ols_opt = ramp_fit_data(
         ramp, save_opt, rnoise, gain, algo, "optimal", ncores
     )
@@ -1392,40 +1557,70 @@ def test_invalid_integrations():
     # Check slopes information
     sdata, sdq, svp, svr, serr = slopes
 
-    check = np.array([[5434.022]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[5434.022]])
+    else:  # LIKELY
+        check = np.array([[5576.588]])
     np.testing.assert_allclose(sdata, check, tol, tol)
 
-    check = np.array([[JUMP]])
-    np.testing.assert_allclose(sdq, check, tol, tol)
+    check = np.array([[JUMP | SAT]])
+    np.testing.assert_equal(sdq, check)
 
-    check = np.array([[44.503918]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[44.503918]])
+    else:  # LIKELY
+        check = np.array([[365.37314]])
     np.testing.assert_allclose(svp, check, tol, tol)
 
-    check = np.array([[2.4139147]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[2.4139147]])
+    else:  # LIKELY
+        check = np.array([[4.827829]])
     np.testing.assert_allclose(svr, check, tol, tol)
 
-    check = np.array([[6.8496594]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[6.8496594]])
+    else:  # LIKELY
+        check = np.array([[19.240606]])
     np.testing.assert_allclose(serr, check, tol, tol)
 
     # Check slopes information
     cdata, cdq, cvp, cvr, cerr = cube
 
-    check = np.array([5291.4556, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
+    if algo == DEFAULT_OLS:
+        check = np.array([5291.4556, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
+    else:  # LIKELY
+        check = np.array([np.nan, np.nan, np.nan, 5576.588, np.nan, np.nan, np.nan, np.nan], dtype=np.float32)
     np.testing.assert_allclose(cdata[:, 0, 0], check, tol, tol)
 
-    check = np.array(
-        [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
-    )
-    np.testing.assert_allclose(cdq[:, 0, 0], check, tol, tol)
+    if algo == DEFAULT_OLS:
+        check = np.array(
+            [JUMP, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU], dtype=np.uint8
+        )
+    else:  # LIKELY
+        check = np.array(
+            [JUMP, JUMP, JUMP, GOOD, JUMP, JUMP, JUMP, JUMP], dtype=np.uint8
+        )
+    check |= SAT
+    np.testing.assert_equal(cdq[:, 0, 0], check)
 
-    check = np.array([89.007835, 0.0, 0.0, 89.007835, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    if algo == DEFAULT_OLS:
+        check = np.array([89.007835, 0.0, 0.0, 89.007835, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    else:  # LIKELY
+        check = np.array([np.nan, np.nan, np.nan, 365.37314, np.nan, np.nan, np.nan, np.nan])
     np.testing.assert_allclose(cvp[:, 0, 0], check, tol, tol)
 
-    check = np.array([4.8278294, 0.0, 0.0, 4.8278294, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    if algo == DEFAULT_OLS:
+        check = np.array([4.8278294, 0.0, 0.0, 4.8278294, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    else:  # LIKELY
+        check = np.array([np.nan, np.nan, np.nan, 4.827829, np.nan, np.nan, np.nan, np.nan])
     np.testing.assert_allclose(cvr[:, 0, 0], check, tol, tol)
 
     # Ken: This needs to be verified for the two group ramp special case.
-    check = np.array([9.686893, 0.0, 0.0, 9.686893, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    if algo == DEFAULT_OLS:
+        check = np.array([9.686893, 0.0, 0.0, 9.686893, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    else:  # LIKELY
+        check = np.array([np.nan, np.nan, np.nan, 19.240606, np.nan, np.nan, np.nan, np.nan])
     np.testing.assert_allclose(cerr[:, 0, 0], check, tol, tol)
 
 
