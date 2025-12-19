@@ -3,6 +3,7 @@ import pytest
 from astropy.io import fits
 from stcal.jump.jump_class import JumpData
 from stcal.jump.jump import (
+    compute_axes,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
@@ -26,6 +27,22 @@ SAT = DQFLAGS["SATURATED"]
 JUMP = DQFLAGS["JUMP_DET"]
 NGV = DQFLAGS["NO_GAIN_VALUE"]
 REF = DQFLAGS["REFERENCE_PIXEL"]
+
+
+def test_ellipse_compute_axes_max_radius():
+    jd = JumpData()
+    jd.max_extended_radius = 4
+    ellipse = [
+        [0, 0],  # x, y
+        [10, 5],  # h, w
+        0,  # angle
+    ]
+
+    # We are not testing expansion itself, so set to effectively no-op.
+    half_axes = compute_axes(False, ellipse, 0, jd)
+
+    ans = (4, 2)  # (max_extended_radius, round(5 / 2))
+    np.testing.assert_array_equal(half_axes, ans)
 
 
 def create_jump_data(dims, gain, rnoise, tm):
