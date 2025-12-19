@@ -1,0 +1,1 @@
+Fixed a bug in ``compute_axes`` used in jump detection where it was not enforcing ``jump_data.max_extended_radius`` correctly.
