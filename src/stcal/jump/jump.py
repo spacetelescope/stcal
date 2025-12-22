@@ -118,7 +118,7 @@ def detect_jumps_data(jump_data):
 def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
     """
     Split data for jump detection multiprocessing.
-    
+
     Parameters
     ----------
     jump_data : JumpData
@@ -130,7 +130,7 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     data : ndarray
         The science data, 4D array float.
 
-    gdq : ndarray 
+    gdq : ndarray
         The group DQ, 4D array uint8.
 
     readnoise_2d : ndarray
@@ -236,7 +236,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     data : ndarray
         The science data, 4D array float.
 
-    gdq : ndarray 
+    gdq : ndarray
         The group DQ, 4D array uint8.
 
     readnoise_2d : ndarray
@@ -357,7 +357,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(
                 gdq[integration, group, :, :], jump_flag, jump_data.min_jump_area)
-            
+
             if jump_data.sat_required_snowball:
                 gdq, snowballs, persist_jumps = make_snowballs(
                     gdq, integration, group, jump_ellipses, sat_ellipses,
@@ -389,7 +389,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
 def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
     Extend the saturated ellipses that are larger than the min_sat_radius.
-    
+
     Parameters
     ----------
     cube : ndarray
@@ -564,7 +564,7 @@ def extend_ellipses(
         indx, jump_ellipse = ellipse_subim(
             ceny, cenx, axis1, axis2, alpha, jump_data.fl_jump, (nrows, ncols))
         (iy1, iy2, ix1, ix2) = indx
-        
+
         # Propagate forward by num_grps_masked groups.
 
         for flg_grp in range(grp, min(grp + num_grps_masked + 1, ngroups)):
@@ -593,7 +593,7 @@ def find_ellipses(dqplane, bitmask, min_area):
         The minimum area of saturated pixels at the center of a snowball. Only
         contours with area above the minimum will create snowballs.
 
-    Returns 
+    Returns
     -------
     list of computed ellipses
     """
@@ -641,7 +641,7 @@ def make_snowballs(
     -------
     gdq : ndarray
         The 4-D group DQ array.
-        
+
     snowballs : list
         List of snowballs found.
 
@@ -698,10 +698,29 @@ def point_inside_ellipse(point, ellipse):
     -------
     Boolean decision if point is in ellipse
     """
-    delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
-    major_axis = max(ellipse[1][0], ellipse[1][1])
+    # https://stackoverflow.com/questions/37031356/check-if-points-are-inside-ellipse-faster-than-contains-point-method
 
-    return delta_center < major_axis
+    angle = np.radians(180 - ellipse[2])
+    cos_angle = np.cos(angle)
+    sin_angle = np.sin(angle)
+
+    xc = point[0] - ellipse[0][0]
+    yc = point[1] - ellipse[0][1]
+
+    xct = xc * cos_angle - yc * sin_angle
+    yct = xc * sin_angle + yc * cos_angle
+
+    if ellipse[1][1] >= ellipse[1][0]:
+        semi_major_axis = ellipse[1][1] * 0.5
+        semi_minor_axis = ellipse[1][0] * 0.5
+    else:
+        semi_major_axis = ellipse[1][0] * 0.5
+        semi_minor_axis = ellipse[1][1] * 0.5
+
+    rad_cc = ((xct**2 / semi_major_axis**2) +
+              (yct**2 / semi_minor_axis**2))
+
+    return rad_cc <= 1
 
 
 def near_edge(jump, low_threshold, high_threshold):
@@ -720,7 +739,7 @@ def near_edge(jump, low_threshold, high_threshold):
         Low threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
-    high_threshold : 
+    high_threshold :
         High threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
@@ -912,7 +931,7 @@ def count_dnu_groups(gdq, jump_data):
     ----------
     gdq : ndarray
         The group DQ 4D uint8.
-        
+
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
@@ -1013,12 +1032,12 @@ def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
     jump_sat_or_dnu = np.bitwise_and(combined_pixel_mask, jump_flag|sat_flag|dnu_flag) != 0
     masked_ratio[jump_sat_or_dnu] = np.nan
-    
+
     kernel = ring_2D_kernel.array
-    
+
     # Equivalent to but faster than
     # masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel, preserve_nan=True)
-    
+
     masked_smoothed_ratio = convolve_fast(masked_ratio, kernel)
 
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
