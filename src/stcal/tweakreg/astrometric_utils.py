@@ -6,19 +6,15 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 from stcal.alignment import compute_fiducial
+from stcal.tweakreg._s3_catalog import S3_CATALOGS, get_s3_catalog
 
+GSSS_CATALOGS = ["GAIAREFCAT", "GAIADR3", "GAIADR2", "GAIADR1"]
 ASTROMETRIC_CAT_ENVVAR = "ASTROMETRIC_CATALOG_URL"
-DEF_CAT_URL = "http://gsss.stsci.edu/webservices"
+DEF_CAT_URL = "https://gsss.stsci.edu/webservices"
 
 SERVICELOCATION = os.environ.get(ASTROMETRIC_CAT_ENVVAR, DEF_CAT_URL)
 
 TIMEOUT = 30.0  # in seconds
-
-"""
-
-Primary function for creating an astrometric reference catalog.
-
-"""
 
 
 __all__ = [
@@ -175,19 +171,23 @@ def get_catalog(
         CSV object of returned sources with all columns as provided by catalog
 
     """
+    if catalog in S3_CATALOGS:
+        return get_s3_catalog(
+            right_ascension,
+            declination,
+            epoch,
+            search_radius,
+            catalog,
+            timeout=timeout,
+        )
     service_type = "vo/CatalogSearch.aspx"
-    spec_str = "RA={}&DEC={}&EPOCH={}&SR={}&FORMAT={}&CAT={}"
     headers = {"Content-Type": "text/csv"}
-    fmt = "CSV"
 
-    spec = spec_str.format(
-        right_ascension,
-        declination,
-        epoch,
-        search_radius,
-        fmt,
-        catalog
-    )
+    if epoch is None:
+        spec = f"RA={right_ascension}&DEC={declination}&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
+    else:
+        spec = f"RA={right_ascension}&DEC={declination}&EPOCH={epoch}&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
+
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     try:
         rawcat = requests.get(service_url, headers=headers, timeout=timeout)
