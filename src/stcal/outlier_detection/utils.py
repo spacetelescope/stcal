@@ -1,6 +1,4 @@
-"""
-Utility functions for outlier detection routines
-"""
+"""Utility functions for outlier detection routines."""
 
 import logging
 import warnings
@@ -30,8 +28,10 @@ __all__ = [
 
 def medfilt(arr, kern_size):
     """
+    Median filter.
+
     scipy.signal.medfilt (and many other median filters) have undefined behavior
-    for nan inputs. See: https://github.com/scipy/scipy/issues/4800
+    for nan inputs. See: https://github.com/scipy/scipy/issues/4800.
 
     Parameters
     ----------
@@ -123,6 +123,8 @@ def flag_crs(
     snr,
 ):
     """
+    Flag outliers.
+
     Straightforward detection of outliers for non-dithered data since
     sci_err includes all noise sources (photon, read, and flat for baseline).
 
@@ -163,7 +165,6 @@ def flag_resampled_crs(
 
     Parameters
     ----------
-
     sci_data : numpy.ndarray
         "Science" data possibly containing outliers
 
@@ -219,8 +220,7 @@ def flag_resampled_crs(
 
 def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=0.0):
     """
-    Resample the median data to recreate an input image based on
-    the blot wcs.
+    Resample the median data to recreate an input image based on the blot wcs.
 
     Parameters
     ----------
@@ -307,6 +307,8 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
 
 def reproject(wcs1, wcs2):
     """
+    Compute reprojection from wcs1 to wcs2.
+
     Given two WCSs return a function which takes pixel
     coordinates in wcs1 and computes them in wcs2.
 
@@ -325,7 +327,6 @@ def reproject(wcs1, wcs2):
         Function to compute the transformations.  It takes x, y
         positions in ``wcs1`` and returns x, y positions in ``wcs2``.
     """
-
     try:
         forward_transform = wcs1.pixel_to_world_values
         backward_transform = wcs2.world_to_pixel_values

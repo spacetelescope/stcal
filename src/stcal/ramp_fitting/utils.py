@@ -73,8 +73,9 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
 
 def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):  # noqa: ARG001
     """
-    This sets the integration level flags for DO_NOT_USE, JUMP_DET, and
-    SATURATED.  If any ramp has a jump or saturated, the respective flag will be set for the
+    Set the integration level flags for DO_NOT_USE, JUMP_DET, and SATURATED.
+
+    If any ramp has a jump or saturated, the respective flag will be set for the
     integration.  If all groups in a ramp are flagged as DO_NOT_USE, then the
     integration level DO_NOT_USE flag will be set.  Also, if
     all groups are marked as DO_NOT_USE or SATURATED (as in suppressed one

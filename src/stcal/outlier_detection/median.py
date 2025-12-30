@@ -49,6 +49,8 @@ def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:  
 
 class MedianComputer:
     """
+    Class to efficiently compute a median.
+
     Top-level class to treat median computation uniformly, whether in
     memory or on disk.
     """
@@ -62,6 +64,8 @@ class MedianComputer:
         tempdir: str = "",
     ) -> None:
         """
+        Initialize MedianComputer.
+
         Parameters
         ----------
         full_shape
@@ -136,6 +140,8 @@ class MedianComputer:
 
 class _DiskAppendableArray:
     """
+    Helper class to perform memory efficient timewise operations.
+
     Creates a temporary file to which to append data, in order to perform
     timewise operations on a stack of input images without holding all of them
     in memory.
@@ -154,6 +160,8 @@ class _DiskAppendableArray:
 
     def __init__(self, slice_shape: tuple, dtype: str | np.dtype, filename: str | Path) -> None:
         """
+        Initilize _DiskAppendableArray.
+
         Parameters
         ----------
         slice_shape
@@ -218,6 +226,8 @@ class _OnDiskMedian:
         self, shape: tuple, dtype: str | np.dtype = "float32", tempdir: str = "", buffer_size: int = 0
     ) -> None:
         """
+        Compute a median using on-disk storage.
+
         Set up temporary files to perform operations on a stack of 2-D input
         arrays along the first dimension (e.g., a time axis) without
         holding all of them in memory. Currently the only supported operation
@@ -260,6 +270,8 @@ class _OnDiskMedian:
 
     def _get_buffer_indices(self, buffer_size: int = 0) -> tuple[int, int]:
         """
+        Get buffer indices.
+
         Determine the number of sections and rows per section needed to
         divide the input data into sections that fit within the specified
         buffer size.
@@ -317,6 +329,8 @@ class _OnDiskMedian:
 
     def add_image(self, data: np.ndarray) -> None:
         """
+        Add image to median calculation.
+
         Split data into ``nsections`` sections and write/append each section to
         the corresponding temporary file.
         """

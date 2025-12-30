@@ -21,7 +21,7 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-def resample_range(data_shape, bbox=None):
+def resample_range(data_shape, bbox=None):  # noqa: D103
     # Find range of input pixels to resample:
     if len(data_shape) != 2:
         raise ValueError("Expected 'data_shape' to be of length 2.")
@@ -44,7 +44,7 @@ def resample_range(data_shape, bbox=None):
 
 
 def build_mask(dqarr, good_bits, flag_name_map=None):
-    """Build a bit mask from an input DQ array and a bitvalue flag
+    """Build a bit mask from an input DQ array and a bitvalue flag.
 
     In the returned bit mask, 1 is good, 0 is bad
     """
@@ -61,7 +61,10 @@ def build_mask(dqarr, good_bits, flag_name_map=None):
 
 
 def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=None):
-    """Create a weight map that is used for weighting input images when
+    """
+    Build drizzle weight map.
+
+    Create a weight map that is used for weighting input images when
     they are co-added to the ouput model.
 
     Parameters
@@ -143,6 +146,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
 
 def get_tmeasure(model):
     """
+    Get tmeasure from datamodel.
+
     Check if the measurement_time keyword is present in the datamodel
     for use in exptime weighting. If not, revert to using exposure_time.
 
@@ -159,13 +164,16 @@ def get_tmeasure(model):
 
 
 def is_imaging_wcs(wcs):
-    """Returns `True` if ``wcs`` is an imaging WCS and `False` otherwise."""
+    """Return `True` if ``wcs`` is an imaging WCS and `False` otherwise."""
     imaging = all(ax == "SPATIAL" for ax in wcs.output_frame.axes_type)
     return imaging
 
 
 def compute_mean_pixel_area(wcs, shape=None):
-    """Computes the average pixel area (in steradians) based on input WCS
+    """
+    Compute mean pixel area.
+
+    Computes the average pixel area (in steradians) based on input WCS
     using pixels within either the bounding box (if available) or the entire
     data array as defined either by ``wcs.array_shape`` or the ``shape``
     argument.
@@ -184,7 +192,6 @@ def compute_mean_pixel_area(wcs, shape=None):
 
     Notes
     -----
-
     This function takes the outline of the region in which the average is
     computed (a rectangle defined by either the bounding box or
     ``wcs.array_shape`` or the ``shape``) and projects it to world coordinates.
@@ -276,13 +283,14 @@ def compute_mean_pixel_area(wcs, shape=None):
 
 def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  # noqa: E741
     """
+    Get boundary points.
+
     Creates a list of ``x`` and ``y`` coordinates of points along the perimiter
     of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
     ``shrink`` in counter-clockwise order.
 
     Parameters
     ----------
-
     xmin : int
         X-coordinate of the left edge of a rectangle.
 
@@ -309,7 +317,6 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  #
 
     Returns
     -------
-
     x : numpy.ndarray
         An array of X-coordinates of points along the perimiter
         of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and

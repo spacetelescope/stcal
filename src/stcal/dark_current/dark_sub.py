@@ -15,6 +15,8 @@ log = logging.getLogger(__name__)
 
 def do_correction(input_model, dark_model, dark_output=None):
     """
+    Compute dark current subtraction.
+
     Convert models to classes to remove internal dependence on data models.
     After the creation of internal classes, the dark current subtraction is
     done.
@@ -46,9 +48,7 @@ def do_correction(input_model, dark_model, dark_output=None):
 
 def do_correction_data(science_data, dark_data, dark_output=None):
     """
-    Short Summary
-    -------------
-    Execute all tasks for Dark Current Subtraction
+    Execute all tasks for Dark Current Subtraction.
 
     Parameters
     ----------
@@ -174,6 +174,8 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
 def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
     """
+    Average 3D dark frames.
+
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
     This routine is not used for JWST/MIRI (see average_dark_frames_4d).
@@ -239,6 +241,8 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
 
 def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     """
+    Average 4D dark frames.
+
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
     JWST/MIRI needs a separate routine because the darks are

@@ -39,7 +39,7 @@ def _calculate_fiducial_from_spatial_footprint(
     spatial_footprint: np.ndarray,
 ) -> tuple:
     """
-    Calculates the fiducial coordinates from a given spatial footprint.
+    Calculate the fiducial coordinates from a given spatial footprint.
 
     Parameters
     ----------
@@ -68,6 +68,8 @@ def _calculate_fiducial_from_spatial_footprint(
 
 def _calculate_fiducial(footprints: list[np.ndarray], crval: Sequence | None = None) -> tuple:
     """
+    Calculate the fiducial point from a list of footprints.
+
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
 
@@ -94,7 +96,7 @@ def _calculate_fiducial(footprints: list[np.ndarray], crval: Sequence | None = N
 
 def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
     """
-    Validates wcs_list.
+    Validate wcs_list.
 
     Parameters
     ----------
@@ -198,6 +200,8 @@ def compute_scale(
 
 def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.ndarray:
     """
+    Calculate the world coordinates of the fiducial point from a list of WCS objects.
+
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
@@ -241,6 +245,8 @@ def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.
 
 def _compute_fiducial_from_footprints(footprints: list[np.ndarray]) -> tuple:
     """
+    Calculate the wold coordinates of the fiducial point from a list of footprints.
+
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
@@ -455,7 +461,8 @@ def _compute_bounding_box_with_offsets(
     shape: Sequence | None,
 ) -> tuple[tuple, tuple, tuple]:
     """
-    Calculates axis minimum values and bounding box.
+    Calculate axis minimum values and bounding box.
+
     Calculates the offsets to the transform.
 
     Parameters
@@ -472,6 +479,7 @@ def _compute_bounding_box_with_offsets(
     shape : tuple, None, optional
         Shape (using `numpy.ndarray` convention) of the image array associated
         with the ``ref_wcs``.
+
     Returns
     -------
     tuple
@@ -743,6 +751,8 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
 
 def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
+    Compute reproection from wcs1 to wcs2.
+
     Given two WCSs or transforms return a function which takes pixel
     coordinates in the first WCS or transform and computes them in pixel coordinates
     in the second one. It performs the forward transformation of ``wcs1`` followed by the
@@ -762,8 +772,10 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
 
     def _get_forward_transform_func(wcs1):
-        """Get the forward transform function from the input WCS. If the wcs is a
-        fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
+        """
+        Get the forward transform function from the input WCS.
+
+        If the wcs is a fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         ).

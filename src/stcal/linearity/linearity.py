@@ -3,6 +3,8 @@ import numpy as np
 
 def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=None):
     """
+    Apply linearity correction.
+
     Apply linearity correction to individual groups in `data` to pixels that
     haven't already been flagged as saturated.
 
@@ -87,6 +89,8 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=Non
 
 def linearity_correction_branch(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe):
     """
+    Linearity correct branch.
+
     Parameters
     ----------
     data : `np.array`
@@ -158,7 +162,9 @@ def linearity_correction_branch(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zfr
 
 def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
     """
-    dataplane : ndarray
+    Linear correct plane.
+
+    Dataplane : ndarray
         The 2D array of the frame/group plane of pixels to linearly correct.
 
     gdqplane : ndarray
@@ -186,6 +192,8 @@ def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
 
 def correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
     """
+    Check for NaNs in the COEFFS extension of the ref file.
+
     Check for NaNs in the COEFFS extension of the ref file in case there are
     pixels that should have been (but were not) flagged there as NO_LIN_CORR
     (linearity correction not determined for pixel).
@@ -231,7 +239,9 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
 
 def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     """
-    Check when the linear term in the linearity coefficients is zero.  For such pixels, update the
+    Check when the linear term in the linearity coefficients is zero.
+
+    For such pixels, update the
     coefficients so that there is effectively no correction, and flag their
     pixeldq values in place as NO_LIN_CORR in the step output.
 
@@ -273,8 +283,8 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
 
 def correct_for_flag(lin_coeffs, lin_dq, dqflags):
     """
-    Short Summary
-    -------------
+    Check for NO_LIN_CORR flagged pixels.
+
     Check for pixels that are flagged as NO_LIN_CORR
     ('No linearity correction available') in the DQ extension of the ref data.
     For such pixels, update the coefficients so that there is effectively no
@@ -313,6 +323,8 @@ def correct_for_flag(lin_coeffs, lin_dq, dqflags):
 
 def ben_coeffs(lin_coeffs):
     """
+    Compute benign coefficients.
+
     Short Summary
     -------------
     For pixels having at least 1 NaN coefficient, reset the coefficients to be

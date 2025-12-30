@@ -27,7 +27,10 @@ __all__ = [
 
 
 class UnsupportedWCSError(RuntimeError):
-    """Raised when provided output WCS has an unexpected number of axes
+    """
+    Unsupported WCS Error.
+
+    Raised when provided output WCS has an unexpected number of axes
     or has an unsupported structure.
     """
 
@@ -91,6 +94,8 @@ class Resample:
         compute_err=None,
     ):
         """
+        Initialize Resample.
+
         Parameters
         ----------
         output_wcs : dict
@@ -299,6 +304,8 @@ class Resample:
 
     def get_input_model_pixel_area(self, model, prefer_mean=True):
         """
+        Compute input pixel area.
+
         Computes or retrieves pixel area of an input model. By default,
         this is the average pixel area of the input model's pixels within
         either the bounding box (if available) or the entire data array.
@@ -310,7 +317,6 @@ class Resample:
 
         Parameters
         ----------
-
         model : dict, None
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines. In particular, it
@@ -352,13 +358,14 @@ class Resample:
 
     def get_output_model_pixel_area(self, model):
         """
+        Compute output pixel area.
+
         Computes or retrieves pixel area of the output model. Currently,
         this is the average pixel area of the model's pixels within either
         the bounding box (if available) or the entire data array.
 
         Parameters
         ----------
-
         model : dict, None
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines. In particular, it
@@ -375,6 +382,8 @@ class Resample:
 
     def check_output_wcs(self, output_wcs, estimate_output_shape=True):
         """
+        Check output WCS.
+
         Check that provided WCS has expected properties and that its
         ``array_shape`` property is defined. May modify ``output_wcs``.
 
@@ -425,7 +434,6 @@ class Resample:
 
         Returns
         -------
-
         output_model : dict
             A dictionary of data model attributes and values.
 
@@ -498,9 +506,7 @@ class Resample:
 
     @property
     def group_ids(self):
-        """Get a list of all group IDs of models resampled and added to the
-        output model.
-        """
+        """List of all group IDs of models resampled and added to the output model."""
         return self._group_ids
 
     @property
@@ -520,6 +526,8 @@ class Resample:
 
     def _get_intensity_scale(self, model):
         """
+        Compute intensity scale.
+
         Compute an intensity scale from the input and output pixel area.
         For imaging data, the scaling is used to account for differences
         between the nominal pixel area and the average pixel area for
@@ -577,7 +585,10 @@ class Resample:
                 self._output_model["pixel_scale_ratio"] = self._pixel_scale_ratio
 
     def reset_arrays(self, n_input_models=None):
-        """Initialize/reset `Drizzle` objects, output model and arrays,
+        """
+        Reset intermediate arrays.
+
+        Initialize/reset `Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
         are not modified from `Resample` object initialization. This method
         needs to be called before calling :py:meth:`add_model` for the first
@@ -632,7 +643,10 @@ class Resample:
         self._finalized = False
 
     def validate_input_model(self, model):
-        """Checks that ``model`` has all the required keywords needed for
+        """
+        Validate input model.
+
+        Checks that ``model`` has all the required keywords needed for
         processing based on settings used during initialisation if the
         `Resample` object.
 
@@ -692,7 +706,10 @@ class Resample:
                 raise KeyError(f"Attempt to access non-existent key '{attr}' in a data model.")
 
     def add_model(self, model):
-        """Resamples model image, variance data (if ``enable_var``
+        """
+        Resample a model.
+
+        Resamples model image, variance data (if ``enable_var``
         is `True`) , and error data (if ``enable_err`` is `True`), and adds
         them to the corresponding
         arrays of the output model using appropriate weighting.
@@ -795,7 +812,10 @@ class Resample:
             self._output_model["err"] = self._driz_error.out_img
 
     def add_model_hook(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """A hook method called by the :py:meth:`~Resample.add_model` method.
+        """
+        Perform additional processing while resampling.
+
+        A hook method called by the :py:meth:`~Resample.add_model` method.
         It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
 
@@ -855,13 +875,19 @@ class Resample:
         pass
 
     def is_finalized(self):
-        """Indicates whether all attributes of the ``output_model`` have been
+        """
+        Check if ``output_model`` has been finalized.
+
+        Indicates whether all attributes of the ``output_model`` have been
         computed from intermediate (running) values.
         """
         return self._finalized
 
     def finalize(self):
-        """Performs final computations from any intermediate values,
+        """
+        Finalize computations.
+
+        Performs final computations from any intermediate values,
         sets ouput model values, and optionally frees temporary/intermediate
         objects.
 
@@ -932,8 +958,7 @@ class Resample:
         return
 
     def init_variance_arrays(self):
-        """Allocate arrays that hold co-added resampled variances and their
-        weights."""
+        """Allocate arrays that hold co-added resampled variances and their weights."""
         shape = self.output_array_shape
 
         self._variance_info = {}
@@ -947,7 +972,10 @@ class Resample:
             }
 
     def resample_variance_arrays(self, model, pixmap, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """Resample and co-add variance arrays using appropriate weights
+        """
+        Resample variance arrays.
+
+        Resample and co-add variance arrays using appropriate weights
         and update total weights.
 
         Parameters
@@ -1050,7 +1078,10 @@ class Resample:
             self._variance_info[varname]["wt"][mask] += weight[mask]
 
     def finalize_resample_variance(self, output_model):
-        """Compute variance for the resampled image from running sums and
+        """
+        Finalize variance calculations.
+
+        Compute variance for the resampled image from running sums and
         weights. Free memory that holds these running sums and weights arrays.
 
         output_model : dict, None
@@ -1157,7 +1188,10 @@ class Resample:
         self._measurement_time_success = []
 
     def update_time(self, model):
-        """A method called by the :py:meth:`~Resample.add_model` method to
+        """
+        Update time calculations.
+
+        A method called by the :py:meth:`~Resample.add_model` method to
         process each image's time attributes *only* when ``model`` has a new
         group ID.
 
@@ -1186,10 +1220,7 @@ class Resample:
             self._duration += duration
 
     def finalize_time_info(self):
-        """Perform final computations for the total time and update relevant
-        fileds of the output model.
-
-        """
+        """Perform final computations for the total time and update relevant fileds of the output model."""
         assert self._n_res_models  # noqa: S101
         # basic exposure time attributes:
         self._output_model["exposure_time"] = self._total_exposure_time
@@ -1204,10 +1235,7 @@ class Resample:
             self._output_model["measurement_time"] = self._total_measurement_time
 
     def _check_var_array(self, model, array_name):
-        """Check that a variance array has the same shape as the model's
-        data array.
-
-        """
+        """Check that a variance array has the same shape as the model's data array."""
         array_data = model.get(array_name, None)
         sci_data = model["data"]
         model_name = _get_model_name(model)
@@ -1224,7 +1252,10 @@ class Resample:
 
 
 def _get_model_name(model):
-    """Return the value of ``"filename"`` from the model dictionary or
+    """
+    Get model filename or "Unknown".
+
+    Return the value of ``"filename"`` from the model dictionary or
     ``"Unknown"`` when ``"filename"`` is either not present or it is `None`.
 
     """

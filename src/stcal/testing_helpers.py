@@ -3,7 +3,7 @@ import tracemalloc
 MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
 
 
-class MemoryThresholdExceeded(Exception):  # noqa: N818
+class MemoryThresholdExceeded(Exception):  # noqa: N818, D101
     pass
 
 
@@ -26,6 +26,8 @@ class MemoryThreshold:
 
     def __init__(self, expected_usage):
         """
+        Construct a MemoryThreshold context.
+
         Parameters
         ----------
         expected_usage : str

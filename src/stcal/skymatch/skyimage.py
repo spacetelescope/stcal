@@ -1,11 +1,9 @@
 """
-The ``skyimage`` module contains algorithms that are used by
-``skymatch`` to manage all of the information for footprints (image outlines)
+The ``skyimage`` module contains algorithms that are used by ``skymatch``.
+
+Manage all of the information for footprints (image outlines)
 on the sky as well as perform useful operations on these outlines such as
 computing intersections and statistics in the overlap regions.
-
-:Authors: Mihai Cara
-
 """
 
 # STDLIB
@@ -24,17 +22,19 @@ __all__ = ["SkyImage", "SkyGroup", "DataAccessor", "NDArrayInMemoryAccessor", "N
 
 
 class DataAccessor(abc.ABC):
-    """Base class for all data accessors. Provides a common interface to
-    access data.
+    """Base class for all data accessors.
+
+    Provides a common interface to access data.
+
     """
 
     @abc.abstractmethod
-    def get_data(self):  # pragma: no cover
+    def get_data(self):  # pragma: no cover  # noqa: D102
         pass
 
     @abc.abstractmethod
     def set_data(self, data):  # pragma: no cover
-        """Sets data.
+        """Set data.
 
         Parameters
         ----------
@@ -45,7 +45,7 @@ class DataAccessor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_data_shape(self):  # pragma: no cover
+    def get_data_shape(self):  # pragma: no cover  # noqa: D102
         pass
 
 
@@ -56,13 +56,13 @@ class NDArrayInMemoryAccessor(DataAccessor):
         super().__init__()
         self._data = data
 
-    def get_data(self):
+    def get_data(self):  # noqa: D102
         return self._data
 
-    def set_data(self, data):
+    def set_data(self, data):  # noqa: D102
         self._data = data
 
-    def get_data_shape(self):
+    def get_data_shape(self):  # noqa: D102
         return np.shape(self._data)
 
 
@@ -83,11 +83,11 @@ class NDArrayMappedAccessor(DataAccessor):
 
         self.set_data(data)
 
-    def get_data(self):
+    def get_data(self):  # noqa: D102
         self._tmp.seek(0)
         return np.load(self._tmp)
 
-    def set_data(self, data):
+    def set_data(self, data):  # noqa: D102
         data = np.asanyarray(data)
         self._data_shape = data.shape
         self._tmp.seek(0)
@@ -97,14 +97,15 @@ class NDArrayMappedAccessor(DataAccessor):
         if self._close:
             self._tmp.close()
 
-    def get_data_shape(self):
+    def get_data_shape(self):  # noqa: D102
         return self._data_shape
 
 
 class SkyImage:
     """
-    Container that holds information about properties of a *single*
-    image such as:
+    Container that holds information about properties of a *single* image.
+
+    Including:
 
     * image data;
     * WCS of the chip image;
@@ -131,7 +132,7 @@ class SkyImage:
         meta=None,
         reduce_memory_usage=True,
     ):
-        """Initializes the SkyImage object.
+        """Initialize the SkyImage object.
 
         Parameters
         ----------
@@ -324,6 +325,8 @@ class SkyImage:
     @property
     def radec(self):
         """
+        Get RA and DEC of the bounding polygon.
+
         Get RA and DEC of the vertices of the bounding polygon as a
         `~numpy.ndarray` of shape (N, 2) where N is the number of vertices + 1.
         """
@@ -336,6 +339,8 @@ class SkyImage:
 
     def intersection(self, skyimage):
         """
+        Compute intersection of this `SkyImage`.
+
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
         :py:class:`~spherical_geometry.polygon.SphericalPolygon`
@@ -438,6 +443,8 @@ class SkyImage:
         self, skystat="median", lower=None, upper=None, nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1
     ):
         """
+        Replace `skysat` with "built-in" version.
+
         Replace already set `skystat` with a "built-in" version of a
         statistics callable object used to measure sky background.
 
@@ -585,9 +592,7 @@ class SkyImage:
         return skyval, npix, polyarea
 
     def copy(self):
-        """
-        Return a shallow copy of the `SkyImage` object.
-        """
+        """Return a shallow copy of the `SkyImage` object."""
         si = SkyImage(
             image=None,
             wcs_fwd=self.wcs_fwd,
@@ -615,6 +620,8 @@ class SkyImage:
 
 class SkyGroup:
     """
+    Collection of :py:class:`SkyImage` objects.
+
     Holds multiple :py:class:`SkyImage` objects whose sky background values
     must be adjusted together.
 
@@ -660,6 +667,8 @@ class SkyGroup:
     @property
     def radec(self):
         """
+        RA and DEC of the bounding polygon.
+
         Get RA and DEC of the vertices of the bounding polygon as a
         `~numpy.ndarray` of shape (N, 2) where N is the number of vertices + 1.
 
@@ -673,6 +682,8 @@ class SkyGroup:
 
     def intersection(self, skyimage):
         """
+        Compute intersection.
+
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
         :py:class:`~spherical_geometry.polygon.SphericalPolygon`
@@ -736,7 +747,7 @@ class SkyGroup:
         yield from self._images
 
     def insert(self, idx, value):
-        """Inserts a `SkyImage` into the group."""
+        """Insert a `SkyImage` into the group."""
         if not isinstance(value, SkyImage):
             raise TypeError("Item must be of 'SkyImage' type")
         value.sky += self.sky
@@ -744,7 +755,7 @@ class SkyGroup:
         self._update_bounding_polygon()
 
     def append(self, value):
-        """Appends a `SkyImage` to the group."""
+        """Append a `SkyImage` to the group."""
         if not isinstance(value, SkyImage):
             raise TypeError("Item must be of 'SkyImage' type")
         value.sky += self.sky
@@ -787,7 +798,6 @@ class SkyGroup:
             sky statistics.
 
         """
-
         if len(self._images) == 0:
             return None, 0, 0.0
 

@@ -20,8 +20,8 @@ def flag_saturated_pixels(
     bias=None,
 ):
     """
-    Short Summary
-    -------------
+    Flag saturated pixels.
+
     Apply flagging for saturation based on threshold values stored in the
     saturation reference file data `sat_thresh` and A/D floor based on testing
     for 0 DN values. For A/D floor flagged groups, the DO_NOT_USE flag is also
@@ -245,7 +245,7 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
     ------
     sat_pix : ndarray
         The saturated pixels in the current plane.
-    """
+    """  # noqa: D205
     if not inplace:
         cgdq = plane_gdq.copy()
     else:
@@ -297,7 +297,7 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
 def plane_saturation(plane, sat_thresh, dqflags):
     """
-    plane : ndarray, 2D float
+    Plane : ndarray, 2D float
         The plane to check for saturation and A/D floor.
 
     sat_thresh : `np.array`
@@ -309,7 +309,7 @@ def plane_saturation(plane, sat_thresh, dqflags):
     dqflags : dict
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, AD_FLOOR, NO_SAT_CHECK
-    """
+    """  # noqa: D205
     donotuse = dqflags["DO_NOT_USE"]
     saturated = dqflags["SATURATED"]
     ad_floor = dqflags["AD_FLOOR"]

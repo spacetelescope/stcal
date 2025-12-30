@@ -3,7 +3,7 @@ __all__ = ["compute_num_cores"]
 
 def compute_num_cores(max_cores, nchunks, max_available):
     """
-    Computes the number of chunks to be created for multiprocessing.
+    Compute the number of chunks to be created for multiprocessing.
 
     Parameters
     ----------

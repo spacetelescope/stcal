@@ -154,7 +154,7 @@ def mask_jumps(
     diffs2use=None,
 ):
     """
-    Implements a likelihood-based, iterative jump detection algorithm.
+    Implement a likelihood-based, iterative jump detection algorithm.
 
     Parameters
     ----------
@@ -358,8 +358,7 @@ def get_readtimes(ramp_data):
 
 def compute_image_info(integ_class, ramp_data):
     """
-    Combine all integrations into a single image of rates,
-    variances, and DQ flags.
+    Combine all integrations into a single image of rates, variances, and DQ flags.
 
     Parameters
     ----------
@@ -843,7 +842,7 @@ def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, 
 
 def compute_thetas(ndiffs, npix, alpha, beta):
     """
-    Computes intermediate theta values for ramp fitting.
+    Compute intermediate theta values for ramp fitting.
 
     EQNs 38-40
 
@@ -874,7 +873,7 @@ def compute_thetas(ndiffs, npix, alpha, beta):
 
 def compute_phis(ndiffs, npix, alpha, beta):
     """
-    Computes intermediate phi values for ramp fitting.
+    Compute intermediate phi values for ramp fitting.
 
     EQNs 41-43
 
@@ -905,7 +904,7 @@ def compute_phis(ndiffs, npix, alpha, beta):
 
 def compute_Phis(ndiffs, npix, beta, phi, sgn):  # noqa: N802
     """
-    Computes intermediate Phi values for ramp fitting.
+    Compute intermediate Phi values for ramp fitting.
 
     EQN 46
 
@@ -938,6 +937,8 @@ def compute_Phis(ndiffs, npix, beta, phi, sgn):  # noqa: N802
 
 def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):  # noqa: N802
     """
+    Compute PhiDs.
+
     EQN 4, Paper II
     This one is defined later in the paper and is used for jump detection.
 
@@ -973,7 +974,7 @@ def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):  # noqa: N802
 
 def compute_Thetas(ndiffs, npix, beta, theta, sgn):  # noqa: N802
     """
-    EQN 47
+    EQN 47.
 
     Parameters
     ----------
@@ -1005,7 +1006,7 @@ def compute_Thetas(ndiffs, npix, beta, theta, sgn):  # noqa: N802
 
 def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):  # noqa: N802
     """
-    EQN 48
+    EQN 48.
 
     Parameters
     ----------
@@ -1201,7 +1202,7 @@ def get_ramp_result(
 ################################## DEBUG #######################################
 
 
-def dbg_print_info(group_time, readtimes, data, diff):
+def dbg_print_info(group_time, readtimes, data, diff):  # noqa: D103
     print(DELIM)  # noqa: T201
     print(f"group_time = {group_time}")  # noqa: T201
     print(DELIM)  # noqa: T201
@@ -1216,5 +1217,5 @@ def dbg_print_info(group_time, readtimes, data, diff):
     print(DELIM)  # noqa: T201
 
 
-def array_string(arr, prec=4):
+def array_string(arr, prec=4):  # noqa: D103
     return np.array2string(arr, precision=prec, max_line_width=np.nan, separator=", ")

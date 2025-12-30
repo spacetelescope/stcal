@@ -462,7 +462,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
 
 
 def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
-    """Draw a filled ellipse in a small array at a given (returned) location
+    """Draw a filled ellipse in a small array at a given (returned) location.
+
     Parameters
     ----------
     ceny : float
@@ -480,6 +481,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     shape : (int, int)
         The shape of the full 2D array into which the returned
         subimage should be placed.
+
     Returns
     -------
     indx : (int, int, int, int)
@@ -1040,8 +1042,11 @@ def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):  # n
 
 
 def convolve_fast(inarray, kernel, copy=False):
-    """Convolve an array with a kernel, interpolating over NaNs.
-    Faster version of astropy.convolution.convolve(preserve_nan=True)
+    """
+    Convolve an array with a kernel, interpolating over NaNs.
+
+    Faster version of astropy.convolution.convolve(preserve_nan=True).
+
     Parameters
     ----------
     inarray : 2D array of floats
@@ -1050,12 +1055,12 @@ def convolve_fast(inarray, kernel, copy=False):
         Convolution kernel.  Both dimensions must be odd.
     copy : bool
         Make a copy of inarray to avoid modifying NaN values.  Default False.
+
     Returns
     -------
     convolved_array : 2D array of floats
         Convolution of inarray and kernel, interpolating over NaNs.
     """
-
     # We will mask nan pixels by setting them to zero.  We
     # will convolve by our kernel, then divide by the weight
     # given by the valid pixels convolved with the kernel in
@@ -1119,7 +1124,6 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     ratio : ndarray
         SNR ratio
     """
-
     e_jump = first_diffs_masked[intg] - median_diffs[np.newaxis, :, :]
 
     # SNR ratio of each diff.

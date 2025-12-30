@@ -1,10 +1,8 @@
 """
-`skystatistics` module provides statistics computation class used by
-:py:func:`~stcal.skymatch.skymatch.skymatch`
+`skystatistics` module provides statistics computation class.
+
+Used by :py:func:`~stcal.skymatch.skymatch.skymatch`
 and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
-
-:Authors: Mihai Cara
-
 """
 
 # THIRD PARTY
@@ -17,8 +15,9 @@ __all__ = ["SkyStats"]
 
 class SkyStats:
     """
-    This class is built on top of :py:class:`stsci.imagestats.ImageStats`,
-    deligating its functionality to calls to the ``ImageStats`` object. Compared
+    Class built on top of :py:class:`stsci.imagestats.ImageStats`.
+
+    Deligates its functionality to calls to the ``ImageStats`` object. Compared
     to :py:class:`stsci.imagestats.ImageStats`, `SkyStats` has "persistent settings"
     in the sense that object's parameters need to be set once and these settings
     will be applied to all subsequent computations on different data.
@@ -28,10 +27,10 @@ class SkyStats:
     def __init__(
         self, skystat="mean", lower=None, upper=None, nclip=5, lsig=4.0, usig=4.0, binwidth=0.1, **kwargs
     ):
-        """Initializes the SkyStats object.
+        """Initialize the SkyStats object.
 
         Parameters
-        -----------
+        ----------
         skystat : optional
             possible values are'mode', 'median', 'mode', 'midpt".
             Sets the statistics that will be returned by `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
@@ -105,16 +104,16 @@ cgi-bin/gethelp.cgi?gstatistics>`_
         return imstat.midpt
 
     def calc_sky(self, data):
-        """Computes statistics on data.
+        """Compute statistics on data.
 
         Parameters
-        -----------
+        ----------
         data : numpy.ndarray
             A numpy array of values for which the statistics needs to be
             computed.
 
         Returns
-        --------
+        -------
         statistics : tuple
             A tuple of two values: (`skyvalue`, `npix`), where `skyvalue` is
             the statistics specified by the `skystat` parameter during the
@@ -127,5 +126,5 @@ cgi-bin/gethelp.cgi?gstatistics>`_
         self.npix = imstat.npix
         return self.skyval, self.npix
 
-    def __call__(self, data):
+    def __call__(self, data):  # noqa: D102
         return self.calc_sky(data)

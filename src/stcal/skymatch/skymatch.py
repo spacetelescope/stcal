@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 def skymatch(images, skymethod="global+match", match_down=True, subtract=False):
     """
-    A function to compute and/or "equalize" sky background in input images.
+    Compute and/or "equalize" sky background in input images.
 
     .. note::
        Sky matching ("equalization") is possible only for **overlapping**
@@ -32,7 +32,6 @@ def skymatch(images, skymethod="global+match", match_down=True, subtract=False):
 
     Parameters
     ----------
-
     images : list of SkyImage or SkyGroup
         A list of of :py:class:`~stcal.skymatch.skyimage.SkyImage` or
         :py:class:`~stcal.skymatch.skyimage.SkyGroup` objects.
@@ -95,7 +94,6 @@ drizzlepac/astrodrizzle.html>`_
 
     Raises
     ------
-
     TypeError
         The `images` argument must be a Python list of
         :py:class:`~stcal.skymatch.skyimage.SkyImage` and/or
@@ -104,7 +102,6 @@ drizzlepac/astrodrizzle.html>`_
 
     Notes
     -----
-
     :py:func:`skymatch` provides new algorithms for sky value computations
     and enhances previously available algorithms used by, e.g.,
     `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\

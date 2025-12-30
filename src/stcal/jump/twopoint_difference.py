@@ -285,7 +285,6 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
     ratio : ndarray
         Used for threshold comparison
     """
-
     nints, ndiffs_int, nrows, ncols = first_diffs_abs.shape
     median_diffs_iter = np.zeros((nrows, ncols), np.float32)
 
@@ -358,7 +357,6 @@ def look_for_more_than_one_jump(gdq, nints, first_diffs, median_diffs, sigma, fi
     gdq : ndarray
         The updated group DQ array.
     """
-
     # compute 'ratio' for each group. this is the value that will be
     # compared to 'threshold' to classify jumps. subtract the median of
     # first_diffs from first_diffs, take the abs. value and divide by sigma.
@@ -564,7 +562,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
 
 def check_group_counts(nints, total_sigclip_groups, twopt_p):
     """
-    Determine whether there are enough usable groups for the two sigma clip options
+    Determine whether there are enough usable groups for the two sigma clip options.
 
     Parameters
     ----------
@@ -702,7 +700,6 @@ def calc_med_first_diffs(in_first_diffs):
         integrations for each pixel in in_first_diffs. Will be either
         1d or 2d depending on the shape of in_first_diffs.
     """
-
     # We will modify our copy of first_diffs by setting some pixels to NaN.
     first_diffs = in_first_diffs.copy()
     nints, ndiffs = first_diffs.shape[:2]
