@@ -65,7 +65,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
     Build drizzle weight map.
 
     Create a weight map that is used for weighting input images when
-    they are co-added to the ouput model.
+    they are co-added to the output model.
 
     Parameters
     ----------
@@ -304,11 +304,11 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  #
         Y-coordinate of the top edge of a rectangle.
 
     dx : int, float, None, optional
-        Desired spacing between ajacent points alog horizontal edges of
+        Desired spacing between adjacent points along horizontal edges of
         the rectangle.
 
     dy : int, float, None, optional
-        Desired spacing between ajacent points alog vertical edges of
+        Desired spacing between adjacent points along vertical edges of
         the rectangle.
 
     shrink : int, optional

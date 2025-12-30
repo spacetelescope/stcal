@@ -409,7 +409,7 @@ def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finit
     warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
 
     axis = 0 if twopt_p.only_use_ints else (0, 1)
-    clipped_diffs, alow, ahigh = stats.sigma_clip(
+    clipped_diffs, allow, ahigh = stats.sigma_clip(
         first_diffs, sigma=twopt_p.normal_rej_thresh, axis=axis, masked=True, return_bounds=True
     )
 

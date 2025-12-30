@@ -288,7 +288,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
 
 def setup_pdq(jump_data):
     """
-    Prepare the pixel DQ array for procesing, removing invalid data.
+    Prepare the pixel DQ array for processing, removing invalid data.
 
     Parameters
     ----------
@@ -1108,7 +1108,7 @@ def diff_meddiff_int(intg, median_diffs, sigma, first_diffs_masked):
     Parameters
     ----------
     intg : int
-        Current intregration
+        Current integration
 
     median_diffs : ndarray
         Median of differences in integration
@@ -1139,7 +1139,7 @@ def diff_meddiff_grp(intg, grp, median, stddev, first_diffs_masked):
     Parameters
     ----------
     intg : int
-        Current intregration
+        Current integration
 
     grp : int
         Current group

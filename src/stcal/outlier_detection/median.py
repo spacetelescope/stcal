@@ -160,7 +160,7 @@ class _DiskAppendableArray:
 
     def __init__(self, slice_shape: tuple, dtype: str | np.dtype, filename: str | Path) -> None:
         """
-        Initilize _DiskAppendableArray.
+        Initialize _DiskAppendableArray.
 
         Parameters
         ----------

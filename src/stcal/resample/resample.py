@@ -832,8 +832,8 @@ class Resample:
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
-            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
-            of Y-coordinates of input pixels in the ouput coordinate frame.
+            pixels in the output frame and ``pixmap[..., 1]`` forms a 2D array
+            of Y-coordinates of input pixels in the output coordinate frame.
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -888,7 +888,7 @@ class Resample:
         Finalize computations.
 
         Performs final computations from any intermediate values,
-        sets ouput model values, and optionally frees temporary/intermediate
+        sets output model values, and optionally frees temporary/intermediate
         objects.
 
         ``finalize`` calls :py:meth:`~stcal.resample.Resample.finalize_resample_variance` and
@@ -989,8 +989,8 @@ class Resample:
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
             ``pixmap[..., 0]`` forms a 2D array of X-coordinates of input
-            pixels in the ouput frame and ``pixmap[..., 1]`` forms a 2D array
-            of Y-coordinates of input pixels in the ouput coordinate frame.
+            pixels in the output frame and ``pixmap[..., 1]`` forms a 2D array
+            of Y-coordinates of input pixels in the output coordinate frame.
 
         iscale : float
             The scale to apply to the input variance data before drizzling.
@@ -1220,7 +1220,7 @@ class Resample:
             self._duration += duration
 
     def finalize_time_info(self):
-        """Perform final computations for the total time and update relevant fileds of the output model."""
+        """Perform final computations for the total time and update relevant fields of the output model."""
         assert self._n_res_models  # noqa: S101
         # basic exposure time attributes:
         self._output_model["exposure_time"] = self._total_exposure_time

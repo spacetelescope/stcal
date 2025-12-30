@@ -127,7 +127,7 @@ def test_group2_saturation_flagging_with_bias():
     Saturation in frame-averaged groups may not exceed the saturation threshold
     until after the group where a saturating CR occurs.  Special rules are used
     for the second group of frame-averaged data.  Check that the saturation
-    flagging is robust to data with a signficant bias.
+    flagging is robust to data with a significant bias.
     """
 
     # Create inputs, data, and saturation maps

@@ -180,13 +180,13 @@ def mask_jumps(
         Default 23.8.
 
     diffs2use : ndarray
-        A boolean array definined the segmented ramps for each pixel in a row.
+        A boolean array defining the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
     Returns
     -------
     dffs2use : ndarray
-        A boolean array definined the segmented ramps for each pixel in a row.
+        A boolean array defining the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
     countrates : ndarray
@@ -429,7 +429,7 @@ def determine_diffs2use(row, diffs, gdq):
     Returns
     -------
     d2use : ndarray
-        A boolean array definined the segmented ramps for each pixel in a row.
+        A boolean array defining the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
     """
     ngroups, _, ncols = gdq.shape
