@@ -66,7 +66,7 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     -------
     str
         The combined s_region.
-    
+
     Raises
     ------
     ValueError

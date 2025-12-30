@@ -118,7 +118,7 @@ def detect_jumps_data(jump_data):
 def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
     """
     Split data for jump detection multiprocessing.
-    
+
     Parameters
     ----------
     jump_data : JumpData
@@ -130,7 +130,7 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     data : ndarray
         The science data, 4D array float.
 
-    gdq : ndarray 
+    gdq : ndarray
         The group DQ, 4D array uint8.
 
     readnoise_2d : ndarray
@@ -236,7 +236,7 @@ def slice_data(twopt_params, data, gdq, readnoise_2d, n_slices):
     data : ndarray
         The science data, 4D array float.
 
-    gdq : ndarray 
+    gdq : ndarray
         The group DQ, 4D array uint8.
 
     readnoise_2d : ndarray
@@ -389,7 +389,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
 def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     """
     Extend the saturated ellipses that are larger than the min_sat_radius.
-    
+
     Parameters
     ----------
     cube : ndarray
@@ -592,7 +592,7 @@ def find_ellipses(dqplane, bitmask, min_area):
         The minimum area of saturated pixels at the center of a snowball. Only
         contours with area above the minimum will create snowballs.
 
-    Returns 
+    Returns
     -------
     list of computed ellipses
     """
@@ -640,7 +640,7 @@ def make_snowballs(
     -------
     gdq : ndarray
         The 4-D group DQ array.
-        
+
     snowballs : list
         List of snowballs found.
 
@@ -719,7 +719,7 @@ def near_edge(jump, low_threshold, high_threshold):
         Low threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
-    high_threshold : 
+    high_threshold :
         High threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
@@ -911,7 +911,7 @@ def count_dnu_groups(gdq, jump_data):
     ----------
     gdq : ndarray
         The group DQ 4D uint8.
-        
+
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 

@@ -97,7 +97,7 @@ def jump_detection_post_processing(
         Pixels below current row also to be flagged as a CR.
     row_above_gdq : ndarray
         Pixels above current row also to be flagged as a CR.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -151,7 +151,7 @@ def run_jump_detection(
         Total usable groups to check.
     min_usable_diffs : int
         The minimum number of usable differences needed.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -215,7 +215,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
         The first differences of the groups.
     read_noise_2 : ndarray
         The square of the read noise reference array.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -270,7 +270,7 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
         The square of the read noise reference array.
     ndiffs : int
         The number of differences.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
     index : ndarray, bool or None
         Boolean index of pixels that require checking.  If None,
@@ -350,7 +350,7 @@ def look_for_more_than_one_jump(
         The sigma for each pixel.
     first_diffs_finite : ndarray
         A boolean array where the first diffs are finite.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -393,7 +393,7 @@ def det_jump_sigma_clipping(
         A boolean array where the first diffs are finite.
     first_diffs : ndarray
         The first differences of the groups.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -444,7 +444,7 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
         The number of integrations per exposure
     total_groups : int
         Total usable groups to check.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -481,7 +481,7 @@ def flag_four_neighbors(
         Pixels below current row also to be flagged as a CR.
     row_above_gdq : ndarray
         Pixels above current row also to be flagged as a CR.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -527,7 +527,7 @@ def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
         First differences of the groups of the science array.
     median_diffs : ndarray
         The media of the first differences.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -568,7 +568,7 @@ def check_group_counts(nints, total_sigclip_groups, twopt_p):
         Number of integrations in an exposure
     total_sigclip_groups : int
         Total number of sigma-clipped groups
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns
@@ -595,7 +595,7 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
         The number of groups in an integration.
     gdq : ndarray
         Group DQ array.
-    twopt_p : TwoPointParams 
+    twopt_p : TwoPointParams
         Class containing two point difference parameters.
 
     Returns

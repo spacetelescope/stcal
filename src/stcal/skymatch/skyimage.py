@@ -489,7 +489,7 @@ class SkyImage:
         polyarea : float
             Area (in srad) of the polygon that bounds data used to compute
             sky statistics.
-    
+
         Notes
         -----
         Due to a bug in the sphere package, see
