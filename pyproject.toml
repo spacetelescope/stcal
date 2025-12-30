@@ -119,11 +119,11 @@ select = [
   #"S",      # flake8-bandit (security checks)
   #"SLF",    # flake8-self (prevent private member access)
   "SLOT", # flake8-slots (require __slots__ for immutable classes)
-  # "T20",    # flake8-print (prevent print statements in code)
-  "TRY", # tryceratops (linting for try/except blocks)
-  "UP",  # pyupgrade (upgrade code to modern python)
-  "YTT", # flake8-2020 (system version info)
-  "TID", # flake8-tidy-imports (prevent banned api and best import practices)
+  "T20",  # flake8-print (prevent print statements in code)
+  "TRY",  # tryceratops (linting for try/except blocks)
+  "UP",   # pyupgrade (upgrade code to modern python)
+  "YTT",  # flake8-2020 (system version info)
+  "TID",  # flake8-tidy-imports (prevent banned api and best import practices)
 
   # below checks are not shared with jwst
   "ANN", # flake8-annotations (best practices for type annotations)
