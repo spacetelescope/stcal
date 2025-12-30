@@ -129,22 +129,11 @@ select = [
   "ANN", # flake8-annotations (best practices for type annotations)
   "BLE", # flake8-blind-except (prevent blind except statements)
   "T10", # flake8-debugger (prevent debugger statements in code)
-  #"EM",     # flake8-errormessages (best practices for error messages)
-  "FA", # flake8-future-annotations (correct usage future annotations)
-  #"G",      # flake8-logging-format (best practices for logging)
-  #"PIE",    # flake8-pie (misc suggested improvement linting)
-  #"PT",     # flake8-pytest-style (best practices for pytest)
-  #"Q",      # flake8-quotes (best practices for quotes)
+  "FA",  # flake8-future-annotations (correct usage future annotations)
   "RSE", # flake8-raise (best practices for raising exceptions)
-  #"RET",    # flake8-return (best practices for return statements)
-  #"SIM",    # flake8-simplify (suggest simplifications to code where possible)
   "TCH", # flake8-type-checking (move type checking imports into type checking blocks)
   "INT", # flake8-gettext (when to use printf style strings)
-  # "ERA",    # eradicate (remove commented out code)
-  #"PL",     # pylint (general linting, flake8 alternative)
   "FLY", # flynt (f-string conversion where possible)
-  #"PERF",   # Perflint (performance linting)
-  #"RUF",    # ruff specific checks
 ]
 ignore = [
   "ISC001",  # interferes with formatter
