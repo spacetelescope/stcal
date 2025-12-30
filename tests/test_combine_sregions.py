@@ -411,12 +411,12 @@ def test_duplicate_tolerance():
     footprint_with_duplicate = np.array(
         [
             [0.0, 0.0],
-            [0.0 + 0.1, 0.0 + 0.1], # this should be kept
+            [0.0 + 0.1, 0.0 + 0.1],  # this should be kept
             [1.0, 0.0],
             [1.0, 1.0],
-            [1.0 + 0.02, 1.0 + 0.02], # this should be removed by duplicate check
+            [1.0 + 0.02, 1.0 + 0.02],  # this should be removed by duplicate check
             [0.0, 1.0],
-            [0.0, 0.5], # this should be removed by angle check since it's along the edge
+            [0.0, 0.5],  # this should be removed by angle check since it's along the edge
         ]
     )
     combined = combine_footprints([footprint_with_duplicate])

@@ -1,6 +1,7 @@
 INDENT = "    "
 DELIM = "-" * 80
 
+
 class JumpData:
     """Contains data needed for detecting jumps."""
 
@@ -50,13 +51,13 @@ class JumpData:
 
         # Detection options (using JWST defaults)
         # The 'normal' cosmic ray sigma rejection threshold for ramps with more than 4 groups
-        self.rejection_thresh = 4.
+        self.rejection_thresh = 4.0
 
         # Cosmic ray sigma rejection threshold for ramps having 3 groups
-        self.three_grp_thresh = 6.
+        self.three_grp_thresh = 6.0
 
         # Cosmic ray sigma rejection threshold for ramps having 4 groups
-        self.four_grp_thresh = 5.
+        self.four_grp_thresh = 5.0
 
         # If set to True (default is True), it will cause the four perpendicular
         # neighbors of all detected jumps to also be flagged as a jump.
@@ -196,7 +197,7 @@ class JumpData:
         self.max_cores = None  # Number of processes
         self.start_row = 0  # Start row of current slice
         self.end_row = 0  # End row of current slice
-        self.tot_row = 0 # Total number of rows in slice
+        self.tot_row = 0  # Total number of rows in slice
 
     def init_arrays_from_model(self, jump_model):
         """
@@ -294,8 +295,7 @@ class JumpData:
         self.after_jump_flag_dn2 = dn2
         self.after_jump_flag_n2 = n2
 
-    def set_snowball_info(
-            self, levent, mjarea, msarea, exfact, require, satrad, satexp, edge):
+    def set_snowball_info(self, levent, mjarea, msarea, exfact, require, satrad, satexp, edge):
         """
         Set class instance values needed for snowball handling.
 
@@ -424,19 +424,18 @@ class JumpData:
         else:
             print(self.get_jump_data_arrays(), file=fd)
 
-
     def get_jump_data_arrays(self):
         """Return string of jump_data information."""
         oline = f"{DELIM}\n"
         oline += "JumpData Arrays\n"
         oline += f"Data shape = {self.data.shape}\n"
-        '''
+        """
         self.data
         self.gdq
         self.pdq
         self.gain_2d
         self.rnoise_2d
-        '''
+        """
         oline += f"{DELIM}\n"
         return oline
 

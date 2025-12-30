@@ -17,7 +17,7 @@ def flag_saturated_pixels(
     n_pix_grow_sat=1,
     zframe=None,
     read_pattern=None,
-    bias=None
+    bias=None,
 ):
     """
     Short Summary
@@ -93,7 +93,7 @@ def flag_saturated_pixels(
 
     # If no bias is provided set it to zero
     if bias is None:
-        bias = 0.
+        bias = 0.0
 
     for ints in range(nints):
         # Work forward through the groups for initial pass at saturation
@@ -101,7 +101,7 @@ def flag_saturated_pixels(
         # We want to flag saturation in all subsequent groups after
         # the one in which it was found.  Use this boolean array to
         # keep a running tally of pixels that have saturated.
-        previously_saturated = np.zeros(shape=(nrows, ncols), dtype='bool')
+        previously_saturated = np.zeros(shape=(nrows, ncols), dtype="bool")
 
         for group in range(ngroups):
             plane = data[ints, group, :, :]
@@ -112,13 +112,13 @@ def flag_saturated_pixels(
             # Update the running tally of all pixels that have ever
             # experienced saturation to account for this.
 
-            previously_saturated |= (plane >= sat_thresh)
+            previously_saturated |= plane >= sat_thresh
             flagarray = (previously_saturated * saturated).astype(np.uint32)
 
             gdq[ints, group, :, :] |= flagarray
 
             # for A/D floor, the flag is only set of the current plane
-            flaglowarray = ((plane <= 0)*(ad_floor | dnu)).astype(np.uint32)
+            flaglowarray = ((plane <= 0) * (ad_floor | dnu)).astype(np.uint32)
 
             gdq[ints, group, :, :] |= flaglowarray
 
@@ -135,7 +135,6 @@ def flag_saturated_pixels(
         # were not obvious because of group averaging
 
         for group in range(ngroups - 2, -1, -1):
-
             plane = data[ints, group, :, :]
             thisdq = gdq[ints, group, :, :]
             nextdq = gdq[ints, group + 1, :, :]
@@ -164,9 +163,11 @@ def flag_saturated_pixels(
             # was flagged as saturated.  Result of the line below is a
             # boolean array.
 
-            partial_sat = ((plane >= sat_thresh*dilution_factor) & \
-                           (thisdq & (saturated | dnu) == 0) & \
-                           (nextdq & saturated != 0))
+            partial_sat = (
+                (plane >= sat_thresh * dilution_factor)
+                & (thisdq & (saturated | dnu) == 0)
+                & (nextdq & saturated != 0)
+            )
 
             flagarray = (partial_sat * dnu).astype(np.uint32)
 
@@ -179,7 +180,7 @@ def flag_saturated_pixels(
 
         # Add an additional pass to look for things saturating in the second group
         # that can be particularly tricky to identify
-        if ((read_pattern is not None) & (ngroups > 2)):
+        if (read_pattern is not None) & (ngroups > 2):
             dq2 = gdq[ints, 1, :, :]
             dq3 = gdq[ints, 2, :, :]
 
@@ -196,8 +197,7 @@ def flag_saturated_pixels(
             mask &= scigp2 > (sat_thresh - data[ints, 0, :, :]) / len(read_pattern[1])
 
             # Identify groups that are saturated in the third group but not yet flagged in the second
-            gp3mask = ((np.bitwise_and(dq3, saturated) != 0) & \
-                       (np.bitwise_and(dq2, saturated) == 0))
+            gp3mask = (np.bitwise_and(dq3, saturated) != 0) & (np.bitwise_and(dq2, saturated) == 0)
             mask &= gp3mask
 
             # Flag the 2nd group for the pixels passing that gauntlet
@@ -205,7 +205,6 @@ def flag_saturated_pixels(
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
-
 
         # Check ZEROFRAME.
         if zframe is not None:
@@ -258,8 +257,8 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
     # The for loops below are equivalent to
     #
-    #struct = np.ones((box_dim, box_dim)).astype(bool)
-    #dilated = ndimage.binary_dilation(only_sat, structure=struct).astype(only_sat.dtype)
+    # struct = np.ones((box_dim, box_dim)).astype(bool)
+    # dilated = ndimage.binary_dilation(only_sat, structure=struct).astype(only_sat.dtype)
     #
     # The explicit loop over the box, followed by taking care of the
     # array edges, turns out to be faster by around an order of magnitude.
@@ -268,21 +267,18 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
     for i in range(box_dim):
         for j in range(box_dim):
-
             # Explicit binary dilation over the inner ('valid')
             # region of the convolution/filter
 
             i2 = only_sat.shape[0] - box_dim + i + 1
             j2 = only_sat.shape[1] - box_dim + j + 1
 
-            k1, k2, l1, l2 = [n_pix_grow_sat, -n_pix_grow_sat,
-                              n_pix_grow_sat, -n_pix_grow_sat]
+            k1, k2, l1, l2 = [n_pix_grow_sat, -n_pix_grow_sat, n_pix_grow_sat, -n_pix_grow_sat]
 
             dilated[k1:k2, l1:l2] |= only_sat[i:i2, j:j2]
 
     for i in range(n_pix_grow_sat - 1, -1, -1):
         for j in range(i + n_pix_grow_sat, -1, -1):
-
             # March from the limit of the 'valid' region toward
             # each edge.  Maximum filter ensures correct dilation.
 
@@ -297,7 +293,6 @@ def adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
         return None
     else:
         return cgdq
-
 
 
 def plane_saturation(plane, sat_thresh, dqflags):

@@ -8,7 +8,7 @@ from stcal.jump.jump import (
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
-    detect_jumps_data
+    detect_jumps_data,
 )
 
 DQFLAGS = {
@@ -17,7 +17,7 @@ DQFLAGS = {
     "SATURATED": 2,
     "JUMP_DET": 4,
     "NO_GAIN_VALUE": 8,
-    "REFERENCE_PIXEL": 2147483648
+    "REFERENCE_PIXEL": 2147483648,
 }
 
 GOOD = DQFLAGS["GOOD"]
@@ -39,7 +39,7 @@ def create_jump_data(dims, gain, rnoise, tm):
 
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
     gain2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * gain
-    rnoise2d = np.ones(shape=(nrows, ncols) , dtype=np.float32) * rnoise
+    rnoise2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnoise
 
     jump_data = JumpData(gain2d=gain2d, rnoise2d=rnoise2d, dqflags=DQFLAGS)
     jump_data.init_arrays_from_arrays(data, gdq, pdq)
@@ -68,22 +68,27 @@ def test_nirspec_saturated_pix():
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     # Setup the needed input pixel and DQ values
-    jump_data.data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176,
-                              1116.3828, 1936.9746]
+    jump_data.data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176, 1116.3828, 1936.9746]
     jump_data.gdq[0, :, 1, 1] = [0, 0, 0, 0, 0, SAT, SAT]
-    jump_data.data[0, :, 0, 1] = [8.25666812e+05, -1.10471914e+05, 1.95755371e+02, 1.83118457e+03,
-                              1.72250879e+03, 1.81733496e+03, 1.65188281e+03]
+    jump_data.data[0, :, 0, 1] = [
+        8.25666812e05,
+        -1.10471914e05,
+        1.95755371e02,
+        1.83118457e03,
+        1.72250879e03,
+        1.81733496e03,
+        1.65188281e03,
+    ]
     # 2 non-sat groups means only 1 non-sat diff, so no jumps should be flagged
     jump_data.gdq[0, :, 0, 1] = [0, 0, SAT, SAT, SAT, SAT, SAT]
-    jump_data.data[0, :, 1, 0] = [1228767., 46392.234, -3245.6553, 7762.413,
-                              37190.76, 266611.62, 5072.4434]
+    jump_data.data[0, :, 1, 0] = [1228767.0, 46392.234, -3245.6553, 7762.413, 37190.76, 266611.62, 5072.4434]
     jump_data.gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, SAT]
 
     jump_data.nframes = nframes
     jump_data.rejection_thresh = 4.0
     jump_data.three_grp_thresh = 5
     jump_data.four_grp_thresh = 6
-    jump_data.max_cores = 'none'
+    jump_data.max_cores = "none"
     jump_data.max_jump_to_flag_neighbors = 200
     jump_data.min_jump_to_flag_neighbors = 10
     jump_data.flag_4_neighbors = True
@@ -105,7 +110,7 @@ def test_multiprocessing():
     Basic multiprocessing test.
     """
     nints, ngroups, nrows, ncols = 1, 13, 13, 2
-    gval, rnval = 1., 10.
+    gval, rnval = 1.0, 10.0
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
@@ -133,7 +138,7 @@ def test_multiprocessing():
     # the double flagging pixels with jump which already have do_not_use or saturation set.
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
-    jump_data.data[0, 4:, 5, 1] = 2000.
+    jump_data.data[0, 4:, 5, 1] = 2000.0
     jump_data.gdq[0, 4:, 6, 1] = DNU
 
     jump_data.max_cores = "5"
@@ -147,12 +152,12 @@ def test_multiprocessing():
     gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 5, 1] == JUMP
-    assert gdq[0, 4, 6, 1] == DNU  #This value would have been DNU | JUMP without the fix.
+    assert gdq[0, 4, 6, 1] == DNU  # This value would have been DNU | JUMP without the fix.
 
 
 def test_multiprocessing_big():
     nints, ngroups, nrows, ncols = 1, 13, 2048, 7
-    gval, rnval = 4., 10.
+    gval, rnval = 4.0, 10.0
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
@@ -161,7 +166,7 @@ def test_multiprocessing_big():
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     jump_data.max_cores = "1"
-    jump_data.data[0, 4:, 204, 5] = 2000.
+    jump_data.data[0, 4:, 204, 5] = 2000.0
     jump_data.gdq[0, 4:, 204, 6] = DNU
 
     jump_data.rejection_thresh = 5
@@ -179,12 +184,12 @@ def test_multiprocessing_big():
 
     # This section of code will fail without the fixes for PR #239 that prevent
     # the double flagging pixels with jump which already have do_not_use or saturation set.
-    gval = 3.
+    gval = 3.0
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     jump_data.max_cores = "10"
-    jump_data.data[0, 4:, 204, 5] = 2000.
+    jump_data.data[0, 4:, 204, 5] = 2000.0
     jump_data.gdq[0, 4:, 204, 6] = DNU
 
     jump_data.rejection_thresh = 5
@@ -198,7 +203,7 @@ def test_multiprocessing_big():
 
     assert gdq[0, 4, 204, 5] == JUMP
     assert gdq[0, 4, 205, 5] == JUMP
-    assert gdq[0, 4, 204, 6] == DNU  #This value would have been 5 without the fix.
+    assert gdq[0, 4, 204, 6] == DNU  # This value would have been 5 without the fix.
 
 
 def test_find_simple_ellipse():
@@ -247,9 +252,7 @@ def test_extend_saturation_simple():
     jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_radius_extend = 1.1
 
-
-    new_cube, persist_jumps = extend_saturation(
-        cube, grp, sat_circles, jump_data, persist_jumps)
+    new_cube, persist_jumps = extend_saturation(cube, grp, sat_circles, jump_data, persist_jumps)
 
     assert new_cube[grp, 2, 2] == SAT
     assert new_cube[grp, 4, 4] == SAT

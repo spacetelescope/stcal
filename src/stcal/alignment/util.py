@@ -1,4 +1,5 @@
 """Common utility functions for datamodel alignment."""
+
 from __future__ import annotations
 
 import logging
@@ -66,8 +67,7 @@ def _calculate_fiducial_from_spatial_footprint(
     return lon_fiducial, lat_fiducial
 
 
-def _calculate_fiducial(footprints: list[np.ndarray],
-                        crval: Sequence | None = None) -> tuple:
+def _calculate_fiducial(footprints: list[np.ndarray], crval: Sequence | None = None) -> tuple:
     """
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
@@ -197,8 +197,7 @@ def compute_scale(
     return float(np.sqrt(xscale * yscale))
 
 
-def compute_fiducial(wcslist: list,
-                     bounding_box: Sequence | None = None) -> np.ndarray:
+def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.ndarray:
     """
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
@@ -408,8 +407,10 @@ def wcs_from_footprints(
         The WCS object corresponding to the combined input footprints.
 
     """
-    msg = ("wcs_from_footprints is deprecated and will be removed in a future release."
-           "It is recommended to use wcs_from_sregions instead.")
+    msg = (
+        "wcs_from_footprints is deprecated and will be removed in a future release."
+        "It is recommended to use wcs_from_sregions instead."
+    )
     warnings.warn(msg, DeprecationWarning, stacklevel=2)
     _validate_wcs_list(wcs_list)
     footprints = [w.footprint() for w in wcs_list]
@@ -448,12 +449,12 @@ def sregion_to_footprint(s_region: str) -> np.ndarray:
 
 
 def _compute_bounding_box_with_offsets(
-        footprints: list[np.ndarray],
-        transform: astmodels.Model,
-        fiducial: Sequence,
-        crpix: Sequence | None,
-        shape: Sequence | None
-        ) -> Tuple[tuple, tuple, tuple]:
+    footprints: list[np.ndarray],
+    transform: astmodels.Model,
+    fiducial: Sequence,
+    crpix: Sequence | None,
+    shape: Sequence | None,
+) -> Tuple[tuple, tuple, tuple]:
     """
     Calculates axis minimum values and bounding box.
     Calculates the offsets to the transform.
@@ -492,23 +493,18 @@ def _compute_bounding_box_with_offsets(
     if crpix is None:
         # shift the coordinates by domain_min so that all input footprints
         # will project to positive coordinates in the offsetted ref_wcs
-        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix,
-                                                          domain_min))
+        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min))
     else:
         # assume 0-based CRPIX and require that fiducial would map to the user
         # defined crpix value:
-        offsets = tuple(
-            crp - ncrp for ncrp, crp in zip(native_crpix, crpix)
-        )
+        offsets = tuple(crp - ncrp for ncrp, crp in zip(native_crpix, crpix))
     # Also offset domain limits:
     domain_min += offsets
     domain_max += offsets
 
     if shape is None:
         shape = tuple(int(dmax + 0.5) for dmax in domain_max[::-1])
-        bounding_box = tuple(
-            (-0.5, s - 0.5) for s in shape[::-1]
-        )
+        bounding_box = tuple((-0.5, s - 0.5) for s in shape[::-1])
 
     else:
         # trim upper bounding box limits
@@ -605,9 +601,9 @@ def wcs_from_sregions(
         The WCS object corresponding to the combined input footprints.
 
     """
-    footprints = [sregion_to_footprint(s_region)
-                  if isinstance(s_region, str) else s_region
-                  for s_region in footprints]
+    footprints = [
+        sregion_to_footprint(s_region) if isinstance(s_region, str) else s_region for s_region in footprints
+    ]
     fiducial = _calculate_fiducial(footprints, crval=crval)
     crval = fiducial
     v3yangle = np.deg2rad(ref_wcsinfo["v3yangle"])
@@ -618,7 +614,9 @@ def wcs_from_sregions(
         roll_ref = np.deg2rad(rotation) + (vparity * v3yangle)
     pc = np.reshape(calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2))
     if not pscale:
-        pscale = compute_scale(ref_wcs, (ref_wcsinfo['ra_ref'], ref_wcsinfo['dec_ref']), pscale_ratio=pscale_ratio)
+        pscale = compute_scale(
+            ref_wcs, (ref_wcsinfo["ra_ref"], ref_wcsinfo["dec_ref"]), pscale_ratio=pscale_ratio
+        )
 
     projection = astmodels.Pix2Sky_TAN()
     cdelt = [pscale, pscale]
@@ -629,35 +627,31 @@ def wcs_from_sregions(
             | astmodels.Scale(pscale) & astmodels.Scale(pscale)
             | projection
             | astmodels.RotateNative2Celestial(crval[0], crval[1], 180)
-            )
+        )
     bounding_box, shape, offsets = _compute_bounding_box_with_offsets(
-        footprints,
-        transform,
-        fiducial=crval,
-        crpix=crpix,
-        shape=shape
+        footprints, transform, fiducial=crval, crpix=crpix, shape=shape
     )
     if any(d < 2 for d in shape):
         raise ValueError(
-            "Computed shape for the output image using provided "
-            "WCS parameters is too small.",bounding_box, shape, offsets
+            "Computed shape for the output image using provided WCS parameters is too small.",
+            bounding_box,
+            shape,
+            offsets,
         )
 
-    fwcs = FITSImagingWCSTransform(projection, crpix=offsets, crval=crval,
-                                   cdelt=cdelt, pc=pc)
+    fwcs = FITSImagingWCSTransform(projection, crpix=offsets, crval=crval, cdelt=cdelt, pc=pc)
     input_frame = ref_wcs.input_frame
     output_frame = ref_wcs.output_frame
 
-    new_wcs = gwcs.WCS([gwcs.Step(input_frame, fwcs),
-                        gwcs.Step(output_frame, None)])
+    new_wcs = gwcs.WCS([gwcs.Step(input_frame, fwcs), gwcs.Step(output_frame, None)])
     new_wcs.bounding_box = bounding_box
     new_wcs.pixel_shape = shape[::-1]
     return new_wcs
 
 
-def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
-                             shape: Sequence | None = None,
-                             center: bool = True) -> str | None:
+def compute_s_region_imaging(
+    wcs: gwcs.wcs.WCS, shape: Sequence | None = None, center: bool = True
+) -> str | None:
     """
     Update the ``S_REGION`` keyword using the WCS footprint.
 
@@ -738,7 +732,7 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
         String containing the S_REGION object.
     """
     s_region = "POLYGON ICRS  {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f}".format(
-       *footprint.flatten()
+        *footprint.flatten()
     )
     if "nan" in s_region:
         # do not update s_region if there are NaNs.

@@ -1,4 +1,5 @@
-""" Test various utility functions """
+"""Test various utility functions"""
+
 import pytest
 from pathlib import Path
 
@@ -9,12 +10,12 @@ import numpy as np
 
 from stcal.alignment.util import wcs_bbox_from_shape
 
-from . helpers import make_gwcs, make_nrcb5_model
+from .helpers import make_gwcs, make_nrcb5_model
 
 DATADIR = "data"
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def wcs_gwcs():
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
@@ -25,7 +26,7 @@ def wcs_gwcs():
 
 @pytest.fixture(scope="module")
 def nrcb5_wcs_wcsinfo():
-    """ Returns both wcs and wcsinfo """
+    """Returns both wcs and wcsinfo"""
     path = Path(__file__).parent.parent / DATADIR / "nrcb5-wcs.asdf"
     with asdf.open(path, lazy_load=False) as asdf_file:
         wcs = asdf_file.tree["wcs"]
@@ -59,7 +60,7 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
 
     for yc in range(border + p2, ny - pwb, pwb):
         for xc in range(border + p2, nx - pwb, pwb):
-            sl = np.s_[yc - p2:yc + p2 + 1, xc - p2:xc + p2 + 1]
+            sl = np.s_[yc - p2 : yc + p2 + 1, xc - p2 : xc + p2 + 1]
             flux = 1.0 + 99.0 * np.random.random()
             if np.random.random() > 0.7:
                 # uniform image
@@ -69,11 +70,7 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
                 fwhm = 1.5 + 1.5 * np.random.random()
                 sigma = fwhm / gaussian_sigma_to_fwhm
 
-                psf = flux * Gaussian2DKernel(
-                    sigma,
-                    x_size=patch_size,
-                    y_size=patch_size
-                ).array
+                psf = flux * Gaussian2DKernel(sigma, x_size=patch_size, y_size=patch_size).array
 
             mean_noise = (0.05 + 0.35 * np.random.random()) * flux / patch_area
             rdnoise = mean_noise * np.random.random((patch_size, patch_size))

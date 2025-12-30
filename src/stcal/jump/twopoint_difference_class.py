@@ -15,7 +15,7 @@ class TwoPointParams:
 
             self.two_diff_rej_thresh = jump_data.three_grp_thresh
             self.three_diff_rej_thresh = jump_data.four_grp_thresh
-            self.nframes = jump_data.nframes,
+            self.nframes = (jump_data.nframes,)
 
             self.flag_4_neighbors = jump_data.flag_4_neighbors
             self.max_jump_to_flag_neighbors = jump_data.max_jump_to_flag_neighbors
@@ -28,10 +28,10 @@ class TwoPointParams:
             self.fl_dnu = jump_data.fl_dnu
             self.fl_ref = jump_data.fl_ref
 
-            self.after_jump_flag_e1=jump_data.after_jump_flag_e1
-            self.after_jump_flag_n1=jump_data.after_jump_flag_n1
-            self.after_jump_flag_e2=jump_data.after_jump_flag_e2
-            self.after_jump_flag_n2=jump_data.after_jump_flag_n2
+            self.after_jump_flag_e1 = jump_data.after_jump_flag_e1
+            self.after_jump_flag_n1 = jump_data.after_jump_flag_n1
+            self.after_jump_flag_e2 = jump_data.after_jump_flag_e2
+            self.after_jump_flag_n2 = jump_data.after_jump_flag_n2
 
             self.minimum_groups = jump_data.minimum_groups
             self.minimum_sigclip_groups = jump_data.minimum_sigclip_groups
@@ -84,7 +84,6 @@ class TwoPointParams:
         ostr += f"fl_ngv = {self.fl_ngv}\n"
         ostr += f"fl_dnu = {self.fl_dnu}\n"
         ostr += f"fl_ref = {self.fl_ref}\n\n"
-
 
         ostr += f"after_jump_flag_e1 = {self.after_jump_flag_e1}\n"
         ostr += f"after_jump_flag_n1 = {self.after_jump_flag_n1}\n"

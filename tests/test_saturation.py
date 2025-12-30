@@ -3,6 +3,7 @@
 Unit tests for saturation flagging
 
 """
+
 from enum import IntEnum
 
 import numpy as np
@@ -153,7 +154,6 @@ def test_group2_saturation_flagging_with_bias():
     data[0, 3, 5, 5] = 73000  # Signal reaches saturation limit
     data[0, 4, 5, 5] = 78000
 
-
     # Add another pixel with bias of 15000, but no source flux
     # pixel counts are 15000 > sat_thresh/5, but should not be flagged as
     # saturated.
@@ -166,14 +166,13 @@ def test_group2_saturation_flagging_with_bias():
     sat_thresh[5, 5] = satvalue
     sat_thresh[15, 15] = satvalue
 
-
     # set read_pattern to have 5 reads per group.
     read_pattern = [
         [1, 2, 3, 4, 5],
         [6, 7, 8, 9, 10],
         [11, 12, 13, 14, 15],
         [16, 17, 18, 19, 20],
-        [21, 22, 23, 24, 25]
+        [21, 22, 23, 24, 25],
     ]
 
     gdq, pdq, _ = flag_saturated_pixels(
@@ -183,10 +182,14 @@ def test_group2_saturation_flagging_with_bias():
     # Make sure that groups after the second get flagged
     # The second group will only be flagged as DNU while
     # the PR#321 band-aid still in place.
-    assert np.all(gdq[0, 1:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
+    assert np.all(
+        gdq[0, 1:, 5, 5]
+        == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]]
+    )
 
     # Make sure that the high-bias, non-saturating pixel is not flagged
     assert np.all(gdq[0, :, 15, 15] == 0)
+
 
 def test_no_sat_check_at_limit():
     """Test to verify that pixels at the A-to-D limit (65535), but flagged with

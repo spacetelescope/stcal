@@ -2,6 +2,7 @@ from astropy import units as u
 
 INDENT = "    "
 
+
 class RampData:
     def __init__(self):
         """Creates an internal ramp fit class."""
@@ -54,8 +55,7 @@ class RampData:
 
         self.debug = False
 
-    def set_arrays(self, data, groupdq, pixeldq, average_dark_current,
-                   orig_gdq=None, zeroframe=None):
+    def set_arrays(self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None, zeroframe=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -246,7 +246,6 @@ class RampData:
         fd.write(f"{indent}ramp_data.flags_no_gain_val = {self.flags_no_gain_val}\n")
         fd.write(f"{indent}ramp_data.flags_unreliable_slope = {self.flags_unreliable_slope}\n\n")
 
-
         fd.write(f"{indent}ramp_data.start_row = 0\n")
         fd.write(f"{indent}ramp_data.num_rows = 1\n\n")
 
@@ -256,7 +255,6 @@ class RampData:
         fd.write(f"{indent}data = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.float32)\n")
         fd.write(f"{indent}gdq = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.uint8)\n")
         fd.write(f"{indent}pdq = np.zeros((1, 1), dtype=np.uint32)\n")
-
 
     def dbg_write_ramp_data_pix_post(self, fname, row, col, fd):
         indent = INDENT
@@ -270,22 +268,26 @@ class RampData:
 
     def dbg_write_ramp_data_pix_pixel(self, fname, row, col, gain, rnoise, fd):
         import numpy as np
+
         indent = INDENT
 
         # XXX Make this a separate function
         delimiter = "-" * 40
-        fd.write(f"{indent}# {delimiter}\n\n");
-        fd.write(f"{indent}# ({row}, {col})\n\n");
-
+        fd.write(f"{indent}# {delimiter}\n\n")
+        fd.write(f"{indent}# ({row}, {col})\n\n")
         nints = self.data.shape[0]
 
         for integ in range(nints):
-            arr_str = np.array2string(self.data[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            arr_str = np.array2string(
+                self.data[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", "
+            )
             fd.write(f"{indent}data[{integ}, :, 0, 0] = np.array({arr_str})\n")
         fd.write("\n")
 
         for integ in range(nints):
-            arr_str = np.array2string(self.groupdq[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            arr_str = np.array2string(
+                self.groupdq[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", "
+            )
             fd.write(f"{indent}gdq[{integ}, :, 0, 0] = np.array({arr_str})\n")
         fd.write("\n")
 
@@ -294,7 +296,9 @@ class RampData:
 
         if self.zeroframe is not None:
             fd.write(f"{indent}zframe = np.zeros((1, 1), dtype=np.float32)\n\n")
-            arr_str = np.array2string(self.zeroframe[row, col], precision=12, max_line_width=np.nan, separator=", ")
+            arr_str = np.array2string(
+                self.zeroframe[row, col], precision=12, max_line_width=np.nan, separator=", "
+            )
             fd.write(f"{indent}zframe[0, 0] = {arr_str}\n\n")
         else:
             fd.write(f"{indent}zframe = None\n\n")
@@ -304,7 +308,6 @@ class RampData:
 
         fd.write(f"{indent}nrnoise = np.zeros((1, 1), dtype=np.float32)\n")
         fd.write(f"{indent}nrnoise[0, 0] = {rnoise[row, col]}\n\n")
-
 
     def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):
         print(f"*** {fname} ***")
