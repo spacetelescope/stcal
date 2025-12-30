@@ -1,7 +1,8 @@
 """Tests of custom testing infrastructure"""
 
-import pytest
 import numpy as np
+import pytest
+
 from stcal.testing_helpers import MemoryThreshold, MemoryThresholdExceeded
 
 

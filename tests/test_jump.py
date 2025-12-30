@@ -1,15 +1,16 @@
 import numpy as np
 import pytest
 from astropy.io import fits
-from stcal.jump.jump_class import JumpData
+
 from stcal.jump.jump import (
+    detect_jumps_data,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
-    detect_jumps_data,
 )
+from stcal.jump.jump_class import JumpData
 
 DQFLAGS = {
     "GOOD": 0,

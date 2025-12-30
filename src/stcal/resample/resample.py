@@ -1,22 +1,21 @@
 import logging
 import math
-import warnings
 import sys
+import warnings
+from collections import defaultdict
 
 import numpy as np
-from collections import defaultdict
-from numpy.typing import DTypeLike
-
-from drizzle.utils import calc_pixmap
 from drizzle.resample import Drizzle
+from drizzle.utils import calc_pixmap
+from numpy.typing import DTypeLike
 
 from stcal.resample.utils import (
     build_driz_weight,
     compute_mean_pixel_area,
     get_tmeasure,
-    resample_range,
     is_flux_density,
     is_imaging_wcs,
+    resample_range,
 )
 
 log = logging.getLogger(__name__)

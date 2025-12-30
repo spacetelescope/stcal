@@ -2,12 +2,11 @@ import sys
 
 import numpy as np
 import pytest
+from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # C extension
 
 from stcal.multiprocessing import compute_num_cores
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
-from stcal.ramp_fitting.slope_fitter import ols_slope_fitter  # C extension
-
 
 DELIM = "=" * 70
 

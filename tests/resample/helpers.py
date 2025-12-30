@@ -1,10 +1,9 @@
-from astropy.nddata.bitmask import BitFlagNameMap
+import numpy as np
 from astropy import coordinates as coord
 from astropy.modeling import models as astmodels
-
+from astropy.nddata.bitmask import BitFlagNameMap
 from gwcs import coordinate_frames as cf
 from gwcs.wcstools import wcs_from_fiducial
-import numpy as np
 
 from stcal.alignment import compute_s_region_imaging
 from stcal.resample.utils import compute_mean_pixel_area

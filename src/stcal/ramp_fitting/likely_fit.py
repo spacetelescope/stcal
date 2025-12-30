@@ -1,12 +1,11 @@
 import logging
-import scipy
 import warnings
 
 import numpy as np
+import scipy
 
 from stcal.ramp_fitting import utils
-from stcal.ramp_fitting.likely_algo_classes import IntegInfo, RampResult, Covar
-
+from stcal.ramp_fitting.likely_algo_classes import Covar, IntegInfo, RampResult
 
 DELIM = "=" * 80
 SQRT2 = np.sqrt(2)

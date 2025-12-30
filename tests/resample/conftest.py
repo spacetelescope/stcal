@@ -1,12 +1,12 @@
 """Test various utility functions"""
 
-import pytest
 from pathlib import Path
 
 import asdf
+import numpy as np
+import pytest
 from astropy.convolution import Gaussian2DKernel
 from astropy.stats.funcs import gaussian_sigma_to_fwhm
-import numpy as np
 
 from stcal.alignment.util import wcs_bbox_from_shape
 

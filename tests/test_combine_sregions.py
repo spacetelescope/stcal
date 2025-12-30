@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 from astropy.modeling.mappings import Identity
-from stcal.alignment import sregion_to_footprint
 
 from stcal.alignment import (
     combine_footprints,
     combine_sregions,
+    sregion_to_footprint,
 )
 from stcal.alignment.resample_utils import _polygons_to_sregion
 

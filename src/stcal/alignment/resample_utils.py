@@ -1,8 +1,8 @@
 import logging
 
 import numpy as np
-from gwcs.wcstools import grid_from_bounding_box
 import shapely.geometry  # type: ignore[import-untyped]
+from gwcs.wcstools import grid_from_bounding_box
 
 from stcal.alignment import util
 

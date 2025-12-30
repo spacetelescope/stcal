@@ -5,7 +5,6 @@ import logging
 
 import numpy as np
 
-
 log = logging.getLogger(__name__)
 
 # Replace zero or negative variances with this:

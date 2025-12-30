@@ -4,7 +4,6 @@ import tomllib
 from datetime import datetime
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).parent.parent
 
 # Modules that automodapi will document need to be available

@@ -5,17 +5,17 @@ import logging
 import multiprocessing
 import time
 import warnings
-from scipy import signal
 
-import numpy as np
 import astropy.stats as stats
+import numpy as np
 import skimage
 from astropy.convolution import Ring2DKernel
+from scipy import signal
 
-
-from .twopoint_difference_class import TwoPointParams
-from . import twopoint_difference as twopt
 from stcal.multiprocessing import compute_num_cores
+
+from . import twopoint_difference as twopt
+from .twopoint_difference_class import TwoPointParams
 
 log = logging.getLogger(__name__)
 

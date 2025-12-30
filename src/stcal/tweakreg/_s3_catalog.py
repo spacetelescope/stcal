@@ -1,17 +1,15 @@
-import functools
 import concurrent.futures
+import functools
 
 import numpy as np
-from astropy import units as u
+import pyarrow.csv as csv
+import pyarrow.fs
+import pyarrow.parquet as pq
 from astropy import coordinates
+from astropy import units as u
 from astropy.table import Table
 from astropy.time import Time
-
-import pyarrow.fs
-import pyarrow.csv as csv
-import pyarrow.parquet as pq
 from astropy_healpix import HEALPix
-
 
 __all__ = []
 

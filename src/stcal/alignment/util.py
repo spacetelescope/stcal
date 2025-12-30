@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING
 import warnings
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -13,12 +13,11 @@ if TYPE_CHECKING:
     import astropy
 
 import gwcs
-from gwcs import FITSImagingWCSTransform
 import numpy as np
-from astropy import wcs as fitswcs
 from astropy import coordinates as coord
+from astropy import wcs as fitswcs
 from astropy.modeling import models as astmodels
-
+from gwcs import FITSImagingWCSTransform
 
 log = logging.getLogger(__name__)
 

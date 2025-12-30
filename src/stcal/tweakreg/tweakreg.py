@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
 import math
 import warnings
+from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 

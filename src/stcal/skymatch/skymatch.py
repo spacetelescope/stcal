@@ -7,11 +7,11 @@ A module that provides functions for matching sky in overlapping images.
 
 import logging
 from datetime import datetime
+
 import numpy as np
 
 # LOCAL
-from .skyimage import SkyImage, SkyGroup
-
+from .skyimage import SkyGroup, SkyImage
 
 __all__ = ["skymatch"]
 

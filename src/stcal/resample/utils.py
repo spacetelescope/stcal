@@ -1,13 +1,12 @@
 import logging
 
 import numpy as np
+from astropy import units as u
 from astropy.nddata.bitmask import (
     bitfield_to_boolean_mask,
     interpret_bit_flags,
 )
-from astropy import units as u
 from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-untyped]
-
 
 __all__ = [
     "build_driz_weight",
