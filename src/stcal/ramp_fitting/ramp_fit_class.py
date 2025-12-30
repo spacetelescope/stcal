@@ -151,11 +151,11 @@ class RampData:
 
     def dbg_print_types(self):
         # Arrays from the data model
-        print("-" * 80)
-        print("    Array Types:")
-        print(f"data : {type(self.data)}")
-        print(f"groupdq : {type(self.groupdq)}")
-        print(f"pixeldq : {type(self.pixeldq)}")
+        print("-" * 80)  # noqa: T201
+        print("    Array Types:")  # noqa: T201
+        print(f"data : {type(self.data)}")  # noqa: T201
+        print(f"groupdq : {type(self.groupdq)}")  # noqa: T201
+        print(f"pixeldq : {type(self.pixeldq)}")  # noqa: T201
 
         self.dbg_print_meta()
         self.dbg_print_mp()
@@ -164,65 +164,65 @@ class RampData:
 
     def dbg_print_meta(self):
         # Meta information
-        print("-" * 80)
-        print("    Meta:")
-        print(f"Instrument: {self.instrument_name}")
+        print("-" * 80)  # noqa: T201
+        print("    Meta:")  # noqa: T201
+        print(f"Instrument: {self.instrument_name}")  # noqa: T201
 
-        print(f"Frame time : {self.frame_time}")
-        print(f"Group time : {self.group_time}")
-        print(f"Group Gap : {self.groupgap}")
-        print(f"Nframes : {self.nframes}")
-        print(f"Drop Frames : {self.drop_frames1}")
-        print("-" * 80)
+        print(f"Frame time : {self.frame_time}")  # noqa: T201
+        print(f"Group time : {self.group_time}")  # noqa: T201
+        print(f"Group Gap : {self.groupgap}")  # noqa: T201
+        print(f"Nframes : {self.nframes}")  # noqa: T201
+        print(f"Drop Frames : {self.drop_frames1}")  # noqa: T201
+        print("-" * 80)  # noqa: T201
 
     def dbg_print_mp(self):
         # Multiprocessing
-        print("-" * 80)
-        print(f"Start row : {self.start_row}")
-        print(f"Number of rows : {self.num_rows}")
+        print("-" * 80)  # noqa: T201
+        print(f"Start row : {self.start_row}")  # noqa: T201
+        print(f"Number of rows : {self.num_rows}")  # noqa: T201
 
     def dbg_print_zframe(self):
         # ZEROFRAME
-        print("-" * 80)
-        print("    ZEROFRAME:")
-        print(f"zframe_locs : {type(self.zframe_locs)}")
-        print(f"zeroframe : {type(self.zeroframe)}")
+        print("-" * 80)  # noqa: T201
+        print("    ZEROFRAME:")  # noqa: T201
+        print(f"zframe_locs : {type(self.zframe_locs)}")  # noqa: T201
+        print(f"zeroframe : {type(self.zeroframe)}")  # noqa: T201
 
     def dbg_print_1grp(self):
         # One group ramp suppression for saturated ramps after 0th group.
-        print("-" * 80)
-        print("    One Group Suppression:")
-        print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")
+        print("-" * 80)  # noqa: T201
+        print("    One Group Suppression:")  # noqa: T201
+        print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")  # noqa: T201
 
     def dbg_print_basic_info(self):
         # Arrays from the data model
         self.dbg_print_meta()
 
-        print(f"Shape : {self.data.shape}")
-        print(f"data : \n{self.data}")
-        print(f"groupdq : \n{self.groupdq}")
+        print(f"Shape : {self.data.shape}")  # noqa: T201
+        print(f"data : \n{self.data}")  # noqa: T201
+        print(f"groupdq : \n{self.groupdq}")  # noqa: T201
         # print(f"pixeldq : \n{self.pixeldq}")
-        print("-" * 80)
+        print("-" * 80)  # noqa: T201
 
     def dbg_print_pixel_info(self, row, col):
-        print("-" * 80)
-        print("    data")
+        print("-" * 80)  # noqa: T201
+        print("    data")  # noqa: T201
         for integ in range(self.data.shape[0]):
-            print(f"[{integ}] {self.data[integ, :, row, col]}")
-        print("    groupdq")
+            print(f"[{integ}] {self.data[integ, :, row, col]}")  # noqa: T201
+        print("    groupdq")  # noqa: T201
         for integ in range(self.data.shape[0]):
-            print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
+            print(f"[{integ}] {self.groupdq[integ, :, row, col]}")  # noqa: T201
         # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
 
     def dbg_print_info(self):
-        print(" ")
+        print(" ")  # noqa: T201
         nints, ngroups, nrows, ncols = self.data.shape
         for row in range(nrows):
             for col in range(ncols):
-                print("=" * 80)
-                print(f"**** Pixel ({row}, {col}) ****")
+                print("=" * 80)  # noqa: T201
+                print(f"**** Pixel ({row}, {col}) ****")  # noqa: T201
                 self.dbg_print_pixel_info(row, col)
-        print("=" * 80)
+        print("=" * 80)  # noqa: T201
 
     def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):  # noqa: ARG001, ARG002
         fd.write("def create_ramp_data_pixel():\n")
@@ -310,7 +310,7 @@ class RampData:
         fd.write(f"{indent}nrnoise[0, 0] = {rnoise[row, col]}\n\n")
 
     def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):
-        print(f"*** {fname} ***")
+        print(f"*** {fname} ***")  # noqa: T201
         with open(fname, "w") as fd:  # noqa: PTH123
             self.dbg_write_ramp_data_pix_pre(fname, row, col, fd)
             self.dbg_write_ramp_data_pix_pixel(fname, row, col, gain, rnoise, fd)

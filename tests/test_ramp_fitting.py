@@ -1963,7 +1963,7 @@ def dbg_print(string):
     line_number = cf.f_back.f_lineno
     finfo = inspect.getframeinfo(cf.f_back)
     fname = os.path.basename(finfo.filename)
-    print(f"[{fname}:{line_number}] {string}")
+    print(f"[{fname}:{line_number}] {string}")  # noqa: T201
 
 
 def print_real_check(real, check, label=None):
@@ -1971,15 +1971,15 @@ def print_real_check(real, check, label=None):
 
     cf = inspect.currentframe()
     line_number = cf.f_back.f_lineno
-    print("=" * 80)
-    print(f"----> Line = {line_number} <----")
+    print("=" * 80)  # noqa: T201
+    print(f"----> Line = {line_number} <----")  # noqa: T201
     if label:
         base_print(label, real)
     else:
         base_print("real", real)
-    print("=" * 80)
+    print("=" * 80)  # noqa: T201
     base_print("check", check)
-    print("=" * 80)
+    print("=" * 80)  # noqa: T201
 
 
 def print_arr_str(arr):
@@ -1988,8 +1988,8 @@ def print_arr_str(arr):
 
 def base_print(label, arr):
     arr_str = np.array2string(arr, max_line_width=np.nan, separator=", ")
-    print(label)
-    print(arr_str)
+    print(label)  # noqa: T201
+    print(arr_str)  # noqa: T201
 
 
 def print_slope_data(slopes):
@@ -2018,24 +2018,24 @@ def print_slope_err(slopes):
 
 
 def print_slopes(slopes):
-    print(DELIM)
-    print("**** SLOPES")
-    print(DELIM)
+    print(DELIM)  # noqa: T201
+    print("**** SLOPES")  # noqa: T201
+    print(DELIM)  # noqa: T201
     print_slope_data(slopes)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_slope_dq(slopes)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_slope_poisson(slopes)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_slope_readnoise(slopes)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_slope_err(slopes)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
 
 
 def print_integ_data(integ_info):
@@ -2064,60 +2064,60 @@ def print_integ_err(integ_info):
 
 
 def print_integ(integ_info):
-    print(DELIM)
-    print("**** INTEGRATIONS")
-    print(DELIM)
+    print(DELIM)  # noqa: T201
+    print("**** INTEGRATIONS")  # noqa: T201
+    print(DELIM)  # noqa: T201
     print_integ_data(integ_info)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_integ_dq(integ_info)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_integ_poisson(integ_info)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_integ_rnoise(integ_info)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_integ_err(integ_info)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
 
 
 def print_optional_data(optional):
     oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = optional
-    print("Optional results slopes:")
-    print(f"Dimensions: {oslope.shape}")
-    print(oslope)
+    print("Optional results slopes:")  # noqa: T201
+    print(f"Dimensions: {oslope.shape}")  # noqa: T201
+    print(oslope)  # noqa: T201
 
 
 def print_optional_poisson(optional):
     oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = optional
-    print("Optional results Poisson:")
-    print(f"Dimensions: {ovar_poisson.shape}")
-    print(ovar_poisson)
+    print("Optional results Poisson:")  # noqa: T201
+    print(f"Dimensions: {ovar_poisson.shape}")  # noqa: T201
+    print(ovar_poisson)  # noqa: T201
 
 
 def print_optional_rnoise(optional):
     oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag = optional
-    print("Optional results read noise:")
-    print(f"Dimensions: {ovar_rnoise.shape}")
-    print(ovar_rnoise)
+    print("Optional results read noise:")  # noqa: T201
+    print(f"Dimensions: {ovar_rnoise.shape}")  # noqa: T201
+    print(ovar_rnoise)  # noqa: T201
 
 
 def print_optional(optional):
-    print(DELIM)
-    print("**** OPTIONAL RESULTS")
-    print(DELIM)
+    print(DELIM)  # noqa: T201
+    print("**** OPTIONAL RESULTS")  # noqa: T201
+    print(DELIM)  # noqa: T201
     print_optional_data(optional)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_optional_poisson(optional)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
     print_optional_rnoise(optional)
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
 
 
 def print_all_info(slopes, cube, optional):
@@ -2127,7 +2127,7 @@ def print_all_info(slopes, cube, optional):
     oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
     """
 
-    print(" ")
+    print(" ")  # noqa: T201
     print_slopes(slopes)
     print_integ(cube)
     print_optional(optional)

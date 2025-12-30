@@ -421,7 +421,7 @@ class JumpData:
     def print_jump_data_arrays(self, pix_list=None, fd=None):  # noqa: ARG001, ARG002
         """Print jump_data arrays."""
         if fd is None:
-            print(self.get_jump_data_arrays())
+            print(self.get_jump_data_arrays())  # noqa: T201
         else:
             print(self.get_jump_data_arrays(), file=fd)
 
@@ -443,7 +443,7 @@ class JumpData:
     def print_jump_data_options(self, fd=None):
         """Print jump_data options."""
         if fd is None:
-            print(self.get_jump_data_options())
+            print(self.get_jump_data_options())  # noqa: T201
         else:
             print(self.get_jump_data_options(), file=fd)
 
@@ -475,7 +475,7 @@ class JumpData:
     def print_jump_data_dqflags(self, fd=None):
         """Print string of jump_data dqflags."""
         if fd is None:
-            print(self.get_jump_data_dqflags())
+            print(self.get_jump_data_dqflags())  # noqa: T201
         else:
             print(self.get_jump_data_dqflags(), file=fd)
 
@@ -495,7 +495,7 @@ class JumpData:
     def print_jump_data_snowball(self, fd=None):
         """Print string of jump_data snowball data."""
         if fd is None:
-            print(self.get_jump_data_snowball())
+            print(self.get_jump_data_snowball())  # noqa: T201
         else:
             print(self.get_jump_data_snowball(), file=fd)
 
@@ -518,7 +518,7 @@ class JumpData:
     def print_jump_data_shower(self, fd=None):
         """Print string of jump_data shower data."""
         if fd is None:
-            print(self.get_jump_data_shower())
+            print(self.get_jump_data_shower())  # noqa: T201
         else:
             print(self.get_jump_data_shower(), file=fd)
 
@@ -540,7 +540,7 @@ class JumpData:
     def print_jump_data_sigma_clipping(self, fd=None):
         """Print string of jump_data sigma clipping data."""
         if fd is None:
-            print(self.get_jump_data_sigma_clipping())
+            print(self.get_jump_data_sigma_clipping())  # noqa: T201
         else:
             print(self.get_jump_data_sigma_clipping(), file=fd)
 
@@ -557,7 +557,7 @@ class JumpData:
     def print_jump_data_internal_state(self, fd=None):
         """Print string of jump_data internal state."""
         if fd is None:
-            print(self.get_jump_data_internal_state())
+            print(self.get_jump_data_internal_state())  # noqa: T201
         else:
             print(self.get_jump_data_internal_state(), file=fd)
 

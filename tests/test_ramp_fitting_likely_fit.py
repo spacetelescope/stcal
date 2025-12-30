@@ -435,41 +435,41 @@ def dbg_print_basic_ramp(ramp_data, pix=(0, 0)):
     data = ramp_data.data[:, :, row, col]
     dq = ramp_data.groupdq[:, :, row, col]
 
-    print(" ")
-    print(DELIM)
-    print(f"Data Shape: {ramp_data.data.shape}")
-    print(DELIM)
-    print("Data:")
+    print(" ")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print(f"Data Shape: {ramp_data.data.shape}")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print("Data:")  # noqa: T201
     for integ in range(nints):
         arr_str = np.array2string(data[integ, :], max_line_width=np.nan, separator=", ")
-        print(f"[{integ}] {arr_str}")
-    print(DELIM)
+        print(f"[{integ}] {arr_str}")  # noqa: T201
+    print(DELIM)  # noqa: T201
 
-    print("DQ:")
+    print("DQ:")  # noqa: T201
     for integ in range(nints):
         arr_str = np.array2string(dq[integ, :], max_line_width=np.nan, separator=", ")
-        print(f"[{integ}] {arr_str}")
-    print(DELIM)
+        print(f"[{integ}] {arr_str}")  # noqa: T201
+    print(DELIM)  # noqa: T201
 
 
 def dbg_print_slopes(slope, pix=(0, 0), label=None):
     data, dq, vp, vr, err = slope
     row, col = pix
 
-    print(" ")
-    print(DELIM)
+    print(" ")  # noqa: T201
+    print(DELIM)  # noqa: T201
     if label is not None:
-        print("Slope Information: ({label})")
+        print("Slope Information: ({label})")  # noqa: T201
     else:
-        print("Slope Information:")
-    print(f"    Pixel = ({row}, {col})")
+        print("Slope Information:")  # noqa: T201
+    print(f"    Pixel = ({row}, {col})")  # noqa: T201
 
-    print(f"data = {data[row, col]}")
-    print(f"dq = {dq[row, col]}")
-    print(f"vp = {vp[row, col]}")
-    print(f"vr = {vr[row, col]}\n")
+    print(f"data = {data[row, col]}")  # noqa: T201
+    print(f"dq = {dq[row, col]}")  # noqa: T201
+    print(f"vp = {vp[row, col]}")  # noqa: T201
+    print(f"vr = {vr[row, col]}\n")  # noqa: T201
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
 
 
 def dbg_print_cube(cube, pix=(0, 0), label=None):
@@ -477,21 +477,21 @@ def dbg_print_cube(cube, pix=(0, 0), label=None):
     row, col = pix
     nints = data.shape[0]
 
-    print(" ")
-    print(DELIM)
+    print(" ")  # noqa: T201
+    print(DELIM)  # noqa: T201
     if label is not None:
-        print("Cube Information: ({label})")
+        print("Cube Information: ({label})")  # noqa: T201
     else:
-        print("Cube Information:")
-    print(f"    Pixel = ({row}, {col})")
-    print(f"    Number of Integrations = {nints}")
+        print("Cube Information:")  # noqa: T201
+    print(f"    Pixel = ({row}, {col})")  # noqa: T201
+    print(f"    Number of Integrations = {nints}")  # noqa: T201
 
-    print(f"data = {data[:, row, col]}")
-    print(f"dq = {dq[:, row, col]}")
-    print(f"vp = {vp[:, row, col]}")
-    print(f"vr = {vr[:, row, col]}")
+    print(f"data = {data[:, row, col]}")  # noqa: T201
+    print(f"dq = {dq[:, row, col]}")  # noqa: T201
+    print(f"vp = {vp[:, row, col]}")  # noqa: T201
+    print(f"vr = {vr[:, row, col]}")  # noqa: T201
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
 
 
 def dbg_print_slope_slope1(slopes, slopes1, pix):
@@ -499,24 +499,24 @@ def dbg_print_slope_slope1(slopes, slopes1, pix):
     data1, dq1, vp1, vr1, err1 = slopes1
     row, col = pix
 
-    print(" ")
-    print(DELIM)
-    print("Slope Information:")
-    print(f"    Pixel = ({row}, {col})")
+    print(" ")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print("Slope Information:")  # noqa: T201
+    print(f"    Pixel = ({row}, {col})")  # noqa: T201
 
-    print(f"data LIK = {data[row, col]:.12f}")
-    print(f"data OLS = {data1[row, col]:.12f}\n")
+    print(f"data LIK = {data[row, col]:.12f}")  # noqa: T201
+    print(f"data OLS = {data1[row, col]:.12f}\n")  # noqa: T201
 
     # print(f"dq LIK = {dq[row, col]}")
     # print(f"dq OLS = {dq1[row, col]}\n")
 
-    print(f"vp LIK = {vp[row, col]:.12f}")
-    print(f"vp OLS = {vp1[row, col]:.12f}\n")
+    print(f"vp LIK = {vp[row, col]:.12f}")  # noqa: T201
+    print(f"vp OLS = {vp1[row, col]:.12f}\n")  # noqa: T201
 
-    print(f"vr LIK = {vr[row, col]:.12f}")
-    print(f"vr OLS = {vr1[row, col]:.12f}\n")
+    print(f"vr LIK = {vr[row, col]:.12f}")  # noqa: T201
+    print(f"vr OLS = {vr1[row, col]:.12f}\n")  # noqa: T201
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201
 
 
 def dbg_print_cube_cube1(cube, cube1, pix):
@@ -525,22 +525,22 @@ def dbg_print_cube_cube1(cube, cube1, pix):
     row, col = pix
     nints = data1.shape[0]
 
-    print(" ")
-    print(DELIM)
-    print("Cube Information:")
-    print(f"    Pixel = ({row}, {col})")
-    print(f"    Number of Integrations = {nints}")
+    print(" ")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print("Cube Information:")  # noqa: T201
+    print(f"    Pixel = ({row}, {col})")  # noqa: T201
+    print(f"    Number of Integrations = {nints}")  # noqa: T201
 
-    print(f"data LIK = {data[:, row, col]}")
-    print(f"data OLS = {data1[:, row, col]}\n")
+    print(f"data LIK = {data[:, row, col]}")  # noqa: T201
+    print(f"data OLS = {data1[:, row, col]}\n")  # noqa: T201
 
     # print(f"dq LIK = {dq[:, row, col]}")
     # print(f"dq OLS = {dq1[:, row, col]}\n")
 
-    print(f"vp LIK = {vp[:, row, col]}")
-    print(f"vp OLS = {vp1[:, row, col]}\n")
+    print(f"vp LIK = {vp[:, row, col]}")  # noqa: T201
+    print(f"vp OLS = {vp1[:, row, col]}\n")  # noqa: T201
 
-    print(f"vr LIK = {vr[:, row, col]}")
-    print(f"vr OLS = {vr1[:, row, col]}\n")
+    print(f"vr LIK = {vr[:, row, col]}")  # noqa: T201
+    print(f"vr OLS = {vr1[:, row, col]}\n")  # noqa: T201
 
-    print(DELIM)
+    print(DELIM)  # noqa: T201

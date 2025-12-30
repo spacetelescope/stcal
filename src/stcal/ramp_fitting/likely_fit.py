@@ -1202,18 +1202,18 @@ def get_ramp_result(
 
 
 def dbg_print_info(group_time, readtimes, data, diff):
-    print(DELIM)
-    print(f"group_time = {group_time}")
-    print(DELIM)
-    print(f"readtimes = {array_string(np.array(readtimes))}")
-    print(DELIM)
-    print(f"data = {array_string(data[:, 0, 0])}")
-    print(DELIM)
+    print(DELIM)  # noqa: T201
+    print(f"group_time = {group_time}")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print(f"readtimes = {array_string(np.array(readtimes))}")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print(f"data = {array_string(data[:, 0, 0])}")  # noqa: T201
+    print(DELIM)  # noqa: T201
     data_gt = data / group_time
-    print(f"data / gt = {array_string(data_gt[:, 0, 0])}")
-    print(DELIM)
-    print(f"diff = {array_string(diff[:, 0, 0])}")
-    print(DELIM)
+    print(f"data / gt = {array_string(data_gt[:, 0, 0])}")  # noqa: T201
+    print(DELIM)  # noqa: T201
+    print(f"diff = {array_string(diff[:, 0, 0])}")  # noqa: T201
+    print(DELIM)  # noqa: T201
 
 
 def array_string(arr, prec=4):
