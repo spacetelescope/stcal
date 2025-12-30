@@ -109,11 +109,11 @@ select = [
   #"B",      # flake8-bugbear (prevent common gotcha bugs)
   "C4", # flake8-comprehensions (best practices for comprehensions)
   #"I",      # isort (import sorting)
-  "ICN", # flake8-import-conventions (enforce import conventions)
-  "INP", # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
-  "ISC", # flake8-implicit-str-concat (prevent implicit string concat)
-  "LOG", # flake8-logging
-  #"NPY",    # NumPy-specific checks (recommendations from NumPy)
+  "ICN",  # flake8-import-conventions (enforce import conventions)
+  "INP",  # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
+  "ISC",  # flake8-implicit-str-concat (prevent implicit string concat)
+  "LOG",  # flake8-logging
+  "NPY",  # NumPy-specific checks (recommendations from NumPy)
   "PGH",  # pygrep (simple grep checks)
   "PTH",  # flake8-use-pathlib (prefer pathlib over os.path)
   "S",    # flake8-bandit (security checks)
