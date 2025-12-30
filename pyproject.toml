@@ -176,6 +176,9 @@ exclude = ["docs", "build", "dist", ".tox", ".eggs", "__init__.py"]
   "UP",   # pyupgrade (simplified syntax allowed by newer Python versions)
   "YTT",  # flake8-2020 (prevent some specific gotchas from sys.version)
 ]
+"tests/test_ramp_fitting*" = ["T20"]
+"src/stcal/ramp_fitting/*" = ["T20"]
+"src/stcal/jump/jump_class.py" = ["T20"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
