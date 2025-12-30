@@ -100,11 +100,11 @@ docstring-code-format = true
 [tool.ruff.lint]
 select = [
   "F", # Pyflakes (part of default flake8)
-  "W", # pycodestyle (part of default flake8)
   "E", # pycodestyle (part of default flake8)
-  #"I",      # isort (import sorting)
-  # "N",      # pep8-naming
+  "W", # pycodestyle (part of default flake8)
   #"D",      # pydocstyle (docstring style guide)
+  #"N",      # pep8-naming
+  #"I",      # isort (import sorting)
   #"UP",     # pyupgrade (upgrade code to modern python)
   "YTT", # flake8-2020 (system version info)
   "ANN", # flake8-annotations (best practices for type annotations)
@@ -166,7 +166,30 @@ ignore = [
 exclude = ["docs", "build", "dist", ".tox", ".eggs", "__init__.py"]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"tests/*.py" = ["S101", "D"]
+"tests/*.py" = [
+  "E",    # pycodestyle (part of default flake8)
+  "W",    # pycodestyle (part of default flake8)
+  "D",    # docstrings, see also numpydoc pre-commit action
+  "N",    # pep8-naming (naming conventions)
+  "A",    # flake8-builtins (prevent shadowing of builtins)
+  "ARG",  # flake8-unused-arguments (prevent unused arguments)
+  "B",    # flake8-bugbear (miscellaneous best practices to avoid bugs)
+  "C4",   # flake8-comprehensions (best practices for comprehensions)
+  "F841", # Local variable `result` is assigned to but never used
+  "ICN",  # flake8-import-conventions (enforce import conventions)
+  "INP",  # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
+  "ISC",  # flake8-implicit-str-concat (conventions for concatenating long strings)
+  "LOG",  # flake8-logging
+  "NPY",  # numpy-specific rules
+  "PGH",  # pygrep-hooks (ensure appropriate usage of noqa and type-ignore)
+  "PTH",  # flake8-use-pathlib (enforce using Pathlib instead of os)
+  "S",    # flake8-bandit (security checks)
+  "SLF",  # flake8-self (prevent using private class members outside class)
+  "SLOT", # flake8-slots (require __slots__ for immutable classes)
+  "TRY",  # tryceratops (best practices for try/except blocks)
+  "UP",   # pyupgrade (simplified syntax allowed by newer Python versions)
+  "YTT",  # flake8-2020 (prevent some specific gotchas from sys.version)
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
