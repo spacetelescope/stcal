@@ -216,7 +216,7 @@ class Covar:
 
         return mean_t, tau, n_reads, delta_t
 
-    def _compute_alphas_and_betas(self, mean_t, tau, N, delta_t):
+    def _compute_alphas_and_betas(self, mean_t, tau, N, delta_t):  # noqa: N803
         """
         Computes the means and taus defined in EQNs 28 and 29 in paper 1.
 

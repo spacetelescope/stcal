@@ -561,12 +561,12 @@ def fit_ramps(
     sgn = np.ones((ndiffs, npix))
     sgn[::2] = -1
 
-    Phi = compute_Phis(ndiffs, npix, beta, phi, sgn)  # EQN 46
-    PhiD = compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask)  # EQN ??
-    Theta = compute_Thetas(ndiffs, npix, beta, theta, sgn)  # EQN 47
-    ThetaD = compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask)  # EQN 48
+    Phi = compute_Phis(ndiffs, npix, beta, phi, sgn)  # EQN 46  # noqa: N806
+    PhiD = compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask)  # EQN ??  # noqa: N806
+    Theta = compute_Thetas(ndiffs, npix, beta, theta, sgn)  # EQN 47  # noqa: N806
+    ThetaD = compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask)  # EQN 48  # noqa: N806
 
-    dB, dC, A, B, C = matrix_computations(
+    dB, dC, A, B, C = matrix_computations(  # noqa: N806
         ndiffs,
         npix,
         sgn,
@@ -607,7 +607,7 @@ def fit_ramps(
 # RAMP FITTING END
 
 
-def compute_jump_detects(result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta):
+def compute_jump_detects(result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta, phi, theta):  # noqa: N803
     """
     Detect jumps in ramps.
 
@@ -669,13 +669,13 @@ def compute_jump_detects(result, ndiffs, diffs2use, dC, dB, A, B, C, scale, beta
         The results of the ramp fitting for a given row of pixels in an integration.
     """
     # Diagonal elements of the inverse covariance matrix
-    Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]
-    Cinv_diag *= diffs2use
+    Cinv_diag = theta[:-1] * phi[1:] / theta[ndiffs]  # noqa: N806
+    Cinv_diag *= diffs2use  # noqa: N806
 
     # Off-diagonal elements of the inverse covariance matrix
     # one spot above and below for the case of two adjacent
     # differences to be masked
-    Cinv_offdiag = -beta * theta[:-2] * phi[2:] / theta[ndiffs]
+    Cinv_offdiag = -beta * theta[:-2] * phi[2:] / theta[ndiffs]  # noqa: N806
 
     # Equations in the paper: best-fit a, b
     #
@@ -903,7 +903,7 @@ def compute_phis(ndiffs, npix, alpha, beta):
     return phi
 
 
-def compute_Phis(ndiffs, npix, beta, phi, sgn):
+def compute_Phis(ndiffs, npix, beta, phi, sgn):  # noqa: N802
     """
     Computes intermediate Phi values for ramp fitting.
 
@@ -930,13 +930,13 @@ def compute_Phis(ndiffs, npix, beta, phi, sgn):
     -------
     Phi : ndarray
     """
-    Phi = np.zeros((ndiffs, npix))
+    Phi = np.zeros((ndiffs, npix))  # noqa: N806
     for i in range(ndiffs - 2, -1, -1):
         Phi[i] = Phi[i + 1] * beta[i] + sgn[i + 1] * beta[i] * phi[i + 2]
     return Phi
 
 
-def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
+def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):  # noqa: N802
     """
     EQN 4, Paper II
     This one is defined later in the paper and is used for jump detection.
@@ -965,13 +965,13 @@ def compute_PhiDs(ndiffs, npix, beta, phi, sgn, diff_mask):
     -------
     PhiD: ndarray
     """
-    PhiD = np.zeros((ndiffs, npix))
+    PhiD = np.zeros((ndiffs, npix))  # noqa: N806
     for i in range(ndiffs - 2, -1, -1):
         PhiD[i] = (PhiD[i + 1] + sgn[i + 1] * diff_mask[i + 1] * phi[i + 2]) * beta[i]
     return PhiD
 
 
-def compute_Thetas(ndiffs, npix, beta, theta, sgn):
+def compute_Thetas(ndiffs, npix, beta, theta, sgn):  # noqa: N802
     """
     EQN 47
 
@@ -996,14 +996,14 @@ def compute_Thetas(ndiffs, npix, beta, theta, sgn):
     -------
     Theta : ndarray
     """
-    Theta = np.zeros((ndiffs, npix))
+    Theta = np.zeros((ndiffs, npix))  # noqa: N806
     Theta[0] = -theta[0]
     for i in range(1, ndiffs):
         Theta[i] = Theta[i - 1] * beta[i - 1] + sgn[i] * theta[i]
     return Theta
 
 
-def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):
+def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):  # noqa: N802
     """
     EQN 48
 
@@ -1031,14 +1031,14 @@ def compute_ThetaDs(ndiffs, npix, beta, theta, sgn, diff_mask):
     -------
     ThetaD : ndarray
     """
-    ThetaD = np.zeros((ndiffs + 1, npix))
+    ThetaD = np.zeros((ndiffs + 1, npix))  # noqa: N806
     ThetaD[1] = -diff_mask[0] * theta[0]
     for i in range(1, ndiffs):
         ThetaD[i + 1] = beta[i - 1] * ThetaD[i] + sgn[i] * diff_mask[i] * theta[i]
     return ThetaD
 
 
-def matrix_computations(ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD):
+def matrix_computations(ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi, PhiD, theta, Theta, ThetaD):  # noqa: N803
     """
     Compute matrix computations needed for ramp fitting.
 
@@ -1104,28 +1104,28 @@ def matrix_computations(ndiffs, npix, sgn, diff_mask, diffs2use, beta, phi, Phi,
 
     # C' and B' in the paper
 
-    dC = sgn / theta[ndiffs] * (phi[1:] * Theta + theta[:-1] * Phi)
-    dC *= diffs2use  # EQN 71
+    dC = sgn / theta[ndiffs] * (phi[1:] * Theta + theta[:-1] * Phi)  # noqa: N806
+    dC *= diffs2use  # EQN 71  # noqa: N806
 
-    dB = sgn / theta[ndiffs] * (phi[1:] * ThetaD[1:] + theta[:-1] * PhiD)  # EQN 75
+    dB = sgn / theta[ndiffs] * (phi[1:] * ThetaD[1:] + theta[:-1] * PhiD)  # EQN 75  # noqa: N806
 
     # {\cal A}, {\cal B}, {\cal C} in the paper
 
     # EQNs 61-63
-    A = 2 * np.sum(diff_mask * sgn / theta[-1] * beta_extended * phi[1:] * ThetaD[:-1], axis=0)
-    A += np.sum(diff_mask**2 * theta[:-1] * phi[1:] / theta[ndiffs], axis=0)
+    A = 2 * np.sum(diff_mask * sgn / theta[-1] * beta_extended * phi[1:] * ThetaD[:-1], axis=0)  # noqa: N806
+    A += np.sum(diff_mask**2 * theta[:-1] * phi[1:] / theta[ndiffs], axis=0)  # noqa: N806
 
-    B = np.sum(diff_mask * dC, axis=0)
-    C = np.sum(dC, axis=0)
+    B = np.sum(diff_mask * dC, axis=0)  # noqa: N806
+    C = np.sum(dC, axis=0)  # noqa: N806
 
     return dB, dC, A, B, C
 
 
 def get_ramp_result(
-    dC,
-    A,
-    B,
-    C,
+    dC,  # noqa: N803
+    A,  # noqa: N803
+    B,  # noqa: N803
+    C,  # noqa: N803
     scale,
     alpha_phnoise,
     alpha_readnoise,
@@ -1179,7 +1179,7 @@ def get_ramp_result(
 
     warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-    invC = 1 / C
+    invC = 1 / C  # noqa: N806
     result.countrate = B * invC
     result.chisq = (A - B**2 / C) / scale
 

@@ -184,7 +184,7 @@ def linear_correct_plane(dataplane, gdqplane, lin_coeffs, ncoeffs, dqflags):
     dataplane[:, :] = np.where(np.bitwise_and(gdqplane[:, :], dqflags["SATURATED"]), dataplane[:, :], scorr)
 
 
-def correct_for_NaN(lin_coeffs, pixeldq, dqflags):
+def correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
     """
     Check for NaNs in the COEFFS extension of the ref file in case there are
     pixels that should have been (but were not) flagged there as NO_LIN_CORR

@@ -463,8 +463,8 @@ def _overlap_matrix(images, apply_sky=True):
     # TODO: to improve performance, the nested loops could be parallelized
     # since _calc_sky() here can be called independently from previous steps.
     ns = len(images)
-    A = np.zeros((ns, ns), dtype=float)
-    W = np.zeros((ns, ns), dtype=float)
+    A = np.zeros((ns, ns), dtype=float)  # noqa: N806
+    W = np.zeros((ns, ns), dtype=float)  # noqa: N806
 
     for i in range(ns):
         for j in range(i + 1, ns):
@@ -485,7 +485,7 @@ def _overlap_matrix(images, apply_sky=True):
 
 def _find_optimum_sky_deltas(images, apply_sky=True):
     ns = len(images)
-    A, W = _overlap_matrix(images, apply_sky=apply_sky)
+    A, W = _overlap_matrix(images, apply_sky=apply_sky)  # noqa: N806
 
     def is_valid(i, j):
         return W[i, j] > 0 and W[j, i] > 0
@@ -503,11 +503,11 @@ def _find_optimum_sky_deltas(images, apply_sky=True):
                 neq += 1
 
     # average weights:
-    Wm = 0.5 * (W + W.T)
+    Wm = 0.5 * (W + W.T)  # noqa: N806
 
     # create arrays for coefficients and free terms:
-    K = np.zeros((neq, ns), dtype=float)
-    F = np.zeros(neq, dtype=float)
+    K = np.zeros((neq, ns), dtype=float)  # noqa: N806
+    F = np.zeros(neq, dtype=float)  # noqa: N806
     invalid = (ns) * [True]
 
     # now process intersections between the rest of the images:
@@ -534,7 +534,7 @@ def _find_optimum_sky_deltas(images, apply_sky=True):
         log.warning(f"than there are independent equations available (matrix rank={rank}).")
         log.warning("Sky matching (delta) values will be computed only for")
         log.warning("a subset (or more independent subsets) of input images.")
-    invK = np.linalg.pinv(K, rcond=1.0e-12)
+    invK = np.linalg.pinv(K, rcond=1.0e-12)  # noqa: N806
 
     deltas = np.dot(invK, F)
     deltas[np.asarray(invalid, dtype=bool)] = np.nan
