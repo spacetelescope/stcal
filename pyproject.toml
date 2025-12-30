@@ -101,7 +101,7 @@ docstring-code-format = true
 select = [
   "F", # Pyflakes (part of default flake8)
   "W", # pycodestyle (part of default flake8)
-  #"E", # pycodestyle (part of default flake8)
+  "E", # pycodestyle (part of default flake8)
   #"I",      # isort (import sorting)
   # "N",      # pep8-naming
   #"D",      # pydocstyle (docstring style guide)
@@ -160,6 +160,8 @@ ignore = [
   "D205", # 1 blank line required between summary line and description
   "D401", # First line of docstring should be in imperative mood
   "D404", # First word of docstring should not be This
+
+  "E741", # ambiguous variable name (O/0, l/I, etc.)
 ]
 exclude = ["docs", "build", "dist", ".tox", ".eggs", "__init__.py"]
 
