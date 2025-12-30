@@ -116,7 +116,7 @@ select = [
   #"NPY",    # NumPy-specific checks (recommendations from NumPy)
   "PGH", # pygrep (simple grep checks)
   #"PTH",    # flake8-use-pathlib (prefer pathlib over os.path)
-  #"S",      # flake8-bandit (security checks)
+  "S",    # flake8-bandit (security checks)
   "SLF",  # flake8-self (prevent private member access)
   "SLOT", # flake8-slots (require __slots__ for immutable classes)
   "T20",  # flake8-print (prevent print statements in code)
@@ -138,7 +138,6 @@ select = [
 ignore = [
   "E741",   # ambiguous variable name (O/0, l/I, etc.)
   "UP015",  # unnecessary open(file, "r"). no harm being explicit
-  "UP038",  # use | instead of tuple in isinstance check
   "TRY003", # prevents custom exception messages not defined in exception itself.
   "TRY400", # enforces log.exception instead of log.error in except clause.
 

@@ -431,9 +431,9 @@ class Resample:
             A dictionary of data model attributes and values.
 
         """
-        assert self._output_wcs is not None
-        assert np.array_equiv(self._output_wcs.array_shape, self._output_array_shape)
-        assert self._output_pixel_scale
+        assert self._output_wcs is not None  # noqa: S101
+        assert np.array_equiv(self._output_wcs.array_shape, self._output_array_shape)  # noqa: S101
+        assert self._output_pixel_scale  # noqa: S101
 
         pix_area = self._output_pixel_scale**2
 
@@ -651,7 +651,7 @@ class Resample:
 
         """
         # TODO: do we need this to just raise a custom
-        assert isinstance(model, dict)
+        assert isinstance(model, dict)  # noqa: S101
         min_attributes = [
             # arrays:
             "data",
@@ -1191,7 +1191,7 @@ class Resample:
         fileds of the output model.
 
         """
-        assert self._n_res_models
+        assert self._n_res_models  # noqa: S101
         # basic exposure time attributes:
         self._output_model["exposure_time"] = self._total_exposure_time
         self._output_model["start_time"] = min(self._exptime_start)
