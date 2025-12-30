@@ -311,7 +311,7 @@ class RampData:
 
     def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):
         print(f"*** {fname} ***")
-        with open(fname, "w") as fd:
+        with open(fname, "w") as fd:  # noqa: PTH123
             self.dbg_write_ramp_data_pix_pre(fname, row, col, fd)
             self.dbg_write_ramp_data_pix_pixel(fname, row, col, gain, rnoise, fd)
             self.dbg_write_ramp_data_pix_post(fname, row, col, fd)
