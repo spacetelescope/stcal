@@ -328,7 +328,8 @@ class JumpData:
             The number of pixels to expand the saturated core of detected snowballs
 
         edge : int
-            The distance from the edge of the detector where saturated cores are not required for snowball detection
+            The distance from the edge of the detector where saturated cores are not
+            required for snowball detection
         """
         self.expand_large_events = levent
         self.min_jump_area = mjarea

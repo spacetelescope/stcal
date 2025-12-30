@@ -167,7 +167,10 @@ def test_sregion_to_footprint():
     """Test that util.sregion_to_footprint can properly convert an S_REGION
     string to a list of vertices.
     """
-    s_region = "POLYGON ICRS  1.000000000 2.000000000 3.000000000 4.000000000 5.000000000 6.000000000 7.000000000 8.000000000"
+    s_region = (
+        "POLYGON ICRS  1.000000000 2.000000000 3.000000000 4.000000000 "
+        "5.000000000 6.000000000 7.000000000 8.000000000"
+    )
     expected_footprint = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
 
     footprint = sregion_to_footprint(s_region)

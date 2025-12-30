@@ -910,7 +910,7 @@ def max_flux_showers(jump_data, nints, indata, ingdq, gdq):
         # became NaN or changed by more than the amount reasonable for a real CR shower
         # Note that max_shower_amplitude should now be in DN/group not DN/s
         diff = np.abs(image1 - image2)
-        indx = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))
+        indx = np.where((np.isfinite(diff) == False) | (diff > jump_data.max_shower_amplitude))  # noqa: E712
         gdq[intg, :, indx[0], indx[1]] = ingdq[intg, :, indx[0], indx[1]]
 
     return gdq

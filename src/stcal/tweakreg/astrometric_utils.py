@@ -179,7 +179,10 @@ def get_catalog(
     if epoch is None:
         spec = f"RA={right_ascension}&DEC={declination}&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
     else:
-        spec = f"RA={right_ascension}&DEC={declination}&EPOCH={epoch}&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
+        spec = (
+            f"RA={right_ascension}&DEC={declination}&EPOCH={epoch}"
+            f"&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
+        )
 
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     try:
