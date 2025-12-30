@@ -402,9 +402,8 @@ def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finit
         Flagged group DQ array.
     """
     log.info(
-        " Jump Step using sigma clip {} greater than {}, rejection threshold {}".format(
-            str(total_groups), str(twopt_p.minimum_sigclip_groups), str(twopt_p.normal_rej_thresh)
-        )
+        f" Jump Step using sigma clip {str(total_groups)} greater than "
+        f"{str(twopt_p.minimum_sigclip_groups)}, rejection threshold {str(twopt_p.normal_rej_thresh)}"
     )
     warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
     warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)

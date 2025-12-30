@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 import warnings
 
 if TYPE_CHECKING:
@@ -454,7 +454,7 @@ def _compute_bounding_box_with_offsets(
     fiducial: Sequence,
     crpix: Sequence | None,
     shape: Sequence | None,
-) -> Tuple[tuple, tuple, tuple]:
+) -> tuple[tuple, tuple, tuple]:
     """
     Calculates axis minimum values and bounding box.
     Calculates the offsets to the transform.
