@@ -734,8 +734,7 @@ class SkyGroup:
         self._update_bounding_polygon()
 
     def __iter__(self):
-        for image in self._images:
-            yield image
+        yield from self._images
 
     def insert(self, idx, value):
         """Inserts a `SkyImage` into the group."""
