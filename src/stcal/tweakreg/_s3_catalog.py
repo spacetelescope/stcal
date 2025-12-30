@@ -148,7 +148,7 @@ def _filter_table(table, ra, dec, search_radius):
     return table[cos_separation >= cos_radius]
 
 
-def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=None):
+def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, columns=None):
     # get the partition_info file: Norder, Npix
     fs, fs_path, hats_pixels = _get_partition_info(gaia_dr3_uri)
     max_depth = hats_pixels[:, 0].max()
@@ -217,7 +217,7 @@ def get_s3_catalog(
     # use a thread to allow setting a timeout
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(
-            _get_hats_sources, s3_url, right_ascension, declination, search_radius, epoch, list(COL_NAMES)
+            _get_hats_sources, s3_url, right_ascension, declination, search_radius, list(COL_NAMES)
         )
         table = future.result(timeout=timeout)
 

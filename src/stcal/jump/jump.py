@@ -165,7 +165,7 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     return reassemble_sliced_data(real_result, jump_data, gdq, yinc)
 
 
-def reassemble_sliced_data(real_result, jump_data, gdq, yinc):
+def reassemble_sliced_data(real_result, jump_data, gdq, yinc):  # noqa: ARG001, ARG002
     """
     Reassemble the data from each process for multiprocessing.
 

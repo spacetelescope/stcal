@@ -104,8 +104,8 @@ select = [
   "W", # pycodestyle (part of default flake8)
   #"D",      # pydocstyle (docstring style guide)
   #"N",      # pep8-naming
-  "A", # flake8-builtins (prevent shadowing of builtins)
-  # "ARG",    # flake8-unused-arguments (prevent unused arguments)
+  "A",    # flake8-builtins (prevent shadowing of builtins)
+  "ARG",  # flake8-unused-arguments (prevent unused arguments)
   "B",    # flake8-bugbear (prevent common gotcha bugs)
   "C4",   # flake8-comprehensions (best practices for comprehensions)
   "I",    # isort (import sorting)

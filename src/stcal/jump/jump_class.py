@@ -418,7 +418,7 @@ class JumpData:
         self.print_jump_data_sigma_clipping(fd=fd)
         self.print_jump_data_internal_state(fd=fd)
 
-    def print_jump_data_arrays(self, pix_list=None, fd=None):
+    def print_jump_data_arrays(self, pix_list=None, fd=None):  # noqa: ARG001, ARG002
         """Print jump_data arrays."""
         if fd is None:
             print(self.get_jump_data_arrays())

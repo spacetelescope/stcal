@@ -224,7 +224,7 @@ class RampData:
                 self.dbg_print_pixel_info(row, col)
         print("=" * 80)
 
-    def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):
+    def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):  # noqa: ARG001, ARG002
         fd.write("def create_ramp_data_pixel():\n")
         indent = INDENT
         fd.write(f"{indent}'''\n")
@@ -256,7 +256,7 @@ class RampData:
         fd.write(f"{indent}gdq = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.uint8)\n")
         fd.write(f"{indent}pdq = np.zeros((1, 1), dtype=np.uint32)\n")
 
-    def dbg_write_ramp_data_pix_post(self, fname, row, col, fd):
+    def dbg_write_ramp_data_pix_post(self, fname, row, col, fd):  # noqa: ARG001, ARG002
         indent = INDENT
 
         fd.write(f"{indent}ramp_data.data = data\n")
@@ -266,7 +266,7 @@ class RampData:
 
         fd.write(f"{indent}return ramp_data, ngain, nrnoise\n")
 
-    def dbg_write_ramp_data_pix_pixel(self, fname, row, col, gain, rnoise, fd):
+    def dbg_write_ramp_data_pix_pixel(self, fname, row, col, gain, rnoise, fd):  # noqa: ARG001, ARG002
         import numpy as np
 
         indent = INDENT
