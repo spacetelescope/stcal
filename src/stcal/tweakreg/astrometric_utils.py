@@ -187,12 +187,14 @@ def get_catalog(
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     try:
         rawcat = requests.get(service_url, headers=headers, timeout=timeout)
-    except requests.exceptions.ConnectionError:
-        raise requests.exceptions.ConnectionError("Could not connect to the VO API server. Try again later.")
-    except requests.exceptions.Timeout:
-        raise requests.exceptions.Timeout("The request to the VO API server timed out.")
-    except requests.exceptions.RequestException:
-        raise requests.exceptions.RequestException("There was an unexpected error with the request.")
+    except requests.exceptions.ConnectionError as err:
+        raise requests.exceptions.ConnectionError(
+            "Could not connect to the VO API server. Try again later."
+        ) from err
+    except requests.exceptions.Timeout as err:
+        raise requests.exceptions.Timeout("The request to the VO API server timed out.") from err
+    except requests.exceptions.RequestException as err:
+        raise requests.exceptions.RequestException("There was an unexpected error with the request.") from err
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"

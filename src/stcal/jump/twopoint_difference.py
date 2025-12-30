@@ -237,7 +237,7 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     # and sigmas and search all of the pixels that had a CR for
     # additional CRs. Repeat until no more CRs are found.
 
-    for i in range(ndiffs):  # Can't have more than ndiffs CRs per pixel!
+    for i in range(ndiffs):  # Can't have more than ndiffs CRs per pixel!  # noqa: B007
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
         # Newly flagged jump locations
         new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]
