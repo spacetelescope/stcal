@@ -708,7 +708,7 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     ramp_data.pixeldq, _ = handle_array_endianness(ramp_data.pixeldq, sys_order)
 
     return ramp_data, gain_2d, readnoise_2d, (rn_bswap, gain_bswap)
-    
+
 
 def discard_miri_groups(ramp_data):
     """

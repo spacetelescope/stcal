@@ -7,15 +7,15 @@ log = logging.getLogger(__name__)
 
 
 def flag_saturated_pixels(
-    data, 
-    gdq, 
-    pdq, 
-    sat_thresh, 
-    sat_dq, 
-    atod_limit, 
-    dqflags, 
-    n_pix_grow_sat=1, 
-    zframe=None, 
+    data,
+    gdq,
+    pdq,
+    sat_thresh,
+    sat_dq,
+    atod_limit,
+    dqflags,
+    n_pix_grow_sat=1,
+    zframe=None,
     read_pattern=None,
     bias=None
 ):
@@ -90,7 +90,7 @@ def flag_saturated_pixels(
     # converter limit so that they don't get flagged as saturated, for
     # pixels in the no_sat_check_mask.
     sat_thresh[no_sat_check_mask] = atod_limit + 1
-    
+
     # If no bias is provided set it to zero
     if bias is None:
         bias = 0.
@@ -169,7 +169,7 @@ def flag_saturated_pixels(
                            (nextdq & saturated != 0))
 
             flagarray = (partial_sat * dnu).astype(np.uint32)
-            
+
             # Grow the newly-flagged saturating pixels
             if n_pix_grow_sat > 0:
                 adjacent_pixels(flagarray, dnu, n_pix_grow_sat, inplace=True)
@@ -182,12 +182,12 @@ def flag_saturated_pixels(
         if ((read_pattern is not None) & (ngroups > 2)):
             dq2 = gdq[ints, 1, :, :]
             dq3 = gdq[ints, 2, :, :]
-            
+
             # Identify groups which we wouldn't expect to saturate by the third group,
             # on the basis of the first group
             scigp1 = data[ints, 0, :, :] - bias
             mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias < sat_thresh
-            
+
             # Identify groups with suspiciously large values in the second group
             # by comparing the change between group 1 and 2 to the dynamic range between
             # the group 1 and saturation threshold.  Flag any differences sufficiently large

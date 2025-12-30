@@ -357,7 +357,7 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
             # find the ellipse parameters for jump regions
             jump_ellipses = find_ellipses(
                 gdq[integration, group, :, :], jump_flag, jump_data.min_jump_area)
-            
+
             if jump_data.sat_required_snowball:
                 gdq, snowballs, persist_jumps = make_snowballs(
                     gdq, integration, group, jump_ellipses, sat_ellipses,
@@ -563,7 +563,7 @@ def extend_ellipses(
         indx, jump_ellipse = ellipse_subim(
             ceny, cenx, axis1, axis2, alpha, jump_data.fl_jump, (nrows, ncols))
         (iy1, iy2, ix1, ix2) = indx
-        
+
         # Propagate forward by num_grps_masked groups.
 
         for flg_grp in range(grp, min(grp + num_grps_masked + 1, ngroups)):
@@ -1012,12 +1012,12 @@ def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):
 
     jump_sat_or_dnu = np.bitwise_and(combined_pixel_mask, jump_flag|sat_flag|dnu_flag) != 0
     masked_ratio[jump_sat_or_dnu] = np.nan
-    
+
     kernel = ring_2D_kernel.array
-    
+
     # Equivalent to but faster than
     # masked_smoothed_ratio = convolve(masked_ratio, ring_2D_kernel, preserve_nan=True)
-    
+
     masked_smoothed_ratio = convolve_fast(masked_ratio, kernel)
 
     extended_emission = (masked_smoothed_ratio > jump_data.extend_snr_threshold).astype(np.uint8)
