@@ -63,7 +63,6 @@ def test_nirspec_saturated_pix():
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
@@ -157,7 +156,6 @@ def test_multiprocessing_big():
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
@@ -237,7 +235,6 @@ def test_extend_saturation_simple():
     cube = np.zeros(shape=(5, 7, 7), dtype=np.uint8)
     persist_jumps = np.zeros(shape=(7, 7), dtype=np.uint8)
     grp = 1
-    min_sat_radius_extend = 1
     cube[1, 3, 3] = SAT
     cube[1, 2, 3] = SAT
     cube[1, 3, 4] = SAT

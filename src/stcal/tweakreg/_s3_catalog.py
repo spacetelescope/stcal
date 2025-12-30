@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 from astropy_healpix import HEALPix
 
 
-__all__ = ["get_catalog"]
+__all__ = []
 
 
 S3_NAMES_TO_CATALOGS = {

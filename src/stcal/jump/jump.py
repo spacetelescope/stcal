@@ -419,7 +419,6 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     for ellipse in sat_ellipses:
         ceny = ellipse[0][0]
         cenx = ellipse[0][1]
-        cen = (round(ceny), round(cenx))
         minor_axis = min(ellipse[1][1], ellipse[1][0])
 
         if minor_axis > jump_data.min_sat_radius_extend:

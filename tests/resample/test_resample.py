@@ -297,7 +297,7 @@ def test_resample_add_model_hook():
         exptime=10.0
     )
 
-    with pytest.raises(RuntimeError, match="raised by subclass' add_model_hook") as err_info:
+    with pytest.raises(RuntimeError, match="raised by subclass' add_model_hook"):
         resample.add_model(im)
 
 @pytest.mark.parametrize("kernel", ["square", "turbo", "point"])

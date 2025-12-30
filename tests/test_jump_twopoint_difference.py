@@ -299,7 +299,6 @@ def test_4grps_twocrs_2nd_4th():
     rnoise = 10
 
     data, gdq, read_noise = setup_data(dims, rnoise)
-    nframes = 1
     data[0, 0, 100, 100] = 10.0
     data[0, 1, 100, 100] = 60
     data[0, 2, 100, 100] = 60
