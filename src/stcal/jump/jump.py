@@ -90,9 +90,7 @@ def detect_jumps_data(jump_data):
             data, gdq, readnoise_2d, twopt_params
         )
     else:
-        gdq, total_primary_crs = twopoint_diff_multi(
-            jump_data, twopt_params, data, gdq, readnoise_2d, n_slices
-        )
+        gdq, total_primary_crs = twopoint_diff_multi(twopt_params, data, gdq, readnoise_2d, n_slices)
 
     # remove redundant bits in pixels that have jump flagged but were
     # already flagged as do_not_use or saturated.
@@ -117,15 +115,12 @@ def detect_jumps_data(jump_data):
     return gdq, pdq, total_primary_crs, number_extended_events
 
 
-def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slices):
+def twopoint_diff_multi(twopt_params, data, gdq, readnoise_2d, n_slices):
     """
     Split data for jump detection multiprocessing.
 
     Parameters
     ----------
-    jump_data : JumpData
-        Class containing parameters and methods to detect jumps.
-
     twopt_params : TwoPointParams
         Class containing parameters and methods for two point differences.
 
@@ -162,10 +157,10 @@ def twopoint_diff_multi(jump_data, twopt_params, data, gdq, readnoise_2d, n_slic
     pool.close()
     pool.join()
 
-    return reassemble_sliced_data(real_result, jump_data, gdq, yinc)
+    return reassemble_sliced_data(real_result, gdq, yinc)
 
 
-def reassemble_sliced_data(real_result, jump_data, gdq, yinc):  # noqa: ARG001, ARG002
+def reassemble_sliced_data(real_result, gdq, yinc):
     """
     Reassemble the data from each process for multiprocessing.
 
@@ -174,9 +169,6 @@ def reassemble_sliced_data(real_result, jump_data, gdq, yinc):  # noqa: ARG001, 
     real_result : tuple
         The tuple return values from twopt.find_crs
         (gdq, row_below_gdq, row_above_gdq, num_primary_crs)
-
-    jump_data : JumpData
-        Class containing parameters and methods to detect jumps.
 
     gdq : ndarray
         The group DQ, 4D array uint8.

@@ -28,7 +28,6 @@ __all__ = [
     "compute_s_region_imaging",
     "compute_s_region_keyword",
     "sregion_to_footprint",
-    "wcs_from_footprints",
     "wcs_from_sregions",
     "wcs_bbox_from_shape",
     "reproject",
@@ -320,119 +319,6 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
     pc2_2 = np.cos(rel_angle)
 
     return [pc1_1, pc1_2, pc2_1, pc2_2]
-
-
-def wcs_from_footprints(
-    wcs_list: list[gwcs.wcs.WCS],
-    ref_wcs: gwcs.wcs.WCS,
-    ref_wcsinfo: dict,
-    transform: astropy.modeling.models.Model | None = None,
-    bounding_box: Sequence | None = None,  # noqa: ARG001, ARG002
-    pscale_ratio: float | None = None,
-    pscale: float | None = None,
-    rotation: float | None = None,
-    shape: Sequence | None = None,
-    crpix: Sequence | None = None,
-    crval: Sequence | None = None,
-) -> gwcs.wcs.WCS:
-    """
-    Create a WCS from a list of input datamodels.
-
-    A fiducial point in the output coordinate frame is created from  the
-    footprints of all WCS objects. For a spatial frame this is the center
-    of the union of the footprints. For a spectral frame the fiducial is in
-    the beginning of the footprint range.
-    If ``refmodel`` is None, the first WCS object in the list is considered
-    a reference. The output coordinate frame and projection (for celestial frames)
-    is taken from ``refmodel``.
-    If ``transform`` is not supplied, a compound transform is created using
-    CDELTs and PC.
-    If ``bounding_box`` is not supplied, the `bounding_box` of the new WCS is computed
-    from `bounding_box` of all input WCSs.
-
-    Parameters
-    ----------
-    wcs_list : list
-        A list of valid datamodels.
-
-    ref_wcs :
-        A valid datamodel whose WCS is used as reference for the creation of the output
-        coordinate frame, projection, and scaling and rotation transforms.
-        If not supplied the first model in the list is used as ``refmodel``.
-
-    ref_wcsinfo : dict
-        A dictionary containing the WCS FITS keywords and corresponding values.
-
-    transform : ~astropy.modeling.Model, None, optional
-        If not supplied `Scaling | Rotation` is computed from ``refmodel``.
-
-    bounding_box : tuple, None, optional
-        Bounding_box of the new WCS.
-        If not supplied it is computed from the bounding_box of all inputs.
-
-    pscale_ratio : float, None, optional
-        Ratio of output pixel scale to input pixel scale. Ignored when either
-        ``transform`` or ``pscale`` are provided.
-
-    pscale : float, None, optional
-        Absolute pixel scale in degrees. When provided, overrides
-        ``pscale_ratio``. Ignored when ``transform`` is provided.
-
-    rotation : float, None, optional
-        Position angle of output image's Y-axis relative to North.
-        A value of 0.0 would orient the final output image to be North up.
-        The default of `None` specifies that the images will not be rotated,
-        but will instead be resampled in the default orientation for the camera
-        with the x and y axes of the resampled image corresponding
-        approximately to the detector axes. Ignored when ``transform`` is
-        provided.
-
-    shape : tuple of int, None, optional
-        Shape of the image (data array) using ``np.ndarray`` convention
-        (``ny`` first and ``nx`` second). This value will be assigned to
-        ``pixel_shape`` and ``array_shape`` properties of the returned
-        WCS object.
-
-    crpix : tuple of float, None, optional
-        Position of the reference pixel in the image array.  If ``crpix`` is not
-        specified, it will be set to the center of the bounding box of the
-        returned WCS object.
-
-    crval : tuple of float, None, optional
-        Right ascension and declination of the reference pixel. Automatically
-        computed if not provided.
-
-    wcs_list : list, None, optional
-        A list of WCS objects. If not supplied, the WCS objects are extracted
-        from the input datamodels.
-
-    Returns
-    -------
-    wcs_new : ~gwcs.wcs.WCS
-        The WCS object corresponding to the combined input footprints.
-
-    """
-    msg = (
-        "wcs_from_footprints is deprecated and will be removed in a future release."
-        "It is recommended to use wcs_from_sregions instead."
-    )
-    warnings.warn(msg, DeprecationWarning, stacklevel=2)
-    _validate_wcs_list(wcs_list)
-    footprints = [w.footprint() for w in wcs_list]
-    if ref_wcs is None:
-        ref_wcs = wcs_list[0]
-    return wcs_from_sregions(
-        footprints,
-        ref_wcs,
-        ref_wcsinfo,
-        transform=transform,
-        pscale_ratio=pscale_ratio,
-        pscale=pscale,
-        rotation=rotation,
-        shape=shape,
-        crpix=crpix,
-        crval=crval,
-    )
 
 
 def sregion_to_footprint(s_region: str) -> np.ndarray:
