@@ -1,13 +1,8 @@
 import importlib
 import sys
+import tomllib
 from datetime import datetime
 from pathlib import Path
-
-if sys.version_info < (3, 11):
-    import tomli as tomllib
-else:
-    import tomllib
-
 
 REPO_ROOT = Path(__file__).parent.parent
 
@@ -24,7 +19,7 @@ setup_metadata = conf["project"]
 project = setup_metadata["name"]
 primary_author = setup_metadata["authors"][0]
 author = primary_author["name"]
-copyright = f'{datetime.now().year}, {primary_author["name"]}'  # noqa: A001
+copyright = f"{datetime.now().year}, {primary_author['name']}"  # noqa: A001
 
 package = importlib.import_module(project)
 version = package.__version__.split("-", 1)[0]
@@ -39,10 +34,7 @@ intersphinx_mapping = {
     "gwcs": ("https://gwcs.readthedocs.io/en/latest/", None),
     "astropy": ("https://docs.astropy.org/en/stable/", None),
     "tweakwcs": ("https://tweakwcs.readthedocs.io/en/latest/", None),
-    "drizzle": (
-        "https://spacetelescope-drizzle.readthedocs.io/en/latest/",
-        None
-    ),
+    "drizzle": ("https://spacetelescope-drizzle.readthedocs.io/en/latest/", None),
     "imagestats": ("https://stsciimagestats.readthedocs.io/en/latest/", None),
     "spherical_geometry": ("https://spherical-geometry.readthedocs.io/en/latest/", None),
 }
@@ -85,5 +77,5 @@ nitpick_ignore = [
     ("py:class", "optional"),
     ("py:class", "np.ndarray"),
     ("py:class", "stsci.imagestats.ImageStats"),  # intersphinx isn't working here
-    ("py:class", "spherical_geometry.polygon.SphericalPolygon"), # intersphinx isn't working here
+    ("py:class", "spherical_geometry.polygon.SphericalPolygon"),  # intersphinx isn't working here
 ]

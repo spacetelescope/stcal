@@ -1,8 +1,8 @@
 import logging
 
 import numpy as np
+import shapely.geometry  # type: ignore[import-untyped]
 from gwcs.wcstools import grid_from_bounding_box
-import shapely.geometry   # type: ignore[import-untyped]
 
 from stcal.alignment import util
 
@@ -66,17 +66,18 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     -------
     str
         The combined s_region.
-    
+
     Raises
     ------
     ValueError
         If there is no overlap between the input s_regions and the intersection footprint.
     """
-    footprints = np.array([
-        util.sregion_to_footprint(sregion)
-        if isinstance(sregion, str) else sregion
-        for sregion in sregion_list
-    ])
+    footprints = np.array(
+        [
+            util.sregion_to_footprint(sregion) if isinstance(sregion, str) else sregion
+            for sregion in sregion_list
+        ]
+    )
 
     # convert from world to pixel coordinates
     footprints_flat = footprints.reshape(-1, 2)

@@ -270,7 +270,7 @@ The combined variance of the slope is the sum of the variances:
 The square-root of the combined variance is stored in the ERR array of the output product.
 
 The overall slope depends on the slope and the combined variance of the slope of each integration's
-segments, so is a sum over integration values computed from the segements:
+segments, so is a sum over integration values computed from the segments:
 
 .. math::
     slope_{o} = \frac{ \sum_{i}{ \frac{slope_{i}} {var^C_{i}}}} { \sum_{i}{ \frac{1} {var^C_{i}}}}
@@ -352,6 +352,6 @@ derivation and computations implemented, refer to the links above.
 The Poisson and read noise  computations are based on equations (27) and (28), in
 `Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38d9>`__.
 
-For more details, especially for the jump detection portion in the liklihood
+For more details, especially for the jump detection portion in the likelihood
 algorithm, see
 `Brandt (2024) <https://iopscience.iop.org/article/10.1088/1538-3873/ad38da>`__.

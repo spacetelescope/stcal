@@ -233,7 +233,7 @@ struct ramp_data {
     int dropframes;              /* The number of dropped frames in an integration */
     int groupgap;                /* The group gap */
     int nframes;                 /* The number of frames */
-    real_t ped_tmp;              /* Intermediate pedestal caclulation */
+    real_t ped_tmp;              /* Intermediate pedestal calculation */
     int suppress1g;              /* Suppress one group ramps */
     real_t effintim;             /* Effective integration time */
     real_t one_group_time;       /* Time for ramps with only 0th good group */
@@ -1253,7 +1253,7 @@ compute_integration_segments(
     struct ramp_data *rd,      /* Ramp fitting data */
     struct pixel_ramp *pr,     /* Pixel ramp fitting data */
     struct segment_list *segs, /* Segment list */
-    int chargeloss,            /* Chargeloss compuation boolean */
+    int chargeloss,            /* Chargeloss computation boolean */
     npy_intp integ)            /* Current integration */
 {
     int ret = 0;
@@ -1324,7 +1324,7 @@ compute_integration_segments(
  * When the list is empty, the head is NULL, so when adding the initial
  * node, make the head point to the new node.  When adding the initial
  * node, the list will only have one node, so the tail will point to the
- * intial node as well.
+ * initial node as well.
  *
  * When the list is not empty, add the new node to the list as the tail.
  * This has the effect of having an ordered linked list with the head being
@@ -2395,7 +2395,7 @@ median_rate_integration(
         goto END;
     }
 
-    /* Create a local copy because it will be modiified */
+    /* Create a local copy because it will be modified */
     for (k = 0; k < pr->ngroups; ++k) {
         if (int_dq[k] & rd->dnu) {
             loc_integ[k] = NAN;
@@ -2898,7 +2898,7 @@ END:
 }
 
 /*
- * With the newly computed segements after removing the CHARGELOSS
+ * With the newly computed segments after removing the CHARGELOSS
  * flag, recompute the read noise variance for each segment.
  */
 static double
@@ -3127,7 +3127,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default(
     struct pixel_ramp *pr,      /* The pixel ramp data */
     struct simple_ll_node *seg, /* The integration segment */
     npy_intp integ,             /* The integration number */
-    int segnum)                 /* Teh segment number */
+    int segnum)                 /* The segment number */
 {
     int ret = 0;
     real_t snr, power;
@@ -3334,7 +3334,7 @@ static void
 ramp_fit_pixel_integration_fit_slope_seg_default_weighted_ols(
     struct ramp_data *rd,       /* The ramp data */
     struct pixel_ramp *pr,      /* The pixel ramp data */
-    struct simple_ll_node *seg, /* The intgration segment */
+    struct simple_ll_node *seg, /* The integration segment */
     struct ols_calcs *ols,      /* Intermediate calculations */
     npy_intp integ,             /* The integration number */
     int segnum,                 /* The segment number */
@@ -3703,7 +3703,7 @@ save_ramp_fit(
 static int
 segment_snr(
     real_t *snr,                /* The signal to noise ratio for a segment */
-    npy_intp integ,             /* The intergration number */
+    npy_intp integ,             /* The integration number */
     struct ramp_data *rd,       /* The ramp data */
     struct pixel_ramp *pr,      /* The pixel ramp data */
     struct simple_ll_node *seg, /* The integration segment */
