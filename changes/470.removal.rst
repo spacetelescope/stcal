@@ -1,0 +1,1 @@
+Remove deprecated ``wcs_from_footprints``.
