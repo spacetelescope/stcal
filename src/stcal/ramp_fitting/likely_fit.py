@@ -133,7 +133,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d):
             )
             integ_class.get_results(result, integ, row)
 
-        pdq = utils.dq_compress_sect(ramp_data, integ, gdq, pdq)
+        pdq = utils.dq_compress_sect(ramp_data, gdq, pdq)
         integ_class.dq[integ, :, :] = pdq
 
         del gdq
