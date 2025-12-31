@@ -725,8 +725,7 @@ def point_inside_ellipse(point, ellipse):
         semi_major_axis = ellipse[1][0] * 0.5
         semi_minor_axis = ellipse[1][1] * 0.5
 
-    rad_cc = ((xct**2 / semi_major_axis**2) +
-              (yct**2 / semi_minor_axis**2))
+    rad_cc = (xct**2 / semi_major_axis**2) + (yct**2 / semi_minor_axis**2)
 
     return rad_cc <= 1
 
