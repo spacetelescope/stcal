@@ -386,11 +386,11 @@ def _compute_bounding_box_with_offsets(
     if crpix is None:
         # shift the coordinates by domain_min so that all input footprints
         # will project to positive coordinates in the offsetted ref_wcs
-        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min))
+        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min, strict=True))
     else:
         # assume 0-based CRPIX and require that fiducial would map to the user
         # defined crpix value:
-        offsets = tuple(crp - ncrp for ncrp, crp in zip(native_crpix, crpix))
+        offsets = tuple(crp - ncrp for ncrp, crp in zip(native_crpix, crpix, strict=True))
     # Also offset domain limits:
     domain_min += offsets
     domain_max += offsets
@@ -404,7 +404,7 @@ def _compute_bounding_box_with_offsets(
         shape = tuple(shape)
         bounding_box = tuple(
             (max(0, int(dmin + 0.5)) - 0.5, min(int(dmax + 0.5), sz) - 0.5)
-            for dmin, dmax, sz in zip(domain_min, domain_max, shape[::-1])
+            for dmin, dmax, sz in zip(domain_min, domain_max, shape[::-1], strict=True)
         )
 
     return bounding_box, shape, offsets
