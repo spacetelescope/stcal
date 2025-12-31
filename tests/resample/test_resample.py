@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from drizzle.utils import calc_pixmap
 
-from stcal.alignment.util import wcs_from_footprints
+from stcal.alignment.util import compute_s_region_imaging, wcs_from_sregions
 from stcal.resample import Resample
 from stcal.resample.utils import (
     build_driz_weight,
@@ -259,7 +259,7 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
     wcsinfo = model["wcsinfo"]
     stars = model["stars"]
 
-    output_wcs = wcs_from_footprints([wcs], wcs, wcsinfo, pscale_ratio=pscale_ratio)
+    output_wcs = wcs_from_sregions([compute_s_region_imaging(wcs)], wcs, wcsinfo, pscale_ratio=pscale_ratio)
 
     weight = build_driz_weight(model, weight_type=weight_type, good_bits=0, flag_name_map=JWST_DQ_FLAG_DEF)
 
