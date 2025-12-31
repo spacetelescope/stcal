@@ -71,7 +71,7 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
     final_dq[all_set] = np.bitwise_or(final_dq[all_set], set_flag)
 
 
-def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):  # noqa: ARG001
+def dq_compress_sect(ramp_data, gdq_sect, pixeldq_sect):
     """
     Set the integration level flags for DO_NOT_USE, JUMP_DET, and SATURATED.
 
@@ -85,9 +85,6 @@ def dq_compress_sect(ramp_data, num_int, gdq_sect, pixeldq_sect):  # noqa: ARG00
     ----------
     ramp_data : RampData
         Contains the DQ flag information.
-
-    num_int : int
-        The current integration number.
 
     gdq_sect : ndarray
         The current 3-D (ngroups, nrows, ncols) integration DQ array.
