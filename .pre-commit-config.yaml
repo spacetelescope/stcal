@@ -36,23 +36,23 @@ repos:
         args:
           - --fix
           - --show-fixes
-      # - id: ruff-format
+      - id: ruff-format
   # type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.0
     hooks:
       - id: mypy
         additional_dependencies: [types-requests]
-  # # spell-checking
-  # - repo: https://github.com/codespell-project/codespell
-  #   rev: v2.4.1
-  #   hooks:
-  #     - id: codespell
-  #       args:
-  #         - --write-changes
-  #         - --summary
-  #       additional_dependencies:
-  #         - tomli
+  # spell-checking
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args:
+          - --write-changes
+          - --summary
+        additional_dependencies:
+          - tomli
   # validate change log and fragments in `changes/`
   - repo: https://github.com/twisted/towncrier
     rev: 25.8.0

@@ -1,1 +1,1 @@
-Replaced usage of ``opencv-python`` with analagous functionality from ``scikit-image``.
+Replaced usage of ``opencv-python`` with analogous functionality from ``scikit-image``.

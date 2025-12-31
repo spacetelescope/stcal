@@ -1,34 +1,36 @@
 """
-`skystatistics` module provides statistics computation class used by
-:py:func:`~stcal.skymatch.skymatch.skymatch`
+`skystatistics` module provides statistics computation class.
+
+Used by :py:func:`~stcal.skymatch.skymatch.skymatch`
 and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
-
-:Authors: Mihai Cara
-
 """
+
 # THIRD PARTY
-from stsci.imagestats import ImageStats
 from copy import deepcopy
 
-__all__ = ['SkyStats']
+from stsci.imagestats import ImageStats
+
+__all__ = ["SkyStats"]
 
 
 class SkyStats:
     """
-    This class is built on top of :py:class:`stsci.imagestats.ImageStats`,
-    deligating its functionality to calls to the ``ImageStats`` object. Compared
+    Class built on top of :py:class:`stsci.imagestats.ImageStats`.
+
+    Deligates its functionality to calls to the ``ImageStats`` object. Compared
     to :py:class:`stsci.imagestats.ImageStats`, `SkyStats` has "persistent settings"
     in the sense that object's parameters need to be set once and these settings
     will be applied to all subsequent computations on different data.
 
     """
 
-    def __init__(self, skystat='mean', lower=None, upper=None,
-                 nclip=5, lsig=4.0, usig=4.0, binwidth=0.1, **kwargs):
-        """Initializes the SkyStats object.
+    def __init__(
+        self, skystat="mean", lower=None, upper=None, nclip=5, lsig=4.0, usig=4.0, binwidth=0.1, **kwargs
+    ):
+        """Initialize the SkyStats object.
 
         Parameters
-        -----------
+        ----------
         skystat : optional
             possible values are'mode', 'median', 'mode', 'midpt".
             Sets the statistics that will be returned by `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
@@ -68,25 +70,26 @@ cgi-bin/gethelp.cgi?gstatistics>`_
         self.npix = None
         self.skyval = None
 
-        self._fields = f'npix,{skystat}'
+        self._fields = f"npix,{skystat}"
 
         self._kwargs = deepcopy(kwargs)
-        if 'fields' in self._kwargs:
-            del self._kwargs['fields']
-        if 'image' in self._kwargs:
-            del self._kwargs['image']
-        self._kwargs['lower'] = lower
-        self._kwargs['upper'] = upper
-        self._kwargs['nclip'] = nclip
-        self._kwargs['lsig'] = lsig
-        self._kwargs['usig'] = usig
-        self._kwargs['binwidth'] = binwidth
+        if "fields" in self._kwargs:
+            del self._kwargs["fields"]
+        if "image" in self._kwargs:
+            del self._kwargs["image"]
+        self._kwargs["lower"] = lower
+        self._kwargs["upper"] = upper
+        self._kwargs["nclip"] = nclip
+        self._kwargs["lsig"] = lsig
+        self._kwargs["usig"] = usig
+        self._kwargs["binwidth"] = binwidth
 
-        self._skystat = {'mean': self._extract_mean,
-                         'mode': self._extract_mode,
-                         'median': self._extract_median,
-                         'midpt': self._extract_midpt
-                         }[skystat]
+        self._skystat = {
+            "mean": self._extract_mean,
+            "mode": self._extract_mode,
+            "median": self._extract_median,
+            "midpt": self._extract_midpt,
+        }[skystat]
 
     def _extract_mean(self, imstat):
         return imstat.mean
@@ -101,16 +104,16 @@ cgi-bin/gethelp.cgi?gstatistics>`_
         return imstat.midpt
 
     def calc_sky(self, data):
-        """ Computes statistics on data.
+        """Compute statistics on data.
 
         Parameters
-        -----------
+        ----------
         data : numpy.ndarray
             A numpy array of values for which the statistics needs to be
             computed.
 
         Returns
-        --------
+        -------
         statistics : tuple
             A tuple of two values: (`skyvalue`, `npix`), where `skyvalue` is
             the statistics specified by the `skystat` parameter during the
@@ -118,11 +121,10 @@ cgi-bin/gethelp.cgi?gstatistics>`_
             of pixels used in computing the statistics reported in `skyvalue`.
 
         """
-        imstat = ImageStats(image=data, fields=self._fields,
-                            **(self._kwargs))
+        imstat = ImageStats(image=data, fields=self._fields, **(self._kwargs))
         self.skyval = self._skystat(imstat)
         self.npix = imstat.npix
         return self.skyval, self.npix
 
-    def __call__(self, data):
+    def __call__(self, data):  # noqa: D102
         return self.calc_sky(data)

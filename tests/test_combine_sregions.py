@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 from astropy.modeling.mappings import Identity
-from stcal.alignment import sregion_to_footprint
 
 from stcal.alignment import (
     combine_footprints,
     combine_sregions,
+    sregion_to_footprint,
 )
 from stcal.alignment.resample_utils import _polygons_to_sregion
 
@@ -325,18 +325,22 @@ def test_sregion_pair(simple_footprint_pair, det2world):
     """Test for a pair of overlapping footprints as S_REGION strings."""
     sregion_list = _footprints_to_sregion_list(simple_footprint_pair)
     # since we're constructing this with code, let's first make sure the list looks right
-    assert (
-        sregion_list[0]
-        == "POLYGON ICRS  0.000000000 0.000000000 1.000000000 0.000000000 1.000000000 1.000000000 0.000000000 1.000000000"
+    assert sregion_list[0] == (
+        "POLYGON ICRS  0.000000000 0.000000000 1.000000000 0.000000000 "
+        "1.000000000 1.000000000 0.000000000 1.000000000"
     )
-    assert (
-        sregion_list[1]
-        == "POLYGON ICRS  0.500000000 0.500000000 1.500000000 0.500000000 1.500000000 1.500000000 0.500000000 1.500000000"
+    assert sregion_list[1] == (
+        "POLYGON ICRS  0.500000000 0.500000000 1.500000000 0.500000000 "
+        "1.500000000 1.500000000 0.500000000 1.500000000"
     )
 
     # now combine them and test their combination
     combined_sregion = combine_sregions(sregion_list, det2world)
-    expected = "POLYGON ICRS  1.000000000 0.000000000 0.000000000 0.000000000 0.000000000 1.000000000 0.500000000 1.000000000 0.500000000 1.500000000 1.500000000 1.500000000 1.500000000 0.500000000 1.000000000 0.500000000"
+    expected = (
+        "POLYGON ICRS  1.000000000 0.000000000 0.000000000 0.000000000 0.000000000 1.000000000 0.500000000 "
+        "1.000000000 0.500000000 1.500000000 1.500000000 1.500000000 1.500000000 0.500000000 1.000000000 "
+        "0.500000000"
+    )
     assert combined_sregion == expected
 
 
@@ -381,7 +385,14 @@ def test_sregion_intersection(complex_footprint_set, det2world, footprints_are_s
 
     assert combined_sregion.count("POLYGON ICRS") == 2
     assert combined_sregion.startswith("POLYGON ICRS")
-    expected = "POLYGON ICRS  179.000000000 1.000000000 179.000000000 0.500000000 178.500000000 0.500000000 178.500000000 1.000000000  POLYGON ICRS  180.500000000 1.100000000 180.500000000 1.200000000 180.900000000 1.200000000 180.900000000 1.400000000 181.000000000 1.400000000 181.000000000 1.500000000 181.500000000 1.500000000 181.500000000 0.500000000 180.000000000 0.500000000 180.000000000 1.000000000 180.100000000 1.000000000 180.100000000 1.100000000"
+    expected = (
+        "POLYGON ICRS  179.000000000 1.000000000 179.000000000 0.500000000 178.500000000 "
+        "0.500000000 178.500000000 1.000000000  POLYGON ICRS  180.500000000 1.100000000 "
+        "180.500000000 1.200000000 180.900000000 1.200000000 180.900000000 1.400000000 "
+        "181.000000000 1.400000000 181.000000000 1.500000000 181.500000000 1.500000000 "
+        "181.500000000 0.500000000 180.000000000 0.500000000 180.000000000 1.000000000 "
+        "180.100000000 1.000000000 180.100000000 1.100000000"
+    )
     assert combined_sregion == expected
 
 
@@ -411,12 +422,12 @@ def test_duplicate_tolerance():
     footprint_with_duplicate = np.array(
         [
             [0.0, 0.0],
-            [0.0 + 0.1, 0.0 + 0.1], # this should be kept
+            [0.0 + 0.1, 0.0 + 0.1],  # this should be kept
             [1.0, 0.0],
             [1.0, 1.0],
-            [1.0 + 0.02, 1.0 + 0.02], # this should be removed by duplicate check
+            [1.0 + 0.02, 1.0 + 0.02],  # this should be removed by duplicate check
             [0.0, 1.0],
-            [0.0, 0.5], # this should be removed by angle check since it's along the edge
+            [0.0, 0.5],  # this should be removed by angle check since it's along the edge
         ]
     )
     combined = combine_footprints([footprint_with_duplicate])

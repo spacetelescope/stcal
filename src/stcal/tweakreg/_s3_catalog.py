@@ -1,19 +1,17 @@
-import functools
 import concurrent.futures
+import functools
 
 import numpy as np
-from astropy import units as u
+import pyarrow.csv as csv
+import pyarrow.fs
+import pyarrow.parquet as pq
 from astropy import coordinates
+from astropy import units as u
 from astropy.table import Table
 from astropy.time import Time
-
-import pyarrow.fs
-import pyarrow.csv as csv
-import pyarrow.parquet as pq
 from astropy_healpix import HEALPix
 
-
-__all__ = ["get_catalog"]
+__all__ = []
 
 
 S3_NAMES_TO_CATALOGS = {
@@ -40,31 +38,32 @@ COL_NAMES = (
 
 def _correct_for_proper_motion(catalog, epoch):
     # remove rows without pmra, pmdec, parallax
-    catalog = catalog[~(catalog['pmra'].mask | catalog['pmdec'].mask | catalog['parallax'].mask)]
-    dt = epoch - catalog['ref_epoch']
+    catalog = catalog[~(catalog["pmra"].mask | catalog["pmdec"].mask | catalog["parallax"].mask)]
+    dt = epoch - catalog["ref_epoch"]
     unitspherical = coordinates.UnitSphericalRepresentation(
-        catalog['ra'] * u.deg,
-        catalog['dec'] * u.deg,
+        catalog["ra"] * u.deg,
+        catalog["dec"] * u.deg,
     )
     xyz = unitspherical.to_cartesian().xyz
     unit_vectors = unitspherical.unit_vectors()
-    rahat = unit_vectors['lon'].xyz
-    dechat = unit_vectors['lat'].xyz
-    earthcoord = coordinates.get_body_barycentric('earth', Time(epoch, format="decimalyear"))
+    rahat = unit_vectors["lon"].xyz
+    dechat = unit_vectors["lat"].xyz
+    earthcoord = coordinates.get_body_barycentric("earth", Time(epoch, format="decimalyear"))
     earthcoord = earthcoord.xyz.to(u.AU).value
     radpermas = np.pi / (180 * 3600 * 1000)
-    newxyz = (
-        xyz + rahat * dt * radpermas * catalog['pmra'] + dechat * dt * radpermas * catalog['pmdec'])
-    plx = catalog['parallax']
-    newxyz -= (rahat * earthcoord.dot(rahat) * plx * radpermas
-               + dechat * earthcoord.dot(dechat) * plx * radpermas)
+    newxyz = xyz + rahat * dt * radpermas * catalog["pmra"] + dechat * dt * radpermas * catalog["pmdec"]
+    plx = catalog["parallax"]
+    newxyz -= (
+        rahat * earthcoord.dot(rahat) * plx * radpermas + dechat * earthcoord.dot(dechat) * plx * radpermas
+    )
     # stars move in the opposite direction of the earth -> minus sign
     newunitspherical = coordinates.UnitSphericalRepresentation.from_cartesian(
-        coordinates.CartesianRepresentation(newxyz))
+        coordinates.CartesianRepresentation(newxyz)
+    )
     newra = newunitspherical.lon
     newdec = newunitspherical.lat
-    catalog['ra'] = newra.to(u.deg).value
-    catalog['dec'] = newdec.to(u.deg).value
+    catalog["ra"] = newra.to(u.deg).value
+    catalog["dec"] = newdec.to(u.deg).value
     return catalog
 
 
@@ -72,12 +71,12 @@ def _correct_for_proper_motion(catalog, epoch):
 def _get_partition_info(uri):
     # open the filesystem here to allow this to be cached (FileSystem instances aren't hashable)
     fs, fs_path = pyarrow.fs.FileSystem.from_uri(uri)
-    csv_file = csv.read_csv(fs.open_input_file(fs_path +  "/partition_info.csv"))
-    return fs, fs_path, np.vstack((csv_file['Norder'].to_numpy(), csv_file['Npix'].to_numpy())).T
+    csv_file = csv.read_csv(fs.open_input_file(fs_path + "/partition_info.csv"))
+    return fs, fs_path, np.vstack((csv_file["Norder"].to_numpy(), csv_file["Npix"].to_numpy())).T
 
 
 def _cone_search(ra, dec, search_radius, depth):
-    hp = HEALPix(nside=2 ** depth, order='nested')
+    hp = HEALPix(nside=2**depth, order="nested")
     return hp.cone_search_lonlat(ra * u.deg, dec * u.deg, search_radius * u.deg)
 
 
@@ -135,8 +134,8 @@ def _read_table(paths, fs, filters, columns):
 
 
 def _filter_table(table, ra, dec, search_radius):
-    ra_rad = np.radians(table['ra'])
-    dec_rad = np.radians(table['dec'])
+    ra_rad = np.radians(table["ra"])
+    dec_rad = np.radians(table["dec"])
     ra0 = np.radians(ra)
     dec0 = np.radians(dec)
 
@@ -149,7 +148,7 @@ def _filter_table(table, ra, dec, search_radius):
     return table[cos_separation >= cos_radius]
 
 
-def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, epoch=None, columns=None):
+def _get_hats_sources(gaia_dr3_uri, ra, dec, search_radius, columns=None):
     # get the partition_info file: Norder, Npix
     fs, fs_path, hats_pixels = _get_partition_info(gaia_dr3_uri)
     max_depth = hats_pixels[:, 0].max()
@@ -217,7 +216,9 @@ def get_s3_catalog(
 
     # use a thread to allow setting a timeout
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(_get_hats_sources, s3_url, right_ascension, declination, search_radius, epoch, list(COL_NAMES))
+        future = executor.submit(
+            _get_hats_sources, s3_url, right_ascension, declination, search_radius, list(COL_NAMES)
+        )
         table = future.result(timeout=timeout)
 
     if epoch:

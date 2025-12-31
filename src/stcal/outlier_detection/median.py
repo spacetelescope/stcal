@@ -18,7 +18,7 @@ _ONE_MB = 1 << 20
 __all__ = ["MedianComputer", "nanmedian3D"]
 
 
-def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
+def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:  # noqa: N802
     """Compute the nanmedian of a cube.
 
     This produces identical results to np.nanmedian but is much more
@@ -39,33 +39,33 @@ def nanmedian3D(cube: np.ndarray, overwrite_input: bool = True) -> np.ndarray:
         2-dimensional computed median array
     """
     with warnings.catch_warnings():
-        warnings.filterwarnings(action="ignore",
-                                message="All-NaN slice encountered",
-                                category=RuntimeWarning)
+        warnings.filterwarnings(action="ignore", message="All-NaN slice encountered", category=RuntimeWarning)
         output_arr = np.empty(cube.shape[1:], dtype=cube.dtype)
         for i in range(output_arr.shape[0]):
             # np.nanmedian allocates lots of memory; this for loop gets around that
-            np.nanmedian(cube[:, i, :],
-                         axis=0,
-                         overwrite_input=overwrite_input,
-                         out=output_arr[i, :])
+            np.nanmedian(cube[:, i, :], axis=0, overwrite_input=overwrite_input, out=output_arr[i, :])
         return output_arr
 
 
 class MedianComputer:
     """
+    Class to efficiently compute a median.
+
     Top-level class to treat median computation uniformly, whether in
     memory or on disk.
     """
 
-    def __init__(self,
-                 full_shape: tuple,
-                 in_memory: bool,
-                 buffer_size: int | None = None,
-                 dtype: str | np.dtype = "float32",
-                 tempdir: str = "",
-                 ) -> None:
+    def __init__(
+        self,
+        full_shape: tuple,
+        in_memory: bool,
+        buffer_size: int | None = None,
+        dtype: str | np.dtype = "float32",
+        tempdir: str = "",
+    ) -> None:
         """
+        Initialize MedianComputer.
+
         Parameters
         ----------
         full_shape
@@ -95,16 +95,10 @@ class MedianComputer:
         if self.in_memory:
             computer: Any = np.empty(full_shape, dtype=dtype)
         else:
-            computer = _OnDiskMedian(full_shape,
-                                    dtype=dtype,
-                                    buffer_size=buffer_size,
-                                    tempdir=tempdir)
+            computer = _OnDiskMedian(full_shape, dtype=dtype, buffer_size=buffer_size, tempdir=tempdir)
         self._median_computer: Any = computer
 
-    def append(self,
-               data: np.ndarray,
-               idx: int | None = None
-               ) -> None:
+    def append(self, data: np.ndarray, idx: int | None = None) -> None:
         """
         Append data to the median computer.
 
@@ -146,6 +140,8 @@ class MedianComputer:
 
 class _DiskAppendableArray:
     """
+    Helper class to perform memory efficient timewise operations.
+
     Creates a temporary file to which to append data, in order to perform
     timewise operations on a stack of input images without holding all of them
     in memory.
@@ -162,12 +158,10 @@ class _DiskAppendableArray:
     holding a small spatial segment of the full dataset.
     """
 
-    def __init__(self,
-                 slice_shape: tuple,
-                 dtype: str | np.dtype,
-                 filename: str | Path
-                 ) -> None:
+    def __init__(self, slice_shape: tuple, dtype: str | np.dtype, filename: str | Path) -> None:
         """
+        Initialize _DiskAppendableArray.
+
         Parameters
         ----------
         slice_shape
@@ -183,7 +177,7 @@ class _DiskAppendableArray:
             msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays are supported."
             raise ValueError(msg)
         self._filename = Path(filename)
-        with Path.open(self._filename, "wb") as f:   # noqa: F841
+        with Path.open(self._filename, "wb") as f:  # noqa: F841
             pass
         self._slice_shape = slice_shape
         self._dtype = np.dtype(dtype)
@@ -228,14 +222,12 @@ class _DiskAppendableArray:
 
 
 class _OnDiskMedian:
-
-    def __init__(self,
-                 shape: tuple,
-                 dtype: str | np.dtype = "float32",
-                 tempdir: str = "",
-                 buffer_size: int = 0
-                 ) -> None:
+    def __init__(
+        self, shape: tuple, dtype: str | np.dtype = "float32", tempdir: str = "", buffer_size: int = 0
+    ) -> None:
         """
+        Compute a median using on-disk storage.
+
         Set up temporary files to perform operations on a stack of 2-D input
         arrays along the first dimension (e.g., a time axis) without
         holding all of them in memory. Currently the only supported operation
@@ -269,18 +261,17 @@ class _OnDiskMedian:
         self._temp_path = Path(self._temp_dir.name)
 
         # figure out number of sections and rows per section that are needed
-        self.nsections, self.section_nrows = \
-            self._get_buffer_indices(buffer_size=buffer_size)
+        self.nsections, self.section_nrows = self._get_buffer_indices(buffer_size=buffer_size)
         self.slice_shape = (self.section_nrows, shape[2])
         self._n_adds = 0
 
         # instantiate a temporary DiskAppendableArray for each section
         self._temp_arrays = self._temparray_setup(dtype)
 
-    def _get_buffer_indices(self,
-                            buffer_size: int = 0
-                            ) -> tuple[int, int]:
+    def _get_buffer_indices(self, buffer_size: int = 0) -> tuple[int, int]:
         """
+        Get buffer indices.
+
         Determine the number of sections and rows per section needed to
         divide the input data into sections that fit within the specified
         buffer size.
@@ -303,41 +294,43 @@ class _OnDiskMedian:
             buffer_size = imrows * imcols * self.itemsize
         per_model_buffer_size = buffer_size / self._expected_nframes
         min_buffer_size = imcols * self.itemsize
-        section_nrows = \
-            min(imrows, int(per_model_buffer_size // min_buffer_size))
+        section_nrows = min(imrows, int(per_model_buffer_size // min_buffer_size))
 
         if section_nrows <= 0:
             buffer_size = min_buffer_size * self._expected_nframes
-            msg = ("Buffer size is too small to hold a single row. "
-                   f"Increasing buffer size to {buffer_size / _ONE_MB} MB")
+            msg = (
+                "Buffer size is too small to hold a single row. "
+                f"Increasing buffer size to {buffer_size / _ONE_MB} MB"
+            )
             log.warning(msg)
             section_nrows = 1
         self.buffer_size = buffer_size
 
         nsections = int(np.ceil(imrows / section_nrows))
-        msg = (f"Computing median over {self._expected_nframes} "
-               f"groups in {nsections} sections "
-               f"with total memory buffer {buffer_size / _ONE_MB} MB")
+        msg = (
+            f"Computing median over {self._expected_nframes} "
+            f"groups in {nsections} sections "
+            f"with total memory buffer {buffer_size / _ONE_MB} MB"
+        )
         log.info(msg)
         return nsections, section_nrows
 
-    def _temparray_setup(self,
-                         dtype: str | np.dtype
-                         ) -> list[_DiskAppendableArray]:
+    def _temparray_setup(self, dtype: str | np.dtype) -> list[_DiskAppendableArray]:
         """Set up temp file handlers, one for each section."""
         temp_arrays = []
         for i in range(self.nsections):
             shp = self.slice_shape
             if i == self.nsections - 1:
                 # last section has whatever shape is left over
-                shp = (self.frame_shape[0] - (self.nsections-1) *
-                       self.section_nrows, self.frame_shape[1])
+                shp = (self.frame_shape[0] - (self.nsections - 1) * self.section_nrows, self.frame_shape[1])
             arr = _DiskAppendableArray(shp, dtype, self._temp_path / f"{i}.bin")
             temp_arrays.append(arr)
         return temp_arrays
 
     def add_image(self, data: np.ndarray) -> None:
         """
+        Add image to median calculation.
+
         Split data into ``nsections`` sections and write/append each section to
         the corresponding temporary file.
         """
@@ -380,15 +373,14 @@ class _OnDiskMedian:
             2-dimensional array of shape [``imrows``, ``imcols``] containing
             median values computed across all images previously provided to ``add_image``.
         """
-        row_indices = [(i * self.section_nrows,
-                        min((i+1) * self.section_nrows, self.frame_shape[0]))
-                       for i in range(self.nsections)]
+        row_indices = [
+            (i * self.section_nrows, min((i + 1) * self.section_nrows, self.frame_shape[0]))
+            for i in range(self.nsections)
+        ]
 
         output_rows = row_indices[-1][1]
         output_cols = self._temp_arrays[0].shape[2]
-        median_image = np.full((output_rows, output_cols),
-                               np.nan,
-                               dtype=self.dtype)
+        median_image = np.full((output_rows, output_cols), np.nan, dtype=self.dtype)
 
         for i, disk_arr in enumerate(self._temp_arrays):
             row1, row2 = row_indices[i]
