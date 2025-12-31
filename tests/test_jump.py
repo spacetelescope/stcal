@@ -374,15 +374,15 @@ def test_flag_large_events_withsnowball_noextension():
     jump_data.sat_required_snowball = True
     jump_data.min_sat_radius_extend = 0.5
     jump_data.sat_expand = 1.1
-    jump_data.max_extended_radius = 1
+    jump_data.max_extended_width = 1
 
     cube, num_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
     assert cube[0, 2, 0, 0] == 0
-    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_radius=1
-    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_radius=1
+    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_width=1
+    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_width=1
 
 
 def test_find_faint_extended(tmp_path):
