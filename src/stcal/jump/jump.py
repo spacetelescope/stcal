@@ -427,8 +427,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
         if minor_axis > jump_data.min_sat_radius_extend:
             axis1 = ellipse[1][0] + jump_data.sat_expand
             axis2 = ellipse[1][1] + jump_data.sat_expand
-            axis1 = min(axis1, jump_data.max_extended_radius)
-            axis2 = min(axis2, jump_data.max_extended_radius)
+            axis1 = min(axis1, jump_data.max_extended_width)
+            axis2 = min(axis2, jump_data.max_extended_width)
 
             alpha = ellipse[2]
 
@@ -974,8 +974,8 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     else:
         axis1 = ellipse[1][0] + expansion
         axis2 = ellipse[1][1] + expansion
-    axis1 = min(axis1, jump_data.max_extended_radius)
-    axis2 = min(axis2, jump_data.max_extended_radius)
+    axis1 = min(axis1, jump_data.max_extended_width)
+    axis2 = min(axis2, jump_data.max_extended_width)
 
     return (round(axis1 / 2), round(axis2 / 2))
 
