@@ -1,5 +1,7 @@
-#  jump.py - detect cosmic ray jumps and their side effects like
-#            snowballs and showers.
+"""
+This module contains functions for detecting cosmic ray jumps
+and their side effects like snowballs and showers.
+"""
 
 import logging
 import multiprocessing
@@ -18,6 +20,8 @@ from . import twopoint_difference as twopt
 from .twopoint_difference_class import TwoPointParams
 
 log = logging.getLogger(__name__)
+
+__all__ = []  # No public API
 
 
 def detect_jumps_data(jump_data):
@@ -56,7 +60,7 @@ def detect_jumps_data(jump_data):
         the number of primary cosmic rays found
 
     number_extended_events : int
-        the number of showers or XXX found
+        the number of showers etc found
     """
     sat, jump, dnu = jump_data.fl_sat, jump_data.fl_jump, jump_data.fl_dnu
     number_extended_events = 0
@@ -70,7 +74,6 @@ def detect_jumps_data(jump_data):
     readnoise_2d = jump_data.rnoise_2d * jump_data.gain_2d
 
     # also apply to the after_jump thresholds
-    # XXX Maybe move this computation
     jump_data.after_jump_flag_e1 = jump_data.after_jump_flag_dn1 * np.nanmedian(jump_data.gain_2d)
     jump_data.after_jump_flag_e2 = jump_data.after_jump_flag_dn2 * np.nanmedian(jump_data.gain_2d)
 
@@ -85,7 +88,7 @@ def detect_jumps_data(jump_data):
 
     twopt_params = TwoPointParams(jump_data)
     if n_slices == 1:
-        twopt_params.minimum_groups = 3  # XXX Should this be hard coded as 3?
+        twopt_params.minimum_groups = 3
         gdq, row_below_dq, row_above_dq, total_primary_crs = twopt.find_crs(
             data, gdq, readnoise_2d, twopt_params
         )
@@ -101,12 +104,12 @@ def detect_jumps_data(jump_data):
     if jump_data.expand_large_events:
         gdq, total_snowballs = flag_large_events(gdq, jump, sat, jump_data)
         log.info("Total snowballs = %i", total_snowballs)
-        number_extended_events = total_snowballs  # XXX overwritten
+        number_extended_events = total_snowballs  # overwritten
 
     if jump_data.find_showers:
         gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise_2d, jump_data)
         log.info("Total showers= %i", num_showers)
-        number_extended_events = num_showers  # XXX overwritten
+        number_extended_events = num_showers  # overwritten
 
     elapsed = time.time() - start
     log.info("Total elapsed time = %g sec", elapsed)
@@ -135,6 +138,7 @@ def twopoint_diff_multi(twopt_params, data, gdq, readnoise_2d, n_slices):
 
     n_slices : int
         The number of data slices for multiprocessing.
+        Set to 1 for debugging.
 
     Returns
     -------
@@ -149,8 +153,7 @@ def twopoint_diff_multi(twopt_params, data, gdq, readnoise_2d, n_slices):
     log.info("Creating %d processes for jump detection ", n_slices)
     ctx = multiprocessing.get_context("spawn")
     pool = ctx.Pool(processes=n_slices)
-    ######### JUST FOR DEBUGGING #########################
-    # pool = ctx.Pool(processes=1)
+
     # Starts each slice in its own process. Starmap allows more than one
     # parameter to be passed.
     real_result = pool.starmap(twopt.find_crs, slices)
@@ -401,8 +404,9 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     grp : int
         The current group.
 
-    sat_ellipses : cv.ellipse
-        The saturated ellipse.
+    sat_ellipses : list of tuple
+        The saturated ellipse in the format of
+        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``.
 
     jump_data : JumpData
 
@@ -490,7 +494,7 @@ def ellipse_subim(ceny, cenx, axis1, axis2, alpha, value, shape):
     dn_over_2 = max(round(axis1 / 2), round(axis2 / 2)) + 2
 
     # Note that the convention between which index is x and which
-    # is y is a little confusing here.  To cv.ellipse, the first
+    # is y is a little confusing here.  For ellipse, the first
     # coordinate corresponds to the second Python index.  That is
     # why x and y are a bit mixed up below.
 
@@ -532,8 +536,9 @@ def extend_ellipses(
     grp : int
         The current group.
 
-    ellipses : cv.ellipse
-        Ellipses for events.
+    ellipses : list of tuple
+        Ellipses for events in the format of
+        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``.
 
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
@@ -630,14 +635,17 @@ def make_snowballs(
     group : int
         The current group being used.
 
-    jump_ellipses : cv.ellipses
-        Ellipses computed based on jump detection.
+    jump_ellipses : list of tuple
+        Ellipses computed based on jump detection in the format of
+        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``.
 
-    sat_ellipses : cv.ellipses
-        Ellipses computed based on saturation.
+    sat_ellipses : list of tuple
+        Ellipses computed based on saturation in the same format as
+        ``jump_ellipses``.
 
-    next_sat_ellipses : cv.ellipses
-        Ellipses computed based on saturation in the next group.
+    next_sat_ellipses : list of tuple
+        Ellipses computed based on saturation in the next group
+        in the same format as ``jump_ellipses``.
 
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
@@ -697,14 +705,16 @@ def point_inside_ellipse(point, ellipse):
     Parameters
     ----------
     point : tuple
-        Point of interest.
+        Point of interest in the format of ``(x, y)``.
 
-    ellipse : cv2.ellipse
-        Ellipse for testing.
+    ellipse : tuple
+        Ellipse for testing in the format of
+        ``((cen_x, cen_y), (minor_axis, major_axis), theta_deg)``.
 
     Returns
     -------
-    Boolean decision if point is in ellipse
+    bool
+        Boolean decision if point is in ellipse
     """
     # https://stackoverflow.com/questions/37031356/check-if-points-are-inside-ellipse-faster-than-contains-point-method
 
@@ -739,20 +749,22 @@ def near_edge(jump, low_threshold, high_threshold):
 
     Parameters
     ----------
-    jump : cv2.ellipse
-        Ellipse to check if close to detector edge.
+    jump : tuple
+        Ellipse to check if close to detector edge in the format of
+        ``((cen_x, cen_y), (minor_axis, major_axis), theta_deg)``.
 
     low_threshold :  int
         Low threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
-    high_threshold :
+    high_threshold : int
         High threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
     Returns
     -------
-    Boolean : True if ellipse is close to the detector's edge.
+    bool
+        True if ellipse is close to the detector's edge.
     """
     return (
         jump[0][0] < low_threshold
@@ -768,14 +780,14 @@ def find_faint_extended(indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_f
 
     Parameters
     ----------
-      indata : float, 4D array
-          Science array.
+    indata : float, 4D array
+        Science array.
 
-      gdq : int, 2D array
-          Group dq array.
+    gdq : int, 2D array
+        Group dq array.
 
-      readnoise_2d : float, 2D array
-          Readnoise for all pixels.
+    readnoise_2d : float, 2D array
+        Readnoise for all pixels.
 
     Returns
     -------
@@ -840,7 +852,7 @@ def find_faint_extended(indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_f
     total_showers = 0
 
     if all_ellipses:
-        #  Now we actually do the flagging of the pixels inside showers.
+        # Now we actually do the flagging of the pixels inside showers.
         # This is deferred until all showers are detected. because the showers
         # can flag future groups and would confuse the detection algorithm if
         # we worked on groups that already had some flagged showers.
@@ -968,8 +980,9 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     expand_by_ratio : bool
         Should the axes be expanded?
 
-    ellipse : cv2.ellipse
-        Ellipse to expand.
+    ellipse : tuple
+        Ellipse to expand in the format of
+        ``((cen_x, cen_y), (minor_axis, major_axis), theta_deg)``.
 
     expansion : float
         The factor that increases the size of the snowball or enclosed ellipse.
@@ -1025,7 +1038,8 @@ def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):  # n
 
     Returns
     -------
-    list of computed ellipses
+    list
+        List of computed ellipses
     """
     masked_ratio = ratio[grp - 1].copy()
     jump_flag = jump_data.fl_jump
@@ -1293,22 +1307,22 @@ def _sk_filter_areas(image, threshold):
     list
         List of found areas. Each area is a rotated rectangular
         region encoded as is a 3 element list of values.
-        The first element is a list of 2 floats encoding the
-        center column and row. Element 2 is a list of 2 floats encoding
-        the area minor and major axis lengths. Element 3 is a float
-        encoding the rotation angle of the area in degrees.
+        The first element is a tuple of 2 floats encoding the
+        center column and row. Element 2 is a tuple of 2 floats encoding
+        the area minor and major axis full lengths. Element 3 is a float
+        encoding the rotation angle of the area in degrees. Format:
+        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``
     """
     lim = skimage.measure.label(image)
     min_areas = []
     for region in skimage.measure.regionprops(lim):
         if region.area_filled < threshold:
             continue
-        # wait util after area check so calculating the more expensive
-        # region properties is only done for areas that pass threshold
+        # Wait until after area check so calculating the more expensive
+        # region properties is only done for areas that pass threshold.
+        # https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_regionprops.html#measure-region-properties
         w = region.axis_major_length - 1
         h = region.axis_minor_length - 1
-        # opencv returns
-        # [[cy, cx], [dy, dx], [angle]]
         min_areas.append(
             ((float(region.centroid[1]), float(region.centroid[0])), (h, w), np.degrees(region.orientation))
         )
