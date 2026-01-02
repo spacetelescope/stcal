@@ -30,10 +30,6 @@ REF = DQFLAGS["REFERENCE_PIXEL"]
 
 
 def create_jump_data(dims, gain, rnoise, tm):
-    """
-    author: kmacdonald
-    date: Nov 20, 2024
-    """
     nints, ngroups, nrows, ncols = dims
     data = np.zeros(shape=dims, dtype=np.float32)
     gdq = np.zeros(shape=dims, dtype=np.uint8)
@@ -398,7 +394,6 @@ def test_find_faint_extended(tmp_path):
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
 
-    # XXX Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -418,8 +413,8 @@ def test_find_faint_extended(tmp_path):
     readnoise = readnoise * np.sqrt(2)
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside.  This should not be in tests.
+    # Check that all the expected samples in group 2 are flagged as jump and
+    # that they are not flagged outside.  This should not be in tests.
 
     # assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
@@ -427,7 +422,7 @@ def test_find_faint_extended(tmp_path):
     assert np.all(gdq[0, 1, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
-    #  Check that the same area is flagged in the first group after the event
+    # Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == JUMP
     assert np.all(gdq[0, 2, 12:21, 16:19] == JUMP)
@@ -436,7 +431,7 @@ def test_find_faint_extended(tmp_path):
 
     assert np.all(gdq[0, 3:, :, :]) == 0
 
-    #  Check that the flags are not applied in the 3rd group after the event
+    # Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
@@ -451,7 +446,6 @@ def test_find_faint_extended_sigclip():
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
 
-    # XXX Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -468,8 +462,8 @@ def test_find_faint_extended_sigclip():
 
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside
+    # Check that all the expected samples in group 2 are flagged as jump and
+    # that they are not flagged outside
     assert num_showers == 0
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert np.all(gdq[0, 1, 21, 16:20] == 0)
@@ -485,7 +479,7 @@ def test_find_faint_extended_sigclip():
     assert np.all(gdq[0, 1, 12:23, 24] == 0)
     assert np.all(gdq[0, 1, 12:23, 13] == 0)
 
-    #  Check that the flags are not applied in the 3rd group after the event
+    # Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
