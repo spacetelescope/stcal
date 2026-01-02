@@ -374,15 +374,15 @@ def test_flag_large_events_withsnowball_noextension():
     jump_data.sat_required_snowball = True
     jump_data.min_sat_radius_extend = 0.5
     jump_data.sat_expand = 1.1
-    jump_data.max_extended_radius = 1
+    jump_data.max_extended_width = 1
 
     cube, num_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
     assert cube[0, 2, 0, 0] == 0
-    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_radius=1
-    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_radius=1
+    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_width=1
+    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_width=1
 
 
 def test_find_faint_extended(tmp_path):
@@ -489,29 +489,26 @@ def test_find_faint_extended_sigclip():
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
-def test_inside_ellipse5():
-    ellipse = ((0, 0), (1, 2), -10)
-    point = (1, 0.6)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
+@pytest.mark.parametrize(
+    ("ellipse", "point"),
+    [
+        (((0, 0), (2, 4), -10), (1, 0.6)),
+        (((0, 0), (2, 4), 0), (1, 0.5)),
+        (
+            ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0),
+            (1110.5, 870.5),
+        ),
+        (((0, 0), (10, 5), 0), (0, 0)),
+        (((0, 0), (10, 5), 0), (5, 0)),
+    ],
+)
+def test_point_inside_ellipse(ellipse, point):
+    assert point_inside_ellipse(point, ellipse)
 
 
-def test_inside_ellipse4():
-    ellipse = ((0, 0), (1, 2), 0)
-    point = (1, 0.5)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
-
-
-def test_inside_ellipse6():
-    ellipse = ((0, 0), (1, 2), 0)
-    point = (3, 0.5)
-    result = point_inside_ellipse(point, ellipse)
-    assert not result
-
-
-def test_inside_ellipes5():
-    point = (1110.5, 870.5)
-    ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
+@pytest.mark.parametrize(
+    ("ellipse", "point"),
+    [(((0, 0), (2, 4), 0), (3, 0.5)), (((0, 0), (10, 5), 0), (0, 8)), (((0, 0), (10, 5), 0), (8, 0))],
+)
+def test_point_outside_ellipse(ellipse, point):
+    assert not point_inside_ellipse(point, ellipse)

@@ -168,8 +168,8 @@ class JumpData:
         # The maximum possible amplitude for flagged MIRI showers in DN/group
         self.max_shower_amplitude = 6
 
-        # The maximum radius for any extension of saturation or jump
-        self.max_extended_radius = 200
+        # The maximum width for any extension of saturation or jump
+        self.max_extended_width = 200
 
         # Sigma clipping
         # The minimum number of groups for jump detection
@@ -372,7 +372,7 @@ class JumpData:
            The minimum number of groups to switch to flagging all outliers in a single pass.
 
         extend : int
-            The maximum radius for any extension of saturation or jump
+            The maximum width for any extension of saturation or jump
         """
         # MIRI shower information
         self.find_showers = shower
@@ -382,7 +382,7 @@ class JumpData:
         self.extend_outer_radius = outer
         self.extend_ellipse_expand_ratio = expand
         self.min_diffs_single_pass = single
-        self.max_extended_radius = extend
+        self.max_extended_width = extend
 
     def set_sigma_clipping_info(self, mingrps, minsig, useints):
         """
@@ -533,7 +533,7 @@ class JumpData:
         oline += f"extend_outer_radius = {self.extend_outer_radius}\n"
         oline += f"extend_ellipse_expand_ratio = {self.extend_ellipse_expand_ratio}\n"
         oline += f"min_diffs_single_pass = {self.min_diffs_single_pass}\n"
-        oline += f"max_extended_radius = {self.max_extended_radius}\n"
+        oline += f"max_extended_width = {self.max_extended_width}\n"
         oline += f"{DELIM}\n\n"
         return oline
 

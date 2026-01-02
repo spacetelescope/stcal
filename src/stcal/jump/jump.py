@@ -427,8 +427,8 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
         if minor_axis > jump_data.min_sat_radius_extend:
             axis1 = ellipse[1][0] + jump_data.sat_expand
             axis2 = ellipse[1][1] + jump_data.sat_expand
-            axis1 = min(axis1, jump_data.max_extended_radius)
-            axis2 = min(axis2, jump_data.max_extended_radius)
+            axis1 = min(axis1, jump_data.max_extended_width)
+            axis2 = min(axis2, jump_data.max_extended_width)
 
             alpha = ellipse[2]
 
@@ -706,10 +706,28 @@ def point_inside_ellipse(point, ellipse):
     -------
     Boolean decision if point is in ellipse
     """
-    delta_center = np.sqrt((point[0] - ellipse[0][0]) ** 2 + (point[1] - ellipse[0][1]) ** 2)
-    major_axis = max(ellipse[1][0], ellipse[1][1])
+    # https://stackoverflow.com/questions/37031356/check-if-points-are-inside-ellipse-faster-than-contains-point-method
 
-    return delta_center < major_axis
+    angle = np.radians(180 - ellipse[2])
+    cos_angle = np.cos(angle)
+    sin_angle = np.sin(angle)
+
+    xc = point[0] - ellipse[0][0]
+    yc = point[1] - ellipse[0][1]
+
+    xct = xc * cos_angle - yc * sin_angle
+    yct = xc * sin_angle + yc * cos_angle
+
+    if ellipse[1][1] >= ellipse[1][0]:
+        semi_major_axis = ellipse[1][1] * 0.5
+        semi_minor_axis = ellipse[1][0] * 0.5
+    else:
+        semi_major_axis = ellipse[1][0] * 0.5
+        semi_minor_axis = ellipse[1][1] * 0.5
+
+    rad_cc = (xct**2 / semi_major_axis**2) + (yct**2 / semi_minor_axis**2)
+
+    return rad_cc <= 1
 
 
 def near_edge(jump, low_threshold, high_threshold):
@@ -974,8 +992,8 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
     else:
         axis1 = ellipse[1][0] + expansion
         axis2 = ellipse[1][1] + expansion
-    axis1 = min(axis1, jump_data.max_extended_radius)
-    axis2 = min(axis2, jump_data.max_extended_radius)
+    axis1 = min(axis1, jump_data.max_extended_width)
+    axis2 = min(axis2, jump_data.max_extended_width)
 
     return (round(axis1 / 2), round(axis2 / 2))
 
