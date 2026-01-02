@@ -1,5 +1,7 @@
 """
-This module contains functions for detecting cosmic ray jumps
+Module containing functions for cosmic ray jumps.
+
+This includes detecting cosmic ray jumps
 and their side effects like snowballs and showers.
 """
 
