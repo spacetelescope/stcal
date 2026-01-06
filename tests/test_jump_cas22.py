@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
-
-from stcal.ramp_fitting.ols_cas22 import JUMP_DET, Parameter, Variance, fit_ramps
 from stcal.ramp_fitting.ols_cas22._jump import (
     FixedOffsets,
     PixelOffsets,
@@ -10,6 +8,8 @@ from stcal.ramp_fitting.ols_cas22._jump import (
     fill_fixed_values,
 )
 from stcal.ramp_fitting.ols_cas22._ramp import from_read_pattern, init_ramps
+
+from stcal.ramp_fitting.ols_cas22 import JUMP_DET, Parameter, Variance, fit_ramps
 
 # Purposefully set a fixed seed so that the tests in this module are deterministic
 RNG = np.random.default_rng(619)

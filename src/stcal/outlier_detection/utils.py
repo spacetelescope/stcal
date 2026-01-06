@@ -1,19 +1,18 @@
-"""
-Utility functions for outlier detection routines
-"""
+"""Utility functions for outlier detection routines."""
+
+import logging
 import warnings
 
+import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
 from drizzle.utils import calc_pixmap
 from scipy import ndimage, interpolate
 from skimage.util import view_as_windows
-import gwcs
 
 from stcal.alignment.util import wcs_bbox_from_shape
 
-import logging
 log = logging.getLogger(__name__)
 
 
@@ -28,8 +27,10 @@ __all__ = [
 
 def medfilt(arr, kern_size):
     """
+    Median filter.
+
     scipy.signal.medfilt (and many other median filters) have undefined behavior
-    for nan inputs. See: https://github.com/scipy/scipy/issues/4800
+    for nan inputs. See: https://github.com/scipy/scipy/issues/4800.
 
     Parameters
     ----------
@@ -45,14 +46,14 @@ def medfilt(arr, kern_size):
         Input array median filtered with a kernel of size kern_size
     """
     padded = np.pad(arr, [[k // 2] for k in kern_size])
-    windows = view_as_windows(padded, kern_size, np.ones(len(kern_size), dtype='int'))
+    windows = view_as_windows(padded, kern_size, np.ones(len(kern_size), dtype="int"))
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "All-NaN", RuntimeWarning)
         return np.nanmedian(windows, axis=np.arange(-len(kern_size), 0))
 
 
 def compute_weight_threshold(weight, maskpt):
-    '''
+    """
     Compute the weight threshold for a single image or cube.
 
     Parameters
@@ -67,19 +68,23 @@ def compute_weight_threshold(weight, maskpt):
     -------
     float
         The weight threshold for this integration.
-    '''
+    """
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", "Mean of empty slice", RuntimeWarning)
         warnings.filterwarnings("ignore", "invalid value", RuntimeWarning)
-        return np.mean(
-            sigma_clip(
-                weight[np.isfinite(weight) & (weight != 0)],
-                sigma=3,
-                maxiters=5,
-                masked=False,
-                copy=False,
-            ),
-        dtype='f8') * maskpt
+        return (
+            np.mean(
+                sigma_clip(
+                    weight[np.isfinite(weight) & (weight != 0)],
+                    sigma=3,
+                    maxiters=5,
+                    masked=False,
+                    copy=False,
+                ),
+                dtype="f8",
+            )
+            * maskpt
+        )
 
 
 def _abs_deriv(array):
@@ -90,7 +95,7 @@ def _abs_deriv(array):
     if np.issubdtype(array.dtype, np.floating):
         out[np.isnan(array)] = np.nan
 
-    # compute row-wise absolute diffference
+    # compute row-wise absolute difference
     row_diff = np.abs(np.diff(array, axis=0))
     np.putmask(out[1:], np.isfinite(row_diff), row_diff)  # no need to do max yet
 
@@ -117,6 +122,8 @@ def flag_crs(
     snr,
 ):
     """
+    Flag outliers.
+
     Straightforward detection of outliers for non-dithered data since
     sci_err includes all noise sources (photon, read, and flat for baseline).
 
@@ -157,7 +164,6 @@ def flag_resampled_crs(
 
     Parameters
     ----------
-
     sci_data : numpy.ndarray
         "Science" data possibly containing outliers
 
@@ -200,7 +206,7 @@ def flag_resampled_crs(
 
     # Smooth the boolean mask with a 3x3 boxcar kernel
     kernel = np.ones((3, 3), dtype=int)
-    mask1_smoothed = ndimage.convolve(mask1, kernel, mode='nearest')
+    mask1_smoothed = ndimage.convolve(mask1, kernel, mode="nearest")
 
     # Create a 2nd boolean mask based on the 2nd set of
     # scale and threshold values
@@ -213,8 +219,7 @@ def flag_resampled_crs(
 
 def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=0.0):
     """
-    Resample the median data to recreate an input image based on
-    the blot wcs.
+    Resample the median data to recreate an input image based on the blot wcs.
 
     Parameters
     ----------
@@ -258,7 +263,16 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
     # what we've been doing up until now, so more investigation is needed
     # before a change is made.  Preferably, fix tblot in drizzle.
     pixmap[np.isnan(pixmap)] = -1
-    tblot(median_data, pixmap, outsci, scale=pix_ratio, kscale=1.0,
-          interp='linear', exptime=1.0, misval=fillval, sinscl=1.0)
+    tblot(
+        median_data,
+        pixmap,
+        outsci,
+        scale=pix_ratio,
+        kscale=1.0,
+        interp="linear",
+        exptime=1.0,
+        misval=fillval,
+        sinscl=1.0,
+    )
 
     return outsci
