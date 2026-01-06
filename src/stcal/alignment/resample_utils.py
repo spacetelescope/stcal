@@ -1,11 +1,11 @@
 import logging
+import warnings
 
 import numpy as np
 import shapely.geometry  # type: ignore[import-untyped]
-from gwcs.wcstools import grid_from_bounding_box
 from drizzle.utils import calc_pixmap as calc_pixmap_drizzle
+
 from stcal.alignment import util
-import warnings
 
 log = logging.getLogger(__name__)
 
@@ -29,11 +29,10 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         Reprojected pixel grid map. `pixmap[xin, yin]` returns `xout,
         yout` indices in the output image.
     """
-
-    warnings.warn("calc_pixmap is deprecated in favor of "
-                  "drizzle.utils.calc_pixmap", DeprecationWarning)
+    warnings.warn("calc_pixmap is deprecated in favor of drizzle.utils.calc_pixmap", DeprecationWarning)
 
     return calc_pixmap_drizzle(in_wcs, out_wcs, shape=shape)
+
 
 def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     """

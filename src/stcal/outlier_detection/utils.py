@@ -3,16 +3,12 @@
 import logging
 import warnings
 
-import gwcs
 import numpy as np
-import warnings
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
 from drizzle.utils import calc_pixmap
 from scipy import ndimage
 from skimage.util import view_as_windows
-
-from stcal.alignment.util import wcs_bbox_from_shape
 
 log = logging.getLogger(__name__)
 
@@ -300,9 +296,7 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     pixmap : numpy.ndarray
         Computed pixmap.
     """
-
-    warnings.warn("calc_gwcs_pixmap is deprecated in favor of "
-                             "drizzle.utils.calc_pixmap", DeprecationWarning)
+    warnings.warn("calc_gwcs_pixmap is deprecated in favor of drizzle.utils.calc_pixmap", DeprecationWarning)
 
     return calc_pixmap(in_wcs, out_wcs, shape=in_shape)
 
@@ -329,10 +323,12 @@ def reproject(wcs1, wcs2):
         Function to compute the transformations.  It takes x, y
         positions in ``wcs1`` and returns x, y positions in ``wcs2``.
     """
-
-    warnings.warn("reproject is deprecated. It was called by calc_gwcs_pixmap, "
-                  "which has been deprecated in favor of "
-                  "drizzle.utils.calc_pixmap", DeprecationWarning)
+    warnings.warn(
+        "reproject is deprecated. It was called by calc_gwcs_pixmap, "
+        "which has been deprecated in favor of "
+        "drizzle.utils.calc_pixmap",
+        DeprecationWarning,
+    )
 
     try:
         forward_transform = wcs1.pixel_to_world_values

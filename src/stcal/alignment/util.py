@@ -656,10 +656,12 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
         Function to compute the transformations.  It takes x, y
         positions in ``wcs1`` and returns x, y positions in ``wcs2``.
     """
-
-    warnings.warn("reproject is deprecated. It was called by calc_pixmap, "
-                  "which has been deprecated in favor of "
-                  "drizzle.utils.calc_pixmap", DeprecationWarning)
+    warnings.warn(
+        "reproject is deprecated. It was called by calc_pixmap, "
+        "which has been deprecated in favor of "
+        "drizzle.utils.calc_pixmap",
+        DeprecationWarning,
+    )
 
     def _get_forward_transform_func(wcs1):
         """
