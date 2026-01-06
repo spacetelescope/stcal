@@ -247,9 +247,9 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
     # Compute the mapping between the input and output pixel coordinates
     pixmap = calc_pixmap(blot_wcs, median_wcs, shape=blot_shape)
 
-    log.debug("Pixmap shape: {}".format(pixmap[:, :, 0].shape))
-    log.debug("Sci shape: {}".format(blot_shape))
-    log.info('Blotting {} <-- {}'.format(blot_shape, median_data.shape))
+    log.debug(f"Pixmap shape: {pixmap[:, :, 0].shape}")
+    log.debug(f"Sci shape: {blot_shape}")
+    log.info(f"Blotting {blot_shape} <-- {median_data.shape}")
 
     outsci = np.full(blot_shape, fillval, dtype=np.float32)
 
