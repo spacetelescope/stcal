@@ -1,0 +1,1 @@
+Fixed a bug where ``point_inside_ellipse()`` sometimes returning True for a point outside of the given ellipse.

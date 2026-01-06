@@ -1,6 +1,4 @@
-"""
-Utilities for velocity aberration correction.
-"""
+"""Utilities for velocity aberration correction."""
 
 import logging
 

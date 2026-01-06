@@ -1,10 +1,11 @@
 """Common utility functions for datamodel alignment."""
+
 from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Tuple
 import warnings
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -12,12 +13,11 @@ if TYPE_CHECKING:
     import astropy
 
 import gwcs
-from gwcs import FITSImagingWCSTransform
 import numpy as np
-from astropy import wcs as fitswcs
 from astropy import coordinates as coord
+from astropy import wcs as fitswcs
 from astropy.modeling import models as astmodels
-
+from gwcs import FITSImagingWCSTransform
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +28,6 @@ __all__ = [
     "compute_s_region_imaging",
     "compute_s_region_keyword",
     "sregion_to_footprint",
-    "wcs_from_footprints",
     "wcs_from_sregions",
     "wcs_bbox_from_shape",
     "reproject",
@@ -39,7 +38,7 @@ def _calculate_fiducial_from_spatial_footprint(
     spatial_footprint: np.ndarray,
 ) -> tuple:
     """
-    Calculates the fiducial coordinates from a given spatial footprint.
+    Calculate the fiducial coordinates from a given spatial footprint.
 
     Parameters
     ----------
@@ -66,9 +65,10 @@ def _calculate_fiducial_from_spatial_footprint(
     return lon_fiducial, lat_fiducial
 
 
-def _calculate_fiducial(footprints: list[np.ndarray],
-                        crval: Sequence | None = None) -> tuple:
+def _calculate_fiducial(footprints: list[np.ndarray], crval: Sequence | None = None) -> tuple:
     """
+    Calculate the fiducial point from a list of footprints.
+
     Calculates the coordinates of the fiducial point and, if necessary, updates it with
     the values in CRVAL (the update is applied to spatial axes only).
 
@@ -95,7 +95,7 @@ def _calculate_fiducial(footprints: list[np.ndarray],
 
 def _validate_wcs_list(wcs_list: list[gwcs.wcs.WCS]) -> bool:
     """
-    Validates wcs_list.
+    Validate wcs_list.
 
     Parameters
     ----------
@@ -197,9 +197,10 @@ def compute_scale(
     return float(np.sqrt(xscale * yscale))
 
 
-def compute_fiducial(wcslist: list,
-                     bounding_box: Sequence | None = None) -> np.ndarray:
+def compute_fiducial(wcslist: list, bounding_box: Sequence | None = None) -> np.ndarray:
     """
+    Calculate the world coordinates of the fiducial point from a list of WCS objects.
+
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
@@ -243,6 +244,8 @@ def compute_fiducial(wcslist: list,
 
 def _compute_fiducial_from_footprints(footprints: list[np.ndarray]) -> tuple:
     """
+    Calculate the wold coordinates of the fiducial point from a list of footprints.
+
     Calculates the world coordinates of the fiducial point of a list of WCS objects.
     For a celestial footprint this is the center. For a spectral footprint, it is the
     beginning of its range.
@@ -318,117 +321,6 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
     return [pc1_1, pc1_2, pc2_1, pc2_2]
 
 
-def wcs_from_footprints(
-    wcs_list: list[gwcs.wcs.WCS],
-    ref_wcs: gwcs.wcs.WCS,
-    ref_wcsinfo: dict,
-    transform: astropy.modeling.models.Model | None = None,
-    bounding_box: Sequence | None = None,
-    pscale_ratio: float | None = None,
-    pscale: float | None = None,
-    rotation: float | None = None,
-    shape: Sequence | None = None,
-    crpix: Sequence | None = None,
-    crval: Sequence | None = None,
-) -> gwcs.wcs.WCS:
-    """
-    Create a WCS from a list of input datamodels.
-
-    A fiducial point in the output coordinate frame is created from  the
-    footprints of all WCS objects. For a spatial frame this is the center
-    of the union of the footprints. For a spectral frame the fiducial is in
-    the beginning of the footprint range.
-    If ``refmodel`` is None, the first WCS object in the list is considered
-    a reference. The output coordinate frame and projection (for celestial frames)
-    is taken from ``refmodel``.
-    If ``transform`` is not supplied, a compound transform is created using
-    CDELTs and PC.
-    If ``bounding_box`` is not supplied, the `bounding_box` of the new WCS is computed
-    from `bounding_box` of all input WCSs.
-
-    Parameters
-    ----------
-    wcs_list : list
-        A list of valid datamodels.
-
-    ref_wcs :
-        A valid datamodel whose WCS is used as reference for the creation of the output
-        coordinate frame, projection, and scaling and rotation transforms.
-        If not supplied the first model in the list is used as ``refmodel``.
-
-    ref_wcsinfo : dict
-        A dictionary containing the WCS FITS keywords and corresponding values.
-
-    transform : ~astropy.modeling.Model, None, optional
-        If not supplied `Scaling | Rotation` is computed from ``refmodel``.
-
-    bounding_box : tuple, None, optional
-        Bounding_box of the new WCS.
-        If not supplied it is computed from the bounding_box of all inputs.
-
-    pscale_ratio : float, None, optional
-        Ratio of output pixel scale to input pixel scale. Ignored when either
-        ``transform`` or ``pscale`` are provided.
-
-    pscale : float, None, optional
-        Absolute pixel scale in degrees. When provided, overrides
-        ``pscale_ratio``. Ignored when ``transform`` is provided.
-
-    rotation : float, None, optional
-        Position angle of output image's Y-axis relative to North.
-        A value of 0.0 would orient the final output image to be North up.
-        The default of `None` specifies that the images will not be rotated,
-        but will instead be resampled in the default orientation for the camera
-        with the x and y axes of the resampled image corresponding
-        approximately to the detector axes. Ignored when ``transform`` is
-        provided.
-
-    shape : tuple of int, None, optional
-        Shape of the image (data array) using ``np.ndarray`` convention
-        (``ny`` first and ``nx`` second). This value will be assigned to
-        ``pixel_shape`` and ``array_shape`` properties of the returned
-        WCS object.
-
-    crpix : tuple of float, None, optional
-        Position of the reference pixel in the image array.  If ``crpix`` is not
-        specified, it will be set to the center of the bounding box of the
-        returned WCS object.
-
-    crval : tuple of float, None, optional
-        Right ascension and declination of the reference pixel. Automatically
-        computed if not provided.
-
-    wcs_list : list, None, optional
-        A list of WCS objects. If not supplied, the WCS objects are extracted
-        from the input datamodels.
-
-    Returns
-    -------
-    wcs_new : ~gwcs.wcs.WCS
-        The WCS object corresponding to the combined input footprints.
-
-    """
-    msg = ("wcs_from_footprints is deprecated and will be removed in a future release."
-           "It is recommended to use wcs_from_sregions instead.")
-    warnings.warn(msg, DeprecationWarning, stacklevel=2)
-    _validate_wcs_list(wcs_list)
-    footprints = [w.footprint() for w in wcs_list]
-    if ref_wcs is None:
-        ref_wcs = wcs_list[0]
-    return wcs_from_sregions(
-        footprints,
-        ref_wcs,
-        ref_wcsinfo,
-        transform=transform,
-        pscale_ratio=pscale_ratio,
-        pscale=pscale,
-        rotation=rotation,
-        shape=shape,
-        crpix=crpix,
-        crval=crval,
-    )
-
-
 def sregion_to_footprint(s_region: str) -> np.ndarray:
     """
     Parse the s_region string and return the footprint as an Nx2 array.
@@ -448,14 +340,15 @@ def sregion_to_footprint(s_region: str) -> np.ndarray:
 
 
 def _compute_bounding_box_with_offsets(
-        footprints: list[np.ndarray],
-        transform: astmodels.Model,
-        fiducial: Sequence,
-        crpix: Sequence | None,
-        shape: Sequence | None
-        ) -> Tuple[tuple, tuple, tuple]:
+    footprints: list[np.ndarray],
+    transform: astmodels.Model,
+    fiducial: Sequence,
+    crpix: Sequence | None,
+    shape: Sequence | None,
+) -> tuple[tuple, tuple, tuple]:
     """
-    Calculates axis minimum values and bounding box.
+    Calculate axis minimum values and bounding box.
+
     Calculates the offsets to the transform.
 
     Parameters
@@ -472,6 +365,7 @@ def _compute_bounding_box_with_offsets(
     shape : tuple, None, optional
         Shape (using `numpy.ndarray` convention) of the image array associated
         with the ``ref_wcs``.
+
     Returns
     -------
     tuple
@@ -492,23 +386,18 @@ def _compute_bounding_box_with_offsets(
     if crpix is None:
         # shift the coordinates by domain_min so that all input footprints
         # will project to positive coordinates in the offsetted ref_wcs
-        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix,
-                                                          domain_min))
+        offsets = tuple(ncrp - dmin for ncrp, dmin in zip(native_crpix, domain_min))
     else:
         # assume 0-based CRPIX and require that fiducial would map to the user
         # defined crpix value:
-        offsets = tuple(
-            crp - ncrp for ncrp, crp in zip(native_crpix, crpix)
-        )
+        offsets = tuple(crp - ncrp for ncrp, crp in zip(native_crpix, crpix))
     # Also offset domain limits:
     domain_min += offsets
     domain_max += offsets
 
     if shape is None:
         shape = tuple(int(dmax + 0.5) for dmax in domain_max[::-1])
-        bounding_box = tuple(
-            (-0.5, s - 0.5) for s in shape[::-1]
-        )
+        bounding_box = tuple((-0.5, s - 0.5) for s in shape[::-1])
 
     else:
         # trim upper bounding box limits
@@ -605,9 +494,9 @@ def wcs_from_sregions(
         The WCS object corresponding to the combined input footprints.
 
     """
-    footprints = [sregion_to_footprint(s_region)
-                  if isinstance(s_region, str) else s_region
-                  for s_region in footprints]
+    footprints = [
+        sregion_to_footprint(s_region) if isinstance(s_region, str) else s_region for s_region in footprints
+    ]
     fiducial = _calculate_fiducial(footprints, crval=crval)
     crval = fiducial
     v3yangle = np.deg2rad(ref_wcsinfo["v3yangle"])
@@ -618,7 +507,9 @@ def wcs_from_sregions(
         roll_ref = np.deg2rad(rotation) + (vparity * v3yangle)
     pc = np.reshape(calc_rotation_matrix(roll_ref, v3yangle, vparity=vparity), (2, 2))
     if not pscale:
-        pscale = compute_scale(ref_wcs, (ref_wcsinfo['ra_ref'], ref_wcsinfo['dec_ref']), pscale_ratio=pscale_ratio)
+        pscale = compute_scale(
+            ref_wcs, (ref_wcsinfo["ra_ref"], ref_wcsinfo["dec_ref"]), pscale_ratio=pscale_ratio
+        )
 
     projection = astmodels.Pix2Sky_TAN()
     cdelt = [pscale, pscale]
@@ -629,35 +520,31 @@ def wcs_from_sregions(
             | astmodels.Scale(pscale) & astmodels.Scale(pscale)
             | projection
             | astmodels.RotateNative2Celestial(crval[0], crval[1], 180)
-            )
+        )
     bounding_box, shape, offsets = _compute_bounding_box_with_offsets(
-        footprints,
-        transform,
-        fiducial=crval,
-        crpix=crpix,
-        shape=shape
+        footprints, transform, fiducial=crval, crpix=crpix, shape=shape
     )
     if any(d < 2 for d in shape):
         raise ValueError(
-            "Computed shape for the output image using provided "
-            "WCS parameters is too small.",bounding_box, shape, offsets
+            "Computed shape for the output image using provided WCS parameters is too small.",
+            bounding_box,
+            shape,
+            offsets,
         )
 
-    fwcs = FITSImagingWCSTransform(projection, crpix=offsets, crval=crval,
-                                   cdelt=cdelt, pc=pc)
+    fwcs = FITSImagingWCSTransform(projection, crpix=offsets, crval=crval, cdelt=cdelt, pc=pc)
     input_frame = ref_wcs.input_frame
     output_frame = ref_wcs.output_frame
 
-    new_wcs = gwcs.WCS([gwcs.Step(input_frame, fwcs),
-                        gwcs.Step(output_frame, None)])
+    new_wcs = gwcs.WCS([gwcs.Step(input_frame, fwcs), gwcs.Step(output_frame, None)])
     new_wcs.bounding_box = bounding_box
     new_wcs.pixel_shape = shape[::-1]
     return new_wcs
 
 
-def compute_s_region_imaging(wcs: gwcs.wcs.WCS,
-                             shape: Sequence | None = None,
-                             center: bool = True) -> str | None:
+def compute_s_region_imaging(
+    wcs: gwcs.wcs.WCS, shape: Sequence | None = None, center: bool = True
+) -> str | None:
     """
     Update the ``S_REGION`` keyword using the WCS footprint.
 
@@ -738,7 +625,7 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
         String containing the S_REGION object.
     """
     s_region = "POLYGON ICRS  {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f} {:.9f}".format(
-       *footprint.flatten()
+        *footprint.flatten()
     )
     if "nan" in s_region:
         # do not update s_region if there are NaNs.
@@ -750,6 +637,8 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
 
 def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
+    Compute reproection from wcs1 to wcs2.
+
     Given two WCSs or transforms return a function which takes pixel
     coordinates in the first WCS or transform and computes them in pixel coordinates
     in the second one. It performs the forward transformation of ``wcs1`` followed by the
@@ -769,8 +658,10 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
     """
 
     def _get_forward_transform_func(wcs1):
-        """Get the forward transform function from the input WCS. If the wcs is a
-        fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
+        """
+        Get the forward transform function from the input WCS.
+
+        If the wcs is a fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
         y (str, ndarray), and origin (int). The origin should be between 0, and 1
         https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
         ).

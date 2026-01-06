@@ -1,8 +1,9 @@
 import tracemalloc
 
-MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3, "TB": 1024 ** 4}
+MEMORY_UNIT_CONVERSION = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
 
-class MemoryThresholdExceeded(Exception):
+
+class MemoryThresholdExceeded(Exception):  # noqa: N818, D101
     pass
 
 
@@ -17,7 +18,7 @@ class MemoryThreshold:
     If the code in the with statement uses more than the expected_usage
     memory a ``MemoryThresholdExceeded`` exception
     will be raised.
-    
+
     Note that this class does not prevent allocations beyond the threshold
     and only checks the actual peak allocations to the threshold at the
     end of the with statement.
@@ -25,6 +26,8 @@ class MemoryThreshold:
 
     def __init__(self, expected_usage):
         """
+        Construct a MemoryThreshold context.
+
         Parameters
         ----------
         expected_usage : str
@@ -45,7 +48,9 @@ class MemoryThreshold:
 
         if peak > self.expected_usage_bytes:
             scaling = MEMORY_UNIT_CONVERSION[self.units]
-            msg = ("Peak memory usage exceeded expected usage: "
-                  f"{peak / scaling:.2f} {self.units} > "
-                  f"{self.expected_usage_bytes / scaling:.2f} {self.units} ")
+            msg = (
+                "Peak memory usage exceeded expected usage: "
+                f"{peak / scaling:.2f} {self.units} > "
+                f"{self.expected_usage_bytes / scaling:.2f} {self.units} "
+            )
             raise MemoryThresholdExceeded(msg)

@@ -15,6 +15,8 @@ log = logging.getLogger(__name__)
 
 def do_correction(input_model, dark_model, dark_output=None):
     """
+    Compute dark current subtraction.
+
     Convert models to classes to remove internal dependence on data models.
     After the creation of internal classes, the dark current subtraction is
     done.
@@ -46,9 +48,7 @@ def do_correction(input_model, dark_model, dark_output=None):
 
 def do_correction_data(science_data, dark_data, dark_output=None):
     """
-    Short Summary
-    -------------
-    Execute all tasks for Dark Current Subtraction
+    Execute all tasks for Dark Current Subtraction.
 
     Parameters
     ----------
@@ -110,8 +110,9 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
         frames_to_extrapolate = sci_total_frames - drk_total_frames
         # Find number of new groups required from above calculation of total frames.
-        groups_to_extrapolate = np.ceil((frames_to_extrapolate + drk_groupgap)
-                                 / (drk_nframes + drk_groupgap)).astype(int)
+        groups_to_extrapolate = np.ceil(
+            (frames_to_extrapolate + drk_groupgap) / (drk_nframes + drk_groupgap)
+        ).astype(int)
         extrapolate_dark(dark_data, groups_to_extrapolate)
 
     # Check that the value of nframes and groupgap in the dark
@@ -173,6 +174,8 @@ def do_correction_data(science_data, dark_data, dark_output=None):
 
 def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
     """
+    Average 3D dark frames.
+
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
     This routine is not used for JWST/MIRI (see average_dark_frames_4d).
@@ -238,6 +241,8 @@ def average_dark_frames_3d(dark_data, ngroups, nframes, groupgap):
 
 def average_dark_frames_4d(dark_data, nints, ngroups, nframes, groupgap):
     """
+    Average 4D dark frames.
+
     Averages the individual frames of data in a dark reference
     file to match the group structure of a science data set.
     JWST/MIRI needs a separate routine because the darks are
@@ -409,9 +414,11 @@ def extrapolate_dark(dark_data, ngroups):
     def _extrapolate_int(arr, ngroups):
         """Extrapolate using rate derived from difference of last two groups."""
         rate_arr = arr[-1, :, :] - arr[-2, :, :]
-        new_groups = np.broadcast_to(
-            np.arange(1, ngroups + 1).reshape(-1, 1, 1),
-            (ngroups, *rate_arr.shape)) * rate_arr + arr[-1]
+        new_groups = (
+            np.broadcast_to(np.arange(1, ngroups + 1).reshape(-1, 1, 1), (ngroups, *rate_arr.shape))
+            * rate_arr
+            + arr[-1]
+        )
         return np.concatenate((arr, new_groups))
 
     if len(dark_data.data.shape) == 4:

@@ -14,7 +14,6 @@ from stcal.testing_helpers import MemoryThreshold
 
 
 def test_disk_appendable_array(tmp_path):
-
     slice_shape = (8, 7)
     dtype = "float32"
     tempdir = tmp_path / Path("tmptest")
@@ -55,7 +54,6 @@ def test_disk_appendable_array(tmp_path):
 
 
 def test_disk_appendable_array_bad_inputs(tmp_path):
-
     slice_shape = (8, 7)
     dtype = "float32"
     tempdir = tmp_path / Path("tmptest")
@@ -82,7 +80,6 @@ def test_disk_appendable_array_bad_inputs(tmp_path):
 
 
 def test_on_disk_median(tmp_path):
-
     library_length = 3
     frame_shape = (21, 20)
     dtype = "float32"
@@ -97,8 +94,7 @@ def test_on_disk_median(tmp_path):
     # which means we expect same number of sections as library length
     # in reality there is often one more section than that because
     # need integer number of rows per section, but math is exact in this case
-    expected_buffer_size = frame_shape[0] * frame_shape[1] * \
-        np.dtype(dtype).itemsize
+    expected_buffer_size = frame_shape[0] * frame_shape[1] * np.dtype(dtype).itemsize
     expected_section_nrows = frame_shape[0] // library_length
     assert median_computer.nsections == library_length
     assert median_computer.section_nrows == expected_section_nrows
@@ -106,10 +102,8 @@ def test_on_disk_median(tmp_path):
 
     # test temp file setup
     assert len(os.listdir(tempdir)) == 1
-    assert str(median_computer._temp_path)\
-        .startswith(str(tempdir))  # noqa: SLF001
-    assert len(os.listdir(median_computer._temp_path)) \
-        == library_length  # noqa: SLF001
+    assert str(median_computer._temp_path).startswith(str(tempdir))  # noqa: SLF001
+    assert len(os.listdir(median_computer._temp_path)) == library_length  # noqa: SLF001
     # check cwd and parent tempdir contain no files
     assert all(not Path.is_file(Path(f)) for f in os.listdir(tmp_path))
     assert all(not Path.is_file(Path(f)) for f in os.listdir(tempdir))
@@ -158,7 +152,6 @@ def test_computer():
 
 
 def test_on_disk_median_bad_inputs(tmp_path):
-
     library_length = 3
     frame_shape = (21, 20)
     dtype = "float32"
@@ -176,17 +169,13 @@ def test_on_disk_median_bad_inputs(tmp_path):
         _OnDiskMedian(shape, dtype="float32", tempdir="dne")
 
     # ensure unreasonable buffer size will get set to minimum reasonable buffer
-    min_buffer = np.dtype(dtype).itemsize*frame_shape[1]*library_length
-    median_computer = _OnDiskMedian(shape,
-                                   dtype=dtype,
-                                   tempdir=tempdir,
-                                   buffer_size=-1)
+    min_buffer = np.dtype(dtype).itemsize * frame_shape[1] * library_length
+    median_computer = _OnDiskMedian(shape, dtype=dtype, tempdir=tempdir, buffer_size=-1)
     assert median_computer.buffer_size == min_buffer
     median_computer.cleanup()
 
 
 def test_nanmedian3D():
-
     shp = (11, 50, 60)
     generator = np.random.default_rng(77)
     cube = generator.normal(size=shp)
@@ -211,16 +200,16 @@ def test_memory_computer(in_memory, tmp_path):
     in_memory=False case allocates the following memory:
     - one buffer size, which by default is the frame size
     - median array == one frame size
-    
+
     add a half-frame-size buffer to the expected memory usage in both cases
     """
     shp = (20, 500, 500)
-    cube_size = np.dtype("float32").itemsize * shp[0] * shp[1] * shp[2] #bytes
+    cube_size = np.dtype("float32").itemsize * shp[0] * shp[1] * shp[2]  # bytes
     frame_size = cube_size / shp[0]
 
     # calculate expected memory usage
     if in_memory:
-        expected_mem = cube_size + frame_size*1.5
+        expected_mem = cube_size + frame_size * 1.5
     else:
         expected_mem = frame_size * 2.5
 
