@@ -9,13 +9,11 @@ from drizzle.utils import calc_pixmap
 
 from stcal.outlier_detection.utils import (
     _abs_deriv,
-    calc_gwcs_pixmap,
     compute_weight_threshold,
     flag_crs,
     flag_resampled_crs,
     gwcs_blot,
     medfilt,
-    reproject,
 )
 from stcal.testing_helpers import MemoryThreshold
 
@@ -192,18 +190,21 @@ def test_calc_pixmap():
     np.testing.assert_equal(pixmap, expected)
 
 
-@pytest.mark.parametrize("shape,kern_size", [
-    ([7, 7], [3, 3]),
-    ([7, 7], [3, 1]),
-    ([7, 7], [1, 3]),
-    ([7, 5], [3, 3]),
-    ([5, 7], [3, 3]),
-    ([42, 42], [7, 7]),
-    ([42, 42], [7, 5]),
-    ([42, 42], [5, 7]),
-    ([42, 7, 5], [3, 3, 3]),
-    ([5, 7, 42], [5, 5, 5]),
-])
+@pytest.mark.parametrize(
+    "shape,kern_size",
+    [
+        ([7, 7], [3, 3]),
+        ([7, 7], [3, 1]),
+        ([7, 7], [1, 3]),
+        ([7, 5], [3, 3]),
+        ([5, 7], [3, 3]),
+        ([42, 42], [7, 7]),
+        ([42, 42], [7, 5]),
+        ([42, 42], [5, 7]),
+        ([42, 7, 5], [3, 3, 3]),
+        ([5, 7, 42], [5, 5, 5]),
+    ],
+)
 def test_medfilt_against_scipy(shape, kern_size):
     arr = np.arange(np.prod(shape), dtype="uint32").reshape(shape)
     result = medfilt(arr, kern_size)

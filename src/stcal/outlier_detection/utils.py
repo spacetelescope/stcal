@@ -3,15 +3,12 @@
 import logging
 import warnings
 
-import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
 from drizzle.utils import calc_pixmap
-from scipy import ndimage, interpolate
+from scipy import ndimage
 from skimage.util import view_as_windows
-
-from stcal.alignment.util import wcs_bbox_from_shape
 
 log = logging.getLogger(__name__)
 
