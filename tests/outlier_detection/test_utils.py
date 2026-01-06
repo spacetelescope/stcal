@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 import scipy.signal
 from astropy.modeling import models
+from drizzle.utils import calc_pixmap
 
 from stcal.outlier_detection.utils import (
     _abs_deriv,
@@ -12,8 +13,6 @@ from stcal.outlier_detection.utils import (
     flag_crs,
     flag_resampled_crs,
     gwcs_blot,
-    calc_gwcs_pixmap,
-    reproject,
     medfilt,
 )
 from stcal.testing_helpers import MemoryThreshold
@@ -169,7 +168,7 @@ def test_gwcs_blot_fillval(fillval):
     np.testing.assert_equal(blotted[:, median_shape[1]:], fillval)
 
 
-def test_calc_gwcs_pixmap():
+def test_calc_pixmap():
     # generate 2 wcses with different scales
     output_frame = gwcs.Frame2D(name="world")
     in_transform = models.Scale(1) & models.Scale(1)
@@ -177,23 +176,13 @@ def test_calc_gwcs_pixmap():
     in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
     out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
     in_shape = (3, 4)
-    pixmap = calc_gwcs_pixmap(in_wcs, out_wcs, in_shape)
+    # This test references the routine in drizzle.utils
+    pixmap = calc_pixmap(in_wcs, out_wcs, in_shape)
     # we expect given the 2x scale difference to have a pixmap
     # with pixel coordinates / 2
     # use mgrid to generate these coordinates (and reshuffle to match the pixmap)
     expected = np.swapaxes(np.mgrid[:4, :3] / 2., 0, 2)
     np.testing.assert_equal(pixmap, expected)
-
-
-def test_reproject():
-    # generate 2 wcses with different scales
-    output_frame = gwcs.Frame2D(name="world")
-    wcs1 = gwcs.WCS(models.Scale(1) & models.Scale(1), output_frame=output_frame)
-    wcs2 = gwcs.WCS(models.Scale(2) & models.Scale(2), output_frame=output_frame)
-    project = reproject(wcs1, wcs2)
-    pys, pxs = project(np.array([3]), np.array([1]))
-    np.testing.assert_equal(pys, 1.5)
-    np.testing.assert_equal(pxs, 0.5)
 
 
 @pytest.mark.parametrize("shape,kern_size", [

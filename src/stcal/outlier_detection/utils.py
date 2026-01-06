@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
+from drizzle.utils import calc_pixmap
 from scipy import ndimage, interpolate
 from skimage.util import view_as_windows
 import gwcs
@@ -22,8 +23,6 @@ __all__ = [
     "flag_crs",
     "flag_resampled_crs",
     "gwcs_blot",
-    "calc_gwcs_pixmap",
-    "reproject",
 ]
 
 
@@ -246,7 +245,8 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
         Datamodel containing header and WCS to define the 'blotted' image
     """
     # Compute the mapping between the input and output pixel coordinates
-    pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_shape)
+    pixmap = calc_pixmap(blot_wcs, median_wcs, shape=blot_shape)
+
     log.debug("Pixmap shape: {}".format(pixmap[:, :, 0].shape))
     log.debug("Sci shape: {}".format(blot_shape))
     log.info('Blotting {} <-- {}'.format(blot_shape, median_data.shape))
@@ -262,112 +262,3 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
           interp='linear', exptime=1.0, misval=fillval, sinscl=1.0)
 
     return outsci
-
-
-def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape, stepsize=1, order=1):
-    """
-    Return a pixel grid map from input frame to output frame.
-
-    Parameters
-    ----------
-    in_wcs : gwcs.wcs.WCS
-        Input/source wcs.
-
-    out_wcs : gwcs.wcs.WCS
-        Output/projected wcs.
-
-    in_shape : list of int
-        Input shape used to compute the input bounding box.
-
-    stepsize : int, optional
-        If stepsize>1, perform the full calculation on a sparser grid
-        and use interpolation to fill in the rest of the pixels.
-        Recommended if the underlying distortion correction is smooth.
-        Default 1.
-
-    order : int, optional
-        Order of the 2D spline to interpolate the sparse pixel mapping
-        if stepsize>1.  Should be either 1 (bilinear) or 3 (bicubic).
-        Default 1.
-
-    Returns
-    -------
-    pixmap : numpy.ndarray
-        Computed pixmap.
-    """
-    bb = wcs_bbox_from_shape(in_shape)
-    log.debug("Bounding box from data shape: {}".format(bb))
-
-    if not order in [1, 3]:
-        raise ValueError("Interpolation order should be either 1 or 3.")
-
-    if stepsize > 1:
-
-        # Make the 1D grids we want the results on, then make
-        # coarser versions with 10% of the points (minimum 10).
-
-        x = gwcs.wcstools.grid_from_bounding_box(bb[1])
-        y = gwcs.wcstools.grid_from_bounding_box(bb[0])
-
-        x_coarse = np.linspace(x[0], x[-1], max(len(x)//stepsize, 10))
-        y_coarse = np.linspace(y[0], y[-1], max(len(y)//stepsize, 10))
-
-        # Compute the full correction on the sparse grid
-
-        sparsegrid = np.meshgrid(y_coarse, x_coarse)
-
-        pixmap_coarse = reproject(in_wcs, out_wcs)(*sparsegrid)
-
-        # Finally, fill in the rest of the pixels using bilinear
-        # interpolation and return the result.
-
-        fx = interpolate.RectBivariateSpline(x_coarse, y_coarse,
-                                             pixmap_coarse[0], kx=order, ky=order)
-        fy = interpolate.RectBivariateSpline(x_coarse, y_coarse,
-                                             pixmap_coarse[1], kx=order, ky=order)
-
-        return np.dstack([fx(x, y), fy(x, y)])
-
-    else:
-        grid = gwcs.wcstools.grid_from_bounding_box(bb)
-        return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
-
-
-def reproject(wcs1, wcs2):
-    """
-    Given two WCSs return a function which takes pixel
-    coordinates in wcs1 and computes them in wcs2.
-
-    It performs the forward transformation of ``wcs1`` followed by the
-    inverse of ``wcs2``.
-
-    Parameters
-    ----------
-    wcs1, wcs2 : gwcs.wcs.WCS
-        WCS objects that have `pixel_to_world_values` and `world_to_pixel_values`
-        methods.
-
-    Returns
-    -------
-    _reproject :
-        Function to compute the transformations.  It takes x, y
-        positions in ``wcs1`` and returns x, y positions in ``wcs2``.
-    """
-
-    try:
-        forward_transform = wcs1.pixel_to_world_values
-        backward_transform = wcs2.world_to_pixel_values
-    except AttributeError as err:
-        raise TypeError("Input should be a WCS") from err
-
-    def _reproject(x, y):
-        sky = forward_transform(x, y)
-        flat_sky = []
-        for axis in sky:
-            flat_sky.append(axis.flatten())
-        det = backward_transform(*tuple(flat_sky))
-        det_reshaped = []
-        for axis in det:
-            det_reshaped.append(axis.reshape(x.shape))
-        return tuple(det_reshaped)
-    return _reproject
