@@ -5,8 +5,10 @@ import warnings
 
 import gwcs
 import numpy as np
+import warnings
 from astropy.stats import sigma_clip
 from drizzle.cdrizzle import tblot
+from drizzle.utils import calc_pixmap
 from scipy import ndimage
 from skimage.util import view_as_windows
 
@@ -298,11 +300,11 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     pixmap : numpy.ndarray
         Computed pixmap.
     """
-    bb = wcs_bbox_from_shape(in_shape)
-    log.debug(f"Bounding box from data shape: {bb}")
 
-    grid = gwcs.wcstools.grid_from_bounding_box(bb)
-    return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
+    warnings.warn("calc_gwcs_pixmap is deprecated in favor of "
+                             "drizzle.utils.calc_pixmap", DeprecationWarning)
+
+    return calc_pixmap(in_wcs, out_wcs, shape=in_shape)
 
 
 def reproject(wcs1, wcs2):
@@ -327,6 +329,11 @@ def reproject(wcs1, wcs2):
         Function to compute the transformations.  It takes x, y
         positions in ``wcs1`` and returns x, y positions in ``wcs2``.
     """
+
+    warnings.warn("reproject is deprecated. It was called by calc_gwcs_pixmap, "
+                  "which has been deprecated in favor of "
+                  "drizzle.utils.calc_pixmap", DeprecationWarning)
+
     try:
         forward_transform = wcs1.pixel_to_world_values
         backward_transform = wcs2.world_to_pixel_values

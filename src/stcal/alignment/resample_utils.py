@@ -3,8 +3,9 @@ import logging
 import numpy as np
 import shapely.geometry  # type: ignore[import-untyped]
 from gwcs.wcstools import grid_from_bounding_box
-
+from drizzle.utils import calc_pixmap as calc_pixmap_drizzle
 from stcal.alignment import util
+import warnings
 
 log = logging.getLogger(__name__)
 
@@ -28,19 +29,11 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         Reprojected pixel grid map. `pixmap[xin, yin]` returns `xout,
         yout` indices in the output image.
     """
-    if shape:
-        bb = util.wcs_bbox_from_shape(shape)
-        log.debug("Bounding box from data shape: %s", bb)
-    else:
-        bb = util.wcs_bbox_from_shape(in_wcs.pixel_shape)
-        log.debug("Bounding box from WCS: %s", bb)
 
-    # creates 2 grids, one with rows of all x values * len(y) rows,
-    # and the reverse for all y columns
-    grid = grid_from_bounding_box(bb)
-    transform_function = util.reproject(in_wcs, out_wcs)
-    return np.dstack(transform_function(grid[0], grid[1]))
+    warnings.warn("calc_pixmap is deprecated in favor of "
+                  "drizzle.utils.calc_pixmap", DeprecationWarning)
 
+    return calc_pixmap_drizzle(in_wcs, out_wcs, shape=shape)
 
 def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     """
