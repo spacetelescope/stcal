@@ -1,0 +1,1 @@
+Removed ``calc_gwcs_pixmap`` and ``reproject`` from ``outlier_detection.utils`` in favor of the same functionality from ``drizzle.calc_pixmap``.
