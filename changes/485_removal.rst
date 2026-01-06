@@ -1,0 +1,1 @@
+Deprecate ``reproject`` from both ``alignment.util`` and ``outlier_detection.utils``, deprecate ``calc_pixmap`` from ``alignment.util`` and ``calc_gwcs_pixmap`` from ``outlier_detection.utils`` in favor of ``drizzle.utils.calc_pixmap``
