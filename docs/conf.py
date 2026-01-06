@@ -71,7 +71,7 @@ html_sidebars = {"**": ["globaltoc.html", "relations.html", "searchbox.html"]}
 html_use_index = True
 
 # A list of ignored prefixes for module index sorting.
-modindex_common_prefix = ['stcal.']
+modindex_common_prefix = ["stcal."]
 
 # Enable nitpicky mode - which ensures that all references in the docs resolve.
 nitpicky = True
