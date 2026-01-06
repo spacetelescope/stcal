@@ -822,35 +822,34 @@ def find_faint_extended(indata, ingdq, pdq, readnoise_2d, jump_data, min_diffs_f
 
     all_ellipses = []
 
-    warnings.filterwarnings("ignore")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
 
-    read_noise_2 = readnoise_2d**2
-    if nints >= jump_data.minimum_sigclip_groups:
-        mean, median, stddev = stats.sigma_clipped_stats(first_diffs, sigma=5, axis=0)
-    else:
-        median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
-        sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / jump_data.nframes)
+        read_noise_2 = readnoise_2d**2
+        if nints >= jump_data.minimum_sigclip_groups:
+            mean, median, stddev = stats.sigma_clipped_stats(first_diffs, sigma=5, axis=0)
+        else:
+            median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
+            sigma = np.sqrt(np.abs(median_diffs) + read_noise_2 / jump_data.nframes)
 
-    for intg in range(nints):
-        if nints < jump_data.minimum_sigclip_groups:
-            # The difference from the median difference for each group
-            ratio = diff_meddiff_int(intg, median_diffs, sigma, first_diffs)
+        for intg in range(nints):
+            if nints < jump_data.minimum_sigclip_groups:
+                # The difference from the median difference for each group
+                ratio = diff_meddiff_int(intg, median_diffs, sigma, first_diffs)
 
-        #  The convolution kernel creation
-        ring_2D_kernel = Ring2DKernel(jump_data.extend_inner_radius, jump_data.extend_outer_radius)  # noqa: N806
-        first_good_group = find_first_good_group(gdq[intg, :, :, :], jump_data.fl_dnu)
-        for grp in range(first_good_group + 1, ngrps):
-            if nints >= jump_data.minimum_sigclip_groups:
-                ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
+            #  The convolution kernel creation
+            ring_2D_kernel = Ring2DKernel(jump_data.extend_inner_radius, jump_data.extend_outer_radius)  # noqa: N806
+            first_good_group = find_first_good_group(gdq[intg, :, :, :], jump_data.fl_dnu)
+            for grp in range(first_good_group + 1, ngrps):
+                if nints >= jump_data.minimum_sigclip_groups:
+                    ratio = diff_meddiff_grp(intg, grp, median, stddev, first_diffs)
 
-            ellipses = get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
+                ellipses = get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel)
 
-            if len(ellipses) > 0:
-                # add all the showers for this integration to the list
-                all_ellipses.append([intg, grp, ellipses])
+                if len(ellipses) > 0:
+                    # add all the showers for this integration to the list
+                    all_ellipses.append([intg, grp, ellipses])
 
-    # Reset the warnings filter to its original state
-    warnings.resetwarnings()
     total_showers = 0
 
     if all_ellipses:

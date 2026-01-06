@@ -777,18 +777,17 @@ def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, 
         Overflow/underflow prevention scale.
 
     """
-    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-    alpha_phnoise = count_rate_guess / gain * covar.alpha_phnoise[:, np.newaxis]
-    alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
-    alpha = alpha_phnoise + alpha_readnoise
+        alpha_phnoise = count_rate_guess / gain * covar.alpha_phnoise[:, np.newaxis]
+        alpha_readnoise = rnoise**2 * covar.alpha_readnoise[:, np.newaxis]
+        alpha = alpha_phnoise + alpha_readnoise
 
-    beta_phnoise = count_rate_guess / gain * covar.beta_phnoise[:, np.newaxis]
-    beta_readnoise = rnoise**2 * covar.beta_readnoise[:, np.newaxis]
-    beta = beta_phnoise + beta_readnoise
-
-    warnings.resetwarnings()
+        beta_phnoise = count_rate_guess / gain * covar.beta_phnoise[:, np.newaxis]
+        beta_readnoise = rnoise**2 * covar.beta_readnoise[:, np.newaxis]
+        beta = beta_phnoise + beta_readnoise
 
     ndiffs, npix = diffs.shape
 
@@ -809,25 +808,24 @@ def compute_alphas_betas(count_rate_guess, gain, rnoise, covar, rescale, diffs, 
         theta[1] = alpha[0]
 
         scale = theta[0] * 1
-        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+            warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
 
-        for i in range(2, ndiffs + 1):
-            theta[i] = alpha[i - 1] / scale * theta[i - 1] - beta[i - 2] ** 2 / scale**2 * theta[i - 2]
+            for i in range(2, ndiffs + 1):
+                theta[i] = alpha[i - 1] / scale * theta[i - 1] - beta[i - 2] ** 2 / scale**2 * theta[i - 2]
 
-            # Scaling every ten steps in safe for alpha up to 1e20
-            # or so and incurs a negligible computational cost for
-            # the fractional power.
+                # Scaling every ten steps in safe for alpha up to 1e20
+                # or so and incurs a negligible computational cost for
+                # the fractional power.
 
-            if i % int(dn_scale) == 0 or i == ndiffs:
-                f = theta[i] ** (1 / i)
-                scale *= f
-                tmp = theta[i] / f
-                theta[i - 1] /= tmp
-                theta[i - 2] /= tmp / f
-                theta[i] = 1
-
-        warnings.resetwarnings()
+                if i % int(dn_scale) == 0 or i == ndiffs:
+                    f = theta[i] ** (1 / i)
+                    scale *= f
+                    tmp = theta[i] / f
+                    theta[i - 1] /= tmp
+                    theta[i - 2] /= tmp / f
+                    theta[i] = 1
     else:
         scale = 1
 
@@ -1178,22 +1176,21 @@ def get_ramp_result(
     # in the count rate, and the weights used to combine the
     # groups.
 
-    warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
-    invC = 1 / C  # noqa: N806
-    result.countrate = B * invC
-    result.chisq = (A - B**2 / C) / scale
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*invalid value.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*divide by zero.*", RuntimeWarning)
+        invC = 1 / C  # noqa: N806
+        result.countrate = B * invC
+        result.chisq = (A - B**2 / C) / scale
 
-    result.uncert = np.sqrt(scale / C)
-    result.weights = dC / C
+        result.uncert = np.sqrt(scale / C)
+        result.weights = dC / C
 
-    result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
-    result.var_poisson += 2 * np.sum(result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
+        result.var_poisson = np.sum(result.weights**2 * alpha_phnoise, axis=0)
+        result.var_poisson += 2 * np.sum(result.weights[1:] * result.weights[:-1] * beta_phnoise, axis=0)
 
-    result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
-    result.var_rnoise += 2 * np.sum(result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0)
-
-    warnings.resetwarnings()
+        result.var_rnoise = np.sum(result.weights**2 * alpha_readnoise, axis=0)
+        result.var_rnoise += 2 * np.sum(result.weights[1:] * result.weights[:-1] * beta_readnoise, axis=0)
 
     return result
 
