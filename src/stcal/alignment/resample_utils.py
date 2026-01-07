@@ -29,7 +29,11 @@ def calc_pixmap(in_wcs, out_wcs, shape=None):
         Reprojected pixel grid map. `pixmap[xin, yin]` returns `xout,
         yout` indices in the output image.
     """
-    warnings.warn("calc_pixmap is deprecated in favor of drizzle.utils.calc_pixmap", DeprecationWarning)
+    warnings.warn(
+        "calc_pixmap is deprecated in favor of drizzle.utils.calc_pixmap",
+        DeprecationWarning,
+        stacklevel=2
+    )
 
     return calc_pixmap_drizzle(in_wcs, out_wcs, shape=shape)
 
