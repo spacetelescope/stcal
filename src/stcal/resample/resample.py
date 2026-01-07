@@ -774,18 +774,18 @@ class Resample:
         xmin, xmax, ymin, ymax = resample_range(data.shape, wcs.bounding_box)
 
         add_image_kwargs = {
-            'exptime': model["exposure_time"],
-            'pixmap': pixmap,
-            'pixel_scale_ratio': self.pixel_scale_ratio,
-            'iscale': iscale,
-            'weight_map': weight,
-            'wht_scale': 1.0,
-            'pixfrac': self.pixfrac,
-            'in_units': 'cps',
-            'xmin': xmin,
-            'xmax': xmax,
-            'ymin': ymin,
-            'ymax': ymax,
+            "exptime": model["exposure_time"],
+            "pixmap": pixmap,
+            "pixel_scale_ratio": self.pixel_scale_ratio,
+            "iscale": iscale,
+            "weight_map": weight,
+            "wht_scale": 1.0,
+            "pixfrac": self.pixfrac,
+            "in_units": "cps",
+            "xmin": xmin,
+            "xmax": xmax,
+            "ymin": ymin,
+            "ymax": ymax,
         }
 
         self._driz.add_image(data, **add_image_kwargs)
@@ -819,7 +819,7 @@ class Resample:
                 xmin=xmin,
                 xmax=xmax,
                 ymin=ymin,
-                ymax=ymax
+                ymax=ymax,
             )
 
         # update output model (variance is too expensive so it's omitted)
@@ -832,9 +832,8 @@ class Resample:
             # use resampled error
             self._output_model["err"] = self._driz_error.out_img
 
-    def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale,
-                       weight_map, xmin, xmax, ymin, ymax):
-        """ A hook method called by the :py:meth:`~Resample.add_model` method.
+    def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax):
+        """A hook method called by the :py:meth:`~Resample.add_model` method.
         It allows subclasses perform additional processing at the time the
         ``model["data"]`` array is resampled.
 
@@ -997,9 +996,10 @@ class Resample:
                 "wt": np.zeros(shape, dtype=var_dtype),
             }
 
-    def resample_variance_arrays(self, model, pixmap, pixel_scale_ratio,
-                                 iscale, weight_map, xmin, xmax, ymin, ymax):
-        """ Resample and co-add variance arrays using appropriate weights
+    def resample_variance_arrays(
+        self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax
+    ):
+        """Resample and co-add variance arrays using appropriate weights
         and update total weights.
 
         Parameters
@@ -1063,14 +1063,14 @@ class Resample:
         # Do the read noise variance first, so it can be
         # used for weights if needed
         pars = {
-            'pixmap': pixmap,
-            'pixel_scale_ratio': pixel_scale_ratio,
-            'iscale': iscale,
-            'weight_map': weight_map,
-            'xmin': xmin,
-            'xmax': xmax,
-            'ymin': ymin,
-            'ymax': ymax,
+            "pixmap": pixmap,
+            "pixel_scale_ratio": pixel_scale_ratio,
+            "iscale": iscale,
+            "weight_map": weight_map,
+            "xmin": xmin,
+            "xmax": xmax,
+            "ymin": ymin,
+            "ymax": ymax,
         }
 
         for varname in self.variance_array_names:
@@ -1152,10 +1152,19 @@ class Resample:
             del self._variance_info
             self._finalized = True
 
-    def _resample_one_variance_array(self, name, model, pixel_scale_ratio,
-                                     iscale, weight_map, pixmap,
-                                     xmin=None, xmax=None, ymin=None,
-                                     ymax=None):
+    def _resample_one_variance_array(
+        self,
+        name,
+        model,
+        pixel_scale_ratio,
+        iscale,
+        weight_map,
+        pixmap,
+        xmin=None,
+        xmax=None,
+        ymin=None,
+        ymax=None,
+    ):
         """Resample one variance image from an input model.
 
         The error image is passed to drizzle instead of the variance in order
