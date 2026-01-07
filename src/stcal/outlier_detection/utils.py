@@ -249,7 +249,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
         Datamodel containing header and WCS to define the 'blotted' image
     """
     # Compute the mapping between the input and output pixel coordinates
-    pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_shape)
+    pixmap = calc_pixmap(blot_wcs, median_wcs, blot_shape)
     log.debug(f"Pixmap shape: {pixmap[:, :, 0].shape}")
     log.debug(f"Sci shape: {blot_shape}")
     log.info(f"Blotting {blot_shape} <-- {median_data.shape}")
