@@ -661,7 +661,7 @@ def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
         "which has been deprecated in favor of "
         "drizzle.utils.calc_pixmap",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
 
     def _get_forward_transform_func(wcs1):

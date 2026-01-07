@@ -299,7 +299,7 @@ def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
     warnings.warn(
         "calc_gwcs_pixmap is deprecated in favor of drizzle.utils.calc_pixmap",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
 
     return calc_pixmap(in_wcs, out_wcs, shape=in_shape)
@@ -332,7 +332,7 @@ def reproject(wcs1, wcs2):
         "which has been deprecated in favor of "
         "drizzle.utils.calc_pixmap",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
 
     try:
