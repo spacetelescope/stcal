@@ -8,14 +8,13 @@ import warnings
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
 
     import astropy
 
 import gwcs
 import numpy as np
 from astropy import coordinates as coord
-from astropy import wcs as fitswcs
 from astropy.modeling import models as astmodels
 from gwcs import FITSImagingWCSTransform
 

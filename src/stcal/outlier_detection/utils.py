@@ -3,7 +3,6 @@
 import logging
 import warnings
 
-import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.utils.decorators import deprecated_renamed_argument
@@ -12,7 +11,6 @@ from scipy import ndimage
 from skimage.util import view_as_windows
 
 from stcal.alignment.resample_utils import calc_pixmap
-
 
 log = logging.getLogger(__name__)
 
