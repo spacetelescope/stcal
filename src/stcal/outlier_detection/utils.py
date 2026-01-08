@@ -11,7 +11,8 @@ from drizzle.resample import blot_image
 from scipy import ndimage
 from skimage.util import view_as_windows
 
-from stcal.alignment.util import wcs_bbox_from_shape
+from stcal.alignment.resample_utils import calc_pixmap
+
 
 log = logging.getLogger(__name__)
 
@@ -22,8 +23,6 @@ __all__ = [
     "flag_crs",
     "flag_resampled_crs",
     "gwcs_blot",
-    "calc_gwcs_pixmap",
-    "reproject",
 ]
 
 
@@ -250,7 +249,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fil
         Datamodel containing header and WCS to define the 'blotted' image
     """
     # Compute the mapping between the input and output pixel coordinates
-    pixmap = calc_gwcs_pixmap(blot_wcs, median_wcs, blot_shape)
+    pixmap = calc_pixmap(blot_wcs, median_wcs, blot_shape)
     log.debug(f"Pixmap shape: {pixmap[:, :, 0].shape}")
     log.debug(f"Sci shape: {blot_shape}")
     log.info(f"Blotting {blot_shape} <-- {median_data.shape}")
@@ -274,72 +273,3 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fil
     )
 
     return outsci
-
-
-def calc_gwcs_pixmap(in_wcs, out_wcs, in_shape):
-    """
-    Return a pixel grid map from input frame to output frame.
-
-    Parameters
-    ----------
-    in_wcs : gwcs.wcs.WCS
-        Input/source wcs.
-
-    out_wcs : gwcs.wcs.WCS
-        Output/projected wcs.
-
-    in_shape : list of int
-        Input shape used to compute the input bounding box.
-
-    Returns
-    -------
-    pixmap : numpy.ndarray
-        Computed pixmap.
-    """
-    bb = wcs_bbox_from_shape(in_shape)
-    log.debug(f"Bounding box from data shape: {bb}")
-
-    grid = gwcs.wcstools.grid_from_bounding_box(bb)
-    return np.dstack(reproject(in_wcs, out_wcs)(grid[0], grid[1]))
-
-
-def reproject(wcs1, wcs2):
-    """
-    Compute reprojection from wcs1 to wcs2.
-
-    Given two WCSs return a function which takes pixel
-    coordinates in wcs1 and computes them in wcs2.
-
-    It performs the forward transformation of ``wcs1`` followed by the
-    inverse of ``wcs2``.
-
-    Parameters
-    ----------
-    wcs1, wcs2 : gwcs.wcs.WCS
-        WCS objects that have `pixel_to_world_values` and `world_to_pixel_values`
-        methods.
-
-    Returns
-    -------
-    _reproject :
-        Function to compute the transformations.  It takes x, y
-        positions in ``wcs1`` and returns x, y positions in ``wcs2``.
-    """
-    try:
-        forward_transform = wcs1.pixel_to_world_values
-        backward_transform = wcs2.world_to_pixel_values
-    except AttributeError as err:
-        raise TypeError("Input should be a WCS") from err
-
-    def _reproject(x, y):
-        sky = forward_transform(x, y)
-        flat_sky = []
-        for axis in sky:
-            flat_sky.append(axis.flatten())
-        det = backward_transform(*tuple(flat_sky))
-        det_reshaped = []
-        for axis in det:
-            det_reshaped.append(axis.reshape(x.shape))
-        return tuple(det_reshaped)
-
-    return _reproject

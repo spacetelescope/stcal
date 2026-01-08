@@ -16,7 +16,6 @@ from stcal.alignment.util import (
     compute_s_region_imaging,
     compute_s_region_keyword,
     compute_scale,
-    reproject,
     sregion_to_footprint,
     wcs_bbox_from_shape,
 )
@@ -251,21 +250,6 @@ def get_fake_wcs():
         )
     )
     return fake_wcs1, fake_wcs2
-
-
-@pytest.mark.parametrize(
-    ("x_inp", "y_inp", "x_expected", "y_expected"),
-    [
-        (1000, 2000, np.array(2000), np.array(4000)),  # string input test
-        ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
-    ],
-)
-def test_reproject(x_inp, y_inp, x_expected, y_expected):
-    wcs1, wcs2 = get_fake_wcs()
-    f = reproject(wcs1, wcs2)
-    x_out, y_out = f(x_inp, y_inp)
-    assert np.allclose(x_out, x_expected, rtol=1e-05)
-    assert np.allclose(y_out, y_expected, rtol=1e-05)
 
 
 def test_wcs_bbox_from_shape_2d():
