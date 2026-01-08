@@ -9,6 +9,10 @@ from drizzle.resample import Drizzle
 from drizzle.utils import calc_pixmap
 from numpy.typing import DTypeLike
 
+from stcal.alignment.resample_utils import (
+    calc_pixmap
+)
+
 from stcal.resample.utils import (
     build_driz_weight,
     compute_mean_pixel_area,
