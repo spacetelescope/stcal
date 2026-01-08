@@ -171,6 +171,7 @@ def test_gwcs_blot_fillval(fillval):
     np.testing.assert_equal(blotted[median_shape[0] :, :], fillval)
     np.testing.assert_equal(blotted[:, median_shape[1] :], fillval)
 
+
 @pytest.mark.parametrize(
     "shape,kern_size",
     [
