@@ -269,7 +269,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
         pixmap=pixmap,
         out_img=outsci,
         fillval=fillval,
-        iscale=1.0,
+        iscale=1.0 / (pix_ratio * pix_ratio),
         interp="linear",
         sinscl=1.0,
     )
