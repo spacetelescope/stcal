@@ -11,7 +11,7 @@ from stcal.alignment import util
 log = logging.getLogger(__name__)
 
 def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to",
-                stepsize=10, order=3):
+                stepsize=1, order=1):
     """
     Calculate a discretized on a grid mapping between the pixels of two images
     using provided WCS of the original ("from") image and the destination ("to")
