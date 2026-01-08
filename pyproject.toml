@@ -246,15 +246,7 @@ directory = "breaking"
 name = "Breaking Changes"
 showcontent = true
 
-[[tool.towncrier.type]]
-directory = "docs"
-name = "Documentation"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "misc"
-name = "Miscellaneous"
-showcontent = true
+# step changes
 
 [[tool.towncrier.type]]
 directory = "alignment"
@@ -304,4 +296,16 @@ showcontent = true
 [[tool.towncrier.type]]
 directory = "tweakreg"
 name = "tweakreg step"
+showcontent = true
+
+# other changes
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Documentation Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other Changes"
 showcontent = true
