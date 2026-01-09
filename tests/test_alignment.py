@@ -279,6 +279,22 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
     assert pixmap.shape == pixmap_expected_shape
 
 
+def test_calc_pixmap():
+    # generate 2 wcses with different scales
+    output_frame = gwcs.Frame2D(name="world")
+    in_transform = models.Scale(1) & models.Scale(1)
+    out_transform = models.Scale(2) & models.Scale(2)
+    in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
+    out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
+    in_shape = (3, 4)
+    pixmap = resample_utils.calc_pixmap(in_wcs, out_wcs, in_shape)
+    # we expect given the 2x scale difference to have a pixmap
+    # with pixel coordinates / 2
+    # use mgrid to generate these coordinates (and reshuffle to match the pixmap)
+    expected = np.swapaxes(np.mgrid[:4, :3] / 2.0, 0, 2)
+    np.testing.assert_equal(pixmap, expected)
+
+
 @pytest.mark.parametrize(
     ("model", "footprint", "expected_s_region", "expected_log_info"),
     [
