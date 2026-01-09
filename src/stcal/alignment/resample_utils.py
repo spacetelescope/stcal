@@ -1,17 +1,16 @@
 import logging
-
 import math
+
 import numpy as np
-from scipy import interpolate
 import shapely.geometry  # type: ignore[import-untyped]
-from gwcs.wcstools import grid_from_bounding_box
+from scipy import interpolate
 
 from stcal.alignment import util
 
 log = logging.getLogger(__name__)
 
-def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to",
-                stepsize=1, order=1):
+
+def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to", stepsize=1, order=1):
     """
     Calculate a discretized on a grid mapping between the pixels of two images
     using provided WCS of the original ("from") image and the destination ("to")
@@ -130,8 +129,7 @@ def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to",
             y, x = np.indices(shape, dtype=np.float64)
             x, y = wcs_to.world_to_pixel_values(*wcs_from.pixel_to_world_values(x, y))
         else:
-
-            if not order in [1, 3]:
+            if order not in [1, 3]:
                 raise ValueError("Interpolation order should be either 1 or 3.")
 
             y_in, x_in = np.arange(shape[0]), np.arange(shape[1])
@@ -149,14 +147,11 @@ def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to",
             sparsegrid = np.meshgrid(x_coarse, y_coarse)
 
             pixmap_coarse = wcs_to.world_to_pixel_values(
-                *wcs_from.pixel_to_world_values(sparsegrid[0], sparsegrid[1]))
+                *wcs_from.pixel_to_world_values(sparsegrid[0], sparsegrid[1])
+            )
 
-            fx = interpolate.RectBivariateSpline(x_coarse, y_coarse,
-                                                 pixmap_coarse[0],
-                                                 kx=order, ky=order)
-            fy = interpolate.RectBivariateSpline(x_coarse, y_coarse,
-                                                 pixmap_coarse[1],
-                                                 kx=order, ky=order)
+            fx = interpolate.RectBivariateSpline(x_coarse, y_coarse, pixmap_coarse[0], kx=order, ky=order)
+            fy = interpolate.RectBivariateSpline(x_coarse, y_coarse, pixmap_coarse[1], kx=order, ky=order)
 
             # Evaluate the spline on the full grid
 
