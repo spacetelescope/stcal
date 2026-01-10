@@ -796,11 +796,7 @@ class Resample:
         log.debug(f"Using intensity scale iscale={iscale}")
 
         pixmap = calc_pixmap(
-            wcs,
-            self.output_model["wcs"],
-            data.shape,
-            stepsize=self.stepsize,
-            order=self.order
+            wcs, self.output_model["wcs"], data.shape, stepsize=self.stepsize, order=self.order
         )
 
         log.info("Resampling science and variance data")
