@@ -1,4 +1,0 @@
-stcal API
-==========
-
-.. automodapi:: stcal

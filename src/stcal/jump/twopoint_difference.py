@@ -238,10 +238,10 @@ def iterative_jump(gdq, ndiffs, first_diffs, read_noise_2, twopt_p):
     # additional CRs. Repeat until no more CRs are found.
 
     for i in range(ndiffs):  # Can't have more than ndiffs CRs per pixel!  # noqa: B007
-        warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-        # Newly flagged jump locations
-        new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]
-        warnings.resetwarnings()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+            # Newly flagged jump locations
+            new_cr = (ratio == np.nanmax(ratio, axis=(0, 1))) & cr_pix[:, np.newaxis]
 
         # No new jumps: we are done.
         if np.sum(new_cr) == 0:
@@ -314,9 +314,9 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
 
     # create a 2d array containing the value of the largest 'ratio'
     # for each pixel and each integration.
-    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-    max_ratio = np.nanmax(ratio, axis=1)
-    warnings.resetwarnings()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+        max_ratio = np.nanmax(ratio, axis=1)
     # now see if the largest ratio of all groups for each pixel
     # exceeds the threshold. There are different threshold for 4+, 3,
     # and 2 usable groups
@@ -403,34 +403,33 @@ def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finit
         f" Jump Step using sigma clip {str(total_groups)} greater than "
         f"{str(twopt_p.minimum_sigclip_groups)}, rejection threshold {str(twopt_p.normal_rej_thresh)}"
     )
-    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
-    warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*Degrees of freedom <= 0.*", RuntimeWarning)
+        warnings.filterwarnings("ignore", ".*Input data contains invalid values*", AstropyUserWarning)
 
-    axis = 0 if twopt_p.only_use_ints else (0, 1)
-    clipped_diffs, allow, ahigh = stats.sigma_clip(
-        first_diffs, sigma=twopt_p.normal_rej_thresh, axis=axis, masked=True, return_bounds=True
-    )
+        axis = 0 if twopt_p.only_use_ints else (0, 1)
+        clipped_diffs, allow, ahigh = stats.sigma_clip(
+            first_diffs, sigma=twopt_p.normal_rej_thresh, axis=axis, masked=True, return_bounds=True
+        )
 
-    # get the standard deviation from the bounds of sigma clipping
-    jump_candidates = clipped_diffs.mask
-    sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
-    jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
-    del clipped_diffs
-    gdq[:, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
+        # get the standard deviation from the bounds of sigma clipping
+        jump_candidates = clipped_diffs.mask
+        sat_or_dnu_not_set = gdq[:, 1:] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
+        jump_mask = jump_candidates & first_diffs_finite & sat_or_dnu_not_set
+        del clipped_diffs
+        gdq[:, 1:] |= jump_mask * np.uint8(twopt_p.fl_jump)
 
-    # if grp is all jump set to do not use
-    for integ in range(nints):
-        for grp in range(ngroups):
-            if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
-                # The line below matches the comment above, but not the
-                # old logic.  Leaving it for now.
-                # gdq[integ, grp] |= twopt_p.fl_dnu
-                jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
-                gdq[integ, grp][jump_only] = 0
-
-    warnings.resetwarnings()
+        # if grp is all jump set to do not use
+        for integ in range(nints):
+            for grp in range(ngroups):
+                if np.all(gdq[integ, grp] & (twopt_p.fl_jump | twopt_p.fl_dnu) != 0):
+                    # The line below matches the comment above, but not the
+                    # old logic.  Leaving it for now.
+                    # gdq[integ, grp] |= twopt_p.fl_dnu
+                    jump_only = gdq[integ, grp, :, :] == twopt_p.fl_jump
+                    gdq[integ, grp][jump_only] = 0
     return gdq
 
 
@@ -710,21 +709,20 @@ def calc_med_first_diffs(in_first_diffs):
     twogrps = num_usable_diffs == 2
     lessthantwogrps = num_usable_diffs < 2
 
-    warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
 
-    # Four or more usable diffs: mask the largest difference.
-    maxval = np.nanmax(first_diffs, axis=(0, 1))
-    first_diffs[fourgrps & (first_diffs == maxval)] = np.nan
+        # Four or more usable diffs: mask the largest difference.
+        maxval = np.nanmax(first_diffs, axis=(0, 1))
+        first_diffs[fourgrps & (first_diffs == maxval)] = np.nan
 
-    # Three or more usable diffs: take the median
-    median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
+        # Three or more usable diffs: take the median
+        median_diffs = np.nanmedian(first_diffs, axis=(0, 1))
 
-    # Two usable diffs: take the minimum
-    median_diffs[twogrps] = np.nanmin(first_diffs, axis=(0, 1))[twogrps]
+        # Two usable diffs: take the minimum
+        median_diffs[twogrps] = np.nanmin(first_diffs, axis=(0, 1))[twogrps]
 
-    # Fewer than two usable diffs: can't do anything.
-    median_diffs[lessthantwogrps] = np.nan
-
-    warnings.resetwarnings()
+        # Fewer than two usable diffs: can't do anything.
+        median_diffs[lessthantwogrps] = np.nan
 
     return median_diffs

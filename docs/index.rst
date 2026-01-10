@@ -1,18 +1,22 @@
+=================================
 Welcome to stcal's documentation!
 =================================
 
+Package Documentation
+=====================
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-API
-===
+   stcal/package_index.rst
+
+Change Log
+==========
 
 .. toctree::
    :maxdepth: 1
 
-   api.rst
-
+   stcal/changes.rst
 
 Indices and tables
 ==================
@@ -20,13 +24,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-=====================
-Package Documentation
-=====================
-
-.. toctree::
-   :maxdepth: 1
-
-   stcal/package_index.rst
-   stcal/changes.rst
