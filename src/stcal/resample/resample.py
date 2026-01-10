@@ -6,7 +6,6 @@ from collections import defaultdict
 
 import numpy as np
 from drizzle.resample import Drizzle
-from drizzle.utils import calc_pixmap
 from numpy.typing import DTypeLike
 
 from stcal.alignment.resample_utils import calc_pixmap
