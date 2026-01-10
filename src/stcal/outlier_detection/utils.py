@@ -217,7 +217,16 @@ def flag_resampled_crs(
 
 
 @deprecated_renamed_argument("pix_ratio", None, since="1.16.1", warning_type=DeprecationWarning)
-def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fillval=0.0):  # noqa: ARG001
+def gwcs_blot(
+        median_data,
+        median_wcs,
+        blot_shape,
+        blot_wcs,
+        pix_ratio=None,  # noqa: ARG001
+        fillval=0.0,
+        stepsize=1,
+        order=1,
+):
     """
     Resample the median data to recreate an input image based on the blot wcs.
 
@@ -238,6 +247,22 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fil
     fillval : float, optional
         Fill value for missing data.
 
+    stepsize : int, optional
+        If ``stepsize>1``, perform the full WCS calculation on a sparser
+        grid and use interpolation to fill in the rest of the pixels.  This
+        option speeds up pixel map computation by reducing the number of WCS
+        calls, though at the cost of reduced pixel map accuracy.  The loss
+        of accuracy is typically negligible if the underlying distortion
+        correction is smooth, but if the distortion is non-smooth,
+        ``stepsize>1`` is not recommended.  Large ``stepsize`` values are
+        automatically reduced to no more than 1/10 of image size.
+        Passed to alignment.resample_utils.calc_pixmap, default 1.
+
+    order : int, optional
+        Order of the 2D spline to interpolate the sparse pixel mapping
+        if stepsize>1.  Supported values are: 1 (bilinear) or 3 (bicubic).
+        This Parameter is ignored when ``stepsize <= 1``.  Default 1.
+
     Returns
     -------
     blotted : numpy.ndarray
@@ -247,7 +272,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fil
         Datamodel containing header and WCS to define the 'blotted' image
     """
     # Compute the mapping between the input and output pixel coordinates
-    pixmap = calc_pixmap(blot_wcs, median_wcs, blot_shape)
+    pixmap = calc_pixmap(blot_wcs, median_wcs, blot_shape, stepsize=stepsize, order=order)
     log.debug(f"Pixmap shape: {pixmap[:, :, 0].shape}")
     log.debug(f"Sci shape: {blot_shape}")
     log.info(f"Blotting {blot_shape} <-- {median_data.shape}")
