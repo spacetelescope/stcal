@@ -216,14 +216,14 @@ def flag_resampled_crs(
 
 
 def gwcs_blot(
-        median_data,
-        median_wcs,
-        blot_shape,
-        blot_wcs,
-        pix_ratio,
-        fillval=0.0,
-        stepsize=1,
-        order=1,
+    median_data,
+    median_wcs,
+    blot_shape,
+    blot_wcs,
+    pix_ratio,
+    fillval=0.0,
+    stepsize=1,
+    order=1,
 ):
     """
     Resample the median data to recreate an input image based on the blot wcs.
