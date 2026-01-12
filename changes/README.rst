@@ -22,7 +22,7 @@ News fragment change types
 - ``<PR#>.breaking.rst``: Also add this fragment if your change breaks existing functionality
 
 Step Changes
-^^^^^^^^^^^^
+""""""""""""
 
 - ``<PR#>.alignment.rst``
 - ``<PR#>.dark_current.rst``
@@ -36,7 +36,7 @@ Step Changes
 - ``<PR#>.tweakreg.rst``
 
 Other Changes
-^^^^^^^^^^^^^
+"""""""""""""
 
 - ``<PR#>.docs.rst``: Documentation change
 - ``<PR#>.other.rst``: Infrastructure or miscellaneous changes
