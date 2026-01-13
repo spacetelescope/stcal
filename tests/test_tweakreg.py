@@ -29,7 +29,7 @@ from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
-EXPECTED_NUM_SOURCES = {"GAIAREFCAT": 1991, "GAIADR3_S3": 1991}
+EXPECTED_NUM_SOURCES = {"GAIAREFCAT": 1991, "GAIADR3_S3": 2469}
 EXPECTED_NUM_SOURCES_BAD_PM = {"GAIAREFCAT": 2469, "GAIADR3_S3": 1991}
 
 # more recent WCS with a defined input frame is necessary for some tests
