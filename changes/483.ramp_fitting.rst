@@ -1,0 +1,1 @@
+Replace ``warnings.resetwarnings`` with ``warnings.catch_warnings`` to avoid global changes to warning filters.

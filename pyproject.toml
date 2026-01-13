@@ -241,14 +241,71 @@ ignore = [".gitkeep"]
 wrap = true
 issue_format = "`#{issue} <https://github.com/spacetelescope/stcal/issues/{issue}>`_"
 
-[tool.towncrier.fragment.apichange]
-name = "Changes to API"
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
 
-[tool.towncrier.fragment.bugfix]
-name = "Bug Fixes"
+# step changes
 
-[tool.towncrier.fragment.general]
-name = "General"
+[[tool.towncrier.type]]
+directory = "alignment"
+name = "alignment step"
+showcontent = true
 
-[tool.towncrier.fragment.removal]
-name = "Removal"
+[[tool.towncrier.type]]
+directory = "dark_current"
+name = "dark_current step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "jump"
+name = "jump step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "linearity"
+name = "linearity step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "outlier_detection"
+name = "outlier_detection step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "ramp_fitting"
+name = "ramp_fitting step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "resample"
+name = "resample step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "saturation"
+name = "saturation step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "skymatch"
+name = "skymatch step"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "tweakreg"
+name = "tweakreg step"
+showcontent = true
+
+# other changes
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Documentation Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "other"
+name = "Other Changes"
+showcontent = true
