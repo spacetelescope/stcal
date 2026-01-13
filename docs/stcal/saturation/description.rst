@@ -1,11 +1,10 @@
 Description
 ===========
 
-:Alias: saturation
-
 Saturation Checking
 -------------------
-The ``flag_saturated_pixels`` routine flags pixels at or below the A/D floor or above the
+The :func:`~stcal.saturation.flag_saturated_pixels` routine flags pixels
+at or below the A/D floor or above the
 saturation threshold.  Pixel values are flagged as saturated if the pixel value
 is larger than the defined saturation threshold.  Pixel values are flagged as
 below the A/D floor if they have a value of zero DN or less.
@@ -57,7 +56,7 @@ charge) into neighboring pixels. This results in non-linearities in the accumula
 signal ramp in the neighboring pixels and hence the ramp data following the onset
 of saturation is not usable.
 
-The ``flag_saturated_pixels`` routine accounts for charge migration by flagging - as saturated -
+The :func:`~stcal.saturation.flag_saturated_pixels` routine accounts for charge migration by flagging - as saturated -
 all pixels neighboring a pixel that goes above the saturation threshold. This is
 accomplished by first flagging all pixels that cross their saturation thresholds
 and then making a second pass through the data to flag neighbors within a specified
