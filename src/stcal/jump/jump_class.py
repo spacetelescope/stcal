@@ -49,10 +49,9 @@ class JumpData:
             # to trivial values if a read pattern is not found.
 
             if (
-                    hasattr(jump_model.meta.exposure, "read_pattern") and
-                    jump_model.meta.exposure.read_pattern is not None
-               ):
-
+                hasattr(jump_model.meta.exposure, "read_pattern")
+                and jump_model.meta.exposure.read_pattern is not None
+            ):
                 readpattern = jump_model.meta.exposure.read_pattern
                 t_group = np.array([np.mean(times) for times in readpattern])
                 self.dt_group = np.diff(t_group)
