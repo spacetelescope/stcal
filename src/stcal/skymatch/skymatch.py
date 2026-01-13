@@ -16,9 +16,6 @@ from .skyimage import SkyGroup, SkyImage
 __all__ = ["skymatch"]
 
 
-# DEBUG
-__local_debug__ = True
-
 log = logging.getLogger(__name__)
 
 
@@ -379,7 +376,7 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             old_img_sky = [im.sky for im in img]
             if do_skysub:
                 for im in img:
-                    im._image.set_data(im._image.get_data() - sky)  # noqa: SLF001
+                    im.image -= sky
             img.sky += sky
             new_img_sky = [im.sky for im in img]
 
@@ -402,7 +399,7 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             # apply sky change:
             old_sky = img.sky
             if do_skysub:
-                img._image.set_data(img._image.get_data() - sky)  # noqa: SLF001
+                img.image -= sky
             img.sky += sky
             new_sky = img.sky
 
