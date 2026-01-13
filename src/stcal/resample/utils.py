@@ -1,13 +1,12 @@
 import logging
 
 import numpy as np
+from astropy import units as u
 from astropy.nddata.bitmask import (
     bitfield_to_boolean_mask,
     interpret_bit_flags,
 )
-from astropy import units as u
 from spherical_geometry.polygon import SphericalPolygon  # type: ignore[import-untyped]
-
 
 __all__ = [
     "build_driz_weight",
@@ -22,7 +21,7 @@ __all__ = [
 log = logging.getLogger(__name__)
 
 
-def resample_range(data_shape, bbox=None):
+def resample_range(data_shape, bbox=None):  # noqa: D103
     # Find range of input pixels to resample:
     if len(data_shape) != 2:
         raise ValueError("Expected 'data_shape' to be of length 2.")
@@ -45,7 +44,7 @@ def resample_range(data_shape, bbox=None):
 
 
 def build_mask(dqarr, good_bits, flag_name_map=None):
-    """Build a bit mask from an input DQ array and a bitvalue flag
+    """Build a bit mask from an input DQ array and a bitvalue flag.
 
     In the returned bit mask, 1 is good, 0 is bad
     """
@@ -61,10 +60,12 @@ def build_mask(dqarr, good_bits, flag_name_map=None):
     return dqmask
 
 
-def build_driz_weight(model, weight_type=None, good_bits=None,
-                      flag_name_map=None):
-    """ Create a weight map that is used for weighting input images when
-    they are co-added to the ouput model.
+def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=None):
+    """
+    Build drizzle weight map.
+
+    Create a weight map that is used for weighting input images when
+    they are co-added to the output model.
 
     Parameters
     ----------
@@ -145,6 +146,8 @@ def build_driz_weight(model, weight_type=None, good_bits=None,
 
 def get_tmeasure(model):
     """
+    Get tmeasure from datamodel.
+
     Check if the measurement_time keyword is present in the datamodel
     for use in exptime weighting. If not, revert to using exposure_time.
 
@@ -161,15 +164,16 @@ def get_tmeasure(model):
 
 
 def is_imaging_wcs(wcs):
-    """ Returns `True` if ``wcs`` is an imaging WCS and `False` otherwise. """
-    imaging = all(
-        ax == 'SPATIAL' for ax in wcs.output_frame.axes_type
-    )
+    """Return `True` if ``wcs`` is an imaging WCS and `False` otherwise."""
+    imaging = all(ax == "SPATIAL" for ax in wcs.output_frame.axes_type)
     return imaging
 
 
 def compute_mean_pixel_area(wcs, shape=None):
-    """ Computes the average pixel area (in steradians) based on input WCS
+    """
+    Compute mean pixel area.
+
+    Computes the average pixel area (in steradians) based on input WCS
     using pixels within either the bounding box (if available) or the entire
     data array as defined either by ``wcs.array_shape`` or the ``shape``
     argument.
@@ -188,7 +192,6 @@ def compute_mean_pixel_area(wcs, shape=None):
 
     Notes
     -----
-
     This function takes the outline of the region in which the average is
     computed (a rectangle defined by either the bounding box or
     ``wcs.array_shape`` or the ``shape``) and projects it to world coordinates.
@@ -201,14 +204,11 @@ def compute_mean_pixel_area(wcs, shape=None):
     """
     if (shape := (shape or wcs.array_shape)) is None:
         raise ValueError(
-            "Either WCS must have 'array_shape' attribute set or 'shape' "
-            "argument must be supplied."
+            "Either WCS must have 'array_shape' attribute set or 'shape' argument must be supplied."
         )
 
     valid_polygon = False
-    spatial_idx = np.where(
-        np.array(wcs.output_frame.axes_type) == 'SPATIAL'
-    )[0]
+    spatial_idx = np.where(np.array(wcs.output_frame.axes_type) == "SPATIAL")[0]
 
     ny, nx = shape
 
@@ -238,7 +238,7 @@ def compute_mean_pixel_area(wcs, shape=None):
                 ymin=ymin,
                 ymax=ymax,
                 dx=min((xmax - xmin) // 4, 15),
-                dy=min((ymax - ymin) // 4, 15)
+                dy=min((ymax - ymin) // 4, 15),
             )
         except ValueError:
             return None
@@ -251,8 +251,7 @@ def compute_mean_pixel_area(wcs, shape=None):
 
         for _ in range(4):
             sl = [b, r, t, l][k]
-            if not (np.all(np.isfinite(ra[sl])) and
-                    np.all(np.isfinite(dec[sl]))):
+            if not (np.all(np.isfinite(ra[sl])) and np.all(np.isfinite(dec[sl]))):
                 limits[k] += dxy[k]
                 ymin, xmax, ymax, xmin = limits
                 k = (k + 1) % 4
@@ -272,10 +271,7 @@ def compute_mean_pixel_area(wcs, shape=None):
 
     sky_area = SphericalPolygon.from_radec(ra, dec, center=wcenter).area()
     if sky_area > 2 * np.pi:
-        log.warning(
-            "Unexpectedly large computed sky area for an image. "
-            "Setting area to: 4*Pi - area"
-        )
+        log.warning("Unexpectedly large computed sky area for an image. Setting area to: 4*Pi - area")
         sky_area = 4 * np.pi - sky_area
     if image_area == 0:
         log.error("Image area is zero; cannot compute pixel area.")
@@ -285,16 +281,16 @@ def compute_mean_pixel_area(wcs, shape=None):
     return pix_area
 
 
-def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
-                         shrink=0):  # noqa: E741
+def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None, shrink=0):  # noqa: E741
     """
+    Get boundary points.
+
     Creates a list of ``x`` and ``y`` coordinates of points along the perimiter
     of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
     ``shrink`` in counter-clockwise order.
 
     Parameters
     ----------
-
     xmin : int
         X-coordinate of the left edge of a rectangle.
 
@@ -308,11 +304,11 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
         Y-coordinate of the top edge of a rectangle.
 
     dx : int, float, None, optional
-        Desired spacing between ajacent points alog horizontal edges of
+        Desired spacing between adjacent points along horizontal edges of
         the rectangle.
 
     dy : int, float, None, optional
-        Desired spacing between ajacent points alog vertical edges of
+        Desired spacing between adjacent points along vertical edges of
         the rectangle.
 
     shrink : int, optional
@@ -321,7 +317,6 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
 
     Returns
     -------
-
     x : numpy.ndarray
         An array of X-coordinates of points along the perimiter
         of the rectangle defined by ``xmin``, ``xmax``, ``ymin``, ``ymax``, and
@@ -381,9 +376,9 @@ def _get_boundary_points(xmin, xmax, ymin, ymax, dx=None, dy=None,
     y = np.empty(size)
 
     bottom = np.s_[0:sx]  # bottom edge
-    right = np.s_[sx:sx + sy]  # right edge
-    top = np.s_[sx + sy:2 * sx + sy]  # top edge
-    left = np.s_[2 * sx + sy:2 * sx + 2 * sy]  # noqa: E741  left edge
+    right = np.s_[sx : sx + sy]  # right edge
+    top = np.s_[sx + sy : 2 * sx + sy]  # top edge
+    left = np.s_[2 * sx + sy : 2 * sx + 2 * sy]  # noqa: E741  left edge
 
     x[bottom] = np.linspace(xmin, xmax, sx, False)
     y[bottom] = ymin
@@ -445,9 +440,8 @@ def _get_inverse_variance(array, data_shape, array_name):
         inv[~np.isfinite(inv)] = 0  # zeros for bad pixels
     else:
         log.warning(
-            f"'{array_name}' array not available. "
-            "Setting drizzle weight map to 1",
+            f"'{array_name}' array not available. Setting drizzle weight map to 1",
         )
-        inv = np.full(data_shape, 1, dtype=np.float32)   # ones for missing/misshaped array
+        inv = np.full(data_shape, 1, dtype=np.float32)  # ones for missing/misshaped array
 
     return inv

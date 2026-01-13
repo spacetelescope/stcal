@@ -2,9 +2,10 @@ from astropy import units as u
 
 INDENT = "    "
 
-class RampData:
+
+class RampData:  # noqa: D101
     def __init__(self):
-        """Creates an internal ramp fit class."""
+        """Create an internal ramp fit class."""
         # Arrays from the data model
         self.data = None
         self.groupdq = None
@@ -54,8 +55,7 @@ class RampData:
 
         self.debug = False
 
-    def set_arrays(self, data, groupdq, pixeldq, average_dark_current,
-                   orig_gdq=None, zeroframe=None):
+    def set_arrays(self, data, groupdq, pixeldq, average_dark_current, orig_gdq=None, zeroframe=None):
         """
         Set the arrays needed for ramp fitting.
 
@@ -149,82 +149,82 @@ class RampData:
         if self.algorithm is not None and self.algorithm.upper() == "OLS_C":
             self.flags_chargeloss = dqflags["CHARGELOSS"]
 
-    def dbg_print_types(self):
+    def dbg_print_types(self):  # noqa: D102
         # Arrays from the data model
-        print("-" * 80)
-        print("    Array Types:")
-        print(f"data : {type(self.data)}")
-        print(f"groupdq : {type(self.groupdq)}")
-        print(f"pixeldq : {type(self.pixeldq)}")
+        print("-" * 80)  # noqa: T201
+        print("    Array Types:")  # noqa: T201
+        print(f"data : {type(self.data)}")  # noqa: T201
+        print(f"groupdq : {type(self.groupdq)}")  # noqa: T201
+        print(f"pixeldq : {type(self.pixeldq)}")  # noqa: T201
 
         self.dbg_print_meta()
         self.dbg_print_mp()
         self.dbg_print_zframe()
         self.dbg_print_1grp()
 
-    def dbg_print_meta(self):
+    def dbg_print_meta(self):  # noqa: D102
         # Meta information
-        print("-" * 80)
-        print("    Meta:")
-        print(f"Instrument: {self.instrument_name}")
+        print("-" * 80)  # noqa: T201
+        print("    Meta:")  # noqa: T201
+        print(f"Instrument: {self.instrument_name}")  # noqa: T201
 
-        print(f"Frame time : {self.frame_time}")
-        print(f"Group time : {self.group_time}")
-        print(f"Group Gap : {self.groupgap}")
-        print(f"Nframes : {self.nframes}")
-        print(f"Drop Frames : {self.drop_frames1}")
-        print("-" * 80)
+        print(f"Frame time : {self.frame_time}")  # noqa: T201
+        print(f"Group time : {self.group_time}")  # noqa: T201
+        print(f"Group Gap : {self.groupgap}")  # noqa: T201
+        print(f"Nframes : {self.nframes}")  # noqa: T201
+        print(f"Drop Frames : {self.drop_frames1}")  # noqa: T201
+        print("-" * 80)  # noqa: T201
 
-    def dbg_print_mp(self):
+    def dbg_print_mp(self):  # noqa: D102
         # Multiprocessing
-        print("-" * 80)
-        print(f"Start row : {self.start_row}")
-        print(f"Number of rows : {self.num_rows}")
+        print("-" * 80)  # noqa: T201
+        print(f"Start row : {self.start_row}")  # noqa: T201
+        print(f"Number of rows : {self.num_rows}")  # noqa: T201
 
-    def dbg_print_zframe(self):
+    def dbg_print_zframe(self):  # noqa: D102
         # ZEROFRAME
-        print("-" * 80)
-        print("    ZEROFRAME:")
-        print(f"zframe_locs : {type(self.zframe_locs)}")
-        print(f"zeroframe : {type(self.zeroframe)}")
+        print("-" * 80)  # noqa: T201
+        print("    ZEROFRAME:")  # noqa: T201
+        print(f"zframe_locs : {type(self.zframe_locs)}")  # noqa: T201
+        print(f"zeroframe : {type(self.zeroframe)}")  # noqa: T201
 
-    def dbg_print_1grp(self):
+    def dbg_print_1grp(self):  # noqa: D102
         # One group ramp suppression for saturated ramps after 0th group.
-        print("-" * 80)
-        print("    One Group Suppression:")
-        print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")
+        print("-" * 80)  # noqa: T201
+        print("    One Group Suppression:")  # noqa: T201
+        print(f"suppress_one_group_ramps : {type(self.suppress_one_group_ramps)}")  # noqa: T201
 
-    def dbg_print_basic_info(self):
+    def dbg_print_basic_info(self):  # noqa: D102
         # Arrays from the data model
         self.dbg_print_meta()
 
-        print(f"Shape : {self.data.shape}")
-        print(f"data : \n{self.data}")
-        print(f"groupdq : \n{self.groupdq}")
+        print(f"Shape : {self.data.shape}")  # noqa: T201
+        print(f"data : \n{self.data}")  # noqa: T201
+        print(f"groupdq : \n{self.groupdq}")  # noqa: T201
         # print(f"pixeldq : \n{self.pixeldq}")
-        print("-" * 80)
+        print("-" * 80)  # noqa: T201
 
-    def dbg_print_pixel_info(self, row, col):
-        print("-" * 80)
-        print(f"    data")
+    def dbg_print_pixel_info(self, row, col):  # noqa: D102
+        print("-" * 80)  # noqa: T201
+        print("    data")  # noqa: T201
         for integ in range(self.data.shape[0]):
-            print(f"[{integ}] {self.data[integ, :, row, col]}")
-        print(f"    groupdq")
+            print(f"[{integ}] {self.data[integ, :, row, col]}")  # noqa: T201
+        print("    groupdq")  # noqa: T201
         for integ in range(self.data.shape[0]):
-            print(f"[{integ}] {self.groupdq[integ, :, row, col]}")
+            print(f"[{integ}] {self.groupdq[integ, :, row, col]}")  # noqa: T201
         # print(f"    pixeldq :\n{self.pixeldq[row, col]}")
 
-    def dbg_print_info(self):
-        print(" ")
+    def dbg_print_info(self):  # noqa: D102
+        print(" ")  # noqa: T201
         nints, ngroups, nrows, ncols = self.data.shape
         for row in range(nrows):
             for col in range(ncols):
-                print("=" * 80)
-                print(f"**** Pixel ({row}, {col}) ****")
+                print("=" * 80)  # noqa: T201
+                print(f"**** Pixel ({row}, {col}) ****")  # noqa: T201
                 self.dbg_print_pixel_info(row, col)
-        print("=" * 80)
+        print("=" * 80)  # noqa: T201
 
-    def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):
+    def dbg_write_ramp_data_pix_pre(self, fname, row, col, fd):  # noqa: ARG001, ARG002, D102
         fd.write("def create_ramp_data_pixel():\n")
         indent = INDENT
         fd.write(f"{indent}'''\n")
@@ -246,7 +246,6 @@ class RampData:
         fd.write(f"{indent}ramp_data.flags_no_gain_val = {self.flags_no_gain_val}\n")
         fd.write(f"{indent}ramp_data.flags_unreliable_slope = {self.flags_unreliable_slope}\n\n")
 
-
         fd.write(f"{indent}ramp_data.start_row = 0\n")
         fd.write(f"{indent}ramp_data.num_rows = 1\n\n")
 
@@ -257,8 +256,7 @@ class RampData:
         fd.write(f"{indent}gdq = np.zeros(({nints}, {ngroups}, 1, 1), dtype=np.uint8)\n")
         fd.write(f"{indent}pdq = np.zeros((1, 1), dtype=np.uint32)\n")
 
-
-    def dbg_write_ramp_data_pix_post(self, fname, row, col, fd):
+    def dbg_write_ramp_data_pix_post(self, fname, row, col, fd):  # noqa: ARG001, ARG002, D102
         indent = INDENT
 
         fd.write(f"{indent}ramp_data.data = data\n")
@@ -268,24 +266,28 @@ class RampData:
 
         fd.write(f"{indent}return ramp_data, ngain, nrnoise\n")
 
-    def dbg_write_ramp_data_pix_pixel(self, fname, row, col, gain, rnoise, fd):
+    def dbg_write_ramp_data_pix_pixel(self, fname, row, col, gain, rnoise, fd):  # noqa: ARG001, ARG002, D102
         import numpy as np
+
         indent = INDENT
 
         # XXX Make this a separate function
         delimiter = "-" * 40
-        fd.write(f"{indent}# {delimiter}\n\n");
-        fd.write(f"{indent}# ({row}, {col})\n\n");
-
+        fd.write(f"{indent}# {delimiter}\n\n")
+        fd.write(f"{indent}# ({row}, {col})\n\n")
         nints = self.data.shape[0]
 
         for integ in range(nints):
-            arr_str = np.array2string(self.data[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            arr_str = np.array2string(
+                self.data[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", "
+            )
             fd.write(f"{indent}data[{integ}, :, 0, 0] = np.array({arr_str})\n")
         fd.write("\n")
 
         for integ in range(nints):
-            arr_str = np.array2string(self.groupdq[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", ")
+            arr_str = np.array2string(
+                self.groupdq[integ, :, row, col], precision=12, max_line_width=np.nan, separator=", "
+            )
             fd.write(f"{indent}gdq[{integ}, :, 0, 0] = np.array({arr_str})\n")
         fd.write("\n")
 
@@ -294,7 +296,9 @@ class RampData:
 
         if self.zeroframe is not None:
             fd.write(f"{indent}zframe = np.zeros((1, 1), dtype=np.float32)\n\n")
-            arr_str = np.array2string(self.zeroframe[row, col], precision=12, max_line_width=np.nan, separator=", ")
+            arr_str = np.array2string(
+                self.zeroframe[row, col], precision=12, max_line_width=np.nan, separator=", "
+            )
             fd.write(f"{indent}zframe[0, 0] = {arr_str}\n\n")
         else:
             fd.write(f"{indent}zframe = None\n\n")
@@ -305,10 +309,9 @@ class RampData:
         fd.write(f"{indent}nrnoise = np.zeros((1, 1), dtype=np.float32)\n")
         fd.write(f"{indent}nrnoise[0, 0] = {rnoise[row, col]}\n\n")
 
-
-    def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):
-        print(f"*** {fname} ***")
-        with open(fname, "w") as fd:
+    def dbg_write_ramp_data_pix(self, fname, row, col, gain, rnoise):  # noqa: D102
+        print(f"*** {fname} ***")  # noqa: T201
+        with open(fname, "w") as fd:  # noqa: PTH123
             self.dbg_write_ramp_data_pix_pre(fname, row, col, fd)
             self.dbg_write_ramp_data_pix_pixel(fname, row, col, gain, rnoise, fd)
             self.dbg_write_ramp_data_pix_post(fname, row, col, fd)

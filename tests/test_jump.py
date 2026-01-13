@@ -1,15 +1,16 @@
 import numpy as np
 import pytest
 from astropy.io import fits
-from stcal.jump.jump_class import JumpData
+
 from stcal.jump.jump import (
+    detect_jumps_data,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
     flag_large_events,
     point_inside_ellipse,
-    detect_jumps_data
 )
+from stcal.jump.jump_class import JumpData
 
 DQFLAGS = {
     "GOOD": 0,
@@ -17,7 +18,7 @@ DQFLAGS = {
     "SATURATED": 2,
     "JUMP_DET": 4,
     "NO_GAIN_VALUE": 8,
-    "REFERENCE_PIXEL": 2147483648
+    "REFERENCE_PIXEL": 2147483648,
 }
 
 GOOD = DQFLAGS["GOOD"]
@@ -29,17 +30,13 @@ REF = DQFLAGS["REFERENCE_PIXEL"]
 
 
 def create_jump_data(dims, gain, rnoise, tm):
-    """
-    author: kmacdonald
-    date: Nov 20, 2024
-    """
     nints, ngroups, nrows, ncols = dims
     data = np.zeros(shape=dims, dtype=np.float32)
     gdq = np.zeros(shape=dims, dtype=np.uint8)
 
     pdq = np.zeros(shape=(nrows, ncols), dtype=np.uint8)
     gain2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * gain
-    rnoise2d = np.ones(shape=(nrows, ncols) , dtype=np.float32) * rnoise
+    rnoise2d = np.ones(shape=(nrows, ncols), dtype=np.float32) * rnoise
 
     jump_data = JumpData(gain2d=gain2d, rnoise2d=rnoise2d, dqflags=DQFLAGS)
     jump_data.init_arrays_from_arrays(data, gdq, pdq)
@@ -66,28 +63,32 @@ def test_nirspec_saturated_pix():
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     # Setup the needed input pixel and DQ values
-    jump_data.data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176,
-                              1116.3828, 1936.9746]
+    jump_data.data[0, :, 1, 1] = [639854.75, 4872.451, -17861.791, 14022.15, 22320.176, 1116.3828, 1936.9746]
     jump_data.gdq[0, :, 1, 1] = [0, 0, 0, 0, 0, SAT, SAT]
-    jump_data.data[0, :, 0, 1] = [8.25666812e+05, -1.10471914e+05, 1.95755371e+02, 1.83118457e+03,
-                              1.72250879e+03, 1.81733496e+03, 1.65188281e+03]
+    jump_data.data[0, :, 0, 1] = [
+        8.25666812e05,
+        -1.10471914e05,
+        1.95755371e02,
+        1.83118457e03,
+        1.72250879e03,
+        1.81733496e03,
+        1.65188281e03,
+    ]
     # 2 non-sat groups means only 1 non-sat diff, so no jumps should be flagged
     jump_data.gdq[0, :, 0, 1] = [0, 0, SAT, SAT, SAT, SAT, SAT]
-    jump_data.data[0, :, 1, 0] = [1228767., 46392.234, -3245.6553, 7762.413,
-                              37190.76, 266611.62, 5072.4434]
+    jump_data.data[0, :, 1, 0] = [1228767.0, 46392.234, -3245.6553, 7762.413, 37190.76, 266611.62, 5072.4434]
     jump_data.gdq[0, :, 1, 0] = [0, 0, 0, 0, 0, 0, SAT]
 
     jump_data.nframes = nframes
     jump_data.rejection_thresh = 4.0
     jump_data.three_grp_thresh = 5
     jump_data.four_grp_thresh = 6
-    jump_data.max_cores = 'none'
+    jump_data.max_cores = "none"
     jump_data.max_jump_to_flag_neighbors = 200
     jump_data.min_jump_to_flag_neighbors = 10
     jump_data.flag_4_neighbors = True
@@ -109,7 +110,7 @@ def test_multiprocessing():
     Basic multiprocessing test.
     """
     nints, ngroups, nrows, ncols = 1, 13, 13, 2
-    gval, rnval = 1., 10.
+    gval, rnval = 1.0, 10.0
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
@@ -137,7 +138,7 @@ def test_multiprocessing():
     # the double flagging pixels with jump which already have do_not_use or saturation set.
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
-    jump_data.data[0, 4:, 5, 1] = 2000.
+    jump_data.data[0, 4:, 5, 1] = 2000.0
     jump_data.gdq[0, 4:, 6, 1] = DNU
 
     jump_data.max_cores = "5"
@@ -151,22 +152,21 @@ def test_multiprocessing():
     gdq, pdq, total_primary_crs, number_extended_events = detect_jumps_data(jump_data)
 
     assert gdq[0, 4, 5, 1] == JUMP
-    assert gdq[0, 4, 6, 1] == DNU  #This value would have been DNU | JUMP without the fix.
+    assert gdq[0, 4, 6, 1] == DNU  # This value would have been DNU | JUMP without the fix.
 
 
 def test_multiprocessing_big():
     nints, ngroups, nrows, ncols = 1, 13, 2048, 7
-    gval, rnval = 4., 10.
+    gval, rnval = 4.0, 10.0
     frame_time, nframes, groupgap = 10.6, 1, 0
 
     dims = nints, ngroups, nrows, ncols
-    var = rnval, gval
     tm = frame_time, nframes, groupgap
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     jump_data.max_cores = "1"
-    jump_data.data[0, 4:, 204, 5] = 2000.
+    jump_data.data[0, 4:, 204, 5] = 2000.0
     jump_data.gdq[0, 4:, 204, 6] = DNU
 
     jump_data.rejection_thresh = 5
@@ -184,12 +184,12 @@ def test_multiprocessing_big():
 
     # This section of code will fail without the fixes for PR #239 that prevent
     # the double flagging pixels with jump which already have do_not_use or saturation set.
-    gval = 3.
+    gval = 3.0
 
     jump_data = create_jump_data(dims, gval, rnval, tm)
 
     jump_data.max_cores = "10"
-    jump_data.data[0, 4:, 204, 5] = 2000.
+    jump_data.data[0, 4:, 204, 5] = 2000.0
     jump_data.gdq[0, 4:, 204, 6] = DNU
 
     jump_data.rejection_thresh = 5
@@ -203,7 +203,7 @@ def test_multiprocessing_big():
 
     assert gdq[0, 4, 204, 5] == JUMP
     assert gdq[0, 4, 205, 5] == JUMP
-    assert gdq[0, 4, 204, 6] == DNU  #This value would have been 5 without the fix.
+    assert gdq[0, 4, 204, 6] == DNU  # This value would have been 5 without the fix.
 
 
 def test_find_simple_ellipse():
@@ -240,7 +240,6 @@ def test_extend_saturation_simple():
     cube = np.zeros(shape=(5, 7, 7), dtype=np.uint8)
     persist_jumps = np.zeros(shape=(7, 7), dtype=np.uint8)
     grp = 1
-    min_sat_radius_extend = 1
     cube[1, 3, 3] = SAT
     cube[1, 2, 3] = SAT
     cube[1, 3, 4] = SAT
@@ -253,9 +252,7 @@ def test_extend_saturation_simple():
     jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_radius_extend = 1.1
 
-
-    new_cube, persist_jumps = extend_saturation(
-        cube, grp, sat_circles, jump_data, persist_jumps)
+    new_cube, persist_jumps = extend_saturation(cube, grp, sat_circles, jump_data, persist_jumps)
 
     assert new_cube[grp, 2, 2] == SAT
     assert new_cube[grp, 4, 4] == SAT
@@ -376,15 +373,15 @@ def test_flag_large_events_withsnowball_noextension():
     jump_data.sat_required_snowball = True
     jump_data.min_sat_radius_extend = 0.5
     jump_data.sat_expand = 1.1
-    jump_data.max_extended_radius = 1
+    jump_data.max_extended_width = 1
 
     cube, num_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
     assert cube[0, 1, 2, 2] == 0
     assert cube[0, 1, 3, 5] == 0
     assert cube[0, 2, 0, 0] == 0
-    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_radius=1
-    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_radius=1
+    assert cube[0, 2, 1, 0] == 0  # Jump was NOT extended due to max_extended_width=1
+    assert cube[0, 2, 2, 2] == 0  # Saturation was NOT extended due to max_extended_width=1
 
 
 def test_find_faint_extended(tmp_path):
@@ -400,7 +397,6 @@ def test_find_faint_extended(tmp_path):
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
 
-    # XXX Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 6.0 * np.sqrt(2)
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -420,8 +416,8 @@ def test_find_faint_extended(tmp_path):
     readnoise = readnoise * np.sqrt(2)
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside.  This should not be in tests.
+    # Check that all the expected samples in group 2 are flagged as jump and
+    # that they are not flagged outside.  This should not be in tests.
 
     # assert num_showers == 1
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
@@ -429,7 +425,7 @@ def test_find_faint_extended(tmp_path):
     assert np.all(gdq[0, 1, 12:21, 16:19] == JUMP)
     assert np.all(gdq[0, 1, 22, 16:19] == 0)
     assert np.all(gdq[0, 1, 10, 16:19] == 0)
-    #  Check that the same area is flagged in the first group after the event
+    # Check that the same area is flagged in the first group after the event
     assert np.all(gdq[0, 2, 22, 14:23] == 0)
     assert gdq[0, 2, 16, 18] == JUMP
     assert np.all(gdq[0, 2, 12:21, 16:19] == JUMP)
@@ -438,7 +434,7 @@ def test_find_faint_extended(tmp_path):
 
     assert np.all(gdq[0, 3:, :, :]) == 0
 
-    #  Check that the flags are not applied in the 3rd group after the event
+    # Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
@@ -453,7 +449,6 @@ def test_find_faint_extended_sigclip():
     gain = 4
     readnoise = np.ones(shape=(nrows, ncols), dtype=np.float32) * 6.0 * gain
 
-    # XXX Probably should not generate random data for CI tests.
     rng = np.random.default_rng(12345)
     data[0, 1:, 14:20, 15:20] = 6 * gain * 1.7
     data = data + rng.normal(size=(nint, ngrps, nrows, ncols)) * readnoise
@@ -470,8 +465,8 @@ def test_find_faint_extended_sigclip():
 
     gdq, num_showers = find_faint_extended(data, gdq, pdq, readnoise, jump_data)
 
-    #  Check that all the expected samples in group 2 are flagged as jump and
-    #  that they are not flagged outside
+    # Check that all the expected samples in group 2 are flagged as jump and
+    # that they are not flagged outside
     assert num_showers == 0
     assert np.all(gdq[0, 1, 22, 14:23] == 0)
     assert np.all(gdq[0, 1, 21, 16:20] == 0)
@@ -487,33 +482,30 @@ def test_find_faint_extended_sigclip():
     assert np.all(gdq[0, 1, 12:23, 24] == 0)
     assert np.all(gdq[0, 1, 12:23, 13] == 0)
 
-    #  Check that the flags are not applied in the 3rd group after the event
+    # Check that the flags are not applied in the 3rd group after the event
     assert np.all(gdq[0, 4, 12:22, 14:23]) == 0
 
 
-def test_inside_ellipse5():
-    ellipse = ((0, 0), (1, 2), -10)
-    point = (1, 0.6)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
+@pytest.mark.parametrize(
+    ("ellipse", "point"),
+    [
+        (((0, 0), (2, 4), -10), (1, 0.6)),
+        (((0, 0), (2, 4), 0), (1, 0.5)),
+        (
+            ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0),
+            (1110.5, 870.5),
+        ),
+        (((0, 0), (10, 5), 0), (0, 0)),
+        (((0, 0), (10, 5), 0), (5, 0)),
+    ],
+)
+def test_point_inside_ellipse(ellipse, point):
+    assert point_inside_ellipse(point, ellipse)
 
 
-def test_inside_ellipse4():
-    ellipse = ((0, 0), (1, 2), 0)
-    point = (1, 0.5)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
-
-
-def test_inside_ellipse6():
-    ellipse = ((0, 0), (1, 2), 0)
-    point = (3, 0.5)
-    result = point_inside_ellipse(point, ellipse)
-    assert not result
-
-
-def test_inside_ellipes5():
-    point = (1110.5, 870.5)
-    ellipse = ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0)
-    result = point_inside_ellipse(point, ellipse)
-    assert result
+@pytest.mark.parametrize(
+    ("ellipse", "point"),
+    [(((0, 0), (2, 4), 0), (3, 0.5)), (((0, 0), (10, 5), 0), (0, 8)), (((0, 0), (10, 5), 0), (8, 0))],
+)
+def test_point_outside_ellipse(ellipse, point):
+    assert not point_inside_ellipse(point, ellipse)

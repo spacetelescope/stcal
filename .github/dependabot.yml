@@ -4,6 +4,11 @@ updates:
   - package-ecosystem: "github-actions"
     directory: ".github/workflows"
     target-branch: "main"
+    labels:
+      - automation
+      - dependencies
+      - github_actions
+      - no-changelog-entry-needed
     schedule:
       interval: "monthly"
     groups:
@@ -12,6 +17,8 @@ updates:
           - "*"
     reviewers:
       - "zacharyburnett"
+    cooldown:
+      default-days: 7
 
   # Maintain dependencies for pip
   - package-ecosystem: "pip"
@@ -25,3 +32,5 @@ updates:
           - "*"
     reviewers:
       - "zacharyburnett"
+    cooldown:
+      default-days: 7

@@ -30,29 +30,29 @@ repos:
       - id: text-unicode-replacement-char
   # lint and format
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.14.10
     hooks:
       - id: ruff-check
         args:
           - --fix
           - --show-fixes
-      # - id: ruff-format
+      - id: ruff-format
   # type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+    rev: v1.19.1
     hooks:
       - id: mypy
         additional_dependencies: [types-requests]
-  # # spell-checking
-  # - repo: https://github.com/codespell-project/codespell
-  #   rev: v2.4.1
-  #   hooks:
-  #     - id: codespell
-  #       args:
-  #         - --write-changes
-  #         - --summary
-  #       additional_dependencies:
-  #         - tomli
+  # spell-checking
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args:
+          - --write-changes
+          - --summary
+        additional_dependencies:
+          - tomli
   # validate change log and fragments in `changes/`
   - repo: https://github.com/twisted/towncrier
     rev: 25.8.0
@@ -60,7 +60,7 @@ repos:
       - id: towncrier-check
   # format YAML and Markdown
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.7.3
+    rev: v3.7.4
     hooks:
       - id: prettier
         types_or:
@@ -98,7 +98,7 @@ repos:
       - id: double-quote-cython-strings
   # C style
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.6
+    rev: v21.1.8
     hooks:
       - id: clang-format
         types_or: [c]

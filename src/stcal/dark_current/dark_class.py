@@ -3,13 +3,12 @@ from astropy import units as u
 
 
 class DarkData:
-    """
-    This class contains all data needed to perform the dark current subtraction
-    step.
-    """
+    """Data needed to perform the dark current subtraction step."""
 
     def __init__(self, dims=None, dark_model=None):
         """
+        Initialize DarkData.
+
         Creates a class to remove data model dependencies in the internals of
         the dark current code.  The data contained in this class comes from the
         dark reference data file.  If a dark data model is passed as an
@@ -67,9 +66,11 @@ class DarkData:
         self.output_name = None
 
 
-class ScienceData:
+class ScienceData:  # noqa: D101
     def __init__(self, science_model=None):
         """
+        Science data needed for dark current subtraction.
+
         A class containing all science data needed to subtract the dark current
         from the data.
 

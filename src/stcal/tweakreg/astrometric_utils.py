@@ -6,36 +6,29 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 from stcal.alignment import compute_fiducial
+from stcal.tweakreg._s3_catalog import S3_CATALOGS, get_s3_catalog
 
+GSSS_CATALOGS = ["GAIAREFCAT", "GAIADR3", "GAIADR2", "GAIADR1"]
 ASTROMETRIC_CAT_ENVVAR = "ASTROMETRIC_CATALOG_URL"
-DEF_CAT_URL = "http://gsss.stsci.edu/webservices"
+DEF_CAT_URL = "https://gsss.stsci.edu/webservices"
 
 SERVICELOCATION = os.environ.get(ASTROMETRIC_CAT_ENVVAR, DEF_CAT_URL)
 
 TIMEOUT = 30.0  # in seconds
 
-"""
 
-Primary function for creating an astrometric reference catalog.
-
-"""
-
-
-__all__ = [
-    "TIMEOUT",
-    "compute_radius",
-    "create_astrometric_catalog",
-    "get_catalog"]
+__all__ = ["TIMEOUT", "compute_radius", "create_astrometric_catalog", "get_catalog"]
 
 
 def create_astrometric_catalog(
-        wcs,
-        epoch,
-        catalog="GAIADR3",
-        output="ref_cat.ecsv",
-        table_format="ascii.ecsv",
-        num_sources=None,
-        timeout=TIMEOUT):
+    wcs,
+    epoch,
+    catalog="GAIADR3",
+    output="ref_cat.ecsv",
+    table_format="ascii.ecsv",
+    num_sources=None,
+    timeout=TIMEOUT,
+):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
     Parameters
@@ -85,12 +78,7 @@ def create_astrometric_catalog(
 
     # perform query for this field-of-view
     ref_dict = get_catalog(
-        fiducial[0],
-        fiducial[1],
-        epoch=epoch,
-        search_radius=radius,
-        catalog=catalog,
-        timeout=timeout
+        fiducial[0], fiducial[1], epoch=epoch, search_radius=radius, catalog=catalog, timeout=timeout
     )
     if len(ref_dict) == 0:
         return ref_dict
@@ -125,13 +113,14 @@ def create_astrometric_catalog(
 
 def compute_radius(wcs):
     """Compute the radius from the center to the furthest edge of the WCS."""
-    fiducial = compute_fiducial([wcs,])
-    img_center = SkyCoord(
-        ra=fiducial[0] * u.degree,
-        dec=fiducial[1] * u.degree)
+    fiducial = compute_fiducial(
+        [
+            wcs,
+        ]
+    )
+    img_center = SkyCoord(ra=fiducial[0] * u.degree, dec=fiducial[1] * u.degree)
     wcs_foot = wcs.footprint()
-    img_corners = SkyCoord(ra=wcs_foot[:, 0] * u.degree,
-                           dec=wcs_foot[:, 1] * u.degree)
+    img_corners = SkyCoord(ra=wcs_foot[:, 0] * u.degree, dec=wcs_foot[:, 1] * u.degree)
     radius = img_center.separation(img_corners).max().value
 
     return radius, fiducial
@@ -175,33 +164,38 @@ def get_catalog(
         CSV object of returned sources with all columns as provided by catalog
 
     """
+    if catalog in S3_CATALOGS:
+        return get_s3_catalog(
+            right_ascension,
+            declination,
+            epoch,
+            search_radius,
+            catalog,
+            timeout=timeout,
+        )
     service_type = "vo/CatalogSearch.aspx"
-    spec_str = "RA={}&DEC={}&EPOCH={}&SR={}&FORMAT={}&CAT={}"
     headers = {"Content-Type": "text/csv"}
-    fmt = "CSV"
 
-    spec = spec_str.format(
-        right_ascension,
-        declination,
-        epoch,
-        search_radius,
-        fmt,
-        catalog
-    )
+    if epoch is None:
+        spec = f"RA={right_ascension}&DEC={declination}&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
+    else:
+        spec = (
+            f"RA={right_ascension}&DEC={declination}&EPOCH={epoch}"
+            f"&SR={search_radius}&FORMAT=CSV&CAT={catalog}"
+        )
+
     service_url = f"{SERVICELOCATION}/{service_type}?{spec}"
     try:
         rawcat = requests.get(service_url, headers=headers, timeout=timeout)
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.ConnectionError as err:
         raise requests.exceptions.ConnectionError(
             "Could not connect to the VO API server. Try again later."
-        )
-    except requests.exceptions.Timeout:
-        raise requests.exceptions.Timeout("The request to the VO API server timed out.")
-    except requests.exceptions.RequestException:
-        raise requests.exceptions.RequestException(
-            "There was an unexpected error with the request."
-        )
+        ) from err
+    except requests.exceptions.Timeout as err:
+        raise requests.exceptions.Timeout("The request to the VO API server timed out.") from err
+    except requests.exceptions.RequestException as err:
+        raise requests.exceptions.RequestException("There was an unexpected error with the request.") from err
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"
-    return Table.read(r_contents, format="csv", comment='#')
+    return Table.read(r_contents, format="csv", comment="#")

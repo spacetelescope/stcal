@@ -1,0 +1,1 @@
+Add support for 'GAIADR3_S3' catalog in tweakreg.
