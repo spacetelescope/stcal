@@ -1,0 +1,1 @@
+Make saturation helper functions adjacent_pixels and plane_saturation private

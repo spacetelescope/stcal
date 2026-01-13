@@ -10,6 +10,7 @@ Package Index
    tweakreg/index.rst
    outlier_detection/index.rst
    resample/index.rst
+   saturation/index.rst
    skymatch/index.rst
    multiprocessing.rst
    velocity_aberration.rst
