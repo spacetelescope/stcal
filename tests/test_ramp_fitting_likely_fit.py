@@ -544,3 +544,62 @@ def dbg_print_cube_cube1(cube, cube1, pix):
     print(f"vr OLS = {vr1[:, row, col]}\n")  # noqa: T201
 
     print(DELIM)  # noqa: T201
+
+
+from stcal.jump.jump_class import JumpData
+
+DQFLAGS = {
+    "GOOD": 0,
+    "DO_NOT_USE": 1,
+    "SATURATED": 2,
+    "JUMP_DET": 4,
+    "NO_GAIN_VALUE": 8,
+    "REFERENCE_PIXEL": 2147483648,
+}
+
+GOOD = DQFLAGS["GOOD"]
+DNU = DQFLAGS["DO_NOT_USE"]
+SAT = DQFLAGS["SATURATED"]
+JUMP = DQFLAGS["JUMP_DET"]
+NGV = DQFLAGS["NO_GAIN_VALUE"]
+REF = DQFLAGS["REFERENCE_PIXEL"]
+
+def test_flag_large_events_withsnowball():
+
+    nints, ngroups, nrows, ncols = 1, 20, 100, 100
+    ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
+
+    # square of saturation surrounded by jump -> snowball
+    # 112 pixels (121 minus 9) initially have a jump.
+    ramp_data.data[0, 10:, 46:57, 46:57] += 300
+    ramp_data.data[0, 10:, 50:53, 50:53] = 1e5
+    ramp_data.groupdq[0, 10:, 50:53, 50:53] = SAT
+
+    jump_data = JumpData(dqflags=DQFLAGS)
+    jump_data.expand_large_events = 1
+    jump_data.min_sat_area = 1
+    jump_data.min_jump_area = 6
+    jump_data.expand_factor = 1.9
+    jump_data.edge_size = 0
+    jump_data.sat_required_snowball = True
+    jump_data.min_sat_radius_extend = 0.5
+    jump_data.sat_expand = 1.1
+
+    # Fit several ways: with and without snowball detection on.
+    # In each case, make sure that all jumps are found, so that the variance
+    # on the slope image is close to zero, and then check the number of
+    # flagged pixels.
+
+    image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d, jump_data=jump_data)[0]
+    data, dq, var_poisson, var_rnoise, err = image_info
+    assert np.std(data) < 1e-5
+    n_jump_expanded = np.sum(dq == JUMP)
+
+    image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d)[0]
+    data, dq, var_poisson, var_rnoise, err = image_info
+    assert np.std(data) < 1e-5
+    n_jump_original = np.sum(dq == JUMP)
+
+    assert (n_jump_original == 112 and
+            n_jump_expanded > 300 and
+            n_jump_expanded < 600)
