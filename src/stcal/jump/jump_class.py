@@ -48,10 +48,15 @@ class JumpData:
             # behavior of the code with JWST, these arrays will be set
             # to trivial values if a read pattern is not found.
 
-            if hasattr(jump_model, "read_pattern") and jump_model.read_pattern is not None:
-                t_group = np.array([np.mean(times) for times in jump_model.read_pattern])
+            if (
+                    hasattr(jump_model.meta.exposure, "read_pattern") and
+                    jump_model.meta.exposure.read_pattern is not None
+               ):
+
+                readpattern = jump_model.meta.exposure.read_pattern
+                t_group = np.array([np.mean(times) for times in readpattern])
                 self.dt_group = np.diff(t_group)
-                n_reads_group = np.array([len(times) for times in jump_model.read_pattern])
+                n_reads_group = np.array([len(times) for times in readpattern])
                 self.n_reads_groupdiff = n_reads_group[1:] + n_reads_group[:-1]
             else:
                 # This will preserve current behavior
