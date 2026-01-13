@@ -52,7 +52,7 @@ def find_crs(data, group_dq, read_noise, twopt_p):
     total_sigclip_groups = ngroups_ans[5]
 
     # Determine whether there are enough usable groups for the two sigma clip options
-    if (check_group_counts(nints, total_sigclip_groups, twopt_p)):
+    if check_group_counts(nints, total_sigclip_groups, twopt_p):
         sig_clip_grps_fails = True
 
     if min_usable_groups < twopt_p.minimum_groups:
@@ -392,8 +392,10 @@ def look_for_more_than_one_jump(
                 sig = sigma[gi - 1]
 
             # compare jump to threshold
-            jump_candidates = (np.abs(first_diffs[i, gi-1] - median_diffs) / sig) > twopt_p.normal_rej_thresh
-            gdq[i, gi] |= (jump_candidates & first_diffs_finite[i, gi-1]) * np.uint8(twopt_p.fl_jump)
+            jump_candidates = (
+                np.abs(first_diffs[i, gi - 1] - median_diffs) / sig
+            ) > twopt_p.normal_rej_thresh
+            gdq[i, gi] |= (jump_candidates & first_diffs_finite[i, gi - 1]) * np.uint8(twopt_p.fl_jump)
     return gdq
 
 
@@ -483,8 +485,8 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
     if not all_grps_uniform:
         return False
 
-    test1 = (twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups)
-    test2 = (not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups)
+    test1 = twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups
+    test2 = not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups
     return test1 or test2
 
 
