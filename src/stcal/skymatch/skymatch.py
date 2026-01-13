@@ -10,7 +10,6 @@ from datetime import datetime
 
 import numpy as np
 
-# LOCAL
 from .skyimage import SkyGroup, SkyImage
 
 __all__ = ["skymatch"]

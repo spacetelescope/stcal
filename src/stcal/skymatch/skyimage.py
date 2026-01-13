@@ -6,15 +6,9 @@ on the sky as well as perform useful operations on these outlines such as
 computing intersections and statistics in the overlap regions.
 """
 
-# STDLIB
-
-# THIRD-PARTY
 import numpy as np
 from gwcs import region
 from spherical_geometry.polygon import SphericalPolygon
-
-# LOCAL
-from .skystatistics import SkyStats
 
 __all__ = ["SkyImage", "SkyGroup"]
 
@@ -41,11 +35,11 @@ class SkyImage:
         image,
         wcs_fwd,
         wcs_inv,
+        skystat,
         pix_area=1.0,
         convf=1.0,
         mask=None,
         sky_id=None,
-        skystat=None,
         stepsize=None,
         meta=None,
     ):
@@ -61,6 +55,13 @@ class SkyImage:
 
         wcs_inv : collections.abc.Callable
             "inverse" world-to-pixel transformation function.
+
+        skystat : collections.abc.Callable, None, optional
+            A callable object that takes a either a 2D image (2D
+            `numpy.ndarray`) or a list of pixel values (a Nx1 array) and
+            returns a tuple of two values: some statistics (e.g., mean,
+            median, etc.) and number of pixels/values from the input image
+            used in computing that statistics.
 
         pix_area : float, optional
             Average pixel's sky area.
@@ -85,17 +86,6 @@ class SkyImage:
             The value of this parameter is simple stored within the `SkyImage`
             object. While it can be of any type, it is preferable that `id` be
             of a type with nice string representation.
-
-        skystat : collections.abc.Callable, None, optional
-            A callable object that takes a either a 2D image (2D
-            `numpy.ndarray`) or a list of pixel values (a Nx1 array) and
-            returns a tuple of two values: some statistics (e.g., mean,
-            median, etc.) and number of pixels/values from the input image
-            used in computing that statistics.
-
-            When `skystat` is not set, `SkyImage` will use
-            :py:class:`~stcal.skymatch.skystatistics.SkyStats` object
-            to perform sky statistics on image data.
 
         stepsize : int, None, optional
             Spacing between vertices of the image's bounding polygon. Default
@@ -131,10 +121,7 @@ class SkyImage:
 
         # set sky statistics function (NOTE: it must return statistics and
         # the number of pixels used after clipping)
-        if skystat is None:
-            self.set_builtin_skystat()
-        else:
-            self.skystat = skystat
+        self.skystat = skystat
 
     @property
     def poly_area(self):
@@ -257,29 +244,6 @@ class SkyImage:
         self._radec = [(ra, dec)]
         self._polygon = SphericalPolygon.from_radec(ra, dec)
         self._poly_area = np.fabs(self._polygon.area())
-
-    def set_builtin_skystat(
-        self, skystat="median", lower=None, upper=None, nclip=5, lsigma=4.0, usigma=4.0, binwidth=0.1
-    ):
-        """
-        Replace `skysat` with "built-in" version.
-
-        Replace already set `skystat` with a "built-in" version of a
-        statistics callable object used to measure sky background.
-
-        See :py:class:`~stcal.skymatch.skystatistics.SkyStats` for the
-        parameter description.
-
-        """
-        self.skystat = SkyStats(
-            skystat=skystat,
-            lower=lower,
-            upper=upper,
-            nclip=nclip,
-            lsig=lsigma,
-            usig=usigma,
-            binwidth=binwidth,
-        )
 
     def calc_sky(self, overlap=None, delta=True):
         """
