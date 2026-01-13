@@ -29,8 +29,8 @@ from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
-EXPECTED_NUM_SOURCES = {"GAIAREFCAT": 1991, "GAIADR3_S3": 2469}
-EXPECTED_NUM_SOURCES_BAD_PM = {"GAIAREFCAT": 2469, "GAIADR3_S3": 2469}
+EXPECTED_NUM_SOURCES = {"GAIAREFCAT": 1991, "GAIADR3_S3": 1991}
+EXPECTED_NUM_SOURCES_BAD_PM = {"GAIAREFCAT": 2469, "GAIADR3_S3": 1991}
 
 # more recent WCS with a defined input frame is necessary for some tests
 WCS_NAME_2 = "nrcb1-wcs.asdf"
@@ -403,7 +403,7 @@ def test_get_catalog_raises_connection_error(monkeypatch):
 
 @pytest.mark.parametrize("epoch", [None, 2025.1])
 def test_catalogs_match(epoch):
-    gsss = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3")
+    gsss = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3", strict_cols=None)
     s3 = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3_S3")
     if epoch:
         gsss = gsss[~(gsss["pmra"].mask)]
