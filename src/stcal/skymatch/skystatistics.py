@@ -83,24 +83,7 @@ cgi-bin/gethelp.cgi?gstatistics>`_
         self._kwargs["usig"] = usig
         self._kwargs["binwidth"] = binwidth
 
-        self._skystat = {
-            "mean": self._extract_mean,
-            "mode": self._extract_mode,
-            "median": self._extract_median,
-            "midpt": self._extract_midpt,
-        }[skystat]
-
-    def _extract_mean(self, imstat):
-        return imstat.mean
-
-    def _extract_median(self, imstat):
-        return imstat.median
-
-    def _extract_mode(self, imstat):
-        return imstat.mode
-
-    def _extract_midpt(self, imstat):
-        return imstat.midpt
+        self._skystat = skystat
 
     def calc_sky(self, data):
         """Compute statistics on data.
@@ -121,9 +104,7 @@ cgi-bin/gethelp.cgi?gstatistics>`_
 
         """
         imstat = ImageStats(image=data, fields=self._fields, **(self._kwargs))
-        self.skyval = self._skystat(imstat)
-        self.npix = imstat.npix
-        return self.skyval, self.npix
+        return getattr(imstat, self._skystat), imstat.npix
 
     def __call__(self, data):  # noqa: D102
         return self.calc_sky(data)
