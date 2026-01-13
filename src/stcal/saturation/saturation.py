@@ -32,19 +32,19 @@ def flag_saturated_pixels(
 
     Parameters
     ----------
-    data : ndarray
+    data : np.ndarray
         4-D science array
 
-    gdq : ndarray
+    gdq : np.ndarray
         4-D group dq array
 
-    pdq : ndarray
+    pdq : np.ndarray
         2-D pixel dq array
 
-    sat_thresh : ndarray
+    sat_thresh : np.ndarray
         Pixel-wise threshold for saturation, same shape `data`
 
-    sat_dq : ndarray
+    sat_dq : np.ndarray
         Data quality flags associated with `sat_thresh`
 
     atod_limit : int
@@ -59,21 +59,21 @@ def flag_saturated_pixels(
         Number of pixels that each flagged saturated pixel should be 'grown',
         to account for charge spilling. Default is 1.
 
-    zframe : ndarray
+    zframe : np.ndarray
         The ZEROFRAME 3-D array.
 
     read_pattern : List[List[float or int]] or None
         The times or indices of the frames composing each group.
 
-    bias : ndarray
+    bias : np.ndarray
         2-D superbias array.  For use in group 2 saturation flagging for frame-averaged groups.
 
     Returns
     -------
-    gdq : ndarray
+    gdq : np.ndarray
         Updated 4-D group dq array
 
-    pdq : ndarray
+    pdq : np.ndarray
         Updated 2-D pixel dq array
     """
     nints, ngroups, nrows, ncols = data.shape
@@ -236,7 +236,7 @@ def _adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
     Parameters
     ----------
-    plane_gdq : ndarray
+    plane_gdq : np.ndarray
         The data quality flags of the current.
 
     saturated : uint8
@@ -251,7 +251,7 @@ def _adjacent_pixels(plane_gdq, saturated, n_pix_grow_sat=1, inplace=False):
 
     Returns
     -------
-    sat_pix : ndarray
+    sat_pix : np.ndarray
         The saturated pixels in the current plane.
     """  # noqa: D205
     if not inplace:
@@ -309,10 +309,10 @@ def _plane_saturation(plane, sat_thresh, dqflags):
 
     Parameters
     ----------
-    plane : ndarray, 2D float
+    plane : np.ndarray, 2D float
         The plane to check for saturation and A/D floor.
 
-    sat_thresh : ndarray
+    sat_thresh : np.ndarray
         Pixel-wise threshold for saturation, same shape `data`.
 
     dqflags : dict
@@ -321,10 +321,10 @@ def _plane_saturation(plane, sat_thresh, dqflags):
 
     Returns
     -------
-    flagarray : ndarray, 2D uint32
+    flagarray : np.ndarray, 2D uint32
         The saturation flag array.
 
-    flaglowarray : ndarray, 2D uint32
+    flaglowarray : np.ndarray, 2D uint32
         The A/D floor flag array.
     """  # noqa: D205
     donotuse = dqflags["DO_NOT_USE"]
