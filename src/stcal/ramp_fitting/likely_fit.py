@@ -130,13 +130,10 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
             allrateguesses[row] = countrates * (countrates > 0) + ramp_data.average_dark_current[row, :]
 
         # Run snowball flagging if called for
-        if hasattr(jump_data, 'expand_large_events') and jump_data.expand_large_events:
+        if hasattr(jump_data, "expand_large_events") and jump_data.expand_large_events:
             log.info('Searching for and expanding "snowballs"')
             _gdq, total_snowballs = flag_large_events(
-                gdq[None, :, :, :],
-                ramp_data.flags_jump_det,
-                ramp_data.flags_saturated,
-                jump_data
+                gdq[None, :, :, :], ramp_data.flags_jump_det, ramp_data.flags_saturated, jump_data
             )
             log.info("Total snowballs = %i", total_snowballs)
             # Unset differences to use if a jump was flagged in the expansion
