@@ -201,7 +201,7 @@ def run_jump_detection(
 
     # Test to see if all groups are uniform and if there are enough
     # groups to use sigma clipping
-    if (check_sigma_clip_groups(nints, total_groups, twopt_p)):
+    if check_sigma_clip_groups(nints, total_groups, twopt_p):
         gdq = det_jump_sigma_clipping(
             gdq, nints, ngroups, total_groups, first_diffs_finite, first_diffs, twopt_p)
     else:  # There are not enough groups for sigma clipping
