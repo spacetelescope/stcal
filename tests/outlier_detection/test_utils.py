@@ -6,6 +6,7 @@ import pytest
 import scipy.signal
 from astropy.modeling import models
 
+from stcal._testing.memory_threshold import MemoryThreshold
 from stcal.outlier_detection.utils import (
     _abs_deriv,
     calc_gwcs_pixmap,
@@ -16,7 +17,6 @@ from stcal.outlier_detection.utils import (
     medfilt,
     reproject,
 )
-from stcal.testing_helpers import MemoryThreshold
 
 
 @pytest.mark.parametrize(
