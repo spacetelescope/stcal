@@ -49,19 +49,18 @@ class JumpData:
             # to trivial values if a read pattern is not found.
 
             if hasattr(jump_model, "read_pattern") and jump_model.read_pattern is not None:
-                t_group = np.array([np.mean(times)
-                                    for times in jump_model.read_pattern])
+                t_group = np.array([np.mean(times) for times in jump_model.read_pattern])
                 self.dt_group = np.diff(t_group)
-                n_reads_group = np.array([len(times)
-                                          for times in jump_model.read_pattern])
+                n_reads_group = np.array([len(times) for times in jump_model.read_pattern])
                 self.n_reads_groupdiff = n_reads_group[1:] + n_reads_group[:-1]
             else:
                 # This will preserve current behavior
                 if self.nframes == 0:
-                    raise ValueError("Attribute nframes not in meta.exposure."
-                                     "Required if read_pattern is not defined.")
+                    raise ValueError(
+                        "Attribute nframes not in meta.exposure.Required if read_pattern is not defined."
+                    )
                 self.dt_group = np.ones(1)
-                self.n_reads_groupdiff = np.ones(1)*2*self.nframes
+                self.n_reads_groupdiff = np.ones(1) * 2 * self.nframes
 
         # Get reference arrays
         # gain is a 2-D ndarray for the gain for each pixel

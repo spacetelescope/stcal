@@ -44,8 +44,7 @@ def create_jump_data(dims, gain, rnoise, tm):
     frame_time, nframes, groupgap = tm
     jump_data.nframes = nframes
     jump_data.dt_group = np.ones(1)
-    jump_data.n_reads_groupdiff = np.ones(1)*2*jump_data.nframes
-
+    jump_data.n_reads_groupdiff = np.ones(1) * 2 * jump_data.nframes
 
     return jump_data
 

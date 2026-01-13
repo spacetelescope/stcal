@@ -45,21 +45,19 @@ def default_twopt_p(rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200
 
     twopt_p.copy_arrs = True
     twopt_p.dt_group = np.ones(1)
-    twopt_p.n_reads_groupdiff = np.ones(1)*2*twopt_p.nframes
+    twopt_p.n_reads_groupdiff = np.ones(1) * 2 * twopt_p.nframes
 
     return twopt_p
 
 
-def uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3,
-                             _4n=False, mx_flag=200, mn_flag=10):
+def uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3, _4n=False, mx_flag=200, mn_flag=10):
     twopt_p = TwoPointParams()
     twopt_p.normal_rej_thresh = rej
-
 
     twopt_p.two_diff_rej_thresh = 3
     twopt_p.three_diff_rej_thresh = 3
     twopt_p.nframes = 1
-            
+
     twopt_p.flag_4_neighbors = _4n
     twopt_p.max_jump_to_flag_neighbors = mx_flag
     twopt_p.min_jump_to_flag_neighbors = mn_flag
@@ -68,9 +66,9 @@ def uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3,
     twopt_p.fl_sat = DQFLAGS["SATURATED"]
     twopt_p.fl_dnu = DQFLAGS["DO_NOT_USE"]
 
-    twopt_p.after_jump_flag_e1 = 0.
+    twopt_p.after_jump_flag_e1 = 0.0
     twopt_p.after_jump_flag_n1 = 0
-    twopt_p.after_jump_flag_e2 = 0.
+    twopt_p.after_jump_flag_e2 = 0.0
     twopt_p.after_jump_flag_n2 = 0
 
     twopt_p.minimum_groups = 3
@@ -82,16 +80,16 @@ def uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3,
 
     t_group = np.array([np.mean(times) for times in read_times])
     twopt_p.dt_group = np.diff(t_group)
-    
+
     n_reads_group = np.array([len(times) for times in read_times])
     twopt_p.n_reads_groupdiff = n_reads_group[1:] + n_reads_group[:-1]
 
     return twopt_p
 
-def test_uneven_groups():
 
+def test_uneven_groups():
     read_times = [[1], [2, 3], [4, 5, 6], [7, 8, 9, 10, 11], [12]]
-    
+
     nints, ngroups, nrows, ncols = 1, 5, 2, 2
     dims = nints, ngroups, nrows, ncols
     rnoise = 2
@@ -117,17 +115,18 @@ def test_uneven_groups():
     # exposure time.  This has a delta(mean_t) of 4, so a photon noise
     # of 8 electrons.  It is a little less than 2.5 sigma.
     data[0, 3:, 1, 1] += 20
-    
-    twopt_p = uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3,
-                                       _4n=False, mx_flag=200, mn_flag=10)
 
-    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(
-        data, gdq, read_noise, twopt_p)
+    twopt_p = uneven_resultant_twopt_p(
+        read_times, rej=3, _1drej=3, _3drej=3, _4n=False, mx_flag=200, mn_flag=10
+    )
+
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(data, gdq, read_noise, twopt_p)
 
     assert np.array_equal(out_gdq[0, :, 0, 0], [0, 4, 0, 0, 0])
     assert np.array_equal(out_gdq[0, :, 0, 1], [0, 0, 0, 0, 0])
     assert np.array_equal(out_gdq[0, :, 1, 0], [0, 0, 0, 4, 0])
     assert np.array_equal(out_gdq[0, :, 1, 1], [0, 0, 0, 0, 0])
+
 
 def test_varying_groups():
     nints, ngroups, nrows, ncols = 1, 5, 2, 2
@@ -148,6 +147,7 @@ def test_varying_groups():
     assert np.array_equal(out_gdq[0, :, 0, 1], [0, 0, 0, 4, 0])
     assert np.array_equal(out_gdq[0, :, 1, 0], [0, 0, 4, 0, 0])
     assert np.array_equal(out_gdq[0, :, 1, 1], [0, 0, 0, 0, 0])
+
 
 def test_multint_pixel():
     nints, ngroups, nrows, ncols = 7, 4, 2, 2
@@ -872,7 +872,7 @@ def sigclip_twopt_p():
     twopt_p.min_diffs_single_pass = 10
 
     twopt_p.dt_group = np.ones(1)
-    twopt_p.n_reads_groupdiff = np.ones(1)*2*twopt_p.nframes
+    twopt_p.n_reads_groupdiff = np.ones(1) * 2 * twopt_p.nframes
 
     twopt_p.copy_arrs = False
 

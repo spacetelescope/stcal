@@ -166,7 +166,6 @@ def run_jump_detection(
     sigma : ndarray
         The sigma for each pixel.
     """
-
     # set 'saturated' or 'do not use' pixels to nan in data
     dat[gdq & (twopt_p.fl_dnu | twopt_p.fl_sat) != 0] = np.nan
 
@@ -193,8 +192,10 @@ def run_jump_detection(
     # of reads, the first dimension could be 1.
     # Factor of 0.5 because read_noise_2 is CDS.
     # First compute the uncertainty in counts, then scale to counts/time.
-    sigma = np.sqrt(np.abs(median_diffs) * twopt_p.dt_group[:, None, None] +
-                    read_noise_2 / (0.5 * twopt_p.n_reads_groupdiff[:, None, None]))
+    sigma = np.sqrt(
+        np.abs(median_diffs) * twopt_p.dt_group[:, None, None]
+        + read_noise_2 / (0.5 * twopt_p.n_reads_groupdiff[:, None, None])
+    )
     sigma /= twopt_p.dt_group[:, None, None]
 
     # reset sigma so pxels with 0 readnoise are not flagged as jumps
@@ -309,10 +310,12 @@ def get_cr_locs(first_diffs_abs, read_noise_2, ndiffs, twopt_p, index=None):
         median_diffs_iter[index] = calc_med_first_diffs(firstdiffs_reshaped)
     else:
         median_diffs_iter = calc_med_first_diffs(first_diffs_abs)
-        
+
     # calculate sigma for each pixel and group
-    sigma_iter = np.sqrt(np.abs(median_diffs_iter) * twopt_p.dt_group[:, None, None] +
-                         read_noise_2 / (0.5 * twopt_p.n_reads_groupdiff[:, None, None]))
+    sigma_iter = np.sqrt(
+        np.abs(median_diffs_iter) * twopt_p.dt_group[:, None, None]
+        + read_noise_2 / (0.5 * twopt_p.n_reads_groupdiff[:, None, None])
+    )
     sigma_iter /= twopt_p.dt_group[:, None, None]
 
     # reset sigma so pixels with 0 readnoise are not flagged as jumps
@@ -381,7 +384,6 @@ def look_for_more_than_one_jump(gdq, nints, first_diffs, median_diffs, sigma, fi
     # footprint.
     for i in range(nints):
         for gi in range(1, gdq[i].shape[0]):
-
             # Sigma could be defined separately for each group, or it could
             # be the same for each group.  Need to catch these two cases.
             if sigma.shape[0] == 1:
@@ -477,8 +479,7 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
         Returns False if groups are uneven, e.g., for Roman.
     """
     # We cannot apply this test for uneven groups.
-    all_grps_uniform = (np.std(twopt_p.n_reads_groupdiff) == 0 and
-                        np.std(twopt_p.dt_group) == 0)
+    all_grps_uniform = np.std(twopt_p.n_reads_groupdiff) == 0 and np.std(twopt_p.dt_group) == 0
     if not all_grps_uniform:
         return False
 
@@ -525,7 +526,6 @@ def flag_four_neighbors(
     """
     for i in range(nints):
         for j in range(ngroups - 1):
-
             # Sigma could be defined separately for each group, or it could
             # be the same for each group.  Need to catch these two cases.
             if sigma.shape[0] == 1:
