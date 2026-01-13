@@ -5,7 +5,6 @@ Used by :py:func:`~stcal.skymatch.skymatch.skymatch`
 and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 """
 
-# THIRD PARTY
 from copy import deepcopy
 
 from stsci.imagestats import ImageStats
