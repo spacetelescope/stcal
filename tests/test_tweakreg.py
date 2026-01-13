@@ -29,8 +29,8 @@ from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
-EXPECTED_NUM_SOURCES = 1991
-EXPECTED_NUM_SOURCES_BAD_PM = 2469
+EXPECTED_NUM_SOURCES = {"GAIAREFCAT": 1991, "GAIADR3_S3": 2469}
+EXPECTED_NUM_SOURCES_BAD_PM = {"GAIAREFCAT": 2469, "GAIADR3_S3": 2469}
 
 # more recent WCS with a defined input frame is necessary for some tests
 WCS_NAME_2 = "nrcb1-wcs.asdf"
@@ -93,13 +93,13 @@ def test_get_catalog(wcsobj, abs_catalog):
         catalog=abs_catalog,
     )
 
-    assert len(cat) == EXPECTED_NUM_SOURCES
+    assert len(cat) == EXPECTED_NUM_SOURCES[abs_catalog]
 
     cat2 = amutils.get_catalog(
         fiducial[0], fiducial[1], search_radius=radius, catalog=abs_catalog, strict_cols=None
     )
 
-    assert len(cat2) == EXPECTED_NUM_SOURCES_BAD_PM
+    assert len(cat2) == EXPECTED_NUM_SOURCES_BAD_PM[abs_catalog]
 
 
 def test_create_catalog(wcsobj, abs_catalog):
@@ -111,7 +111,7 @@ def test_create_catalog(wcsobj, abs_catalog):
         output=None,
     )
     # check that we got expected number of sources
-    assert len(gcat) == EXPECTED_NUM_SOURCES
+    assert len(gcat) == EXPECTED_NUM_SOURCES[abs_catalog]
 
 
 def test_create_catalog_graceful_failure(wcsobj, abs_catalog):
