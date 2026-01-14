@@ -6,7 +6,7 @@ import warnings
 import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
-from drizzle.cdrizzle import tblot
+from drizzle.resample import blot_image
 from scipy import ndimage
 from skimage.util import view_as_windows
 
@@ -263,15 +263,20 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
     # what we've been doing up until now, so more investigation is needed
     # before a change is made.  Preferably, fix tblot in drizzle.
     pixmap[np.isnan(pixmap)] = -1
-    tblot(
-        median_data,
-        pixmap,
-        outsci,
-        scale=pix_ratio,
-        kscale=1.0,
+
+    blot_image(
+        data=median_data,
+        pixmap=pixmap,
+        out_img=outsci,
+        fillval=fillval,
+        # scaling of the input pixel is unnecessary since outlier detection
+        # is based on SNR (ratio being a key word here). However, to preserve
+        # the same accuracy loss as before, we keep the scaling in order for
+        # the regression tests to pass.
+        # TODO: Consider setting iscale=1 to avoid accuracy loss and simplify
+        # the logic.
+        iscale=1.0 / (pix_ratio * pix_ratio),
         interp="linear",
-        exptime=1.0,
-        misval=fillval,
         sinscl=1.0,
     )
 
