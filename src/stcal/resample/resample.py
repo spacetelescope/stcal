@@ -1000,8 +1000,7 @@ class Resample:
     def resample_variance_arrays(
         self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax
     ):
-        """Resample and co-add variance arrays using appropriate weights
-        and update total weights.
+        """Resample and co-add variance arrays using appropriate weights and update total weights.
 
         Parameters
         ----------
