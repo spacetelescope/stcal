@@ -198,4 +198,9 @@ def get_catalog(
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"
-    return Table.read(r_contents, format="csv", comment="#")
+    catalog = Table.read(r_contents, format="csv", comment="#")
+    if epoch and catalog:
+        # When provided with an epoch gsss returns corrected and non-corrected
+        # sources. Filter out the non-corrected ones.
+        catalog = catalog[~(catalog["pmra"].mask & catalog["pmdec"].mask)]
+    return catalog
