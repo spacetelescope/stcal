@@ -29,7 +29,8 @@ from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
-EXPECTED_NUM_SOURCES = 2469
+EXPECTED_NUM_SOURCES = {"GAIAREFCAT": 1991, "GAIADR3_S3": 2469}
+EXPECTED_NUM_SOURCES_BAD_PM = {"GAIAREFCAT": 2469, "GAIADR3_S3": 1991}
 
 # more recent WCS with a defined input frame is necessary for some tests
 WCS_NAME_2 = "nrcb1-wcs.asdf"
@@ -92,7 +93,13 @@ def test_get_catalog(wcsobj, abs_catalog):
         catalog=abs_catalog,
     )
 
-    assert len(cat) == EXPECTED_NUM_SOURCES
+    assert len(cat) == EXPECTED_NUM_SOURCES[abs_catalog]
+
+    cat2 = amutils.get_catalog(
+        fiducial[0], fiducial[1], search_radius=radius, catalog=abs_catalog, strict_cols=None
+    )
+
+    assert len(cat2) == EXPECTED_NUM_SOURCES_BAD_PM[abs_catalog]
 
 
 def test_create_catalog(wcsobj, abs_catalog):
@@ -104,7 +111,7 @@ def test_create_catalog(wcsobj, abs_catalog):
         output=None,
     )
     # check that we got expected number of sources
-    assert len(gcat) == EXPECTED_NUM_SOURCES
+    assert len(gcat) == EXPECTED_NUM_SOURCES[abs_catalog]
 
 
 def test_create_catalog_graceful_failure(wcsobj, abs_catalog):
@@ -149,6 +156,7 @@ def fake_correctors(offset):
 
 
 @pytest.mark.parametrize(("offset", "is_good"), [(1 / 3600, True), (11 / 3600, False)])
+@pytest.mark.filterwarnings("ignore:WCS has been tweaked by more than:UserWarning")
 def test_is_wcs_correction_small(offset, is_good):
     """
     Test that the _is_wcs_correction_small method returns True for a small
@@ -395,7 +403,7 @@ def test_get_catalog_raises_connection_error(monkeypatch):
 
 @pytest.mark.parametrize("epoch", [None, 2025.1])
 def test_catalogs_match(epoch):
-    gsss = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3")
+    gsss = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3", strict_cols=None)
     s3 = amutils.get_catalog(10, 10, search_radius=0.1, epoch=epoch, catalog="GAIADR3_S3")
     if epoch:
         gsss = gsss[~(gsss["pmra"].mask)]
@@ -403,3 +411,21 @@ def test_catalogs_match(epoch):
     s3.sort("objID")
     np.testing.assert_allclose(gsss["ra"], s3["ra"], rtol=1e-7)
     np.testing.assert_allclose(gsss["dec"], s3["dec"], rtol=1e-7)
+
+
+def test_get_catalog_pm_warn():
+    ra = 259.29706462808133
+    dec = 43.1388181388068
+    sr = 0.001
+    cn = "GAIADR2"  # No column named "pm", unlike DR3
+
+    with pytest.warns(UserWarning, match="strict_cols"):
+        cat_dr2 = amutils.get_catalog(
+            ra, dec, search_radius=sr, catalog=cn, strict_cols=("pm", "pmra", "pmdec")
+        )
+
+    assert len(cat_dr2) == 6
+
+    cat_dr2 = amutils.get_catalog(ra, dec, search_radius=sr, catalog=cn)
+
+    assert len(cat_dr2) == 4  # 2 rows filtered out

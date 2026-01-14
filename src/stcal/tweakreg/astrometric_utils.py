@@ -1,5 +1,7 @@
 import os
+import warnings
 
+import numpy as np
 import requests
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -28,6 +30,7 @@ def create_astrometric_catalog(
     table_format="ascii.ecsv",
     num_sources=None,
     timeout=TIMEOUT,
+    strict_cols=("pmra", "pmdec"),
 ):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
@@ -61,29 +64,39 @@ def create_astrometric_catalog(
     timeout : float
         Maximum time to wait (in seconds) for the catalog service to respond.
 
-
-
-    Notes
-    -----
-    This function will point to astrometric catalog web service defined
-    through the use of the ASTROMETRIC_CATALOG_URL environment variable.
+    strict_cols : tuple or None, optional
+        Only return rows with good (unmasked) values for all the given columns.
+        Default values are tuned for Gaia DR3 proper motion. Default: ``('pmra', 'pmdec')``
 
     Returns
     -------
     ref_table : `~astropy.table.Table`
         Astropy Table object of the catalog
+
+    Notes
+    -----
+    This function will point to astrometric catalog web service defined
+    through the use of the ASTROMETRIC_CATALOG_URL environment variable.
     """
     # start by creating a composite field-of-view for all inputs
     radius, fiducial = compute_radius(wcs)
 
     # perform query for this field-of-view
     ref_dict = get_catalog(
-        fiducial[0], fiducial[1], epoch=epoch, search_radius=radius, catalog=catalog, timeout=timeout
+        fiducial[0],
+        fiducial[1],
+        epoch=epoch,
+        search_radius=radius,
+        catalog=catalog,
+        timeout=timeout,
+        strict_cols=strict_cols,
     )
     if len(ref_dict) == 0:
         return ref_dict
 
-    colnames = ("ra", "dec", "mag", "objID", "epoch")
+    colnames = ["ra", "dec", "mag", "objID", "epoch"]
+    if strict_cols:
+        colnames += strict_cols
     ref_table = ref_dict[colnames]
 
     # Add catalog name as meta data
@@ -133,6 +146,7 @@ def get_catalog(
     search_radius=0.1,
     catalog="GAIADR3",
     timeout=TIMEOUT,
+    strict_cols=("pmra", "pmdec"),
 ):
     """Extract catalog from VO web service.
 
@@ -158,10 +172,14 @@ def get_catalog(
     timeout : float, optional
         Timeout in seconds to wait for the catalog web service to respond. Default: 30.0 s
 
+    strict_cols : tuple or None, optional
+        Only return rows with good (unmasked) values for all the given columns.
+        Default values are tuned for Gaia DR3 proper motion. Default: ``('pmra', 'pmdec')``
+
     Returns
     -------
-    csv : `~astropy.table.Table`
-        CSV object of returned sources with all columns as provided by catalog
+    filtered_csv : `~astropy.table.Table`
+        CSV object of returned sources with all columns as provided by catalog.
 
     """
     if catalog in S3_CATALOGS:
@@ -198,4 +216,20 @@ def get_catalog(
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"
-    return Table.read(r_contents, format="csv", comment="#")
+    csv = Table.read(r_contents, format="csv", comment="#")
+
+    if (not strict_cols) or (len(csv) == 0) or (csv.mask is None):
+        return csv
+
+    has_all_strict_cols = np.all([cn in csv.colnames for cn in strict_cols])
+
+    if not has_all_strict_cols:
+        warnings.warn(f"strict_cols={strict_cols} but required columns not found, ignoring...", stacklevel=2)
+        filtered_csv = csv
+
+    else:
+        good = np.bitwise_and.reduce([~csv[cn].mask for cn in strict_cols])
+        filtered_csv = csv[good].copy()
+        del csv
+
+    return filtered_csv

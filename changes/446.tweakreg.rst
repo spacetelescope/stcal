@@ -1,0 +1,1 @@
+``create_astrometric_catalog()`` and ``get_catalog()`` now throws out rows with invalid proper motion. You can get back the old behavior by setting ``strict_cols=None`` when calling it.
