@@ -148,13 +148,13 @@ def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to", stepsize=1, ord
                 *wcs_from.pixel_to_world_values(sparsegrid[0], sparsegrid[1])
             )
 
-            fx = interpolate.RectBivariateSpline(x_coarse, y_coarse, pixmap_coarse[0], kx=order, ky=order)
-            fy = interpolate.RectBivariateSpline(x_coarse, y_coarse, pixmap_coarse[1], kx=order, ky=order)
+            fx = interpolate.RectBivariateSpline(y_coarse, x_coarse, pixmap_coarse[0], kx=order, ky=order)
+            fy = interpolate.RectBivariateSpline(y_coarse, x_coarse, pixmap_coarse[1], kx=order, ky=order)
 
             # Evaluate the spline on the full grid
 
-            x = fx(x_in, y_in)
-            y = fy(x_in, y_in)
+            x = fx(y_in, x_in)
+            y = fy(y_in, x_in)
 
     finally:
         if bbox_from is not None:
