@@ -833,7 +833,11 @@ class Resample:
             self._output_model["err"] = self._driz_error.out_img
 
     def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """Add a hook method called by the :py:meth:`~Resample.add_model` method.
+        """Perform additional processing while resampling.
+
+        A hook method called by the :py:meth:`~Resample.add_model` method.
+        It allows subclasses perform additional processing at the time the
+        ``model["data"]`` array is resampled.
 
         It allows subclasses perform additional processing at the time
         the ``model["data"]`` array is resampled.
@@ -1000,7 +1004,10 @@ class Resample:
     def resample_variance_arrays(
         self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax
     ):
-        """Resample and co-add variance arrays using appropriate weights and update total weights.
+        """Resample variance arrays.
+
+        Resample and co-add variance arrays using appropriate weights
+        and update total weights.
 
         Parameters
         ----------
