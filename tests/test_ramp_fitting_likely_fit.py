@@ -614,5 +614,5 @@ def test_flag_large_events_withsnowball():
     meanerr_jumppixels_orig = np.mean(err[dq == JUMP])
     assert np.std(err[dq == JUMP]) < 1e-6
     assert np.abs(meanerr_jumppixels_orig - meanerr_jumppixels_new) < 1e-5
-    
+
     assert n_jump_original == 112 and n_jump_expanded > 300 and n_jump_expanded < 600
