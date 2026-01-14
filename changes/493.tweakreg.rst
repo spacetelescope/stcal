@@ -1,1 +1,1 @@
-Fix ``get_catalog`` to only return sources with proper motion when an epoch is provided.
+Fix ``get_catalog`` and ``create_astrometric_catalog`` to only return sources with proper motion when an epoch is provided.
