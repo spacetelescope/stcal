@@ -415,3 +415,21 @@ def test_catalogs_match(epoch):
     s3.sort("objID")
     np.testing.assert_allclose(gsss["ra"], s3["ra"], rtol=1e-7)
     np.testing.assert_allclose(gsss["dec"], s3["dec"], rtol=1e-7)
+
+
+@pytest.mark.parametrize(
+    "epoch, n_sources",
+    [
+        (None, 6),
+        (2026.0, 4),
+    ],
+)
+def test_gaia_dr2(epoch, n_sources):
+    ra = 259.29706462808133
+    dec = 43.1388181388068
+    sr = 0.001
+    cn = "GAIADR2"
+
+    cat_dr2 = amutils.get_catalog(ra, dec, epoch=epoch, search_radius=sr, catalog=cn)
+
+    assert len(cat_dr2) == n_sources
