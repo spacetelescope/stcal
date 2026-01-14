@@ -34,9 +34,7 @@ docs = [
   "packaging >=17",
   "sphinx",
   "sphinx-asdf",
-  "sphinx-astropy",
   "sphinx-rtd-theme",
-  "tomli; python_version <=\"3.11\"",
 ]
 test = ["psutil", "pytest >=6", "pytest-cov", "pytest-doctestplus"]
 
