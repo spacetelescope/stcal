@@ -31,7 +31,7 @@ class SkyStats:
         Parameters
         ----------
         skystat : optional
-            possible values are'mode', 'median', 'mode', 'midpt".
+            possible values are 'mean', 'median', 'mode', 'midpt".
             Sets the statistics that will be returned by `~stcal.skymatch.skystatistics.SkyStats.calc_sky`.
             The following statistics are supported: 'mean', 'mode', 'midpt',
             and 'median'. First three statistics have the same meaning as in
