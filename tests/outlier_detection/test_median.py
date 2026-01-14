@@ -4,13 +4,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from stcal._testing.memory_threshold import MemoryThreshold
 from stcal.outlier_detection.median import (
     MedianComputer,
     _DiskAppendableArray,
     _OnDiskMedian,
     nanmedian3D,
 )
-from stcal.testing_helpers import MemoryThreshold
 
 
 def test_disk_appendable_array(tmp_path):
