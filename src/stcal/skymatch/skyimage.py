@@ -564,7 +564,7 @@ class SkyImage:
 
                 # set pixels in 'fill_mask' that are inside a polygon to True:
                 x, y = self.wcs_inv(ra, dec, with_bounding_box=False)
-                poly_vert = list(zip(*[x, y]))
+                poly_vert = list(zip(x, y, strict=True))
 
                 polygon = region.Polygon(True, poly_vert)
                 fill_mask = polygon.scan(fill_mask)
