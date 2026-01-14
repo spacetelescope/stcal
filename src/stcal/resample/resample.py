@@ -833,9 +833,10 @@ class Resample:
             self._output_model["err"] = self._driz_error.out_img
 
     def add_model_hook(self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax):
-        """A hook method called by the :py:meth:`~Resample.add_model` method.
-        It allows subclasses perform additional processing at the time the
-        ``model["data"]`` array is resampled.
+        """ Add a hook method called by the :py:meth:`~Resample.add_model` method.
+
+        It allows subclasses perform additional processing at the time
+        the ``model["data"]`` array is resampled.
 
         This method is called immediately after ``model["data"]`` is resampled.
 
