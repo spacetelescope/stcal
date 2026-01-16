@@ -228,7 +228,7 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
 
 def get_slice(image_info, image_slice, row_start, nrows):
     """
-    Populate the image output information from each slice.
+    Populate the output information from each slice.
 
     image_info: dictionary
         The output image information to populate from the slice.
@@ -243,6 +243,15 @@ def get_slice(image_info, image_slice, row_start, nrows):
         The number of rows int the current slice.
     """
     srow, erow = row_start, row_start + nrows
+
+    # The optional results product is of variable size in its second dimension.
+    # The number of segments/cosmic rays determine the final products size.
+    # Because each slice is computed independently, the number of segments may
+    # differ from segment to segment.  The final output product is created
+    # using the max size for this dimension.  To ensure correct assignment is
+    # done during this step, the second dimension, as well as the row
+    # dimension, must be specified.  This logic is triggered only if there
+    # is a size mismatch between the slice and the subarray to be assigned.
 
     for key in image_info.keys():
         if image_info[key][..., srow:erow, :].size == image_slice[key].size:
@@ -279,7 +288,13 @@ def create_output_info(ramp_data, pool_results, save_opt):
     var_rnoise = np.zeros(imshape, dtype=np.float32)
     err = np.zeros(imshape, dtype=np.float32)
 
-    image_info = {'slope':data, 'dq':dq, 'var_poisson':var_poisson, 'var_rnoise':var_rnoise, 'err':err}
+    image_info = {
+        'slope':data,
+        'dq':dq,
+        'var_poisson':var_poisson,
+        'var_rnoise':var_rnoise,
+        'err':err
+    }
 
     # Create the integration products
     idata = np.zeros(integ_shape, dtype=np.float32)
@@ -288,7 +303,13 @@ def create_output_info(ramp_data, pool_results, save_opt):
     ivar_rnoise = np.zeros(integ_shape, dtype=np.float32)
     ierr = np.zeros(integ_shape, dtype=np.float32)
 
-    integ_info = {'slope':idata, 'dq':idq, 'var_poisson':ivar_poisson, 'var_rnoise':ivar_rnoise, 'err':ierr}
+    integ_info = {
+        'slope':idata,
+        'dq':idq,
+        'var_poisson':ivar_poisson,
+        'var_rnoise':ivar_rnoise,
+        'err':ierr
+    }
 
     # Create the optional results product
     if save_opt:
