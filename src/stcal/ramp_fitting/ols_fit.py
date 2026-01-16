@@ -52,14 +52,14 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
 
     Returns
     -------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
+    image_info : dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
+    integ_info : dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info : dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
     # Determine number of slices to use for multi-processor computations
     nrows = ramp_data.data.shape[2]
@@ -137,14 +137,14 @@ def ols_ramp_fit_multiprocessing(ramp_data, save_opt, readnoise_2d, gain_2d, wei
 
     Return
     ------
-    image_info: tuple
-        The tuple of computed ramp fitting arrays.
+    image_info: dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info: tuple
-        The tuple of computed integration fitting arrays.
+    integ_info: dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info: tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info: dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
     log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
@@ -170,7 +170,7 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     Assemble pool results.
 
     Takes the list of results from the starmap pool method and assembles the
-    slices into primary tuples to be returned by `ramp_fit`.
+    slices into primary dictionaries to be returned by `ramp_fit`.
 
     Parameters
     ----------
@@ -183,8 +183,8 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     pool_results: list
         The list of return values from ols_ramp_fit_single for each slice.
         Each slice is run through ols_ramp_fit_single, which returns three
-        tuples of ndarrays, so pool_results is a list of tuples.  Each tuple
-        contains:
+        dictionaries of ndarrays, so pool_results is a list of dictionaries.
+        Each one contains:
             image_info, integ_info, opt_info
 
     rows_per_slice: list
@@ -192,16 +192,16 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
 
     Return
     ------
-    image_info: tuple
-        The tuple of computed ramp fitting arrays.
+    image_info: dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info: tuple
-        The tuple of computed integration fitting arrays.
+    integ_info: dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info: tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info: dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
-    # Create output arrays for each output tuple.  The input ramp data and
+    # Create output arrays for each output dictionary.  The input ramp data and
     # slices are needed for this.
     for result in pool_results:
         image_slice, integ_slice, opt_slice = result
@@ -230,10 +230,10 @@ def get_slice(image_info, image_slice, row_start, nrows):
     """
     Populate the image output information from each slice.
 
-    image_info: tuple
+    image_info: dictionary
         The output image information to populate from the slice.
 
-    image_slice: tuple
+    image_slice: dictionary
         The output slice used to populate the output arrays.
 
     row_start: int
@@ -254,7 +254,7 @@ def get_slice(image_info, image_slice, row_start, nrows):
 
 def create_output_info(ramp_data, pool_results, save_opt):
     """
-    Create the output arrays and tuples for ramp fitting reassembly for mulitprocessing.
+    Create the output arrays and dictionaries for ramp fitting reassembly for mulitprocessing.
 
     Parameters
     ----------
@@ -279,7 +279,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
     var_rnoise = np.zeros(imshape, dtype=np.float32)
     err = np.zeros(imshape, dtype=np.float32)
 
-    image_info = {'data':data, 'dq':dq, 'var_p':var_poisson, 'var_r':var_rnoise, 'err':err}
+    image_info = {'slope':data, 'dq':dq, 'var_poisson':var_poisson, 'var_rnoise':var_rnoise, 'err':err}
 
     # Create the integration products
     idata = np.zeros(integ_shape, dtype=np.float32)
@@ -288,8 +288,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
     ivar_rnoise = np.zeros(integ_shape, dtype=np.float32)
     ierr = np.zeros(integ_shape, dtype=np.float32)
 
-    #integ_info = (idata, idq, ivar_poisson, ivar_rnoise, ierr)
-    integ_info = {'data':idata, 'dq':idq, 'var_p':ivar_poisson, 'var_r':ivar_rnoise, 'err':ierr}
+    integ_info = {'slope':idata, 'dq':idq, 'var_poisson':ivar_poisson, 'var_rnoise':ivar_rnoise, 'err':ierr}
 
     # Create the optional results product
     if save_opt:
@@ -312,8 +311,8 @@ def create_output_info(ramp_data, pool_results, save_opt):
         opt_info = {
             'slope':oslope,
             'sigslope':osigslope,
-            'var_p':ovar_poisson,
-            'var_r':ovar_rnoise,
+            'var_poisson':ovar_poisson,
+            'var_rnoise':ovar_rnoise,
             'yint':oyint,
             'sigyint':osigyint,
             'pedestal':opedestal,
@@ -537,14 +536,14 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
 
     Return
     ------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
+    image_info : dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
+    integ_info : dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info : dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
     c_start = time.time()
 

@@ -1048,8 +1048,8 @@ build_opt_res(struct ramp_data *rd) /* The ramp fitting data */
         "{s:N,s:N,s:N,s:N,s:N,s:N,s:N,s:N,s:N}",
         "slope", opt_res.slope,
 	"sigslope", opt_res.sigslope,
-	"var_p", opt_res.var_p,
-	"var_r", opt_res.var_r,
+	"var_poisson", opt_res.var_p,
+	"var_rnoise", opt_res.var_r,
 	"yint", opt_res.yint,
         "sigyint", opt_res.sigyint,
 	"pedestal", opt_res.pedestal,
@@ -2580,10 +2580,10 @@ package_results(
 
     image_info = Py_BuildValue(
         "{s:N,s:N,s:N,s:N,s:N}",
-	"data", rate->slope,
+	"slope", rate->slope,
 	"dq", rate->dq,
-	"var_p", rate->var_poisson,
-	"var_r", rate->var_rnoise,
+	"var_poisson", rate->var_poisson,
+	"var_rnoise", rate->var_rnoise,
 	"err", rate->var_err);
     if (!image_info) {
         goto FAILED_ALLOC;
@@ -2591,10 +2591,10 @@ package_results(
 
     cube_info = Py_BuildValue(
         "{s:N,s:N,s:N,s:N,s:N}",
-	"data", rateints->slope,
+	"slope", rateints->slope,
 	"dq", rateints->dq,
-	"var_p", rateints->var_poisson,
-	"var_r", rateints->var_rnoise,
+	"var_poisson", rateints->var_poisson,
+	"var_rnoise", rateints->var_rnoise,
         "err", rateints->var_err);
     if (!cube_info) {
         goto FAILED_ALLOC;
