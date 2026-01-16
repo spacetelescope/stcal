@@ -8,14 +8,13 @@ import warnings
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
 
     import astropy
 
 import gwcs
 import numpy as np
 from astropy import coordinates as coord
-from astropy import wcs as fitswcs
 from astropy.modeling import models as astmodels
 from gwcs import FITSImagingWCSTransform
 
@@ -30,7 +29,6 @@ __all__ = [
     "sregion_to_footprint",
     "wcs_from_sregions",
     "wcs_bbox_from_shape",
-    "reproject",
 ]
 
 
@@ -633,90 +631,3 @@ def compute_s_region_keyword(footprint: np.ndarray) -> str | None:
         return None
     log.info("Update S_REGION to %s", s_region)
     return s_region
-
-
-def reproject(wcs1: gwcs.wcs.WCS, wcs2: gwcs.wcs.WCS) -> Callable:
-    """
-    Compute reproection from wcs1 to wcs2.
-
-    Given two WCSs or transforms return a function which takes pixel
-    coordinates in the first WCS or transform and computes them in pixel coordinates
-    in the second one. It performs the forward transformation of ``wcs1`` followed by the
-    inverse of ``wcs2``.
-
-    Parameters
-    ----------
-    wcs1 : astropy.wcs.WCS or gwcs.wcs.WCS
-        Input WCS objects or transforms.
-    wcs2 : astropy.wcs.WCS or gwcs.wcs.WCS
-        Output WCS objects or transforms.
-
-    Returns
-    -------
-        Function to compute the transformations.  It takes x, y
-        positions in ``wcs1`` and returns x, y positions in ``wcs2``.
-    """
-
-    def _get_forward_transform_func(wcs1):
-        """
-        Get the forward transform function from the input WCS.
-
-        If the wcs is a fitswcs.WCS object all_pix2world requires three inputs, the x (str, ndarrray),
-        y (str, ndarray), and origin (int). The origin should be between 0, and 1
-        https://docs.astropy.org/en/latest/wcs/index.html#loading-wcs-information-from-a-fits-file
-        ).
-        """
-        if isinstance(wcs1, fitswcs.WCS):
-            forward_transform = wcs1.all_pix2world
-        elif isinstance(wcs1, gwcs.WCS):
-            forward_transform = wcs1.forward_transform
-        else:
-            msg = "Expected input to be astropy.wcs.WCS or gwcs.WCS object"
-            raise TypeError(msg)
-        return forward_transform
-
-    def _get_backward_transform_func(wcs2):
-        if isinstance(wcs2, fitswcs.WCS):
-            backward_transform = wcs2.all_world2pix
-        elif isinstance(wcs2, gwcs.WCS):
-            backward_transform = wcs2.backward_transform
-        else:
-            msg = "Expected input to be astropy.wcs.WCS or gwcs.WCS object"
-            raise TypeError(msg)
-        return backward_transform
-
-    def _reproject(x: float | np.ndarray, y: float | np.ndarray) -> tuple:
-        """
-        Reprojects the input coordinates from one WCS to another.
-
-        Parameters
-        ----------
-        x : float or np.ndarray
-            x-coordinate(s) to be reprojected.
-        y : float or np.ndarray
-            y-coordinate(s) to be reprojected.
-
-        Returns
-        -------
-        tuple
-            Tuple of np.ndarrays including reprojected x and y coordinates.
-        """
-        # example inputs to resulting function (12, 13, 0) # third number is origin
-        # uses np.arrays for shape functionality
-        if not isinstance(x, (np.ndarray)):
-            x = np.array(x)
-        if not isinstance(y, (np.ndarray)):
-            y = np.array(y)
-        if x.shape != y.shape:
-            msg = "x and y must be the same length"
-            raise ValueError(msg)
-        sky = _get_forward_transform_func(wcs1)(x, y, 0)
-
-        # rearrange into array including flattened x and y values
-        flat_sky = [axis.flatten() for axis in sky]
-        det = np.array(_get_backward_transform_func(wcs2)(flat_sky[0], flat_sky[1], 0))
-        det_reshaped = [axis.reshape(x.shape) for axis in det]
-
-        return tuple(det_reshaped)
-
-    return _reproject
