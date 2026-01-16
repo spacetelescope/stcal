@@ -428,7 +428,6 @@ def compute_image_info(integ_class, ramp_data):
     err = np.sqrt(var_p + var_r)
 
     return {"slope": slope, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": err}
-    # return (slope, dq, var_p, var_r, err)
 
 
 def determine_diffs2use(row, diffs, gdq):
