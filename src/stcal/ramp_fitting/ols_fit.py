@@ -216,17 +216,17 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
         image_slice, integ_slice, opt_slice = result
         nrows = rows_per_slice[k]
 
-        get_image_slice(image_info, image_slice, current_row_start, nrows)
-        get_integ_slice(integ_info, integ_slice, current_row_start, nrows)
+        get_slice(image_info, image_slice, current_row_start, nrows)
+        get_slice(integ_info, integ_slice, current_row_start, nrows)
         if save_opt:
-            get_opt_slice(opt_info, opt_slice, current_row_start, nrows)
+            get_slice(opt_info, opt_slice, current_row_start, nrows)
         current_row_start = current_row_start + nrows
 
     # Handle integration times
     return image_info, integ_info, opt_info
 
 
-def get_image_slice(image_info, image_slice, row_start, nrows):
+def get_slice(image_info, image_slice, row_start, nrows):
     """
     Populate the image output information from each slice.
 
@@ -242,84 +242,14 @@ def get_image_slice(image_info, image_slice, row_start, nrows):
     nrows: int
         The number of rows int the current slice.
     """
-    data, dq, var_poisson, var_rnoise, err = image_info
-    sdata, sdq, svar_poisson, svar_rnoise, serr = image_slice
-
     srow, erow = row_start, row_start + nrows
 
-    data[srow:erow, :] = sdata
-    dq[srow:erow, :] = sdq
-    var_poisson[srow:erow, :] = svar_poisson
-    var_rnoise[srow:erow, :] = svar_rnoise
-    err[srow:erow, :] = serr
-
-
-def get_integ_slice(integ_info, integ_slice, row_start, nrows):
-    """
-    Populate the integration output information from each slice.
-
-    integ_info: tuple
-        The output integration information to populate from the slice.
-
-    integ_slice: tuple
-        The output slice used to populate the output arrays.
-
-    row_start: int
-        The start row the current slice at which starts.
-
-    nrows: int
-        The number of rows int the current slice.
-    """
-    data, dq, var_poisson, var_rnoise, err = integ_info
-    idata, idq, ivar_poisson, ivar_rnoise, ierr = integ_slice
-
-    srow, erow = row_start, row_start + nrows
-
-    data[:, srow:erow, :] = idata
-    dq[:, srow:erow, :] = idq
-    var_poisson[:, srow:erow, :] = ivar_poisson
-    var_rnoise[:, srow:erow, :] = ivar_rnoise
-    err[:, srow:erow, :] = ierr
-
-
-def get_opt_slice(opt_info, opt_slice, row_start, nrows):
-    """
-    Populate the optional output information from each slice.
-
-    opt_info: tuple
-        The output optional information to populate from the slice.
-
-    opt_slice: tuple
-        The output slice used to populate the output arrays.
-
-    row_start: int
-        The start row the current slice at which starts.
-
-    nrows: int
-        The number of rows int the current slice.
-    """
-    (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
-    (oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag) = opt_slice
-
-    srow, erow = row_start, row_start + nrows
-
-    # The optional results product is of variable size in its second dimension.
-    # The number of segments/cosmic rays determine the final products size.
-    # Because each slice is computed independently, the number of segments may
-    # differ from segment to segment.  The final output product is created
-    # using the max size for this dimension.  To ensure correct assignment is
-    # done during this step, the second dimension, as well as the row
-    # dimension, must be specified.
-    slope[:, : oslope.shape[1], srow:erow, :] = oslope
-    sigslope[:, : osigslope.shape[1], srow:erow, :] = osigslope
-    var_poisson[:, : ovar_poisson.shape[1], srow:erow, :] = ovar_poisson
-    var_rnoise[:, : ovar_rnoise.shape[1], srow:erow, :] = ovar_rnoise
-    yint[:, : oyint.shape[1], srow:erow, :] = oyint
-    sigyint[:, : osigyint.shape[1], srow:erow, :] = osigyint
-    weights[:, : oweights.shape[1], srow:erow, :] = oweights
-    crmag[:, : ocrmag.shape[1], srow:erow, :] = ocrmag
-
-    pedestal[:, srow:erow, :] = opedestal  # Different shape (3-D, not 4-D)
+    for key in image_info.keys():
+        if image_info[key][..., srow:erow, :].size == image_slice[key].size:
+            image_info[key][..., srow:erow, :] = image_slice[key]
+        else:
+            imax = image_slice[key].shape[1]
+            image_info[key][..., :imax, srow:erow, :] = image_slice[key]
 
 
 def create_output_info(ramp_data, pool_results, save_opt):
@@ -349,7 +279,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
     var_rnoise = np.zeros(imshape, dtype=np.float32)
     err = np.zeros(imshape, dtype=np.float32)
 
-    image_info = (data, dq, var_poisson, var_rnoise, err)
+    image_info = {'data':data, 'dq':dq, 'var_p':var_poisson, 'var_r':var_rnoise, 'err':err}
 
     # Create the integration products
     idata = np.zeros(integ_shape, dtype=np.float32)
@@ -358,7 +288,8 @@ def create_output_info(ramp_data, pool_results, save_opt):
     ivar_rnoise = np.zeros(integ_shape, dtype=np.float32)
     ierr = np.zeros(integ_shape, dtype=np.float32)
 
-    integ_info = (idata, idq, ivar_poisson, ivar_rnoise, ierr)
+    #integ_info = (idata, idq, ivar_poisson, ivar_rnoise, ierr)
+    integ_info = {'data':idata, 'dq':idq, 'var_p':ivar_poisson, 'var_r':ivar_rnoise, 'err':ierr}
 
     # Create the optional results product
     if save_opt:
@@ -378,17 +309,17 @@ def create_output_info(ramp_data, pool_results, save_opt):
         opedestal = np.zeros(integ_shape, dtype=np.float32)
         ocrmag = np.zeros(crmag_shape, dtype=np.float32)
 
-        opt_info = (
-            oslope,
-            osigslope,
-            ovar_poisson,
-            ovar_rnoise,
-            oyint,
-            osigyint,
-            opedestal,
-            oweights,
-            ocrmag,
-        )
+        opt_info = {
+            'slope':oslope,
+            'sigslope':osigslope,
+            'var_p':ovar_poisson,
+            'var_r':ovar_rnoise,
+            'yint':oyint,
+            'sigyint':osigyint,
+            'pedestal':opedestal,
+            'weights':oweights,
+            'crmag':ocrmag,
+        }
     else:
         opt_info = None
 
@@ -419,12 +350,12 @@ def get_max_segs_crs(pool_results):
     crs_max = 0
     for result in pool_results:
         image_slice, integ_slice, opt_slice = result
-        oslice_slope = opt_slice[0]
+        oslice_slope = opt_slice['slope']
         nsegs = oslice_slope.shape[1]
         if nsegs > seg_max:
             seg_max = nsegs
 
-        olice_crmag = opt_slice[-1]
+        olice_crmag = opt_slice['crmag']
         ncrs = olice_crmag.shape[1]
         if ncrs > crs_max:
             crs_max = ncrs

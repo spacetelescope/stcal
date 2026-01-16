@@ -370,8 +370,8 @@ def compute_image_info(integ_class, ramp_data):
 
     Returns
     -------
-    image_info : tuple
-        The list of arrays for the rate product.
+    image_info : dictionary
+        Dictionary of arrays for the rate product.
     """
     if integ_class.data.shape[0] == 1:
         data = integ_class.data[0, :, :]
@@ -379,7 +379,7 @@ def compute_image_info(integ_class, ramp_data):
         var_p = integ_class.var_poisson[0, :, :]
         var_r = integ_class.var_rnoise[0, :, :]
         var_e = integ_class.err[0, :, :]
-        return (data, dq, var_p, var_r, var_e)
+        return {'data':data, 'dq':dq, 'var_p':var_p, 'var_r':var_r, 'err':var_e}
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
@@ -409,7 +409,8 @@ def compute_image_info(integ_class, ramp_data):
 
     err = np.sqrt(var_p + var_r)
 
-    return (slope, dq, var_p, var_r, err)
+    return {'data':slope, 'dq':dq, 'var_p':var_p, 'var_r':var_r, 'err':err}
+    #return (slope, dq, var_p, var_r, err)
 
 
 def determine_diffs2use(row, diffs, gdq):
