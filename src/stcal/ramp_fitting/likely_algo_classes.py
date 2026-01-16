@@ -31,7 +31,13 @@ class IntegInfo:
 
     def prepare_info(self):
         """Arrange output arrays as a tuple, which the ramp fit step expects."""
-        return (self.data, self.dq, self.var_poisson, self.var_rnoise, self.err)
+        return {
+            "slope": self.data,
+            "dq": self.dq,
+            "var_poisson": self.var_poisson,
+            "var_rnoise": self.var_rnoise,
+            "err": self.err,
+        }
 
     def get_results(self, result, integ, row):
         """

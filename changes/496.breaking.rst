@@ -1,0 +1,1 @@
+Change the returned structures from ramp fitting from long tuples of ndarrays to dictionaries with names generally matching those of FITS extensions.  Downstream uses of these functions will break if they assume tuples (as jwst and romancal have done).
