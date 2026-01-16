@@ -585,28 +585,26 @@ def test_flag_large_events_withsnowball():
     # flagged pixels.
 
     image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d, jump_data=jump_data)[0]
-    data, dq, var_poisson, var_rnoise, err = image_info
-    assert np.std(data) < 1e-5
-    n_jump_expanded = np.sum(dq == JUMP)
+    assert np.std(image_info['slope']) < 1e-5
+    n_jump_expanded = np.sum(image_info['dq'] == JUMP)
 
     # Check that the uncertainties are the same for all pixels with jumps
     # and save this average uncertainty
 
-    meanerr_jumppixels_new = np.mean(err[dq == JUMP])
-    assert np.std(err[dq == JUMP]) < 1e-6
+    meanerr_jumppixels_new = np.mean(image_info['err'][image_info['dq'] == JUMP])
+    assert np.std(image_info['err'][image_info['dq'] == JUMP]) < 1e-6
 
     # Now without snowball flagging
 
     image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d)[0]
-    data, dq, var_poisson, var_rnoise, err = image_info
-    assert np.std(data) < 1e-5
-    n_jump_original = np.sum(dq == JUMP)
+    assert np.std(image_info['slope']) < 1e-5
+    n_jump_original = np.sum(image_info['dq'] == JUMP)
 
     # Check that the uncertainties are the same for all pixels with jumps
     # originally flagged.  Check that this uncertainty matches the new value.
 
-    meanerr_jumppixels_orig = np.mean(err[dq == JUMP])
-    assert np.std(err[dq == JUMP]) < 1e-6
+    meanerr_jumppixels_orig = np.mean(image_info['err'][image_info['dq'] == JUMP])
+    assert np.std(image_info['err'][image_info['dq'] == JUMP]) < 1e-6
     assert np.abs(meanerr_jumppixels_orig - meanerr_jumppixels_new) < 1e-5
 
     assert n_jump_original == 112 and n_jump_expanded > 300 and n_jump_expanded < 600
