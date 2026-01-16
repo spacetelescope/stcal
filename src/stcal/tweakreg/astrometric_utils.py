@@ -40,9 +40,12 @@ def create_astrometric_catalog(
         list of input images to make_output_wcs. Fortunately, for alignment,
         this doesn't matter since no resampling of data will be performed.
 
-    epoch : float
+    epoch : float or None
         Reference epoch used to update the coordinates for proper motion
-        (in decimal year).
+        (in decimal year). When ``None`` no proper motion correction will
+        be performed and all sources (even those without proper motion) will
+        be returned. When not ``None`` only sources with proper motion
+        will be returned.
 
     catalog : str, optional
         Name of catalog to extract astrometric positions for sources in the
@@ -144,13 +147,16 @@ def get_catalog(
     declination : float
         Declination (Dec) of center of field-of-view (in decimal degrees)
 
-    epoch : float, optional
+    epoch : float or None, optional
         Reference epoch used to update the coordinates for proper motion
-        (in decimal year). Default: 2016.0
+        (in decimal year). When ``None`` no proper motion correction will
+        be performed and all sources (even those without proper motion) will
+        be returned. When not ``None`` only sources with proper motion
+        will be returned. Default: 2016.0
 
     search_radius : float, optional
         Search radius (in decimal degrees) from field-of-view center to use
-        for sources from catalog.  Default: 0.1 degrees
+        for sources from catalog. Default: 0.1 degrees
 
     catalog : str, optional
         Name of catalog to query, as defined by web-service. Default: 'GAIADR3'
@@ -198,4 +204,9 @@ def get_catalog(
     r_contents = rawcat.content.decode()  # convert from bytes to a String
     if r_contents.startswith("No data records"):
         r_contents = "\n"
-    return Table.read(r_contents, format="csv", comment="#")
+    catalog = Table.read(r_contents, format="csv", comment="#")
+    if epoch and catalog:
+        # When provided with an epoch gsss returns corrected and non-corrected
+        # sources. Filter out the non-corrected ones.
+        catalog = catalog[~(catalog["pmra"].mask & catalog["pmdec"].mask)]
+    return catalog
