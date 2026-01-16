@@ -794,8 +794,6 @@ def assert_pri(p_true, new_info, pix):
     SCI, DQ, ERR, VAR_POISSON, VAR_RNOISE.
     """
 
-    #data, dq, var_poisson, var_rnoise, err = new_info
-
     npt.assert_allclose(new_info['slope'][0, pix], p_true[0], atol=2e-5, rtol=2e-5)
     npt.assert_allclose(new_info['dq'][0, pix], p_true[1], atol=1e-1)
     npt.assert_allclose(new_info['err'][0, pix], p_true[2], atol=2e-5, rtol=2e-5)
@@ -849,7 +847,6 @@ def assert_opt(o_true, opt_info, pix):
     Selecting the particular (and only) ramp in the optional output, which is
     [0,:,0,0]
     """
-    #(slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
 
     opt_slope = opt_info['slope'][0, :, 0, pix]
     opt_sigslope = opt_info['sigslope'][0, :, 0, pix]

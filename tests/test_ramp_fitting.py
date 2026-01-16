@@ -187,7 +187,6 @@ def test_neg_med_rates_multi_integration_integ():
     slopes, cube, optional, dims = base_neg_med_rates_multi_integrations()
 
     tol = 1e-6
-    #idata, idq, ivp, ivr, ierr = cube
 
     np.testing.assert_allclose(cube['var_poisson'][:, 0, 0], np.array([0.0, 0.0, 0.0]), tol)
     np.testing.assert_allclose(cube['err'], np.sqrt(cube['var_rnoise']), tol)
@@ -200,8 +199,6 @@ def test_neg_med_rates_multi_integration_optional():
     as zero Poisson variance.
     """
     slopes, cube, optional, dims = base_neg_med_rates_multi_integrations()
-
-    #oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
 
     tol = 1e-6
     assert optional['slope'].shape[1] == 1  # Max segments is 1 because clean ramp
@@ -240,8 +237,6 @@ def test_neg_med_rates_single_integration_multi_segment_optional():
     # Run ramp fit on RampData
     save_opt, algo, wt, ncores = True, DEFAULT_OLS, "optimal", "none"
     slopes, cube, optional = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, wt, ncores)
-
-    #oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = optional
 
     neg_ramp_poisson = optional['var_poisson'][0, :, 0, 0]
     tol = 1e-6
@@ -484,8 +479,7 @@ def test_2_group_cases(algo):
     slopes, cube, optional = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, wt, ncores)
 
     # Check the outputs
-    #data, dq, vp, vr, err = slopes
-
+ 
     tol = 1.0e-6
     check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
     np.testing.assert_allclose(slopes['slope'], check, tol)
@@ -597,7 +591,6 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     np.testing.assert_allclose(slopes['err'], check, tol)
 
     # Check slopes information
-    #cdata, cdq, cvp, cvr, cerr = cube
 
     check = np.array([[[np.nan, np.nan, 1.0000001]]])
     np.testing.assert_allclose(cube['slope'], check, tol)
@@ -666,7 +659,6 @@ def test_one_group_ramp_not_suppressed_one_integration(algo):
     np.testing.assert_allclose(slopes['err'], check, tol)
 
     # Check slopes information
-    #cdata, cdq, cvp, cvr, cerr = cube
 
     if algo == DEFAULT_OLS:
         check = np.array([[[np.nan, 1.0, 1.0000001]]])
@@ -733,7 +725,6 @@ def test_one_group_ramp_suppressed_two_integrations(algo):
     np.testing.assert_allclose(slopes['err'], check, tol)
 
     # Check slopes information
-    #cdata, cdq, cvp, cvr, cerr = cube
 
     check = np.array([[[np.nan, np.nan, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cube['slope'], check, tol)
@@ -800,7 +791,6 @@ def test_one_group_ramp_not_suppressed_two_integrations(algo):
     np.testing.assert_allclose(slopes['err'], check, tol)
 
     # Check slopes information
-    #cdata, cdq, cvp, cvr, cerr = cube
 
     if algo == DEFAULT_OLS:
         check = np.array([[[np.nan, 1.0, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
@@ -957,7 +947,6 @@ def test_zeroframe(algo):
     np.testing.assert_allclose(slopes['err'], check, tol, tol)
 
     # Check slopes information
-    #cdata, cdq, cvp, cvr, cerr = cube
 
     # The third pixel in integration zero has good data
     # because the zeroframe has good data, so the ramp
@@ -1766,8 +1755,6 @@ def test_crmag():
     algo = DEFAULT_OLS
     save_opt, ncores = True, "none"
     slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
-
-    #oslope, osigslope, ovp, ovr, oyint, osigyint, opedestal, oweights, ocrmag = ols_opt
 
     tol = 1.0e-4
     check = np.array([179.52501, 444.213], dtype=np.float32)
