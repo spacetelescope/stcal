@@ -257,7 +257,7 @@ def get_slice(image_info, image_slice, row_start, nrows):
         if image_info[key][..., srow:erow, :].size == image_slice[key].size:
             image_info[key][..., srow:erow, :] = image_slice[key]
         else:
-            imax = image_slice[key].shape[1]
+            imax = image_slice[key].shape[-3]
             image_info[key][..., :imax, srow:erow, :] = image_slice[key]
 
 
