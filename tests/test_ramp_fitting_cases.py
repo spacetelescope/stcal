@@ -794,11 +794,11 @@ def assert_pri(p_true, new_info, pix):
     SCI, DQ, ERR, VAR_POISSON, VAR_RNOISE.
     """
 
-    npt.assert_allclose(new_info['slope'][0, pix], p_true[0], atol=2e-5, rtol=2e-5)
-    npt.assert_allclose(new_info['dq'][0, pix], p_true[1], atol=1e-1)
-    npt.assert_allclose(new_info['err'][0, pix], p_true[2], atol=2e-5, rtol=2e-5)
-    npt.assert_allclose(new_info['var_poisson'][0, pix], p_true[3], atol=2e-5, rtol=2e-5)
-    npt.assert_allclose(new_info['var_rnoise'][0, pix], p_true[4], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(new_info["slope"][0, pix], p_true[0], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(new_info["dq"][0, pix], p_true[1], atol=1e-1)
+    npt.assert_allclose(new_info["err"][0, pix], p_true[2], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(new_info["var_poisson"][0, pix], p_true[3], atol=2e-5, rtol=2e-5)
+    npt.assert_allclose(new_info["var_rnoise"][0, pix], p_true[4], atol=2e-5, rtol=2e-5)
 
 
 def debug_opt(o_true, opt_info, pix):
@@ -848,14 +848,14 @@ def assert_opt(o_true, opt_info, pix):
     [0,:,0,0]
     """
 
-    opt_slope = opt_info['slope'][0, :, 0, pix]
-    opt_sigslope = opt_info['sigslope'][0, :, 0, pix]
-    opt_var_poisson = opt_info['var_poisson'][0, :, 0, pix]
-    opt_var_rnoise = opt_info['var_rnoise'][0, :, 0, pix]
-    opt_yint = opt_info['yint'][0, :, 0, pix]
-    opt_sigyint = opt_info['sigyint'][0, :, 0, pix]
-    opt_pedestal = opt_info['pedestal'][:, 0, pix]
-    opt_weights = opt_info['weights'][0, :, 0, pix]
+    opt_slope = opt_info["slope"][0, :, 0, pix]
+    opt_sigslope = opt_info["sigslope"][0, :, 0, pix]
+    opt_var_poisson = opt_info["var_poisson"][0, :, 0, pix]
+    opt_var_rnoise = opt_info["var_rnoise"][0, :, 0, pix]
+    opt_yint = opt_info["yint"][0, :, 0, pix]
+    opt_sigyint = opt_info["sigyint"][0, :, 0, pix]
+    opt_pedestal = opt_info["pedestal"][:, 0, pix]
+    opt_weights = opt_info["weights"][0, :, 0, pix]
 
     npt.assert_allclose(opt_slope, o_true[0], atol=2e-5, rtol=2e-5)
     npt.assert_allclose(opt_sigslope, o_true[1], atol=2e-5, rtol=2e-5)

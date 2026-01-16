@@ -105,18 +105,18 @@ def test_basic_ramp():
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    data = cube['slope'][0, 0, 0]
+    data = cube["slope"][0, 0, 0]
     ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
     check = ddiff / float(ngroups - 1)
     check = check / ramp_data.group_time
     tol = 1.0e-5
     np.testing.assert_allclose(data, check, tol)
-    np.testing.assert_allclose(slopes['slope'][0, 0], data, tol)
+    np.testing.assert_allclose(slopes["slope"][0, 0], data, tol)
 
     # Check against OLS fit
     algo = "OLS"
     slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
-    np.testing.assert_allclose(data, cube1['slope'][0, 0, 0], tol)
+    np.testing.assert_allclose(data, cube1["slope"][0, 0, 0], tol)
 
 
 def test_basic_ramp_multi_pixel():
@@ -139,9 +139,9 @@ def test_basic_ramp_multi_pixel():
 
     data_tol = 1e-4
     err_tol = 0.1
-    np.testing.assert_allclose(slopes['slope'], slopes1['slope'], data_tol)
-    np.testing.assert_array_equal(slopes['dq'], slopes1['dq'])
-    for key in ['var_poisson', 'var_rnoise', 'err']:
+    np.testing.assert_allclose(slopes["slope"], slopes1["slope"], data_tol)
+    np.testing.assert_array_equal(slopes["dq"], slopes1["dq"])
+    for key in ["var_poisson", "var_rnoise", "err"]:
         np.testing.assert_allclose(slopes[key], slopes1[key], err_tol)
 
 
@@ -163,7 +163,7 @@ def test_basic_ramp_2integ():
     slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
     tol = 1.0e-5
-    np.testing.assert_allclose(cube['slope'], cube1['slope'], tol)
+    np.testing.assert_allclose(cube["slope"], cube1["slope"], tol)
 
 
 def test_flagged_ramp():
@@ -177,15 +177,15 @@ def test_flagged_ramp():
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    data = cube['slope'][0, 0, 0]
-    dq = cube['dq'][0, 0, 0]
+    data = cube["slope"][0, 0, 0]
+    dq = cube["dq"][0, 0, 0]
 
     # Check against OLS.
     algo = "OLS"
     slopes1, cube1, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    data_ols = cube1['slope'][0, 0, 0]
-    dq_ols = cube1['dq'][0, 0, 0]
+    data_ols = cube1["slope"][0, 0, 0]
+    dq_ols = cube1["dq"][0, 0, 0]
 
     tol = 1.0e-5
     np.testing.assert_allclose(data, data_ols, tol)
@@ -222,10 +222,10 @@ def test_random_ramp():
 
     tol = 1.0e-4
 
-    assert abs(slopes['slope'][0, 0] - 1.9960526) < tol
-    assert slopes['dq'][0, 0] == JMP
-    assert abs(slopes['var_poisson'][0, 0] - 0.00064461) < tol
-    assert abs(slopes['var_rnoise'][0, 0] - 0.00018037) < tol
+    assert abs(slopes["slope"][0, 0] - 1.9960526) < tol
+    assert slopes["dq"][0, 0] == JMP
+    assert abs(slopes["var_poisson"][0, 0] - 0.00064461) < tol
+    assert abs(slopes["var_rnoise"][0, 0] - 0.00018037) < tol
 
 
 def test_long_ramp():
@@ -238,7 +238,7 @@ def test_long_ramp():
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    data = cube['slope'][0, 0, 0]
+    data = cube["slope"][0, 0, 0]
     ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
     check = ddiff / ((ngroups - 1) * ramp_data.group_time)
     tol = 1.0e-5
@@ -247,7 +247,7 @@ def test_long_ramp():
     # Check against OLS.
     algo = "OLS"
     slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
-    np.testing.assert_allclose(data, cube1['slope'][0, 0, 0], tol)
+    np.testing.assert_allclose(data, cube1["slope"][0, 0, 0], tol)
 
 
 @pytest.mark.parametrize("ngroups", [1, 2])
@@ -276,7 +276,7 @@ def test_short_group_ramp(nframes):
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    data = cube['slope'][0, 0, 0]
+    data = cube["slope"][0, 0, 0]
     ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
     check = ddiff / ((ngroups - 1) * ramp_data.group_time)
     tol = 1.0e-5
@@ -285,7 +285,7 @@ def test_short_group_ramp(nframes):
     # Check against OLS.
     algo = "OLS"
     slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
-    np.testing.assert_allclose(data, cube1['slope'][0, 0, 0], tol)
+    np.testing.assert_allclose(data, cube1["slope"][0, 0, 0], tol)
 
 
 def data_small_good_groups():
@@ -307,7 +307,7 @@ def test_small_good_groups():
     save_opt, algo, ncores = False, "LIKELY", "none"
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    lik_slope = slopes['slope'][0, 0]
+    lik_slope = slopes["slope"][0, 0]
 
     # Check against OLS.
     ramp_data1, gain2d1, rnoise2d1 = data_small_good_groups()
@@ -317,7 +317,7 @@ def test_small_good_groups():
     slopes1, cube1, ols_opt1 = ramp_fit_data(
         ramp_data1, save_opt, rnoise2d1, gain2d1, algo, "optimal", ncores
     )
-    ols_slope = slopes1['slope'][0, 0]
+    ols_slope = slopes1["slope"][0, 0]
 
     tol = 1.0e-4
     np.testing.assert_allclose(ols_slope, lik_slope, tol)
@@ -351,11 +351,11 @@ def test_jump_detect():
     slope_est = base / ramp_data.group_time
 
     tol = 1.0e-4
-    np.testing.assert_allclose(slopes['slope'], slope_est, tol)
-    assert slopes['dq'][0, 0] == JMP
-    assert slopes['dq'][0, 1] == GOOD
-    assert slopes['dq'][1, 0] == GOOD
-    assert slopes['dq'][1, 1] == JMP
+    np.testing.assert_allclose(slopes["slope"], slope_est, tol)
+    assert slopes["dq"][0, 0] == JMP
+    assert slopes["dq"][0, 1] == GOOD
+    assert slopes["dq"][1, 0] == GOOD
+    assert slopes["dq"][1, 1] == JMP
 
 
 def test_too_few_groups(caplog):
@@ -386,7 +386,7 @@ def test_zeroframe():
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
     # Expected value
-    np.testing.assert_allclose(slopes['slope'], 0.372503, 1e-5)
+    np.testing.assert_allclose(slopes["slope"], 0.372503, 1e-5)
 
     # Check against OLS fit
     algo = "OLS"
@@ -394,7 +394,7 @@ def test_zeroframe():
 
     # Fit will not be identical to OLS for unrealistic zeroframe
     tol = 1e-3
-    np.testing.assert_allclose(cube['slope'], cube1['slope'], tol)
+    np.testing.assert_allclose(cube["slope"], cube1["slope"], tol)
 
 
 def test_zeroframe_bad_group(caplog):
@@ -415,7 +415,7 @@ def test_zeroframe_bad_group(caplog):
     algo = "OLS"
     slopes1, cube1, ols_opt1 = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
     tol = 1e-7
-    np.testing.assert_allclose(slopes['slope'], slopes1['slope'], tol)
+    np.testing.assert_allclose(slopes["slope"], slopes1["slope"], tol)
 
 
 # -----------------------------------------------------------------
@@ -585,26 +585,26 @@ def test_flag_large_events_withsnowball():
     # flagged pixels.
 
     image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d, jump_data=jump_data)[0]
-    assert np.std(image_info['slope']) < 1e-5
-    n_jump_expanded = np.sum(image_info['dq'] == JUMP)
+    assert np.std(image_info["slope"]) < 1e-5
+    n_jump_expanded = np.sum(image_info["dq"] == JUMP)
 
     # Check that the uncertainties are the same for all pixels with jumps
     # and save this average uncertainty
 
-    meanerr_jumppixels_new = np.mean(image_info['err'][image_info['dq'] == JUMP])
-    assert np.std(image_info['err'][image_info['dq'] == JUMP]) < 1e-6
+    meanerr_jumppixels_new = np.mean(image_info["err"][image_info["dq"] == JUMP])
+    assert np.std(image_info["err"][image_info["dq"] == JUMP]) < 1e-6
 
     # Now without snowball flagging
 
     image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d)[0]
-    assert np.std(image_info['slope']) < 1e-5
-    n_jump_original = np.sum(image_info['dq'] == JUMP)
+    assert np.std(image_info["slope"]) < 1e-5
+    n_jump_original = np.sum(image_info["dq"] == JUMP)
 
     # Check that the uncertainties are the same for all pixels with jumps
     # originally flagged.  Check that this uncertainty matches the new value.
 
-    meanerr_jumppixels_orig = np.mean(image_info['err'][image_info['dq'] == JUMP])
-    assert np.std(image_info['err'][image_info['dq'] == JUMP]) < 1e-6
+    meanerr_jumppixels_orig = np.mean(image_info["err"][image_info["dq"] == JUMP])
+    assert np.std(image_info["err"][image_info["dq"] == JUMP]) < 1e-6
     assert np.abs(meanerr_jumppixels_orig - meanerr_jumppixels_new) < 1e-5
 
     assert n_jump_original == 112 and n_jump_expanded > 300 and n_jump_expanded < 600

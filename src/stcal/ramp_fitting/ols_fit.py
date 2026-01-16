@@ -288,13 +288,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
     var_rnoise = np.zeros(imshape, dtype=np.float32)
     err = np.zeros(imshape, dtype=np.float32)
 
-    image_info = {
-        'slope':data,
-        'dq':dq,
-        'var_poisson':var_poisson,
-        'var_rnoise':var_rnoise,
-        'err':err
-    }
+    image_info = {"slope": data, "dq": dq, "var_poisson": var_poisson, "var_rnoise": var_rnoise, "err": err}
 
     # Create the integration products
     idata = np.zeros(integ_shape, dtype=np.float32)
@@ -304,11 +298,11 @@ def create_output_info(ramp_data, pool_results, save_opt):
     ierr = np.zeros(integ_shape, dtype=np.float32)
 
     integ_info = {
-        'slope':idata,
-        'dq':idq,
-        'var_poisson':ivar_poisson,
-        'var_rnoise':ivar_rnoise,
-        'err':ierr
+        "slope": idata,
+        "dq": idq,
+        "var_poisson": ivar_poisson,
+        "var_rnoise": ivar_rnoise,
+        "err": ierr,
     }
 
     # Create the optional results product
@@ -330,15 +324,15 @@ def create_output_info(ramp_data, pool_results, save_opt):
         ocrmag = np.zeros(crmag_shape, dtype=np.float32)
 
         opt_info = {
-            'slope':oslope,
-            'sigslope':osigslope,
-            'var_poisson':ovar_poisson,
-            'var_rnoise':ovar_rnoise,
-            'yint':oyint,
-            'sigyint':osigyint,
-            'pedestal':opedestal,
-            'weights':oweights,
-            'crmag':ocrmag,
+            "slope": oslope,
+            "sigslope": osigslope,
+            "var_poisson": ovar_poisson,
+            "var_rnoise": ovar_rnoise,
+            "yint": oyint,
+            "sigyint": osigyint,
+            "pedestal": opedestal,
+            "weights": oweights,
+            "crmag": ocrmag,
         }
     else:
         opt_info = None
@@ -370,12 +364,12 @@ def get_max_segs_crs(pool_results):
     crs_max = 0
     for result in pool_results:
         image_slice, integ_slice, opt_slice = result
-        oslice_slope = opt_slice['slope']
+        oslice_slope = opt_slice["slope"]
         nsegs = oslice_slope.shape[1]
         if nsegs > seg_max:
             seg_max = nsegs
 
-        olice_crmag = opt_slice['crmag']
+        olice_crmag = opt_slice["crmag"]
         ncrs = olice_crmag.shape[1]
         if ncrs > crs_max:
             crs_max = ncrs
