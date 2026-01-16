@@ -183,8 +183,8 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     pool_results: list
         The list of return values from ols_ramp_fit_single for each slice.
         Each slice is run through ols_ramp_fit_single, which returns three
-        dictionaries of ndarrays, so pool_results is a list of dictionaries.
-        Each one contains:
+        dictionaries of ndarrays, so pool_results is a list of tuples.
+        Each tuple contains:
             image_info, integ_info, opt_info
 
     rows_per_slice: list
