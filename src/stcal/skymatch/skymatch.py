@@ -264,20 +264,6 @@ drizzlepac/astrodrizzle.html>`_.
 
     log.debug(f"Total number of images to be sky-subtracted and/or matched: {nimages:d}")
 
-    # Print conversion factors
-    log.debug(" ")
-    log.debug("----  Image data conversion factors:")
-
-    for img in images:
-        img_type = "Image" if isinstance(img, SkyImage) else "Group"
-
-        if img_type == "Group":
-            log.debug(f"   *  Group ID={img.sky_id}. Conversion factors:")
-            for im in img:
-                log.debug(f"      - Image ID={im.sky_id}. Conversion factor = {im.convf:G}")
-        else:
-            log.debug(f"   *  Image ID={img.sky_id}. Conversion factor = {img.convf:G}")
-
     # 1. Method: "match" (or "global+match").
     #    Find sky "deltas" that will match sky across all
     #    (intersecting) images.
@@ -383,14 +369,13 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             log.info(f"   *  Group ID={img.sky_id}. Sky background of component images:")
 
             for im, old_sky, new_sky in zip(img, old_img_sky, new_img_sky, strict=True):
-                c = 1.0 / im.convf
                 if show_old:
                     log.info(
                         f"      - Image ID={im.sky_id}. Sky background: "
-                        f"{c * new_sky:G} (old={c * old_sky:G}, delta={c * sky:G})"
+                        f"{new_sky:G} (old={old_sky:G}, delta={sky:G})"
                     )
                 else:
-                    log.info(f"      - Image ID={im.sky_id}. Sky background: {c * new_sky:G}")
+                    log.info(f"      - Image ID={im.sky_id}. Sky background: {new_sky:G}")
 
                 im.is_sky_valid = valid
 
@@ -403,14 +388,13 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             new_sky = img.sky
 
             # log sky values:
-            c = 1.0 / img.convf
             if show_old:
                 log.info(
-                    f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G} "
-                    f"(old={c * old_sky:G}, delta={c * sky:G})"
+                    f"   *  Image ID={img.sky_id}. Sky background: {new_sky:G} "
+                    f"(old={old_sky:G}, delta={sky:G})"
                 )
             else:
-                log.info(f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G}")
+                log.info(f"   *  Image ID={img.sky_id}. Sky background: {new_sky:G}")
 
             img.is_sky_valid = valid
 
