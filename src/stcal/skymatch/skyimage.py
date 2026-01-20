@@ -266,15 +266,6 @@ class SkyImage:
         polyarea : float
             Area (in srad) of the polygon that bounds data used to compute
             sky statistics.
-
-        Notes
-        -----
-        Due to a bug in the sphere package, see
-        https://github.com/spacetelescope/sphere/issues/74
-        intersections with polygons formed as union does not work.
-        For this reason I re-implement 'calc_sky' below with a workaround for
-        the bug. The original implementation should be used when the bug is
-        fixed.
         """
         if overlap is None:
             if self.mask is None:
