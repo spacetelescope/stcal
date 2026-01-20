@@ -38,7 +38,6 @@ class SkyImage:
         wcs_inv,
         skystat,
         pix_area=1.0,
-        convf=1.0,
         sky_id=None,
         stepsize=None,
         meta=None,
@@ -72,16 +71,6 @@ class SkyImage:
         pix_area : float, optional
             Average pixel's sky area.
 
-        convf : float, optional
-            Conversion factor that when multiplied to `image` data converts
-            the data to "uniform" (across multiple images) surface
-            brightness units.
-
-            .. note::
-
-              The functionality to support this conversion is not yet
-              implemented and at this moment `convf` is ignored.
-
         sky_id : typing.Any
             The value of this parameter is simple stored within the `SkyImage`
             object. While it can be of any type, it is preferable that `id` be
@@ -103,7 +92,6 @@ class SkyImage:
         self.image = image
         self.mask = mask = np.asanyarray(mask, dtype=bool)
 
-        self.convf = convf
         self.meta = meta
         self.sky_id = sky_id
         self.pix_area = pix_area
