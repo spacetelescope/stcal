@@ -33,12 +33,12 @@ class SkyImage:
     def __init__(
         self,
         image,
+        mask,
         wcs_fwd,
         wcs_inv,
         skystat,
         pix_area=1.0,
         convf=1.0,
-        mask=None,
         sky_id=None,
         stepsize=None,
         meta=None,
@@ -49,6 +49,12 @@ class SkyImage:
         ----------
         image : numpy.ndarray
             A 2D array of image data.
+
+        mask : numpy.ndarray
+            A 2D array that indicates
+            which pixels in the input `image` should be used for sky
+            computations (``1``) and which pixels should **not** be used
+            for sky computations (``0``).
 
         wcs_fwd : collections.abc.Callable
             "forward" pixel-to-world transformation function.
@@ -75,12 +81,6 @@ class SkyImage:
 
               The functionality to support this conversion is not yet
               implemented and at this moment `convf` is ignored.
-
-        mask : numpy.ndarray
-            A 2D array that indicates
-            which pixels in the input `image` should be used for sky
-            computations (``1``) and which pixels should **not** be used
-            for sky computations (``0``).
 
         sky_id : typing.Any
             The value of this parameter is simple stored within the `SkyImage`
