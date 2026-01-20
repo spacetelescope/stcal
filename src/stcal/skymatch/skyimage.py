@@ -240,14 +240,12 @@ class SkyImage:
 
         Parameters
         ----------
-        overlap : SkyImage, SkyGroup, `SphericalPolygon`, list[tuple[typing.Any]], None, optional
-            Another `SkyImage`, `SkyGroup`,
-            :py:class:`spherical_geometry.polygon.SphericalPolygon`, or
-            a list of tuples of (RA, DEC) of vertices of a spherical
-            polygon. This parameter is used to indicate that sky statistics
+        overlap : SkyImage, SkyGroup, None, optional
+            This parameter is used to indicate that sky statistics
             should computed only in the region of intersection of *this*
-            image with the polygon indicated by `overlap`. When `overlap` is
-            `None`, sky statistics will be computed over the entire image.
+            image with the `SkyImage` or `SkyGroup` indicated by `overlap`.
+            When `overlap` is `None`, sky statistics will be computed over
+            the entire image.
 
         delta : bool, optional
             Should this function return absolute sky value or the difference
@@ -304,28 +302,6 @@ class SkyImage:
                         continue
                     polyarea += polyarea1
                     radec += list(intersection.to_radec())
-
-            elif isinstance(overlap, SphericalPolygon):
-                radec = []
-                polyarea = 0.0
-                for p in overlap._polygons:  # noqa: SLF001
-                    intersection = self.intersection(SphericalPolygon([p]))
-                    polyarea1 = np.fabs(intersection.area())
-                    if polyarea1 == 0.0:
-                        continue
-                    polyarea += polyarea1
-                    radec += list(intersection.to_radec())
-
-            else:  # assume a list of (ra, dec) tuples:
-                radec = []
-                polyarea = 0.0
-                for r, d in overlap:
-                    poly = SphericalPolygon.from_radec(r, d)
-                    polyarea1 = np.fabs(poly.area())
-                    if polyarea1 == 0.0 or len(r) < 4:
-                        continue
-                    polyarea += polyarea1
-                    radec.append(self.intersection(poly).to_radec())
 
             if polyarea == 0.0:
                 return None, 0, 0.0
@@ -501,14 +477,12 @@ class SkyGroup:
 
         Parameters
         ----------
-        overlap : SkyImage, SkyGroup, `SphericalPolygon`, list[tuple[typing.Any]], None, optional
-            Another `SkyImage`, `SkyGroup`,
-            :py:class:`spherical_geometry.polygon.SphericalPolygon`, or
-            a list of tuples of (RA, DEC) of vertices of a spherical
-            polygon. This parameter is used to indicate that sky statistics
+        overlap : SkyImage, SkyGroup, None, optional
+            This parameter is used to indicate that sky statistics
             should computed only in the region of intersection of *this*
-            image with the polygon indicated by `overlap`. When `overlap` is
-            `None`, sky statistics will be computed over the entire image.
+            image with the `SkyImage` or `SkyGroup` indicated by `overlap`.
+            When `overlap` is `None`, sky statistics will be computed over the
+            entire image.
 
         delta : bool, optional
             Should this function return absolute sky value or the difference
