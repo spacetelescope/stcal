@@ -37,7 +37,6 @@ class SkyImage:
         wcs_fwd,
         wcs_inv,
         skystat,
-        pix_area=1.0,
         sky_id=None,
         stepsize=None,
         meta=None,
@@ -68,9 +67,6 @@ class SkyImage:
             median, etc.) and number of pixels/values from the input image
             used in computing that statistics.
 
-        pix_area : float, optional
-            Average pixel's sky area.
-
         sky_id : typing.Any
             The value of this parameter is simple stored within the `SkyImage`
             object. While it can be of any type, it is preferable that `id` be
@@ -94,7 +90,6 @@ class SkyImage:
 
         self.meta = meta
         self.sky_id = sky_id
-        self.pix_area = pix_area
 
         # WCS
         self.wcs_fwd = wcs_fwd
@@ -522,9 +517,8 @@ class SkyGroup:
             area += area1
 
             if sky is not None and npix > 0:
-                pix_area = npix * image.pix_area
-                wsky += sky * pix_area
-                wght += pix_area
+                wsky += sky * npix
+                wght += npix
 
         if wght == 0.0 or area == 0.0:
             return None, wght, area
