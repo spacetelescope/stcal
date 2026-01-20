@@ -326,27 +326,11 @@ class SkyGroup:
 
     """
 
-    def __init__(self, images, sky_id=None, sky=0.0):
-        if isinstance(images, SkyImage):
-            self._images = [images]
-
-        elif hasattr(images, "__iter__"):
-            self._images = []
-            for im in images:
-                if not isinstance(im, SkyImage):
-                    raise TypeError("Each element of the 'images' parameter must be an 'SkyImage' object.")
-                self._images.append(im)
-
-        else:
-            raise TypeError(
-                "Parameter 'images' must be either a single 'SkyImage' object or a list of 'SkyImage' objects"
-            )
-
-        self.sky_id = sky_id
+    def __init__(self, images, sky_id=None):
+        self._images = images
         self._update_bounding_polygon()
-        self._sky = sky
-        for im in self._images:
-            im.sky += sky
+        self.sky_id = sky_id
+        self._sky = 0.0
 
     @property
     def sky(self):
