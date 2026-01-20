@@ -363,28 +363,6 @@ class SkyImage:
 
         return skyval, npix, polyarea
 
-    def copy(self):
-        """Return a shallow copy of the `SkyImage` object."""
-        si = SkyImage(
-            image=None,
-            wcs_fwd=self.wcs_fwd,
-            wcs_inv=self.wcs_inv,
-            pix_area=self.pix_area,
-            convf=self.convf,
-            mask=None,
-            sky_id=self.sky_id,
-            stepsize=None,
-            meta=self.meta,
-        )
-
-        si.image = self.image
-        si.mask = self.mask
-
-        si._polygon = self._polygon
-        si._poly_area = self._poly_area
-        si.sky = self.sky
-        return si
-
 
 class SkyGroup:
     """
