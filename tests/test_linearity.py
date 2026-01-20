@@ -196,7 +196,6 @@ def test_read_level_correction():
     # Set up read pattern - example MA table
     # [[0], [1], [2, 3], [4, 5], [6]]
     read_pattern = [[0], [1], [2, 3], [4, 5], [6]]
-    frametime = 3.04  # seconds
 
     # Set up saturation values
     satval = np.full((nrows, ncols), 65000.0, dtype=np.float32)
@@ -206,7 +205,6 @@ def test_read_level_correction():
         data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS,
         ilin_coeffs=ilin_coeffs,
         read_pattern=read_pattern,
-        frametime=frametime,
         satval=satval
     )
 
