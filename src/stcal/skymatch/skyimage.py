@@ -114,6 +114,7 @@ class SkyImage:
 
         # initial sky value:
         self.sky = 0.0
+        self.is_sky_valid = False
 
         # create spherical polygon bounding the image
         self.calc_bounding_polygon(stepsize)
