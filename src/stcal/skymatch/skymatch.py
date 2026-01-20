@@ -415,46 +415,8 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             img.is_sky_valid = valid
 
 
-# TODO: due to a bug in the sphere package, see
-#       https://github.com/spacetelescope/sphere/issues/74
-#       intersections with polygons formed as union does not work.
-#       For this reason I re-implement '_overlap_matrix' below with
-#       a workaround for the bug.
-#       The original implementation should be uncommented once the bug
-#       is fixed.
-#
-
-# Original version:
-# def _overlap_matrix(images, apply_sky=True):
-#     # TODO: to improve performance, the nested loops could be parallelized
-#     # since _calc_sky() here can be called independently from previous steps.
-#     ns = len(images)
-#     A = np.zeros((ns, ns), dtype=float)
-#     W = np.zeros((ns, ns), dtype=float)
-#     for i in range(ns):
-#         for j in range(i+1, ns):
-#             overlap = images[i].intersection(images[j])
-#             s1, w1, area1 = images[i].calc_sky(
-#                 overlap=overlap,
-#                 delta=apply_sky
-#             )
-#             s2, w2, area2 = images[j].calc_sky(
-#                 overlap=overlap,
-#                 delta=apply_sky
-#             )
-#             if area1 == 0.0 or area2 == 0.0 or s1 is None or s2 is None:
-#                 continue
-#             A[j,i] = s1
-#             W[j,i] = w1
-#             A[i,j] = s2
-#             W[i,j] = w2
-#     return A, W
-
-
 # bug workaround version:
 def _overlap_matrix(images, apply_sky=True):
-    # TODO: to improve performance, the nested loops could be parallelized
-    # since _calc_sky() here can be called independently from previous steps.
     ns = len(images)
     A = np.zeros((ns, ns), dtype=float)  # noqa: N806
     W = np.zeros((ns, ns), dtype=float)  # noqa: N806
