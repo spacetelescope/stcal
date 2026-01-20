@@ -129,16 +129,6 @@ class SkyImage:
         return self._poly_area
 
     @property
-    def radec(self):
-        """
-        Get RA and DEC of the bounding polygon.
-
-        Get RA and DEC of the vertices of the bounding polygon as a
-        `~numpy.ndarray` of shape (N, 2) where N is the number of vertices + 1.
-        """
-        return self._radec
-
-    @property
     def polygon(self):
         """Get image's bounding polygon."""
         return self._polygon
@@ -241,7 +231,6 @@ class SkyImage:
         ra[-1] = ra[0]
         dec[-1] = dec[0]
 
-        self._radec = [(ra, dec)]
         self._polygon = SphericalPolygon.from_radec(ra, dec)
         self._poly_area = np.fabs(self._polygon.area())
 
@@ -391,7 +380,6 @@ class SkyImage:
         si.image = self.image
         si.mask = self.mask
 
-        si._radec = self._radec
         si._polygon = self._polygon
         si._poly_area = self._poly_area
         si.sky = self.sky
@@ -445,17 +433,6 @@ class SkyGroup:
             im.sky += delta_sky
 
     @property
-    def radec(self):
-        """
-        RA and DEC of the bounding polygon.
-
-        Get RA and DEC of the vertices of the bounding polygon as a
-        `~numpy.ndarray` of shape (N, 2) where N is the number of vertices + 1.
-
-        """
-        return self._radec
-
-    @property
     def polygon(self):
         """Get image's bounding polygon."""
         return self._polygon
@@ -498,10 +475,8 @@ class SkyGroup:
         polygons = [im.polygon for im in self._images]
         if len(polygons) == 0:
             self._polygon = SphericalPolygon([])
-            self._radec = []
         else:
             self._polygon = SphericalPolygon.multi_union(polygons)
-            self._radec = list(self._polygon.to_radec())
 
     def __len__(self):
         return len(self._images)
