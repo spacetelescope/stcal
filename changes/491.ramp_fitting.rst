@@ -1,0 +1,1 @@
+Add snowball flagging (``jump.expand_large_events``) to likelihood-based ramp fitting and jump detection.
