@@ -106,16 +106,6 @@ class SkyImage:
         # the number of pixels used after clipping)
         self.skystat = skystat
 
-    @property
-    def poly_area(self):
-        """Get bounding polygon area in srad units."""
-        return self._poly_area
-
-    @property
-    def polygon(self):
-        """Get image's bounding polygon."""
-        return self._polygon
-
     def intersection(self, skyimage):
         """
         Compute intersection of this `SkyImage`.
@@ -137,6 +127,7 @@ class SkyImage:
             the intersection of this `SkyImage` and `skyimage`.
 
         """
+        # FIXME unused outside of this class
         if isinstance(skyimage, (SkyImage, SkyGroup)):
             other = skyimage.polygon
         else:
@@ -256,7 +247,7 @@ class SkyImage:
             else:
                 data = self.image[self.mask]
 
-            polyarea = self.poly_area
+            polyarea = self._poly_area
 
         else:
             fill_mask = np.zeros(self.image.shape, dtype=bool)
@@ -347,6 +338,7 @@ class SkyGroup:
     @property
     def polygon(self):
         """Get image's bounding polygon."""
+        # FIXME unused outside of this class
         return self._polygon
 
     def intersection(self, skyimage):
@@ -370,6 +362,7 @@ class SkyGroup:
             the intersection of this `SkyImage` and `skyimage`.
 
         """
+        # FIXME unused outside of this class
         if isinstance(skyimage, (SkyImage, SkyGroup)):
             other = skyimage.polygon
         else:
@@ -384,7 +377,7 @@ class SkyGroup:
         return intersect_poly
 
     def _update_bounding_polygon(self):
-        polygons = [im.polygon for im in self._images]
+        polygons = [im._polygon for im in self._images]  # noqa: SLF001
         if len(polygons) == 0:
             self._polygon = SphericalPolygon([])
         else:
