@@ -1,1 +1,0 @@
-Pin gwcs<1 to avoid errors for None input frame.
