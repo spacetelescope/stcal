@@ -319,7 +319,7 @@ class SkyGroup:
 
     def __init__(self, images, sky_id=None):
         self._images = images
-        self._update_bounding_polygon()
+        self._polygon = SphericalPolygon.multi_union([im._polygon for im in self._images])  # noqa: SLF001
         self.sky_id = sky_id
         self._sky = 0.0
 
@@ -334,13 +334,6 @@ class SkyGroup:
         self._sky = sky
         for im in self._images:
             im.sky += delta_sky
-
-    def _update_bounding_polygon(self):
-        polygons = [im._polygon for im in self._images]  # noqa: SLF001
-        if len(polygons) == 0:
-            self._polygon = SphericalPolygon([])
-        else:
-            self._polygon = SphericalPolygon.multi_union(polygons)
 
     def __len__(self):
         return len(self._images)
