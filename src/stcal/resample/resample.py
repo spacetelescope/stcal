@@ -836,11 +836,8 @@ class Resample:
         """Perform additional processing while resampling.
 
         A hook method called by the :py:meth:`~Resample.add_model` method.
-        It allows subclasses perform additional processing at the time the
-        ``model["data"]`` array is resampled.
-
-        It allows subclasses perform additional processing at the time
-        the ``model["data"]`` array is resampled.
+       It allows subclasses perform additional processing at the time the
+       ``model["data"]`` array is resampled.
 
         This method is called immediately after ``model["data"]`` is resampled.
 
