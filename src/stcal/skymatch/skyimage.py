@@ -129,7 +129,7 @@ class SkyImage:
         """
         # FIXME unused outside of this class
         if isinstance(skyimage, (SkyImage, SkyGroup)):
-            other = skyimage.polygon
+            other = skyimage._polygon  # noqa: SLF001
         else:
             other = skyimage
 
@@ -335,12 +335,6 @@ class SkyGroup:
         for im in self._images:
             im.sky += delta_sky
 
-    @property
-    def polygon(self):
-        """Get image's bounding polygon."""
-        # FIXME unused outside of this class
-        return self._polygon
-
     def intersection(self, skyimage):
         """
         Compute intersection.
@@ -364,7 +358,7 @@ class SkyGroup:
         """
         # FIXME unused outside of this class
         if isinstance(skyimage, (SkyImage, SkyGroup)):
-            other = skyimage.polygon
+            other = skyimage._polygon  # noqa: SLF001
         else:
             other = skyimage
 
