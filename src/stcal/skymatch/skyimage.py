@@ -325,6 +325,8 @@ class SkyGroup:
     """
 
     def __init__(self, images, sky_id=None):
+        if not images:
+            raise ValueError("SkyGroup requires a list of images")
         self._images = images
         self._polygon = SphericalPolygon.multi_union([im._polygon for im in self._images])  # noqa: SLF001
         self.sky_id = sky_id
