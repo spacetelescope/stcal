@@ -108,7 +108,7 @@ class SkyImage:
 
     def intersection(self, skyimage):
         """
-        Compute intersection of this `SkyImage`.
+        Compute intersection.
 
         Compute intersection of this `SkyImage` object and another
         `SkyImage`, `SkyGroup`, or
@@ -135,7 +135,7 @@ class SkyImage:
 
         pts1 = np.sort(list(self._polygon.points)[0], axis=0)
         pts2 = np.sort(list(other.points)[0], axis=0)
-        if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
+        if np.allclose(pts1, pts2, rtol=0, atol=1e-8):
             intersect_poly = self._polygon.copy()
         else:
             intersect_poly = self._polygon.intersection(other)
@@ -334,41 +334,6 @@ class SkyGroup:
         self._sky = sky
         for im in self._images:
             im.sky += delta_sky
-
-    def intersection(self, skyimage):
-        """
-        Compute intersection.
-
-        Compute intersection of this `SkyImage` object and another
-        `SkyImage`, `SkyGroup`, or
-        :py:class:`~spherical_geometry.polygon.SphericalPolygon`
-        object.
-
-        Parameters
-        ----------
-        skyimage : SkyImage, SkyGroup, `SphericalPolygon`
-            Another object that should be intersected with this `SkyImage`.
-
-        Returns
-        -------
-        intersect_poly : `SphericalPolygon`
-            A :py:class:`~spherical_geometry.polygon.SphericalPolygon` that is
-            the intersection of this `SkyImage` and `skyimage`.
-
-        """
-        # FIXME unused outside of this class
-        if isinstance(skyimage, (SkyImage, SkyGroup)):
-            other = skyimage._polygon  # noqa: SLF001
-        else:
-            other = skyimage
-
-        pts1 = np.sort(list(self._polygon.points)[0], axis=0)
-        pts2 = np.sort(list(other.points)[0], axis=0)
-        if np.allclose(pts1, pts2, rtol=0, atol=1e-8):
-            intersect_poly = self._polygon.copy()
-        else:
-            intersect_poly = self._polygon.intersection(other)
-        return intersect_poly
 
     def _update_bounding_polygon(self):
         polygons = [im._polygon for im in self._images]  # noqa: SLF001
