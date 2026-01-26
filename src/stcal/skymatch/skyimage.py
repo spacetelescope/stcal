@@ -13,6 +13,84 @@ from spherical_geometry.polygon import SphericalPolygon
 __all__ = ["SkyImage", "SkyGroup"]
 
 
+def _calc_bounding_polygon(image, wcs_fwd, stepsize=None):
+    """Compute image's bounding polygon.
+
+    Parameters
+    ----------
+    image : numpy.ndarray
+        A 2D array of image data.
+
+    wcs_fwd : collections.abc.Callable
+        "forward" pixel-to-world transformation function.
+
+    stepsize : int, None, optional
+        Indicates the maximum separation between two adjacent vertices
+        of the bounding polygon along each side of the image. Corners
+        of the image are included automatically. If `stepsize` is `None`,
+        bounding polygon will contain only vertices of the image.
+
+    Returns
+    -------
+    polygon : `SphericalPolygon`
+        The bounding :py:class:`~spherical_geometry.polygon.SphericalPolygon`.
+
+    Notes
+    -----
+    The bounding polygon is defined from corners of pixels whereas the pixel
+    coordinates refer to their centers and therefore the lower-left corner
+    is located at (-0.5, -0.5)
+    """
+    ny, nx = image.shape
+
+    if stepsize is None:
+        nint_x = 2
+        nint_y = 2
+    else:
+        nint_x = max(2, int(np.ceil((nx + 1.0) / stepsize)))
+        nint_y = max(2, int(np.ceil((ny + 1.0) / stepsize)))
+
+    xs = np.linspace(-0.5, nx - 0.5, nint_x, dtype=float)
+    ys = np.linspace(-0.5, ny - 0.5, nint_y, dtype=float)[1:-1]
+    nptx = xs.size
+    npty = ys.size
+
+    npts = 2 * (nptx + npty)
+
+    borderx = np.empty((npts + 1,), dtype=float)
+    bordery = np.empty((npts + 1,), dtype=float)
+
+    # "bottom" points:
+    borderx[:nptx] = xs
+    bordery[:nptx] = -0.5
+    # "right"
+    sl = np.s_[nptx : nptx + npty]
+    borderx[sl] = nx - 0.5
+    bordery[sl] = ys
+    # "top"
+    sl = np.s_[nptx + npty : 2 * nptx + npty]
+    borderx[sl] = xs[::-1]
+    bordery[sl] = ny - 0.5
+    # "left"
+    sl = np.s_[2 * nptx + npty : -1]
+    borderx[sl] = -0.5
+    bordery[sl] = ys[::-1]
+
+    # close polygon:
+    borderx[-1] = borderx[0]
+    bordery[-1] = bordery[0]
+
+    ra, dec = wcs_fwd(borderx, bordery, with_bounding_box=False)
+    # TODO: for strange reasons, occasionally ra[0] != ra[-1] and/or
+    #       dec[0] != dec[-1] (even though we close the polygon in the
+    #       previous two lines). Then SphericalPolygon fails because
+    #       points are not closed. Therefore we force it to be closed:
+    ra[-1] = ra[0]
+    dec[-1] = dec[0]
+
+    return SphericalPolygon.from_radec(ra, dec)
+
+
 class SkyImage:
     """
     Container that holds information about properties of a *single* image.
@@ -100,7 +178,8 @@ class SkyImage:
         self.is_sky_valid = False
 
         # create spherical polygon bounding the image
-        self.calc_bounding_polygon(stepsize)
+        self._polygon = _calc_bounding_polygon(image, wcs_fwd, stepsize)
+        self._poly_area = np.fabs(self._polygon.area())
 
         # set sky statistics function (NOTE: it must return statistics and
         # the number of pixels used after clipping)
@@ -135,73 +214,6 @@ class SkyImage:
         else:
             intersect_poly = self._polygon.intersection(other)
         return intersect_poly
-
-    def calc_bounding_polygon(self, stepsize=None):
-        """Compute image's bounding polygon.
-
-        Parameters
-        ----------
-        stepsize : int, None, optional
-            Indicates the maximum separation between two adjacent vertices
-            of the bounding polygon along each side of the image. Corners
-            of the image are included automatically. If `stepsize` is `None`,
-            bounding polygon will contain only vertices of the image.
-
-        Notes
-        -----
-        The bounding polygon is defined from corners of pixels whereas the pixel
-        coordinates refer to their centers and therefore the lower-left corner
-        is located at (-0.5, -0.5)
-        """
-        ny, nx = self.image.shape
-
-        if stepsize is None:
-            nint_x = 2
-            nint_y = 2
-        else:
-            nint_x = max(2, int(np.ceil((nx + 1.0) / stepsize)))
-            nint_y = max(2, int(np.ceil((ny + 1.0) / stepsize)))
-
-        xs = np.linspace(-0.5, nx - 0.5, nint_x, dtype=float)
-        ys = np.linspace(-0.5, ny - 0.5, nint_y, dtype=float)[1:-1]
-        nptx = xs.size
-        npty = ys.size
-
-        npts = 2 * (nptx + npty)
-
-        borderx = np.empty((npts + 1,), dtype=float)
-        bordery = np.empty((npts + 1,), dtype=float)
-
-        # "bottom" points:
-        borderx[:nptx] = xs
-        bordery[:nptx] = -0.5
-        # "right"
-        sl = np.s_[nptx : nptx + npty]
-        borderx[sl] = nx - 0.5
-        bordery[sl] = ys
-        # "top"
-        sl = np.s_[nptx + npty : 2 * nptx + npty]
-        borderx[sl] = xs[::-1]
-        bordery[sl] = ny - 0.5
-        # "left"
-        sl = np.s_[2 * nptx + npty : -1]
-        borderx[sl] = -0.5
-        bordery[sl] = ys[::-1]
-
-        # close polygon:
-        borderx[-1] = borderx[0]
-        bordery[-1] = bordery[0]
-
-        ra, dec = self.wcs_fwd(borderx, bordery, with_bounding_box=False)
-        # TODO: for strange reasons, occasionally ra[0] != ra[-1] and/or
-        #       dec[0] != dec[-1] (even though we close the polygon in the
-        #       previous two lines). Then SphericalPolygon fails because
-        #       points are not closed. Therefore we force it to be closed:
-        ra[-1] = ra[0]
-        dec[-1] = dec[0]
-
-        self._polygon = SphericalPolygon.from_radec(ra, dec)
-        self._poly_area = np.fabs(self._polygon.area())
 
     def calc_sky(self, overlap=None, delta=True):
         """
