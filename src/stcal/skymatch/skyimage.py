@@ -111,13 +111,11 @@ class SkyImage:
         Compute intersection.
 
         Compute intersection of this `SkyImage` object and another
-        `SkyImage`, `SkyGroup`, or
-        :py:class:`~spherical_geometry.polygon.SphericalPolygon`
-        object.
+        `SkyImage` or `SkyGroup` object.
 
         Parameters
         ----------
-        skyimage : SkyImage, SkyGroup, spherical_geometry.polygon.SphericalPolygon
+        skyimage : SkyImage, SkyGroup
             Another object that should be intersected with this `SkyImage`.
 
         Returns
@@ -128,10 +126,7 @@ class SkyImage:
 
         """
         # FIXME unused outside of this class
-        if isinstance(skyimage, (SkyImage, SkyGroup)):
-            other = skyimage._polygon  # noqa: SLF001
-        else:
-            other = skyimage
+        other = skyimage._polygon  # noqa: SLF001
 
         pts1 = np.sort(list(self._polygon.points)[0], axis=0)
         pts2 = np.sort(list(other.points)[0], axis=0)
