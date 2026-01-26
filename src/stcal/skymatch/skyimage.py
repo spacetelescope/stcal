@@ -348,38 +348,8 @@ class SkyGroup:
     def __getitem__(self, idx):
         return self._images[idx]
 
-    def __setitem__(self, idx, value):
-        if not isinstance(value, SkyImage):
-            raise TypeError("Item must be of 'SkyImage' type")
-        value.sky += self.sky
-        self._images[idx] = value
-        self._update_bounding_polygon()
-
-    def __delitem__(self, idx):
-        del self._images[idx]
-        if len(self._images) == 0:
-            self._sky = 0.0
-            self.sky_id = None
-        self._update_bounding_polygon()
-
     def __iter__(self):
         yield from self._images
-
-    def insert(self, idx, value):
-        """Insert a `SkyImage` into the group."""
-        if not isinstance(value, SkyImage):
-            raise TypeError("Item must be of 'SkyImage' type")
-        value.sky += self.sky
-        self._images.insert(idx, value)
-        self._update_bounding_polygon()
-
-    def append(self, value):
-        """Append a `SkyImage` to the group."""
-        if not isinstance(value, SkyImage):
-            raise TypeError("Item must be of 'SkyImage' type")
-        value.sky += self.sky
-        self._images.append(value)
-        self._update_bounding_polygon()
 
     def calc_sky(self, overlap=None, delta=True):
         """
