@@ -17,7 +17,7 @@ include_dirs = [np.get_include()]
 # Setup C module macros
 define_macros = [("NUMPY", "1")]
 
-# importing these extension modules is tested in `.github/workflows/build.yml`; 
+# importing these extension modules is tested in `.github/workflows/build.yml`;
 # when adding new modules here, make sure to add them to the `test_command` entry there
 extensions = [
     Extension(

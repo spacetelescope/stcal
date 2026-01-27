@@ -29,6 +29,7 @@ after rescaling by the read noise only on the ratio of the read noise and flux.
 So the routines in these packages construct these different matrices, store
 them, and interpolate between them for different different fluxes and ratios.
 """
+
 import numpy as np
 from astropy import units as u
 

@@ -1,3 +1,85 @@
+1.16.0 (2026-01-22)
+===================
+
+Breaking Changes
+----------------
+
+- Remove deprcated dqflags, dynamicdq and basic_utils modules. (`#443
+  <https://github.com/spacetelescope/stcal/issues/443>`_)
+- Remove deprecated ``wcs_from_footprints``. (`#470
+  <https://github.com/spacetelescope/stcal/issues/470>`_)
+- Make saturation helper functions adjacent_pixels and plane_saturation private
+  (`#489 <https://github.com/spacetelescope/stcal/issues/489>`_)
+- Rename ``testing_helpers`` to ``_testing.memory_threshold``. (`#490
+  <https://github.com/spacetelescope/stcal/issues/490>`_)
+
+
+alignment step
+--------------
+
+- Add methods for computing complex S_REGION keywords for mosaics (`#407
+  <https://github.com/spacetelescope/stcal/issues/407>`_)
+
+
+jump step
+---------
+
+- Replaced usage of ``opencv-python`` with analogous functionality from
+  ``scikit-image``. (`#138
+  <https://github.com/spacetelescope/stcal/issues/138>`_)
+- Fixed a bug where ``point_inside_ellipse()`` sometimes returning True for a
+  point outside of the given ellipse. (`#461
+  <https://github.com/spacetelescope/stcal/issues/461>`_)
+- ``JumpData.max_extended_radius`` is renamed to
+  ``JumpData.max_extended_width`` to accurately reflect its actual usage
+  internally. (`#474 <https://github.com/spacetelescope/stcal/issues/474>`_)
+- Replace ``warnings.resetwarnings`` with ``warnings.catch_warnings`` to avoid
+  global changes to warning filters. (`#483
+  <https://github.com/spacetelescope/stcal/issues/483>`_)
+
+
+ramp_fitting step
+-----------------
+
+- Replace ``warnings.resetwarnings`` with ``warnings.catch_warnings`` to avoid
+  global changes to warning filters. (`#483
+  <https://github.com/spacetelescope/stcal/issues/483>`_)
+- Add snowball flagging (``jump.expand_large_events``) to likelihood-based ramp
+  fitting and jump detection. (`#491
+  <https://github.com/spacetelescope/stcal/issues/491>`_)
+
+
+saturation step
+---------------
+
+- Set saturation flag for any saturation. This reverts back to saturation
+  flagging behavior prior to #125 (`#421
+  <https://github.com/spacetelescope/stcal/issues/421>`_)
+- Add saturation.saturation.flag_saturated_pixels to docs and public API, add
+  description of saturation step to docs (`#489
+  <https://github.com/spacetelescope/stcal/issues/489>`_)
+
+
+tweakreg step
+-------------
+
+- Add support for 'GAIADR3_S3' catalog in tweakreg. (`#447
+  <https://github.com/spacetelescope/stcal/issues/447>`_)
+
+
+Other Changes
+-------------
+
+- Make new stcal.multiprocessing namespace with public compute_num_cores
+  function (`#431 <https://github.com/spacetelescope/stcal/issues/431>`_)
+- Add missing ``stsci.imagestats`` dependency. (`#433
+  <https://github.com/spacetelescope/stcal/issues/433>`_)
+- Disable 3.14t wheel building. This package does not yet support 3.14t. (`#451
+  <https://github.com/spacetelescope/stcal/issues/451>`_)
+- Pin gwcs<1 to avoid errors for None input frame. (`#500
+  <https://github.com/spacetelescope/stcal/issues/500>`_)
+
+
 1.15.2 (2025-09-25)
 ===================
 

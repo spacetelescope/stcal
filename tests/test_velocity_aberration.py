@@ -1,6 +1,7 @@
 """
 Test script for set_velocity_aberration.py
 """
+
 from numpy import isclose
 
 from stcal.velocity_aberration import compute_va_effects

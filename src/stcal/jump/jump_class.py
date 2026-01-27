@@ -1,6 +1,7 @@
 INDENT = "    "
 DELIM = "-" * 80
 
+
 class JumpData:
     """Contains data needed for detecting jumps."""
 
@@ -50,13 +51,13 @@ class JumpData:
 
         # Detection options (using JWST defaults)
         # The 'normal' cosmic ray sigma rejection threshold for ramps with more than 4 groups
-        self.rejection_thresh = 4.
+        self.rejection_thresh = 4.0
 
         # Cosmic ray sigma rejection threshold for ramps having 3 groups
-        self.three_grp_thresh = 6.
+        self.three_grp_thresh = 6.0
 
         # Cosmic ray sigma rejection threshold for ramps having 4 groups
-        self.four_grp_thresh = 5.
+        self.four_grp_thresh = 5.0
 
         # If set to True (default is True), it will cause the four perpendicular
         # neighbors of all detected jumps to also be flagged as a jump.
@@ -167,8 +168,8 @@ class JumpData:
         # The maximum possible amplitude for flagged MIRI showers in DN/group
         self.max_shower_amplitude = 6
 
-        # The maximum radius for any extension of saturation or jump
-        self.max_extended_radius = 200
+        # The maximum width for any extension of saturation or jump
+        self.max_extended_width = 200
 
         # Sigma clipping
         # The minimum number of groups for jump detection
@@ -196,7 +197,7 @@ class JumpData:
         self.max_cores = None  # Number of processes
         self.start_row = 0  # Start row of current slice
         self.end_row = 0  # End row of current slice
-        self.tot_row = 0 # Total number of rows in slice
+        self.tot_row = 0  # Total number of rows in slice
 
     def init_arrays_from_model(self, jump_model):
         """
@@ -294,8 +295,7 @@ class JumpData:
         self.after_jump_flag_dn2 = dn2
         self.after_jump_flag_n2 = n2
 
-    def set_snowball_info(
-            self, levent, mjarea, msarea, exfact, require, satrad, satexp, edge):
+    def set_snowball_info(self, levent, mjarea, msarea, exfact, require, satrad, satexp, edge):
         """
         Set class instance values needed for snowball handling.
 
@@ -328,7 +328,8 @@ class JumpData:
             The number of pixels to expand the saturated core of detected snowballs
 
         edge : int
-            The distance from the edge of the detector where saturated cores are not required for snowball detection
+            The distance from the edge of the detector where saturated cores are not
+            required for snowball detection
         """
         self.expand_large_events = levent
         self.min_jump_area = mjarea
@@ -371,7 +372,7 @@ class JumpData:
            The minimum number of groups to switch to flagging all outliers in a single pass.
 
         extend : int
-            The maximum radius for any extension of saturation or jump
+            The maximum width for any extension of saturation or jump
         """
         # MIRI shower information
         self.find_showers = shower
@@ -381,7 +382,7 @@ class JumpData:
         self.extend_outer_radius = outer
         self.extend_ellipse_expand_ratio = expand
         self.min_diffs_single_pass = single
-        self.max_extended_radius = extend
+        self.max_extended_width = extend
 
     def set_sigma_clipping_info(self, mingrps, minsig, useints):
         """
@@ -417,40 +418,39 @@ class JumpData:
         self.print_jump_data_sigma_clipping(fd=fd)
         self.print_jump_data_internal_state(fd=fd)
 
-    def print_jump_data_arrays(self, pix_list=None, fd=None):
+    def print_jump_data_arrays(self, pix_list=None, fd=None):  # noqa: ARG001, ARG002
         """Print jump_data arrays."""
         if fd is None:
-            print(self.get_jump_data_arrays())
+            print(self.get_jump_data_arrays())  # noqa: T201
         else:
             print(self.get_jump_data_arrays(), file=fd)
-
 
     def get_jump_data_arrays(self):
         """Return string of jump_data information."""
         oline = f"{DELIM}\n"
         oline += "JumpData Arrays\n"
         oline += f"Data shape = {self.data.shape}\n"
-        '''
+        """
         self.data
         self.gdq
         self.pdq
         self.gain_2d
         self.rnoise_2d
-        '''
+        """
         oline += f"{DELIM}\n"
         return oline
 
     def print_jump_data_options(self, fd=None):
         """Print jump_data options."""
         if fd is None:
-            print(self.get_jump_data_options())
+            print(self.get_jump_data_options())  # noqa: T201
         else:
             print(self.get_jump_data_options(), file=fd)
 
     def get_jump_data_options(self):
         """Return string of jump_data option."""
         oline = f"{DELIM}\n"
-        oline += f"JumpData Options\n"
+        oline += "JumpData Options\n"
         oline += f"nframes = {self.nframes}\n"
         oline += f"rejection_thresh = {self.rejection_thresh}\n"
         oline += f"three_grp_thresh = {self.three_grp_thresh}\n"
@@ -475,7 +475,7 @@ class JumpData:
     def print_jump_data_dqflags(self, fd=None):
         """Print string of jump_data dqflags."""
         if fd is None:
-            print(self.get_jump_data_dqflags())
+            print(self.get_jump_data_dqflags())  # noqa: T201
         else:
             print(self.get_jump_data_dqflags(), file=fd)
 
@@ -495,7 +495,7 @@ class JumpData:
     def print_jump_data_snowball(self, fd=None):
         """Print string of jump_data snowball data."""
         if fd is None:
-            print(self.get_jump_data_snowball())
+            print(self.get_jump_data_snowball())  # noqa: T201
         else:
             print(self.get_jump_data_snowball(), file=fd)
 
@@ -518,7 +518,7 @@ class JumpData:
     def print_jump_data_shower(self, fd=None):
         """Print string of jump_data shower data."""
         if fd is None:
-            print(self.get_jump_data_shower())
+            print(self.get_jump_data_shower())  # noqa: T201
         else:
             print(self.get_jump_data_shower(), file=fd)
 
@@ -533,14 +533,14 @@ class JumpData:
         oline += f"extend_outer_radius = {self.extend_outer_radius}\n"
         oline += f"extend_ellipse_expand_ratio = {self.extend_ellipse_expand_ratio}\n"
         oline += f"min_diffs_single_pass = {self.min_diffs_single_pass}\n"
-        oline += f"max_extended_radius = {self.max_extended_radius}\n"
+        oline += f"max_extended_width = {self.max_extended_width}\n"
         oline += f"{DELIM}\n\n"
         return oline
 
     def print_jump_data_sigma_clipping(self, fd=None):
         """Print string of jump_data sigma clipping data."""
         if fd is None:
-            print(self.get_jump_data_sigma_clipping())
+            print(self.get_jump_data_sigma_clipping())  # noqa: T201
         else:
             print(self.get_jump_data_sigma_clipping(), file=fd)
 
@@ -557,7 +557,7 @@ class JumpData:
     def print_jump_data_internal_state(self, fd=None):
         """Print string of jump_data internal state."""
         if fd is None:
-            print(self.get_jump_data_internal_state())
+            print(self.get_jump_data_internal_state())  # noqa: T201
         else:
             print(self.get_jump_data_internal_state(), file=fd)
 

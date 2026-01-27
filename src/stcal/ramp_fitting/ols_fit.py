@@ -2,15 +2,16 @@
 
 import logging
 import multiprocessing
+import sys
 import time
 from multiprocessing import cpu_count
-import sys
 
 import numpy as np
 
-from .slope_fitter import ols_slope_fitter  # c extension
-from . import ramp_fit_class
 from stcal.multiprocessing import compute_num_cores
+
+from . import ramp_fit_class
+from .slope_fitter import ols_slope_fitter  # c extension
 
 BUFSIZE = 1024 * 300000  # 300Mb cache size for data section
 
@@ -19,8 +20,9 @@ log = logging.getLogger(__name__)
 
 def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, max_cores):
     """
-    Setup the inputs to ols_ramp_fit with and without multiprocessing. The
-    inputs will be sliced into the number of cores that are being used for
+    Prepare ols_ramp_fit inputs.
+
+    The inputs will be sliced into the number of cores that are being used for
     multiprocessing. Because the data models cannot be pickled, only numpy
     arrays are passed and returned as parameters to ols_ramp_fit.
 
@@ -103,11 +105,11 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
     return image_info, integ_info, opt_info
 
 
-def ols_ramp_fit_multiprocessing(
-    ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
-):
+def ols_ramp_fit_multiprocessing(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices):
     """
-    Fit a ramp using ordinary least squares. Calculate the count rate for each
+    Fit a ramp using ordinary least squares.
+
+    Calculate the count rate for each
     pixel in all data cube sections and all integrations, equal to the weighted
     slope for all sections (intervals between cosmic rays) of the pixel's ramp
     divided by the effective integration time.  The data is spread across the
@@ -165,6 +167,8 @@ def ols_ramp_fit_multiprocessing(
 
 def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     """
+    Assemble pool results.
+
     Takes the list of results from the starmap pool method and assembles the
     slices into primary tuples to be returned by `ramp_fit`.
 
@@ -224,7 +228,7 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
 
 def get_image_slice(image_info, image_slice, row_start, nrows):
     """
-    Populates the image output information from each slice.
+    Populate the image output information from each slice.
 
     image_info: tuple
         The output image information to populate from the slice.
@@ -252,7 +256,7 @@ def get_image_slice(image_info, image_slice, row_start, nrows):
 
 def get_integ_slice(integ_info, integ_slice, row_start, nrows):
     """
-    Populates the integration output information from each slice.
+    Populate the integration output information from each slice.
 
     integ_info: tuple
         The output integration information to populate from the slice.
@@ -280,7 +284,7 @@ def get_integ_slice(integ_info, integ_slice, row_start, nrows):
 
 def get_opt_slice(opt_info, opt_slice, row_start, nrows):
     """
-    Populates the optional output information from each slice.
+    Populate the optional output information from each slice.
 
     opt_info: tuple
         The output optional information to populate from the slice.
@@ -320,8 +324,7 @@ def get_opt_slice(opt_info, opt_slice, row_start, nrows):
 
 def create_output_info(ramp_data, pool_results, save_opt):
     """
-    Creates the output arrays and tuples for ramp fitting reassembly for
-    mulitprocessing.
+    Create the output arrays and tuples for ramp fitting reassembly for mulitprocessing.
 
     Parameters
     ----------
@@ -394,6 +397,8 @@ def create_output_info(ramp_data, pool_results, save_opt):
 
 def get_max_segs_crs(pool_results):
     """
+    Compute the max number of segments.
+
     Computes the max number of segments computed needed for the second
     dimension of the optional results output.
 
@@ -426,12 +431,11 @@ def get_max_segs_crs(pool_results):
     return seg_max, crs_max
 
 
-def compute_slices_for_starmap(
-    ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
-):
+def compute_slices_for_starmap(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices):
     """
-    Creates the slices needed for each process for multiprocessing.  The slices
-    for the arguments needed for ols_ramp_fit_single.
+    Create the slices needed for each process for multiprocessing.
+
+    The slices for the arguments needed for ols_ramp_fit_single.
 
     ramp_data: RampData
         The ramp data to be sliced.
@@ -508,6 +512,8 @@ def rows_per_slice(nslices, nrows):
 
 def slice_ramp_data(ramp_data, start_row, nrows):
     """
+    Slice ramp data.
+
     Slices the ramp data by rows, where the arrays contain all rows in
     [start_row, start_row+nrows).
 
@@ -574,10 +580,12 @@ def slice_ramp_data(ramp_data, start_row, nrows):
 
 def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
     """
-    Fit a ramp using ordinary least squares. Calculate the count rate for each
-    pixel in all data cube sections and all integrations, equal to the weighted
-    slope for all sections (intervals between cosmic rays) of the pixel's ramp
-    divided by the effective integration time.
+    Fit a ramp using ordinary least squares.
+
+    Calculate the count rate for each pixel in all data cube sections and all
+    integrations, equal to the weighted slope for all sections
+    (intervals between cosmic rays) of the pixel's ramp divided by the
+    effective integration time.
 
     Parameters
     ----------
@@ -615,8 +623,7 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
         ramp_data.drop_frames1 = 0
 
     log.debug("Running ols_slope_fitter")
-    image_info, integ_info, opt_info = ols_slope_fitter(
-            ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
+    image_info, integ_info, opt_info = ols_slope_fitter(ramp_data, gain_2d, readnoise_2d, weighting, save_opt)
 
     c_end = time.time()
 
@@ -627,9 +634,9 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
     # ramp fitting.
     rn_bswap, gain_bswap = bswap
     if rn_bswap:
-        readnoise_2d.view(readnoise_2d.dtype.newbyteorder('S')).byteswap(inplace=True)
+        readnoise_2d.view(readnoise_2d.dtype.newbyteorder("S")).byteswap(inplace=True)
     if gain_bswap:
-        gain_2d.view(gain_2d.dtype.newbyteorder('S')).byteswap(inplace=True)
+        gain_2d.view(gain_2d.dtype.newbyteorder("S")).byteswap(inplace=True)
 
     c_diff = c_end - c_start
     log.info(f"Ramp Fitting C Time: {c_diff}")
@@ -639,6 +646,8 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
 
 def handle_array_endianness(arr, sys_order):
     """
+    Handle array endianness.
+
     Determines if the array byte order is the same as the system byte order.  If
     it is not, then byteswap the array.
 
@@ -658,7 +667,7 @@ def handle_array_endianness(arr, sys_order):
     arr_order = arr.dtype.byteorder
     bswap = False
     if (arr_order == ">" and sys_order == "<") or (arr_order == "<" and sys_order == ">"):
-        arr.view(arr.dtype.newbyteorder('S')).byteswap(inplace=True)
+        arr.view(arr.dtype.newbyteorder("S")).byteswap(inplace=True)
         bswap = True
 
     return arr, bswap
@@ -666,6 +675,8 @@ def handle_array_endianness(arr, sys_order):
 
 def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     """
+    Check endianeness of arrays.
+
     Check all arrays for endianness against the system endianness,
     so when used by the C extension, the endianness is correct.  Numpy
     ndarrays can be in any byte order and is handled transparently to the
@@ -694,7 +705,7 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     readnoise_2d : ndarray
         An ndarray checked and possibly byte swapped.
     """
-    sys_order = "<" if sys.byteorder=="little" else ">"
+    sys_order = "<" if sys.byteorder == "little" else ">"
 
     # If the gain and/or readnoise arrays are byteswapped before going
     # into the C extension, then that needs to be noted and byteswapped
@@ -703,15 +714,17 @@ def endianness_handler(ramp_data, gain_2d, readnoise_2d):
     readnoise_2d, rn_bswap = handle_array_endianness(readnoise_2d, sys_order)
 
     ramp_data.data, _ = handle_array_endianness(ramp_data.data, sys_order)
-    ramp_data.average_dark_current , _ = handle_array_endianness(ramp_data.average_dark_current, sys_order)
+    ramp_data.average_dark_current, _ = handle_array_endianness(ramp_data.average_dark_current, sys_order)
     ramp_data.groupdq, _ = handle_array_endianness(ramp_data.groupdq, sys_order)
     ramp_data.pixeldq, _ = handle_array_endianness(ramp_data.pixeldq, sys_order)
 
     return ramp_data, gain_2d, readnoise_2d, (rn_bswap, gain_bswap)
-    
+
 
 def discard_miri_groups(ramp_data):
     """
+    Discard MIRI groups.
+
     For MIRI datasets having >1 group, if all pixels in the final group are
     flagged as DO_NOT_USE, resize the input model arrays to exclude the
     final group.  Similarly, if leading groups 1 though N have all pixels
