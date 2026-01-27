@@ -170,8 +170,8 @@ class SkyImage:
         self.sky_id = sky_id
 
         # WCS
-        self.wcs_fwd = wcs_fwd
-        self.wcs_inv = wcs_inv
+        self._wcs_fwd = wcs_fwd
+        self._wcs_inv = wcs_inv
 
         # initial sky value:
         self.sky = 0.0
@@ -283,7 +283,7 @@ class SkyImage:
                     continue
 
                 # set pixels in 'fill_mask' that are inside a polygon to True:
-                x, y = self.wcs_inv(ra, dec, with_bounding_box=False)
+                x, y = self._wcs_inv(ra, dec, with_bounding_box=False)
                 poly_vert = list(zip(x, y, strict=True))
 
                 polygon = region.Polygon(True, poly_vert)
