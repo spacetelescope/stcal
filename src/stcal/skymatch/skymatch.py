@@ -36,37 +36,36 @@ def skymatch(images, skymethod="global+match", match_down=True, subtract=False):
         Available methods: {'local', 'global+match', 'global', 'match'}
         Select the algorithm for sky computation:
 
-        * **'local'** : compute sky background values of each input image or
-          group of images (members of the same "exposure"). A single sky value
-          is computed for each group of images.
+        * **'local'** : independently compute the sky background for each
+          input (either image or group). This method does not involve any
+          special treatment of overlaps between inputs.
 
           .. note::
             This setting is recommended when regions of overlap between images
             are dominated by "pure" sky (as opposed to extended, diffuse
             sources).
 
-        * **'global'** : compute a common sky value for all input images and
-          groups of images. With this setting `local` will compute
-          sky values for each input image/group, find the minimum sky value,
-          and then it will set (and/or subtract) the sky value of each input
-          image to this minimum value. This method *may* be
+        * **'global'** : similar to `local` first compute an independent
+          sky background for each input (either image or group), then take
+          the minimum of these computed sky values. This minimum will be
+          assigned to the sky value of all inputs. This method *may* be
           useful when the input images have been already matched.
 
-        * **'match'** : compute differences in sky values between images
-          and/or groups in (pair-wise) common sky regions. In this case
-          the computed sky values will be relative (delta) to the sky computed
-          in one of the input images whose sky value will be set to
-          (reported to be) 0. This setting will "equalize" sky values between
-          the images in large mosaics. However, this method is not recommended
-          when used in conjunction with
+        * **'match'** : compute pair-wise differences in sky values between
+          inputs that overlap. The reported sky values will be relative to
+          one of the input images (which will have a sky value of 0).
+          This setting will "equalize" sky values between the images in large
+          mosaics. This method is not recommended when used in conjunction with
           `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\
 drizzlepac/astrodrizzle.html>`_
           because it computes relative sky values while `astrodrizzle` needs
           "absolute" sky values for median image generation and CR rejection.
 
-        * **'global+match'** : first use the **'match'** method to
-          equalize sky values between images and then find a minimum
-          "global" sky value amongst all input images.
+        * **'global+match'** : first compute sky values using the above
+          **'match'** method, then (temporarily) apply the relative
+          sky values to each input and then compute the minimum sky
+          using the above **'global'** method. The final sky values will
+          be a combination of the results of these two methods.
 
           .. note::
             This is the *recommended* setting for images
@@ -399,7 +398,6 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             img.is_sky_valid = valid
 
 
-# bug workaround version:
 def _overlap_matrix(images, apply_sky=True):
     ns = len(images)
     A = np.zeros((ns, ns), dtype=float)  # noqa: N806
