@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from stcal.jump.twopoint_difference import find_crs
 from stcal.jump.twopoint_difference_class import TwoPointParams
