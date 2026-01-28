@@ -43,8 +43,88 @@ def default_twopt_p(rej=3, _1drej=3, _3drej=3, nframes=1, _4n=False, mx_flag=200
     twopt_p.min_diffs_single_pass = 10
 
     twopt_p.copy_arrs = True
+    twopt_p.dt_group = np.ones(1)
+    twopt_p.n_reads_groupdiff = np.ones(1) * 2 * twopt_p.nframes
 
     return twopt_p
+
+
+def uneven_resultant_twopt_p(read_times, rej=3, _1drej=3, _3drej=3, _4n=False, mx_flag=200, mn_flag=10):
+    twopt_p = TwoPointParams()
+    twopt_p.normal_rej_thresh = rej
+
+    twopt_p.two_diff_rej_thresh = 3
+    twopt_p.three_diff_rej_thresh = 3
+    twopt_p.nframes = 1
+
+    twopt_p.flag_4_neighbors = _4n
+    twopt_p.max_jump_to_flag_neighbors = mx_flag
+    twopt_p.min_jump_to_flag_neighbors = mn_flag
+
+    twopt_p.fl_jump = DQFLAGS["JUMP_DET"]
+    twopt_p.fl_sat = DQFLAGS["SATURATED"]
+    twopt_p.fl_dnu = DQFLAGS["DO_NOT_USE"]
+
+    twopt_p.after_jump_flag_e1 = 0.0
+    twopt_p.after_jump_flag_n1 = 0
+    twopt_p.after_jump_flag_e2 = 0.0
+    twopt_p.after_jump_flag_n2 = 0
+
+    twopt_p.minimum_groups = 3
+    twopt_p.minimum_sigclip_groups = 100
+    twopt_p.only_use_ints = True
+    twopt_p.min_diffs_single_pass = 10
+
+    twopt_p.copy_arrs = True
+
+    t_group = np.array([np.mean(times) for times in read_times])
+    twopt_p.dt_group = np.diff(t_group)
+
+    n_reads_group = np.array([len(times) for times in read_times])
+    twopt_p.n_reads_groupdiff = n_reads_group[1:] + n_reads_group[:-1]
+
+    return twopt_p
+
+
+def test_uneven_groups():
+    read_times = [[1], [2, 3], [4, 5, 6], [7, 8, 9, 10, 11], [12]]
+
+    nints, ngroups, nrows, ncols = 1, 5, 2, 2
+    dims = nints, ngroups, nrows, ncols
+    rnoise = 2
+
+    data, gdq, read_noise = setup_data(dims, rnoise)
+
+    # Counts we should get for perfect linear accumulation of signal
+    nojump_cts = np.array([np.mean(t) for t in read_times])
+
+    # Count rate of 16 electrons/read: sigma is 5 electrons
+    # in a single read difference.
+
+    data[:] = nojump_cts[None, :, None, None] * 16
+
+    # This jump should be found easily.
+    data[0, 3:, 1, 0] += 100
+    # This one is about just under 4 sigma, should be found with these
+    # thresholds.  24 electrons expected in the difference plus 1.5
+    # times the read noise variance.
+    data[0, 1:, 0, 0] += 20
+
+    # This one should not be found given the number of reads and
+    # exposure time.  This has a delta(mean_t) of 4, so a photon noise
+    # of 8 electrons.  It is a little less than 2.5 sigma.
+    data[0, 3:, 1, 1] += 20
+
+    twopt_p = uneven_resultant_twopt_p(
+        read_times, rej=3, _1drej=3, _3drej=3, _4n=False, mx_flag=200, mn_flag=10
+    )
+
+    out_gdq, row_below_gdq, rows_above_gdq, total_crs = find_crs(data, gdq, read_noise, twopt_p)
+
+    assert np.array_equal(out_gdq[0, :, 0, 0], [0, 4, 0, 0, 0])
+    assert np.array_equal(out_gdq[0, :, 0, 1], [0, 0, 0, 0, 0])
+    assert np.array_equal(out_gdq[0, :, 1, 0], [0, 0, 0, 4, 0])
+    assert np.array_equal(out_gdq[0, :, 1, 1], [0, 0, 0, 0, 0])
 
 
 def test_varying_groups():
@@ -750,6 +830,9 @@ def sigclip_twopt_p():
     # twopt_p.only_use_ints = True
     twopt_p.only_use_ints = False
     twopt_p.min_diffs_single_pass = 10
+
+    twopt_p.dt_group = np.ones(1)
+    twopt_p.n_reads_groupdiff = np.ones(1) * 2 * twopt_p.nframes
 
     twopt_p.copy_arrs = False
 
