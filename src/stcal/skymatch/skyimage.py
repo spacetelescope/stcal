@@ -205,12 +205,20 @@ class SkyImage:
             the intersection of this `SkyImage` and `skyimage`.
 
         """
-        # FIXME unused outside of this class
         other = skyimage._polygon  # noqa: SLF001
 
         pts1 = np.sort(list(self._polygon.points)[0], axis=0)
         pts2 = np.sort(list(other.points)[0], axis=0)
-        if np.allclose(pts1, pts2, rtol=0, atol=1e-8):
+
+        # replicates old behavior where a different tolerance
+        # is used when self is a SkyGroup. This means that if
+        # use have a SkyGroup "g" and SkyImage "i" the results of
+        # i.intersection(g) differs from g.intersection(i)
+        if isinstance(self, SkyGroup):
+            atol = 5e-9
+        else:
+            atol = 1e-8
+        if np.allclose(pts1, pts2, rtol=0, atol=atol):
             intersect_poly = self._polygon.copy()
         else:
             intersect_poly = self._polygon.intersection(other)
