@@ -6,7 +6,7 @@ Unit tests for linearity correction
 
 import numpy as np
 
-from stcal.linearity.linearity import linearity_correction, apply_polynomial
+from stcal.linearity.linearity import apply_polynomial, linearity_correction
 
 DQFLAGS = {"GOOD": 0, "DO_NOT_USE": 1, "SATURATED": 2, "DEAD": 1024, "HOT": 2048, "NO_LIN_CORR": 1048576}
 
@@ -180,14 +180,22 @@ def test_read_level_correction():
     # some made up inverse linearity coefficients
     # these are somewhat steep; DN / electron changes from
     # ~0.7 at 50k electrons to 0.4 at 65k electrons
-    ilin_coeffs_flat = np.array(
-        [ 0,  1, -1.e-07, -1.e-12, -5.e-16], dtype='f8')
+    ilin_coeffs_flat = np.array([0, 1, -1.0e-07, -1.0e-12, -5.0e-16], dtype="f8")
     # linearity coefficients corresponding to the above;
     # these were computed separately
     lin_coeffs_flat = np.array(
-        [ 0,  1, -3.34319810e-07,  1.24117346e-10,
-          -1.11872923e-14,  4.92169172e-19, -9.50437757e-24,  7.04201969e-29],
-        dtype='f8')
+        [
+            0,
+            1,
+            -3.34319810e-07,
+            1.24117346e-10,
+            -1.11872923e-14,
+            4.92169172e-19,
+            -9.50437757e-24,
+            7.04201969e-29,
+        ],
+        dtype="f8",
+    )
 
     # Set up linearity & inverse linearity coefficients
     nlcoeffs = len(lin_coeffs_flat)
@@ -206,10 +214,8 @@ def test_read_level_correction():
     satval = np.full((nrows, ncols), sat, dtype=np.float32)
 
     nl_reads = apply_polynomial(reads, ilin_coeffs_flat)
-    true_groups = np.average(
-        reads.reshape(ngroups, nreads_per_group), axis=1)
-    nl_groups = np.average(
-        nl_reads.reshape(ngroups, nreads_per_group), axis=1)
+    true_groups = np.average(reads.reshape(ngroups, nreads_per_group), axis=1)
+    nl_groups = np.average(nl_reads.reshape(ngroups, nreads_per_group), axis=1)
     # we now have what we want after linearity correction (true groups)
     # and what is observed (true_nl_groups)
     # success if the linearity correction with the new mode accounting
@@ -220,18 +226,22 @@ def test_read_level_correction():
 
     # Test with read-level correction
     corrected_with_read_pattern, output_pdq, _ = linearity_correction(
-        data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS,
+        data.copy(),
+        gdq,
+        pdq,
+        lin_coeffs,
+        lin_dq,
+        DQFLAGS,
         ilin_coeffs=ilin_coeffs,
         read_pattern=read_pattern,
-        satval=satval
+        satval=satval,
     )
     corrected_without_read_pattern, _, _ = linearity_correction(
-        data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS)
+        data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS
+    )
 
-    fracdiff_read_pattern = (
-        corrected_with_read_pattern[0, :, 0, 0] / true_groups) - 1
-    fracdiff = (
-        corrected_without_read_pattern[0, :, 0, 0] / true_groups) - 1
+    fracdiff_read_pattern = (corrected_with_read_pattern[0, :, 0, 0] / true_groups) - 1
+    fracdiff = (corrected_without_read_pattern[0, :, 0, 0] / true_groups) - 1
     worstdiff_read_pattern = np.max(np.abs(fracdiff_read_pattern))
     worstdiff = np.max(np.abs(fracdiff))
 
