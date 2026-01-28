@@ -118,7 +118,6 @@ class SkyImage:
         sky_id=None,
         stepsize=None,
         meta=None,
-        **kwargs,  # work-around downstream code # noqa: ARG002
     ):
         """Initialize the SkyImage object.
 
