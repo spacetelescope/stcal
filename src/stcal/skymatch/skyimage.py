@@ -250,13 +250,8 @@ class SkyImage:
             sky statistics.
         """
         if overlap is None:
-            if self.mask is None:
-                data = self.image
-            else:
-                data = self.image[self.mask]
-
+            data = self.image[self.mask]
             polyarea = self._poly_area
-
         else:
             fill_mask = np.zeros(self.image.shape, dtype=bool)
 
@@ -290,9 +285,7 @@ class SkyImage:
                 polygon = region.Polygon(True, poly_vert)
                 fill_mask = polygon.scan(fill_mask)
 
-            if self.mask is not None:
-                fill_mask &= self.mask
-
+            fill_mask &= self.mask
             data = self.image[fill_mask]
 
             if data.size < 1:
@@ -388,9 +381,6 @@ class SkyGroup:
             sky statistics.
 
         """
-        if len(self._images) == 0:
-            return None, 0, 0.0
-
         wght = 0
         area = 0.0
 
