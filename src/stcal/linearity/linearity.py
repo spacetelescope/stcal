@@ -1,9 +1,19 @@
 import numpy as np
 
 
-def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=None,
-                         ilin_coeffs=None, additional_correction=None, read_pattern=None,
-                         satval=None):
+def linearity_correction(
+    data,
+    gdq,
+    pdq,
+    lin_coeffs,
+    lin_dq,
+    dqflags,
+    zframe=None,
+    ilin_coeffs=None,
+    additional_correction=None,
+    read_pattern=None,
+    satval=None,
+):
     """
     Apply linearity correction.
 
@@ -91,25 +101,25 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=Non
     if read_level_correction:
         # Validate that all required parameters are provided
         if read_pattern is None:
-            raise ValueError(
-                "When ilin_coeffs is provided, read_pattern must also be provided"
-            )
+            raise ValueError("When ilin_coeffs is provided, read_pattern must also be provided")
 
     # Prepare coefficients
     nints = data.shape[0]
     lin_coeffs, new_pdq = prepare_coefficients(lin_coeffs, lin_dq, pdq, dqflags)
     if read_level_correction:
-        ilin_coeffs, new_pdq = prepare_coefficients(
-            ilin_coeffs, lin_dq, new_pdq, dqflags)
+        ilin_coeffs, new_pdq = prepare_coefficients(ilin_coeffs, lin_dq, new_pdq, dqflags)
 
     # Apply linearity correction to each integration
     for i in range(nints):
         data[i] = linearity_correction_int(
-            data[i], gdq[i], lin_coeffs, dqflags,
+            data[i],
+            gdq[i],
+            lin_coeffs,
+            dqflags,
             ilin_coeffs=ilin_coeffs,
             additional_correction=additional_correction,
             read_pattern=read_pattern,
-            satval=satval
+            satval=satval,
         )
 
     zdata = None  # zframe needs to be returned, so initialize it to None.
@@ -134,9 +144,7 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=Non
         # the zero frame anyway.
         zdata = np.zeros_like(zframe)
         for i in range(zframe.shape[0]):
-            zdata[i] = linearity_correction_int(
-                zframe[i], zdq[i], lin_coeffs, dqflags
-            )
+            zdata[i] = linearity_correction_int(zframe[i], zdq[i], lin_coeffs, dqflags)
 
         # Remove the groups axis and ensure bad data remains bad
         zdata = zdata[:, 0, :, :]
@@ -219,8 +227,7 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     wh_zero = np.where(linear_term == 0)
     yzero, xzero = wh_zero[0], wh_zero[1]
     num_zero = 0
-    lin_dq_array = np.zeros(
-        (lin_coeffs.shape[1], lin_coeffs.shape[2]), dtype=np.uint32)
+    lin_dq_array = np.zeros((lin_coeffs.shape[1], lin_coeffs.shape[2]), dtype=np.uint32)
 
     # If there are linearity linear term equal to zero,
     # update the coefficients so the SCI values will be unchanged.
@@ -386,18 +393,21 @@ def apply_polynomial(data, coeffs, gdq=None, dqflags=None):
 
     # Optionally respect saturation flags
     if gdq is not None and dqflags is not None:
-        result = np.where(
-            np.bitwise_and(gdq, dqflags["SATURATED"]),
-            data,
-            result
-        )
+        result = np.where(np.bitwise_and(gdq, dqflags["SATURATED"]), data, result)
 
     return result
 
 
-def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
-                             additional_correction=None, read_pattern=None,
-                             satval=None):
+def linearity_correction_int(
+    data,
+    gdq,
+    lin_coeffs,
+    dqflags,
+    ilin_coeffs=None,
+    additional_correction=None,
+    read_pattern=None,
+    satval=None,
+):
     """
     Apply linearity correction to a single integration.
 
@@ -445,8 +455,7 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
     # If no inverse linearity coefficients, do simple correction in place
     if ilin_coeffs is None:
         for plane in range(ngroups):
-            data[plane] = apply_polynomial(
-                data[plane], lin_coeffs, gdq[plane], dqflags)
+            data[plane] = apply_polynomial(data[plane], lin_coeffs, gdq[plane], dqflags)
         return data
 
     # Otherwise, continue with read-level correction
@@ -458,8 +467,7 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
     readtimes = np.arange(nreads, dtype=float)
 
     # Calculate resultant times (mean time of reads in each resultant)
-    t_resultants = np.array([
-        np.mean([readtimes[r - 1] for r in reads]) for reads in read_pattern])
+    t_resultants = np.array([np.mean([readtimes[r - 1] for r in reads]) for reads in read_pattern])
 
     # Identify saturated pixels and count unsaturated resultants
     is_saturated = (gdq & dqflags["SATURATED"]) != 0
@@ -474,14 +482,13 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
     firstread_lin = apply_polynomial(data[0], lin_coeffs, gdq[0], dqflags)
 
     lastvalidresultant = n_unsaturated - 1
-    iy, ix = np.meshgrid(np.arange(nrows), np.arange(ncols), indexing='ij')
+    iy, ix = np.meshgrid(np.arange(nrows), np.arange(ncols), indexing="ij")
 
     # Create index tuple for last valid resultant of each pixel
     last_idx = (lastvalidresultant[iy, ix], iy, ix)
 
     # Linearize last valid resultant for each pixel
-    lastread_lin = apply_polynomial(
-        data[last_idx], lin_coeffs, gdq[last_idx], dqflags)
+    lastread_lin = apply_polynomial(data[last_idx], lin_coeffs, gdq[last_idx], dqflags)
 
     dt = t_resultants[last_idx[0]] - t_resultants[0]
     countrate = (lastread_lin - firstread_lin) / dt
@@ -492,13 +499,11 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
         n_reads_this = len(reads_for_resultant)
 
         # Allocate array for just these reads
-        reads_linearized = np.zeros(
-            (n_reads_this, nrows, ncols), dtype=data.dtype)
+        reads_linearized = np.zeros((n_reads_this, nrows, ncols), dtype=data.dtype)
 
         # Reconstruct linearized counts for these reads
         for j, read_idx in enumerate(reads_for_resultant):
-            reads_linearized[j] = (
-                firstread_lin + countrate * readtimes[read_idx - 1])
+            reads_linearized[j] = firstread_lin + countrate * readtimes[read_idx - 1]
 
         # Convert back to uncorrected counts using inverse linearity
         reads_unlinearized = apply_polynomial(reads_linearized, ilin_coeffs)
@@ -521,13 +526,13 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
             np.putmask(
                 reads_unlinearized,
                 reads_unlinearized > 1.2 * satval[np.newaxis, :, :],
-                1.2 * satval[np.newaxis, :, :])
+                1.2 * satval[np.newaxis, :, :],
+            )
 
         # Apply classic linearity to the reads
         reads_corrected = np.zeros_like(reads_unlinearized)
         for j in range(n_reads_this):
-            reads_corrected[j] = apply_polynomial(
-                reads_unlinearized[j], lin_coeffs)
+            reads_corrected[j] = apply_polynomial(reads_unlinearized[j], lin_coeffs)
 
         # Average and write back, respecting saturation
         # note that in the "normal" branch we would have evaluated the
