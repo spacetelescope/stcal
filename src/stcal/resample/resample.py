@@ -6,9 +6,9 @@ from collections import defaultdict
 
 import numpy as np
 from drizzle.resample import Drizzle
-from drizzle.utils import calc_pixmap
 from numpy.typing import DTypeLike
 
+from stcal.alignment.resample_utils import calc_pixmap
 from stcal.resample.utils import (
     build_driz_weight,
     compute_mean_pixel_area,
@@ -92,6 +92,8 @@ class Resample:
         enable_ctx=True,
         enable_var=True,
         compute_err=None,
+        stepsize=1,
+        order=1,
     ):
         """
         Initialize Resample.
@@ -236,6 +238,23 @@ class Resample:
             .. note::
                 At this time, output error array is not equivalent to
                 error propagation results.
+
+        stepsize : int, optional
+            If ``stepsize>1``, perform the full WCS calculation on a sparser
+            grid and use interpolation to fill in the rest of the pixels.  This
+            option speeds up pixel map computation by reducing the number of WCS
+            calls, though at the cost of reduced pixel map accuracy.  The loss
+            of accuracy is typically negligible if the underlying distortion
+            correction is smooth, but if the distortion is non-smooth,
+            ``stepsize>1`` is not recommended.  Large ``stepsize`` values are
+            automatically reduced to no more than 1/10 of image size.
+            Passed to alignment.resample_utils.calc_pixmap, default 1.
+
+        order : int, optional
+            Order of the 2D spline to interpolate the sparse pixel mapping
+            if stepsize>1.  Supported values are: 1 (bilinear) or 3 (bicubic).
+            This Parameter is ignored when ``stepsize <= 1``.  Default 1.
+
         """
         # to see if setting up arrays and drizzle is needed
         self._finalized = False
@@ -287,6 +306,8 @@ class Resample:
             log.info(f"Output pixel scale: {self._output_pixel_scale} arcsec.")
 
         self._output_array_shape = self._output_wcs.array_shape
+        self.stepsize = stepsize
+        self.order = order
 
         # Check that the output data shape has no zero-length dimensions
         npix = np.prod(self._output_array_shape)
@@ -297,6 +318,9 @@ class Resample:
         log.info(f"Driz parameter pixfrac: {self.pixfrac}")
         log.info(f"Driz parameter fillval: {self.fillval}")
         log.info(f"Driz parameter weight_type: {self.weight_type}")
+        if self.stepsize > 1:
+            log.info(f"Evaluating the full pixel map every {self.stepsize} pixels")
+            log.info(f"Interpolating the rest with order {self.order} bivariate splines")
         log.debug(f"Output mosaic size (nx, ny): {self._output_wcs.pixel_shape}")
 
         # set up an empty output model (don't allocate arrays at this time):
@@ -755,9 +779,7 @@ class Resample:
         log.debug(f"Using intensity scale iscale={iscale}")
 
         pixmap = calc_pixmap(
-            wcs,
-            self.output_model["wcs"],
-            data.shape,
+            wcs, self.output_model["wcs"], data.shape, stepsize=self.stepsize, order=self.order
         )
 
         log.info("Resampling science and variance data")
