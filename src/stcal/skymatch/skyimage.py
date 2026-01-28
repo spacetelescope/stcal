@@ -680,7 +680,7 @@ class SkyGroup:
         """Get image's bounding polygon."""
         return self._polygon
 
-    def intersection(self, skyimage):
+    def intersection(self, skyimage):  # noqa: ARG002
         """
         Compute intersection.
 
@@ -701,18 +701,7 @@ class SkyGroup:
             the intersection of this `SkyImage` and `skyimage`.
 
         """
-        if isinstance(skyimage, (SkyImage, SkyGroup)):
-            other = skyimage.polygon
-        else:
-            other = skyimage
-
-        pts1 = np.sort(list(self._polygon.points)[0], axis=0)
-        pts2 = np.sort(list(other.points)[0], axis=0)
-        if np.allclose(pts1, pts2, rtol=0, atol=1e-8):
-            intersect_poly = self._polygon.copy()
-        else:
-            intersect_poly = self._polygon.intersection(other)
-        return intersect_poly
+        raise Exception("SkyGroup.intersection is not available")  # noqa: TRY002
 
     def _update_bounding_polygon(self):
         polygons = [im.polygon for im in self._images]
