@@ -164,7 +164,7 @@ class SkyImage:
             raise ValueError("'mask' must have the same shape as 'image'.")
 
         self.image = image
-        self.mask = mask = np.asanyarray(mask, dtype=bool)
+        self.mask = mask
 
         self.meta = meta
         self.sky_id = sky_id
