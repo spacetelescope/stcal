@@ -1,0 +1,1 @@
+Change the returned structures from ramp fitting from long tuples of ndarrays to dictionaries with names generally matching those of FITS extensions.

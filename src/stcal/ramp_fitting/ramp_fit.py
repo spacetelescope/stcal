@@ -170,14 +170,14 @@ def ramp_fit(
 
     Returns
     -------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
+    image_info : dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
+    integ_info : dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info : dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
     if suppress_one_group and model.data.shape[1] == 1:
         # One group ramp suppression should only be done on data with
@@ -231,14 +231,14 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
 
     Returns
     -------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
+    image_info : dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
+    integ_info : dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info : dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
     # For the LIKELY algorithm, due to the jump detection portion of the code
     # a minimum of a four group ramp is needed.
