@@ -1,1 +1,0 @@
-Replaced usage of ``opencv-python`` with analogous functionality from ``scikit-image``.

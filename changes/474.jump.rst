@@ -1,1 +1,0 @@
-``JumpData.max_extended_radius`` is renamed to ``JumpData.max_extended_width`` to accurately reflect its actual usage internally.
