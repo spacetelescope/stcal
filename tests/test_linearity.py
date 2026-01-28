@@ -242,4 +242,3 @@ def test_read_level_correction():
     # Basic checks: output should have same shape and be corrected
     assert corrected_with_read_pattern.shape == data.shape
     assert output_pdq.shape == pdq.shape
-    return true_groups, corrected_with_read_pattern, corrected_without_read_pattern

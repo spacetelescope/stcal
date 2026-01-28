@@ -66,10 +66,10 @@ def linearity_correction(data, gdq, pdq, lin_coeffs, lin_dq, dqflags, zframe=Non
 
     read_pattern : list of lists or None
         The pattern of reads entering into groups. Each element is a list of
-        read indices that are averaged together to form the corresponding
-        resultant. Example: [[0], [1], [2, 3], [4, 5, 6]] means resultant 0
-        is read 0, resultant 1 is read 1, resultant 2 is average of reads 2
-        and 3, etc.
+        1-indexed read indices that are averaged together to form the
+        corresponding resultant. Example: [[1], [2], [3, 4], [5, 6, 7]] means
+        resultant 0 is read 1, resultant 1 is read 2, resultant 2 is the
+        average of reads 3 and 4, etc.
 
     satval : ndarray or None
         2D array of saturation values for each pixel.
@@ -428,8 +428,8 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
         array to be added to it. Only used for read-level correction.
 
     read_pattern : list of lists or None
-        The pattern of reads entering into groups. Required for read-level
-        correction.
+        The pattern of 1-indexed reads entering into groups. Required for
+        read-level correction.
 
     satval : ndarray or None
         2D array of saturation values for each pixel. Used for read-level
@@ -485,9 +485,6 @@ def linearity_correction_int(data, gdq, lin_coeffs, dqflags, ilin_coeffs=None,
 
     dt = t_resultants[last_idx[0]] - t_resultants[0]
     countrate = (lastread_lin - firstread_lin) / dt
-
-    # Find maximum reads per resultant for array allocation
-    max_reads_per_resultant = max(len(reads) for reads in read_pattern)
 
     # Process each resultant
     for i in range(ngroups):
