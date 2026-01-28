@@ -5,8 +5,6 @@ Used by :py:func:`~stcal.skymatch.skymatch.skymatch`
 and :py:class:`~stcal.skymatch.skyimage.SkyImage`.
 """
 
-from copy import deepcopy
-
 from stsci.imagestats import ImageStats
 
 __all__ = ["SkyStats"]
@@ -23,9 +21,7 @@ class SkyStats:
 
     """
 
-    def __init__(
-        self, skystat="mean", lower=None, upper=None, nclip=5, lsig=4.0, usig=4.0, binwidth=0.1, **kwargs
-    ):
+    def __init__(self, skystat="mean", lower=None, upper=None, nclip=5, lsig=4.0, usig=4.0, binwidth=0.1):
         """Initialize the SkyStats object.
 
         Parameters
@@ -61,27 +57,19 @@ cgi-bin/gethelp.cgi?gstatistics>`_
             Bin width, in sigma, used to sample the distribution of pixel
             brightness values in order to compute the sky background
             statistics.
-
-        kwargs : dict
-            A dictionary of optional arguments to be passed to `ImageStats`.
-
         """
         self.npix = None
         self.skyval = None
 
-        self._fields = f"npix,{skystat}"
-
-        self._kwargs = deepcopy(kwargs)
-        if "fields" in self._kwargs:
-            del self._kwargs["fields"]
-        if "image" in self._kwargs:
-            del self._kwargs["image"]
-        self._kwargs["lower"] = lower
-        self._kwargs["upper"] = upper
-        self._kwargs["nclip"] = nclip
-        self._kwargs["lsig"] = lsig
-        self._kwargs["usig"] = usig
-        self._kwargs["binwidth"] = binwidth
+        self._kwargs = {
+            "fields": f"npix,{skystat}",
+            "lower": lower,
+            "upper": upper,
+            "nclip": nclip,
+            "lsig": lsig,
+            "usig": usig,
+            "binwidth": binwidth,
+        }
 
         self._skystat = skystat
 
@@ -103,7 +91,7 @@ cgi-bin/gethelp.cgi?gstatistics>`_
             of pixels used in computing the statistics reported in `skyvalue`.
 
         """
-        imstat = ImageStats(image=data, fields=self._fields, **(self._kwargs))
+        imstat = ImageStats(image=data, **(self._kwargs))
         return getattr(imstat, self._skystat), imstat.npix
 
     def __call__(self, data):  # noqa: D102
