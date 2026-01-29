@@ -213,11 +213,7 @@ class SkyImage:
         # is used when self is a SkyGroup. This means that if
         # use have a SkyGroup "g" and SkyImage "i" the results of
         # i.intersection(g) differs from g.intersection(i)
-        if isinstance(self, SkyGroup):
-            atol = 5e-9
-        else:
-            atol = 1e-8
-        if np.allclose(pts1, pts2, rtol=0, atol=atol):
+        if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
             intersect_poly = self._polygon.copy()
         else:
             intersect_poly = self._polygon.intersection(other)
