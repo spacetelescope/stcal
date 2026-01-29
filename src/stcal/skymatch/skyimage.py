@@ -209,10 +209,9 @@ class SkyImage:
         pts1 = np.sort(list(self._polygon.points)[0], axis=0)
         pts2 = np.sort(list(other.points)[0], axis=0)
 
-        # replicates old behavior where a different tolerance
-        # is used when self is a SkyGroup. This means that if
-        # use have a SkyGroup "g" and SkyImage "i" the results of
-        # i.intersection(g) differs from g.intersection(i)
+        # work-around spherical geometry raising an exception
+        # for some polygons that are nearly identical:
+        # https://github.com/spacetelescope/spherical_geometry/issues/168
         if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
             intersect_poly = self._polygon.copy()
         else:
