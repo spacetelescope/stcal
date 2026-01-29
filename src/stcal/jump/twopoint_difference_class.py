@@ -37,6 +37,10 @@ class TwoPointParams:
             self.minimum_sigclip_groups = jump_data.minimum_sigclip_groups
             self.only_use_ints = jump_data.only_use_ints
             self.min_diffs_single_pass = jump_data.min_diffs_single_pass
+
+            self.dt_group = jump_data.dt_group
+            self.n_reads_groupdiff = jump_data.n_reads_groupdiff
+
         else:
             self.normal_rej_thresh = None
 
@@ -64,6 +68,9 @@ class TwoPointParams:
             self.minimum_sigclip_groups = None
             self.only_use_ints = None
             self.min_diffs_single_pass = None
+
+            self.dt_group = None
+            self.n_reads_groupdiff = None
 
     def __repr__(self):
         """Create __repr__ string."""
