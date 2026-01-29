@@ -81,10 +81,10 @@ def _calc_bounding_polygon(image, wcs_fwd, stepsize=None):
     bordery[-1] = bordery[0]
 
     ra, dec = wcs_fwd(borderx, bordery, with_bounding_box=False)
-    # TODO: for strange reasons, occasionally ra[0] != ra[-1] and/or
-    #       dec[0] != dec[-1] (even though we close the polygon in the
-    #       previous two lines). Then SphericalPolygon fails because
-    #       points are not closed. Therefore we force it to be closed:
+    # for strange reasons, occasionally ra[0] != ra[-1] and/or
+    # dec[0] != dec[-1] (even though we close the polygon in the
+    # previous two lines). Then SphericalPolygon fails because
+    # points are not closed. Therefore we force it to be closed:
     ra[-1] = ra[0]
     dec[-1] = dec[0]
 
