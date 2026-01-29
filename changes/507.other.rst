@@ -1,0 +1,1 @@
+Allow gwcs 1.0.1 and higher.
