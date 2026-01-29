@@ -136,7 +136,6 @@ def linearity_correction(
         zframe = zframe[:, np.newaxis, :, :]
         zdq = np.zeros(zframe.shape, dtype=gdq.dtype)
         zdq[zframe == 0.0] = dqflags["SATURATED"]
-        zpdq = np.zeros(zframe.shape[-2:], dtype=pdq.dtype)
 
         # Linearly correct ZEROFRAME
         # Note: this reuses lin_coeffs, which have been changed to avoid
