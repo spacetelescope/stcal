@@ -1,11 +1,11 @@
-.. _skymatch:
+.. _skymatch_module:
 
-=======================
+========
 Skymatch
-=======================
+========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    description.rst
 
