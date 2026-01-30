@@ -78,14 +78,7 @@ addopts = [
 ]
 testpaths = ["tests", "src/stcal", "docs"]
 norecursedirs = ["benchmarks", ".asv", ".eggs", ".tox", "build", "venv"]
-filterwarnings = [
-  "error::ResourceWarning",
-  # Files left open by tests can trigger ResourceWarnings during test
-  # teardown which otherwise would be converted back into a warning
-  # by pytest. Turn these PytestUnraisableExceptionWarnings back
-  # into errors
-  "error::pytest.PytestUnraisableExceptionWarning",
-]
+filterwarnings = ["error"]
 markers = ["soctests"]
 
 [tool.ruff]
