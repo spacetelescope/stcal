@@ -57,11 +57,10 @@ def skymatch(images, skymethod="global+match", match_down=True, subtract=False):
           This setting will "equalize" sky values between the images in large
           mosaics.
 
-        * **'global+match'** : first compute sky values using the above
-          **'match'** method, then (temporarily) apply the relative
-          sky values to each input and then compute the minimum sky
-          using the above **'global'** method. The final sky values will
-          be a combination of the results of these two methods.
+        * **'global+match'** : first compute sky values using the above match
+          method, then compute a global sky value after accounting for the
+          match-computed sky values. The final sky values will be a
+          combination of the two methods.
 
           .. note::
             This is the *recommended* setting for images
