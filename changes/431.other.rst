@@ -1,1 +1,0 @@
-Make new stcal.multiprocessing namespace with public compute_num_cores function
