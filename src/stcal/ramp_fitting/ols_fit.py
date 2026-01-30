@@ -52,13 +52,13 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
 
     Returns
     -------
-    image_info : dictionary
+    image_info : dict
         The dictionary of computed ramp fitting arrays.
 
-    integ_info : dictionary
+    integ_info : dict
         The dictionary of computed integration fitting arrays.
 
-    opt_info : dictionary
+    opt_info : dict
         The dictionary of computed optional results arrays for fitting.
     """
     # Determine number of slices to use for multi-processor computations
@@ -551,13 +551,13 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
 
     Return
     ------
-    image_info : dictionary
+    image_info : dict
         The dictionary of computed ramp fitting arrays.
 
-    integ_info : dictionary
+    integ_info : dict
         The dictionary of computed integration fitting arrays.
 
-    opt_info : dictionary
+    opt_info : dict
         The dictionary of computed optional results arrays for fitting.
     """
     c_start = time.time()

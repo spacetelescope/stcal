@@ -170,13 +170,13 @@ def ramp_fit(
 
     Returns
     -------
-    image_info : dictionary
+    image_info : dict
         The dictionary of computed ramp fitting arrays.
 
-    integ_info : dictionary
+    integ_info : dict
         The dictionary of computed integration fitting arrays.
 
-    opt_info : dictionary
+    opt_info : dict
         The dictionary of computed optional results arrays for fitting.
     """
     if suppress_one_group and model.data.shape[1] == 1:
@@ -231,13 +231,13 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
 
     Returns
     -------
-    image_info : dictionary
+    image_info : dict
         The dictionary of computed ramp fitting arrays.
 
-    integ_info : dictionary
+    integ_info : dict
         The dictionary of computed integration fitting arrays.
 
-    opt_info : dictionary
+    opt_info : dict
         The dictionary of computed optional results arrays for fitting.
     """
     # For the LIKELY algorithm, due to the jump detection portion of the code

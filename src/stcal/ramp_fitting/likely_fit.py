@@ -34,11 +34,11 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
 
     Returns
     -------
-    image_info : dictionary
+    image_info : dict
         The dictionary of computed ramp fitting arrays.
-    integ_info : dictionary
+    integ_info : dict
         The dictionary of computed integration fitting arrays.
-    opt_info : dictionary
+    opt_info : dict
         The dictionary of computed optional results arrays for fitting.
     """
     image_info, integ_info, opt_info = None, None, None
@@ -388,7 +388,7 @@ def compute_image_info(integ_class, ramp_data):
 
     Returns
     -------
-    image_info : dictionary
+    image_info : dict
         Dictionary of arrays for the rate product.
     """
     if integ_class.data.shape[0] == 1:
