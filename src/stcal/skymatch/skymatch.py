@@ -55,11 +55,7 @@ def skymatch(images, skymethod="global+match", match_down=True, subtract=False):
           inputs that overlap. The reported sky values will be relative to
           one of the input images (which will have a sky value of 0).
           This setting will "equalize" sky values between the images in large
-          mosaics. This method is not recommended when used in conjunction with
-          `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\
-drizzlepac/astrodrizzle.html>`_
-          because it computes relative sky values while `astrodrizzle` needs
-          "absolute" sky values for median image generation and CR rejection.
+          mosaics.
 
         * **'global+match'** : first compute sky values using the above
           **'match'** method, then (temporarily) apply the relative
