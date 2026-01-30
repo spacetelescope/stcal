@@ -159,3 +159,6 @@ src/stcal/_version.py
 
 # VSCode stuff
 .vscode
+
+# lockfiles
+uv.lock
