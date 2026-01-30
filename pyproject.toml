@@ -16,7 +16,7 @@ dependencies = [
   "scikit-image>=0.21.0",
   "numpy >=1.25.0",
   "asdf >=3.3.0",
-  "gwcs >=0.25.2,!=1.0.0,<2.0.0",
+  "gwcs >=1.0.1,<2.0.0",
   "tweakwcs >=0.8.8",
   "requests >=2.22",
   "spherical-geometry >=1.2.22",
