@@ -52,14 +52,14 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
 
     Returns
     -------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
+    image_info : dict
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
+    integ_info : dict
+        The dictionary of computed integration fitting arrays.
 
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info : dict
+        The dictionary of computed optional results arrays for fitting.
     """
     # Determine number of slices to use for multi-processor computations
     nrows = ramp_data.data.shape[2]
@@ -137,14 +137,14 @@ def ols_ramp_fit_multiprocessing(ramp_data, save_opt, readnoise_2d, gain_2d, wei
 
     Return
     ------
-    image_info: tuple
-        The tuple of computed ramp fitting arrays.
+    image_info: dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info: tuple
-        The tuple of computed integration fitting arrays.
+    integ_info: dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info: tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info: dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
     log.info("Number of processors used for multiprocessing: %s", number_slices)
     slices, rows_per_slice = compute_slices_for_starmap(
@@ -170,7 +170,7 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     Assemble pool results.
 
     Takes the list of results from the starmap pool method and assembles the
-    slices into primary tuples to be returned by `ramp_fit`.
+    slices into primary dictionaries to be returned by `ramp_fit`.
 
     Parameters
     ----------
@@ -183,8 +183,8 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
     pool_results: list
         The list of return values from ols_ramp_fit_single for each slice.
         Each slice is run through ols_ramp_fit_single, which returns three
-        tuples of ndarrays, so pool_results is a list of tuples.  Each tuple
-        contains:
+        dictionaries of ndarrays, so pool_results is a list of tuples.
+        Each tuple contains:
             image_info, integ_info, opt_info
 
     rows_per_slice: list
@@ -192,16 +192,16 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
 
     Return
     ------
-    image_info: tuple
-        The tuple of computed ramp fitting arrays.
+    image_info: dictionary
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info: tuple
-        The tuple of computed integration fitting arrays.
+    integ_info: dictionary
+        The dictionary of computed integration fitting arrays.
 
-    opt_info: tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info: dictionary
+        The dictionary of computed optional results arrays for fitting.
     """
-    # Create output arrays for each output tuple.  The input ramp data and
+    # Create output arrays for each output dictionary.  The input ramp data and
     # slices are needed for this.
     for result in pool_results:
         image_slice, integ_slice, opt_slice = result
@@ -216,24 +216,24 @@ def assemble_pool_results(ramp_data, save_opt, pool_results, rows_per_slice):
         image_slice, integ_slice, opt_slice = result
         nrows = rows_per_slice[k]
 
-        get_image_slice(image_info, image_slice, current_row_start, nrows)
-        get_integ_slice(integ_info, integ_slice, current_row_start, nrows)
+        get_slice(image_info, image_slice, current_row_start, nrows)
+        get_slice(integ_info, integ_slice, current_row_start, nrows)
         if save_opt:
-            get_opt_slice(opt_info, opt_slice, current_row_start, nrows)
+            get_slice(opt_info, opt_slice, current_row_start, nrows)
         current_row_start = current_row_start + nrows
 
     # Handle integration times
     return image_info, integ_info, opt_info
 
 
-def get_image_slice(image_info, image_slice, row_start, nrows):
+def get_slice(image_info, image_slice, row_start, nrows):
     """
-    Populate the image output information from each slice.
+    Populate the output information from each slice.
 
-    image_info: tuple
+    image_info: dictionary
         The output image information to populate from the slice.
 
-    image_slice: tuple
+    image_slice: dictionary
         The output slice used to populate the output arrays.
 
     row_start: int
@@ -242,65 +242,6 @@ def get_image_slice(image_info, image_slice, row_start, nrows):
     nrows: int
         The number of rows int the current slice.
     """
-    data, dq, var_poisson, var_rnoise, err = image_info
-    sdata, sdq, svar_poisson, svar_rnoise, serr = image_slice
-
-    srow, erow = row_start, row_start + nrows
-
-    data[srow:erow, :] = sdata
-    dq[srow:erow, :] = sdq
-    var_poisson[srow:erow, :] = svar_poisson
-    var_rnoise[srow:erow, :] = svar_rnoise
-    err[srow:erow, :] = serr
-
-
-def get_integ_slice(integ_info, integ_slice, row_start, nrows):
-    """
-    Populate the integration output information from each slice.
-
-    integ_info: tuple
-        The output integration information to populate from the slice.
-
-    integ_slice: tuple
-        The output slice used to populate the output arrays.
-
-    row_start: int
-        The start row the current slice at which starts.
-
-    nrows: int
-        The number of rows int the current slice.
-    """
-    data, dq, var_poisson, var_rnoise, err = integ_info
-    idata, idq, ivar_poisson, ivar_rnoise, ierr = integ_slice
-
-    srow, erow = row_start, row_start + nrows
-
-    data[:, srow:erow, :] = idata
-    dq[:, srow:erow, :] = idq
-    var_poisson[:, srow:erow, :] = ivar_poisson
-    var_rnoise[:, srow:erow, :] = ivar_rnoise
-    err[:, srow:erow, :] = ierr
-
-
-def get_opt_slice(opt_info, opt_slice, row_start, nrows):
-    """
-    Populate the optional output information from each slice.
-
-    opt_info: tuple
-        The output optional information to populate from the slice.
-
-    opt_slice: tuple
-        The output slice used to populate the output arrays.
-
-    row_start: int
-        The start row the current slice at which starts.
-
-    nrows: int
-        The number of rows int the current slice.
-    """
-    (slope, sigslope, var_poisson, var_rnoise, yint, sigyint, pedestal, weights, crmag) = opt_info
-    (oslope, osigslope, ovar_poisson, ovar_rnoise, oyint, osigyint, opedestal, oweights, ocrmag) = opt_slice
-
     srow, erow = row_start, row_start + nrows
 
     # The optional results product is of variable size in its second dimension.
@@ -309,22 +250,20 @@ def get_opt_slice(opt_info, opt_slice, row_start, nrows):
     # differ from segment to segment.  The final output product is created
     # using the max size for this dimension.  To ensure correct assignment is
     # done during this step, the second dimension, as well as the row
-    # dimension, must be specified.
-    slope[:, : oslope.shape[1], srow:erow, :] = oslope
-    sigslope[:, : osigslope.shape[1], srow:erow, :] = osigslope
-    var_poisson[:, : ovar_poisson.shape[1], srow:erow, :] = ovar_poisson
-    var_rnoise[:, : ovar_rnoise.shape[1], srow:erow, :] = ovar_rnoise
-    yint[:, : oyint.shape[1], srow:erow, :] = oyint
-    sigyint[:, : osigyint.shape[1], srow:erow, :] = osigyint
-    weights[:, : oweights.shape[1], srow:erow, :] = oweights
-    crmag[:, : ocrmag.shape[1], srow:erow, :] = ocrmag
+    # dimension, must be specified.  This logic is triggered only if there
+    # is a size mismatch between the slice and the subarray to be assigned.
 
-    pedestal[:, srow:erow, :] = opedestal  # Different shape (3-D, not 4-D)
+    for key in image_info.keys():
+        if image_info[key][..., srow:erow, :].size == image_slice[key].size:
+            image_info[key][..., srow:erow, :] = image_slice[key]
+        else:
+            imax = image_slice[key].shape[-3]
+            image_info[key][..., :imax, srow:erow, :] = image_slice[key]
 
 
 def create_output_info(ramp_data, pool_results, save_opt):
     """
-    Create the output arrays and tuples for ramp fitting reassembly for mulitprocessing.
+    Create the output arrays and dictionaries for ramp fitting reassembly for mulitprocessing.
 
     Parameters
     ----------
@@ -349,7 +288,7 @@ def create_output_info(ramp_data, pool_results, save_opt):
     var_rnoise = np.zeros(imshape, dtype=np.float32)
     err = np.zeros(imshape, dtype=np.float32)
 
-    image_info = (data, dq, var_poisson, var_rnoise, err)
+    image_info = {"slope": data, "dq": dq, "var_poisson": var_poisson, "var_rnoise": var_rnoise, "err": err}
 
     # Create the integration products
     idata = np.zeros(integ_shape, dtype=np.float32)
@@ -358,7 +297,13 @@ def create_output_info(ramp_data, pool_results, save_opt):
     ivar_rnoise = np.zeros(integ_shape, dtype=np.float32)
     ierr = np.zeros(integ_shape, dtype=np.float32)
 
-    integ_info = (idata, idq, ivar_poisson, ivar_rnoise, ierr)
+    integ_info = {
+        "slope": idata,
+        "dq": idq,
+        "var_poisson": ivar_poisson,
+        "var_rnoise": ivar_rnoise,
+        "err": ierr,
+    }
 
     # Create the optional results product
     if save_opt:
@@ -378,17 +323,17 @@ def create_output_info(ramp_data, pool_results, save_opt):
         opedestal = np.zeros(integ_shape, dtype=np.float32)
         ocrmag = np.zeros(crmag_shape, dtype=np.float32)
 
-        opt_info = (
-            oslope,
-            osigslope,
-            ovar_poisson,
-            ovar_rnoise,
-            oyint,
-            osigyint,
-            opedestal,
-            oweights,
-            ocrmag,
-        )
+        opt_info = {
+            "slope": oslope,
+            "sigslope": osigslope,
+            "var_poisson": ovar_poisson,
+            "var_rnoise": ovar_rnoise,
+            "yint": oyint,
+            "sigyint": osigyint,
+            "pedestal": opedestal,
+            "weights": oweights,
+            "crmag": ocrmag,
+        }
     else:
         opt_info = None
 
@@ -419,12 +364,12 @@ def get_max_segs_crs(pool_results):
     crs_max = 0
     for result in pool_results:
         image_slice, integ_slice, opt_slice = result
-        oslice_slope = opt_slice[0]
+        oslice_slope = opt_slice["slope"]
         nsegs = oslice_slope.shape[1]
         if nsegs > seg_max:
             seg_max = nsegs
 
-        olice_crmag = opt_slice[-1]
+        olice_crmag = opt_slice["crmag"]
         ncrs = olice_crmag.shape[1]
         if ncrs > crs_max:
             crs_max = ncrs
@@ -606,14 +551,14 @@ def ols_ramp_fit_single(ramp_data, save_opt, readnoise_2d, gain_2d, weighting):
 
     Return
     ------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
+    image_info : dict
+        The dictionary of computed ramp fitting arrays.
 
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
+    integ_info : dict
+        The dictionary of computed integration fitting arrays.
 
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    opt_info : dict
+        The dictionary of computed optional results arrays for fitting.
     """
     c_start = time.time()
 

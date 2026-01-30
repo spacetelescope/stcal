@@ -34,12 +34,12 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
 
     Returns
     -------
-    image_info : tuple
-        The tuple of computed ramp fitting arrays.
-    integ_info : tuple
-        The tuple of computed integration fitting arrays.
-    opt_info : tuple
-        The tuple of computed optional results arrays for fitting.
+    image_info : dict
+        The dictionary of computed ramp fitting arrays.
+    integ_info : dict
+        The dictionary of computed integration fitting arrays.
+    opt_info : dict
+        The dictionary of computed optional results arrays for fitting.
     """
     image_info, integ_info, opt_info = None, None, None
 
@@ -388,8 +388,8 @@ def compute_image_info(integ_class, ramp_data):
 
     Returns
     -------
-    image_info : tuple
-        The list of arrays for the rate product.
+    image_info : dict
+        Dictionary of arrays for the rate product.
     """
     if integ_class.data.shape[0] == 1:
         data = integ_class.data[0, :, :]
@@ -397,7 +397,7 @@ def compute_image_info(integ_class, ramp_data):
         var_p = integ_class.var_poisson[0, :, :]
         var_r = integ_class.var_rnoise[0, :, :]
         var_e = integ_class.err[0, :, :]
-        return (data, dq, var_p, var_r, var_e)
+        return {"slope": data, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": var_e}
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
@@ -427,7 +427,7 @@ def compute_image_info(integ_class, ramp_data):
 
     err = np.sqrt(var_p + var_r)
 
-    return (slope, dq, var_p, var_r, err)
+    return {"slope": slope, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": err}
 
 
 def determine_diffs2use(row, diffs, gdq):
