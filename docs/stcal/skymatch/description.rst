@@ -24,7 +24,7 @@ difficult -- if not impossible -- to find and measure true sky.
 Note that the meaning of "sky background" depends on the chosen sky computation
 method. When the matching method is used, for example, the reported "sky" value
 is only the offset in levels between images and does not necessarily include
-the true total sky level.
+the true sky level.
 
 .. note::
    Throughout this document the term "sky" is used in a generic sense,
@@ -105,8 +105,7 @@ two -- "global+match".
 In the "local" and "global" methods, which find sky levels in each image,
 the calculation of the image statistics takes advantage of sigma clipping
 to remove contributions from isolated sources. This can work well for
-accurately determining the true sky level in images that contain semi-large
-regions of empty sky. The "match" algorithm, on the other hand, compares the
+accurately determining the true sky level in images dominated by pure background such as sparse star fields with few extended sources that do not dominate the scene. The "local" method would likely struggle in scenes dominated by extended non-uniform sources such as nebulae, large/extended galaxies, etc. The "match" algorithm, on the other hand, compares the
 *total* signal levels integrated over regions of overlap in each image pair.
 This method can produce better results when there are no large empty regions
 of sky in the images. This method cannot measure the true sky level, but
