@@ -41,8 +41,8 @@ def images():
         ("match", False, [-21, 0]),
         ("global", True, [21, 21]),
         ("global", False, [21, 21]),
-        ("global+match", True , FILL_VALUES),
-        ("global+match", False , FILL_VALUES),
+        ("global+match", True, FILL_VALUES),
+        ("global+match", False, FILL_VALUES),
     ],
 )
 @pytest.mark.parametrize("subtract", [True, False])
