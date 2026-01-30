@@ -33,20 +33,20 @@ def images():
 
 
 @pytest.mark.parametrize(
-    "method, skys, match_down",
+    "method, match_down, skys",
     [
-        ("local", FILL_VALUES, True),
-        ("local", FILL_VALUES, False),
-        ("match", [0, 21], True),
-        ("match", [-21, 0], False),
-        ("global", [21, 21], True),
-        ("global", [21, 21], False),
-        ("global+match", FILL_VALUES, True),
-        ("global+match", FILL_VALUES, False),
+        ("local", True, FILL_VALUES),
+        ("local", False, FILL_VALUES),
+        ("match", True, [0, 21]),
+        ("match", False, [-21, 0]),
+        ("global", True, [21, 21]),
+        ("global", False, [21, 21]),
+        ("global+match", True , FILL_VALUES),
+        ("global+match", False , FILL_VALUES),
     ],
 )
 @pytest.mark.parametrize("subtract", [True, False])
-def test_skymatch(images, method, skys, match_down, subtract):
+def test_skymatch(images, method, match_down, skys, subtract):
     skymatch(images, method, match_down, subtract)
     assert np.allclose([i.sky for i in images], skys)
     if subtract:
