@@ -10,14 +10,10 @@ from datetime import datetime
 
 import numpy as np
 
-# LOCAL
 from .skyimage import SkyGroup, SkyImage
 
 __all__ = ["skymatch"]
 
-
-# DEBUG
-__local_debug__ = True
 
 log = logging.getLogger(__name__)
 
@@ -40,37 +36,31 @@ def skymatch(images, skymethod="global+match", match_down=True, subtract=False):
         Available methods: {'local', 'global+match', 'global', 'match'}
         Select the algorithm for sky computation:
 
-        * **'local'** : compute sky background values of each input image or
-          group of images (members of the same "exposure"). A single sky value
-          is computed for each group of images.
+        * **'local'** : independently compute the sky background for each
+          input (either image or group). This method does not involve any
+          special treatment of overlaps between inputs.
 
           .. note::
             This setting is recommended when regions of overlap between images
             are dominated by "pure" sky (as opposed to extended, diffuse
             sources).
 
-        * **'global'** : compute a common sky value for all input images and
-          groups of images. With this setting `local` will compute
-          sky values for each input image/group, find the minimum sky value,
-          and then it will set (and/or subtract) the sky value of each input
-          image to this minimum value. This method *may* be
+        * **'global'** : similar to `local` first compute an independent
+          sky background for each input (either image or group), then take
+          the minimum of these computed sky values. This minimum will be
+          assigned to the sky value of all inputs. This method *may* be
           useful when the input images have been already matched.
 
-        * **'match'** : compute differences in sky values between images
-          and/or groups in (pair-wise) common sky regions. In this case
-          the computed sky values will be relative (delta) to the sky computed
-          in one of the input images whose sky value will be set to
-          (reported to be) 0. This setting will "equalize" sky values between
-          the images in large mosaics. However, this method is not recommended
-          when used in conjunction with
-          `astrodrizzle <http://stsdas.stsci.edu/stsci_python_sphinxdocs_2.13/\
-drizzlepac/astrodrizzle.html>`_
-          because it computes relative sky values while `astrodrizzle` needs
-          "absolute" sky values for median image generation and CR rejection.
+        * **'match'** : compute pair-wise differences in sky values between
+          inputs that overlap. The reported sky values will be relative to
+          one of the input images (which will have a sky value of 0).
+          This setting will "equalize" sky values between the images in large
+          mosaics.
 
-        * **'global+match'** : first use the **'match'** method to
-          equalize sky values between images and then find a minimum
-          "global" sky value amongst all input images.
+        * **'global+match'** : first compute sky values using the above match
+          method, then compute a global sky value after accounting for the
+          match-computed sky values. The final sky values will be a
+          combination of the two methods.
 
           .. note::
             This is the *recommended* setting for images
@@ -268,20 +258,6 @@ drizzlepac/astrodrizzle.html>`_.
 
     log.debug(f"Total number of images to be sky-subtracted and/or matched: {nimages:d}")
 
-    # Print conversion factors
-    log.debug(" ")
-    log.debug("----  Image data conversion factors:")
-
-    for img in images:
-        img_type = "Image" if isinstance(img, SkyImage) else "Group"
-
-        if img_type == "Group":
-            log.debug(f"   *  Group ID={img.sky_id}. Conversion factors:")
-            for im in img:
-                log.debug(f"      - Image ID={im.sky_id}. Conversion factor = {im.convf:G}")
-        else:
-            log.debug(f"   *  Image ID={img.sky_id}. Conversion factor = {img.convf:G}")
-
     # 1. Method: "match" (or "global+match").
     #    Find sky "deltas" that will match sky across all
     #    (intersecting) images.
@@ -379,7 +355,7 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             old_img_sky = [im.sky for im in img]
             if do_skysub:
                 for im in img:
-                    im._image.set_data(im._image.get_data() - sky)  # noqa: SLF001
+                    im.image -= sky
             img.sky += sky
             new_img_sky = [im.sky for im in img]
 
@@ -387,14 +363,13 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             log.info(f"   *  Group ID={img.sky_id}. Sky background of component images:")
 
             for im, old_sky, new_sky in zip(img, old_img_sky, new_img_sky, strict=True):
-                c = 1.0 / im.convf
                 if show_old:
                     log.info(
                         f"      - Image ID={im.sky_id}. Sky background: "
-                        f"{c * new_sky:G} (old={c * old_sky:G}, delta={c * sky:G})"
+                        f"{new_sky:G} (old={old_sky:G}, delta={sky:G})"
                     )
                 else:
-                    log.info(f"      - Image ID={im.sky_id}. Sky background: {c * new_sky:G}")
+                    log.info(f"      - Image ID={im.sky_id}. Sky background: {new_sky:G}")
 
                 im.is_sky_valid = valid
 
@@ -402,63 +377,23 @@ def _apply_sky(images, sky_deltas, do_global, do_skysub, show_old):
             # apply sky change:
             old_sky = img.sky
             if do_skysub:
-                img._image.set_data(img._image.get_data() - sky)  # noqa: SLF001
+                img.image -= sky
             img.sky += sky
             new_sky = img.sky
 
             # log sky values:
-            c = 1.0 / img.convf
             if show_old:
                 log.info(
-                    f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G} "
-                    f"(old={c * old_sky:G}, delta={c * sky:G})"
+                    f"   *  Image ID={img.sky_id}. Sky background: {new_sky:G} "
+                    f"(old={old_sky:G}, delta={sky:G})"
                 )
             else:
-                log.info(f"   *  Image ID={img.sky_id}. Sky background: {c * new_sky:G}")
+                log.info(f"   *  Image ID={img.sky_id}. Sky background: {new_sky:G}")
 
             img.is_sky_valid = valid
 
 
-# TODO: due to a bug in the sphere package, see
-#       https://github.com/spacetelescope/sphere/issues/74
-#       intersections with polygons formed as union does not work.
-#       For this reason I re-implement '_overlap_matrix' below with
-#       a workaround for the bug.
-#       The original implementation should be uncommented once the bug
-#       is fixed.
-#
-
-# Original version:
-# def _overlap_matrix(images, apply_sky=True):
-#     # TODO: to improve performance, the nested loops could be parallelized
-#     # since _calc_sky() here can be called independently from previous steps.
-#     ns = len(images)
-#     A = np.zeros((ns, ns), dtype=float)
-#     W = np.zeros((ns, ns), dtype=float)
-#     for i in range(ns):
-#         for j in range(i+1, ns):
-#             overlap = images[i].intersection(images[j])
-#             s1, w1, area1 = images[i].calc_sky(
-#                 overlap=overlap,
-#                 delta=apply_sky
-#             )
-#             s2, w2, area2 = images[j].calc_sky(
-#                 overlap=overlap,
-#                 delta=apply_sky
-#             )
-#             if area1 == 0.0 or area2 == 0.0 or s1 is None or s2 is None:
-#                 continue
-#             A[j,i] = s1
-#             W[j,i] = w1
-#             A[i,j] = s2
-#             W[i,j] = w2
-#     return A, W
-
-
-# bug workaround version:
 def _overlap_matrix(images, apply_sky=True):
-    # TODO: to improve performance, the nested loops could be parallelized
-    # since _calc_sky() here can be called independently from previous steps.
     ns = len(images)
     A = np.zeros((ns, ns), dtype=float)  # noqa: N806
     W = np.zeros((ns, ns), dtype=float)  # noqa: N806
