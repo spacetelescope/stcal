@@ -397,7 +397,15 @@ def compute_image_info(integ_class, ramp_data):
         var_p = integ_class.var_poisson[0, :, :]
         var_r = integ_class.var_rnoise[0, :, :]
         var_e = integ_class.err[0, :, :]
-        return {"slope": data, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": var_e}
+        chisq = integ_class.chisq[0, :, :]
+        return {
+            "slope": data,
+            "dq": dq,
+            "var_poisson": var_p,
+            "var_rnoise": var_r,
+            "err": var_e,
+            "chisq": chisq,
+        }
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
@@ -427,7 +435,9 @@ def compute_image_info(integ_class, ramp_data):
 
     err = np.sqrt(var_p + var_r)
 
-    return {"slope": slope, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": err}
+    chisq = np.sum(integ_class.chisq, axis=0)
+
+    return {"slope": slope, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": err, "chisq": chisq}
 
 
 def determine_diffs2use(row, diffs, gdq):
