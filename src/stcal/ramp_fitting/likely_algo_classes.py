@@ -38,7 +38,7 @@ class IntegInfo:
             "var_poisson": self.var_poisson,
             "var_rnoise": self.var_rnoise,
             "err": self.err,
-            "chisq": self.chisq
+            "chisq": self.chisq,
         }
 
     def get_results(self, result, integ, row):

@@ -398,7 +398,14 @@ def compute_image_info(integ_class, ramp_data):
         var_r = integ_class.var_rnoise[0, :, :]
         var_e = integ_class.err[0, :, :]
         chisq = integ_class.chisq[0, :, :]
-        return {"slope": data, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": var_e, "chisq": chisq}
+        return {
+            "slope": data,
+            "dq": dq,
+            "var_poisson": var_p,
+            "var_rnoise": var_r,
+            "err": var_e,
+            "chisq": chisq,
+        }
 
     dq = utils.dq_compress_final(integ_class.dq, ramp_data)
 
