@@ -1,0 +1,1 @@
+Do not rescale blotted images by pixel area ratio in outlier detection.
