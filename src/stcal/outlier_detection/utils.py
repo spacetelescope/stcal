@@ -7,7 +7,6 @@ import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
 from astropy.utils.decorators import deprecated_renamed_argument
-
 from drizzle.resample import blot_image
 from scipy import ndimage
 from skimage.util import view_as_windows
