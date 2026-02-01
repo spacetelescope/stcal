@@ -269,13 +269,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
         pixmap=pixmap,
         out_img=outsci,
         fillval=fillval,
-        # scaling of the input pixel is unnecessary since outlier detection
-        # is based on SNR (ratio being a key word here). However, to preserve
-        # the same accuracy loss as before, we keep the scaling in order for
-        # the regression tests to pass.
-        # TODO: Consider setting iscale=1 to avoid accuracy loss and simplify
-        # the logic.
-        iscale=1.0 / (pix_ratio * pix_ratio),
+        iscale=1.0,
         interp="linear",
         sinscl=1.0,
     )
