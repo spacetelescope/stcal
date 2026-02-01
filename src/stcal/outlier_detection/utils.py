@@ -220,7 +220,7 @@ def flag_resampled_crs(
 
 
 @deprecated_renamed_argument("pix_ratio", None, since="1.16.1", warning_type=DeprecationWarning)
-def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fillval=0.0):
+def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fillval=0.0):  # noqa: ARG001
     """
     Resample the median data to recreate an input image based on the blot wcs.
 
