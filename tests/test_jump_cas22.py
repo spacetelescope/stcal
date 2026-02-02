@@ -352,7 +352,7 @@ def test_fit_ramps(detector_data, use_jump, use_dq):
     assert len(output.fits) == N_PIXELS  # sanity check that a fit is output for each pixel
 
     chi2 = 0
-    for fit, use in zip(output.fits, okay):
+    for fit, use in zip(output.fits, okay, strict=True):
         if not use_dq and not use_jump:
             ##### The not use_jump makes this NOT test for false positives #####
             # Check that the data generated does not generate any false positives
@@ -392,7 +392,7 @@ def test_fit_ramps_array_outputs(detector_data, use_jump):
         resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=use_jump, include_diagnostic=True
     )
 
-    for fit, par, var in zip(output.fits, output.parameters, output.variances):
+    for fit, par, var in zip(output.fits, output.parameters, output.variances, strict=True):
         assert par[Parameter.intercept] == 0
         assert par[Parameter.slope] == fit["average"]["slope"]
 
@@ -472,7 +472,7 @@ def test_find_jumps(jump_data):
     incorrect_too_many = 0
     incorrect_does_not_capture = 0
     incorrect_other = 0
-    for fit, jump_index, resultant_index in zip(output.fits, jump_reads, jump_resultants):
+    for fit, jump_index, resultant_index in zip(output.fits, jump_reads, jump_resultants, strict=True):
         # Check that the jumps are detected correctly
         if jump_index == 0:
             # There is no way to detect a jump if it is in the very first read
@@ -559,7 +559,7 @@ def test_jump_dq_set(jump_data):
         resultants, dq, read_noise, READ_TIME, read_pattern, use_jump=True, include_diagnostic=True
     )
 
-    for fit, pixel_dq in zip(output.fits, output.dq.transpose()):
+    for fit, pixel_dq in zip(output.fits, output.dq.transpose(), strict=True):
         # Check that all jumps found get marked
         assert (pixel_dq[fit["jumps"]] == JUMP_DET).all()
 
