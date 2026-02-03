@@ -6,7 +6,7 @@ Unit tests for linearity correction
 
 import numpy as np
 
-from stcal.linearity.linearity import linearity_correction
+from stcal.linearity.linearity import apply_polynomial, linearity_correction
 
 DQFLAGS = {"GOOD": 0, "DO_NOT_USE": 1, "SATURATED": 2, "DEAD": 1024, "HOT": 2048, "NO_LIN_CORR": 1048576}
 
@@ -157,3 +157,98 @@ def test_zero_frame():
     zcheck = np.zeros((nints, nrows, ncols), dtype=float)
     zcheck[0, 0, :] = np.array([1.22106063, 0.0])
     np.testing.assert_almost_equal(new_zframe, zcheck, decimal=5)
+
+
+def test_read_level_correction():
+    """
+    Test read-level linearity correction that accounts for averaging of
+    multiple reads into resultants.
+    """
+    # Set up test data
+    nreads_per_group = 5
+    ngroups = 4
+    nreads = ngroups * nreads_per_group
+    nints, nrows, ncols = 1, 1, 1
+    data = np.ones((nints, ngroups, nrows, ncols), dtype=np.float32)
+    gdq = np.zeros((nints, ngroups, nrows, ncols), dtype=np.uint32)
+    pdq = np.zeros((nrows, ncols), dtype=np.uint32)
+
+    sat = 65000
+    # ramp that nearly saturated in the last read
+    # this is the true number of electrons in the ramp
+    reads = np.arange(nreads) * (sat - 1) / (nreads - 1)
+    # some made up inverse linearity coefficients
+    # these are somewhat steep; DN / electron changes from
+    # ~0.7 at 50k electrons to 0.4 at 65k electrons
+    ilin_coeffs_flat = np.array([0, 1, -1.0e-07, -1.0e-12, -5.0e-16], dtype="f8")
+    # linearity coefficients corresponding to the above;
+    # these were computed separately
+    lin_coeffs_flat = np.array(
+        [
+            0,
+            1,
+            -3.34319810e-07,
+            1.24117346e-10,
+            -1.11872923e-14,
+            4.92169172e-19,
+            -9.50437757e-24,
+            7.04201969e-29,
+        ],
+        dtype="f8",
+    )
+
+    # Set up linearity & inverse linearity coefficients
+    nlcoeffs = len(lin_coeffs_flat)
+    lin_coeffs = np.zeros((nlcoeffs, nrows, ncols), dtype=np.float32)
+    lin_coeffs[:, 0, 0] = lin_coeffs_flat
+
+    nicoeffs = len(ilin_coeffs_flat)
+    ilin_coeffs = np.zeros((nicoeffs, nrows, ncols), dtype=np.float32)
+    ilin_coeffs[:, 0, 0] = ilin_coeffs_flat
+
+    lin_dq = np.zeros((nrows, ncols), dtype=np.uint32)
+
+    read_pattern = (np.arange(nreads) + 1).reshape(ngroups, nreads_per_group)
+
+    # Set up saturation values
+    satval = np.full((nrows, ncols), sat, dtype=np.float32)
+
+    nl_reads = apply_polynomial(reads, ilin_coeffs_flat)
+    true_groups = np.average(reads.reshape(ngroups, nreads_per_group), axis=1)
+    nl_groups = np.average(nl_reads.reshape(ngroups, nreads_per_group), axis=1)
+    # we now have what we want after linearity correction (true groups)
+    # and what is observed (true_nl_groups)
+    # success if the linearity correction with the new mode accounting
+    # for the read pattern better reproduces true_groups than the old
+    # mode
+
+    data[0, :, 0, 0] = nl_groups
+
+    # Test with read-level correction
+    corrected_with_read_pattern, output_pdq, _ = linearity_correction(
+        data.copy(),
+        gdq,
+        pdq,
+        lin_coeffs,
+        lin_dq,
+        DQFLAGS,
+        ilin_coeffs=ilin_coeffs,
+        read_pattern=read_pattern,
+        satval=satval,
+    )
+    corrected_without_read_pattern, _, _ = linearity_correction(
+        data.copy(), gdq, pdq, lin_coeffs, lin_dq, DQFLAGS
+    )
+
+    fracdiff_read_pattern = (corrected_with_read_pattern[0, :, 0, 0] / true_groups) - 1
+    fracdiff = (corrected_without_read_pattern[0, :, 0, 0] / true_groups) - 1
+    worstdiff_read_pattern = np.max(np.abs(fracdiff_read_pattern))
+    worstdiff = np.max(np.abs(fracdiff))
+
+    assert worstdiff_read_pattern < 0.004
+    assert worstdiff < 0.007
+    assert worstdiff_read_pattern < worstdiff * 0.5
+
+    # Basic checks: output should have same shape and be corrected
+    assert corrected_with_read_pattern.shape == data.shape
+    assert output_pdq.shape == pdq.shape
