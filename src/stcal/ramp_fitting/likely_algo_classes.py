@@ -28,6 +28,7 @@ class IntegInfo:
         self.var_rnoise = np.zeros(shape=dims, dtype=np.float32)
 
         self.err = np.zeros(shape=dims, dtype=np.float32)
+        self.chisq = np.zeros(shape=dims, dtype=np.float32)
 
     def prepare_info(self):
         """Arrange output arrays as a tuple, which the ramp fit step expects."""
@@ -37,6 +38,7 @@ class IntegInfo:
             "var_poisson": self.var_poisson,
             "var_rnoise": self.var_rnoise,
             "err": self.err,
+            "chisq": self.chisq,
         }
 
     def get_results(self, result, integ, row):
@@ -58,6 +60,7 @@ class IntegInfo:
         self.err[integ, row, :] = result.uncert
         self.var_poisson[integ, row, :] = result.var_poisson
         self.var_rnoise[integ, row, :] = result.var_rnoise
+        self.chisq[integ, row, :] = result.chisq
 
 
 class RampResult:  # noqa: D101
