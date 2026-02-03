@@ -53,7 +53,6 @@ extensions = [
     "sphinx_automodapi.automodsumm",
     "sphinx_automodapi.autodoc_enhancements",
     "sphinx_automodapi.smart_resolver",
-    "sphinx_asdf",
     "sphinx.ext.mathjax",
 ]
 
@@ -81,4 +80,5 @@ nitpick_ignore = [
     ("py:class", "np.ndarray"),
     ("py:class", "stsci.imagestats.ImageStats"),  # intersphinx isn't working here
     ("py:class", "spherical_geometry.polygon.SphericalPolygon"),  # intersphinx isn't working here
+    ("py:class", "numpy._typing.DTypeLike"),
 ]
