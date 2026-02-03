@@ -11,7 +11,7 @@ classifiers = [
 ]
 dependencies = [
   "astropy >=6.0.0",
-  "drizzle >=2.0.1",
+  "drizzle >=2.2.0",
   "scipy >=1.14.1",
   "scikit-image>=0.21.0",
   "numpy >=1.25.0",
@@ -38,7 +38,7 @@ docs = [
   "sphinx-rtd-theme",
   "tomli; python_version <=\"3.11\"",
 ]
-test = ["psutil", "pytest >=6", "pytest-cov", "pytest-doctestplus"]
+test = ["psutil", "pytest>=9.0", "pytest-cov", "pytest-doctestplus"]
 
 [project.urls]
 repository = "https://github.com/spacetelescope/stcal"
@@ -62,12 +62,12 @@ zip-safe = true
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.pytest.ini_options]
-minversion = 6
+[tool.pytest]
+minversion = "9.0"
 log_cli_level = "INFO"
 xfail_strict = true
-doctest_plus = true
-doctest_rst = true
+doctest_plus = "enabled"
+doctest_rst = "enabled"
 text_file_format = "rst"
 addopts = [
   "--color=yes",
@@ -144,7 +144,6 @@ ignore = [
   "TRY400", # enforces log.exception instead of log.error in except clause.
 
   # below ignores are not shared with jwst
-  "B905",    # zip without strict
   "ISC001",  # interferes with formatter
   "PLR0912", # Too many branches
   "PLR0913", # Too many arguments

@@ -29,7 +29,12 @@ from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
 
 # Define input GWCS specification to be used for these tests
 WCS_NAME = "mosaic_long_i2d_gwcs.asdf"  # Derived using B7.5 Level 3 product
+
+# number of sources (when no epoch is provided)
 EXPECTED_NUM_SOURCES = 2469
+
+# number of sources (when an epoch is provided and proper motion is corrected)
+EXPECTED_NUM_PM_SOURCES = 1991
 
 # more recent WCS with a defined input frame is necessary for some tests
 WCS_NAME_2 = "nrcb1-wcs.asdf"
@@ -79,7 +84,10 @@ def test_radius(wcsobj):
     np.testing.assert_allclose(radius, EXPECTED_RADIUS, rtol=1e-6)
 
 
-def test_get_catalog(wcsobj, abs_catalog):
+@pytest.mark.parametrize(
+    "epoch, n_sources", [(None, EXPECTED_NUM_SOURCES), (2026.0, EXPECTED_NUM_PM_SOURCES)]
+)
+def test_get_catalog(wcsobj, abs_catalog, epoch, n_sources):
     # Get radius and fiducial
     radius, fiducial = amutils.compute_radius(wcsobj)
 
@@ -88,11 +96,15 @@ def test_get_catalog(wcsobj, abs_catalog):
         fiducial[0],
         fiducial[1],
         search_radius=radius,
-        epoch=None,
+        epoch=epoch,
         catalog=abs_catalog,
     )
 
-    assert len(cat) == EXPECTED_NUM_SOURCES
+    assert len(cat) == n_sources
+
+    # providing an epoch should not return sources without pm
+    if epoch:
+        assert ~(cat["pmra"].mask).all()
 
 
 def test_create_catalog(wcsobj, abs_catalog):
@@ -403,3 +415,21 @@ def test_catalogs_match(epoch):
     s3.sort("objID")
     np.testing.assert_allclose(gsss["ra"], s3["ra"], rtol=1e-7)
     np.testing.assert_allclose(gsss["dec"], s3["dec"], rtol=1e-7)
+
+
+@pytest.mark.parametrize(
+    "epoch, n_sources",
+    [
+        (None, 6),
+        (2026.0, 4),
+    ],
+)
+def test_gaia_dr2(epoch, n_sources):
+    ra = 259.29706462808133
+    dec = 43.1388181388068
+    sr = 0.001
+    cn = "GAIADR2"
+
+    cat_dr2 = amutils.get_catalog(ra, dec, epoch=epoch, search_radius=sr, catalog=cn)
+
+    assert len(cat_dr2) == n_sources
