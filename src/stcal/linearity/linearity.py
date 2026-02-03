@@ -487,8 +487,6 @@ def linearity_correction_int(
 
     # Process each resultant
     for i in range(ngroups):
-        reads_for_resultant = read_pattern[i]
-
         reads_since_first = np.array(read_pattern[i]) - mean_read_resultant[0]
         # Reconstruct linearized counts for these reads
         reads_linearized = (
