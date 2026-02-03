@@ -457,8 +457,7 @@ def linearity_correction_int(
             data[plane] = apply_polynomial(data[plane], lin_coeffs, gdq[plane], dqflags)
         return data
 
-    # Otherwise, continue with read-level correction
-
+    # Calculate mean read number of each resultant (e.g. reads [4, 5, 6, 7] is 5.5)
     mean_read_resultant = np.array([np.mean(reads) for reads in read_pattern])
 
     # Identify saturated pixels and count unsaturated resultants
@@ -526,9 +525,6 @@ def linearity_correction_int(
             reads_corrected[j] = apply_polynomial(reads_unlinearized[j], lin_coeffs)
 
         # Average and write back, respecting saturation
-        # note that in the "normal" branch we would have evaluated the
-        # NL polynomial past saturation here, but now we leave in
-        # whatever values were present
         resultant_saturated = (gdq[i] & dqflags["SATURATED"]) != 0
         corrected_resultant = np.mean(reads_corrected, axis=0)
         data[i] = np.where(resultant_saturated, data[i], corrected_resultant)
