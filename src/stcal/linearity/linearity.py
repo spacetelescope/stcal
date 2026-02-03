@@ -493,8 +493,8 @@ def linearity_correction_int(
         reads_since_first = np.array(read_pattern[i]) - mean_read_resultant[0]
         # Reconstruct linearized counts for these reads
         reads_linearized = (
-            firstread_lin[None, :, :]
-            + countrate[None, :, :] * reads_since_first[:, None, None])
+            firstread_lin[None, :, :] + countrate[None, :, :] * reads_since_first[:, None, None]
+        )
 
         # Convert back to uncorrected counts using inverse linearity
         reads_unlinearized = apply_polynomial(reads_linearized, ilin_coeffs)
