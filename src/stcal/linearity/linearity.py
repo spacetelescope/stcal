@@ -459,14 +459,7 @@ def linearity_correction_int(
 
     # Otherwise, continue with read-level correction
 
-    # Total number of reads
-    nreads = max([max(reads) for reads in read_pattern])
-
-    # Calculate read times
-    readtimes = np.arange(nreads, dtype=float)
-
-    # Calculate resultant times (mean time of reads in each resultant)
-    t_resultants = np.array([np.mean([readtimes[r - 1] for r in reads]) for reads in read_pattern])
+    mean_read_resultant = np.array([np.mean(reads) for reads in read_pattern])
 
     # Identify saturated pixels and count unsaturated resultants
     is_saturated = (gdq & dqflags["SATURATED"]) != 0
@@ -489,20 +482,19 @@ def linearity_correction_int(
     # Linearize last valid resultant for each pixel
     lastread_lin = apply_polynomial(data[last_idx], lin_coeffs, gdq[last_idx], dqflags)
 
-    dt = t_resultants[last_idx[0]] - t_resultants[0]
-    countrate = (lastread_lin - firstread_lin) / dt
+    d_reads = mean_read_resultant[last_idx[0]] - mean_read_resultant[0]
+    # countrate is in units of counts/read
+    countrate = (lastread_lin - firstread_lin) / d_reads
 
     # Process each resultant
     for i in range(ngroups):
         reads_for_resultant = read_pattern[i]
-        n_reads_this = len(reads_for_resultant)
 
-        # Allocate array for just these reads
-        reads_linearized = np.zeros((n_reads_this, nrows, ncols), dtype=data.dtype)
-
+        reads_since_first = np.array(read_pattern[i]) - mean_read_resultant[0]
         # Reconstruct linearized counts for these reads
-        for j, read_idx in enumerate(reads_for_resultant):
-            reads_linearized[j] = firstread_lin + countrate * readtimes[read_idx - 1]
+        reads_linearized = (
+            firstread_lin[None, :, :]
+            + countrate[None, :, :] * reads_since_first[:, None, None])
 
         # Convert back to uncorrected counts using inverse linearity
         reads_unlinearized = apply_polynomial(reads_linearized, ilin_coeffs)
@@ -530,7 +522,7 @@ def linearity_correction_int(
 
         # Apply classic linearity to the reads
         reads_corrected = np.zeros_like(reads_unlinearized)
-        for j in range(n_reads_this):
+        for j in range(reads_corrected.shape[0]):
             reads_corrected[j] = apply_polynomial(reads_unlinearized[j], lin_coeffs)
 
         # Average and write back, respecting saturation
