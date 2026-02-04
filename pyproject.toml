@@ -33,7 +33,6 @@ docs = [
   "numpydoc",
   "packaging >=17",
   "sphinx",
-  "sphinx-asdf",
   "sphinx-astropy",
   "sphinx-rtd-theme",
   "tomli; python_version <=\"3.11\"",
