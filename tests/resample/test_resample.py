@@ -10,7 +10,6 @@ from stcal.resample.utils import (
     build_driz_weight,
     resample_range,
 )
-from tests.test_ramp_fitting_cases import GOOD
 
 from .helpers import (
     JWST_DQ_FLAG_DEF,
