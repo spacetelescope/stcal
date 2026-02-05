@@ -92,6 +92,7 @@ class Resample:
         enable_ctx=True,
         enable_var=True,
         compute_err=None,
+        propagate_dq=False,
     ):
         """
         Initialize Resample.
@@ -236,6 +237,13 @@ class Resample:
             .. note::
                 At this time, output error array is not equivalent to
                 error propagation results.
+
+        propagate_dq : bool, optional
+            Indicates whether to propagate DQ flags from input models to the
+            output model. DQ flags are propagated by bitwise OR of all input DQ
+            flags that contribute to a given output pixel. If `True`, output
+            model will have a DQ array with the same shape as the output data
+            array. If `False`, output model will not have a DQ array.
         """
         # to see if setting up arrays and drizzle is needed
         self._finalized = False
@@ -244,6 +252,7 @@ class Resample:
         self._enable_ctx = enable_ctx
         self._enable_var = enable_var
         self._compute_err = compute_err
+        self._propagate_dq = propagate_dq
 
         # these attributes are used only for informational purposes
         # and are added to created the output_model only if they are
@@ -451,6 +460,7 @@ class Resample:
             "data": None,
             "wht": None,
             "con": None,
+            "dq": None,
             # resample parameters:
             "pixfrac": self.pixfrac,
             "kernel": self.kernel,
@@ -618,6 +628,7 @@ class Resample:
             out_img=self._output_model["data"],
             out_wht=self._output_model["wht"],
             out_ctx=self._output_model["con"],
+            out_dq=self._output_model["dq"] if self._propagate_dq else None,
             exptime=self._output_model["exposure_time"],
             begin_ctx_id=0,
             max_ctx_id=max_ctx_id,
@@ -788,7 +799,11 @@ class Resample:
             "ymax": ymax,
         }
 
-        self._driz.add_image(data, **add_image_kwargs)
+        if self._propagate_dq:
+            self._driz.add_image(data, dq=model["dq"], **add_image_kwargs)
+        else:
+            self._driz.add_image(data, **add_image_kwargs)
+
         self.add_model_hook(
             model=model,
             pixmap=pixmap,
@@ -827,6 +842,9 @@ class Resample:
         self._output_model["wht"] = self._driz.out_wht
         if self._driz.out_ctx is not None:
             self._output_model["con"] = self._driz.out_ctx
+
+        if self._propagate_dq:
+            self._output_model["dq"] = self._driz.out_dq
 
         if self._compute_err == "driz_err":
             # use resampled error
@@ -941,6 +959,9 @@ class Resample:
             # Since the context array is dynamic, it must be re-assigned
             # back to the product's `con` attribute.
             self._output_model["con"] = self._driz.out_ctx
+
+        if self._propagate_dq:
+            self._output_model["dq"] = self._driz.out_dq
 
         del self._driz
 
