@@ -251,7 +251,8 @@ def test_resample_add_model_hook():
 @pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
 @pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
 @pytest.mark.parametrize("weight_type", ["exptime", "ivm", "ivm-sky"])
-def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_type):
+@pytest.mark.parametrize("propagate_dq", [True, False])
+def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_type, propagate_dq):
     """test surface-brightness photometry"""
     model = nrcb5_many_fluxes
 
@@ -259,19 +260,34 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
     wcsinfo = model["wcsinfo"]
     stars = model["stars"]
 
-    output_wcs = wcs_from_sregions([compute_s_region_imaging(wcs)], wcs, wcsinfo, pscale_ratio=pscale_ratio)
+    output_wcs = wcs_from_sregions(
+        [compute_s_region_imaging(wcs)],
+        wcs,
+        wcsinfo,
+        pscale_ratio=pscale_ratio,
+    )
 
-    weight = build_driz_weight(model, weight_type=weight_type, good_bits=0, flag_name_map=JWST_DQ_FLAG_DEF)
+    good_bits = sum([2**i for i in range(3, 16)])
+
+    weight = build_driz_weight(
+        model,
+        weight_type=weight_type,
+        good_bits=good_bits,
+        flag_name_map=JWST_DQ_FLAG_DEF,
+    )
 
     resample = Resample(
         n_input_models=1,
         output_wcs={"wcs": output_wcs},
         weight_type=weight_type,
+        good_bits=good_bits,
         enable_var=False,
         compute_err=False,
         fillval="NAN",
         kernel=kernel,
+        propagate_dq=propagate_dq,
     )
+
     resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
     resample.add_model(model)
     resample.finalize()
@@ -280,6 +296,13 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
     # multiply resampled data by resampled image weight
     out_wht = resample.output_model["wht"]
     out_wdata = resample.output_model["data"] * out_wht
+    out_dq = resample.output_model["dq"]
+
+    # test dq propagation
+    if propagate_dq:
+        assert out_dq is not None
+        assert np.any(out_dq)
+        assert np.bitwise_or.reduce(out_dq, axis=(0, 1)) == good_bits
 
     in_wdata = model["data"] * weight
 

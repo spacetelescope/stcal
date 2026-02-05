@@ -76,7 +76,7 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
             rdnoise = mean_noise * np.random.random((patch_size, patch_size))
 
             model["data"][sl] = psf
-            model["dq"][sl] = 0
+            model["dq"][sl] = 2 ** np.random.randint(3, 16, size=(patch_size, patch_size), dtype=np.uint32)
 
             model["var_rnoise"][sl] = rdnoise
             model["var_poisson"][sl] = psf
@@ -85,5 +85,6 @@ def nrcb5_many_fluxes(nrcb5_wcs_wcsinfo):
 
             stars.append((xc, yc, sl))
 
+    model["var_sky"] = np.full_like(model["data"], mean_noise)
     model["stars"] = stars
     return model
