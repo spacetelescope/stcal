@@ -534,6 +534,11 @@ class Resample:
         """Indicates whether error array is computed and how it is computed."""
         return self._compute_err
 
+    @property
+    def propagate_dq(self):
+        """Indicates whether DQ flags are propagated and output model has DQ array."""
+        return self._propagate_dq
+
     def _get_intensity_scale(self, model):
         """
         Compute intensity scale.
