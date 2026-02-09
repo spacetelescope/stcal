@@ -1,1 +1,1 @@
-Fix handling of catalogs without any non-pm sources.
+Fix handling of catalogs with all sources containing valid proper motion.
