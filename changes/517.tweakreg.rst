@@ -1,0 +1,1 @@
+Fixed a bug to avoid ``get_catalog()`` from crashing when there are no sources found.
