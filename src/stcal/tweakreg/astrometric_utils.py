@@ -205,7 +205,7 @@ def get_catalog(
     if r_contents.startswith("No data records"):
         r_contents = "\n"
     catalog = Table.read(r_contents, format="csv", comment="#")
-    if epoch and catalog.mask and len(catalog) > 0:
+    if epoch and catalog.has_masked_columns and len(catalog) > 0:
         # When provided with an epoch gsss returns corrected and non-corrected
         # sources. Filter out the non-corrected ones.
         catalog = catalog[~(catalog["pmra"].mask & catalog["pmdec"].mask)]
