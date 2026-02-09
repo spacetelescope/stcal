@@ -1,0 +1,1 @@
+Fix handling of catalogs without any non-pm sources.
