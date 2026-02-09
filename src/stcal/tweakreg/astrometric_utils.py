@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import requests
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -208,5 +209,10 @@ def get_catalog(
     if epoch and catalog:
         # When provided with an epoch gsss returns corrected and non-corrected
         # sources. Filter out the non-corrected ones.
-        catalog = catalog[~(catalog["pmra"].mask & catalog["pmdec"].mask)]
+        mask = np.zeros(len(catalog), dtype="bool")
+        for colname in ("pmra", "pmdec"):
+            if not hasattr(catalog[colname], "mask"):
+                continue
+            mask |= catalog[colname].mask
+        catalog = catalog[~mask]
     return catalog
