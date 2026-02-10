@@ -8,7 +8,6 @@ from astropy.io import fits
 from astropy.modeling import models
 from gwcs import coordinate_frames as cf
 
-from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _compute_fiducial_from_footprints,
     _validate_wcs_list,
@@ -19,6 +18,7 @@ from stcal.alignment.util import (
     sregion_to_footprint,
     wcs_bbox_from_shape,
 )
+from stcal.resample.utils import calc_pixmap
 
 
 def _create_wcs_object_without_distortion(
@@ -275,7 +275,7 @@ def test_wcs_bbox_from_shape_3d():
 def test_calc_pixmap_shape(shape, pixmap_expected_shape):
     # TODO: add test for gwcs.WCS
     wcs1, wcs2 = get_fake_wcs()
-    pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
+    pixmap = calc_pixmap(wcs1, wcs2, shape=shape)
     assert pixmap.shape == pixmap_expected_shape
 
 
@@ -287,7 +287,7 @@ def test_calc_pixmap():
     in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
     out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
     in_shape = (3, 4)
-    pixmap = resample_utils.calc_pixmap(in_wcs, out_wcs, in_shape)
+    pixmap = calc_pixmap(in_wcs, out_wcs, in_shape)
     # we expect given the 2x scale difference to have a pixmap
     # with pixel coordinates / 2
     # use mgrid to generate these coordinates (and reshuffle to match the pixmap)

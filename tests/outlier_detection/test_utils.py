@@ -140,9 +140,13 @@ def test_gwcs_blot():
     median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
     blot_shape = (5, 5)
     blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
-    pix_ratio = 1.0
 
-    blotted = gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio)
+    blotted = gwcs_blot(
+        median_data=median_data,
+        median_wcs=median_wcs,
+        blot_shape=blot_shape,
+        blot_wcs=blot_wcs,
+    )
     # since the median data is larger and the wcs are equivalent the blot
     # will window the data to the shape of the blot data
     assert blotted.shape == blot_shape
@@ -160,9 +164,14 @@ def test_gwcs_blot_fillval(fillval):
     median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
     blot_shape = (20, 20)
     blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
-    pix_ratio = 1.0
 
-    blotted = gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=fillval)
+    blotted = gwcs_blot(
+        median_data=median_data,
+        median_wcs=median_wcs,
+        blot_shape=blot_shape,
+        blot_wcs=blot_wcs,
+        fillval=fillval,
+    )
 
     # since the blot data is larger and the wcs are equivalent the blot
     # will contain the median data + some fill values

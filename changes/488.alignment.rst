@@ -1,1 +1,1 @@
-Change ``calc_pixmap`` to match the version in ``drizzle.utils`` and then add interpolation options to speed up resampling calculations.  Coordinate transformations can dominate the runtime of ``resample`` and, for well-behaved distortion corrections, they may be sped up by a factor of several tens with negligible loss of accuracy.  Remove ``util.reproject`` method.
+Moved ``calc_pixmap`` to the ``resample`` submodule. Removed ``util.reproject`` method.

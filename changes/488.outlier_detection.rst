@@ -1,1 +1,1 @@
-Remove ``outlier_detection.utils.reproject``, and ``outlier_detection.utils.calc_gwcs_pixmap``.  For the latter, use ``alignment.resample_utils.calc_pixmap`` instead.
+Removed ``outlier_detection.utils.reproject``, and ``outlier_detection.utils.calc_gwcs_pixmap``.  For the latter, use ``resample.utils.calc_pixmap`` instead.
