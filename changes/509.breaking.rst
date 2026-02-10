@@ -1,0 +1,1 @@
+Deprecated argument 'pix_ratio' removed from 'gwcs_blot' function in ``stcal.outlier_detection.utils`` module.

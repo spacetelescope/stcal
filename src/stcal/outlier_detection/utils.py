@@ -6,6 +6,7 @@ import warnings
 import gwcs
 import numpy as np
 from astropy.stats import sigma_clip
+from astropy.utils.decorators import deprecated_renamed_argument
 from drizzle.resample import blot_image
 from scipy import ndimage
 from skimage.util import view_as_windows
@@ -218,7 +219,8 @@ def flag_resampled_crs(
     return mask1_smoothed & mask2
 
 
-def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=0.0):
+@deprecated_renamed_argument("pix_ratio", None, since="1.16.1", warning_type=DeprecationWarning)
+def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio=None, fillval=0.0):  # noqa: ARG001
     """
     Resample the median data to recreate an input image based on the blot wcs.
 
@@ -235,9 +237,6 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
 
     blot_wcs : gwcs.wcs.WCS
         The target/blotted wcs.
-
-    pix_ratio : float
-        Pixel ratio.
 
     fillval : float, optional
         Fill value for missing data.
@@ -269,13 +268,7 @@ def gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=
         pixmap=pixmap,
         out_img=outsci,
         fillval=fillval,
-        # scaling of the input pixel is unnecessary since outlier detection
-        # is based on SNR (ratio being a key word here). However, to preserve
-        # the same accuracy loss as before, we keep the scaling in order for
-        # the regression tests to pass.
-        # TODO: Consider setting iscale=1 to avoid accuracy loss and simplify
-        # the logic.
-        iscale=1.0 / (pix_ratio * pix_ratio),
+        iscale=1.0,
         interp="linear",
         sinscl=1.0,
     )
