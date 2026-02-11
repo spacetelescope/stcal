@@ -1,0 +1,1 @@
+Updated ``outlier_detection`` to work with the upcoming GWCS release that by default enables filtering of world coordinates by footprint of the bounding box on the sky for inverse transformations (world->detector).
