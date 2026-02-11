@@ -1,0 +1,1 @@
+Moved ``calc_pixmap`` to the ``resample`` submodule. Removed ``util.reproject`` method.

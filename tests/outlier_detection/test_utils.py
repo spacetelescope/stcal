@@ -9,13 +9,11 @@ from astropy.modeling import models
 from stcal._testing.memory_threshold import MemoryThreshold
 from stcal.outlier_detection.utils import (
     _abs_deriv,
-    calc_gwcs_pixmap,
     compute_weight_threshold,
     flag_crs,
     flag_resampled_crs,
     gwcs_blot,
     medfilt,
-    reproject,
 )
 
 
@@ -142,9 +140,13 @@ def test_gwcs_blot():
     median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
     blot_shape = (5, 5)
     blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
-    pix_ratio = 1.0
 
-    blotted = gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio)
+    blotted = gwcs_blot(
+        median_data=median_data,
+        median_wcs=median_wcs,
+        blot_shape=blot_shape,
+        blot_wcs=blot_wcs,
+    )
     # since the median data is larger and the wcs are equivalent the blot
     # will window the data to the shape of the blot data
     assert blotted.shape == blot_shape
@@ -162,9 +164,14 @@ def test_gwcs_blot_fillval(fillval):
     median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
     blot_shape = (20, 20)
     blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
-    pix_ratio = 1.0
 
-    blotted = gwcs_blot(median_data, median_wcs, blot_shape, blot_wcs, pix_ratio, fillval=fillval)
+    blotted = gwcs_blot(
+        median_data=median_data,
+        median_wcs=median_wcs,
+        blot_shape=blot_shape,
+        blot_wcs=blot_wcs,
+        fillval=fillval,
+    )
 
     # since the blot data is larger and the wcs are equivalent the blot
     # will contain the median data + some fill values
@@ -172,33 +179,6 @@ def test_gwcs_blot_fillval(fillval):
     np.testing.assert_equal(blotted[: median_shape[0], : median_shape[1]], median_data)
     np.testing.assert_equal(blotted[median_shape[0] :, :], fillval)
     np.testing.assert_equal(blotted[:, median_shape[1] :], fillval)
-
-
-def test_calc_gwcs_pixmap():
-    # generate 2 wcses with different scales
-    output_frame = gwcs.Frame2D(name="world")
-    in_transform = models.Scale(1) & models.Scale(1)
-    out_transform = models.Scale(2) & models.Scale(2)
-    in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
-    out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
-    in_shape = (3, 4)
-    pixmap = calc_gwcs_pixmap(in_wcs, out_wcs, in_shape)
-    # we expect given the 2x scale difference to have a pixmap
-    # with pixel coordinates / 2
-    # use mgrid to generate these coordinates (and reshuffle to match the pixmap)
-    expected = np.swapaxes(np.mgrid[:4, :3] / 2.0, 0, 2)
-    np.testing.assert_equal(pixmap, expected)
-
-
-def test_reproject():
-    # generate 2 wcses with different scales
-    output_frame = gwcs.Frame2D(name="world")
-    wcs1 = gwcs.WCS(models.Scale(1) & models.Scale(1), output_frame=output_frame)
-    wcs2 = gwcs.WCS(models.Scale(2) & models.Scale(2), output_frame=output_frame)
-    project = reproject(wcs1, wcs2)
-    pys, pxs = project(np.array([3]), np.array([1]))
-    np.testing.assert_equal(pys, 1.5)
-    np.testing.assert_equal(pxs, 0.5)
 
 
 @pytest.mark.parametrize(

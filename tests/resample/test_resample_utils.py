@@ -2,12 +2,13 @@
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from stcal.resample.utils import (
     _get_inverse_variance,
     build_driz_weight,
     build_mask,
+    calc_pixmap,
     compute_mean_pixel_area,
     get_tmeasure,
     is_flux_density,
@@ -15,7 +16,7 @@ from stcal.resample.utils import (
     resample_range,
 )
 
-from .helpers import JWST_DQ_FLAG_DEF, make_input_model
+from .helpers import JWST_DQ_FLAG_DEF, make_gwcs, make_input_model
 
 GOOD = 0
 DQ = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
@@ -200,3 +201,146 @@ def test_get_inverse_variance_valid_and_invalid(caplog, array_name):
 
     # Warning message logged both times
     assert caplog.text.count(f"'{array_name}' array not available.") == 2
+
+
+@pytest.mark.parametrize("order", [1, 3])
+@pytest.mark.parametrize("stepsize", [1, 10, 100])
+@pytest.mark.parametrize("in_shape", [(1000, 1000), (1234, 1435), (200, 300)])
+@pytest.mark.parametrize("bbox_border", [None, 0, 2, 10, -5])
+@pytest.mark.parametrize("shift", [(0, 0), (3, 5), (-5, -2)])
+def test_pixmap(shift, bbox_border, in_shape, stepsize, order):
+    out_shape = (987, 789)
+    wcs1 = make_gwcs(crpix=(0, 0), crval=(0, 0), pscale=2.0e-5, shape=in_shape)
+    wcs2 = make_gwcs(crpix=shift, crval=(0, 0), pscale=2.0e-5, shape=out_shape)
+    if bbox_border is None:
+        wcs1.bounding_box = None
+    else:
+        wcs1.bounding_box = (
+            (bbox_border - 0.5, in_shape[1] - bbox_border + 0.5),
+            (bbox_border - 0.5, in_shape[0] - bbox_border + 0.5),
+        )
+
+    # expected pixmap:
+    y, x = np.indices(in_shape, dtype=np.float64)
+    x += shift[0]
+    y += shift[1]
+    if bbox_border is not None and bbox_border > 0:
+        x[:bbox_border, :] = np.nan
+        x[-bbox_border + 1 :, :] = np.nan
+        x[:, :bbox_border] = np.nan
+        x[:, -bbox_border + 1 :] = np.nan
+        y[:bbox_border, :] = np.nan
+        y[-bbox_border + 1 :, :] = np.nan
+        y[:, :bbox_border] = np.nan
+        y[:, -bbox_border + 1 :] = np.nan
+
+    ok_pixmap = np.dstack([x, y])
+
+    # compute pixmap
+    pixmap = calc_pixmap(wcs1, wcs2, stepsize=stepsize, order=order)
+
+    (
+        assert_allclose(pixmap, ok_pixmap, rtol=0, atol=1e-5, equal_nan=True),
+        (
+            f"Failed for shift={shift}, bbox_border={bbox_border}, in_shape={in_shape}, "
+            f"stepsize={stepsize}, order={order}"
+        ),
+    )
+
+
+def test_map_to_self():
+    """
+    Map a pixel array to itself. Should return the same array.
+    This is a modified version of the test from the `drizzle` package.
+    """
+    input_wcs = make_gwcs(crpix=(0, 0), crval=(0, 0), pscale=2.0e-5, shape=(100, 100))
+    shape = input_wcs.array_shape
+
+    ok_pixmap = np.indices(shape, dtype="float64")
+    ok_pixmap = ok_pixmap.transpose()
+
+    pixmap = calc_pixmap(input_wcs, input_wcs)
+
+    # Got x-y transpose right
+    assert_equal(pixmap.shape, ok_pixmap.shape)
+
+    # Mapping an array to itself
+    assert_allclose(pixmap, ok_pixmap, rtol=1.0e-6, atol=1.0e-9)
+
+    # user-provided shape
+    pixmap = calc_pixmap(input_wcs, input_wcs, (12, 34))
+    assert_equal(pixmap.shape, (12, 34, 2))
+
+    # Check that an exception is raised for WCS without pixel_shape and
+    # bounding_box:
+    input_wcs.pixel_shape = None
+    input_wcs.bounding_box = None
+    with pytest.raises(ValueError):
+        calc_pixmap(input_wcs, input_wcs)
+
+    # user-provided shape when array_shape is not set:
+    pixmap = calc_pixmap(input_wcs, input_wcs, (12, 34))
+    assert_equal(pixmap.shape, (12, 34, 2))
+
+    # from bounding box:
+    input_wcs.bounding_box = ((5.3, 33.5), (2.8, 11.5))
+    pixmap = calc_pixmap(input_wcs, input_wcs)
+    assert_equal(pixmap.shape, (12, 34, 2))
+
+    # from bounding box and pixel_shape (the later takes precedence):
+    input_wcs.array_shape = shape
+    pixmap = calc_pixmap(input_wcs, input_wcs)
+    assert_equal(pixmap.shape, ok_pixmap.shape)
+
+
+@pytest.mark.parametrize("order", [1, 3])
+@pytest.mark.parametrize("stepsize", [1, 10])
+def test_disable_gwcs_bbox(order, stepsize):
+    """
+    Map a pixel array to a translated version of itself.
+    This is a modified version of the test from the `drizzle` package.
+    """
+    in_shape = (1024, 1048)
+
+    first_wcs = make_gwcs(crpix=(0, 0), crval=(0, 0), pscale=2.0e-5, shape=in_shape)
+    second_wcs = make_gwcs(crpix=(-2, -2), crval=(0, 0), pscale=2.0e-5, shape=in_shape)
+
+    y, x = np.indices(first_wcs.array_shape, dtype="float64") - 2.0
+    ok_pixmap = np.dstack([x, y])
+
+    # disable both bounding boxes:
+    pixmap = calc_pixmap(first_wcs, second_wcs, disable_bbox="both", order=order, stepsize=stepsize)
+    assert_allclose(pixmap[2:, 2:], ok_pixmap[2:, 2:], rtol=1.0e-6, atol=1.0e-8)
+    assert np.all(np.isfinite(pixmap[:2, :2]))
+    assert np.all(np.isfinite(pixmap[-2:, -2:]))
+    # check bbox was restored
+    assert first_wcs.bounding_box is not None
+    assert second_wcs.bounding_box is not None
+
+    # disable "from" bounding box:
+    pixmap = calc_pixmap(first_wcs, second_wcs, disable_bbox="from", order=order, stepsize=stepsize)
+
+    assert_allclose(pixmap[2:, 2:], ok_pixmap[2:, 2:], rtol=1.0e-6, atol=1.0e-8)
+    assert np.all(np.logical_not(np.isfinite(pixmap[:2, :])))
+    assert np.all(np.logical_not(np.isfinite(pixmap[:, :2])))
+    # check bbox was restored
+    assert first_wcs.bounding_box is not None
+    assert second_wcs.bounding_box is not None
+
+    # disable "to" bounding boxes:
+    pixmap = calc_pixmap(first_wcs, second_wcs, disable_bbox="to", order=order, stepsize=stepsize)
+    assert_allclose(pixmap[2:, 2:], ok_pixmap[2:, 2:], rtol=1.0e-6, atol=1.0e-8)
+    assert np.all(np.isfinite(pixmap[:2, :2]))
+    assert np.all(pixmap[:2, :2] < 0.0)
+    assert np.all(np.isfinite(pixmap[-2:, -2:]))
+    # check bbox was restored
+    assert first_wcs.bounding_box is not None
+    assert second_wcs.bounding_box is not None
+
+    # enable all bounding boxes:
+    pixmap = calc_pixmap(first_wcs, second_wcs, disable_bbox="none", order=order, stepsize=stepsize)
+    assert_allclose(pixmap[2:, 2:], ok_pixmap[2:, 2:], rtol=1.0e-6, atol=1.0e-8)
+    assert np.all(np.logical_not(np.isfinite(pixmap[:2, :2])))
+    # check bbox was restored
+    assert first_wcs.bounding_box is not None
+    assert second_wcs.bounding_box is not None

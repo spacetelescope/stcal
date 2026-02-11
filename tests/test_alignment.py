@@ -8,7 +8,6 @@ from astropy.io import fits
 from astropy.modeling import models
 from gwcs import coordinate_frames as cf
 
-from stcal.alignment import resample_utils
 from stcal.alignment.util import (
     _compute_fiducial_from_footprints,
     _validate_wcs_list,
@@ -16,10 +15,10 @@ from stcal.alignment.util import (
     compute_s_region_imaging,
     compute_s_region_keyword,
     compute_scale,
-    reproject,
     sregion_to_footprint,
     wcs_bbox_from_shape,
 )
+from stcal.resample.utils import calc_pixmap
 
 
 def _create_wcs_object_without_distortion(
@@ -253,21 +252,6 @@ def get_fake_wcs():
     return fake_wcs1, fake_wcs2
 
 
-@pytest.mark.parametrize(
-    ("x_inp", "y_inp", "x_expected", "y_expected"),
-    [
-        (1000, 2000, np.array(2000), np.array(4000)),  # string input test
-        ([1000], [2000], np.array(2000), np.array(4000)),  # array input test
-    ],
-)
-def test_reproject(x_inp, y_inp, x_expected, y_expected):
-    wcs1, wcs2 = get_fake_wcs()
-    f = reproject(wcs1, wcs2)
-    x_out, y_out = f(x_inp, y_inp)
-    assert np.allclose(x_out, x_expected, rtol=1e-05)
-    assert np.allclose(y_out, y_expected, rtol=1e-05)
-
-
 def test_wcs_bbox_from_shape_2d():
     bb = wcs_bbox_from_shape((512, 2048))
     assert bb == ((-0.5, 2047.5), (-0.5, 511.5))
@@ -291,8 +275,24 @@ def test_wcs_bbox_from_shape_3d():
 def test_calc_pixmap_shape(shape, pixmap_expected_shape):
     # TODO: add test for gwcs.WCS
     wcs1, wcs2 = get_fake_wcs()
-    pixmap = resample_utils.calc_pixmap(wcs1, wcs2, shape=shape)
+    pixmap = calc_pixmap(wcs1, wcs2, shape=shape)
     assert pixmap.shape == pixmap_expected_shape
+
+
+def test_calc_pixmap():
+    # generate 2 wcses with different scales
+    output_frame = gwcs.Frame2D(name="world")
+    in_transform = models.Scale(1) & models.Scale(1)
+    out_transform = models.Scale(2) & models.Scale(2)
+    in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
+    out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
+    in_shape = (3, 4)
+    pixmap = calc_pixmap(in_wcs, out_wcs, in_shape)
+    # we expect given the 2x scale difference to have a pixmap
+    # with pixel coordinates / 2
+    # use mgrid to generate these coordinates (and reshuffle to match the pixmap)
+    expected = np.swapaxes(np.mgrid[:4, :3] / 2.0, 0, 2)
+    np.testing.assert_equal(pixmap, expected)
 
 
 @pytest.mark.parametrize(
