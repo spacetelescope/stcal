@@ -1,3 +1,0 @@
-Significantly changed the linearity correction API to support read-level
-correction with new parameters for inverse linearity coefficients, read
-patterns, and saturation values.

@@ -1,1 +1,0 @@
-Implement the correct behavior of jump detection in the presence of unevenly sampled data (e.g. from Roman).

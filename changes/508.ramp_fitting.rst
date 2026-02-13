@@ -1,1 +1,0 @@
-Expose chi squared as calculated in likelihood-based ramp fitting in the output dictionaries of ramp results.

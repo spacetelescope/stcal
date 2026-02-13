@@ -1,2 +1,0 @@
-Added read-level linearity correction that accounts for averaging of multiple
-reads into resultants.

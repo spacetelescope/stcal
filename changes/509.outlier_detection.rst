@@ -1,2 +1,0 @@
-Fix: Do not rescale blotted images by pixel area ratio in outlier detection.
-This rescaling could have resulted in flagging of valid sources as cosmic rays.
