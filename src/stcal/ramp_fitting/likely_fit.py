@@ -299,8 +299,8 @@ def mask_jumps(
         # Now make the masks for which resultant difference(s) to
         # drop, count the number of ramps affected, and drop them.
         # If no ramps were affected break the loop.
-        dropone = dchisq_one == best_dchisq
-        droptwo = dchisq_two == best_dchisq
+        dropone = (dchisq_one == best_dchisq) & (onedropbetter)
+        droptwo = (dchisq_two == best_dchisq) & (~onedropbetter)
 
         drop = np.any([np.sum(dropone, axis=0), np.sum(droptwo, axis=0)], axis=0)
 
