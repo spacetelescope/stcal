@@ -338,12 +338,12 @@ the groups/resultants :math:`d_i = r_i - r_{i-1}`.  The model used to determine
 the slope/countrate, :math:`a`, is:
 
 .. math::
-    \chi^2 = ({\bf d} - a \cdot {\bf 1})^T C ({\bf d} - a \cdot {\bf 1}) \,,
+    \chi^2 = ({\bf d} - a \cdot {\bf 1})^T C^{-1} ({\bf d} - a \cdot {\bf 1}) \,,
 
 Differentiating, setting to zero, then solving for :math:`a` results in
 
 .. math::
-    a = ({\bf 1}^T C {\bf d})({\bf 1}^T C {\bf 1})^T \,,
+    a = ({\bf 1}^T C^{-1} {\bf d})({\bf 1}^T C^{-1} {\bf 1})^{-1} \,,
 
 The covariance matrix :math:`C` is a tridiagonal matrix, due to the nature of the
 differences.  Because the covariance matrix is tridiagonal, the  computational
