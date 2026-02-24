@@ -133,13 +133,14 @@ def test_flag_resampled_crs():
 
 def test_gwcs_blot():
     # set up a very simple wcs that scales by 1x
+    input_frame = gwcs.Frame2D(name="detector")
     output_frame = gwcs.Frame2D(name="world")
     forward_transform = models.Scale(1) & models.Scale(1)
 
     median_data = np.arange(100, dtype=np.float32).reshape((10, 10))
-    median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    median_wcs = gwcs.WCS(forward_transform, input_frame=input_frame, output_frame=output_frame)
     blot_shape = (5, 5)
-    blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    blot_wcs = gwcs.WCS(forward_transform, input_frame=input_frame, output_frame=output_frame)
 
     blotted = gwcs_blot(
         median_data=median_data,
@@ -156,14 +157,15 @@ def test_gwcs_blot():
 @pytest.mark.parametrize("fillval", [0.0, np.nan])
 def test_gwcs_blot_fillval(fillval):
     # set up a very simple wcs that scales by 1x
+    input_frame = gwcs.Frame2D(name="detector")
     output_frame = gwcs.Frame2D(name="world")
     forward_transform = models.Scale(1) & models.Scale(1)
 
     median_shape = (10, 10)
     median_data = np.arange(100, dtype=np.float32).reshape((10, 10))
-    median_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    median_wcs = gwcs.WCS(forward_transform, input_frame=input_frame, output_frame=output_frame)
     blot_shape = (20, 20)
-    blot_wcs = gwcs.WCS(forward_transform, output_frame=output_frame)
+    blot_wcs = gwcs.WCS(forward_transform, input_frame=input_frame, output_frame=output_frame)
 
     blotted = gwcs_blot(
         median_data=median_data,
