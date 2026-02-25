@@ -1,0 +1,1 @@
+Fix ambiguous behavior in jump detection for noiseless data, where the chi squared improvement can be the same when dropping one and two group differences.
