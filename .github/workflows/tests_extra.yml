@@ -1,6 +1,14 @@
 name: extra tests
 
 on:
+  pull_request:
+    branches:
+      - main
+      - "*x"
+    # To trigger on label changes
+    types:
+      - synchronize
+      - labeled
   schedule:
     # Weekly Monday midnight build
     - cron: "0 0 * * 1"
