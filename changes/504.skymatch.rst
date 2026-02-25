@@ -1,1 +1,0 @@
-Remove unused reduce_memory_usage SkyImage mode and other unused code.

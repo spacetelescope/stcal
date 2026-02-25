@@ -1,3 +1,116 @@
+1.17.0 (2026-02-13)
+===================
+
+Breaking Changes
+----------------
+
+- Removed ``alignment.util.reproject``, ``outlier_detection.utils.reproject``,
+  and ``outlier_detection.utils.calc_gwcs_pixmap``.  For the latter, use
+  ``resample.utils.calc_pixmap`` instead. (`#488
+  <https://github.com/spacetelescope/stcal/issues/488>`_)
+- Change the returned structures from ramp fitting from long tuples of ndarrays
+  to dictionaries with names generally matching those of FITS extensions.
+  Downstream uses of these functions will break if they assume tuples (as jwst
+  and romancal have done). (`#496
+  <https://github.com/spacetelescope/stcal/issues/496>`_)
+- Remove unused reduce_memory_usage SkyImage mode. (`#504
+  <https://github.com/spacetelescope/stcal/issues/504>`_)
+- Significantly changed the linearity correction API to support read-level
+  correction with new parameters for inverse linearity coefficients, read
+  patterns, and saturation values. (`#506
+  <https://github.com/spacetelescope/stcal/issues/506>`_)
+- Deprecated argument 'pix_ratio' removed from 'gwcs_blot' function in
+  ``stcal.outlier_detection.utils`` module. (`#509
+  <https://github.com/spacetelescope/stcal/issues/509>`_)
+
+
+alignment step
+--------------
+
+- Moved ``calc_pixmap`` to the ``resample`` submodule. Removed
+  ``util.reproject`` method. (`#488
+  <https://github.com/spacetelescope/stcal/issues/488>`_)
+
+
+jump step
+---------
+
+- Implement the correct behavior of jump detection in the presence of unevenly
+  sampled data (e.g. from Roman). (`#454
+  <https://github.com/spacetelescope/stcal/issues/454>`_)
+
+
+linearity step
+--------------
+
+- Added read-level linearity correction that accounts for averaging of multiple
+  reads into resultants. (`#506
+  <https://github.com/spacetelescope/stcal/issues/506>`_)
+
+
+outlier_detection step
+----------------------
+
+- Removed ``outlier_detection.utils.reproject``, and
+  ``outlier_detection.utils.calc_gwcs_pixmap``.  For the latter, use
+  ``resample.utils.calc_pixmap`` instead. (`#488
+  <https://github.com/spacetelescope/stcal/issues/488>`_)
+- Fix: Do not rescale blotted images by pixel area ratio in outlier detection.
+  This rescaling could have resulted in flagging of valid sources as cosmic
+  rays. (`#509 <https://github.com/spacetelescope/stcal/issues/509>`_)
+
+
+ramp_fitting step
+-----------------
+
+- Change the returned structures from ramp fitting from long tuples of ndarrays
+  to dictionaries with names generally matching those of FITS extensions.
+  (`#496 <https://github.com/spacetelescope/stcal/issues/496>`_)
+- Expose chi squared as calculated in likelihood-based ramp fitting in the
+  output dictionaries of ramp results. (`#508
+  <https://github.com/spacetelescope/stcal/issues/508>`_)
+
+
+resample step
+-------------
+
+- Fix a bug in resample due to which the "turbo", "gaussian", and "lanczos"
+  resample kernels were not properly rescaled by pixel scale ratio. (`#418
+  <https://github.com/spacetelescope/stcal/issues/418>`_)
+- Enhanced ``calc_pixmap`` version from ``drizzle.utils`` by adding
+  interpolation options to speed up resampling calculations.  Coordinate
+  transformations can dominate the runtime of ``resample`` and, for
+  well-behaved distortion corrections, computing pixmap by interpolating over
+  fewer points significantly reduce computing time with negligible loss of
+  accuracy depending on chosen order and step size. (`#488
+  <https://github.com/spacetelescope/stcal/issues/488>`_)
+- Added support for propagating DQ flags in resampling. DQ flags are propagated
+  by bitwise OR of all input DQ flags that contribute to a given output pixel.
+  (`#516 <https://github.com/spacetelescope/stcal/issues/516>`_)
+
+
+skymatch step
+-------------
+
+- Remove unused reduce_memory_usage SkyImage mode and other unused code. (`#504
+  <https://github.com/spacetelescope/stcal/issues/504>`_)
+
+
+tweakreg step
+-------------
+
+- Fix ``get_catalog`` and ``create_astrometric_catalog`` to only return sources
+  with proper motion when an epoch is provided. (`#493
+  <https://github.com/spacetelescope/stcal/issues/493>`_)
+
+
+Other Changes
+-------------
+
+- Allow gwcs 1.0.1 and higher. (`#507
+  <https://github.com/spacetelescope/stcal/issues/507>`_)
+
+
 1.16.0 (2026-01-22)
 ===================
 
