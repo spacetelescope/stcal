@@ -433,3 +433,8 @@ def test_gaia_dr2(epoch, n_sources):
     cat_dr2 = amutils.get_catalog(ra, dec, epoch=epoch, search_radius=sr, catalog=cn)
 
     assert len(cat_dr2) == n_sources
+
+
+def test_single_source_with_pm():
+    table = amutils.get_catalog(0, 0, epoch=2017.0, search_radius=0.01, catalog="GAIADR3")
+    assert len(table) == 1
