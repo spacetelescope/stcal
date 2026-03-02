@@ -281,11 +281,12 @@ def test_calc_pixmap_shape(shape, pixmap_expected_shape):
 
 def test_calc_pixmap():
     # generate 2 wcses with different scales
+    input_frame = gwcs.Frame2D(name="detector")
     output_frame = gwcs.Frame2D(name="world")
     in_transform = models.Scale(1) & models.Scale(1)
     out_transform = models.Scale(2) & models.Scale(2)
-    in_wcs = gwcs.WCS(in_transform, output_frame=output_frame)
-    out_wcs = gwcs.WCS(out_transform, output_frame=output_frame)
+    in_wcs = gwcs.WCS(in_transform, input_frame=input_frame, output_frame=output_frame)
+    out_wcs = gwcs.WCS(out_transform, input_frame=input_frame, output_frame=output_frame)
     in_shape = (3, 4)
     pixmap = calc_pixmap(in_wcs, out_wcs, in_shape)
     # we expect given the 2x scale difference to have a pixmap
