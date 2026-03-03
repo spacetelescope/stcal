@@ -116,9 +116,9 @@ def flag_saturated_pixels(
             # Update the running tally of all pixels that have ever
             # experienced saturation to account for this.
             if len(sat_thresh.shape) == 4:
-                previously_saturated |= (plane >= sat_thresh[ints, group, :, :])
+                previously_saturated |= plane >= sat_thresh[ints, group, :, :]
             else:
-                previously_saturated |= (plane >= sat_thresh)
+                previously_saturated |= plane >= sat_thresh
 
             flagarray = (previously_saturated * saturated).astype(np.uint32)
 
@@ -204,8 +204,7 @@ def flag_saturated_pixels(
             # Identify groups which we wouldn't expect to saturate by the third group,
             # on the basis of the first group
             scigp1 = data[ints, 0, :, :] - bias_grp2
-            mask = (((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1])
-                    + bias_grp2 < sat_thresh_grp2)
+            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias_grp2 < sat_thresh_grp2
 
             # Identify groups with suspiciously large values in the second group
             # by comparing the change between group 1 and 2 to the dynamic range between
