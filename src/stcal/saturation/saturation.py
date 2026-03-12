@@ -115,8 +115,11 @@ def flag_saturated_pixels(
 
             # Update the running tally of all pixels that have ever
             # experienced saturation to account for this.
+            if len(sat_thresh.shape) == 4:
+                previously_saturated |= plane >= sat_thresh[ints, group, :, :]
+            else:
+                previously_saturated |= plane >= sat_thresh
 
-            previously_saturated |= plane >= sat_thresh
             flagarray = (previously_saturated * saturated).astype(np.uint32)
 
             gdq[ints, group, :, :] |= flagarray
@@ -185,20 +188,30 @@ def flag_saturated_pixels(
         # Add an additional pass to look for things saturating in the second group
         # that can be particularly tricky to identify
         if (read_pattern is not None) & (ngroups > 2):
+            if len(bias.shape) == 4:
+                bias_grp2 = bias[ints, 0, :, :]
+            else:
+                bias_grp2 = bias
+
+            if len(sat_thresh.shape) == 4:
+                sat_thresh_grp2 = sat_thresh[ints, 0, :, :]
+            else:
+                sat_thresh_grp2 = sat_thresh
+
             dq2 = gdq[ints, 1, :, :]
             dq3 = gdq[ints, 2, :, :]
 
             # Identify groups which we wouldn't expect to saturate by the third group,
             # on the basis of the first group
-            scigp1 = data[ints, 0, :, :] - bias
-            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias < sat_thresh
+            scigp1 = data[ints, 0, :, :] - bias_grp2
+            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias_grp2 < sat_thresh_grp2
 
             # Identify groups with suspiciously large values in the second group
             # by comparing the change between group 1 and 2 to the dynamic range between
             # the group 1 and saturation threshold.  Flag any differences sufficiently large
             # that they could come from a saturating event in the last frame of the group.
             scigp2 = data[ints, 1, :, :] - data[ints, 0, :, :]
-            mask &= scigp2 > (sat_thresh - data[ints, 0, :, :]) / len(read_pattern[1])
+            mask &= scigp2 > (sat_thresh_grp2 - data[ints, 0, :, :]) / len(read_pattern[1])
 
             # Identify groups that are saturated in the third group but not yet flagged in the second
             gp3mask = (np.bitwise_and(dq3, saturated) != 0) & (np.bitwise_and(dq2, saturated) == 0)
@@ -208,7 +221,10 @@ def flag_saturated_pixels(
             flagarray = (mask * dnu).astype(np.uint32)
 
             # Add them to the gdq array
-            np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
+            if len(flagarray.shape) == 4:
+                np.bitwise_or(gdq[ints, 1, :, :], flagarray[ints, 1, :, :], gdq[ints, 1, :, :])
+            else:
+                np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
 
         # Check ZEROFRAME.
         if zframe is not None:
@@ -225,7 +241,11 @@ def flag_saturated_pixels(
     n_floor = np.any(np.any(np.bitwise_and(gdq, ad_floor), axis=0), axis=0).sum()
     log.info("Detected %i A/D floor pixels", n_floor)
 
-    pdq = np.bitwise_or(pdq, sat_dq)
+    if len(pdq.shape) == 3:
+        num_superstripe = pdq.shape[0]
+        pdq = np.bitwise_or(pdq, sat_dq[0:num_superstripe, 0, :, :])
+    else:
+        pdq = np.bitwise_or(pdq, sat_dq)
 
     return gdq, pdq, zframe
 
