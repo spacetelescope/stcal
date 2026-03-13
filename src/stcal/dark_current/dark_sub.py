@@ -412,8 +412,10 @@ def extrapolate_dark(dark_data, ngroups):
     """
 
     def _extrapolate_int(arr, ngroups):
-        """Extrapolate using rate derived from difference of last two groups."""
-        rate_arr = arr[-1, :, :] - arr[-2, :, :]
+        """Extrapolate using rate derived from the last 25% of the ramp."""
+        ngroups_orig = arr.shape[0]
+        group_75pct = int(0.75 * ngroups_orig)
+        rate_arr = (arr[-1, :, :] - arr[group_75pct, :, :]) / (ngroups_orig - group_75pct)
         new_groups = (
             np.broadcast_to(np.arange(1, ngroups + 1).reshape(-1, 1, 1), (ngroups, *rate_arr.shape))
             * rate_arr
