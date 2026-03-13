@@ -1,0 +1,1 @@
+Fix extrapolation of short darks to use the last 25% of the ramp instead of the last two groups to minimize extrapolation problems for noisy darks while still ignoring artifacts at the start of the ramp.
