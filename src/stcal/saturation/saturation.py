@@ -33,22 +33,26 @@ def flag_saturated_pixels(
     Parameters
     ----------
     data : np.ndarray
-        4-D science array
+        4-D science array (nint, ngroup, ny, nx).
 
     gdq : np.ndarray
-        4-D group dq array
+        4-D group dq array (nint, ngroup, ny, nx).
 
     pdq : np.ndarray
-        2-D pixel dq array
+        2-D pixel dq array matching the image dimensions (ny, nx).
+        For superstripe data, a 3-D array may be provided,
+        where the first dimension is the number of stripes (nstripe, ny, nx).
 
     sat_thresh : np.ndarray
-        Pixel-wise threshold for saturation, same shape `data`
+        2-D pixel-wise threshold for saturation, matching the image
+        dimensions (ny, nx).  For superstripe data, a 4-D array may
+        be provided, matching the data dimensions (nint, ngroup, ny, nx).
 
     sat_dq : np.ndarray
-        Data quality flags associated with `sat_thresh`
+        Data quality flags associated with `sat_thresh`.
 
     atod_limit : int
-        Hard DN limit of 16-bit A-to-D converter
+        Hard DN limit of 16-bit A-to-D converter.
 
     dqflags : dict
         A dictionary with at least the following keywords:
@@ -66,7 +70,9 @@ def flag_saturated_pixels(
         The times or indices of the frames composing each group.
 
     bias : np.ndarray
-        2-D superbias array.  For use in group 2 saturation flagging for frame-averaged groups.
+        2-D superbias array (ny, nx) for use in group 2 saturation flagging
+        for frame-averaged groups. For superstripe data, a 4-D array may
+        be provided, matching the data dimensions (nint, ngroup, ny, nx).
 
     Returns
     -------
@@ -115,10 +121,10 @@ def flag_saturated_pixels(
 
             # Update the running tally of all pixels that have ever
             # experienced saturation to account for this.
-            if len(sat_thresh.shape) == 4:
-                previously_saturated |= plane >= sat_thresh[ints, group, :, :]
+            if sat_thresh.ndim == 4:
+                previously_saturated |= (plane >= sat_thresh[ints, group, :, :])
             else:
-                previously_saturated |= plane >= sat_thresh
+                previously_saturated |= (plane >= sat_thresh)
 
             flagarray = (previously_saturated * saturated).astype(np.uint32)
 
@@ -188,12 +194,12 @@ def flag_saturated_pixels(
         # Add an additional pass to look for things saturating in the second group
         # that can be particularly tricky to identify
         if (read_pattern is not None) & (ngroups > 2):
-            if len(bias.shape) == 4:
+            if not np.isscalar(bias) and bias.ndim == 4:
                 bias_grp2 = bias[ints, 0, :, :]
             else:
                 bias_grp2 = bias
 
-            if len(sat_thresh.shape) == 4:
+            if sat_thresh.ndim == 4:
                 sat_thresh_grp2 = sat_thresh[ints, 0, :, :]
             else:
                 sat_thresh_grp2 = sat_thresh
@@ -204,7 +210,8 @@ def flag_saturated_pixels(
             # Identify groups which we wouldn't expect to saturate by the third group,
             # on the basis of the first group
             scigp1 = data[ints, 0, :, :] - bias_grp2
-            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias_grp2 < sat_thresh_grp2
+            mask = (((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1])
+                    + bias_grp2 < sat_thresh_grp2)
 
             # Identify groups with suspiciously large values in the second group
             # by comparing the change between group 1 and 2 to the dynamic range between
@@ -221,7 +228,7 @@ def flag_saturated_pixels(
             flagarray = (mask * dnu).astype(np.uint32)
 
             # Add them to the gdq array
-            if len(flagarray.shape) == 4:
+            if flagarray.ndim == 4:
                 np.bitwise_or(gdq[ints, 1, :, :], flagarray[ints, 1, :, :], gdq[ints, 1, :, :])
             else:
                 np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
@@ -241,7 +248,7 @@ def flag_saturated_pixels(
     n_floor = np.any(np.any(np.bitwise_and(gdq, ad_floor), axis=0), axis=0).sum()
     log.info("Detected %i A/D floor pixels", n_floor)
 
-    if len(pdq.shape) == 3:
+    if pdq.ndim == 3:
         num_superstripe = pdq.shape[0]
         pdq = np.bitwise_or(pdq, sat_dq[0:num_superstripe, 0, :, :])
     else:
