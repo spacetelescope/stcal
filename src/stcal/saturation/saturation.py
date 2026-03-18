@@ -30,6 +30,12 @@ def flag_saturated_pixels(
     for 0 DN values. For A/D floor flagged groups, the DO_NOT_USE flag is also
     set.
 
+    Some input arrays may be provided as 2-D arrays, intended to match
+    all integrations and all groups, or 4-D arrays that may have different
+    values for each integration and group.  4-D arrays are intended to support
+    multi-striping modes which may sample different detector regions in
+    each integration.
+
     Parameters
     ----------
     data : np.ndarray
@@ -40,12 +46,12 @@ def flag_saturated_pixels(
 
     pdq : np.ndarray
         2-D pixel dq array matching the image dimensions (ny, nx).
-        For superstripe data, a 3-D array may be provided,
-        where the first dimension is the number of stripes (nstripe, ny, nx).
+        Alternately, a 4-D array may be provided,
+        matching the data dimensions (nint, ngroup, ny, nx).
 
     sat_thresh : np.ndarray
         2-D pixel-wise threshold for saturation, matching the image
-        dimensions (ny, nx).  For superstripe data, a 4-D array may
+        dimensions (ny, nx). Alternately, a 4-D array may
         be provided, matching the data dimensions (nint, ngroup, ny, nx).
 
     sat_dq : np.ndarray
@@ -71,7 +77,7 @@ def flag_saturated_pixels(
 
     bias : np.ndarray
         2-D superbias array (ny, nx) for use in group 2 saturation flagging
-        for frame-averaged groups. For superstripe data, a 4-D array may
+        for frame-averaged groups. Alternately, a 4-D array may
         be provided, matching the data dimensions (nint, ngroup, ny, nx).
 
     Returns
@@ -80,7 +86,7 @@ def flag_saturated_pixels(
         Updated 4-D group dq array
 
     pdq : np.ndarray
-        Updated 2-D pixel dq array
+        Updated pixel dq array
     """
     nints, ngroups, nrows, ncols = data.shape
     dnu = int(dqflags["DO_NOT_USE"])
@@ -175,12 +181,18 @@ def flag_saturated_pixels(
             # flagged as saturated or do not use, *and* the next group
             # was flagged as saturated.  Result of the line below is a
             # boolean array.
-
-            partial_sat = (
-                (plane >= sat_thresh * dilution_factor)
-                & (thisdq & (saturated | dnu) == 0)
-                & (nextdq & saturated != 0)
-            )
+            if sat_thresh.ndim == 4:
+                partial_sat = (
+                    (plane >= sat_thresh[ints, group, :, :] * dilution_factor)
+                    & (thisdq & (saturated | dnu) == 0)
+                    & (nextdq & saturated != 0)
+                )
+            else:
+                partial_sat = (
+                    (plane >= sat_thresh * dilution_factor)
+                    & (thisdq & (saturated | dnu) == 0)
+                    & (nextdq & saturated != 0)
+                )
 
             flagarray = (partial_sat * dnu).astype(np.uint32)
 
@@ -247,11 +259,7 @@ def flag_saturated_pixels(
     n_floor = np.any(np.any(np.bitwise_and(gdq, ad_floor), axis=0), axis=0).sum()
     log.info("Detected %i A/D floor pixels", n_floor)
 
-    if pdq.ndim == 3:
-        num_superstripe = pdq.shape[0]
-        pdq = np.bitwise_or(pdq, sat_dq[0:num_superstripe, 0, :, :])
-    else:
-        pdq = np.bitwise_or(pdq, sat_dq)
+    pdq = np.bitwise_or(pdq, sat_dq)
 
     return gdq, pdq, zframe
 
