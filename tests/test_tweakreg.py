@@ -149,15 +149,11 @@ def fake_correctors(offset):
     twcs.bounding_box = wcs.bounding_box
 
     class FakeCorrector:
-        def __init__(self, wcs, original_skycoord):
+        def __init__(self, original_wcs, wcs):
+            self.original_wcs = original_wcs
             self.wcs = wcs
-            self._original_skycoord = original_skycoord
 
-        @property
-        def meta(self):
-            return {"original_skycoord": self._original_skycoord}
-
-    return [FakeCorrector(twcs, _wcs_to_skycoord(wcs))]
+    return [FakeCorrector(wcs, twcs)]
 
 
 @pytest.mark.parametrize(("offset", "is_good"), [(1 / 3600, True), (11 / 3600, False)])
