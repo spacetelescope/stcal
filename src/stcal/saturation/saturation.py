@@ -30,25 +30,35 @@ def flag_saturated_pixels(
     for 0 DN values. For A/D floor flagged groups, the DO_NOT_USE flag is also
     set.
 
+    Some input arrays may be provided as 2-D arrays, intended to match
+    all integrations and all groups, or 4-D arrays that may have different
+    values for each integration and group.  4-D arrays are intended to support
+    multi-striping modes which may sample different detector regions in
+    each integration.
+
     Parameters
     ----------
     data : np.ndarray
-        4-D science array
+        4-D science array (nint, ngroup, ny, nx).
 
     gdq : np.ndarray
-        4-D group dq array
+        4-D group dq array (nint, ngroup, ny, nx).
 
     pdq : np.ndarray
-        2-D pixel dq array
+        2-D pixel dq array matching the image dimensions (ny, nx).
+        Alternately, a 4-D array may be provided,
+        matching the data dimensions (nint, ngroup, ny, nx).
 
     sat_thresh : np.ndarray
-        Pixel-wise threshold for saturation, same shape `data`
+        2-D pixel-wise threshold for saturation, matching the image
+        dimensions (ny, nx). Alternately, a 4-D array may
+        be provided, matching the data dimensions (nint, ngroup, ny, nx).
 
     sat_dq : np.ndarray
-        Data quality flags associated with `sat_thresh`
+        Data quality flags associated with `sat_thresh`.
 
     atod_limit : int
-        Hard DN limit of 16-bit A-to-D converter
+        Hard DN limit of 16-bit A-to-D converter.
 
     dqflags : dict
         A dictionary with at least the following keywords:
@@ -66,7 +76,9 @@ def flag_saturated_pixels(
         The times or indices of the frames composing each group.
 
     bias : np.ndarray
-        2-D superbias array.  For use in group 2 saturation flagging for frame-averaged groups.
+        2-D superbias array (ny, nx) for use in group 2 saturation flagging
+        for frame-averaged groups. Alternately, a 4-D array may
+        be provided, matching the data dimensions (nint, ngroup, ny, nx).
 
     Returns
     -------
@@ -74,7 +86,7 @@ def flag_saturated_pixels(
         Updated 4-D group dq array
 
     pdq : np.ndarray
-        Updated 2-D pixel dq array
+        Updated pixel dq array
     """
     nints, ngroups, nrows, ncols = data.shape
     dnu = int(dqflags["DO_NOT_USE"])
@@ -115,8 +127,11 @@ def flag_saturated_pixels(
 
             # Update the running tally of all pixels that have ever
             # experienced saturation to account for this.
+            if sat_thresh.ndim == 4:
+                previously_saturated |= plane >= sat_thresh[ints, group, :, :]
+            else:
+                previously_saturated |= plane >= sat_thresh
 
-            previously_saturated |= plane >= sat_thresh
             flagarray = (previously_saturated * saturated).astype(np.uint32)
 
             gdq[ints, group, :, :] |= flagarray
@@ -166,12 +181,18 @@ def flag_saturated_pixels(
             # flagged as saturated or do not use, *and* the next group
             # was flagged as saturated.  Result of the line below is a
             # boolean array.
-
-            partial_sat = (
-                (plane >= sat_thresh * dilution_factor)
-                & (thisdq & (saturated | dnu) == 0)
-                & (nextdq & saturated != 0)
-            )
+            if sat_thresh.ndim == 4:
+                partial_sat = (
+                    (plane >= sat_thresh[ints, group, :, :] * dilution_factor)
+                    & (thisdq & (saturated | dnu) == 0)
+                    & (nextdq & saturated != 0)
+                )
+            else:
+                partial_sat = (
+                    (plane >= sat_thresh * dilution_factor)
+                    & (thisdq & (saturated | dnu) == 0)
+                    & (nextdq & saturated != 0)
+                )
 
             flagarray = (partial_sat * dnu).astype(np.uint32)
 
@@ -185,20 +206,30 @@ def flag_saturated_pixels(
         # Add an additional pass to look for things saturating in the second group
         # that can be particularly tricky to identify
         if (read_pattern is not None) & (ngroups > 2):
+            if not np.isscalar(bias) and bias.ndim == 4:
+                bias_grp2 = bias[ints, 0, :, :]
+            else:
+                bias_grp2 = bias
+
+            if sat_thresh.ndim == 4:
+                sat_thresh_grp2 = sat_thresh[ints, 0, :, :]
+            else:
+                sat_thresh_grp2 = sat_thresh
+
             dq2 = gdq[ints, 1, :, :]
             dq3 = gdq[ints, 2, :, :]
 
             # Identify groups which we wouldn't expect to saturate by the third group,
             # on the basis of the first group
-            scigp1 = data[ints, 0, :, :] - bias
-            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias < sat_thresh
+            scigp1 = data[ints, 0, :, :] - bias_grp2
+            mask = ((scigp1 / np.mean(read_pattern[0])) * read_pattern[2][-1]) + bias_grp2 < sat_thresh_grp2
 
             # Identify groups with suspiciously large values in the second group
             # by comparing the change between group 1 and 2 to the dynamic range between
             # the group 1 and saturation threshold.  Flag any differences sufficiently large
             # that they could come from a saturating event in the last frame of the group.
             scigp2 = data[ints, 1, :, :] - data[ints, 0, :, :]
-            mask &= scigp2 > (sat_thresh - data[ints, 0, :, :]) / len(read_pattern[1])
+            mask &= scigp2 > (sat_thresh_grp2 - data[ints, 0, :, :]) / len(read_pattern[1])
 
             # Identify groups that are saturated in the third group but not yet flagged in the second
             gp3mask = (np.bitwise_and(dq3, saturated) != 0) & (np.bitwise_and(dq2, saturated) == 0)
@@ -208,7 +239,10 @@ def flag_saturated_pixels(
             flagarray = (mask * dnu).astype(np.uint32)
 
             # Add them to the gdq array
-            np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
+            if flagarray.ndim == 4:
+                np.bitwise_or(gdq[ints, 1, :, :], flagarray[ints, 1, :, :], gdq[ints, 1, :, :])
+            else:
+                np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
 
         # Check ZEROFRAME.
         if zframe is not None:
