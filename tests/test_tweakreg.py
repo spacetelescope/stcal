@@ -20,7 +20,6 @@ from stcal.tweakreg.tweakreg import (
     _is_wcs_correction_small,
     _parse_refcat,
     _parse_sky_centroid,
-    _wcs_to_skycoord,
     absolute_align,
     construct_wcs_corrector,
     relative_align,
