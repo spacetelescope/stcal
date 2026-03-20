@@ -175,6 +175,8 @@ def absolute_align(  # noqa: D103
     # easy to recognize when alignment to GAIA was being performed
     # as opposed to the group_id values used for relative alignment
     # earlier in this step.
+    # Also save sky coordinates of the bounding box computed with
+    # the original WCS.
     for corrector in correctors:
         corrector.meta["group_id"] = 987654
         if "fit_info" in corrector.meta and "REFERENCE" in corrector.meta["fit_info"]["status"]:
@@ -349,7 +351,7 @@ def _is_wcs_correction_small(
         max_corr = 2 * (max(abs(xoffset), abs(yoffset)) + tolerance) * u.arcsec
     for corrector in correctors:
         aligned_skycoord = _wcs_to_skycoord(corrector.wcs)
-        original_skycoord = corrector.meta["original_skycoord"]
+        original_skycoord = _wcs_to_skycoord(corrector.original_wcs)
         separation = original_skycoord.separation(aligned_skycoord)
         if not (separation < max_corr).all():
             # Large corrections are typically a result of source
@@ -408,6 +410,5 @@ def construct_wcs_corrector(
             "catalog": catalog,
             "name": catalog.meta.get("name"),
             "group_id": group_id,
-            "original_skycoord": _wcs_to_skycoord(wcs),
         },
     )
