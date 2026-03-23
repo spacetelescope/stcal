@@ -6,8 +6,8 @@ Unit tests for saturation flagging
 
 from enum import IntEnum
 
-import pytest
 import numpy as np
+import pytest
 
 from stcal.saturation.saturation import flag_saturated_pixels
 
@@ -16,7 +16,7 @@ DQFLAGS = {"DO_NOT_USE": 1, "SATURATED": 2, "AD_FLOOR": 64, "NO_SAT_CHECK": 2097
 ATOD_LIMIT = 65535.0  # Hard DN limit of 16-bit A-to-D converter
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_basic_saturation_flagging(use_4d):
     # Create inputs, data, and saturation maps
     data = np.zeros((1, 5, 20, 20)).astype("float32")
@@ -48,7 +48,7 @@ def test_basic_saturation_flagging(use_4d):
     assert np.all(gdq[0, satindex:, 5, 5] == DQFLAGS["SATURATED"])
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_read_pattern_saturation_flagging(use_4d):
     """Check that the saturation threshold varies depending on how the reads
     are allocated into resultants."""
@@ -95,7 +95,7 @@ def test_read_pattern_saturation_flagging(use_4d):
     assert gdq[0, 2, 5, 5] == DQFLAGS["DO_NOT_USE"]
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_read_pattern_saturation_flagging_dnu(use_4d):
     """Check that the saturation threshold varies depending on how the reads
     are allocated into resultants. First resultant expected to have DNU while
@@ -140,7 +140,7 @@ def test_read_pattern_saturation_flagging_dnu(use_4d):
     assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_group2_saturation_flagging_with_bias(use_4d):
     """Flag group 2 saturation in frame-averaged data with significant bias.
 
@@ -217,7 +217,7 @@ def test_group2_saturation_flagging_with_bias(use_4d):
     assert np.all(gdq[0, :, 15, 15] == 0)
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_no_sat_check_at_limit(use_4d):
     """Test to verify that pixels at the A-to-D limit (65535), but flagged with
     NO_SAT_CHECK do NOT get flagged as saturated, and that their neighbors
@@ -257,7 +257,7 @@ def test_no_sat_check_at_limit(use_4d):
     assert np.all(pdq[..., 5, 5] == DQFLAGS["NO_SAT_CHECK"])
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_adjacent_pixel_flagging(use_4d):
     """Test to see if specified number of adjacent pixels next to a saturated
     pixel are also flagged, and that the edges of the dq array are treated
@@ -317,7 +317,7 @@ def test_adjacent_pixel_flagging(use_4d):
     )
 
 
-@pytest.mark.parametrize('use_4d', [True, False])
+@pytest.mark.parametrize("use_4d", [True, False])
 def test_zero_frame(use_4d):
     """
     Pixel 0 has fully saturated ramp with saturated frame 0.
