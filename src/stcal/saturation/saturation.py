@@ -183,7 +183,7 @@ def flag_saturated_pixels(
             # boolean array.
             if sat_thresh.ndim == 4:
                 partial_sat = (
-                    (plane >= sat_thresh[ints, group, :, :] * dilution_factor)
+                    (plane >= sat_thresh[ints, group, :, :] * dilution_factor[ints, group, :, :])
                     & (thisdq & (saturated | dnu) == 0)
                     & (nextdq & saturated != 0)
                 )
@@ -239,15 +239,16 @@ def flag_saturated_pixels(
             flagarray = (mask * dnu).astype(np.uint32)
 
             # Add them to the gdq array
-            if flagarray.ndim == 4:
-                np.bitwise_or(gdq[ints, 1, :, :], flagarray[ints, 1, :, :], gdq[ints, 1, :, :])
-            else:
-                np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
+            np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
 
         # Check ZEROFRAME.
         if zframe is not None:
             plane = zframe[ints, :, :]
-            flagarray, flaglowarray = _plane_saturation(plane, sat_thresh, dqflags)
+            if sat_thresh.ndim == 4:
+                thresh = sat_thresh[ints, 0, :, :]
+            else:
+                thresh = sat_thresh
+            flagarray, flaglowarray = _plane_saturation(plane, thresh, dqflags)
             zdq = flagarray | flaglowarray
             if n_pix_grow_sat > 0:
                 _adjacent_pixels(zdq, saturated, n_pix_grow_sat, inplace=True)
