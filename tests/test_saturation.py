@@ -7,6 +7,7 @@ Unit tests for saturation flagging
 from enum import IntEnum
 
 import numpy as np
+import pytest
 
 from stcal.saturation.saturation import flag_saturated_pixels
 
@@ -15,13 +16,19 @@ DQFLAGS = {"DO_NOT_USE": 1, "SATURATED": 2, "AD_FLOOR": 64, "NO_SAT_CHECK": 2097
 ATOD_LIMIT = 65535.0  # Hard DN limit of 16-bit A-to-D converter
 
 
-def test_basic_saturation_flagging():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_basic_saturation_flagging(use_4d):
     # Create inputs, data, and saturation maps
     data = np.zeros((1, 5, 20, 20)).astype("float32")
     gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
-    pdq = np.zeros((20, 20)).astype("uint32")
-    sat_thresh = np.ones((20, 20)) * 100000.0
-    sat_dq = np.zeros((20, 20)).astype("uint32")
+    if use_4d:
+        pdq = np.zeros((1, 5, 20, 20)).astype("uint32")
+        sat_thresh = np.ones((1, 5, 20, 20)) * 100000.0
+        sat_dq = np.zeros((1, 5, 20, 20)).astype("uint32")
+    else:
+        pdq = np.zeros((20, 20)).astype("uint32")
+        sat_thresh = np.ones((20, 20)) * 100000.0
+        sat_dq = np.zeros((20, 20)).astype("uint32")
 
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
@@ -32,7 +39,7 @@ def test_basic_saturation_flagging():
 
     # Set saturation value in the saturation model
     satvalue = 60000
-    sat_thresh[5, 5] = satvalue
+    sat_thresh[..., 5, 5] = satvalue
 
     gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS)
 
@@ -41,16 +48,22 @@ def test_basic_saturation_flagging():
     assert np.all(gdq[0, satindex:, 5, 5] == DQFLAGS["SATURATED"])
 
 
-def test_read_pattern_saturation_flagging():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_read_pattern_saturation_flagging(use_4d):
     """Check that the saturation threshold varies depending on how the reads
     are allocated into resultants."""
 
     # Create inputs, data, and saturation maps
     data = np.zeros((1, 5, 20, 20)).astype("float32")
     gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
-    pdq = np.zeros((20, 20)).astype("uint32")
-    sat_thresh = np.ones((20, 20)) * 100000.0
-    sat_dq = np.zeros((20, 20)).astype("uint32")
+    if use_4d:
+        pdq = np.zeros((1, 5, 20, 20)).astype("uint32")
+        sat_thresh = np.ones((1, 5, 20, 20)) * 100000.0
+        sat_dq = np.zeros((1, 5, 20, 20)).astype("uint32")
+    else:
+        pdq = np.zeros((20, 20)).astype("uint32")
+        sat_thresh = np.ones((20, 20)) * 100000.0
+        sat_dq = np.zeros((20, 20)).astype("uint32")
 
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
@@ -61,7 +74,7 @@ def test_read_pattern_saturation_flagging():
 
     # Set saturation value in the saturation model
     satvalue = 60000
-    sat_thresh[5, 5] = satvalue
+    sat_thresh[..., 5, 5] = satvalue
 
     # set read_pattern to have many reads in the third resultant, so that
     # its mean exposure time is much smaller than its last read time
@@ -82,7 +95,8 @@ def test_read_pattern_saturation_flagging():
     assert gdq[0, 2, 5, 5] == DQFLAGS["DO_NOT_USE"]
 
 
-def test_read_pattern_saturation_flagging_dnu():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_read_pattern_saturation_flagging_dnu(use_4d):
     """Check that the saturation threshold varies depending on how the reads
     are allocated into resultants. First resultant expected to have DNU while
     PR#321 band-aid still in place."""
@@ -90,9 +104,14 @@ def test_read_pattern_saturation_flagging_dnu():
     # Create inputs, data, and saturation maps
     data = np.zeros((1, 5, 20, 20)).astype("float32")
     gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
-    pdq = np.zeros((20, 20)).astype("uint32")
-    sat_thresh = np.ones((20, 20)) * 100000.0
-    sat_dq = np.zeros((20, 20)).astype("uint32")
+    if use_4d:
+        pdq = np.zeros((1, 5, 20, 20)).astype("uint32")
+        sat_thresh = np.ones((1, 5, 20, 20)) * 100000.0
+        sat_dq = np.zeros((1, 5, 20, 20)).astype("uint32")
+    else:
+        pdq = np.zeros((20, 20)).astype("uint32")
+        sat_thresh = np.ones((20, 20)) * 100000.0
+        sat_dq = np.zeros((20, 20)).astype("uint32")
 
     # Add ramp values up to the saturation limit
     data[0, 0, 5, 5] = 0
@@ -103,7 +122,7 @@ def test_read_pattern_saturation_flagging_dnu():
 
     # Set saturation value in the saturation model
     satvalue = 60000
-    sat_thresh[5, 5] = satvalue
+    sat_thresh[..., 5, 5] = satvalue
 
     # set read_pattern to have many reads in the third resultant, so that
     # its mean exposure time is much smaller than its last read time
@@ -121,7 +140,8 @@ def test_read_pattern_saturation_flagging_dnu():
     assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
 
 
-def test_group2_saturation_flagging_with_bias():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_group2_saturation_flagging_with_bias(use_4d):
     """Flag group 2 saturation in frame-averaged data with significant bias.
 
     Saturation in frame-averaged groups may not exceed the saturation threshold
@@ -133,10 +153,16 @@ def test_group2_saturation_flagging_with_bias():
     # Create inputs, data, and saturation maps
     data = np.zeros((1, 5, 20, 20)).astype("float32")
     gdq = np.zeros((1, 5, 20, 20)).astype("uint32")
-    pdq = np.zeros((20, 20)).astype("uint32")
-    sat_thresh = np.ones((20, 20)) * 100000.0
-    sat_dq = np.zeros((20, 20)).astype("uint32")
-    bias = np.zeros((20, 20))
+    if use_4d:
+        pdq = np.zeros((1, 5, 20, 20)).astype("uint32")
+        sat_thresh = np.ones((1, 5, 20, 20)) * 100000.0
+        sat_dq = np.zeros((1, 5, 20, 20)).astype("uint32")
+        bias = np.zeros((1, 5, 20, 20))
+    else:
+        pdq = np.zeros((20, 20)).astype("uint32")
+        sat_thresh = np.ones((20, 20)) * 100000.0
+        sat_dq = np.zeros((20, 20)).astype("uint32")
+        bias = np.zeros((20, 20))
 
     # Add ramp values up to the saturation limit
     # Bias is 15000
@@ -146,7 +172,7 @@ def test_group2_saturation_flagging_with_bias():
     # averaged over 5 frames this only looks like a 8000 count jump in group 2
     # but group 3 signal saturates
 
-    bias[5, 5] = 15000
+    bias[..., 5, 5] = 15000
 
     data[0, 0, 5, 5] = 18000
     data[0, 1, 5, 5] = 31000
@@ -157,14 +183,14 @@ def test_group2_saturation_flagging_with_bias():
     # Add another pixel with bias of 15000, but no source flux
     # pixel counts are 15000 > sat_thresh/5, but should not be flagged as
     # saturated.
-    bias[15, 15] = 15000
+    bias[..., 15, 15] = 15000
 
     data[0, :, 15, 15] = 15000
 
     # Set saturation value in the saturation model
     satvalue = 60000
-    sat_thresh[5, 5] = satvalue
-    sat_thresh[15, 15] = satvalue
+    sat_thresh[..., 5, 5] = satvalue
+    sat_thresh[..., 15, 15] = satvalue
 
     # set read_pattern to have 5 reads per group.
     read_pattern = [
@@ -191,7 +217,8 @@ def test_group2_saturation_flagging_with_bias():
     assert np.all(gdq[0, :, 15, 15] == 0)
 
 
-def test_no_sat_check_at_limit():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_no_sat_check_at_limit(use_4d):
     """Test to verify that pixels at the A-to-D limit (65535), but flagged with
     NO_SAT_CHECK do NOT get flagged as saturated, and that their neighbors
     also do NOT get flagged."""
@@ -199,9 +226,14 @@ def test_no_sat_check_at_limit():
     # Create inputs, data, and saturation maps
     data = np.zeros((1, 5, 10, 10)).astype("float32")
     gdq = np.zeros((1, 5, 10, 10)).astype("uint32")
-    pdq = np.zeros((10, 10)).astype("uint32")
-    sat_thresh = np.ones((10, 10)) * 50000.0
-    sat_dq = np.zeros((10, 10)).astype("uint32")
+    if use_4d:
+        pdq = np.zeros((1, 5, 10, 10)).astype("uint32")
+        sat_thresh = np.ones((1, 5, 10, 10)) * 50000.0
+        sat_dq = np.zeros((1, 5, 10, 10)).astype("uint32")
+    else:
+        pdq = np.zeros((10, 10)).astype("uint32")
+        sat_thresh = np.ones((10, 10)) * 50000.0
+        sat_dq = np.zeros((10, 10)).astype("uint32")
 
     # Add ramp values that are flat-lined at the A-to-D limit,
     # which is well above the sat_thresh of 50,000.
@@ -212,7 +244,7 @@ def test_no_sat_check_at_limit():
     data[0, 4, 5, 5] = ATOD_LIMIT
 
     # Set a DQ value of NO_SAT_CHECK
-    sat_dq[5, 5] = DQFLAGS["NO_SAT_CHECK"]
+    sat_dq[..., 5, 5] = DQFLAGS["NO_SAT_CHECK"]
 
     # Run the saturation flagging
     gdq, pdq, _ = flag_saturated_pixels(data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, 1)
@@ -222,10 +254,11 @@ def test_no_sat_check_at_limit():
     # Also make sure that NO_SAT_CHECK has been propagated to the
     # pixeldq array.
     assert np.all(gdq[0, :, 4:6, 4:6] != DQFLAGS["SATURATED"])
-    assert pdq[5, 5] == DQFLAGS["NO_SAT_CHECK"]
+    assert np.all(pdq[..., 5, 5] == DQFLAGS["NO_SAT_CHECK"])
 
 
-def test_adjacent_pixel_flagging():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_adjacent_pixel_flagging(use_4d):
     """Test to see if specified number of adjacent pixels next to a saturated
     pixel are also flagged, and that the edges of the dq array are treated
     correctly when this is done."""
@@ -233,9 +266,14 @@ def test_adjacent_pixel_flagging():
     # Create inputs, data, and saturation maps
     data = np.ones((1, 2, 5, 5)).astype("float32")
     gdq = np.zeros((1, 2, 5, 5)).astype("uint32")
-    pdq = np.zeros((5, 5)).astype("uint32")
-    sat_thresh = np.ones((5, 5)) * 60000  # sat. thresh is 60000
-    sat_dq = np.zeros((5, 5)).astype("uint32")
+    if use_4d:
+        pdq = np.zeros((1, 2, 5, 5)).astype("uint32")
+        sat_thresh = np.ones((1, 2, 5, 5)) * 60000  # sat. thresh is 60000
+        sat_dq = np.zeros((1, 2, 5, 5)).astype("uint32")
+    else:
+        pdq = np.zeros((5, 5)).astype("uint32")
+        sat_thresh = np.ones((5, 5)) * 60000  # sat. thresh is 60000
+        sat_dq = np.zeros((5, 5)).astype("uint32")
 
     nints, ngroups, nrows, ncols = data.shape
 
@@ -279,7 +317,8 @@ def test_adjacent_pixel_flagging():
     )
 
 
-def test_zero_frame():
+@pytest.mark.parametrize("use_4d", [True, False])
+def test_zero_frame(use_4d):
     """
     Pixel 0 has fully saturated ramp with saturated frame 0.
     Pixel 1 has fully saturated ramp with good frame 0.
@@ -301,10 +340,15 @@ def test_zero_frame():
     # Create inputs, data, and saturation maps
     data = np.zeros(dims, dtype=float)
     gdq = np.zeros(dims, dtype=np.uint32)
-    pdq = np.zeros((nrows, ncols), dtype=np.uint32)
     zfrm = np.zeros((nints, nrows, ncols), dtype=float)
-    ref = np.zeros((nrows, ncols), dtype=float)
-    rdq = np.zeros((nrows, ncols), dtype=np.uint32)
+    if use_4d:
+        pdq = np.zeros(dims, dtype=np.uint32)
+        ref = np.zeros(dims, dtype=float)
+        rdq = np.zeros(dims, dtype=np.uint32)
+    else:
+        pdq = np.zeros((nrows, ncols), dtype=np.uint32)
+        ref = np.zeros((nrows, ncols), dtype=float)
+        rdq = np.zeros((nrows, ncols), dtype=np.uint32)
 
     data[0, :, 0, 0] = np.array(darr1)
     data[0, :, 0, 1] = np.array(darr2)
@@ -316,7 +360,7 @@ def test_zero_frame():
 
     zfrm[0, 0, :] = np.array(zarr)
     zfrm[1, 0, :] = np.array([zarr[1], zarr[0], zarr[2]])
-    ref[0, :] = np.array(rarr)
+    ref[..., 0, :] = np.array(rarr)
 
     # dictionary with required DQ flags
     dqflags = {"DO_NOT_USE": 1, "SATURATED": 2, "AD_FLOOR": 64, "NO_SAT_CHECK": 2097152}

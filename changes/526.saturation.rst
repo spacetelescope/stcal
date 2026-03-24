@@ -1,0 +1,1 @@
+Allow 4D input arrays in the saturation step, matching the dimensions of the input data. This is intended for support of striping modes that may cover different areas of the detector in each integration.
