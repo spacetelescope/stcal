@@ -1,5 +1,6 @@
 import concurrent.futures
 import functools
+import urllib.parse
 
 import numpy as np
 import pyarrow.csv as csv
@@ -69,8 +70,10 @@ def _correct_for_proper_motion(catalog, epoch):
 
 @functools.lru_cache
 def _get_partition_info(uri):
+    parsed = urllib.parse.urlparse(uri)
     # open the filesystem here to allow this to be cached (FileSystem instances aren't hashable)
-    fs, fs_path = pyarrow.fs.FileSystem.from_uri(uri)
+    fs = pyarrow.fs.S3FileSystem(anonymous=True)
+    fs_path = (parsed.netloc + parsed.path).rstrip("/")
     csv_file = csv.read_csv(fs.open_input_file(fs_path + "/partition_info.csv"))
     return fs, fs_path, np.vstack((csv_file["Norder"].to_numpy(), csv_file["Npix"].to_numpy())).T
 
