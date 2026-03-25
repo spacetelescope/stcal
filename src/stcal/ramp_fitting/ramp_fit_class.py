@@ -31,6 +31,7 @@ class RampData:  # noqa: D101
         self.flags_do_not_use = None
         self.flags_jump_det = None
         self.flags_saturated = None
+        self.flags_persistence = None
         self.flags_no_gain_val = None
         self.flags_unreliable_slope = None
         self.flags_chargeloss = None
@@ -144,6 +145,7 @@ class RampData:  # noqa: D101
         self.flags_do_not_use = dqflags["DO_NOT_USE"]
         self.flags_jump_det = dqflags["JUMP_DET"]
         self.flags_saturated = dqflags["SATURATED"]
+        self.flags_persistence = dqflags["PERSISTENCE"]
         self.flags_no_gain_val = dqflags["NO_GAIN_VALUE"]
         self.flags_unreliable_slope = dqflags["UNRELIABLE_SLOPE"]
         if self.algorithm is not None and self.algorithm.upper() == "OLS_C":
@@ -243,6 +245,7 @@ class RampData:  # noqa: D101
         fd.write(f"{indent}ramp_data.flags_do_not_use = {self.flags_do_not_use}\n")
         fd.write(f"{indent}ramp_data.flags_jump_det = {self.flags_jump_det}\n")
         fd.write(f"{indent}ramp_data.flags_saturated = {self.flags_saturated}\n")
+        fd.write(f"{indent}ramp_data.flags_persistence = {self.flags_persistence}\n")
         fd.write(f"{indent}ramp_data.flags_no_gain_val = {self.flags_no_gain_val}\n")
         fd.write(f"{indent}ramp_data.flags_unreliable_slope = {self.flags_unreliable_slope}\n\n")
 
