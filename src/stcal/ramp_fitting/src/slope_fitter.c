@@ -206,7 +206,7 @@ struct ramp_data {
      * DO_NOT USE, JUMP_DET, SATURATED, NO_GAIN_VALUE, UNRELIABLE_SLOPE,
      * CHARGELOSS, and a user defined "invalid" flag.
      */
-    uint32_t dnu, jump, sat, ngval, uslope, chargeloss, invalid;
+    uint32_t dnu, jump, sat, pers, ngval, uslope, chargeloss, invalid;
 
     /*
      * This is used only if the save_opt is non-zero, i.e., the option to
@@ -328,6 +328,7 @@ struct integ_gdq_stats {
     int cnt_good;    /* GOOD count */
     int jump_det;    /* Boolean for JUMP_DET */
     int chargeloss;  /* Boolean for CHARGELOSS */
+    int persistence; /* Boolean for PERSISTENCE */
 }; /* END: struct integ_gdq_stats */
 
 /*
@@ -786,19 +787,44 @@ static inline int
 is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 {
     /* Pixel list */
-    // JP-3669 - (1804, 173)
-    const int len = 1;
-    npy_intp rows[len];
-    npy_intp cols[len];
+    // JP-4000:
+    #if 0
+     Data differs at [1029, 29]:
+     (28, 1028)
+     Data differs at [1029, 30]:
+     (29, 1028)
+     Data differs at [1029, 31]:
+     (30, 1028)
+     Data differs at [4, 46]:
+     (45, 3)
+     Data differs at [4, 47]:
+     (46, 3)
+     Data differs at [4, 48]:
+     (47, 3)
+     Data differs at [4, 108]:
+     (107, 3)
+     Data differs at [4, 109]:
+     (108, 3)
+     Data differs at [4, 110]:
+     (109, 3)
+     Data differs at [4, 121]:
+     (120, 3)
+    #endif
+
+    #define LEN 2
+    npy_intp rows[LEN];
+    npy_intp cols[LEN];
     npy_intp row;
     int k;
 
-    return 0; /* XXX Null function */
+    // return 0; /* XXX Null function */
 
-    rows[0] = 1804;
-    cols[0] = 173;
+    rows[0] = 120;
+    cols[0] = 3;
+    rows[1] = 109;
+    cols[1] = 3;
 
-    for (k = 0; k < len; ++k) {
+    for (k = 0; k < LEN; ++k) {
         row = pr->row + rd->start_row;
         if (row == rows[k] && pr->col == cols[k]) {
             return 1;
@@ -869,6 +895,7 @@ set_up_logger()
     strftime(tbuffer, 127, string_fmt, curr_tm);
 
     sz = snprintf(g_log_name, PATH_MAX - 1, "%s/%s_pid_%d_logger.txt", log_dir, tbuffer, g_pid);
+    // XXX maybe check return value before logging
 
     dbg_ols_print("g_log_name = %s\n", g_log_name);
 
@@ -1841,9 +1868,14 @@ get_pixel_ramp_integration(
         pr->orig_gdq[idx] = VOID_2_U8(PyArray_GETPTR4(rd->orig_gdq, integ, group, row, col));
     }
 
+    // XXX Update for use of persistence flagging.
+
     /* Compute group DQ statistics */
     if (pr->groupdq[idx] & rd->jump) {
         pr->stats[integ].jump_det = 1;
+    }
+    if (pr->groupdq[idx] & rd->pers) {
+        pr->stats[integ].persistence = 1;
     }
     if (pr->groupdq[idx] & rd->chargeloss) {
         pr->stats[integ].chargeloss = 1;
@@ -2088,6 +2120,7 @@ get_ramp_data_meta(
     rd->dnu = py_ramp_data_get_int(Py_ramp_data, "flags_do_not_use");
     rd->jump = py_ramp_data_get_int(Py_ramp_data, "flags_jump_det");
     rd->sat = py_ramp_data_get_int(Py_ramp_data, "flags_saturated");
+    rd->pers = py_ramp_data_get_int(Py_ramp_data, "flags_persistence");
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
 
@@ -2516,6 +2549,12 @@ ols_slope_fit_pixels(
             // dbg_ols_print("Running (%ld, %ld)\r", row, col);
             get_pixel_ramp(pr, rd, row, col);
 
+            // XXX Here
+            if (is_pix_in_list(rd, pr)) {
+                dbg_ols_print("Pixel - (%ld, %ld)\n", pr->row, pr->col);
+                dbg_ols_print("PERSISTENCE = %08x\n", rd->pers);
+            }
+
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
                 return 1;
@@ -2756,6 +2795,11 @@ ramp_fit_pixel(
 
     /* Clean up any thing from the last pixel ramp */
     clean_segment_list(pr->nints, pr->segs);
+
+    // XXX Here
+    if (is_pix_in_list(rd, pr)) {
+        dbg_ols_print("**** median rate = %f\n", pr->median_rate);
+    }
 
     /* Compute the ramp fit per each integration. */
     for (integ = 0; integ < pr->nints; ++integ) {
