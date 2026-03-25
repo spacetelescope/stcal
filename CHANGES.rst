@@ -1,3 +1,39 @@
+1.18.0 (2026-03-25)
+===================
+
+linearity step
+--------------
+
+- Reduce memory usage of linearity correction, particularly for read-level
+  corrections. (`#531 <https://github.com/spacetelescope/stcal/issues/531>`_)
+
+
+ramp_fitting step
+-----------------
+
+- Fix ambiguous behavior in jump detection for noiseless data, where the chi
+  squared improvement can be the same when dropping one and two group
+  differences. (`#520 <https://github.com/spacetelescope/stcal/issues/520>`_)
+
+
+saturation step
+---------------
+
+- Allow 4D input arrays in the saturation step, matching the dimensions of the
+  input data. This is intended for support of striping modes that may cover
+  different areas of the detector in each integration. (`#526
+  <https://github.com/spacetelescope/stcal/issues/526>`_)
+
+
+tweakreg step
+-------------
+
+- Fix handling of catalogs with all sources containing valid proper motion.
+  (`#519 <https://github.com/spacetelescope/stcal/issues/519>`_)
+- Force anonymous S3 access when fetching S3 hosted GAIA data. (`#535
+  <https://github.com/spacetelescope/stcal/issues/535>`_)
+
+
 1.17.0 (2026-02-13)
 ===================
 

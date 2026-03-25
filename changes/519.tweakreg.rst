@@ -1,1 +1,0 @@
-Fix handling of catalogs with all sources containing valid proper motion.

@@ -1,1 +1,0 @@
-Force anonymous S3 access when fetching S3 hosted GAIA data.
