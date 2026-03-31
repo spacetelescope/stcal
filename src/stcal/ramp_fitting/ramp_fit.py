@@ -287,10 +287,14 @@ def suppress_one_good_group_ramps(ramp_data):
     dq = ramp_data.groupdq
     nints, ngroups, nrows, ncols = dq.shape
     dnu_flag = ramp_data.flags_do_not_use
+    pers_flag = np.uint8(ramp_data.flags_persistence)
+    npers = ~pers_flag
 
     for integ in range(nints):
         # In the current integration find ramps with only one group.
-        intdq = dq[integ, :, :, :]
+        intdq = dq[integ, :, :, :].copy()
+        intdq[:, :, :] &= npers
+
         good_groups = np.zeros(intdq.shape, dtype=int)
         good_groups[intdq == 0] = 1
         ngood_groups = good_groups.sum(axis=0)
@@ -300,13 +304,14 @@ def suppress_one_good_group_ramps(ramp_data):
         # all groups in the ramp as DO_NOT_USE.
         wh1_rows = wh_one[0]
         wh1_cols = wh_one[1]
+
         for n in range(len(wh1_rows)):
             row = wh1_rows[n]
             col = wh1_cols[n]
             # Find ramps that have good 0th group, but the rest of the
             # ramp flagged.
-            good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
-            if ramp_data.groupdq[integ, good_index, row, col] == 0:
+            good_index = np.where(intdq[:, row, col] == 0)
+            if intdq[good_index, row, col] == 0:
                 ramp_data.groupdq[integ, :, row, col] = np.bitwise_or(
                     ramp_data.groupdq[integ, :, row, col], dnu_flag
                 )
