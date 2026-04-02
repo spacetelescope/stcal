@@ -787,31 +787,22 @@ static inline int
 is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 {
     /* Pixel list */
-    // JP-4000:
+
     #if 0
-     Data differs at [1029, 29]:
-     (28, 1028)
-     Data differs at [1029, 30]:
-     (29, 1028)
-     Data differs at [1029, 31]:
-     (30, 1028)
-     Data differs at [4, 46]:
-     (45, 3)
-     Data differs at [4, 47]:
-     (46, 3)
-     Data differs at [4, 48]:
-     (47, 3)
-     Data differs at [4, 108]:
-     (107, 3)
-     Data differs at [4, 109]:
-     (108, 3)
-     Data differs at [4, 110]:
-     (109, 3)
-     Data differs at [4, 121]:
-     (120, 3)
+    // JP-4000:
+    (444, 683)
+    (445, 676)
+    (446, 666)
+    (446, 694)
+    (447, 670)
+    (447, 671)
+    (447, 694)
+    (448, 658)
+    (448, 663)
+    (449, 695)
     #endif
 
-    #define LEN 2
+    #define LEN 1
     npy_intp rows[LEN];
     npy_intp cols[LEN];
     npy_intp row;
@@ -819,10 +810,10 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 
     // return 0; /* XXX Null function */
 
-    rows[0] = 120;
-    cols[0] = 3;
-    rows[1] = 109;
-    cols[1] = 3;
+    rows[0] = 444;
+    cols[0] = 683;
+    // rows[1] = 445;
+    // cols[1] = 676;
 
     for (k = 0; k < LEN; ++k) {
         row = pr->row + rd->start_row;
@@ -1289,6 +1280,8 @@ compute_integration_segments(
     uint32_t *groupdq = NULL;
     npy_intp idx, start, end;
     int in_seg = 0;
+    uint32_t npers = ~(rd->pers);
+    uint32_t gdq, gdq1=-1;
 
     if (chargeloss) {
         groupdq = pr->orig_gdq + integ * pr->ngroups;
@@ -1306,10 +1299,17 @@ compute_integration_segments(
 
     /* Find all flagged groups and segment based on those flags. */
     for (idx = 0; idx < pr->ngroups; ++idx) {
-        if (0 == groupdq[idx]) {
+        gdq = groupdq[idx] & npers; // Remove PERSISTENCE
+        if (idx > 0) {
+            // Previous group may be JUMP
+            gdq1 = groupdq[idx - 1] & npers;
+        }
+
+        // Segments are contiguous GOOD groups that may start with a JUMP.
+        if (0 == gdq) { // GOOD group
             if (!in_seg) {
                 /* A new segment is detected */
-                if (idx > 0 && groupdq[idx - 1] == rd->jump) {
+                if (idx > 0 && (gdq1 == rd->jump)) {
                     /* Include jumps as first group of next group */
                     start = idx - 1;
                 } else {
@@ -1328,6 +1328,7 @@ compute_integration_segments(
             }
         }
     }
+
     /* The last segment of the integration is at the end of the integration */
     if (in_seg) {
         end = idx;
@@ -2531,6 +2532,17 @@ median_rate_integration_sort_cmp(
     return ans;
 }
 
+#if 0
+#define DBG_PIXEL \
+    do { \
+        if (is_pix_in_list(rd, pr)) { \
+            dbg_ols_print("Pixel - (%ld, %ld)\n", pr->row, pr->col); \
+        } \
+    } while(0)
+#else
+#define DBG_PIXEL 
+#endif
+
 /*
  * Fit slope for each pixel.
  */
@@ -2549,11 +2561,7 @@ ols_slope_fit_pixels(
             // dbg_ols_print("Running (%ld, %ld)\r", row, col);
             get_pixel_ramp(pr, rd, row, col);
 
-            // XXX Here
-            if (is_pix_in_list(rd, pr)) {
-                dbg_ols_print("Pixel - (%ld, %ld)\n", pr->row, pr->col);
-                dbg_ols_print("PERSISTENCE = %08x\n", rd->pers);
-            }
+            // DBG_PIXEL;
 
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
@@ -2759,11 +2767,22 @@ py_ramp_data_get_int(
 #define DBG_RATE_INFO                                                                      \
     do {                                                                                   \
         dbg_ols_print("(%ld, %ld) median rate = %f\n", pr->row, pr->col, pr->median_rate); \
-        dbg_ols_print("Rate slope: %f\n", pr->rate.slope);                                 \
-        dbg_ols_print("Rate DQ: %f\n", pr->rate.dq);                                       \
-        dbg_ols_print("Rate var_p: %f\n", pr->rate.var_poisson);                           \
-        dbg_ols_print("Rate var_r: %f\n\n", pr->rate.var_rnoise);                          \
+        dbg_ols_print("    Rate slope: %f\n", pr->rate.slope);                             \
+        dbg_ols_print("    Rate DQ: %lu\n", pr->rate.dq);                                  \
+        dbg_ols_print("    Rate var_p: %f\n", pr->rate.var_poisson);                       \
+        dbg_ols_print("    Rate var_r: %f\n\n", pr->rate.var_rnoise);                      \
     } while (0)
+
+// pr->rateints[integ].slope = NAN;
+#define DBG_RATEINT_INFO                                                                    \
+    do {                                                                                    \
+        dbg_ols_print("[%ld] (%ld, %ld)\n", integ, pr->row, pr->col);                       \
+        dbg_ols_print("    Rateint segs size: %lu\n", pr->segs[integ].size);                \
+        dbg_ols_print("    Rateint slope: %f\n", pr->rateints[integ].slope);                \
+        dbg_ols_print("    Rateint DQ: %lu\n", pr->rateints[integ].dq);                     \
+        dbg_ols_print("    Rateint var_p: %f\n", pr->rateints[integ].var_poisson);          \
+        dbg_ols_print("    Rateint var_r: %f\n\n", pr->rateints[integ].var_rnoise);         \
+    } while(0)
 
 /*
  * Ramp fit a pixel ramp.
@@ -2796,11 +2815,6 @@ ramp_fit_pixel(
     /* Clean up any thing from the last pixel ramp */
     clean_segment_list(pr->nints, pr->segs);
 
-    // XXX Here
-    if (is_pix_in_list(rd, pr)) {
-        dbg_ols_print("**** median rate = %f\n", pr->median_rate);
-    }
-
     /* Compute the ramp fit per each integration. */
     for (integ = 0; integ < pr->nints; ++integ) {
         current_integration = integ;
@@ -2828,9 +2842,13 @@ ramp_fit_pixel(
         if (pr->stats[integ].cnt_sat > 0) {
             pr->rateints[integ].dq |= rd->sat;
             set_rate_sat_flag = 1;
+
         }
+
+        // DBG_RATEINT_INFO;
     }
 
+    // XXX update PERSISTENCE flagging, too.
     if (rd->nints == dnu_cnt) {
         pr->rate.dq |= rd->dnu;
     }
@@ -2869,7 +2887,11 @@ ramp_fit_pixel(
         pr->rate.slope = pr->rate.slope / pr->invvar_e_sum;
     }
 
-    // DBG_RATE_INFO;  /* XXX */
+#if 0
+    if (is_pix_in_list(rd, pr)) {
+        DBG_RATE_INFO;  /* XXX */
+    }
+#endif
 
 END:
     return ret;
@@ -3851,18 +3873,28 @@ print_segment_list(npy_intp nints, struct segment_list *segs, int line)
     print_delim();
 }
 
+#if 1
+// Broken, may not be needed.
 static void
 print_segment_list_basic(struct segment_list *segs, int line)
 {
     struct simple_ll_node *current;
 
     print_delim();
-    dbg_ols_print("[%d] %zd segments\n", line, segs->size);
+    printf("Debug - [C:%d::%d] %zd segments\n", line, g_pid, segs->size);
+    if (0 == segs->size) {
+        goto END;
+    }
     for (current = segs->head; current; current = current->flink) {
+        printf("Debug - [C:%d::%d]     Start = %ld, End = %ld\n", line, g_pid, current->start, current->end);
         dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
     }
+
+END:
     print_delim();
 }
+#endif
+
 
 static void
 print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line)
@@ -3870,10 +3902,14 @@ print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line)
     struct simple_ll_node *current;
 
     print_delim();
-    dbg_ols_print("[%d] Integration %ld has %zd segments\n", line, integ, segs[integ].size);
-    for (current = segs[integ].head; current; current = current->flink) {
-        dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
+    printf("Debug - [C:%d::%d] Integration %ld has %zd segments\n", line, g_pid, integ, segs[integ].size);
+    if (0 == segs[integ].size) {
+        goto END;
     }
+    for (current = segs[integ].head; current; current = current->flink) {
+        printf("Debug - [C:%d::%d]    Start = %ld, End = %ld\n", line, g_pid, current->start, current->end);
+    }
+END:
     print_delim();
 }
 
