@@ -790,19 +790,11 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 
     #if 0
     // JP-4000:
-    (444, 683)
-    (445, 676)
-    (446, 666)
-    (446, 694)
-    (447, 670)
-    (447, 671)
-    (447, 694)
-    (448, 658)
-    (448, 663)
-    (449, 695)
+    (20, 587)
+    (511, 1031)
     #endif
 
-    #define LEN 1
+    #define LEN 2
     npy_intp rows[LEN];
     npy_intp cols[LEN];
     npy_intp row;
@@ -810,10 +802,10 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 
     // return 0; /* XXX Null function */
 
-    rows[0] = 444;
-    cols[0] = 683;
-    // rows[1] = 445;
-    // cols[1] = 676;
+    rows[0] = 20;
+    cols[0] = 587;
+    rows[1] = 511;
+    cols[1] = 1031;
 
     for (k = 0; k < LEN; ++k) {
         row = pr->row + rd->start_row;
@@ -1010,8 +1002,8 @@ add_segment_to_list(
     /* Make sure memory allocation worked */
     seg = (struct simple_ll_node *) calloc(1, sizeof(*seg));
     if (NULL == seg) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         return 1;
     }
 
@@ -1371,8 +1363,8 @@ cr_list_add(
     const char *msg = "Couldn't allocate memory for cosmic ray node.";
 
     if (NULL == new_node) {
-        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         return 1;
     }
 
@@ -1497,8 +1489,8 @@ create_opt_res(
     return 0;
 
 FAILED_ALLOC:
-    PyErr_SetString(PyExc_MemoryError, msg);
     err_ols_print("%s\n", msg);
+    PyErr_SetString(PyExc_MemoryError, msg);
 
     Py_XDECREF(opt_res->slope);
     Py_XDECREF(opt_res->sigslope);
@@ -1526,8 +1518,8 @@ create_pixel_ramp(struct ramp_data *rd) /* The ramp fitting data */
     /* Make sure memory allocation worked */
     if (NULL == pr) {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
-        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         goto END;
     }
 
@@ -1556,8 +1548,8 @@ create_pixel_ramp(struct ramp_data *rd) /* The ramp fitting data */
         (NULL == pr->segs) || (NULL == pr->stats) || (NULL == pr->is_zframe) ||
         (NULL == pr->is_0th) || (NULL == pr->crs)) {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
-        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         FREE_PIXEL_RAMP(pr);
         goto END;
     }
@@ -1610,8 +1602,8 @@ create_rate_product(
     return 0;
 
 FAILED_ALLOC:
-    PyErr_SetString(PyExc_MemoryError, msg);
     err_ols_print("%s\n", msg);
+    PyErr_SetString(PyExc_MemoryError, msg);
 
     Py_XDECREF(rate->slope);
     Py_XDECREF(rate->dq);
@@ -2021,8 +2013,8 @@ get_ramp_data(PyObject *args) /* The C extension module arguments */
 
     /* Make sure memory allocation worked */
     if (NULL == rd) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         goto END;
     }
 
@@ -2051,8 +2043,8 @@ get_ramp_data(PyObject *args) /* The C extension module arguments */
         rd->pedestal = (real_t *) calloc(rd->cube_sz, sizeof(rd->pedestal[0]));
 
         if ((NULL == rd->segs) || (NULL == rd->pedestal)) {
-            PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
+            PyErr_SetString(PyExc_MemoryError, msg);
             FREE_RAMP_DATA(rd);
             goto END;
         }
@@ -2177,8 +2169,8 @@ get_ramp_data_parse(
             args, "OOOsI:get_ramp_data", Py_ramp_data, &(rd->gain), &(rd->rnoise), &weight,
             &rd->save_opt)) {
         msg = "Parsing arguments failed.";
-        PyErr_SetString(PyExc_ValueError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_ValueError, msg);
         return 1;
     }
 
@@ -2188,8 +2180,8 @@ get_ramp_data_parse(
         //    rd->weight = UNWEIGHTED;
     } else {
         msg = "Bad value for weighting.";
-        PyErr_SetString(PyExc_ValueError, msg);
         err_ols_print("%s (weight = '%s')\n", msg, weight);
+        PyErr_SetString(PyExc_ValueError, msg);
         return 1;
     }
 
@@ -2212,16 +2204,16 @@ get_ramp_data_new_validate(struct ramp_data *rd) /* the ramp data */
           (NPY_UINT32 == PyArray_TYPE(rd->pixeldq)) && (NPY_FLOAT == PyArray_TYPE(rd->dcurrent)) &&
           (NPY_FLOAT == PyArray_TYPE(rd->gain)) && (NPY_FLOAT == PyArray_TYPE(rd->rnoise)))) {
         msg = "Bad type array for pass ndarrays to C.";
-        PyErr_SetString(PyExc_TypeError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_TypeError, msg);
         return 1;
     }
 
     /* ZEROFRAME could be NoneType, so needed a separate check */
     if ((((PyObject *) rd->zframe) != Py_None) && (NPY_FLOAT != PyArray_TYPE(rd->zframe))) {
         msg = "Bad type array ZEROFRAME.";
-        PyErr_SetString(PyExc_TypeError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_TypeError, msg);
         return 1;
     }
 
@@ -2320,8 +2312,8 @@ median_rate_default(
 
     /* Make sure memory allocation worked */
     if (NULL == int_data || NULL == int_dq) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         ret = 1;
         goto END;
     }
@@ -2426,8 +2418,8 @@ median_rate_integration(
 
     /* Make sure memory allocation worked */
     if (NULL == loc_integ) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         ret = 1;
         goto END;
     }
@@ -2555,7 +2547,10 @@ ols_slope_fit_pixels(
     struct rateint_product *rateint_prod) /* The rateints product */
 {
     npy_intp row, col;
+    int ret = 0;
 
+    printf("\n");
+    print_delim();
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
 
@@ -2563,24 +2558,46 @@ ols_slope_fit_pixels(
             get_pixel_ramp(pr, rd, row, col);
 
             // DBG_PIXEL;
+            if (is_pix_in_list(rd, pr)) {
+                dbg_ols_print("ramp_fit_pixel (%ld, %ld)\n", row, col);
+            }
 
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
-                return 1;
+                dbg_ols_print("*** Error: (%ld, %ld)\r", row, col);
+                ret = 1;
+                goto END;
             }
 
+            if (is_pix_in_list(rd, pr)) {
+                dbg_ols_print("ramp_fit_pixel_rnoise_chargeloss (%ld, %ld)\n", row, col);
+            }
             if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
-                    return 1;
+                    dbg_ols_print("*** Error: (%ld, %ld)\r", row, col);
+                    ret = 1;
+                    goto END;
                 }
             }
 
+            if (is_pix_in_list(rd, pr)) {
+                dbg_ols_print("save_ramp_fit (%ld, %ld)\n", row, col);
+            }
             /* Save fitted pixel data for output packaging */
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
-                return 1;
+                dbg_ols_print("*** Error: (%ld, %ld)\r", row, col);
+                ret = 1;
+                goto END;
             }
         } /* col loop */
     } /* row loop */
+
+END:
+
+    dbg_ols_print("ret = %d, (%ld, %ld)\n", ret, row, col);
+
+    printf("\n");
+    print_delim();
 
     return 0;
 }
@@ -2928,8 +2945,8 @@ ramp_fit_pixel_rnoise_chargeloss(
         is_chargeloss = 1;
 
         if (NULL == pr->orig_gdq) {
-            PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
+            PyErr_SetString(PyExc_MemoryError, msg);
             ret = 1;
             goto END;
         }
