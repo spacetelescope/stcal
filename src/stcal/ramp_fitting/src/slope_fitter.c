@@ -2329,24 +2329,19 @@ median_rate_default(
         goto END;
     }
 
-    // print_delim();
-    // dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);
     /* Compute the median rate for  the pixel. */
     for (integ = 0; integ < pr->nints; ++integ) {
         current_integration = integ;
 
         if (pr->is_0th[integ]) {
-            // dbg_ols_print("col %ld, is_0th\n", pr->col);
             /* Special case of only good 0th group */
             start_idx = get_ramp_index(rd, integ, 0);
             mrate = pr->data[start_idx] / rd->one_group_time;
         } else if (pr->is_zframe[integ]) {
-            // dbg_ols_print("col %ld, is_zframe\n", pr->col);
             /* Special case of using ZERFRAME data */
             start_idx = get_ramp_index(rd, integ, 0);
             mrate = pr->data[start_idx] / rd->frame_time;
         } else {
-            // dbg_ols_print("col %ld, is_default\n", pr->col);
             /* Get the data and DQ flags for this integration. */
             int_data = median_rate_get_data(int_data, integ, rd, pr);
             int_dq = median_rate_get_dq(int_dq, integ, rd, pr);
@@ -2563,38 +2558,25 @@ ols_slope_fit_pixels(
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
 
-            // dbg_ols_print("Running (%ld, %ld)\r", row, col);
             get_pixel_ramp(pr, rd, row, col);
 
             // DBG_PIXEL;
-            if (is_pix_in_list(rd, pr)) {
-                dbg_ols_print("ramp_fit_pixel (%ld, %ld)\n", row, col);
-            }
 
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
-                dbg_ols_print("*** Error: (%ld, %ld)\r", row, col);
                 ret = 1;
                 goto END;
             }
 
-            if (is_pix_in_list(rd, pr)) {
-                dbg_ols_print("ramp_fit_pixel_rnoise_chargeloss (%ld, %ld)\n", row, col);
-            }
             if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
-                    dbg_ols_print("*** Error: (%ld, %ld)\r", row, col);
                     ret = 1;
                     goto END;
                 }
             }
 
-            if (is_pix_in_list(rd, pr)) {
-                dbg_ols_print("save_ramp_fit (%ld, %ld)\n", row, col);
-            }
             /* Save fitted pixel data for output packaging */
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
-                dbg_ols_print("*** Error: (%ld, %ld)\r", row, col);
                 ret = 1;
                 goto END;
             }
@@ -3194,17 +3176,13 @@ ramp_fit_pixel_integration_fit_slope_seg(
     npy_intp integ,                 /* The integration number */
     int segnum)                     /* The segment number */
 {
-    // dbg_ols_print("[%ld] segnum = %d, length = %ld\n", integ, segnum, current->length);
     if (1 == current->length) {
-        // dbg_ols_print("(%ld, %ld) Segment %d has length 1\n", pr->row, pr->col, segnum);
         rd->special1++;
         return ramp_fit_pixel_integration_fit_slope_seg_len1(rd, pr, current, integ, segnum);
     } else if (2 == current->length) {
-        // dbg_ols_print("(%ld, %ld) Segment %d has length 2\n", pr->row, pr->col, segnum);
         rd->special2++;
         return ramp_fit_pixel_integration_fit_slope_seg_len2(rd, pr, current, integ, segnum);
     }
-    // dbg_ols_print("(%ld, %ld) Segment %d has length >2\n", pr->row, pr->col, segnum);
 
     return ramp_fit_pixel_integration_fit_slope_seg_default(rd, pr, current, integ, segnum);
 }
