@@ -865,14 +865,14 @@ print_pid_info(long long prev, int line, char *label)
 void
 set_up_logger()
 {
-    const char *log_dir = NULL;
+    const char *log_dir = NULL; // Directory path to directory in which to write logs
     char tbuffer[128];
     time_t now = time(NULL);
     struct tm *curr_tm = localtime(&now);
     int sz;
     const char *string_fmt = "%Y_%m_%d_%H%M%S";
 
-    return;
+    return; // Prevents accidentally settup something that shouldn't be
 
     memset(tbuffer, 0, 128);
     strftime(tbuffer, 127, string_fmt, curr_tm);
@@ -880,7 +880,9 @@ set_up_logger()
     sz = snprintf(g_log_name, PATH_MAX - 1, "%s/%s_pid_%d_logger.txt", log_dir, tbuffer, g_pid);
     // XXX maybe check return value before logging
 
+    print_delim();
     dbg_ols_print("g_log_name = %s\n", g_log_name);
+    print_delim();
 
     /* This is a global variable for convenience sake */
     g_log = fopen(g_log_name, "w");
@@ -897,6 +899,16 @@ set_up_logger()
         setlocale(LC_ALL, "en_US"); \
         set_up_logger();            \
     } while (0)
+
+#define CHECK_EXCEPTION(E, S)           \
+    do {                                \
+        E = PyErr_Occurred();           \
+        if (NULL != (E)) {              \
+            log_ols_print("%s\n", S);   \
+            PyErr_DisplayException(E);  \
+            Py_XDECREF(E);              \
+        }                               \
+    } while(0)
 
 /*
  * This is the entry point into the C extension for ramp fitting.  It gets the
@@ -2549,8 +2561,6 @@ ols_slope_fit_pixels(
     npy_intp row, col;
     int ret = 0;
 
-    printf("\n");
-    print_delim();
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
 
@@ -2593,11 +2603,6 @@ ols_slope_fit_pixels(
     } /* row loop */
 
 END:
-
-    dbg_ols_print("ret = %d, (%ld, %ld)\n", ret, row, col);
-
-    printf("\n");
-    print_delim();
 
     return 0;
 }
