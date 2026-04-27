@@ -790,8 +790,7 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 
     #if 0
     // JP-4000:
-    (20, 587)
-    (511, 1031)
+    pixels = [(63, 231), (63, 232), (63, 233), (63, 234)]
     #endif
 
     #define LEN 2
@@ -802,10 +801,10 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 
     // return 0; /* XXX Null function */
 
-    rows[0] = 20;
-    cols[0] = 587;
-    rows[1] = 511;
-    cols[1] = 1031;
+    rows[0] = 63;
+    cols[0] = 231;
+    rows[1] = 63;
+    cols[1] = 232;
 
     for (k = 0; k < LEN; ++k) {
         row = pr->row + rd->start_row;
@@ -1849,6 +1848,10 @@ get_pixel_ramp(
         if (pr->stats[integ].jump_det) {
             pr->rateints[integ].dq |= rd->jump;
             pr->rate.dq |= rd->jump;
+        }
+        if (pr->stats[integ].persistence) {
+            pr->rateints[integ].dq |= rd->pers;
+            pr->rate.dq |= rd->pers;
         }
     }
 }
