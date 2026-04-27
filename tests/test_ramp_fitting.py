@@ -1654,7 +1654,8 @@ def test_refcounter():
     assert b_dc == a_dc
 
 
-def test_cext_chargeloss():
+@pytest.mark.parametrize("i", range(10))
+def test_cext_chargeloss(i):
     """
     Testing the recomputation of read noise due to CHARGELOSS.  Wherever
     the CHARGELOSS flag is set, ramp fitting is run using the CHARGELOSS
@@ -1671,7 +1672,7 @@ def test_cext_chargeloss():
 
     The slope should be the same for all pixels.  Variances differ.
     """
-    nints, ngroups, nrows, ncols = 1, 10, 1, 4
+    nints, ngroups, nrows, ncols = 1, 10, 1000, 4000
     rnval, gval = 0.7071, 1.0
     frame_time, nframes, groupgap = 10.6, 1, 0
 
