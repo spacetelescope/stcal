@@ -1111,6 +1111,7 @@ clean_ramp_data(struct ramp_data *rd) /* The ramp fitting data structure */
 
     Py_XDECREF(rd->data);
     Py_XDECREF(rd->groupdq);
+    Py_XDECREF(rd->orig_gdq);
     Py_XDECREF(rd->pixeldq);
     Py_XDECREF(rd->zframe);
     Py_XDECREF(rd->dcurrent);
