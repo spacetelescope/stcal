@@ -788,12 +788,12 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 {
     /* Pixel list */
 
-    #if 0
+#if 0
     // JP-4000:
     pixels = [(63, 231), (63, 232), (63, 233), (63, 234)]
-    #endif
+#endif
 
-    #define LEN 2
+#define LEN 2
     npy_intp rows[LEN];
     npy_intp cols[LEN];
     npy_intp row;
@@ -871,7 +871,7 @@ set_up_logger()
     int sz;
     const char *string_fmt = "%Y_%m_%d_%H%M%S";
 
-    return; // Prevents accidentally settup something that shouldn't be
+    return; // Prevents accidentally setup something that shouldn't be
 
     memset(tbuffer, 0, 128);
     strftime(tbuffer, 127, string_fmt, curr_tm);
@@ -899,15 +899,15 @@ set_up_logger()
         set_up_logger();            \
     } while (0)
 
-#define CHECK_EXCEPTION(E, S)           \
-    do {                                \
-        E = PyErr_Occurred();           \
-        if (NULL != (E)) {              \
-            log_ols_print("%s\n", S);   \
-            PyErr_DisplayException(E);  \
-            Py_XDECREF(E);              \
-        }                               \
-    } while(0)
+#define CHECK_EXCEPTION(E, S)          \
+    do {                               \
+        E = PyErr_Occurred();          \
+        if (NULL != (E)) {             \
+            log_ols_print("%s\n", S);  \
+            PyErr_DisplayException(E); \
+            Py_XDECREF(E);             \
+        }                              \
+    } while (0)
 
 /*
  * This is the entry point into the C extension for ramp fitting.  It gets the
@@ -1284,7 +1284,7 @@ compute_integration_segments(
     npy_intp idx, start, end;
     int in_seg = 0;
     uint32_t npers = ~(rd->pers);
-    uint32_t gdq, gdq1=-1;
+    uint32_t gdq, gdq1 = -1;
 
     if (chargeloss) {
         groupdq = pr->orig_gdq + integ * pr->ngroups;
@@ -2535,14 +2535,14 @@ median_rate_integration_sort_cmp(
 }
 
 #if 0
-#define DBG_PIXEL \
-    do { \
-        if (is_pix_in_list(rd, pr)) { \
+#define DBG_PIXEL                                                    \
+    do {                                                             \
+        if (is_pix_in_list(rd, pr)) {                                \
             dbg_ols_print("Pixel - (%ld, %ld)\n", pr->row, pr->col); \
-        } \
-    } while(0)
+        }                                                            \
+    } while (0)
 #else
-#define DBG_PIXEL 
+#define DBG_PIXEL
 #endif
 
 /*
@@ -2781,15 +2781,15 @@ py_ramp_data_get_int(
     } while (0)
 
 // pr->rateints[integ].slope = NAN;
-#define DBG_RATEINT_INFO                                                                    \
-    do {                                                                                    \
-        dbg_ols_print("[%ld] (%ld, %ld)\n", integ, pr->row, pr->col);                       \
-        dbg_ols_print("    Rateint segs size: %lu\n", pr->segs[integ].size);                \
-        dbg_ols_print("    Rateint slope: %f\n", pr->rateints[integ].slope);                \
-        dbg_ols_print("    Rateint DQ: %lu\n", pr->rateints[integ].dq);                     \
-        dbg_ols_print("    Rateint var_p: %f\n", pr->rateints[integ].var_poisson);          \
-        dbg_ols_print("    Rateint var_r: %f\n\n", pr->rateints[integ].var_rnoise);         \
-    } while(0)
+#define DBG_RATEINT_INFO                                                            \
+    do {                                                                            \
+        dbg_ols_print("[%ld] (%ld, %ld)\n", integ, pr->row, pr->col);               \
+        dbg_ols_print("    Rateint segs size: %lu\n", pr->segs[integ].size);        \
+        dbg_ols_print("    Rateint slope: %f\n", pr->rateints[integ].slope);        \
+        dbg_ols_print("    Rateint DQ: %lu\n", pr->rateints[integ].dq);             \
+        dbg_ols_print("    Rateint var_p: %f\n", pr->rateints[integ].var_poisson);  \
+        dbg_ols_print("    Rateint var_r: %f\n\n", pr->rateints[integ].var_rnoise); \
+    } while (0)
 
 /*
  * Ramp fit a pixel ramp.
@@ -2849,7 +2849,6 @@ ramp_fit_pixel(
         if (pr->stats[integ].cnt_sat > 0) {
             pr->rateints[integ].dq |= rd->sat;
             set_rate_sat_flag = 1;
-
         }
 
         // DBG_RATEINT_INFO;
@@ -3889,7 +3888,9 @@ print_segment_list_basic(struct segment_list *segs, int line)
         goto END;
     }
     for (current = segs->head; current; current = current->flink) {
-        printf("Debug - [C:%d::%d]     Start = %ld, End = %ld\n", line, g_pid, current->start, current->end);
+        printf(
+            "Debug - [C:%d::%d]     Start = %ld, End = %ld\n", line, g_pid, current->start,
+            current->end);
         dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
     }
 
@@ -3898,19 +3899,22 @@ END:
 }
 #endif
 
-
 static void
 print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line)
 {
     struct simple_ll_node *current;
 
     print_delim();
-    printf("Debug - [C:%d::%d] Integration %ld has %zd segments\n", line, g_pid, integ, segs[integ].size);
+    printf(
+        "Debug - [C:%d::%d] Integration %ld has %zd segments\n", line, g_pid, integ,
+        segs[integ].size);
     if (0 == segs[integ].size) {
         goto END;
     }
     for (current = segs[integ].head; current; current = current->flink) {
-        printf("Debug - [C:%d::%d]    Start = %ld, End = %ld\n", line, g_pid, current->start, current->end);
+        printf(
+            "Debug - [C:%d::%d]    Start = %ld, End = %ld\n", line, g_pid, current->start,
+            current->end);
     }
 END:
     print_delim();
