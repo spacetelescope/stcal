@@ -5,7 +5,6 @@ from stcal.ramp_fitting.likely_fit import likely_ramp_fit
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 
-
 test_dq_flags = {
     "GOOD": 0,  # Good pixel.
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
