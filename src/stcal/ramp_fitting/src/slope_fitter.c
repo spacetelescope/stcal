@@ -206,7 +206,7 @@ struct ramp_data {
      * DO_NOT USE, JUMP_DET, SATURATED, NO_GAIN_VALUE, UNRELIABLE_SLOPE,
      * CHARGELOSS, and a user defined "invalid" flag.
      */
-    uint32_t dnu, jump, sat, ngval, uslope, chargeloss, invalid;
+    uint32_t dnu, jump, sat, pers, ngval, uslope, chargeloss, invalid;
 
     /*
      * This is used only if the save_opt is non-zero, i.e., the option to
@@ -328,6 +328,7 @@ struct integ_gdq_stats {
     int cnt_good;    /* GOOD count */
     int jump_det;    /* Boolean for JUMP_DET */
     int chargeloss;  /* Boolean for CHARGELOSS */
+    int persistence; /* Boolean for PERSISTENCE */
 }; /* END: struct integ_gdq_stats */
 
 /*
@@ -786,19 +787,26 @@ static inline int
 is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
 {
     /* Pixel list */
-    // JP-3669 - (1804, 173)
-    const int len = 1;
-    npy_intp rows[len];
-    npy_intp cols[len];
+
+#if 0
+    // JP-4000:
+    pixels = [(63, 231), (63, 232), (63, 233), (63, 234)]
+#endif
+
+#define LEN 2
+    npy_intp rows[LEN];
+    npy_intp cols[LEN];
     npy_intp row;
     int k;
 
-    return 0; /* XXX Null function */
+    // return 0; /* XXX Null function */
 
-    rows[0] = 1804;
-    cols[0] = 173;
+    rows[0] = 63;
+    cols[0] = 231;
+    rows[1] = 63;
+    cols[1] = 232;
 
-    for (k = 0; k < len; ++k) {
+    for (k = 0; k < LEN; ++k) {
         row = pr->row + rd->start_row;
         if (row == rows[k] && pr->col == cols[k]) {
             return 1;
@@ -856,21 +864,24 @@ print_pid_info(long long prev, int line, char *label)
 void
 set_up_logger()
 {
-    const char *log_dir = NULL;
+    const char *log_dir = NULL; // Directory path to directory in which to write logs
     char tbuffer[128];
     time_t now = time(NULL);
     struct tm *curr_tm = localtime(&now);
     int sz;
     const char *string_fmt = "%Y_%m_%d_%H%M%S";
 
-    return;
+    return; // Prevents accidentally setup something that shouldn't be
 
     memset(tbuffer, 0, 128);
     strftime(tbuffer, 127, string_fmt, curr_tm);
 
     sz = snprintf(g_log_name, PATH_MAX - 1, "%s/%s_pid_%d_logger.txt", log_dir, tbuffer, g_pid);
+    // XXX maybe check return value before logging
 
+    print_delim();
     dbg_ols_print("g_log_name = %s\n", g_log_name);
+    print_delim();
 
     /* This is a global variable for convenience sake */
     g_log = fopen(g_log_name, "w");
@@ -886,6 +897,16 @@ set_up_logger()
     do {                            \
         setlocale(LC_ALL, "en_US"); \
         set_up_logger();            \
+    } while (0)
+
+#define CHECK_EXCEPTION(E, S)          \
+    do {                               \
+        E = PyErr_Occurred();          \
+        if (NULL != (E)) {             \
+            log_ols_print("%s\n", S);  \
+            PyErr_DisplayException(E); \
+            Py_XDECREF(E);             \
+        }                              \
     } while (0)
 
 /*
@@ -992,8 +1013,8 @@ add_segment_to_list(
     /* Make sure memory allocation worked */
     seg = (struct simple_ll_node *) calloc(1, sizeof(*seg));
     if (NULL == seg) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         return 1;
     }
 
@@ -1263,6 +1284,8 @@ compute_integration_segments(
     uint32_t *groupdq = NULL;
     npy_intp idx, start, end;
     int in_seg = 0;
+    uint32_t npers = ~(rd->pers);
+    uint32_t gdq, gdq1 = -1;
 
     if (chargeloss) {
         groupdq = pr->orig_gdq + integ * pr->ngroups;
@@ -1280,10 +1303,17 @@ compute_integration_segments(
 
     /* Find all flagged groups and segment based on those flags. */
     for (idx = 0; idx < pr->ngroups; ++idx) {
-        if (0 == groupdq[idx]) {
+        gdq = groupdq[idx] & npers; // Remove PERSISTENCE
+        if (idx > 0) {
+            // Previous group may be JUMP
+            gdq1 = groupdq[idx - 1] & npers;
+        }
+
+        // Segments are contiguous GOOD groups that may start with a JUMP.
+        if (0 == gdq) { // GOOD group
             if (!in_seg) {
                 /* A new segment is detected */
-                if (idx > 0 && groupdq[idx - 1] == rd->jump) {
+                if (idx > 0 && (gdq1 == rd->jump)) {
                     /* Include jumps as first group of next group */
                     start = idx - 1;
                 } else {
@@ -1302,6 +1332,7 @@ compute_integration_segments(
             }
         }
     }
+
     /* The last segment of the integration is at the end of the integration */
     if (in_seg) {
         end = idx;
@@ -1343,8 +1374,8 @@ cr_list_add(
     const char *msg = "Couldn't allocate memory for cosmic ray node.";
 
     if (NULL == new_node) {
-        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         return 1;
     }
 
@@ -1469,8 +1500,8 @@ create_opt_res(
     return 0;
 
 FAILED_ALLOC:
-    PyErr_SetString(PyExc_MemoryError, msg);
     err_ols_print("%s\n", msg);
+    PyErr_SetString(PyExc_MemoryError, msg);
 
     Py_XDECREF(opt_res->slope);
     Py_XDECREF(opt_res->sigslope);
@@ -1498,8 +1529,8 @@ create_pixel_ramp(struct ramp_data *rd) /* The ramp fitting data */
     /* Make sure memory allocation worked */
     if (NULL == pr) {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
-        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         goto END;
     }
 
@@ -1528,8 +1559,8 @@ create_pixel_ramp(struct ramp_data *rd) /* The ramp fitting data */
         (NULL == pr->segs) || (NULL == pr->stats) || (NULL == pr->is_zframe) ||
         (NULL == pr->is_0th) || (NULL == pr->crs)) {
         snprintf(msg, 255, "Couldn't allocate memory for pixel ramp data structure.");
-        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, (const char *) msg);
         FREE_PIXEL_RAMP(pr);
         goto END;
     }
@@ -1582,8 +1613,8 @@ create_rate_product(
     return 0;
 
 FAILED_ALLOC:
-    PyErr_SetString(PyExc_MemoryError, msg);
     err_ols_print("%s\n", msg);
+    PyErr_SetString(PyExc_MemoryError, msg);
 
     Py_XDECREF(rate->slope);
     Py_XDECREF(rate->dq);
@@ -1819,6 +1850,10 @@ get_pixel_ramp(
             pr->rateints[integ].dq |= rd->jump;
             pr->rate.dq |= rd->jump;
         }
+        if (pr->stats[integ].persistence) {
+            pr->rateints[integ].dq |= rd->pers;
+            pr->rate.dq |= rd->pers;
+        }
     }
 }
 
@@ -1842,9 +1877,14 @@ get_pixel_ramp_integration(
         pr->orig_gdq[idx] = VOID_2_U8(PyArray_GETPTR4(rd->orig_gdq, integ, group, row, col));
     }
 
+    // XXX Update for use of persistence flagging.
+
     /* Compute group DQ statistics */
     if (pr->groupdq[idx] & rd->jump) {
         pr->stats[integ].jump_det = 1;
+    }
+    if (pr->groupdq[idx] & rd->pers) {
+        pr->stats[integ].persistence = 1;
     }
     if (pr->groupdq[idx] & rd->chargeloss) {
         pr->stats[integ].chargeloss = 1;
@@ -1988,8 +2028,8 @@ get_ramp_data(PyObject *args) /* The C extension module arguments */
 
     /* Make sure memory allocation worked */
     if (NULL == rd) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         goto END;
     }
 
@@ -2018,8 +2058,8 @@ get_ramp_data(PyObject *args) /* The C extension module arguments */
         rd->pedestal = (real_t *) calloc(rd->cube_sz, sizeof(rd->pedestal[0]));
 
         if ((NULL == rd->segs) || (NULL == rd->pedestal)) {
-            PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
+            PyErr_SetString(PyExc_MemoryError, msg);
             FREE_RAMP_DATA(rd);
             goto END;
         }
@@ -2089,6 +2129,7 @@ get_ramp_data_meta(
     rd->dnu = py_ramp_data_get_int(Py_ramp_data, "flags_do_not_use");
     rd->jump = py_ramp_data_get_int(Py_ramp_data, "flags_jump_det");
     rd->sat = py_ramp_data_get_int(Py_ramp_data, "flags_saturated");
+    rd->pers = py_ramp_data_get_int(Py_ramp_data, "flags_persistence");
     rd->ngval = py_ramp_data_get_int(Py_ramp_data, "flags_no_gain_val");
     rd->uslope = py_ramp_data_get_int(Py_ramp_data, "flags_unreliable_slope");
 
@@ -2143,8 +2184,8 @@ get_ramp_data_parse(
             args, "OOOsI:get_ramp_data", Py_ramp_data, &(rd->gain), &(rd->rnoise), &weight,
             &rd->save_opt)) {
         msg = "Parsing arguments failed.";
-        PyErr_SetString(PyExc_ValueError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_ValueError, msg);
         return 1;
     }
 
@@ -2154,8 +2195,8 @@ get_ramp_data_parse(
         //    rd->weight = UNWEIGHTED;
     } else {
         msg = "Bad value for weighting.";
-        PyErr_SetString(PyExc_ValueError, msg);
         err_ols_print("%s (weight = '%s')\n", msg, weight);
+        PyErr_SetString(PyExc_ValueError, msg);
         return 1;
     }
 
@@ -2178,16 +2219,16 @@ get_ramp_data_new_validate(struct ramp_data *rd) /* the ramp data */
           (NPY_UINT32 == PyArray_TYPE(rd->pixeldq)) && (NPY_FLOAT == PyArray_TYPE(rd->dcurrent)) &&
           (NPY_FLOAT == PyArray_TYPE(rd->gain)) && (NPY_FLOAT == PyArray_TYPE(rd->rnoise)))) {
         msg = "Bad type array for pass ndarrays to C.";
-        PyErr_SetString(PyExc_TypeError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_TypeError, msg);
         return 1;
     }
 
     /* ZEROFRAME could be NoneType, so needed a separate check */
     if ((((PyObject *) rd->zframe) != Py_None) && (NPY_FLOAT != PyArray_TYPE(rd->zframe))) {
         msg = "Bad type array ZEROFRAME.";
-        PyErr_SetString(PyExc_TypeError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_TypeError, msg);
         return 1;
     }
 
@@ -2286,30 +2327,25 @@ median_rate_default(
 
     /* Make sure memory allocation worked */
     if (NULL == int_data || NULL == int_dq) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         ret = 1;
         goto END;
     }
 
-    // print_delim();
-    // dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);
     /* Compute the median rate for  the pixel. */
     for (integ = 0; integ < pr->nints; ++integ) {
         current_integration = integ;
 
         if (pr->is_0th[integ]) {
-            // dbg_ols_print("col %ld, is_0th\n", pr->col);
             /* Special case of only good 0th group */
             start_idx = get_ramp_index(rd, integ, 0);
             mrate = pr->data[start_idx] / rd->one_group_time;
         } else if (pr->is_zframe[integ]) {
-            // dbg_ols_print("col %ld, is_zframe\n", pr->col);
             /* Special case of using ZERFRAME data */
             start_idx = get_ramp_index(rd, integ, 0);
             mrate = pr->data[start_idx] / rd->frame_time;
         } else {
-            // dbg_ols_print("col %ld, is_default\n", pr->col);
             /* Get the data and DQ flags for this integration. */
             int_data = median_rate_get_data(int_data, integ, rd, pr);
             int_dq = median_rate_get_dq(int_dq, integ, rd, pr);
@@ -2392,8 +2428,8 @@ median_rate_integration(
 
     /* Make sure memory allocation worked */
     if (NULL == loc_integ) {
-        PyErr_SetString(PyExc_MemoryError, msg);
         err_ols_print("%s\n", msg);
+        PyErr_SetString(PyExc_MemoryError, msg);
         ret = 1;
         goto END;
     }
@@ -2499,6 +2535,17 @@ median_rate_integration_sort_cmp(
     return ans;
 }
 
+#if 0
+#define DBG_PIXEL                                                    \
+    do {                                                             \
+        if (is_pix_in_list(rd, pr)) {                                \
+            dbg_ols_print("Pixel - (%ld, %ld)\n", pr->row, pr->col); \
+        }                                                            \
+    } while (0)
+#else
+#define DBG_PIXEL
+#endif
+
 /*
  * Fit slope for each pixel.
  */
@@ -2510,30 +2557,37 @@ ols_slope_fit_pixels(
     struct rateint_product *rateint_prod) /* The rateints product */
 {
     npy_intp row, col;
+    int ret = 0;
 
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
 
-            // dbg_ols_print("Running (%ld, %ld)\r", row, col);
             get_pixel_ramp(pr, rd, row, col);
+
+            // DBG_PIXEL;
 
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
-                return 1;
+                ret = 1;
+                goto END;
             }
 
             if (rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
-                    return 1;
+                    ret = 1;
+                    goto END;
                 }
             }
 
             /* Save fitted pixel data for output packaging */
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
-                return 1;
+                ret = 1;
+                goto END;
             }
         } /* col loop */
     } /* row loop */
+
+END:
 
     return 0;
 }
@@ -2721,10 +2775,21 @@ py_ramp_data_get_int(
 #define DBG_RATE_INFO                                                                      \
     do {                                                                                   \
         dbg_ols_print("(%ld, %ld) median rate = %f\n", pr->row, pr->col, pr->median_rate); \
-        dbg_ols_print("Rate slope: %f\n", pr->rate.slope);                                 \
-        dbg_ols_print("Rate DQ: %f\n", pr->rate.dq);                                       \
-        dbg_ols_print("Rate var_p: %f\n", pr->rate.var_poisson);                           \
-        dbg_ols_print("Rate var_r: %f\n\n", pr->rate.var_rnoise);                          \
+        dbg_ols_print("    Rate slope: %f\n", pr->rate.slope);                             \
+        dbg_ols_print("    Rate DQ: %lu\n", pr->rate.dq);                                  \
+        dbg_ols_print("    Rate var_p: %f\n", pr->rate.var_poisson);                       \
+        dbg_ols_print("    Rate var_r: %f\n\n", pr->rate.var_rnoise);                      \
+    } while (0)
+
+// pr->rateints[integ].slope = NAN;
+#define DBG_RATEINT_INFO                                                            \
+    do {                                                                            \
+        dbg_ols_print("[%ld] (%ld, %ld)\n", integ, pr->row, pr->col);               \
+        dbg_ols_print("    Rateint segs size: %lu\n", pr->segs[integ].size);        \
+        dbg_ols_print("    Rateint slope: %f\n", pr->rateints[integ].slope);        \
+        dbg_ols_print("    Rateint DQ: %lu\n", pr->rateints[integ].dq);             \
+        dbg_ols_print("    Rateint var_p: %f\n", pr->rateints[integ].var_poisson);  \
+        dbg_ols_print("    Rateint var_r: %f\n\n", pr->rateints[integ].var_rnoise); \
     } while (0)
 
 /*
@@ -2786,8 +2851,11 @@ ramp_fit_pixel(
             pr->rateints[integ].dq |= rd->sat;
             set_rate_sat_flag = 1;
         }
+
+        // DBG_RATEINT_INFO;
     }
 
+    // XXX update PERSISTENCE flagging, too.
     if (rd->nints == dnu_cnt) {
         pr->rate.dq |= rd->dnu;
     }
@@ -2826,7 +2894,11 @@ ramp_fit_pixel(
         pr->rate.slope = pr->rate.slope / pr->invvar_e_sum;
     }
 
-    // DBG_RATE_INFO;  /* XXX */
+#if 0
+    if (is_pix_in_list(rd, pr)) {
+        DBG_RATE_INFO;  /* XXX */
+    }
+#endif
 
 END:
     return ret;
@@ -2862,8 +2934,8 @@ ramp_fit_pixel_rnoise_chargeloss(
         is_chargeloss = 1;
 
         if (NULL == pr->orig_gdq) {
-            PyErr_SetString(PyExc_MemoryError, msg);
             err_ols_print("%s\n", msg);
+            PyErr_SetString(PyExc_MemoryError, msg);
             ret = 1;
             goto END;
         }
@@ -3107,17 +3179,13 @@ ramp_fit_pixel_integration_fit_slope_seg(
     npy_intp integ,                 /* The integration number */
     int segnum)                     /* The segment number */
 {
-    // dbg_ols_print("[%ld] segnum = %d, length = %ld\n", integ, segnum, current->length);
     if (1 == current->length) {
-        // dbg_ols_print("(%ld, %ld) Segment %d has length 1\n", pr->row, pr->col, segnum);
         rd->special1++;
         return ramp_fit_pixel_integration_fit_slope_seg_len1(rd, pr, current, integ, segnum);
     } else if (2 == current->length) {
-        // dbg_ols_print("(%ld, %ld) Segment %d has length 2\n", pr->row, pr->col, segnum);
         rd->special2++;
         return ramp_fit_pixel_integration_fit_slope_seg_len2(rd, pr, current, integ, segnum);
     }
-    // dbg_ols_print("(%ld, %ld) Segment %d has length >2\n", pr->row, pr->col, segnum);
 
     return ramp_fit_pixel_integration_fit_slope_seg_default(rd, pr, current, integ, segnum);
 }
@@ -3808,18 +3876,29 @@ print_segment_list(npy_intp nints, struct segment_list *segs, int line)
     print_delim();
 }
 
+#if 1
+// Broken, may not be needed.
 static void
 print_segment_list_basic(struct segment_list *segs, int line)
 {
     struct simple_ll_node *current;
 
     print_delim();
-    dbg_ols_print("[%d] %zd segments\n", line, segs->size);
+    printf("Debug - [C:%d::%d] %zd segments\n", line, g_pid, segs->size);
+    if (0 == segs->size) {
+        goto END;
+    }
     for (current = segs->head; current; current = current->flink) {
+        printf(
+            "Debug - [C:%d::%d]     Start = %ld, End = %ld\n", line, g_pid, current->start,
+            current->end);
         dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
     }
+
+END:
     print_delim();
 }
+#endif
 
 static void
 print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line)
@@ -3827,10 +3906,18 @@ print_segment_list_integ(npy_intp integ, struct segment_list *segs, int line)
     struct simple_ll_node *current;
 
     print_delim();
-    dbg_ols_print("[%d] Integration %ld has %zd segments\n", line, integ, segs[integ].size);
-    for (current = segs[integ].head; current; current = current->flink) {
-        dbg_ols_print("    Start = %ld, End = %ld\n", current->start, current->end);
+    printf(
+        "Debug - [C:%d::%d] Integration %ld has %zd segments\n", line, g_pid, integ,
+        segs[integ].size);
+    if (0 == segs[integ].size) {
+        goto END;
     }
+    for (current = segs[integ].head; current; current = current->flink) {
+        printf(
+            "Debug - [C:%d::%d]    Start = %ld, End = %ld\n", line, g_pid, current->start,
+            current->end);
+    }
+END:
     print_delim();
 }
 
