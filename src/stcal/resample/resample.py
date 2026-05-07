@@ -506,6 +506,9 @@ class Resample:
             "start_time": None,
             "end_time": None,
             "duration": 0.0,
+            # background level
+            "level": 0.0,
+            "subtracted": True,
         }
 
         if self._enable_var:
