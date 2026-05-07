@@ -38,18 +38,31 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     ValueError
         If there is no overlap between the input s_regions and the intersection footprint.
     """
-    footprints = np.array(
-        [
-            util.sregion_to_footprint(sregion) if isinstance(sregion, str) else sregion
-            for sregion in sregion_list
-        ]
-    )
+    footprints = []
+    for sregion in sregion_list:
+        if isinstance(sregion, str):
+            result = util.sregion_to_footprint(sregion)
+            # sregion_to_footprint can return either a single footprint or a list of footprints
+            # depending on if the string contained multiple polygons.
+            if isinstance(result, list):
+                footprints.extend(result)
+            else:
+                footprints.append(result)
+        else:
+            footprints.append(sregion)
 
     # convert from world to pixel coordinates
-    footprints_flat = footprints.reshape(-1, 2)
+    # footprints may have different numbers of vertices, so we flatten, transform, then re-split
+    sizes = [len(fp) for fp in footprints]
+    footprints_flat = np.vstack(footprints)
     world2det = det2world.inverse
     x, y = world2det(footprints_flat[:, 0], footprints_flat[:, 1])
-    footprints_pixels = np.vstack([x, y]).T.reshape(footprints.shape)
+    pixels_flat = np.vstack([x, y]).T
+    footprints_pixels = []
+    idx = 0
+    for size in sizes:
+        footprints_pixels.append(pixels_flat[idx : idx + size])
+        idx += size
 
     # combine footprints with Shapely
     combined_polygons = combine_footprints(footprints_pixels)

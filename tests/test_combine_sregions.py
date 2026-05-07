@@ -412,6 +412,43 @@ def test_sregion_no_overlap(complex_footprint_set, det2world):
     assert str(excinfo.value) == "No overlap between input s_regions and intersection footprint"
 
 
+def test_sregion_variable_vertex_counts(det2world):
+    """Test that combine_sregions handles S_REGIONs with different numbers of vertices."""
+    triangle = np.array([[0.0, 0.0], [2.0, 0.0], [1.0, 2.0]])
+    pentagon = np.array([[0.5, 0.5], [1.5, 0.5], [2.0, 1.5], [1.0, 2.5], [0.0, 1.5]])
+
+    sregion_list = [_polygons_to_sregion([triangle]), _polygons_to_sregion([pentagon])]
+    combined = combine_sregions(sregion_list, det2world)
+
+    # Both polygons overlap so there should be exactly one combined region
+    assert combined.count("POLYGON ICRS") == 1
+
+
+def test_sregion_multi_polygon_input(det2world):
+    """
+    Test that combine_sregions handles an input S_REGION that contains multiple polygons.
+
+    One input is a multi-polygon S_REGION with two non-overlapping squares.
+    The other input is a single-polygon S_REGION that overlaps with only one of them.
+    The result should have two regions: the union of the overlapping pair, and the untouched square.
+    """
+    square_a = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]])
+    square_b = np.array([[3.0, 3.0], [4.0, 3.0], [4.0, 4.0], [3.0, 4.0]])
+    multi_polygon_sregion = _polygons_to_sregion([square_a, square_b])
+
+    overlapping = np.array([[0.5, 0.5], [1.5, 0.5], [1.5, 1.5], [0.5, 1.5]])
+    single_sregion = _polygons_to_sregion([overlapping])
+
+    combined = combine_sregions([multi_polygon_sregion, single_sregion], det2world)
+
+    # Two output regions: union of square_a + overlapping (8 vertices), and square_b (4 vertices)
+    assert combined.count("POLYGON ICRS") == 2
+    sregions_out = [s.strip() for s in combined.split("POLYGON ICRS")][1:]
+    footprints_out = [sregion_to_footprint(s) for s in sregions_out]
+    region_shapes = sorted([fp.shape for fp in footprints_out])
+    assert region_shapes == [(4, 2), (8, 2)]
+
+
 def test_duplicate_tolerance():
     """
     Test duplicated point tolerances.

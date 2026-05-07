@@ -319,9 +319,12 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
     return [pc1_1, pc1_2, pc2_1, pc2_2]
 
 
-def sregion_to_footprint(s_region: str) -> np.ndarray:
+def sregion_to_footprint(s_region: str) -> np.ndarray | list[np.ndarray]:
     """
-    Parse the s_region string and return the footprint as an Nx2 array.
+    Parse the s_region string and return the footprint as a list of Nx2 arrays.
+
+    This needs to be a list to account for the case that the input string contains
+    multiple polygons.
 
     Parameters
     ----------
@@ -330,11 +333,21 @@ def sregion_to_footprint(s_region: str) -> np.ndarray:
 
     Returns
     -------
-    footprint : np.ndarray
-        A 2D array of the footprint of the region, shape (N, 2)
+    footprint : np.ndarray or list[np.ndarray]
+        If the S_REGION contains a single polygon, returns a 2D array of shape (N, 2).
+        If the S_REGION contains multiple polygons, returns a list of such arrays.
     """
-    no_prefix = re.sub(r"[a-zA-Z]", "", s_region)
-    return np.array(no_prefix.split(), dtype=float).reshape(-1, 2)
+    polygons = re.split(r"POLYGON\s+ICRS\s*", s_region, flags=re.IGNORECASE)
+    footprints = []
+    for polygon in polygons:
+        polygon = polygon.strip()
+        if not polygon:
+            continue
+        coords = np.array(polygon.split(), dtype=float).reshape(-1, 2)
+        footprints.append(coords)
+    if len(footprints) == 1:
+        return footprints[0]
+    return footprints
 
 
 def _compute_bounding_box_with_offsets(
@@ -492,9 +505,17 @@ def wcs_from_sregions(
         The WCS object corresponding to the combined input footprints.
 
     """
-    footprints = [
-        sregion_to_footprint(s_region) if isinstance(s_region, str) else s_region for s_region in footprints
-    ]
+    parsed_footprints = []
+    for s_region in footprints:
+        if isinstance(s_region, str):
+            result = sregion_to_footprint(s_region)
+            if isinstance(result, list):
+                parsed_footprints.extend(result)
+            else:
+                parsed_footprints.append(result)
+        else:
+            parsed_footprints.append(s_region)
+    footprints = parsed_footprints
     fiducial = _calculate_fiducial(footprints, crval=crval)
     crval = fiducial
     v3yangle = np.deg2rad(ref_wcsinfo["v3yangle"])

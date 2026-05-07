@@ -176,6 +176,26 @@ def test_sregion_to_footprint():
     assert np.allclose(footprint, expected_footprint)
 
 
+def test_sregion_to_footprint_multi():
+    """Test that a multi-polygon S_REGION returns a list of ndarrays."""
+    s_region = (
+        "POLYGON ICRS  0.000000000 0.000000000 1.000000000 0.000000000 "
+        "1.000000000 1.000000000 0.000000000 1.000000000  "
+        "POLYGON ICRS  2.000000000 2.000000000 3.000000000 2.000000000 "
+        "3.000000000 3.000000000 2.000000000 3.000000000"
+    )
+    result = sregion_to_footprint(s_region)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert all(isinstance(r, np.ndarray) for r in result)
+    assert result[0].shape == (4, 2)
+    assert result[1].shape == (4, 2)
+    expected0 = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]])
+    expected1 = np.array([[2.0, 2.0], [3.0, 2.0], [3.0, 3.0], [2.0, 3.0]])
+    np.testing.assert_array_equal(result[0], expected0)
+    np.testing.assert_array_equal(result[1], expected1)
+
+
 def test_validate_wcs_list():
     shape = (3, 3)  # in pixels
     fiducial_world = (10, 0)  # in deg
