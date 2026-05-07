@@ -1,0 +1,1 @@
+Allow combine_sregions to accept input s_regions with multiple polygons within them, as well as input s_regions with different numbers of vertices
