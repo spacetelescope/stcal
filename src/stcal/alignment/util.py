@@ -323,9 +323,6 @@ def sregion_to_footprint(s_region: str) -> np.ndarray | list[np.ndarray]:
     """
     Parse the s_region string and return the footprint as a list of Nx2 arrays.
 
-    This needs to be a list to account for the case that the input string contains
-    multiple polygons.
-
     Parameters
     ----------
     s_region : str
@@ -334,8 +331,8 @@ def sregion_to_footprint(s_region: str) -> np.ndarray | list[np.ndarray]:
     Returns
     -------
     footprint : np.ndarray or list[np.ndarray]
-        If the S_REGION contains a single polygon, returns a 2D array of shape (N, 2).
-        If the S_REGION contains multiple polygons, returns a list of such arrays.
+        If the input contains a single polygon, returns a 2D array of shape (N, 2).
+        If the input contains multiple polygons, returns a list of such arrays.
     """
     polygons = re.split(r"POLYGON\s+ICRS\s*", s_region, flags=re.IGNORECASE)
     footprints = []

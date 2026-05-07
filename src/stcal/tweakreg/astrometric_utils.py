@@ -29,7 +29,6 @@ def create_astrometric_catalog(
     table_format="ascii.ecsv",
     num_sources=None,
     timeout=TIMEOUT,
-    keep_all_columns=False,
 ):
     """Create an astrometric catalog that covers the inputs' field-of-view.
 
@@ -66,9 +65,6 @@ def create_astrometric_catalog(
     timeout : float
         Maximum time to wait (in seconds) for the catalog service to respond.
 
-    keep_all_columns : bool
-        If True, keep all columns returned by the catalog. If False, only keep
-        columns necessary for tweakreg step.
 
 
     Notes
@@ -85,15 +81,14 @@ def create_astrometric_catalog(
     radius, fiducial = compute_radius(wcs)
 
     # perform query for this field-of-view
-    ref_table = get_catalog(
+    ref_dict = get_catalog(
         fiducial[0], fiducial[1], epoch=epoch, search_radius=radius, catalog=catalog, timeout=timeout
     )
-    if len(ref_table) == 0:
-        return ref_table
+    if len(ref_dict) == 0:
+        return ref_dict
 
-    if not keep_all_columns:
-        colnames = ("ra", "dec", "mag", "objID", "epoch")
-        ref_table = ref_table[colnames]
+    colnames = ("ra", "dec", "mag", "objID", "epoch")
+    ref_table = ref_dict[colnames]
 
     # Add catalog name as meta data
     ref_table.meta["catalog"] = catalog
