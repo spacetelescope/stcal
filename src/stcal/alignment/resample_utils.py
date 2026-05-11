@@ -41,13 +41,7 @@ def combine_sregions(sregion_list, det2world, intersect_footprint=None):
     footprints = []
     for sregion in sregion_list:
         if isinstance(sregion, str):
-            result = util.sregion_to_footprint(sregion)
-            # sregion_to_footprint can return either a single footprint or a list of footprints
-            # depending on if the string contained multiple polygons.
-            if isinstance(result, list):
-                footprints.extend(result)
-            else:
-                footprints.append(result)
+            footprints.extend(util.sregion_to_footprint(sregion))
         else:
             footprints.append(sregion)
 

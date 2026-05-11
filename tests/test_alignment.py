@@ -172,8 +172,10 @@ def test_sregion_to_footprint():
 
     footprint = sregion_to_footprint(s_region)
 
-    assert footprint.shape == (4, 2)
-    assert np.allclose(footprint, expected_footprint)
+    assert isinstance(footprint, list)
+    assert len(footprint) == 1
+    assert footprint[0].shape == (4, 2)
+    assert np.allclose(footprint[0], expected_footprint)
 
 
 def test_sregion_to_footprint_multi():

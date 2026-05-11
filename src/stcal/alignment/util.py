@@ -319,7 +319,7 @@ def calc_rotation_matrix(roll_ref: float, v3i_yangle: float, vparity: int = 1) -
     return [pc1_1, pc1_2, pc2_1, pc2_2]
 
 
-def sregion_to_footprint(s_region: str) -> np.ndarray | list[np.ndarray]:
+def sregion_to_footprint(s_region: str) -> list[np.ndarray]:
     """
     Parse the s_region string and return the footprint as a list of Nx2 arrays.
 
@@ -330,9 +330,9 @@ def sregion_to_footprint(s_region: str) -> np.ndarray | list[np.ndarray]:
 
     Returns
     -------
-    footprint : np.ndarray or list[np.ndarray]
-        If the input contains a single polygon, returns a 2D array of shape (N, 2).
-        If the input contains multiple polygons, returns a list of such arrays.
+    footprints : list[np.ndarray]
+        A list of 2D arrays of shape (N, 2), one per polygon in the S_REGION string.
+        A single-polygon S_REGION returns a list of length one.
     """
     polygons = re.split(r"POLYGON\s+ICRS\s*", s_region, flags=re.IGNORECASE)
     footprints = []
@@ -342,8 +342,6 @@ def sregion_to_footprint(s_region: str) -> np.ndarray | list[np.ndarray]:
             continue
         coords = np.array(polygon.split(), dtype=float).reshape(-1, 2)
         footprints.append(coords)
-    if len(footprints) == 1:
-        return footprints[0]
     return footprints
 
 
@@ -505,11 +503,7 @@ def wcs_from_sregions(
     parsed_footprints = []
     for s_region in footprints:
         if isinstance(s_region, str):
-            result = sregion_to_footprint(s_region)
-            if isinstance(result, list):
-                parsed_footprints.extend(result)
-            else:
-                parsed_footprints.append(result)
+            parsed_footprints.extend(sregion_to_footprint(s_region))
         else:
             parsed_footprints.append(s_region)
     footprints = parsed_footprints

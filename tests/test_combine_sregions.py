@@ -352,7 +352,7 @@ def test_sregion_complex(complex_footprint_set, det2world):
     assert combined_sregion.count("POLYGON ICRS") == 3
     assert combined_sregion.startswith("POLYGON ICRS")
     sregions_out = [s.strip() for s in combined_sregion.split("POLYGON ICRS")][1:]
-    footprints_out = [sregion_to_footprint(sregion) for sregion in sregions_out]
+    footprints_out = [sregion_to_footprint(sregion)[0] for sregion in sregions_out]
 
     # Too tedious to check exact coordinates, so just check the shapes of the regions.
     region_shapes = sorted([region.shape for region in footprints_out])
@@ -444,7 +444,7 @@ def test_sregion_multi_polygon_input(det2world):
     # Two output regions: union of square_a + overlapping (8 vertices), and square_b (4 vertices)
     assert combined.count("POLYGON ICRS") == 2
     sregions_out = [s.strip() for s in combined.split("POLYGON ICRS")][1:]
-    footprints_out = [sregion_to_footprint(s) for s in sregions_out]
+    footprints_out = [sregion_to_footprint(s)[0] for s in sregions_out]
     region_shapes = sorted([fp.shape for fp in footprints_out])
     assert region_shapes == [(4, 2), (8, 2)]
 
