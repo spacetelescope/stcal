@@ -1,0 +1,1 @@
+Change API of alignment.util.sregion_to_footprint to always return a list of footprints, covering the case where input S_REGION string contains multiple polygons.
