@@ -95,6 +95,8 @@ def test_resample_mostly_defaults(weight_type):
 
     assert resample.output_model["pointings"] == nmodels
     assert resample.output_model["exposure_time"] == ttime
+    assert resample.output_model["level"] == None
+    assert resample.output_model["subtracted"] is False
 
     # next assert assumes constant IVM
     assert np.allclose(
