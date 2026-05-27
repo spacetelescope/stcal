@@ -6,11 +6,15 @@ on the sky as well as perform useful operations on these outlines such as
 computing intersections and statistics in the overlap regions.
 """
 
+import logging
+
 import numpy as np
 from gwcs import region
-from spherical_geometry.polygon import SphericalPolygon
+from spherical_geometry.polygon import MalformedPolygonError, SphericalPolygon
 
 __all__ = ["SkyImage", "SkyGroup"]
+
+log = logging.getLogger(__name__)
 
 
 def _calc_bounding_polygon(image, wcs_fwd, stepsize=None):
@@ -214,8 +218,24 @@ class SkyImage:
         # https://github.com/spacetelescope/spherical_geometry/issues/168
         if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
             intersect_poly = self._polygon.copy()
+            # DEBUG: if the intersection were to fail, we want to catch it and
+            # log it in order to understand how often it happens and under what
+            # circumstances:
+            try:
+                intersect_poly.intersection(other)
+            except MalformedPolygonError as e:
+                log.debug(
+                    "Encountered MalformedPolygonError while computing the "
+                    "intersection between images with sky_id '%s' and '%s' "
+                    "in SkyImage.intersection: %s",
+                    self.sky_id,
+                    skyimage.sky_id,
+                    str(e),
+                )
+                pass
         else:
             intersect_poly = self._polygon.intersection(other)
+
         return intersect_poly
 
     def calc_sky(self, overlap=None, delta=True):
