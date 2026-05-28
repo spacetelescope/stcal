@@ -1,0 +1,2 @@
+Use explicit read times for likelihood fits with JWST data, if available in the input model.
+This is intended to support new multistripe modes with repeated in-frame reads of the same detector area.
