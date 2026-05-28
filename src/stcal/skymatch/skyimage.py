@@ -232,7 +232,6 @@ class SkyImage:
                     skyimage.sky_id,
                     str(e),
                 )
-                pass
         else:
             intersect_poly = self._polygon.intersection(other)
 
