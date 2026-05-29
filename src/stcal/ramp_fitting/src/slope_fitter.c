@@ -2825,8 +2825,6 @@ ramp_fit_pixel(
     }
 
     if (!isnan(pr->rate.slope)) {
-        // XXX JP-4318: figure out what to do here
-        // pr->rate.slope = pr->rate.slope / pr->invvar_e_sum;
         pr->rate.slope = pr->rate.slope * pr->rate.var_rnoise;;
     }
 
@@ -3054,7 +3052,6 @@ ramp_fit_pixel_integration_fit_slope(
         }
 
         invvar_e += (1. / current->var_e);
-        // XXX JP-4318
         slope_i_num += (current->slope / current->var_r);
     } /* for loop */
 
@@ -3080,7 +3077,6 @@ ramp_fit_pixel_integration_fit_slope(
     } else {
         var_err = 1. / invvar_e;
 
-        // XXX JP-4318: multiply by var_r
         pr->rateints[integ].slope = slope_i_num * pr->rateints[integ].var_rnoise;
         if (var_err > LARGE_VARIANCE_THRESHOLD) {
             pr->rateints[integ].var_err = 0.;
@@ -3097,7 +3093,6 @@ ramp_fit_pixel_integration_fit_slope(
     }
     pr->rate.var_rnoise += invvar_r;
     pr->invvar_e_sum += invvar_e;
-    // XXX JP-4318: figure out what to do here
     pr->rate.slope += slope_i_num; // 
 
     return ret;
@@ -3192,7 +3187,6 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
-        // XXX JP-4318: should tmp = 1. / seg->var_r;?
         tmp = 1. / seg->var_e;
         seg->weight = tmp * tmp;
     }
@@ -3277,7 +3271,6 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     seg->var_r = segment_rnoise_len2(rd, pr);
 
     /* Segment total variance */
-    // seg->var_e = 2. * pr->rnoise * pr->rnoise;  /* XXX Is this right? */
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
@@ -3287,7 +3280,6 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
         seg->sigyint = seg->sigslope;
 
         /* WEIGHTS */
-        // XXX JP-4318: remove seg->var_r?
         tmp = (seg->var_p + seg->var_r);
         wt = 1. / tmp;
         wt *= wt;
@@ -3446,7 +3438,6 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
-        // XXX JP-4318: should seg->weight = 1. / seg->var_r;
         seg->weight = 1. / seg->var_e;
         seg->weight *= seg->weight;
     }
