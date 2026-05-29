@@ -247,7 +247,12 @@ noise is:
 The slope for an integration depends on the slope and the combined variance of each segment's slope:
 
 .. math::
-   slope_{i} = \frac{ \sum_{s}{ \frac{slope_{s}} {var^C_{s}}}} { \sum_{s}{ \frac{1} {var^C_{s}}}}
+   slope_{i} = \frac{ \sum_{s}{ \frac{slope_{s}} {var^R_{s}}}} { \sum_{s}{ \frac{1} {var^R_{s}}}}
+
+This is equivalent to:
+
+.. math::
+   slope_{i} = (\sum_{s}{ \frac{slope_{s}} {var^R_{s}}}) var^R_{i}
 
 Exposure-level computations
 +++++++++++++++++++++++++++
@@ -273,7 +278,13 @@ The overall slope depends on the slope and the combined variance of the slope of
 segments, so is a sum over integration values computed from the segments:
 
 .. math::
-    slope_{o} = \frac{ \sum_{i}{ \frac{slope_{i}} {var^C_{i}}}} { \sum_{i}{ \frac{1} {var^C_{i}}}}
+    slope_{o} = \frac{ \sum_{i}\sum_s{ \frac{slope_{i,s}} {var^R_{i,s}}}} { \sum_{i}{ \frac{1} {var^R_{i}}}}
+
+where the subscript :math:`i, s` means the segment :math:`s` in integration :math:`i`. This is above
+equation is equivalent to:
+
+.. math::
+    slope_{o} = (\sum_{i}\sum_s{ \frac{slope_{i,s}} {var^R_{i,s}}}) var^R_{o}
 
 
 .. _ramp_error_propagation:
