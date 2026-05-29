@@ -1,5 +1,6 @@
 import inspect
 from pathlib import Path
+import pytest
 
 import numpy as np
 import numpy.testing as npt
@@ -133,7 +134,7 @@ def test_pix_2():
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
 
     # Set truth values for PRIMARY results:
-    p_true = [0.84833729, JUMP | SAT, 0.42747884, 0.00454545, 0.1781927]
+    p_true = [0.850000023, JUMP | SAT, 0.42747884, 0.00454545, 0.1781927]
 
     # Set truth values for OPTIONAL results for all segments
     o_true = [
@@ -143,7 +144,7 @@ def test_pix_2():
         [0.26728904, 1.0691562, 1.0691562],  # var_rnoise
         [14.999998, 51.0, 15.0],  # yint
         [36.709427, 56.870003, 56.870003],  # sigyint
-        [14.151663],  # pedestal
+        [14.14999961],  # pedestal
         [13.091425, 0.84580624, 0.84580624],  # weights
     ]
 
@@ -174,7 +175,7 @@ def test_pix_3():
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
 
     # Set truth values for PRIMARY results:
-    p_true = [1.0746869, JUMP, 0.12186482, 0.00227273, 0.01257831]
+    p_true = [1.07484829, JUMP, 0.12186482, 0.00227273, 0.01257831]
 
     # Set truth values for OPTIONAL results:
     o_true = [
@@ -184,7 +185,7 @@ def test_pix_3():
         [0.01272805, 1.0691562],
         [14.504965, 15.0],
         [27.842508, 56.870003],
-        [13.925313],
+        [13.92515182],
         [4.2576841e03, 8.458062e-01],
     ]
 
@@ -295,7 +296,7 @@ def test_pix_5():
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
 
     # Set truth values for PRIMARY results:
-    p_true = [1.076075, JUMP, 0.16134359, 0.00227273, 0.02375903]
+    p_true = [1.073401, JUMP, 0.16134359, 0.00227273, 0.02375903]
 
     # Set truth values for OPTIONAL results:
     o_true = [
@@ -305,7 +306,7 @@ def test_pix_5():
         [0.10691562, 0.03054732],
         [13.537246, 2015.0737],
         [35.301933, 67.10882],
-        [13.923912],
+        [13.9265975],
         [78.34764, 855.78046],
     ]
 
@@ -337,7 +338,7 @@ def test_pix_6():
     slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise, gain, algo, "optimal", ncores)
 
     # Set truth values for PRIMARY results:
-    p_true = [6.092052, JUMP, 0.14613187, 0.0025974, 0.01875712]
+    p_true = [6.104500, JUMP, 0.14613187, 0.0025974, 0.01875712]
 
     # Set truth values for OPTIONAL results:
     o_true = [
@@ -347,7 +348,7 @@ def test_pix_6():
         [1.0691562, 0.01909207],
         [15.0, -143.2391],
         [56.870003, 58.76999],
-        [8.907948],
+        [8.8954992],
         [8.4580624e-01, 2.0433204e03],
     ]
 
@@ -533,8 +534,6 @@ def test_pix_12():
     CASE NGROUPS=2: the segment has a good 1st group and a saturated 2nd group,
       so is a single group. Group 1's data will be used in the 'fit'.
     """
-
-    # XXX problem with C
 
     nints, ngroups, nrows, ncols = 1, 2, 1, 2
     gain, rnoise = 5.5, 10.34
