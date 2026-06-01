@@ -2825,7 +2825,7 @@ ramp_fit_pixel(
     }
 
     if (!isnan(pr->rate.slope)) {
-        pr->rate.slope = pr->rate.slope * pr->rate.var_rnoise;;
+        pr->rate.slope = pr->rate.slope * pr->rate.var_rnoise;; // JP-4318
     }
 
     // DBG_RATE_INFO;  /* XXX */
@@ -3052,7 +3052,7 @@ ramp_fit_pixel_integration_fit_slope(
         }
 
         invvar_e += (1. / current->var_e);
-        slope_i_num += (current->slope / current->var_r);
+        slope_i_num += (current->slope / current->var_r); // JP-4318
     } /* for loop */
 
     /* Get rateints computations */
@@ -3077,7 +3077,7 @@ ramp_fit_pixel_integration_fit_slope(
     } else {
         var_err = 1. / invvar_e;
 
-        pr->rateints[integ].slope = slope_i_num * pr->rateints[integ].var_rnoise;
+        pr->rateints[integ].slope = slope_i_num * pr->rateints[integ].var_rnoise; // JP-4318
         if (var_err > LARGE_VARIANCE_THRESHOLD) {
             pr->rateints[integ].var_err = 0.;
         } else {
@@ -3093,7 +3093,7 @@ ramp_fit_pixel_integration_fit_slope(
     }
     pr->rate.var_rnoise += invvar_r;
     pr->invvar_e_sum += invvar_e;
-    pr->rate.slope += slope_i_num; // 
+    pr->rate.slope += slope_i_num; // JP-4318
 
     return ret;
 }
