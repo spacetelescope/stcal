@@ -2727,12 +2727,12 @@ py_ramp_data_get_int(
         dbg_ols_print("Rate var_r: %f\n\n", pr->rate.var_rnoise);                          \
     } while (0)
 
-#define DBG_MEDIAN_RATE                                                                    \
-    do {                                                                                   \
-        print_delim();                                                                     \
-        dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);                             \
-        dbg_ols_print("Median Rate = %.10f\n", pr->median_rate);                           \
-        print_delim();                                                                     \
+#define DBG_MEDIAN_RATE                                          \
+    do {                                                         \
+        print_delim();                                           \
+        dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);   \
+        dbg_ols_print("Median Rate = %.10f\n", pr->median_rate); \
+        print_delim();                                           \
     } while (0)
 
 /*
@@ -2825,7 +2825,8 @@ ramp_fit_pixel(
     }
 
     if (!isnan(pr->rate.slope)) {
-        pr->rate.slope = pr->rate.slope * pr->rate.var_rnoise;; // JP-4318
+        pr->rate.slope = pr->rate.slope * pr->rate.var_rnoise;
+        ; // JP-4318
     }
 
     // DBG_RATE_INFO;  /* XXX */
