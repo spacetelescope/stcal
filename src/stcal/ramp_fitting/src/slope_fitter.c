@@ -3189,7 +3189,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
 
     if (rd->save_opt) {
         tmp = 1. / seg->var_r;
-        seg->weight = tmp * tmp;
+        seg->weight = tmp;
     }
 
     return 0;
