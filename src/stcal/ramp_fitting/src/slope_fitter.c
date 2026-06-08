@@ -3188,7 +3188,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
-        tmp = 1. / seg->var_e;
+        tmp = 1. / seg->var_r;
         seg->weight = tmp * tmp;
     }
 
@@ -3281,9 +3281,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
         seg->sigyint = seg->sigslope;
 
         /* WEIGHTS */
-        tmp = (seg->var_p + seg->var_r);
+        tmp = seg->var_r;
         wt = 1. / tmp;
-        wt *= wt;
         seg->weight = wt;
     }
 
@@ -3439,8 +3438,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
-        seg->weight = 1. / seg->var_e;
-        seg->weight *= seg->weight;
+        seg->weight = 1. / seg->var_r;
     }
 }
 

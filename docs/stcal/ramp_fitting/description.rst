@@ -280,7 +280,7 @@ segments, so is a sum over integration values computed from the segments:
 .. math::
     slope_{o} = \frac{ \sum_{i}\sum_s{ \frac{slope_{i,s}} {var^R_{i,s}}}} { \sum_{i}{ \frac{1} {var^R_{i}}}}
 
-where the subscript :math:`i, s` means the segment :math:`s` in integration :math:`i`. This is above
+where the subscript :math:`i, s` means the segment :math:`s` in integration :math:`i`. The above
 equation is equivalent to:
 
 .. math::
