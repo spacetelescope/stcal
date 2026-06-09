@@ -277,7 +277,66 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
     return image_info, integ_info, opt_info
 
 
+# XXX smallest memory foot print
+def suppress_one_good_group_ramps_smallest(ramp_data):
+    """
+    Find one group ramps in each integration and suppresses them.
+
+    i.e. turns them into zero group ramps.
+
+    Parameter
+    ---------
+    ramp_data : RampData
+        input data model, assumed to be of type RampModel
+    """
+    nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
+    pix_dq = np.zeros((ngroups), dtype=ramp_data.groupdq.dtype)
+
+    dnu_flag = ramp_data.flags_do_not_use
+    pers_flag = np.uint8(ramp_data.flags_persistence)
+    npers = ~pers_flag
+
+    for integ in range(nints):
+        for row in range(nrows):
+            for col in range(ncols):
+                pix_dq[:] = 0
+                pix_dq[(ramp_data.groupdq[integ, :, row, col] & npers) == 0] = 1
+                ngood_groups = sum(pix_dq)
+                if ngood_groups == 1:
+                    ramp_data.groupdq[integ, :, row, col] |= dnu_flag
+
+
+# XXX small memory foot print
 def suppress_one_good_group_ramps(ramp_data):
+    """
+    Find one group ramps in each integration and suppresses them.
+
+    i.e. turns them into zero group ramps.
+
+    Parameter
+    ---------
+    ramp_data : RampData
+        input data model, assumed to be of type RampModel
+    """
+    nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
+    dnu_flag = ramp_data.flags_do_not_use
+    pers_flag = np.uint8(ramp_data.flags_persistence)
+    npers = ~pers_flag
+
+    good_groups = np.zeros((ngroups, nrows, ncols), dtype=ramp_data.groupdq.dtype)
+    for integ in range(nints):
+        dq = ramp_data.groupdq[integ, :, :, :]
+        good_groups[:, :, :] = 0
+        good_groups[(dq[:, :, :] & npers) == 0] = 1
+
+        wh_one = np.where(np.sum(good_groups, axis=0) == 1)
+        if len(wh_one[0]) > 0:
+            for idx in range(len(wh_one[0])):
+                dq[:, wh_one[0][idx], wh_one[1][idx]] |= dnu_flag
+
+
+# XXX Deprecated investigating smaller memory usage
+def suppress_one_good_group_ramps_dep(ramp_data):
     """
     Find one group ramps in each integration and suppresses them.
 
