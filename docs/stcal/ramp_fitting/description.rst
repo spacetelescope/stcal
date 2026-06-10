@@ -238,13 +238,14 @@ The variance of the slope for an integration due to Poisson noise is:
 .. math::
    var^P_{i} = \frac{1}{ \sum_{s} \frac{1}{ var^P_{s}}}
 
-The combined variance of the slope for an integration due to both Poisson and read
-noise is:
+The combined variance of the slope for an integration due to both
+Poisson and read noise is:
 
 .. math::
    var^C_{i} = \frac{1}{ \sum_{s} \frac{1}{ var^R_{s} + var^P_{s}}}
 
-The slope for an integration depends on the slope and the combined variance of each segment's slope:
+The slope for an integration depends on the slope and the read noise variance
+of each segment's slope:
 
 .. math::
    slope_{i} = \frac{ \sum_{s}{ \frac{slope_{s}} {var^R_{s}}}} { \sum_{s}{ \frac{1} {var^R_{s}}}}
@@ -272,10 +273,12 @@ The combined variance of the slope is the sum of the variances:
 .. math::
    var^C_{o} = var^R_{o} + var^P_{o}
 
-The square-root of the combined variance is stored in the ERR array of the output product.
+The square-root of the combined variance is stored in the ERR array of the
+output product.
 
-The overall slope depends on the slope and the combined variance of the slope of each integration's
-segments, so is a sum over integration values computed from the segments:
+The overall slope depends on the slope and the read noise variance of the
+slope of each integration's segments, so is a sum over integration values
+computed from the segments:
 
 .. math::
     slope_{o} = \frac{ \sum_{i}\sum_s{ \frac{slope_{i,s}} {var^R_{i,s}}}} { \sum_{i}{ \frac{1} {var^R_{i}}}}

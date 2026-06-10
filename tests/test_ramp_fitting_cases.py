@@ -68,7 +68,7 @@ def test_pix_0():
 
     # Set truth values for OPTIONAL results:
     # [slope, sigslope, var_poisson, var_rnoise, yint, sigyint, ped, weights]
-    o_true = [1.0117551, 4.874572, 0.0020202, 0.00647973, 15.911023, 27.789335, 13.988245, 13841.038]
+    o_true = [1.0117551, 4.874572, 0.0020202, 0.00647973, 15.911023, 27.789335, 13.988245, 154.32735]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -105,7 +105,7 @@ def test_pix_1():
     p_true = [1.8999999, JUMP | SAT, 1.05057204, 0.03454545, 1.0691562]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.9, 56.870003, 0.03454545, 1.0691562, -3.0, 56.870003, 13.1, 0.82091206]
+    o_true = [1.9, 56.870003, 0.03454545, 1.0691562, -3.0, 56.870003, 13.1, 0.9353173]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -144,7 +144,7 @@ def test_pix_2():
         [14.999998, 51.0, 15.0],  # yint
         [36.709427, 56.870003, 56.870003],  # sigyint
         [14.14999961],  # pedestal
-        [13.091425, 0.84580624, 0.84580624],  # weights
+        [3.741269, 0.935317, 0.935317],  # weights
     ]
 
     assert_pri(p_true, slopes, 0)
@@ -185,7 +185,7 @@ def test_pix_3():
         [14.504965, 15.0],
         [27.842508, 56.870003],
         [13.92515182],
-        [4.2576841e03, 8.458062e-01],
+        [78.56665, 0.935317],
     ]
 
     assert_pri(p_true, slopes, 0)
@@ -217,7 +217,7 @@ def test_pix_4():
     p_true = [1.5, SAT, 1.047105, 0.02727273, 1.0691562]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.5, 0.0, 0.02727273, 1.0691562, 0.0, 0.0, 13.5, 0.8318386]
+    o_true = [1.5, 0.0, 0.02727273, 1.0691562, 0.0, 0.0, 13.5, 0.935317]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -306,7 +306,7 @@ def test_pix_5():
         [13.537246, 2015.0737],
         [35.301933, 67.10882],
         [13.9265975],
-        [78.34764, 855.78046],
+        [9.353172, 32.736103],
     ]
 
     assert_pri(p_true, slopes, 0)
@@ -348,7 +348,7 @@ def test_pix_6():
         [15.0, -143.2391],
         [56.870003, 58.76999],
         [8.8954992],
-        [8.4580624e-01, 2.0433204e03],
+        [0.935317, 52.377766],
     ]
 
     assert_pri(p_true, slopes, 0)
@@ -379,7 +379,7 @@ def test_pix_7():
     p_true = [1.0757396, JUMP, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.0757396, 6.450687, 0.0025974, 0.01272805, 14.504951, 27.842508, 13.92426, 4257.684]
+    o_true = [1.0757396, 6.450687, 0.0025974, 0.01272805, 14.504951, 27.842508, 13.92426, 78.56665]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -410,7 +410,7 @@ def test_pix_8():
     p_true = [0.98561335, JUMP | SAT, 0.1848883, 0.00363636, 0.03054732]
 
     # Set truth values for OPTIONAL results:
-    o_true = [0.98561335, 9.920554, 0.00363636, 0.03054732, 16.508228, 39.383667, 14.014386, 855.78046]
+    o_true = [0.98561335, 9.920554, 0.00363636, 0.03054732, 16.508228, 39.383667, 14.014386, 32.736103]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -450,7 +450,7 @@ def test_pix_9():
         [15.0, 20.119896, 15.0],
         [56.870003, 68.618195, 56.870003],
         [14.0],
-        [0.84580624, 297.23172, 0.84580624],
+        [0.935317, 18.706345, 0.935317],
     ]
 
     assert_pri(p_true, slopes, 0)
@@ -491,7 +491,7 @@ def test_pix_10():
         [15.0, 17.999956, 15.000029],
         [56.870003, 88.40799, 93.73906],
         [14.0],
-        [0.84580624, 13.091425, 297.23172],
+        [0.935317, 3.741269, 18.706345],
     ]
 
     assert_pri(p_true, slopes, 0)
@@ -522,7 +522,7 @@ def test_pix_11():
     p_true = [1.0, SAT, 1.042755, 0.01818182, 1.0691562]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.0, 56.870003, 0.01818182, 1.0691562, 15.0, 56.870003, 14.0, 0.84580624]
+    o_true = [1.0, 56.870003, 0.01818182, 1.0691562, 15.0, 56.870003, 14.0, 0.935317]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -560,7 +560,7 @@ def test_pix_12():
     # slope, sig_slope, var_p, var_r, yint, sig_yint, pedestal, weights
     # slope = group1 / deltatime = 15 / 10 = 1.5
     # sig_slope, yint, sig_yint, and pedestal are all zero, because only 1 good group
-    o_true = [1.5, 0.0, 0.027273, 1.069156, 0.0, 0.0, 13.5, 0.831839]
+    o_true = [1.5, 0.0, 0.027273, 1.069156, 0.0, 0.0, 13.5, 0.935317]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -606,7 +606,7 @@ def test_miri_0():
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 4257.684]
+    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 78.56665]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -638,7 +638,7 @@ def test_miri_1():
     p_true = [1.1996487, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.1996487, 6.450687, 0.0025974, 0.01272805, 126.110214, 27.842508, 123.800354, 4257.684]
+    o_true = [1.1996487, 6.450687, 0.0025974, 0.01272805, 126.110214, 27.842508, 123.800354, 78.56665]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -670,7 +670,7 @@ def test_miri_2():
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 4257.684]
+    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 78.56665]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
@@ -702,7 +702,7 @@ def test_miri_3():
     p_true = [1.025854, GOOD, 0.12379601, 0.0025974, 0.01272805]
 
     # Set truth values for OPTIONAL results:
-    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 4257.684]
+    o_true = [1.025854, 6.450687, 0.0025974, 0.01272805, 26.439266, 27.842508, 23.974146, 78.56665]
 
     assert_pri(p_true, slopes, 0)
     assert_opt(o_true, ols_opt, 0)
