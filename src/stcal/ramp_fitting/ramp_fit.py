@@ -98,8 +98,12 @@ def create_ramp_fit_class(model, algorithm, dqflags=None, suppress_one_group=Fal
     )
 
     ramp_data.algorithm = algorithm
-    if hasattr(model.meta.exposure, "read_pattern"):
-        ramp_data.read_pattern = [list(reads) for reads in model.meta.exposure.read_pattern]
+
+    # Set the read pattern from input read times if available
+    read_times = getattr(model.meta.exposure, "read_times", None)
+    if read_times is not None and len(read_times) > 0:
+        log.debug("Using explicit read times")
+        ramp_data.read_pattern = list(read_times)
 
     ramp_data.set_dqflags(dqflags)
     ramp_data.start_row = 0
