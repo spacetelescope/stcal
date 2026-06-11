@@ -9,9 +9,6 @@ STScI Calibration algorithms and tools.
 <img src="docs/_static/stsci_pri_combo_mark_white.png" width="300"/>
 
 > [!IMPORTANT]
-> STCAL requires Python 3.10 or above and a C compiler for dependencies.
-
-> [!IMPORTANT]
 > Linux and MacOS platforms are tested and supported. Windows is not currently supported.
 
 `STCAL` is intended to be used as a support package for calibration pipeline
