@@ -919,7 +919,7 @@ def test_zeroframe(algo):
     # Check slopes information
 
     if algo == DEFAULT_OLS:
-        check = np.array([[48.965397, 18.628912, 47.863224]])
+        check = np.array([[22.07871, 18.628912, 19.89315]])
     else:  # LIKELY
         check = np.array([[22.101093, 18.628912, 18.628912]])
     np.testing.assert_allclose(slopes["slope"], check, tol, tol)
@@ -1392,7 +1392,7 @@ def test_new_saturation(algo):
     # Check slopes information
 
     if algo == DEFAULT_OLS:
-        check = np.array([[2.795187, 2.795632, np.nan]])
+        check = np.array([[2.794969, 2.795479, np.nan]])
     else:  # LIKELY
         check = np.array([[2.794573, 2.793989, np.nan]])
     np.testing.assert_allclose(slopes["slope"], check, tol, tol)
@@ -1422,7 +1422,7 @@ def test_new_saturation(algo):
     # cdata, cdq, cvp, cvr, cerr = cube
 
     if algo == DEFAULT_OLS:
-        check = np.array([[[2.7949152, 2.7956316, np.nan]], [[2.7956493, np.nan, np.nan]]])
+        check = np.array([[[2.7949154, 2.795479, np.nan]], [[2.795479, np.nan, np.nan]]])
     else:  # LIKELY
         check = np.array([[[2.794889, 2.793989, np.nan]], [[2.793989, np.nan, np.nan]]])
     np.testing.assert_allclose(cube["slope"], check, tol, tol)

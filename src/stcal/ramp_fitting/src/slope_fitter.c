@@ -2727,6 +2727,14 @@ py_ramp_data_get_int(
         dbg_ols_print("Rate var_r: %f\n\n", pr->rate.var_rnoise);                          \
     } while (0)
 
+#define DBG_MEDIAN_RATE                                          \
+    do {                                                         \
+        print_delim();                                           \
+        dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);   \
+        dbg_ols_print("Median Rate = %.10f\n", pr->median_rate); \
+        print_delim();                                           \
+    } while (0)
+
 /*
  * Ramp fit a pixel ramp.
  * PIXEL RAMP
@@ -2746,14 +2754,8 @@ ramp_fit_pixel(
         ret = 1;
         goto END;
     }
-#if 0
-    if (rd->debug) {
-        print_delim();
-        dbg_ols_print("Pixel (%ld, %ld)\n", pr->row, pr->col);
-        dbg_ols_print("Median Rate = %.10f\n", pr->median_rate);
-        print_delim();
-    }
-#endif
+
+    // DBG_MEDIAN_RATE;
 
     /* Clean up any thing from the last pixel ramp */
     clean_segment_list(pr->nints, pr->segs);
@@ -2823,7 +2825,8 @@ ramp_fit_pixel(
     }
 
     if (!isnan(pr->rate.slope)) {
-        pr->rate.slope = pr->rate.slope / pr->invvar_e_sum;
+        pr->rate.slope = pr->rate.slope * pr->rate.var_rnoise;
+        ; // JP-4318
     }
 
     // DBG_RATE_INFO;  /* XXX */
@@ -3050,7 +3053,7 @@ ramp_fit_pixel_integration_fit_slope(
         }
 
         invvar_e += (1. / current->var_e);
-        slope_i_num += (current->slope / current->var_e);
+        slope_i_num += (current->slope / current->var_r); // JP-4318
     } /* for loop */
 
     /* Get rateints computations */
@@ -3075,7 +3078,7 @@ ramp_fit_pixel_integration_fit_slope(
     } else {
         var_err = 1. / invvar_e;
 
-        pr->rateints[integ].slope = slope_i_num * var_err;
+        pr->rateints[integ].slope = slope_i_num * pr->rateints[integ].var_rnoise; // JP-4318
         if (var_err > LARGE_VARIANCE_THRESHOLD) {
             pr->rateints[integ].var_err = 0.;
         } else {
@@ -3091,7 +3094,7 @@ ramp_fit_pixel_integration_fit_slope(
     }
     pr->rate.var_rnoise += invvar_r;
     pr->invvar_e_sum += invvar_e;
-    pr->rate.slope += slope_i_num;
+    pr->rate.slope += slope_i_num; // JP-4318
 
     return ret;
 }
@@ -3185,8 +3188,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
-        tmp = 1. / seg->var_e;
-        seg->weight = tmp * tmp;
+        tmp = 1. / seg->var_r;
+        seg->weight = tmp;
     }
 
     return 0;
@@ -3269,7 +3272,6 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
     seg->var_r = segment_rnoise_len2(rd, pr);
 
     /* Segment total variance */
-    // seg->var_e = 2. * pr->rnoise * pr->rnoise;  /* XXX Is this right? */
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
@@ -3279,9 +3281,8 @@ ramp_fit_pixel_integration_fit_slope_seg_len2(
         seg->sigyint = seg->sigslope;
 
         /* WEIGHTS */
-        tmp = (seg->var_p + seg->var_r);
+        tmp = seg->var_r;
         wt = 1. / tmp;
-        wt *= wt;
         seg->weight = wt;
     }
 
@@ -3437,8 +3438,7 @@ ramp_fit_pixel_integration_fit_slope_seg_default_weighted_seg(
     seg->var_e = seg->var_p + seg->var_r;
 
     if (rd->save_opt) {
-        seg->weight = 1. / seg->var_e;
-        seg->weight *= seg->weight;
+        seg->weight = 1. / seg->var_r;
     }
 }
 
