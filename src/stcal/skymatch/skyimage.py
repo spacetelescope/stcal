@@ -210,31 +210,25 @@ class SkyImage:
         """
         other = skyimage._polygon  # noqa: SLF001
 
-        pts1 = np.sort(list(self._polygon.points)[0], axis=0)
-        pts2 = np.sort(list(other.points)[0], axis=0)
-
         # work-around spherical geometry raising an exception
         # for some polygons that are nearly identical:
         # https://github.com/spacetelescope/spherical_geometry/issues/168
-        if np.allclose(pts1, pts2, rtol=0, atol=5e-9):
-            intersect_poly = self._polygon.copy()
-            # DEBUG: if the intersection were to fail, we want to catch it and
-            # log it in order to understand how often it happens and under what
-            # circumstances:
-            try:
-                intersect_poly.intersection(other)
-            except MalformedPolygonError as e:
-                log.debug(
-                    "Encountered MalformedPolygonError while computing the "
-                    "intersection between images with sky_id '%s' and '%s' "
-                    "in SkyImage.intersection: %s",
-                    self.sky_id,
-                    skyimage.sky_id,
-                    str(e),
-                )
-                pass
-        else:
+
+        # DEBUG: if the intersection were to fail, we want to catch it and
+        # log it in order to understand how often it happens and under what
+        # circumstances:
+        try:
             intersect_poly = self._polygon.intersection(other)
+        except MalformedPolygonError as e:
+            log.debug(
+                "Encountered MalformedPolygonError while computing the "
+                "intersection between images with sky_id '%s' and '%s' "
+                "in SkyImage.intersection: %s",
+                self.sky_id,
+                skyimage.sky_id,
+                str(e),
+            )
+            intersect_poly = self._polygon.copy()
 
         return intersect_poly
 
