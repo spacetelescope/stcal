@@ -187,7 +187,7 @@ def test_image_intersection_malformed_polygon_logged(caplog):
         stats,
     )
 
-    rng = np.random.default_rng(k)
+    rng = np.random.default_rng(42)
     dxs = rng.normal(0.0, sigma, 4)
     dys = rng.normal(0.0, sigma, 4)
 
