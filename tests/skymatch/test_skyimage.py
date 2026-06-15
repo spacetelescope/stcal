@@ -186,8 +186,9 @@ def test_image_intersection_malformed_polygon_logged(caplog):
         wcs1.invert,
         stats,
     )
-    dxs = np.random.normal(0.0, sigma, 4)
-    dys = np.random.normal(0.0, sigma, 4)
+    rng = np.random.default_rng(42)
+    dxs = rng.normal(0.0, sigma, 4)
+    dys = rng.normal(0.0, sigma, 4)
 
     x = np.array([-0.5, 1199.5, 1199.5, -0.5])
     y = np.array([-0.5, -0.5, 1199.5, 1199.5])
