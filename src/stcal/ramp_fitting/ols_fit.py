@@ -505,6 +505,7 @@ def slice_ramp_data(ramp_data, start_row, nrows):
     ramp_data_slice.flags_do_not_use = ramp_data.flags_do_not_use
     ramp_data_slice.flags_jump_det = ramp_data.flags_jump_det
     ramp_data_slice.flags_saturated = ramp_data.flags_saturated
+    ramp_data_slice.flags_persistence = ramp_data.flags_persistence
     ramp_data_slice.flags_no_gain_val = ramp_data.flags_no_gain_val
     ramp_data_slice.flags_unreliable_slope = ramp_data.flags_unreliable_slope
     ramp_data_slice.flags_chargeloss = ramp_data.flags_chargeloss
