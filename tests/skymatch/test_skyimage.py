@@ -173,11 +173,11 @@ def test_image_intersection_malformed_polygon_logged(caplog):
     y = np.array([-0.5, -0.5, 1199.5, 1199.5])
 
     poly1 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(x, y))
-    poly2 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(1000 + x, y))
+    poly2 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(3 + x, y))
     img1._polygon = poly1.union(poly2)
 
     # introduce a small shift between first and last image
-    sigma = 1.0e-10
+    sigma = 1.0e-11
 
     img3 = SkyImage(
         data,
@@ -186,7 +186,8 @@ def test_image_intersection_malformed_polygon_logged(caplog):
         wcs1.invert,
         stats,
     )
-    rng = np.random.default_rng(42)
+
+    rng = np.random.default_rng(k)
     dxs = rng.normal(0.0, sigma, 4)
     dys = rng.normal(0.0, sigma, 4)
 
