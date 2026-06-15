@@ -156,7 +156,7 @@ def test_image_intersection_malformed_polygon_logged(caplog):
     path = Path(__file__).parent.parent / DATADIR / "skymatch-wcs.asdf"
     with asdf.open(path, lazy_load=False) as asdf_file:
         wcs1 = asdf_file.tree["wcs"]
-        wcs1.insert_transform("detector", Shift(.5) & Shift(.5), after=True)
+        wcs1.insert_transform("detector", Shift(0.5) & Shift(0.5), after=True)
         wcs1.bounding_box = None
 
     stats = SkyStats(skystat="mean")
@@ -173,9 +173,7 @@ def test_image_intersection_malformed_polygon_logged(caplog):
     y = np.array([-0.5, -0.5, 1199.5, 1199.5])
 
     poly1 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(x, y))
-    poly2 = SphericalPolygon.from_lonlat(
-        *wcs1.pixel_to_world_values(1000 + x, y)
-    )
+    poly2 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(1000 + x, y))
     img1._polygon = poly1.union(poly2)
 
     # introduce a small shift between first and last image
@@ -194,9 +192,7 @@ def test_image_intersection_malformed_polygon_logged(caplog):
     x = np.array([-0.5, 1199.5, 1199.5, -0.5])
     y = np.array([-0.5, -0.5, 1199.5, 1199.5])
 
-    poly3 = SphericalPolygon.from_lonlat(
-        *wcs1.pixel_to_world_values(x + dxs, y + dys)
-    )
+    poly3 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(x + dxs, y + dys))
 
     img3._polygon = poly3
 
