@@ -288,29 +288,25 @@ def suppress_one_good_group_ramps(ramp_data):
     ramp_data : RampData
         input data model, assumed to be of type RampModel
     """
-    dq = ramp_data.groupdq
-    nints, ngroups, nrows, ncols = dq.shape
+    nints, ngroups, nrows, ncols = ramp_data.groupdq.shape
     dnu_flag = ramp_data.flags_do_not_use
+    pers_flag = np.uint8(ramp_data.flags_persistence)
+    npers = ~pers_flag
 
     for integ in range(nints):
-        # In the current integration find ramps with only one group.
-        intdq = dq[integ, :, :, :]
-        good_groups = np.zeros(intdq.shape, dtype=int)
-        good_groups[intdq == 0] = 1
-        ngood_groups = good_groups.sum(axis=0)
-        wh_one = np.where(ngood_groups == 1)
+        dq = ramp_data.groupdq[integ, :, :, :]
 
-        # Suppress the ramps with only one good group by flagging
-        # all groups in the ramp as DO_NOT_USE.
-        wh1_rows = wh_one[0]
-        wh1_cols = wh_one[1]
-        for n in range(len(wh1_rows)):
-            row = wh1_rows[n]
-            col = wh1_cols[n]
-            # Find ramps that have good 0th group, but the rest of the
-            # ramp flagged.
-            good_index = np.where(ramp_data.groupdq[integ, :, row, col] == 0)
-            if ramp_data.groupdq[integ, good_index, row, col] == 0:
-                ramp_data.groupdq[integ, :, row, col] = np.bitwise_or(
-                    ramp_data.groupdq[integ, :, row, col], dnu_flag
-                )
+        """
+        # The commented code is to make more readable what is in the one lines of
+        # the active code. For each integration ramp, the code finds the number of
+        # good groups in the ramp. Any ramp that has only one good ramp is suppressed.
+        good_groups = np.zeros((ngroups, nrows, ncols), dtype=ramp_data.groupdq.dtype)
+        good_groups[:, :, :] = 0
+        good_groups[(dq[:, :, :] & npers) == 0] = 1
+        wh_one = np.where(np.sum(good_groups, axis=0) == 1)
+        """
+        wh_one = np.where(np.sum((dq[:, :, :] & npers) == 0, axis=0) == 1)
+
+        if len(wh_one[0]) > 0:
+            for idx in range(len(wh_one[0])):
+                dq[:, wh_one[0][idx], wh_one[1][idx]] |= dnu_flag
