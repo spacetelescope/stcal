@@ -148,7 +148,7 @@ def test_skygroup_getitem(skygroup):
         assert skygroup[i] is skygroup._images[i]
 
 
-def test_image_intersection_malformed_polygon_logged(caplog, mocker):
+def test_image_intersection_malformed_polygon_logged(caplog, monkeypatch):
     size = (12, 12)
     data = np.empty((size[0], size[1]), dtype="f4")
     mask = np.ones_like(data, dtype=bool)
@@ -168,9 +168,12 @@ def test_image_intersection_malformed_polygon_logged(caplog, mocker):
         stats,
     )
 
-    mocker.patch(
+    def raise_malformed_polygon_error(*args, **kwargs):
+        raise MalformedPolygonError("A mocked MalformedPolygonError")
+
+    monkeypatch.setattr(
         "stcal.skymatch.skyimage.SphericalPolygon.intersection",
-        side_effect=MalformedPolygonError("A mocked MalformedPolygonError"),
+        raise_malformed_polygon_error,
     )
 
     with caplog.at_level("DEBUG"):
