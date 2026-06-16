@@ -168,21 +168,13 @@ def test_image_intersection_malformed_polygon_logged(caplog, mocker):
         stats,
     )
 
-    img2 = SkyImage(
-        data,
-        mask,
-        wcs1.__call__,
-        wcs1.invert,
-        stats,
-    )
-
     mocker.patch(
         "stcal.skymatch.skyimage.SphericalPolygon.intersection",
         side_effect=MalformedPolygonError("A mocked MalformedPolygonError"),
     )
 
     with caplog.at_level("DEBUG"):
-        img1.intersection(img2)
+        img1.intersection(img1)
 
     assert (
         "Encountered MalformedPolygonError while computing the intersection"
