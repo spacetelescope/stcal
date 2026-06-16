@@ -179,7 +179,4 @@ def test_image_intersection_malformed_polygon_logged(caplog, monkeypatch):
     with caplog.at_level("DEBUG"):
         img1.intersection(img1)
 
-    assert (
-        "Encountered MalformedPolygonError while computing the intersection"
-        in caplog.text
-    )
+    assert "Encountered MalformedPolygonError while computing the intersection" in caplog.text
