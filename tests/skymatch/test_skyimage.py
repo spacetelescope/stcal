@@ -6,7 +6,7 @@ import gwcs
 import numpy as np
 import pytest
 from astropy.modeling.models import Scale, Shift
-from spherical_geometry.polygon import SphericalPolygon
+from spherical_geometry.polygon import MalformedPolygonError
 
 from stcal.skymatch import SkyGroup, SkyImage, SkyStats
 
@@ -148,15 +148,14 @@ def test_skygroup_getitem(skygroup):
         assert skygroup[i] is skygroup._images[i]
 
 
-def test_image_intersection_malformed_polygon_logged(caplog):
-    size = (1200, 1200)
-    data = np.zeros((size[0], size[1]), dtype="f4")
+def test_image_intersection_malformed_polygon_logged(caplog, mocker):
+    size = (12, 12)
+    data = np.empty((size[0], size[1]), dtype="f4")
     mask = np.ones_like(data, dtype=bool)
 
-    path = Path(__file__).parent.parent / DATADIR / "skymatch-wcs.asdf"
+    path = Path(__file__).parent.parent / DATADIR / "nrcb1-wcs.asdf"
     with asdf.open(path, lazy_load=False) as asdf_file:
         wcs1 = asdf_file.tree["wcs"]
-        wcs1.insert_transform("detector", Shift(0.5) & Shift(0.5), after=True)
         wcs1.bounding_box = None
 
     stats = SkyStats(skystat="mean")
@@ -169,17 +168,7 @@ def test_image_intersection_malformed_polygon_logged(caplog):
         stats,
     )
 
-    x = np.array([-0.5, 1199.5, 1199.5, -0.5])
-    y = np.array([-0.5, -0.5, 1199.5, 1199.5])
-
-    poly1 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(x, y))
-    poly2 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(3 + x, y))
-    img1._polygon = poly1.union(poly2)
-
-    # introduce a small shift between first and last image
-    sigma = 1.0e-11
-
-    img3 = SkyImage(
+    img2 = SkyImage(
         data,
         mask,
         wcs1.__call__,
@@ -187,15 +176,15 @@ def test_image_intersection_malformed_polygon_logged(caplog):
         stats,
     )
 
-    rng = np.random.default_rng(42)
-    dxs = rng.normal(0.0, sigma, 4)
-    dys = rng.normal(0.0, sigma, 4)
-
-    poly3 = SphericalPolygon.from_lonlat(*wcs1.pixel_to_world_values(x + dxs, y + dys))
-
-    img3._polygon = poly3
+    mocker.patch(
+        "stcal.skymatch.skyimage.SphericalPolygon.intersection",
+        side_effect=MalformedPolygonError("A mocked MalformedPolygonError"),
+    )
 
     with caplog.at_level("DEBUG"):
-        img1.intersection(img3)
+        img1.intersection(img2)
 
-    assert "MalformedPolygonError" in caplog.text
+    assert (
+        "Encountered MalformedPolygonError while computing the intersection"
+        in caplog.text
+    )
