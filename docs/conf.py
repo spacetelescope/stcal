@@ -81,4 +81,5 @@ nitpick_ignore = [
     ("py:class", "stsci.imagestats.ImageStats"),  # intersphinx isn't working here
     ("py:class", "spherical_geometry.polygon.SphericalPolygon"),  # intersphinx isn't working here
     ("py:class", "numpy._typing.DTypeLike"),
+    ("py:class", "numpy._typing._dtype_like.DTypeLike"),
 ]
