@@ -6,8 +6,6 @@
 
 STScI Calibration algorithms and tools.
 
-<img src="docs/_static/stsci_pri_combo_mark_white.png" width="300"/>
-
 > [!IMPORTANT]
 > Linux and MacOS platforms are tested and supported. Windows is not currently supported.
 
