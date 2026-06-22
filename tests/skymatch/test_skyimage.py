@@ -1,13 +1,17 @@
 import copy
+from pathlib import Path
 
+import asdf
 import gwcs
 import numpy as np
 import pytest
 from astropy.modeling.models import Scale, Shift
+from spherical_geometry.polygon import MalformedPolygonError
 
 from stcal.skymatch import SkyGroup, SkyImage, SkyStats
 
 IMAGE_SIZE = (10, 10)
+DATADIR = "data"
 
 
 @pytest.fixture
@@ -142,3 +146,37 @@ def test_skygroup_iter(skygroup):
 def test_skygroup_getitem(skygroup):
     for i in range(len(skygroup)):
         assert skygroup[i] is skygroup._images[i]
+
+
+def test_image_intersection_malformed_polygon_logged(caplog, monkeypatch):
+    size = (12, 12)
+    data = np.empty((size[0], size[1]), dtype="f4")
+    mask = np.ones_like(data, dtype=bool)
+
+    path = Path(__file__).parent.parent / DATADIR / "nrcb1-wcs.asdf"
+    with asdf.open(path, lazy_load=False) as asdf_file:
+        wcs1 = asdf_file.tree["wcs"]
+        wcs1.bounding_box = None
+
+    stats = SkyStats(skystat="mean")
+
+    img1 = SkyImage(
+        data,
+        mask,
+        wcs1.__call__,
+        wcs1.invert,
+        stats,
+    )
+
+    def raise_malformed_polygon_error(*args, **kwargs):
+        raise MalformedPolygonError("A mocked MalformedPolygonError")
+
+    monkeypatch.setattr(
+        "stcal.skymatch.skyimage.SphericalPolygon.intersection",
+        raise_malformed_polygon_error,
+    )
+
+    with caplog.at_level("DEBUG"):
+        img1.intersection(img1)
+
+    assert "Encountered MalformedPolygonError while computing the intersection" in caplog.text
