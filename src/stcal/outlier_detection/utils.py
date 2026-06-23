@@ -292,7 +292,6 @@ def gwcs_blot(
         fillval=fillval,
         iscale=1.0,
         interp="linear",
-        sinscl=1.0,
     )
 
     return outsci
