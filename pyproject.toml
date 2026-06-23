@@ -217,8 +217,8 @@ skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 
 [tool.cibuildwheel]
-# Disable free-threading builds on all platforms
-skip = "cp3??t-*"
+build = "cp311-*"  # build for CPython 3.11 Stable API
+skip = ["cp3??t-*"]  # explicitly skip free-threaded builds
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
