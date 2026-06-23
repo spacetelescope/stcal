@@ -1,1 +1,0 @@
-Fix memory leak of orig_gdq.

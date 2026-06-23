@@ -1,1 +1,0 @@
-Changing the slope computation, removing the use of the Poisson variance as a part of the weight.

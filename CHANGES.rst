@@ -1,3 +1,31 @@
+1.19.0 (2026-06-23)
+===================
+
+ramp_fitting step
+-----------------
+
+- Updating ramp fitting to properly account for the new use of persistence
+  flagging. (`#538 <https://github.com/spacetelescope/stcal/issues/538>`_)
+- Fix memory leak of orig_gdq. (`#539
+  <https://github.com/spacetelescope/stcal/issues/539>`_)
+- Use explicit read times for likelihood fits with JWST data, if available in
+  the input model.
+  This is intended to support new multistripe modes with repeated in-frame
+  reads of the same detector area. (`#546
+  <https://github.com/spacetelescope/stcal/issues/546>`_)
+- Changing the slope computation, removing the use of the Poisson variance as a
+  part of the weight. (`#550
+  <https://github.com/spacetelescope/stcal/issues/550>`_)
+
+
+resample step
+-------------
+
+- Corrected the "level" and "subtracted" keys in the output model dictionary to
+  show correct values for the resampled image. (`#542
+  <https://github.com/spacetelescope/stcal/issues/542>`_)
+
+
 1.18.0 (2026-03-25)
 ===================
 
