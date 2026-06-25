@@ -1171,6 +1171,8 @@ class Resample:
             wsum = self._variance_info[varname]["wsum"]
             mask = (var >= 0) & np.isfinite(var) & (weight > 0)
             with warnings.catch_warnings():
+                # Multiplying the weights separately should avoid overflow in
+                # most situations. Catch the warning for extreme cases.
                 warnings.filterwarnings("ignore", "overflow encountered", RuntimeWarning)
                 wsum[mask] = np.nansum([wsum[mask], var[mask] * weight[mask] * weight[mask]], axis=0)
             self._variance_info[varname]["wt"][mask] += weight[mask]
@@ -1205,14 +1207,16 @@ class Resample:
                 scaling = 1.0
             else:
                 if is_imaging_wcs(self.output_wcs):
-                    scaling = self.pixel_scale_ratio**2
+                    scaling = 1.0 / self.pixel_scale_ratio**2
                 else:
-                    scaling = 1.0 / self.pixel_scale_ratio
+                    scaling = self.pixel_scale_ratio
 
             for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]["wsum"]
                 weight = self._variance_info[varname]["wt"]
-                output_model[varname] = (varwsum / (weight * weight * scaling)).astype(
+                # Divide weights separately instead of multiplying them together
+                # before division to avoid floating point overflow
+                output_model[varname] = (varwsum * scaling / weight / weight).astype(
                     dtype=self.output_array_types[varname]
                 )
             del self._variance_info
