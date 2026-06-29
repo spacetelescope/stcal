@@ -346,6 +346,15 @@ The LIKELY algorithm requires a minimum of four (4) NGROUPS.  If the LIKELY
 algorithm is selected for data with NGROUPS less than four, the ramp fitting
 algorithm is changed to OLS_C.
 
+The likelihood algorithm detects jumps internally and flags these in
+the input 4-D group DQ array in place, providing the caller access to
+the updated flags.  In practice this records the resultant-level
+``JUMP_DET`` flags, plus the extended ``SATURATED`` flags from
+snowball processing when it is enabled.  This only applies to the
+likelihood algorithm; OLS_C receives its jumps pre-flagged from the
+upstream jump step, so its input group DQ already carries this
+information.
+
 Each pixel is independently processed, but rather than operate on each
 group/resultant directly, the likelihood algorithm is based on differences of
 the groups/resultants :math:`d_i = r_i - r_{i-1}`.  The model used to determine
