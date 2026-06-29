@@ -1,4 +1,5 @@
 import math
+import warnings
 
 import numpy as np
 import pytest
@@ -326,3 +327,63 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
         wfout = np.nansum(out_wdata[ymin:ymax, xmin:xmax])
 
         assert np.allclose(wfin, wfout, rtol=1.0e-6, atol=0.0)
+
+
+def test_resample_ivm_weight_overflow():
+    crval = (150.0, 2.0)
+    crpix = (500.0, 500.0)
+    shape = (1000, 1000)
+    out_shape = (500, 500)
+    pscale_in = 0.1 / 3600  # Input pixel scale 0.1 arcsec
+    pscale_out = 0.2 / 3600  # Output pixel scale 0.2 arcsec
+
+    # Input flux density and error scaled to MJy
+    # This is a typical level for NIRSpec point sources, which will trigger
+    # floating point overflow if variances are not carefully handled.
+    sb_in = 1e-13
+    sb_err_in = 1e-14
+
+    output_model = make_output_model(
+        crpix=(250, 250),
+        crval=crval,
+        pscale=pscale_out,
+        shape=out_shape,
+    )
+
+    weight_type = "ivm"
+    compute_err = "from_var"
+    resample = Resample(
+        n_input_models=1,
+        output_wcs=output_model,
+        weight_type=weight_type,
+        compute_err=compute_err,
+    )
+
+    im = make_input_model(
+        shape=shape, crpix=tuple(i - 6 for i in crpix), crval=crval, pscale=pscale_in, group_id=1
+    )
+    im["data"][:, :] = sb_in
+    im["err"][:, :] = sb_err_in
+    im["var_poisson"][:, :] = 0
+    im["var_rnoise"][:, :] = sb_err_in**2
+    im["var_flat"][:, :] = 0
+    resample.add_model(im)
+
+    # No overflow warnings issued
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        resample.finalize()
+
+    odata = np.nanmedian(resample.output_model["data"])
+    oerr = np.nanmedian(resample.output_model["err"])
+    ovar = np.nanmedian(resample.output_model["var_rnoise"])
+
+    # Surface brightness should be unchanged with new pixel scale
+    assert np.allclose(odata, sb_in, atol=0, rtol=1e-6)
+
+    # Surface brightness error and variance should have scaled with pixel area.
+    # They are not all zero.
+    assert np.allclose(oerr, sb_err_in * (pscale_in / pscale_out), atol=0, rtol=1e-6)
+    assert not np.allclose(oerr, 0, atol=0, rtol=1e-6)
+    assert np.allclose(ovar, (sb_err_in * pscale_in / pscale_out) ** 2, atol=0, rtol=1e-6)
+    assert not np.allclose(ovar, 0, atol=0, rtol=1e-6)
