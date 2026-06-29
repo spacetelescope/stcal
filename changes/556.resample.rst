@@ -1,1 +1,1 @@
-Avoid floating point overflow causing exactly zero error and variance images with "ivm" weights for input data in MJy.
+Avoid floating point overflow causing zero-valued error and variance images with "ivm" weights for input data in MJy.
