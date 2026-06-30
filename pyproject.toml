@@ -217,8 +217,8 @@ skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 
 [tool.cibuildwheel]
-build = "cp311-*"  # build for CPython 3.11 Stable API
-skip = ["cp3??t-*"]  # explicitly skip free-threaded builds
+build = "cp311-*"                                                                                                                     # build for CPython 3.11 Stable API
+skip = ["cp3??t-*"]                                                                                                                   # explicitly skip free-threaded builds
 test-command = "python -c 'from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter'"
 
 [tool.cibuildwheel.macos]
