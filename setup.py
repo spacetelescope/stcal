@@ -56,4 +56,4 @@ extensions = [
     ),
 ]
 
-setup(ext_modules=cythonize(extensions), options={'bdist_wheel': {'py_limited_api': 'cp311'}})
+setup(ext_modules=cythonize(extensions), options={"bdist_wheel": {"py_limited_api": "cp311"}})
