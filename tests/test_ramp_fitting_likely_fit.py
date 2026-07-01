@@ -182,6 +182,13 @@ def test_flagged_ramp():
     data = cube["slope"][0, 0, 0]
     dq = cube["dq"][0, 0, 0]
 
+    # The pre-existing input flags survive in the groupdq: the write-back of the
+    # flags applied during ramp fitting is additive.
+    in_gdq = ramp_data.groupdq[0, :, 0, 0]
+    assert in_gdq[2] & DNU
+    assert in_gdq[10] & JMP
+    assert in_gdq[17] & SAT
+
     # Check against OLS.
     algo = "OLS"
     slopes1, cube1, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
@@ -358,6 +365,15 @@ def test_jump_detect():
     assert slopes["dq"][0, 1] == GOOD
     assert slopes["dq"][1, 0] == GOOD
     assert slopes["dq"][1, 1] == JMP
+
+    # The detected jumps are also written back into the input groupdq at the
+    # resultant level.  The single-jump pixel is attributed to the resultant
+    # where the jump first appears; the clean pixels gain no JUMP_DET.
+    gdq = ramp_data.groupdq[0]
+    assert gdq[jump_loc, 0, 0] & JMP
+    assert (gdq[:, 1, 1] & JMP).any()
+    assert not (gdq[:, 0, 1] & JMP).any()
+    assert not (gdq[:, 1, 0] & JMP).any()
 
 
 def test_too_few_groups(caplog):
@@ -571,6 +587,10 @@ def test_flag_large_events_withsnowball():
     ramp_data.data[0, 10:, 50:53, 50:53] = 1e5
     ramp_data.groupdq[0, 10:, 50:53, 50:53] = SAT
 
+    # Ramp fitting writes the flags it applies back into groupdq, so snapshot
+    # the input groupdq to restore the clean ramp for the second fit below.
+    input_groupdq = ramp_data.groupdq.copy()
+
     jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.expand_large_events = 1
     jump_data.min_sat_area = 1
@@ -596,8 +616,9 @@ def test_flag_large_events_withsnowball():
     meanerr_jumppixels_new = np.mean(image_info["err"][image_info["dq"] == JUMP])
     assert np.std(image_info["err"][image_info["dq"] == JUMP]) < 1e-6
 
-    # Now without snowball flagging
+    # Now without snowball flagging, restoring the clean input groupdq.
 
+    ramp_data.groupdq = input_groupdq
     image_info = likely_ramp_fit(ramp_data, rnoise2d, gain2d)[0]
     assert np.std(image_info["slope"]) < 1e-5
     n_jump_original = np.sum(image_info["dq"] == JUMP)
