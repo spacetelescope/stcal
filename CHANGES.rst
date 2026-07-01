@@ -1,3 +1,14 @@
+1.19.1 (2026-07-01)
+===================
+
+resample step
+-------------
+
+- Avoid floating point overflow causing zero-valued error and variance images
+  with "ivm" weights for input data in MJy. (`#556
+  <https://github.com/spacetelescope/stcal/issues/556>`_)
+
+
 1.19.0 (2026-06-23)
 ===================
 
