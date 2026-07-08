@@ -29,6 +29,8 @@ jobs:
         - linux: py314-cov-xdist
           coverage: codecov
         - macos: py314-xdist
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   test_downstream:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@e5af21e4ae37af089a73bb032e10b78b0e746174 # v3.0.1
     with:
@@ -40,3 +42,5 @@ jobs:
         - linux: py312-jwst-cov
         - linux: py312-romancal-cov
       coverage: codecov
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
