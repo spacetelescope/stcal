@@ -900,7 +900,7 @@ class Resample:
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines.
 
-        pixmap : ndarray
+        pixmap : np.ndarray
             A mapping (3D array) from input image (``data``) coordinates to resampled
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
@@ -918,7 +918,7 @@ class Resample:
         iscale : float
             The scale to apply to the input variance data before drizzling.
 
-        weight_map : ndarray or None, optional
+        weight_map : np.ndarray or None, optional
             A 2D array containing the pixel by pixel weighting.
             Must have the same dimensions as ``data``.
 
@@ -1068,7 +1068,7 @@ class Resample:
             A dictionary containing data arrays and other meta attributes
             and values of actual models used by pipelines.
 
-        pixmap : ndarray
+        pixmap : np.ndarray
             A mapping (3D array) from input image (``data``) coordinates to resampled
             (``out_img``) coordinates. ``pixmap`` must be an array of shape
             ``(Ny, Nx, 2)`` where ``(Ny, Nx)`` is the shape of the input image.
@@ -1086,7 +1086,7 @@ class Resample:
         iscale : float
             The scale to apply to the input variance data before drizzling.
 
-        weight_map : ndarray or None, optional
+        weight_map : np.ndarray or None, optional
             A 2D array containing the pixel by pixel weighting.
             Must have the same dimensions as ``data``.
 
