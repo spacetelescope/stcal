@@ -629,7 +629,7 @@ class Resample:
         """
         Reset intermediate arrays.
 
-        Initialize/reset ``~drizzle.resample.Drizzle` objects, output model and arrays,
+        Initialize/reset `~drizzle.resample.Drizzle` objects, output model and arrays,
         and time counters and clears the "finalized" flag. Output WCS and shape
         are not modified from `~stcal.resample.Resample` object initialization. This method
         needs to be called before calling :py:meth:`~stcal.resample.Resample.add_model` for the first
