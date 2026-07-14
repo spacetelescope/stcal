@@ -663,7 +663,7 @@ def groups_all_set_dnu(nints, ngroups, gdq, twopt_p):
     if twopt_p.only_use_ints:
         total_sigclip_groups = nints
     else:
-        total_sigclip_groups = nints * ngroups - num_flagged_grps
+        total_sigclip_groups = nints * ngroups - total_flagged_grps
 
     min_usable_groups = ngroups - max_flagged_grps
     total_groups = nints * ngroups - total_flagged_grps
