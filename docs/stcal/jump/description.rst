@@ -37,15 +37,28 @@ then the jump step is skipped.
 The jump step runs using the first differences of groups in integrations runs as follows.
 
 #. If the groups are evenly spaced in time and A or B is true, then:
+
     #. If A is true, then use ``astropy.stats.sigma_clip`` across integrations,
-       using ``rejection_threshold`` for jump detection.
+       using ``rejection_threshold`` for jump detection. The default value for
+       ``rejection_threshold`` is 4.0.
     #. If B is true, then use ``astropy.stats.sigma_clip`` across integrations
        and groups ``rejection_threshold`` for jump detection.
+
 #. Else:
+
     #. If the minimum number of usable groups is greater than ``min_diffs_single_pass+1``.
        The ``+1`` is needed because first differences are used; ``min_diffs_single_pass``
-       defaults to 10. Then detect jumps in each integration using 4 sigma outliers.
+       defaults to 10. Then detect jumps in each integration using sigma outliers above
+       ``rejection_threshold``.
     #. Else, do an iterative flagging within each integration.
+
+If flagging of the 4 neighbors is requested, then the 4 adjacent pixels will have
+ramp jumps flagged in the same group as the central pixel as long as it has a jump
+between the min and max requested levels for this option.
+
+If flagging of groups after a ramp jump is requested, then the groups in the requested
+time since a detected ramp jump will be flagged as ramp jumps if the ramp jump is above
+the requested threshold. Two thresholds and times are possible for this option.
 
 Note that any ramp groups flagged as SATURATED in the input GROUPDQ array
 are not used in any of the above calculations and hence will never be
