@@ -1,0 +1,1 @@
+Updated the jump step documentation and fixed a small bug in computing ``total_sigclip_groups``.
