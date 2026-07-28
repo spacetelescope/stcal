@@ -219,6 +219,7 @@ ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 [tool.cibuildwheel]
 # Disable free-threading builds on all platforms
 skip = "cp3??t-*"
+test-command = 'python -c "from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter"'
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
