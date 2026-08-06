@@ -402,16 +402,13 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     ----------
     cube : ndarray
         Group DQ cube for an integration.
-
     grp : int
         The current group.
-
-    sat_ellipses : list of tuple
-        The saturated ellipse in the format of
-        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``.
-
+    sat_ellipses : ndarray
+        Saturated ellipses, as a record array with columns
+        ``cen_x, cen_y, minor_axis, major_axis, theta_deg``.
     jump_data : JumpData
-
+        Object containing parameters and methods to detect jumps.
     persist_jumps : ndarray
         3D (nints, nrows, ncols) uint8
 
@@ -426,17 +423,17 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
     ngroups, nrows, ncols = cube.shape
     satcolor = 22  # (0, 0, 22) is a dark blue in RGB
     for ellipse in sat_ellipses:
-        ceny = ellipse[0][0]
-        cenx = ellipse[0][1]
-        minor_axis = min(ellipse[1][1], ellipse[1][0])
+        ceny = ellipse["cen_x"]
+        cenx = ellipse["cen_y"]
+        minor_axis = ellipse["minor_axis"]
 
         if minor_axis > jump_data.min_sat_radius_extend:
-            axis1 = ellipse[1][0] + jump_data.sat_expand
-            axis2 = ellipse[1][1] + jump_data.sat_expand
+            axis1 = ellipse["minor_axis"] + jump_data.sat_expand
+            axis2 = ellipse["major_axis"] + jump_data.sat_expand
             axis1 = min(axis1, jump_data.max_extended_width)
             axis2 = min(axis2, jump_data.max_extended_width)
 
-            alpha = ellipse[2]
+            alpha = ellipse["theta_deg"]
 
             indx, sat_ellipse = ellipse_subim(ceny, cenx, axis1, axis2, alpha, satcolor, (nrows, ncols))
             (iy1, iy2, ix1, ix2) = indx
@@ -449,7 +446,7 @@ def extend_saturation(cube, grp, sat_ellipses, jump_data, persist_jumps):
             for i in range(grp, cube.shape[0]):
                 cube[i][iy1:iy2, ix1:ix2][is_sat] = jump_data.fl_sat
 
-            ax1, ax2 = (ellipse[1][0], ellipse[1][1])
+            ax1, ax2 = (ellipse["minor_axis"], ellipse["major_axis"])
             indx, persist_ellipse = ellipse_subim(ceny, cenx, ax1, ax2, alpha, satcolor, (nrows, ncols))
             (iy1, iy2, ix1, ix2) = indx
 
@@ -531,26 +528,19 @@ def extend_ellipses(
     ----------
     gdq_cube : ndarray
         Group DQ cube for an integration.  Modified in-place.
-
     intg : int
         The current integration.
-
     grp : int
         The current group.
-
-    ellipses : list of tuple
-        Ellipses for events in the format of
-        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``.
-
+    ellipses : ndarray
+        Event ellipses, as a record array with columns
+        ``cen_x, cen_y, minor_axis, major_axis, theta_deg``.
     jump_data : JumpData
-        Class containing parameters and methods to detect jumps.
-
+        Object containing parameters and methods to detect jumps.
     expansion : float
         The factor that increases the size of the snowball or enclosed ellipse.
-
     expand_by_ratio : bool
         Should the ellipse expansion be used?
-
     num_grps_masked : int
         The number of groups flagged.
 
@@ -558,7 +548,6 @@ def extend_ellipses(
     -------
     gdq_cube : ndarray
         Computed 3-D group DQ array, modified in-place
-
     num_ellipses : int
         The number of ellipses passed in as a parameter.
     """
@@ -568,11 +557,11 @@ def extend_ellipses(
     _, ngroups, nrows, ncols = gdq_cube.shape
     num_ellipses = len(ellipses)
     for ellipse in ellipses:
-        ceny = ellipse[0][0]
-        cenx = ellipse[0][1]
+        ceny = ellipse["cen_x"]
+        cenx = ellipse["cen_y"]
         axes = compute_axes(expand_by_ratio, ellipse, expansion, jump_data)
 
-        alpha = ellipse[2]
+        alpha = ellipse["theta_deg"]
 
         # Get the expanded ellipse in a subimage, along with the
         # indices that place this subimage within the full array.
@@ -630,28 +619,21 @@ def make_snowballs(
     ---------
     gdq : ndarray
         The 4-D group DQ array.
-
     integration : int
         The current integration being used.
-
     group : int
         The current group being used.
-
-    jump_ellipses : list of tuple
-        Ellipses computed based on jump detection in the format of
-        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``.
-
-    sat_ellipses : list of tuple
+    jump_ellipses : ndarray
+        Ellipses computed based on jump detection, as a record array
+        with columns ``cen_x, cen_y, minor_axis, major_axis, theta_deg``.
+    sat_ellipses : ndarray
         Ellipses computed based on saturation in the same format as
         ``jump_ellipses``.
-
-    next_sat_ellipses : list of tuple
+    next_sat_ellipses : ndarray
         Ellipses computed based on saturation in the next group
         in the same format as ``jump_ellipses``.
-
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
-
     persist_jumps : ndarray
         Zero array to be filled in.
 
@@ -659,10 +641,8 @@ def make_snowballs(
     -------
     gdq : ndarray
         The 4-D group DQ array.
-
-    snowballs : list
-        List of snowballs found.
-
+    snowballs : list of ndarray
+        List of snowball ellipses found.
     persist_jumps : ndarray
         Filled in array.
     """
@@ -670,25 +650,20 @@ def make_snowballs(
     low_threshold = jump_data.edge_size
     high_threshold = max(0, nrows - jump_data.edge_size)
 
-    # This routine will create a list of snowballs (ellipses) that have the
-    # center of the saturation circle within the enclosing jump rectangle.
-    snowballs = []
-    for jump in jump_ellipses:
-        if near_edge(jump, low_threshold, high_threshold):
-            # if the jump ellipse is near the edge, do not require saturation in the
-            # center of the jump ellipse
-            snowballs.append(jump)
-        else:
-            for sat in sat_ellipses:
-                if point_inside_ellipse(sat[0], jump) and jump not in snowballs:
-                    snowballs.append(jump)
-            if group < ngroups - 1:
-                # Is there saturation inside the jump in the next group?
-                for next_sat in next_sat_ellipses:
-                    if (point_inside_ellipse(next_sat[0], jump)) and jump not in snowballs:
-                        snowballs.append(jump)
+    # Check if the jump is near the edge: in that case, no saturation check needed.
+    is_snowball = near_edge(jump_ellipses, low_threshold, high_threshold)
 
-    # extend the saturated ellipses that are larger than the min_sat_radius
+    # Check if the jump contains any newly saturated ellipses
+    is_snowball |= center_inside_ellipse(sat_ellipses, jump_ellipses)
+
+    # Check if the jump contains any newly saturated ellipses in the next group
+    if group < ngroups - 1:
+        is_snowball |= center_inside_ellipse(next_sat_ellipses, jump_ellipses)
+
+    # If any of these conditions are met, the jump is a snowball.
+    snowballs = jump_ellipses[is_snowball]
+
+    # Extend the saturated ellipses that are larger than the min_sat_radius
     gdq[integration, :, :, :], persist_jumps[integration, :, :] = extend_saturation(
         gdq[integration, :, :, :],
         group,
@@ -700,46 +675,40 @@ def make_snowballs(
     return gdq, snowballs, persist_jumps
 
 
-def point_inside_ellipse(point, ellipse):
+def center_inside_ellipse(inner_ellipse, outer_ellipse):
     """
-    Detect if a point is inside an ellipse.
+    Detect if the center of an ellipse is inside another ellipse.
 
     Parameters
     ----------
-    point : tuple
-        Point of interest in the format of ``(x, y)``.
-
-    ellipse : tuple
-        Ellipse for testing in the format of
-        ``((cen_x, cen_y), (minor_axis, major_axis), theta_deg)``.
+    inner_ellipse : ndarray
+        Inner ellipses of interest. Center point is in ``cen_x, cen_y`` columns.
+    outer_ellipse : ndarray
+        Outer ellipses to test.
 
     Returns
     -------
-    bool
-        Boolean decision if point is in ellipse
+    ndarray of bool
+        Boolean decision if the center of any inner ellipse is in each outer ellipse.
+        1D array; length matches ``outer_ellipse``.
     """
     # https://stackoverflow.com/questions/37031356/check-if-points-are-inside-ellipse-faster-than-contains-point-method
 
-    angle = np.radians(180 - ellipse[2])
+    angle = np.radians(180 - outer_ellipse["theta_deg"])
     cos_angle = np.cos(angle)
     sin_angle = np.sin(angle)
 
-    xc = point[0] - ellipse[0][0]
-    yc = point[1] - ellipse[0][1]
+    xc = np.subtract.outer(inner_ellipse["cen_x"], outer_ellipse["cen_x"])
+    yc = np.subtract.outer(inner_ellipse["cen_y"], outer_ellipse["cen_y"])
 
     xct = xc * cos_angle - yc * sin_angle
     yct = xc * sin_angle + yc * cos_angle
 
-    if ellipse[1][1] >= ellipse[1][0]:
-        semi_major_axis = ellipse[1][1] * 0.5
-        semi_minor_axis = ellipse[1][0] * 0.5
-    else:
-        semi_major_axis = ellipse[1][0] * 0.5
-        semi_minor_axis = ellipse[1][1] * 0.5
+    semi_major_axis = outer_ellipse["major_axis"] / 2
+    semi_minor_axis = outer_ellipse["minor_axis"] / 2
+    rad_cc = (xct / semi_major_axis) ** 2 + (yct / semi_minor_axis) ** 2
 
-    rad_cc = (xct**2 / semi_major_axis**2) + (yct**2 / semi_minor_axis**2)
-
-    return rad_cc <= 1
+    return np.any(rad_cc <= 1, axis=0)
 
 
 def near_edge(jump, low_threshold, high_threshold):
@@ -751,28 +720,26 @@ def near_edge(jump, low_threshold, high_threshold):
 
     Parameters
     ----------
-    jump : tuple
-        Ellipse to check if close to detector edge in the format of
-        ``((cen_x, cen_y), (minor_axis, major_axis), theta_deg)``.
-
+    jump : ndarray
+        Ellipses to check, as a record array with columns
+        ``cen_x, cen_y, minor_axis, major_axis, theta_deg``.
     low_threshold :  int
         Low threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
-
     high_threshold : int
         High threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
 
     Returns
     -------
-    bool
-        True if ellipse is close to the detector's edge.
+    ndarray of bool
+        True if ellipse is close to the detector's edge. 1D, matching length of ``jump`` array.
     """
     return (
-        jump[0][0] < low_threshold
-        or jump[0][1] < low_threshold
-        or jump[0][0] > high_threshold
-        or jump[0][1] > high_threshold
+        (jump["cen_x"] < low_threshold)
+        | (jump["cen_y"] < low_threshold)
+        | (jump["cen_x"] > high_threshold)
+        | (jump["cen_y"] > high_threshold)
     )
 
 
@@ -973,21 +940,17 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
 
     The number of pixels added to both axes is the number of pixels added
     to the minor axis. This prevents very large flagged ellipses with high
-    axis ratio ellipses. The major and minor axis are not always the same
-    index.  Therefore, we have to test to find which is actually the minor axis.
+    axis ratio ellipses.
 
     Parameters
     ----------
     expand_by_ratio : bool
         Should the axes be expanded?
-
-    ellipse : tuple
-        Ellipse to expand in the format of
-        ``((cen_x, cen_y), (minor_axis, major_axis), theta_deg)``.
-
+    ellipse : array
+        Ellipse to expand, as a record array with columns
+        ``cen_x, cen_y, minor_axis, major_axis, theta_deg``.
     expansion : float
         The factor that increases the size of the snowball or enclosed ellipse.
-
     jump_data : JumpData
         Class containing parameters and methods to detect jumps.
 
@@ -997,19 +960,15 @@ def compute_axes(expand_by_ratio, ellipse, expansion, jump_data):
         Expanded and rounded ellipse axes.
     """
     if expand_by_ratio:
-        if ellipse[1][1] < ellipse[1][0]:
-            axis1 = ellipse[1][0] + (expansion - 1.0) * ellipse[1][1]
-            axis2 = ellipse[1][1] * expansion
-        else:
-            axis1 = ellipse[1][0] * expansion
-            axis2 = ellipse[1][1] + (expansion - 1.0) * ellipse[1][0]
+        axis1 = ellipse["minor_axis"] * expansion
+        axis2 = ellipse["major_axis"] + (expansion - 1.0) * ellipse["minor_axis"]
     else:
-        axis1 = ellipse[1][0] + expansion
-        axis2 = ellipse[1][1] + expansion
+        axis1 = ellipse["minor_axis"] + expansion
+        axis2 = ellipse["major_axis"] + expansion
     axis1 = min(axis1, jump_data.max_extended_width)
     axis2 = min(axis2, jump_data.max_extended_width)
 
-    return (round(axis1 / 2), round(axis2 / 2))
+    return round(axis1 / 2), round(axis2 / 2)
 
 
 def get_bigellipses(ratio, intg, grp, gdq, pdq, jump_data, ring_2D_kernel):  # noqa: N803
@@ -1305,14 +1264,11 @@ def _sk_filter_areas(image, threshold):
 
     Returns
     -------
-    list
-        List of found areas. Each area is a rotated rectangular
-        region encoded as is a 3 element list of values.
-        The first element is a tuple of 2 floats encoding the
-        center column and row. Element 2 is a tuple of 2 floats encoding
-        the area minor and major axis full lengths. Element 3 is a float
-        encoding the rotation angle of the area in degrees. Format:
-        ``[((cen_x, cen_y), (minor_axis, major_axis), theta_deg), ...]``
+    ndarray
+        Record array of found areas. Each area is a rotated rectangular
+        region encoded by 5 numbers: center column and row, minor and major
+        full lengths, and the rotation angle of the area in degrees.
+        Column names are: ``cen_x, cen_y, minor_axis, major_axis, theta_deg``.
     """
     lim = skimage.measure.label(image)
     min_areas = []
@@ -1325,6 +1281,17 @@ def _sk_filter_areas(image, threshold):
         w = region.axis_major_length - 1
         h = region.axis_minor_length - 1
         min_areas.append(
-            ((float(region.centroid[1]), float(region.centroid[0])), (h, w), np.degrees(region.orientation))
+            (float(region.centroid[1]), float(region.centroid[0]), h, w, np.degrees(region.orientation))
         )
+
+    min_areas = np.array(
+        min_areas,
+        dtype=[
+            ("cen_x", np.float64),
+            ("cen_y", np.float64),
+            ("minor_axis", np.float64),
+            ("major_axis", np.float64),
+            ("theta_deg", np.float64),
+        ],
+    )
     return min_areas
