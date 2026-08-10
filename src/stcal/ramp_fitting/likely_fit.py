@@ -140,6 +140,13 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
             # Unset differences to use if a jump was flagged in the expansion
             alldiffs2use &= gdq[1:] & ramp_data.flags_jump_det == 0
 
+        # Propagate the flags applied during ramp fitting back into the input
+        # group DQ so callers can recover which resultant each flag was set in.
+        # gdq may carry an extra leading row if a zeroframe was prepended; the
+        # trailing ng rows align with ramp_data.groupdq's resultants.
+        ng = ramp_data.groupdq.shape[1]
+        ramp_data.groupdq[integ] |= gdq[-ng:]
+
         for row in range(nrows):
             result = fit_ramps(
                 diff[:, row],
