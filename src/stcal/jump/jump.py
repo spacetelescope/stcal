@@ -343,18 +343,26 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
 
             not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
+
             if group < ngrps - 1:
                 next_gdq = gdq[integration, group + 1, :, :]
                 next_sat = np.bitwise_and(next_gdq, sat_flag)
                 not_current_sat = np.logical_not(current_sat)
+                # next saturated and not currently saturated
                 next_new_sat = next_sat * not_current_sat
 
-            if group > 1 and jump_data.nframes > 1:
-                pprev_gdq = gdq[integration, group - 2, :, :]
-                pprev_sat = np.bitwise_and(pprev_gdq, sat_flag)
-                not_pprev_sat = np.logical_not(pprev_sat)
-                prev_was_new = not_pprev_sat * prev_sat
-                new_sat = np.bitwise_or(new_sat, prev_was_new)
+            # use_sat = True  # XXX Current main uses dnu, not sat
+            use_sat = False  # XXX Current main uses dnu, not sat
+            if use_sat:
+                if group > 1 and jump_data.nframes > 1:
+                    pprev_gdq = gdq[integration, group - 2, :, :]
+                    pprev_sat = np.bitwise_and(pprev_gdq, sat_flag)
+                    not_pprev_sat = np.logical_not(pprev_sat)
+                    # not 2 previously saturated and previously saturated
+                    prev_was_new = not_pprev_sat * prev_sat
+                    # XXX Maybe try other operations.
+                    # new_sat = np.bitwise_or(new_sat, prev_was_new)
+                    new_sat = np.bitwise_xor(new_sat, prev_was_new)
 
             next_sat_ellipses = find_ellipses(next_new_sat, sat_flag, jump_data.min_sat_area)
             sat_ellipses = find_ellipses(new_sat, sat_flag, jump_data.min_sat_area)
