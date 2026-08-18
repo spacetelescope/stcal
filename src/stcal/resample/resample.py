@@ -470,9 +470,12 @@ class Resample:
             A dictionary of data model attributes and values.
 
         """
-        assert self._output_wcs is not None  # noqa: S101
-        assert np.array_equiv(self._output_wcs.array_shape, self._output_array_shape)  # noqa: S101
-        assert self._output_pixel_scale  # noqa: S101
+        if self._output_wcs is None:
+            raise RuntimeError("Output WCS is not configured.")
+        if not np.array_equiv(self._output_wcs.array_shape, self._output_array_shape):
+            raise RuntimeError("Output WCS array shape does not match the configured output shape.")
+        if not self._output_pixel_scale:
+            raise RuntimeError("Output pixel scale is not configured.")
 
         pix_area = self._output_pixel_scale**2
 
@@ -704,8 +707,8 @@ class Resample:
             The ``model`` does not have a required keyword.
 
         """
-        # TODO: do we need this to just raise a custom
-        assert isinstance(model, dict)  # noqa: S101
+        if not isinstance(model, dict):
+            raise TypeError(f"Input model must be a dictionary, got {type(model).__name__}.")
         min_attributes = [
             # arrays:
             "data",
@@ -1330,7 +1333,8 @@ class Resample:
 
     def finalize_time_info(self):
         """Perform final computations for the total time and update relevant fields of the output model."""
-        assert self._n_res_models  # noqa: S101
+        if not self._n_res_models:
+            raise RuntimeError("Cannot finalize exposure times before any models have been resampled.")
         # basic exposure time attributes:
         self._output_model["exposure_time"] = self._total_exposure_time
         self._output_model["start_time"] = min(self._exptime_start)
