@@ -560,8 +560,9 @@ def linearity_correction_int(
     """
     ngroups, nrows, ncols = data.shape
 
-    # If no inverse linearity coefficients, do simple correction in place
-    if ilin_coeffs is None:
+    # Use the simple correction when inverse coefficients are unavailable or
+    # when there is only one resultant and no slope can be estimated.
+    if ilin_coeffs is None or ngroups == 1:
         for plane in range(ngroups):
             data[plane] = apply_polynomial(data[plane], lin_coeffs, gdq[plane], dqflags)
         return data
