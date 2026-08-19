@@ -153,10 +153,6 @@ def flag_saturated_pixels(
         # This is to flag things that actually saturated in prior groups but
         # were not obvious because of group averaging
 
-        # XXX JP-3835 only sat
-        # use_sat = True  # XXX Current main uses dnu, not sat
-        use_sat = False  # XXX Current main uses dnu, not sat
-
         for group in range(ngroups - 2, -1, -1):
             plane = data[ints, group, :, :]
             thisdq = gdq[ints, group, :, :]
@@ -198,17 +194,11 @@ def flag_saturated_pixels(
                     & (nextdq & saturated != 0)
                 )
 
-            if use_sat:  # XXX JP-3835 only sat
-                flagarray = (partial_sat * saturated).astype(np.uint32)
-            else:
-                flagarray = (partial_sat * dnu).astype(np.uint32)
+            flagarray = (partial_sat * saturated).astype(np.uint32)
 
             # Grow the newly-flagged saturating pixels
             if n_pix_grow_sat > 0:
-                if use_sat:  # XXX JP-3835 only sat
-                    _adjacent_pixels(flagarray, saturated, n_pix_grow_sat, inplace=True)
-                else:
-                    _adjacent_pixels(flagarray, dnu, n_pix_grow_sat, inplace=True)
+                _adjacent_pixels(flagarray, saturated, n_pix_grow_sat, inplace=True)
 
             # Add them to the gdq array
             gdq[ints, group, :, :] |= flagarray
@@ -246,10 +236,7 @@ def flag_saturated_pixels(
             mask &= gp3mask
 
             # Flag the 2nd group for the pixels passing that gauntlet
-            if use_sat:  # XXX JP-3835 only sat
-                flagarray = (mask * saturated).astype(np.uint32)
-            else:
-                flagarray = (mask * dnu).astype(np.uint32)
+            flagarray = (mask * saturated).astype(np.uint32)
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
