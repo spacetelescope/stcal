@@ -1,36 +1,16 @@
 version: 2
-updates:
-  # Maintain dependencies for GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: ".github/workflows"
-    target-branch: "main"
-    labels:
-      - automation
-      - dependencies
-      - github_actions
-      - no-changelog-entry-needed
-    schedule:
-      interval: "monthly"
-    groups:
-      actions:
-        patterns:
-          - "*"
-    reviewers:
-      - "zacharyburnett"
-    cooldown:
-      default-days: 7
 
-  # Maintain dependencies for pip
+updates:
   - package-ecosystem: "pip"
     directory: "/"
+    labels:
+      - no-changelog-entry-needed
     target-branch: "main"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns:
           - "*"
-    reviewers:
-      - "zacharyburnett"
-    cooldown:
-      default-days: 7
