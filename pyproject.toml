@@ -218,7 +218,7 @@ ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 
 [tool.cibuildwheel]
 skip = [
-  "cp3*t-*", # Disable free-threading builds on all platforms
+  "cp3*t-*",                # Disable free-threading builds on all platforms
   "cp3*-musllinux_aarch64",
 ]
 test-command = 'python -c "from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter"'
