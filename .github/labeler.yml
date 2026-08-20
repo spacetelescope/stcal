@@ -1,19 +1,36 @@
+breaking-change:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "changes/*.breaking.rst"
+
+feature:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "changes/*.feature.rst"
+
+fix:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "changes/*.fix.rst"
+
 documentation:
   - changed-files:
-      - all-globs-to-any-file: ["*.rst", "!CHANGES.rst"]
+      - all-globs-to-any-file:
+          - "*.rst"
+          - "!CHANGES.rst"
+          - "!changes/*"
       - any-glob-to-any-file:
           - "docs/**/*"
           - "*.md"
           - ".readthedocs.yaml"
           - "LICENSE"
+          - "changes/*.docs.rst"
 
-installation:
+packaging:
   - changed-files:
       - any-glob-to-any-file:
           - "pyproject.toml"
           - "setup.*"
-          - "requirements-*.txt"
-          - "MANIFEST.in"
 
 # --------------------------------------- testing ---------------------------------------
 
@@ -21,8 +38,6 @@ automation:
   - changed-files:
       - any-glob-to-any-file:
           - ".github/**"
-          - ".bandit.yaml"
-          - ".codecov.yml"
 
 testing:
   - changed-files:
