@@ -539,3 +539,13 @@ def test_any_center_inside_any_ellipse(inner, expected):
     inner = np.array(inner, dtype=ELLIPSE_DTYPE)
     outer = np.array([(0, 0, 2, 4, 0), (0, 0, 5, 10, 00)], dtype=ELLIPSE_DTYPE)
     assert np.all(center_inside_ellipse(inner, outer) == expected)
+
+
+def test_jump_snowball():
+    """Added for JP-3835"""
+    from .jump_info import data_for_test_jump_snowball
+
+    jump_data, out_gdq = data_for_test_jump_snowball(DQFLAGS)
+    gdq, pdq, tot_crs, number_ext_events = detect_jumps_data(jump_data)
+
+    np.testing.assert_array_equal(gdq, out_gdq)
