@@ -103,7 +103,9 @@ Snowball Detection
 ^^^^^^^^^^^^^^^^^^
 
 To identify a snowball, a contiguous block of saturated pixels are found, then
-an enclosing ellipse is computed using the algorithm below. Refer to `Regan (2024) <https://www.stsci.edu/files/live/sites/www/files/home/jwst/documentation/technical-documents/_documents/JWST-STScI-008545.pdf>`_ for more detail.
+an enclosing ellipse is computed using the algorithm below. Refer
+to `Regan (2024) <https://www.stsci.edu/files/live/sites/www/files/home/jwst/documentation/technical-documents/_documents/JWST-STScI-008545.pdf>`_ for
+more detail.
 
 
 
