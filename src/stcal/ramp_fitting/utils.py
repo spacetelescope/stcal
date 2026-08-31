@@ -59,9 +59,8 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
     """
     nints = integ_dq.shape[0]
 
-    # Count the planes carrying the flag one plane at a time. Testing the whole
-    # cube at once would allocate two further copies of it, and promote them to
-    # the (wider) dtype of the flag values.
+    # Count the planes carrying the flag one plane at a time to avoid
+    # nints * nrows * ncols sized intermediate allocations.
     n_set = np.zeros(integ_dq.shape[1:], dtype=np.int32)
     for plane in integ_dq:
         n_set += np.bitwise_and(plane, flag) != 0
@@ -106,10 +105,7 @@ def dq_compress_sect(ramp_data, gdq_sect, pixeldq_sect):
     # Check total SATURATED or DO_NOT_USE
     set_if_total_ramp(pixeldq_sect, gdq_sect, sat | dnu, dnu)
 
-    # A flag is set somewhere in the ramp exactly when it is set in the bitwise
-    # OR over the groups. Reducing first keeps the temporary two dimensional:
-    # testing the cube directly would copy it, and promote that copy to the
-    # (wider) dtype of the flag values.
+    # Get flags set in any group
     any_flag = np.bitwise_or.reduce(gdq_sect, axis=0)
 
     # If saturation occurs mark the appropriate flag.
