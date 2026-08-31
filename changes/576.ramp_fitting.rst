@@ -1,0 +1,3 @@
+Reduce the memory used when compressing group DQ into pixel DQ, by reducing over
+the group axis instead of building copies of the whole cube promoted to the dtype
+of the flag values.

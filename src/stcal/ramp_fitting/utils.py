@@ -59,13 +59,14 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
     """
     nints = integ_dq.shape[0]
 
-    # Find where flag is set
-    test_dq = np.zeros(integ_dq.shape, dtype=np.uint32)
-    test_dq[np.bitwise_and(integ_dq, flag).astype(bool)] = 1
+    # Count the planes carrying the flag one plane at a time. Testing the whole
+    # cube at once would allocate two further copies of it, and promote them to
+    # the (wider) dtype of the flag values.
+    n_set = np.zeros(integ_dq.shape[1:], dtype=np.int32)
+    for plane in integ_dq:
+        n_set += np.bitwise_and(plane, flag) != 0
 
-    # Sum over all integrations
-    test_sum = test_dq.sum(axis=0)
-    all_set = np.where(test_sum == nints)
+    all_set = np.where(n_set == nints)
 
     # If flag is set in all integrations, then set the set_flag
     final_dq[all_set] = np.bitwise_or(final_dq[all_set], set_flag)
@@ -105,14 +106,18 @@ def dq_compress_sect(ramp_data, gdq_sect, pixeldq_sect):
     # Check total SATURATED or DO_NOT_USE
     set_if_total_ramp(pixeldq_sect, gdq_sect, sat | dnu, dnu)
 
+    # A flag is set somewhere in the ramp exactly when it is set in the bitwise
+    # OR over the groups. Reducing first keeps the temporary two dimensional:
+    # testing the cube directly would copy it, and promote that copy to the
+    # (wider) dtype of the flag values.
+    any_flag = np.bitwise_or.reduce(gdq_sect, axis=0)
+
     # If saturation occurs mark the appropriate flag.
-    sat_loc = np.bitwise_and(gdq_sect, sat)
-    sat_check = np.where(sat_loc.sum(axis=0) > 0)
+    sat_check = np.where(np.bitwise_and(any_flag, sat) != 0)
     pixeldq_sect[sat_check] = np.bitwise_or(pixeldq_sect[sat_check], sat)
 
     # If jump occurs mark the appropriate flag.
-    jump_loc = np.bitwise_and(gdq_sect, jump)
-    jump_check = np.where(jump_loc.sum(axis=0) > 0)
+    jump_check = np.where(np.bitwise_and(any_flag, jump) != 0)
     pixeldq_sect[jump_check] = np.bitwise_or(pixeldq_sect[jump_check], jump)
 
     return pixeldq_sect
