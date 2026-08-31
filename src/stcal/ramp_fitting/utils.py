@@ -60,7 +60,7 @@ def set_if_total_integ(final_dq, integ_dq, flag, set_flag):
     nints = integ_dq.shape[0]
 
     # Count the planes carrying the flag one plane at a time to avoid
-    # nints * nrows * ncols sized intermediate allocations.
+    # nints * ... sized intermediate allocations.
     n_set = np.zeros(integ_dq.shape[1:], dtype=np.int32)
     for plane in integ_dq:
         n_set += np.bitwise_and(plane, flag) != 0
