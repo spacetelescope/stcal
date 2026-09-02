@@ -334,11 +334,14 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     nints, ngrps, nrows, ncols = gdq.shape
     persist_jumps = np.zeros(shape=(nints, nrows, ncols), dtype=np.uint8)
     for integration in range(nints):
-        for group in range(1, ngrps):
+        for group in range(ngrps):
             current_gdq = gdq[integration, group, :, :]
             current_sat = np.bitwise_and(current_gdq, sat_flag)
 
-            prev_gdq = gdq[integration, group - 1, :, :]
+            if group == 0:
+                prev_gdq = np.zeros((nrows, ncols), dtype=np.uint8)
+            else:
+                prev_gdq = gdq[integration, group - 1, :, :]
             prev_sat = np.bitwise_and(prev_gdq, sat_flag)
 
             not_prev_sat = np.logical_not(prev_sat)
