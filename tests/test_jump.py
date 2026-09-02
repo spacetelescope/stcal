@@ -303,18 +303,19 @@ def test_flag_large_events_nosnowball():
     assert cube[0, 2, 3, 6] == 0
 
 
-def test_flag_large_events_withsnowball():
+@pytest.mark.parametrize("group", [0, 1, 2])
+def test_flag_large_events_withsnowball(group):
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
     # cross of saturation surrounding by jump -> snowball
-    cube[0, 2, 3, 3] = SAT
-    cube[0, 2, 2, 3] = SAT
-    cube[0, 2, 3, 4] = SAT
-    cube[0, 2, 4, 3] = SAT
-    cube[0, 2, 3, 2] = SAT
-    cube[0, 2, 1, 1:6] = JUMP
-    cube[0, 2, 5, 1:6] = JUMP
-    cube[0, 2, 1:6, 1] = JUMP
-    cube[0, 2, 1:6, 5] = JUMP
+    cube[0, group, 3, 3] = SAT
+    cube[0, group, 2, 3] = SAT
+    cube[0, group, 3, 4] = SAT
+    cube[0, group, 4, 3] = SAT
+    cube[0, group, 3, 2] = SAT
+    cube[0, group, 1, 1:6] = JUMP
+    cube[0, group, 5, 1:6] = JUMP
+    cube[0, group, 1:6, 1] = JUMP
+    cube[0, group, 1:6, 5] = JUMP
 
     jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_area = 1
@@ -327,10 +328,11 @@ def test_flag_large_events_withsnowball():
 
     cube, total_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
-    assert cube[0, 1, 2, 2] == 0
-    assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 1, 0] == JUMP
-    assert cube[0, 2, 3, 6] == JUMP
+    if group > 0:
+        assert cube[0, group - 1, 2, 2] == 0
+        assert cube[0, group - 1, 3, 5] == 0
+    assert cube[0, group, 1, 0] == JUMP
+    assert cube[0, group, 3, 6] == JUMP
 
 
 def test_flag_large_events_groupedsnowball():
