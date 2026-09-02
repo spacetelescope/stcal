@@ -351,6 +351,8 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
                 next_sat = np.bitwise_and(next_gdq, sat_flag)
                 not_current_sat = np.logical_not(current_sat)
                 next_new_sat = next_sat * not_current_sat
+            else:
+                next_new_sat = np.zeros((nrows, ncols), dtype=np.uint8)
 
             next_sat_ellipses = find_ellipses(next_new_sat, sat_flag, jump_data.min_sat_area)
             sat_ellipses = find_ellipses(new_sat, sat_flag, jump_data.min_sat_area)
