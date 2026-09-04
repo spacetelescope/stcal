@@ -1,0 +1,2 @@
+Reduce the memory used when compressing group DQ into pixel DQ by avoiding
+ramp-sized intermediaries.
