@@ -334,20 +334,33 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     nints, ngrps, nrows, ncols = gdq.shape
     persist_jumps = np.zeros(shape=(nints, nrows, ncols), dtype=np.uint8)
     for integration in range(nints):
+        gdq_copy = gdq[integration].copy()
+
+        prev_gdq = gdq_copy[0, :, :]
+        prev_sat = np.bitwise_and(prev_gdq, sat_flag)
+        not_prev_sat = np.logical_not(prev_sat)
+        not_pprev_sat = np.logical_not(prev_sat)
+
         for group in range(1, ngrps):
-            current_gdq = gdq[integration, group, :, :]
+            current_gdq = gdq_copy[group, :, :]
             current_sat = np.bitwise_and(current_gdq, sat_flag)
 
-            prev_gdq = gdq[integration, group - 1, :, :]
-            prev_sat = np.bitwise_and(prev_gdq, sat_flag)
-
-            not_prev_sat = np.logical_not(prev_sat)
             new_sat = current_sat * not_prev_sat
+
             if group < ngrps - 1:
                 next_gdq = gdq[integration, group + 1, :, :]
                 next_sat = np.bitwise_and(next_gdq, sat_flag)
                 not_current_sat = np.logical_not(current_sat)
                 next_new_sat = next_sat * not_current_sat
+
+            if group > 1 and jump_data.nframes > 1:
+                prev_was_new = not_pprev_sat * prev_sat
+                new_sat = np.bitwise_or(new_sat, prev_was_new)
+                # pprev_sat = prev_sat
+                not_pprev_sat = not_prev_sat
+
+            prev_sat = current_sat
+            not_prev_sat = not_current_sat
 
             next_sat_ellipses = find_ellipses(next_new_sat, sat_flag, jump_data.min_sat_area)
             sat_ellipses = find_ellipses(new_sat, sat_flag, jump_data.min_sat_area)
