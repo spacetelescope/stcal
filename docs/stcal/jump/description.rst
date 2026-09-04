@@ -98,3 +98,32 @@ The full iterative method described by `Anderson & Gordon (2011) <https://ui.ads
 #. If there are only two differences (three groups), the smallest one is compared
    to the larger one and if the larger one is above a threshold, it is flagged
    as a jump.
+
+Snowball Detection
+^^^^^^^^^^^^^^^^^^
+
+To identify a snowball, use the algorithm below to find a contiguous block of newly
+saturated pixels, then compute an enclosing ellipse for the block of pixels. Refer
+to `Regan (2024) <https://www.stsci.edu/files/live/sites/www/files/home/jwst/documentation/technical-documents/_documents/JWST-STScI-008545.pdf>`_ for
+more detail.
+
+
+#. For each group plane in an integration, find newly saturated pixels.
+
+#. Find contiguous saturated pixels with ``min_sat_area``, default=1.0. Then solve
+   for minimum enclosing ellipses.
+
+#. Find contiguous jump detected pixels with ``min_jump_area``, default=5.0. Then
+   solve for minimum enclosing ellipses.
+
+#. For each jump ellipses that has a newly saturated pixel at the center, add the
+   jump ellipse parameters to the list of snowballs. Using ``edge_size`` for jump
+   ellipses close to the edge, the saturated center requirement is removed.
+
+#. For saturated ellipses with minor axis > ``min_sat_extend``, extend the minor
+   axis for saturationg by ``sat_expand``.
+
+#. For jump ellipses with minor axis > ``min_sat_extend``, extend the minor axis for
+   saturationg by expand_factor, then expand major axis by same number of pixels.
+
+#. Limit expansion by ``max_extended_radius``.
