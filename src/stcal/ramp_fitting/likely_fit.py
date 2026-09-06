@@ -99,7 +99,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
         allrateguesses = np.zeros((nrows, ncols))
 
         for row in range(nrows):
-            d2use = determine_diffs2use(row, diff, gdq)
+            d2use = determine_diffs2use(diff[:, row, :], gdq[:, row, :])
             d2use_copy = d2use.copy()  # Use to flag jumps
             if ramp_data.rejection_threshold is not None:
                 threshold_one_omit = ramp_data.rejection_threshold**2
@@ -447,19 +447,17 @@ def compute_image_info(integ_class, ramp_data):
     return {"slope": slope, "dq": dq, "var_poisson": var_p, "var_rnoise": var_r, "err": err, "chisq": chisq}
 
 
-def determine_diffs2use(row, diffs, gdq):
+def determine_diffs2use(diffs, gdq):
     """
     Compute the diffs2use mask based on DQ flags of a row.
 
     Parameters
     ----------
-    row : int
-        The current row being processed.
     diffs : ndarray
         The group differences of the data array for a given integration and row
         (ngroups-1, ncols).
     gdq : ndarray
-        The group DQ for the current integration.
+        The group DQ for a given integration and row (ngroups, ncols).
 
     Returns
     -------
@@ -467,14 +465,10 @@ def determine_diffs2use(row, diffs, gdq):
         A boolean array defining the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
     """
-    ngroups, _, ncols = gdq.shape
-    dq = np.zeros(shape=(ngroups, ncols), dtype=np.uint8)
-    dq[:, :] = gdq[:, row, :]
-    d2use_tmp = np.ones(shape=diffs.shape, dtype=np.uint8)
-    d2use = d2use_tmp[:, row]
+    d2use = np.ones(shape=diffs.shape, dtype=np.uint8)
 
-    d2use[dq[1:, :] != 0] = 0
-    d2use[dq[:-1, :] != 0] = 0
+    d2use[gdq[1:, :] != 0] = 0
+    d2use[gdq[:-1, :] != 0] = 0
 
     return d2use
 
