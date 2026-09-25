@@ -117,6 +117,8 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
 
         for row in range(nrows):
             d2use = determine_diffs2use(diff[:, row, :], gdq[:, row, :])
+            # Pixels without a positive, finite read noise cannot be fit.
+            d2use[:, ~(readnoise_2d[row] > 0)] = 0
             d2use_copy = d2use.copy()  # Use to flag jumps
 
             # Skip the jump step if this behavior was requested or
@@ -190,6 +192,8 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
             integ_class.get_results(result, integ, row)
 
         pdq = utils.dq_compress_sect(ramp_data, gdq, pdq)
+        # A ramp with no usable group differences has no measured slope.
+        pdq[np.sum(alldiffs2use, axis=0) == 0] |= ramp_data.flags_do_not_use
         integ_class.dq[integ, :, :] = pdq
 
         del gdq
@@ -596,9 +600,17 @@ def fit_ramps(
         # Use all diffs
         diffs2use = np.ones(diffs.shape, np.uint8)
 
+    # Pixels with no usable group differences have no data to fit.
+    # Give them a placeholder covariance matrix so that the math below
+    # stays finite (e.g., zero read noise and count rate would otherwise
+    # give a singular matrix); their results are set to NaN at the end.
+    no_diffs = np.sum(diffs2use, axis=0) == 0
+    rnoise = np.where(no_diffs, 1, rnoise)
+
     # diffs is (ngroups, ncols) of the current row
     if count_rate_guess is None:
         count_rate_guess = initial_count_rate_guess(diffs, diffs2use)
+    count_rate_guess = np.where(no_diffs, 0, count_rate_guess)
 
     alpha_tuple, beta_tuple, scale = compute_alphas_betas(
         count_rate_guess, gain, rnoise, covar, rescale, diffs, dn_scale
@@ -653,6 +665,8 @@ def fit_ramps(
         beta_phnoise,
         beta_readnoise,
     )
+    for attr in ("countrate", "chisq", "uncert", "var_poisson", "var_rnoise"):
+        getattr(result, attr)[no_diffs] = np.nan
 
     # --- Beginning at line 250: Paper 1 section 4
 

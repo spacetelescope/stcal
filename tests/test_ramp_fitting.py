@@ -484,20 +484,38 @@ def test_2_group_cases(algo):
 
     # Check the outputs
 
+    # The LIKELY algorithm fits group differences, so ramps with fewer than
+    # two good groups have no data, are NaN, and are flagged DO_NOT_USE.
+    # OLS instead estimates a slope from a single good group.
     tol = 1.0e-6
-    check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
+    else:  # LIKELY
+        check = np.array([[551.0735, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
     np.testing.assert_allclose(slopes["slope"], check, tol)
 
-    check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU | SAT, GOOD, GOOD, SAT]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU | SAT, GOOD, GOOD, SAT]])
+    else:  # LIKELY
+        check = np.array([[GOOD, DNU | SAT, DNU | SAT, DNU | SAT, DNU, DNU, DNU | SAT]])
     np.testing.assert_equal(slopes["dq"], check)
 
-    check = np.array([[38.945766, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[38.945766, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+    else:  # LIKELY
+        check = np.array([[38.945766, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
     np.testing.assert_allclose(slopes["var_poisson"], check, tol)
 
-    check = np.array([[0.420046, 0.0, 0.0, 0.0, 0.420046, 0.420046, 0.420046]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[0.420046, 0.0, 0.0, 0.0, 0.420046, 0.420046, 0.420046]])
+    else:  # LIKELY
+        check = np.array([[0.420046, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
     np.testing.assert_allclose(slopes["var_rnoise"], check, tol)
 
-    check = np.array([[6.274218, 0.0, 0.0, 0.0, 0.6481096, 0.6481096, 0.6481096]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[6.274218, 0.0, 0.0, 0.0, 0.6481096, 0.6481096, 0.6481096]])
+    else:  # LIKELY
+        check = np.array([[6.274218, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
     np.testing.assert_allclose(slopes["err"], check, tol)
 
 
@@ -573,7 +591,7 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     if algo == DEFAULT_OLS:
         check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
     else:  # LIKELY
-        check = np.array([[DNU | SAT, SAT, GOOD]])
+        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
     np.testing.assert_equal(slopes["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -602,7 +620,7 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     if algo == DEFAULT_OLS:
         check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
     else:  # LIKELY
-        check = np.array([[[DNU | SAT, SAT, GOOD]]])
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
     np.testing.assert_equal(cube["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -641,7 +659,10 @@ def test_one_group_ramp_not_suppressed_one_integration(algo):
         check = np.array([[np.nan, np.nan, 1]])
     np.testing.assert_allclose(slopes["slope"], check, tol)
 
-    check = np.array([[DNU | SAT, SAT, GOOD]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[DNU | SAT, SAT, GOOD]])
+    else:  # LIKELY
+        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
     np.testing.assert_equal(slopes["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -670,7 +691,10 @@ def test_one_group_ramp_not_suppressed_one_integration(algo):
         check = np.array([[[np.nan, np.nan, 1]]])
     np.testing.assert_allclose(cube["slope"], check, tol)
 
-    check = np.array([[[DNU | SAT, SAT, GOOD]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[DNU | SAT, SAT, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
     np.testing.assert_equal(cube["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -736,7 +760,7 @@ def test_one_group_ramp_suppressed_two_integrations(algo):
     if algo == DEFAULT_OLS:
         check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     else:  # LIKELY
-        check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     np.testing.assert_equal(cube["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -802,7 +826,10 @@ def test_one_group_ramp_not_suppressed_two_integrations(algo):
         check = np.array([[[np.nan, np.nan, 1]], [[1, 1, 1]]])
     np.testing.assert_allclose(cube["slope"], check, tol)
 
-    check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[[DNU | SAT, SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    else:  # LIKELY
+        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     np.testing.assert_equal(cube["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -1078,7 +1105,10 @@ def test_only_good_0th_group(algo):
         check = np.array([[37.257824, 37.257824, np.nan]])
     np.testing.assert_allclose(slopes["slope"], check, tol, tol)
 
-    check = np.array([[GOOD, SAT, SAT]])
+    if algo == DEFAULT_OLS:
+        check = np.array([[GOOD, SAT, SAT]])
+    else:  # LIKELY
+        check = np.array([[GOOD, SAT, DNU | SAT]])
     np.testing.assert_equal(slopes["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -1551,7 +1581,10 @@ def test_invalid_integrations(algo):
             dtype=np.uint8,
         )
     else:  # LIKELY
-        check = np.array([JUMP, JUMP, JUMP, GOOD, JUMP, JUMP, JUMP, JUMP], dtype=np.uint8)
+        check = np.array(
+            [JUMP | DNU, JUMP | DNU, JUMP | DNU, GOOD, JUMP | DNU, JUMP | DNU, JUMP | DNU, JUMP | DNU],
+            dtype=np.uint8,
+        )
     check |= SAT
     np.testing.assert_equal(cube["dq"][:, 0, 0], check)
 

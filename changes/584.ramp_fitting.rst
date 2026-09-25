@@ -1,2 +1,4 @@
 Tweak the behavior of likelihood-based jump detection with few valid groups,
 enable the use of the likelihood algorithm with as few as two groups.
+Flag ramps with no usable group differences as DO_NOT_USE, and treat pixels
+with non-positive read noise as unusable rather than emitting warnings.
