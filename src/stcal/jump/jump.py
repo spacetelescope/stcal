@@ -333,17 +333,17 @@ def flag_large_events(gdq, jump_flag, sat_flag, jump_data):
     total_snowballs = 0
     nints, ngrps, nrows, ncols = gdq.shape
     persist_jumps = np.zeros(shape=(nints, nrows, ncols), dtype=np.uint8)
+
     for integration in range(nints):
         gdq_copy = gdq[integration].copy()
+
         for group in range(ngrps):
-            # current_gdq = gdq[integration, group, :, :]
             current_gdq = gdq_copy[group, :, :]
             current_sat = np.bitwise_and(current_gdq, sat_flag)
 
             if group == 0:
                 prev_gdq = np.zeros((nrows, ncols), dtype=np.uint8)
             else:
-                # prev_gdq = gdq[integration, group - 1, :, :]  # XXX old
                 prev_gdq = gdq_copy[group - 1, :, :]
             prev_sat = np.bitwise_and(prev_gdq, sat_flag)
 
