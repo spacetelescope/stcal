@@ -1,14 +1,15 @@
-# temporary minimum dependencies file
-requirements-min.txt
+src/stcal/ramp_fitting/ols_cas22/*.c
+src/stcal/ramp_fitting/ols_cas22/*.cpp
+src/stcal/ramp_fitting/ols_cas22/*.html
+src/stcal/_version.py
+*~
+*.*.swp
 
+### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*~
-
-# Temp files
-*.*.swp
 
 # C extensions
 *.so
@@ -33,12 +34,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -57,37 +52,13 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-coverage/
-cov.xml
 
 # Translations
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
 # Sphinx documentation
 docs/_build/
-
-# auto-generated API docs
-docs/source/api
-docs/api
-.DS_Store
-
-# PyBuilder
-.pybuilder/
-target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -106,17 +77,10 @@ ipython_config.py
 #   However, in case of collaboration, if having platform-specific dependencies or dependencies
 #   having no cross-platform support, pipenv may install dependencies that don't work, or not
 #   install all needed dependencies.
-#Pipfile.lock
+Pipfile.lock
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
+# uv
+uv.lock
 
 # Environments
 .env
@@ -131,12 +95,6 @@ venv.bak/
 .spyderproject
 .spyproject
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
 # mypy
 .mypy_cache/
 .dmypy.json
@@ -150,15 +108,16 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-src/stcal/ramp_fitting/ols_cas22/*.c
-src/stcal/ramp_fitting/ols_cas22/*.cpp
-src/stcal/ramp_fitting/ols_cas22/*.html
 
-# setuptools-scm generated module
-src/stcal/_version.py
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+.idea/
 
-# VSCode stuff
-.vscode
+# ruff
+.ruff_cache/
 
-# lockfiles
-uv.lock
+# LSP config files
+pyrightconfig.json

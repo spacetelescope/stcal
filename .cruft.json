@@ -1,0 +1,24 @@
+{
+  "template": "https://github.com/spacetelescope/stsci-package-template",
+  "commit": "74d9b40d17a3ec8db902c540d201c23d0776933a",
+  "checkout": "scsb",
+  "context": {
+    "cookiecutter": {
+      "project_name": "stcal",
+      "package_name": "stcal",
+      "repository_url": "https://github.com/spacetelescope/stcal",
+      "git_username": "spacetelescope/stcal-maintainers",
+      "project_description": "common tools and algorithms for space telescope calibration pipelines",
+      "manage_changelog_with_towncrier": true,
+      "publish_docs_to": "readthedocs.io",
+      "task_runner": "tox",
+      "python_version": ">=3.11",
+      "python_c_extensions": true,
+      "python_build_backend": "setuptools",
+      "crds_observatory": "none",
+      "_template": "https://github.com/spacetelescope/stsci-package-template",
+      "_commit": "74d9b40d17a3ec8db902c540d201c23d0776933a"
+    }
+  },
+  "directory": "python-package"
+}
