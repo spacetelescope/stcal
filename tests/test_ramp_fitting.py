@@ -486,7 +486,8 @@ def test_2_group_cases(algo):
 
     # The LIKELY algorithm fits group differences, so ramps with fewer than
     # two good groups have no data, are NaN, and are flagged DO_NOT_USE.
-    # OLS instead estimates a slope from a single good group.
+    # OLS instead estimates a slope from a single good group.  This means
+    # that OLS_C and likelihood fitting require separate checks.
     tol = 1.0e-6
     if algo == DEFAULT_OLS:
         check = np.array([[551.0735, np.nan, np.nan, np.nan, -293.9943, -845.0678, -845.0677]])
@@ -588,10 +589,7 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     check = np.array([[np.nan, np.nan, 1.0000001]])
     np.testing.assert_allclose(slopes["slope"], check, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
-    else:  # LIKELY
-        check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
+    check = np.array([[DNU | SAT, DNU | SAT, GOOD]])
     np.testing.assert_equal(slopes["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -617,10 +615,7 @@ def test_one_group_ramp_suppressed_one_integration(algo):
     check = np.array([[[np.nan, np.nan, 1.0000001]]])
     np.testing.assert_allclose(cube["slope"], check, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
-    else:  # LIKELY
-        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
+    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]]])
     np.testing.assert_equal(cube["dq"], check)
 
     if algo == DEFAULT_OLS:
@@ -757,10 +752,7 @@ def test_one_group_ramp_suppressed_two_integrations(algo):
     check = np.array([[[np.nan, np.nan, 1.0000001]], [[1.0000001, 1.0000001, 1.0000001]]])
     np.testing.assert_allclose(cube["slope"], check, tol)
 
-    if algo == DEFAULT_OLS:
-        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
-    else:  # LIKELY
-        check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
+    check = np.array([[[DNU | SAT, DNU | SAT, GOOD]], [[GOOD, GOOD, GOOD]]])
     np.testing.assert_equal(cube["dq"], check)
 
     if algo == DEFAULT_OLS:
