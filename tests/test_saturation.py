@@ -88,9 +88,6 @@ def test_read_pattern_saturation_flagging(use_4d):
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern
     )
 
-    # Make sure that groups after the third get flagged.
-    # Ken M - PR #321 introduced this behavior, but it may not be what's wanted.
-    #         For now, just test the current behavior.
     assert np.all(gdq[0, 2:, 5, 5] == DQFLAGS["SATURATED"])
 
 
@@ -135,7 +132,6 @@ def test_read_pattern_saturation_flagging_dnu(use_4d):
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern
     )
 
-    # Make sure that groups after the third get flagged
     assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
 
 

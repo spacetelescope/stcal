@@ -1,1 +1,4 @@
-Updating the snowball algorithm to no longer need the ``DO_NOT_USE`` flag.
+The ticket JP-3805 introduced behavior that required the use of ``DO_NOT_USE``
+flagging during the saturation step to properly detect snowballs in the jump
+step. This PR updates the snowball detection algorithm to removed this work
+around and to properly detect snowballs using only the ``SATURATED`` flag.
