@@ -1,0 +1,1 @@
+Updating the snowball algorithm to no longer need the ``DO_NOT_USE`` flag.
