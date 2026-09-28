@@ -105,7 +105,7 @@ Snowball Detection
 
 .. _jump_snowball:
 
-To identify a snowball, use the algorithm below to find a contiguous block of newly
+To identify a snowball, the algorithm below is used to find a contiguous block of newly
 saturated pixels, then compute an enclosing ellipse for the block of pixels. Refer
 to `Regan (2024) <https://www.stsci.edu/files/live/sites/www/files/home/jwst/documentation/technical-documents/_documents/JWST-STScI-008545.pdf>`_ for
 more detail.
@@ -113,20 +113,20 @@ more detail.
 
 #. For each group plane in an integration, find newly saturated pixels.
 
-#. Find contiguous saturated pixels with ``min_sat_area``, default=1.0. Then solve
+#. Find contiguous saturated pixels with ``min_sat_area``, default=1.0, then solve
    for minimum enclosing ellipses.
 
-#. Find contiguous jump detected pixels with ``min_jump_area``, default=5.0. Then
+#. Find contiguous jump detected pixels with ``min_jump_area``, default=5.0, then
    solve for minimum enclosing ellipses.
 
-#. For each jump ellipses that has a newly saturated pixel at the center, add the
-   jump ellipse parameters to the list of snowballs. Using ``edge_size`` for jump
-   ellipses close to the edge, the saturated center requirement is removed.
+#. For each jump ellipse that has a newly saturated pixel at the center, add the
+   jump ellipse parameters to the list of snowballs. For jump ellipses close to
+   the edge, identified with ``edge_size``, saturation at the center is not required.
 
 #. For saturated ellipses with minor axis > ``min_sat_extend``, extend the minor
-   axis for saturationg by ``sat_expand``.
+   axis for saturation by ``sat_expand``.
 
 #. For jump ellipses with minor axis > ``min_sat_extend``, extend the minor axis for
-   saturationg by expand_factor, then expand major axis by same number of pixels.
+   saturating by ``expand_factor``, then expand the major axis by same number of pixels.
 
 #. Limit expansion by ``max_extended_radius``.
