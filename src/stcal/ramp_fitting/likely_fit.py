@@ -10,12 +10,14 @@ from stcal.ramp_fitting.likely_algo_classes import Covar, IntegInfo, RampResult
 
 DELIM = "=" * 80
 SQRT2 = np.sqrt(2)
-LIKELY_MIN_NGROUPS = 4
+# The likelihood fit requires at least two groups so that there is
+# a measured group difference.
+LIKELY_MIN_NGROUPS = 2
 
 log = logging.getLogger(__name__)
 
 
-def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
+def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_detect=False):
     """
     Invoke ramp fitting using the likelihood algorithm.
 
@@ -31,6 +33,8 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
         Class containing parameters and methods to detect jumps.  Used here
         to access the snowball algorithm via jump.flag_large_events.  If None,
         do not apply flag_large_events.  Default None.
+    skip_jump_detect : bool, optional
+        Skip likelihood-based jump detection?  Default False.
 
     Returns
     -------
@@ -46,7 +50,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
     nints, ngroups, nrows, ncols = ramp_data.data.shape
 
     if ngroups < LIKELY_MIN_NGROUPS:
-        raise ValueError("Likelihood fit requires at least 4 groups.")
+        raise ValueError(f"Likelihood fit requires at least {LIKELY_MIN_NGROUPS} groups.")
 
     readtimes = get_readtimes(ramp_data)
 
@@ -69,6 +73,19 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
             use_zeroframe = True
 
     covar = Covar(readtimes)
+
+    # Jump detection requires four groups (three differences) if we are
+    # looking for intergroup (single difference) jumps.  If we are looking
+    # for intragroup (two difference) jumps, we need at least five groups.
+    if np.all(covar.Nreads == 1):
+        min_ngroups_jump = 4
+    else:
+        min_ngroups_jump = 5
+
+    if ngroups < min_ngroups_jump:
+        log.warning(f"Fewer than {min_ngroups_jump} groups in ramp.")
+        log.warning("Jump detection will be skipped.")
+
     integ_class = IntegInfo(nints, nrows, ncols)
 
     readnoise_2d = readnoise_2d / SQRT2
@@ -100,8 +117,24 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
 
         for row in range(nrows):
             d2use = determine_diffs2use(diff[:, row, :], gdq[:, row, :])
+            # Pixels without a positive, finite read noise cannot be fit.
+            d2use[:, ~(readnoise_2d[row] > 0)] = 0
             d2use_copy = d2use.copy()  # Use to flag jumps
-            if ramp_data.rejection_threshold is not None:
+
+            # Skip the jump step if this behavior was requested or
+            # if we have insufficiently many groups/resultants
+            if skip_jump_detect or ngroups < min_ngroups_jump:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    result = fit_ramps(
+                        diff[:, row],
+                        covar,
+                        gain_2d[row],
+                        readnoise_2d[row],
+                        diffs2use=d2use,
+                    )
+                countrates = result.countrate
+            elif ramp_data.rejection_threshold is not None:
                 threshold_one_omit = ramp_data.rejection_threshold**2
                 pval = scipy.special.erfc(ramp_data.rejection_threshold / SQRT2)
                 threshold_two_omit = scipy.stats.chi2.isf(pval, 2)
@@ -159,6 +192,8 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None):
             integ_class.get_results(result, integ, row)
 
         pdq = utils.dq_compress_sect(ramp_data, gdq, pdq)
+        # A ramp with no usable group differences has no measured slope.
+        pdq[np.sum(alldiffs2use, axis=0) == 0] |= ramp_data.flags_do_not_use
         integ_class.dq[integ, :, :] = pdq
 
         del gdq
@@ -288,6 +323,15 @@ def mask_jumps(
         best_dchisq_one = np.amax(dchisq_one * one_omit_ok[:, np.newaxis], axis=0)
         best_dchisq_two = np.amax(dchisq_two * two_omit_ok[:, np.newaxis], axis=0)
 
+        # We need at least three differences to flag an intergroup jump,
+        # and at least four differences to flags an intragroup jump.
+        # If there is an intragroup jump two differences are affected,
+        # and if we have only three groups, we cannot tell which one of
+        # the three is "good".
+        num_valid_diffs = np.sum(diffs2use[:, recheck], axis=0)
+        best_dchisq_one[num_valid_diffs < 3] = 0
+        best_dchisq_two[num_valid_diffs < 4] = 0
+
         # Is the best improvement from dropping one resultant
         # difference or two?  Two drops will always offer more
         # improvement than one so penalize them by the respective
@@ -337,13 +381,6 @@ def mask_jumps(
         dropped[:] = False
         dropped[recheck] = drop
         recheck[:] = dropped
-
-        # Do not try to search for bad resultants if we have already
-        # given up on all but one, two, or three resultant differences
-        # in the ramp.  If there are only two left we have no way of
-        # choosing which one is "good".  If there are three left we
-        # run into trouble in case we need to discard two.
-        recheck[np.sum(diffs2use, axis=0) <= 3] = False
 
     return diffs2use, countrate
 
@@ -563,9 +600,17 @@ def fit_ramps(
         # Use all diffs
         diffs2use = np.ones(diffs.shape, np.uint8)
 
+    # Pixels with no usable group differences have no data to fit.
+    # Give them a placeholder covariance matrix so that the math below
+    # stays finite (e.g., zero read noise and count rate would otherwise
+    # give a singular matrix); their results are set to NaN at the end.
+    no_diffs = np.sum(diffs2use, axis=0) == 0
+    rnoise = np.where(no_diffs, 1, rnoise)
+
     # diffs is (ngroups, ncols) of the current row
     if count_rate_guess is None:
-        count_rate_guess = initial_count_rate_guess(covar, diffs, diffs2use)
+        count_rate_guess = initial_count_rate_guess(diffs, diffs2use)
+    count_rate_guess = np.where(no_diffs, 0, count_rate_guess)
 
     alpha_tuple, beta_tuple, scale = compute_alphas_betas(
         count_rate_guess, gain, rnoise, covar, rescale, diffs, dn_scale
@@ -620,6 +665,8 @@ def fit_ramps(
         beta_phnoise,
         beta_readnoise,
     )
+    for attr in ("countrate", "chisq", "uncert", "var_poisson", "var_rnoise"):
+        getattr(result, attr)[no_diffs] = np.nan
 
     # --- Beginning at line 250: Paper 1 section 4
 
