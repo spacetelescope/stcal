@@ -435,7 +435,7 @@ def det_jump_sigma_clipping(gdq, nints, ngroups, total_groups, first_diffs_finit
             f" Jump Step using empirical sigma clip {str(total_groups)} nints*ngroups greater than "
             f"{str(twopt_p.minimum_sigclip_groups)}, rejection threshold {str(twopt_p.normal_rej_thresh)}"
         )
-        
+
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", ".*All-NaN slice encountered.*", RuntimeWarning)
         warnings.filterwarnings("ignore", ".*Mean of empty slice.*", RuntimeWarning)
