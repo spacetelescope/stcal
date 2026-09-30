@@ -259,7 +259,7 @@ def test_long_ramp():
     np.testing.assert_allclose(data, cube1["slope"][0, 0, 0], tol)
 
 
-@pytest.mark.parametrize("ngroups", [1, 2])
+@pytest.mark.parametrize("ngroups", [1])
 def test_too_few_group_ramp(ngroups):
     """
     Test a ramp with too few groups.
@@ -376,16 +376,52 @@ def test_jump_detect():
     assert not (gdq[:, 1, 0] & JMP).any()
 
 
-def test_too_few_groups(caplog):
-    """Check for a warning message."""
+def test_too_few_groups_for_jumps(caplog):
+    """
+    Test a ramp with too few groups for jump detection.
+
+    Three groups are enough for likelihood ramp fitting but not for
+    likelihood jump detection, which is skipped with a warning.
+    """
     nints, ngroups, nrows, ncols = 1, 3, 1, 1
     ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
 
     save_opt, algo, ncores = False, "LIKELY", "none"
-    ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
 
-    expected_log = "ramp fitting algorithm is being changed to OLS_C"
-    assert expected_log in caplog.text
+    assert "Jump detection will be skipped." in caplog.text
+
+    ddiff = ramp_data.data[0, ngroups - 1, 0, 0] - ramp_data.data[0, 0, 0, 0]
+    check = ddiff / ((ngroups - 1) * ramp_data.group_time)
+    np.testing.assert_allclose(slopes["slope"][0, 0], check, 1e-5)
+    assert slopes["dq"][0, 0] == GOOD
+
+
+@pytest.mark.filterwarnings("error")
+def test_no_usable_diffs():
+    """
+    Test pixels with no usable group differences.
+
+    Such pixels, including those with zero read noise, have no measured
+    slope; they are NaN, flagged DO_NOT_USE, and must not raise warnings.
+    """
+    nints, ngroups, nrows, ncols = 1, 6, 1, 4
+    ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
+
+    # Pixel 1 is saturated after the first group, pixel 2 is fully
+    # saturated with zero read noise, and pixel 3 is flat with zero read
+    # noise.
+    ramp_data.groupdq[0, 1:, 0, 1] = SAT
+    ramp_data.groupdq[0, :, 0, 2] = DNU | SAT
+    ramp_data.data[0, :, 0, 3] = 0
+    rnoise2d[0, 2:] = 0
+
+    save_opt, algo, ncores = False, "LIKELY", "none"
+    slopes, cube, ols_opt = ramp_fit_data(ramp_data, save_opt, rnoise2d, gain2d, algo, "optimal", ncores)
+
+    assert np.isfinite(slopes["slope"][0, 0])
+    assert np.all(np.isnan(slopes["slope"][0, 1:]))
+    np.testing.assert_equal(slopes["dq"][0], [GOOD, DNU | SAT, DNU | SAT, DNU])
 
 
 def test_zeroframe():
