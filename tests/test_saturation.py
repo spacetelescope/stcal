@@ -200,9 +200,6 @@ def test_group2_saturation_flagging_with_bias(use_4d):
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern, bias=bias
     )
 
-    # Make sure that groups after the second get flagged
-    # The second group will only be flagged as DNU while
-    # the PR#321 band-aid still in place.
     assert np.all(
         gdq[0, 1:, 5, 5]
         == [DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]]
