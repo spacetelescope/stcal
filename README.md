@@ -132,3 +132,5 @@ Need to parallelize your test runs over all available cores?
 
     pip install pytest-xdist
     pytest -n auto
+
+foo
