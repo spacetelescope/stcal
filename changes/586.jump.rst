@@ -1,0 +1,1 @@
+For group-averaged data, flag snowballs for one additional group following new saturation detection.

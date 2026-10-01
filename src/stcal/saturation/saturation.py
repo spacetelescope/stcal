@@ -194,11 +194,11 @@ def flag_saturated_pixels(
                     & (nextdq & saturated != 0)
                 )
 
-            flagarray = (partial_sat * dnu).astype(np.uint32)
+            flagarray = (partial_sat * saturated).astype(np.uint32)
 
             # Grow the newly-flagged saturating pixels
             if n_pix_grow_sat > 0:
-                _adjacent_pixels(flagarray, dnu, n_pix_grow_sat, inplace=True)
+                _adjacent_pixels(flagarray, saturated, n_pix_grow_sat, inplace=True)
 
             # Add them to the gdq array
             gdq[ints, group, :, :] |= flagarray
@@ -236,7 +236,7 @@ def flag_saturated_pixels(
             mask &= gp3mask
 
             # Flag the 2nd group for the pixels passing that gauntlet
-            flagarray = (mask * dnu).astype(np.uint32)
+            flagarray = (mask * saturated).astype(np.uint32)
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
