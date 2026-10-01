@@ -17,6 +17,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  USE_CODECOV: "${{ secrets.CODEDOV_TOKEN != ''  && 'codecov' || '' }}"
+
 jobs:
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@e5af21e4ae37af089a73bb032e10b78b0e746174 # v3.0.1
@@ -27,7 +30,7 @@ jobs:
         - linux: py312-xdist
         - linux: py313-xdist
         - linux: py314-cov-xdist
-          coverage: codecov
+          coverage: "${{ env.USE_CODECOV }}"
         - macos: py314-xdist
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -41,6 +44,6 @@ jobs:
       envs: |
         - linux: py312-jwst-cov
         - linux: py312-romancal-cov
-      coverage: codecov
+      coverage: "${{ env.USE_CODECOV }}"
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
