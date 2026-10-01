@@ -14,12 +14,12 @@ two-point differences between successive groups to identify outlying values.
 Depending on the ramp length and parameter configuration one of four different
 methods can be used.
 
-1) Astropy sigma clipping across integrations for each group difference
+1) Empirical Astropy sigma clipping across integrations for each group difference
 in the ramp (e.g., sigma clip groups 3-2 for all integrations, then sigma clip
 groups 4-3 for all integrations, etc).  The appropriate value of sigma to use is
 determined empirically from the ensemble of group differences.
 
-2) Astropy sigma clipping across all group differences and all integrations
+2) Empirical Astropy sigma clipping across all group differences and all integrations
 simultaneously (e.g., treat all group differences within an integration and in other
 integrations equally).  The appropriate value of sigma to use is
 determined empirically from the ensemble of group differences.
