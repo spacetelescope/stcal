@@ -1,0 +1,4 @@
+For group-averaged data, flag pixels that likely saturated in a previous group
+with the SATURATED flag instead of the DO_NOT_USE flag. This reverts an earlier
+workaround intended to enable more thorough snowball flagging for these cases,
+now handled directly in the jump algorithm.
