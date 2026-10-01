@@ -43,4 +43,4 @@ jobs:
       envs: |
         - linux: py312-jwst-cov
         - linux: py312-romancal-cov
-      coverage: codecov
+      coverage: codecov-oidc
