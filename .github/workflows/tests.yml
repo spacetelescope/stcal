@@ -27,7 +27,7 @@ jobs:
         - linux: py312-xdist
         - linux: py313-xdist
         - linux: py314-cov-xdist
-          coverage: codecov
+          coverage: "${{ secrets.CODEDOV_TOKEN != ''  ? 'codecov' : '' }}"
         - macos: py314-xdist
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -41,6 +41,6 @@ jobs:
       envs: |
         - linux: py312-jwst-cov
         - linux: py312-romancal-cov
-      coverage: codecov
+      coverage: "${{ secrets.CODEDOV_TOKEN != ''  ? 'codecov' : '' }}"
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
