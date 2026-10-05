@@ -30,7 +30,7 @@ repos:
       - id: text-unicode-replacement-char
   # lint and format
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.6
+    rev: v0.16.10
     hooks:
       - id: ruff-check
         args:
@@ -39,7 +39,7 @@ repos:
       - id: ruff-format
   # type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+    rev: v2.4.0
     hooks:
       - id: mypy
         additional_dependencies: [types-requests]
@@ -60,7 +60,7 @@ repos:
       - id: towncrier-check
   # format YAML and Markdown
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.9.6
+    rev: v3.9.9
     hooks:
       - id: prettier
         types_or:
@@ -85,7 +85,7 @@ repos:
           - black==22.12.0
   # sort imports in Cython code
   - repo: https://github.com/pycqa/isort
-    rev: 9.0.1
+    rev: 9.0.2
     hooks:
       - id: isort
         name: isort (cython)
@@ -98,7 +98,7 @@ repos:
       - id: double-quote-cython-strings
   # C style
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v23.1.0
+    rev: v23.1.2
     hooks:
       - id: clang-format
         types_or: [c]
