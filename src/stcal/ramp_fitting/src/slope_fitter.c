@@ -972,6 +972,7 @@ ERROR:
     clean_rateint_product(&rateint_prod);
 
     /* Return (None, None, None) */
+    // XXX JP-4233/4307 Error return or all NaNs; not sure
     result = Py_BuildValue("(OOO)", Py_None, Py_None, Py_None);
 
 CLEANUP:
