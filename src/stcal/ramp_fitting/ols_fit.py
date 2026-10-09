@@ -84,6 +84,7 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
     # There is nothing to do if all ramps in all integrations are saturated.
     first_gdq = ramp_data.groupdq[:, 0, :, :]
     if np.all(np.bitwise_and(first_gdq, ramp_data.flags_saturated)):
+        raise ValueError("No usable data in completely satuarted exposure")
         return None, None, None
 
     # Call ramp fitting for the single processor (1 data slice) case

@@ -1140,10 +1140,9 @@ def test_all_sat():
     ramp.groupdq[:, 0, :, :] = ramp.flags_saturated
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
 
-    assert slopes is None
-    assert cube is None
+    with pytest.raises(ValueError):
+        slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
 
 
 def test_dq_multi_int_dnu():
