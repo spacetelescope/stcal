@@ -387,3 +387,57 @@ def test_resample_ivm_weight_overflow():
     assert not np.allclose(oerr, 0, atol=0, rtol=1e-6)
     assert np.allclose(ovar, (sb_err_in * pscale_in / pscale_out) ** 2, atol=0, rtol=1e-6)
     assert not np.allclose(ovar, 0, atol=0, rtol=1e-6)
+
+
+def test_resample_optional_var():
+    crval = (150.0, 2.0)
+    crpix = (500.0, 500.0)
+    shape = (1000, 1000)
+    pscale = 0.06 / 3600
+
+    w = make_gwcs(crpix=(600, 600), crval=crval, pscale=pscale, shape=(1200, 1200))
+    output_wcs = {
+        "wcs": w,
+        "pixel_scale": pscale * 3600,
+    }
+
+    nmodels = 2
+
+    resample = Resample(
+        n_input_models=nmodels,
+        output_wcs=output_wcs,
+        variance_array_names=["var_rnoise"],
+        compute_err="from_var",
+    )
+    resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
+
+    for k in range(nmodels):
+        im = make_input_model(
+            shape=shape,
+            crpix=crpix,
+            crval=crval,
+            pscale=pscale,
+            group_id=k + 1,
+        )
+        im["data"][:] = 1.0
+
+        # rnoise and poisson variances present; flat variance not present
+        im["var_rnoise"][:] = 1.0
+        im["var_poisson"][:] = 1.0
+        im["var_flat"] = None
+
+        resample.add_model(im)
+    resample.finalize()
+
+    # data, var_rnoise present
+    assert np.nansum(resample.output_model["data"]) > 0.0
+    assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
+
+    # error is computed from var_rnoise only
+    assert np.allclose(
+        resample.output_model["err"], np.sqrt(resample.output_model["var_rnoise"]), equal_nan=True
+    )
+
+    # optional variances not propagated to output model
+    assert "var_flat" not in resample.output_model
+    assert "var_poisson" not in resample.output_model
