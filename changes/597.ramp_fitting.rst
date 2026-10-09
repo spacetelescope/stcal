@@ -1,0 +1,2 @@
+Raising an exception for fully saturated data, which means there
+are no ramps that can be computed.
