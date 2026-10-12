@@ -166,6 +166,12 @@ are passed into the `~stcal.tweakreg.relative_align` function.
 * ``sigma``: A positive `float` indicating the clipping limit, in sigma units,
   used when performing fit. (Default=3.0)
 
+* ``sigma_stat``: The statistic used as the "sigma" for clipping, in both
+  the relative and the absolute fits: ``'rmse'``, ``'mae'``, ``'std'``, or
+  ``'mad'``; see `tweakwcs.linearfit.iter_linear_fit`. ``'mad'`` is the most
+  robust when mismatched sources are a large fraction of the matches, as in
+  crowded fields. (Default='rmse')
+
 **Absolute Astrometric fitting parameters:**
 
 Parameters used for absolute astrometry to a reference catalog.
