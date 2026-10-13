@@ -3301,8 +3301,11 @@ segment_rnoise_len1(
     var = rnum / rden;
 
     /*
-     * The read noise is scaled for a group of nframes averaged frames, but
-     * the ZEROFRAME is a single frame, so undo the 1 / nframes scaling.
+     * pr->rnoise enters the C code already scaled by 1 / sqrt(nframes) in
+     * Python (ramp_fit_data), so it is already the read noise of a group of
+     * nframes-averaged frames.  The ZEROFRAME is a single frame, and timing
+     * is already frame_time for it.  So ZEROFRAME needs the read noise
+     * variance 1 / nframes scaling undone.
      */
     if (!rd->suppress1g && !pr->is_0th[integ] && pr->is_zframe[integ]) {
         var *= (real_t) rd->nframes;
