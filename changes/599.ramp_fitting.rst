@@ -1,0 +1,2 @@
+Fix OLS_C read noise variance for ZEROFRAME-derived slopes, which was
+too small by a factor of NFRAMES.
