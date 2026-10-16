@@ -95,6 +95,8 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
         if image_info is None or integ_info is None:
             return None, None, None
 
+        if np.isnan(image_info["slope"]).all():
+            raise ValueError("No usable data in completely computed slopes (all NaN).")
         return image_info, integ_info, opt_info
 
     # Call ramp fitting for multi-processor (multiple data slices) case
@@ -102,6 +104,8 @@ def ols_ramp_fit_multi(ramp_data, save_opt, readnoise_2d, gain_2d, weighting, ma
         ramp_data, save_opt, readnoise_2d, gain_2d, weighting, number_slices
     )
 
+    if np.isnan(image_info["slope"]).all():
+        raise ValueError("No usable data in completely computed slopes (all NaN).")
     return image_info, integ_info, opt_info
 
 
