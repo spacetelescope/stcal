@@ -254,10 +254,7 @@ def test_resample_add_model_hook():
 @pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
 @pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
 @pytest.mark.parametrize("weight_type", ["exptime", "ivm", "ivm-sky"])
-@pytest.mark.parametrize(
-    "propagate_dq_pars",
-    [(True, None), (True, 0xBAAAAAAD), (False, None)]
-)
+@pytest.mark.parametrize("propagate_dq_pars", [(True, None), (True, 0xBAAAAAAD), (False, None)])
 def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_type, propagate_dq_pars):
     """test surface-brightness photometry"""
     model = nrcb5_many_fluxes
