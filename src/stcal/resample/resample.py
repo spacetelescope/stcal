@@ -1275,7 +1275,7 @@ class Resample:
             kernel=self.kernel,
             fillval=np.nan,
             fillval_dq=self.fillval_dq,
-            disable_ctx=True
+            disable_ctx=True,
         )
 
         # Call 'drizzle' to perform image combination
