@@ -254,10 +254,14 @@ def test_resample_add_model_hook():
 @pytest.mark.parametrize("kernel", ["square", "turbo", "point"])
 @pytest.mark.parametrize("pscale_ratio", [0.55, 1.0, 1.2])
 @pytest.mark.parametrize("weight_type", ["exptime", "ivm", "ivm-sky"])
-@pytest.mark.parametrize("propagate_dq", [True, False])
-def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_type, propagate_dq):
+@pytest.mark.parametrize(
+    "propagate_dq_pars",
+    [(True, None), (True, 0xBAAAAAAD), (False, None)]
+)
+def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_type, propagate_dq_pars):
     """test surface-brightness photometry"""
     model = nrcb5_many_fluxes
+    propagate_dq, fillval_dq = propagate_dq_pars
 
     wcs = model["wcs"]
     wcsinfo = model["wcsinfo"]
@@ -287,6 +291,7 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
         enable_var=False,
         compute_err=False,
         fillval="NAN",
+        fillval_dq=fillval_dq,
         kernel=kernel,
         propagate_dq=propagate_dq,
     )
@@ -305,6 +310,15 @@ def test_resample_photometry(nrcb5_many_fluxes, pscale_ratio, kernel, weight_typ
     if propagate_dq:
         assert out_dq is not None
         assert np.any(out_dq)
+
+        mask = out_wht == 0.0
+        assert np.any(mask)
+        if fillval_dq is None:
+            assert np.all(out_dq[mask] == 0)
+        else:
+            assert np.all((out_dq[mask] & fillval_dq) == fillval_dq)
+
+        out_dq[mask] = 0
         assert np.bitwise_or.reduce(out_dq, axis=(0, 1)) == good_bits
 
     in_wdata = model["data"] * weight
