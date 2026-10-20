@@ -98,6 +98,17 @@ class Resample:
         pixels with no contributions from input images will be set to this
         ``fillval`` value.
 
+    fillval_dq : int, None, optional
+        The value assigned to output DQ pixels that received no
+        contributions from any input image (pixels with zero output
+        weight). It must be an integer in the range ``[0, 2**32 - 1]``
+        and is typically a bit flag indicating "no data" or "do not use".
+        The fill value replaces the existing DQ value of such pixels
+        rather than being combined with it using bitwise-OR.
+
+        If `None`, these pixels will not be modified and will take their
+        default value, which is zero.
+
     weight_type : str, optional
         The weighting type ("ivm", "exptime", or "ivm-sky") for adding models' data. For
         ``weight_type="ivm"`` (the default), the weighting will be
@@ -254,6 +265,7 @@ class Resample:
         pixfrac=1.0,
         kernel="square",
         fillval=0.0,
+        fillval_dq=None,
         weight_type="ivm",
         good_bits=0,
         enable_ctx=True,
@@ -282,6 +294,7 @@ class Resample:
         self.pixfrac = pixfrac
         self.kernel = kernel
         self.fillval = fillval
+        self.fillval_dq = fillval_dq
         self.good_bits = good_bits
 
         if weight_type.startswith("ivm") or weight_type == "exptime":
@@ -325,6 +338,7 @@ class Resample:
         log.info(f"Driz parameter kernel: {self.kernel}")
         log.info(f"Driz parameter pixfrac: {self.pixfrac}")
         log.info(f"Driz parameter fillval: {self.fillval}")
+        log.info(f"Driz parameter fillval_dq: {self.fillval_dq}")
         log.info(f"Driz parameter weight_type: {self.weight_type}")
         if self.pixmap_stepsize > 1:
             log.info(f"Evaluating the full pixel map every {self.pixmap_stepsize} pixels")
@@ -488,6 +502,7 @@ class Resample:
             "pixfrac": self.pixfrac,
             "kernel": self.kernel,
             "fillval": self.fillval,
+            "fillval_dq": self.fillval_dq,
             "weight_type": self.weight_type,
             # pixel scale:
             "pixelarea_steradians": pix_area / np.rad2deg(3600) ** 2,
@@ -655,6 +670,7 @@ class Resample:
         self._driz = Drizzle(
             kernel=self.kernel,
             fillval=self.fillval,
+            fillval_dq=self.fillval_dq,
             out_shape=self._output_array_shape,
             out_img=self._output_model["data"],
             out_wht=self._output_model["wht"],
@@ -671,6 +687,7 @@ class Resample:
             self._driz_error = Drizzle(
                 kernel=self.kernel,
                 fillval=self.fillval,
+                fillval_dq=self.fillval_dq,
                 out_shape=self._output_array_shape,
                 out_img=self._output_model["err"],
                 exptime=self._output_model["exposure_time"],
@@ -1253,7 +1270,13 @@ class Resample:
         output_shape = self.output_array_shape
 
         # Resample the error array. Fill "unpopulated" pixels with NaNs.
-        driz = Drizzle(out_shape=output_shape, kernel=self.kernel, fillval=np.nan, disable_ctx=True)
+        driz = Drizzle(
+            out_shape=output_shape,
+            kernel=self.kernel,
+            fillval=np.nan,
+            fillval_dq=self.fillval_dq,
+            disable_ctx=True
+        )
 
         # Call 'drizzle' to perform image combination
         log.info(f"Drizzling {variance.shape} --> {output_shape}")
