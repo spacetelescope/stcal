@@ -68,3 +68,17 @@ def test_skymatch(images, method, match_down, skys, subtract):
 def test_skymatch_errors(input_images, method, error_class, error_match):
     with pytest.raises(error_class, match=error_match):
         skymatch(input_images, method)
+
+
+@pytest.mark.parametrize("method", ["global", "global+match"])
+@pytest.mark.parametrize("bad_index", [0, 1])
+def test_skymatch_global_with_unmeasurable_image(images, method, bad_index):
+    """An image whose sky cannot be computed must not break the global minimum."""
+    images = [images[0], copy.deepcopy(images[0])]
+    images[1].image[:] = FILL_VALUES[1]
+    images[bad_index].mask[:] = False  # no usable pixels
+
+    skymatch(images, method, subtract=False)
+
+    good_index = 1 - bad_index
+    assert np.allclose([i.sky for i in images], FILL_VALUES[good_index])
