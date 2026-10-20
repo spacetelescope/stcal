@@ -1,0 +1,1 @@
+Added ``fillval_dq`` argument to the ``Resample`` class initializer to set the value of output DQ pixels that did not receive contributions from any input image pixels.
