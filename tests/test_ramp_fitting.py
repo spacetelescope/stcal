@@ -940,7 +940,7 @@ def test_zeroframe(algo):
     # Check slopes information
 
     if algo == DEFAULT_OLS:
-        check = np.array([[22.07871, 18.628912, 19.89315]])
+        check = np.array([[22.07871, 18.628912, 18.945446]])
     else:  # LIKELY
         check = np.array([[22.101093, 18.628912, 18.628912]])
     np.testing.assert_allclose(slopes["slope"], check, tol, tol)
@@ -958,13 +958,13 @@ def test_zeroframe(algo):
     np.testing.assert_allclose(slopes["var_poisson"], check, tol, tol)
 
     if algo == DEFAULT_OLS:
-        check = np.array([[0.00043035, 0.0004338, 0.00043293]])
+        check = np.array([[0.00042844, 0.0004338, 0.00043358]])
     else:  # LIKELY
         check = np.array([[0.001787, 0.001021, 0.001021]])
     np.testing.assert_allclose(slopes["var_rnoise"], check, tol, tol)
 
     if algo == DEFAULT_OLS:
-        check = np.array([[0.36267212, 0.09544477, 0.54579544]])
+        check = np.array([[0.36267212, 0.09544477, 0.54579604]])
     else:  # LIKELY
         check = np.array([[0.157366, 0.148817, 0.148817]])
     np.testing.assert_allclose(slopes["err"], check, tol, tol)
@@ -993,13 +993,13 @@ def test_zeroframe(algo):
     np.testing.assert_allclose(cube["var_poisson"], check, tol, tol)
 
     if algo == DEFAULT_OLS:
-        check = np.array([[[0.03470363, 0.0, 0.21689774]], [[0.0004338, 0.0004338, 0.0004338]]])
+        check = np.array([[[0.03470363, 0.0, 0.8675909]], [[0.0004338, 0.0004338, 0.0004338]]])
     else:  # LIKELY
         check = np.array([[[0.144598, np.nan, np.nan]], [[0.001021, 0.001021, 0.001021]]])
     np.testing.assert_allclose(cube["var_rnoise"], check, tol, tol)
 
     if algo == DEFAULT_OLS:
-        check = np.array([[[1.1021013, 0.0, 2.542352]], [[0.38460922, 0.09544477, 0.55925536]]])
+        check = np.array([[[1.1021013, 0.0, 2.6672542]], [[0.38460922, 0.09544477, 0.55925536]]])
     else:  # LIKELY
         check = np.array([[[0.771013, np.nan, np.nan]], [[0.148817, 0.148817, 0.148817]]])
     np.testing.assert_allclose(cube["err"], check, tol, tol)
@@ -1064,6 +1064,57 @@ def create_only_good_0th_group_data():
     rnoise = np.ones((nrows, ncols), np.float32) * rnval
 
     return ramp_data, gain, rnoise
+
+
+def create_zeroframe_nframes_data(nframes):
+    """
+    A one integration, two pixel image with ten groups.
+
+    The first pixel is saturated in every group, so its slope comes from the
+    ZEROFRAME.  The second pixel is a normal ramp, so the fit does not exit early.
+    """
+    frame_time = 2.5
+    data = np.zeros((1, 10, 1, 2), dtype=np.float32)
+    data[0, :, 0, 1] = np.arange(10) * 100.0
+    gdq = np.zeros(data.shape, dtype=np.uint8)
+    gdq[0, :, 0, 0] = SAT
+    pixdq = np.zeros((1, 2), dtype=np.uint32)
+    dark_current = np.zeros((1, 2), dtype=np.float32)
+    zframe = np.full((1, 1, 2), 12.5, dtype=np.float32)
+
+    ramp_data = RampData()
+    ramp_data.set_arrays(
+        data=data, groupdq=gdq, pixeldq=pixdq, average_dark_current=dark_current, zeroframe=zframe
+    )
+    ramp_data.set_meta(
+        name="NIRCAM",
+        frame_time=frame_time,
+        group_time=frame_time * nframes,
+        groupgap=0,
+        nframes=nframes,
+        drop_frames1=None,
+    )
+    ramp_data.set_dqflags(dqflags)
+    ramp_data.suppress_one_group_ramps = False
+
+    gain = np.full((1, 2), 2.0, dtype=np.float32)
+    rnoise = np.full((1, 2), 10.0, dtype=np.float32)
+    return ramp_data, gain, rnoise
+
+
+@pytest.mark.parametrize("nframes", [1, 2, 4, 8])
+def test_zeroframe_var_rnoise_independent_of_nframes(nframes):
+    """
+    Call ramp_fit_data with OLS_C on a pixel saturated in every group, so its slope comes
+    from the ZEROFRAME, for several values of nframes.  The pixel's var_rnoise is 16
+    (the nframes=1 value) for all of them, since the ZEROFRAME is a single frame.
+    Used to be divided by nframes.
+    """
+    ramp_data, gain, rnoise = create_zeroframe_nframes_data(nframes)
+
+    slopes, _, _ = ramp_fit_data(ramp_data, False, rnoise, gain, DEFAULT_OLS, "optimal", "none")
+
+    np.testing.assert_allclose(slopes["var_rnoise"][0, 0], 16.0, rtol=1.0e-5)
 
 
 @pytest.mark.parametrize("algo", [DEFAULT_OLS, "LIKELY"])
