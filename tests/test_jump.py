@@ -541,3 +541,27 @@ def test_any_center_inside_any_ellipse(inner, expected):
     inner = np.array(inner, dtype=ELLIPSE_DTYPE)
     outer = np.array([(0, 0, 2, 4, 0), (0, 0, 5, 10, 00)], dtype=ELLIPSE_DTYPE)
     assert np.all(center_inside_ellipse(inner, outer) == expected)
+
+
+def test_flag_large_events_wide_subarray_no_sat_core():
+    """A jump ring without a saturated core, far from every edge of a
+    wide (ncols > nrows) array, must not be treated as a snowball."""
+    cube = np.zeros(shape=(1, 5, 7, 40), dtype=np.uint8)
+    cube[0, 2, 1, 18:23] = JUMP
+    cube[0, 2, 5, 18:23] = JUMP
+    cube[0, 2, 1:6, 18] = JUMP
+    cube[0, 2, 1:6, 22] = JUMP
+
+    jump_data = JumpData(dqflags=DQFLAGS)
+    jump_data.min_sat_area = 1
+    jump_data.min_jump_area = 6
+    jump_data.expand_factor = 1.9
+    jump_data.edge_size = 1
+    jump_data.sat_required_snowball = True
+    jump_data.min_sat_radius_extend = 1
+    jump_data.sat_expand = 1.1
+
+    cube, total_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
+
+    assert total_snowballs == 0
+    assert cube[0, 2, 3, 17] == 0

@@ -653,10 +653,11 @@ def make_snowballs(
     """
     nints, ngroups, nrows, ncols = gdq.shape
     low_threshold = jump_data.edge_size
-    high_threshold = max(0, nrows - jump_data.edge_size)
+    high_threshold_x = max(0, ncols - jump_data.edge_size)
+    high_threshold_y = max(0, nrows - jump_data.edge_size)
 
     # Check if the jump is near the edge: in that case, no saturation check needed.
-    is_snowball = near_edge(jump_ellipses, low_threshold, high_threshold)
+    is_snowball = near_edge(jump_ellipses, low_threshold, high_threshold_x, high_threshold_y)
 
     # Check if the jump contains any newly saturated ellipses
     is_snowball |= center_inside_ellipse(sat_ellipses, jump_ellipses)
@@ -716,7 +717,7 @@ def center_inside_ellipse(inner_ellipse, outer_ellipse):
     return np.any(rad_cc <= 1, axis=0)
 
 
-def near_edge(jump, low_threshold, high_threshold):
+def near_edge(jump, low_threshold, high_threshold_x, high_threshold_y):
     """
     Test whether the center of a jump is close to the edge of the detector.
 
@@ -731,9 +732,14 @@ def near_edge(jump, low_threshold, high_threshold):
     low_threshold :  int
         Low threshold distance from the edge of the detector where saturated cores are not
         required for snowball detection.
-    high_threshold : int
-        High threshold distance from the edge of the detector where saturated cores are not
-        required for snowball detection.
+    high_threshold_x : int
+        Column above which the center of a jump is considered close to the
+        right edge of the detector, where saturated cores are not required
+        for snowball detection.
+    high_threshold_y : int
+        Row above which the center of a jump is considered close to the
+        top edge of the detector, where saturated cores are not required
+        for snowball detection.
 
     Returns
     -------
@@ -743,8 +749,8 @@ def near_edge(jump, low_threshold, high_threshold):
     return (
         (jump["cen_x"] < low_threshold)
         | (jump["cen_y"] < low_threshold)
-        | (jump["cen_x"] > high_threshold)
-        | (jump["cen_y"] > high_threshold)
+        | (jump["cen_x"] > high_threshold_x)
+        | (jump["cen_y"] > high_threshold_y)
     )
 
 
