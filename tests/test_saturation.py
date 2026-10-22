@@ -88,11 +88,7 @@ def test_read_pattern_saturation_flagging(use_4d):
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern
     )
 
-    # Make sure that groups after the third get flagged.
-    # Ken M - PR #321 introduced this behavior, but it may not be what's wanted.
-    #         For now, just test the current behavior.
-    assert np.all(gdq[0, 3:, 5, 5] == DQFLAGS["SATURATED"])
-    assert gdq[0, 2, 5, 5] == DQFLAGS["DO_NOT_USE"]
+    assert np.all(gdq[0, 2:, 5, 5] == DQFLAGS["SATURATED"])
 
 
 @pytest.mark.parametrize("use_4d", [True, False])
@@ -136,8 +132,7 @@ def test_read_pattern_saturation_flagging_dnu(use_4d):
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern
     )
 
-    # Make sure that groups after the third get flagged
-    assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
+    assert np.all(gdq[0, 2:, 5, 5] == [DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]])
 
 
 @pytest.mark.parametrize("use_4d", [True, False])
@@ -205,12 +200,9 @@ def test_group2_saturation_flagging_with_bias(use_4d):
         data, gdq, pdq, sat_thresh, sat_dq, ATOD_LIMIT, DQFLAGS, read_pattern=read_pattern, bias=bias
     )
 
-    # Make sure that groups after the second get flagged
-    # The second group will only be flagged as DNU while
-    # the PR#321 band-aid still in place.
     assert np.all(
         gdq[0, 1:, 5, 5]
-        == [DQFLAGS["DO_NOT_USE"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]]
+        == [DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"], DQFLAGS["SATURATED"]]
     )
 
     # Make sure that the high-bias, non-saturating pixel is not flagged
