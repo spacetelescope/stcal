@@ -457,7 +457,10 @@ def compute_image_info(integ_class, ramp_data):
         warnings.filterwarnings("ignore", "All-NaN slice", RuntimeWarning)
         slope = np.nanmedian(integ_class.data, axis=0)
     for _ in range(2):
-        rate_scale = slope[np.newaxis, :] / integ_class.data
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "divide by zero", RuntimeWarning)
+            warnings.filterwarnings("ignore", "invalid value", RuntimeWarning)
+            rate_scale = slope[np.newaxis, :] / integ_class.data
         rate_scale[(~np.isfinite(rate_scale)) | (rate_scale < 0)] = 0
         all_var_p = integ_class.var_poisson * rate_scale
         weight = 1 / (all_var_p + integ_class.var_rnoise)
