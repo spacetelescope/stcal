@@ -486,9 +486,9 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
         Returns False if groups are uneven, e.g., for Roman.
     """
     # We cannot apply this test for uneven groups.
-    all_grps_uniform = np.std(twopt_p.n_reads_groupdiff) == 0 and np.std(twopt_p.dt_group) == 0
-    if not all_grps_uniform:
-        return False
+    # all_grps_uniform = np.std(twopt_p.n_reads_groupdiff) == 0 and np.std(twopt_p.dt_group) == 0
+    # if not all_grps_uniform:
+    #    return False
 
     test1 = twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups
     test2 = not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups
