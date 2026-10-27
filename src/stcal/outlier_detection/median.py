@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import errno
 import logging
+import os
 import tempfile
 import warnings
 from pathlib import Path
@@ -177,6 +179,9 @@ class _DiskAppendableArray:
             msg = f"Invalid slice shape {slice_shape}. Only 2-D arrays are supported."
             raise ValueError(msg)
         self._filename = Path(filename)
+        # Windows raises PermissionError when opening a directory, so check explicitly
+        if self._filename.is_dir():
+            raise IsADirectoryError(errno.EISDIR, os.strerror(errno.EISDIR), str(self._filename))
         with Path.open(self._filename, "wb") as f:  # noqa: F841
             pass
         self._slice_shape = slice_shape

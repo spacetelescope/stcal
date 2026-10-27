@@ -7,9 +7,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
 #include <time.h>
+
+#ifdef _WIN32
+/* NOGDI keeps wingdi.h from defining ERROR, which is used as a goto label. */
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#include <windows.h>
+#include <process.h>
+#include <psapi.h>
+/* Python's pyconfig.h defines pid_t on Windows, but not these POSIX names. */
+typedef Py_ssize_t ssize_t;
+#define getpid _getpid
+#ifndef PATH_MAX
+#define PATH_MAX _MAX_PATH
+#endif
+#else
+#include <sys/resource.h>
 #include <unistd.h>
+#endif
 
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
@@ -815,18 +831,42 @@ is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
     return 0;
 }
 
+/*
+ * Get the peak resident memory of the current process, or -1 if unavailable.
+ * The units follow the platform: ru_maxrss is kilobytes on Linux and bytes on
+ * macOS.  On Windows, the peak working set size (bytes) is converted to
+ * kilobytes (1024 bytes) to match Linux.
+ */
+static inline long long
+get_peak_memory_usage(void)
+{
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS counters;
+
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters))) {
+        return -1;
+    }
+    return (long long) (counters.PeakWorkingSetSize / 1024);
+#else
+    struct rusage res_usage;
+
+    if (getrusage(RUSAGE_SELF, &res_usage)) {
+        return -1;
+    }
+    return (long long) res_usage.ru_maxrss;
+#endif
+}
+
 static inline long long
 print_pid_info(long long prev, int line, char *label)
 {
-    struct rusage res_usage;
     long long now_time = (long long) time(NULL);
     long long mem_usage = -1;
     long long diff = 0;
     pid_t pid = getpid();
     // dbg_ols_print("PID:  %d\n", pid);
 
-    getrusage(RUSAGE_SELF, &res_usage);
-    mem_usage = res_usage.ru_maxrss;
+    mem_usage = get_peak_memory_usage();
     if (prev > 0) {
         diff = mem_usage - prev;
         dbg_ols_print(
@@ -1434,9 +1474,9 @@ create_opt_res(
     struct opt_res_product *opt_res, /* The optional results product */
     struct ramp_data *rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 4;
+    enum { nd = 4 };
     npy_intp dims[nd];
-    const npy_intp pnd = 3;
+    enum { pnd = 3 };
     npy_intp pdims[pnd];
     const int fortran = 0; /* Want C order */
     const char *msg = "Couldn't allocate memory for opt_res products.";
@@ -1577,7 +1617,7 @@ create_rate_product(
     struct rate_product *rate, /* The rate product */
     struct ramp_data *rd)      /* The ramp fitting data */
 {
-    const npy_intp nd = 2;
+    enum { nd = 2 };
     npy_intp dims[nd];
     const int fortran = 0;
     const char *msg = "Couldn't allocate memory for rate products.";
@@ -1635,7 +1675,7 @@ create_rateint_product(
     struct rateint_product *rateint, /* The rateints product */
     struct ramp_data *rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 3;
+    enum { nd = 3 };
     npy_intp dims[nd];
     const int fortran = 0;
     const char *msg = "Couldn't allocate memory for rateint products.";
@@ -3556,7 +3596,7 @@ save_opt_res(
 {
     void *ptr = NULL;
     npy_intp integ, crnum, segnum, row, col, idx;
-    const int msg_size = 1024;
+    enum { msg_size = 1024 };
     char msg[msg_size];
     struct simple_ll_node *current;
     struct simple_ll_node *next;
@@ -3590,7 +3630,7 @@ save_opt_res(
                     if (segnum > rd->max_num_segs) {
                         memset(msg, 0, msg_size);
                         snprintf(
-                            msg, msg_size - 1, "(%ld, %ld, %ld) Bad segment loop.\n", integ, row,
+                            msg, msg_size - 1, "(%zd, %zd, %zd) Bad segment loop.\n", integ, row,
                             col);
                         err_ols_print("%s", msg);
                         PyErr_SetString(PyExc_IndexError, msg);
@@ -3666,7 +3706,7 @@ save_opt_res(
                         if (crnum > rd->max_num_crs) {
                             memset(msg, 0, msg_size);
                             snprintf(
-                                msg, msg_size - 1, "(%ld, %ld, %ld) Bad CR loop.\n", integ, row,
+                                msg, msg_size - 1, "(%zd, %zd, %zd) Bad CR loop.\n", integ, row,
                                 col);
                             err_ols_print("%s", msg);
                             PyErr_SetString(PyExc_IndexError, msg);

@@ -217,14 +217,21 @@ skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 
 [tool.cibuildwheel]
-# Disable free-threading builds on all platforms
-skip = "cp3??t-*"
+skip = [
+  # Disable free-threading builds on all platforms
+  "cp3??t-*",
+  # scikit-image has no Windows wheels for Python 3.15 yet, so the wheel test cannot install it
+  "cp315-win_*",
+]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
 
 [tool.cibuildwheel.linux]
 archs = ["auto", "aarch64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
 
 [tool.coverage.run]
 omit = ["config.py", "config-3.py", "*.rmap"]

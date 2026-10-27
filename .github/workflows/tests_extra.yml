@@ -27,7 +27,21 @@ jobs:
         - macos: py311-xdist
         - macos: py312-xdist
         - macos: py313-xdist
+        - windows: py311-xdist
+        - windows: py312-xdist
+        - windows: py313-xdist
         - linux: py314-devdeps-xdist
         - macos: py314-devdeps-xdist
+        # drizzle's git build uses absolute source paths, so the default TEMP pushes
+        # MSVC object paths past the 260-character limit; use a shorter TEMP instead
+        - windows: py314-devdeps-xdist
+          setenv: |
+            TEMP: C:\Windows\Temp
+            TMP: C:\Windows\Temp
         - linux: py315-devdeps-xdist
           python-version: 3.15
+        - windows: py315-devdeps-xdist
+          python-version: 3.15
+          setenv: |
+            TEMP: C:\Windows\Temp
+            TMP: C:\Windows\Temp

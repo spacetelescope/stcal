@@ -18,10 +18,17 @@ jobs:
       targets: |
         # Linux wheels
         - cp3*-manylinux_x86_64
+        # Build natively on an Arm runner rather than under QEMU emulation
+        - target: cp3*-manylinux_aarch64
+          runs-on: ubuntu-24.04-arm
         # MacOS wheels
+        # macos-latest runners are arm64: arm64 wheels are tested natively,
+        # and x86_64 wheels are cross-compiled and tested under Rosetta 2
         - cp3*-macosx_x86_64
-        # Until we have arm64 runners, we can't automatically test arm64 wheels
         - cp3*-macosx_arm64
+        # Windows wheels
+        # Windows ARM64 (cp3*-win_arm64) is not built until pyarrow publishes Windows ARM64 wheels
+        - cp3*-win_amd64
       sdist: true
       test_command: python -c "from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter"
     secrets:

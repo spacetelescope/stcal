@@ -31,6 +31,9 @@ jobs:
         - linux: py314-cov-xdist
           coverage: codecov-oidc
         - macos: py314-xdist
+        - windows: py314-xdist
+        - linux: py314-xdist
+          runs-on: ubuntu-24.04-arm
   test_downstream:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@22ddf09dfabb443adddfb9f861b7d41a787d6b1a # v3.0.3
     permissions:
