@@ -687,7 +687,7 @@ class Resample:
             self._driz_error = Drizzle(
                 kernel=self.kernel,
                 fillval=self.fillval,
-                fillval_dq=self.fillval_dq,
+                fillval_dq=None,
                 out_shape=self._output_array_shape,
                 out_img=self._output_model["err"],
                 exptime=self._output_model["exposure_time"],
@@ -1274,7 +1274,7 @@ class Resample:
             out_shape=output_shape,
             kernel=self.kernel,
             fillval=np.nan,
-            fillval_dq=self.fillval_dq,
+            fillval_dq=None,
             disable_ctx=True,
         )
 
