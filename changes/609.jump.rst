@@ -1,0 +1,1 @@
+Check for a ``meta.exposure.read_times`` attribute to determine readout scaling for unevenly sampled ramps.
