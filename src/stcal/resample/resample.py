@@ -194,9 +194,11 @@ class Resample:
             At this time, output error array is not equivalent to
             error propagation results.
 
-    variance_array_names : list or None, optional
+    variance_array_names : list or tuple or None, optional
         List of variance array names to propagate when ``enable_var`` is
         True. If not specified, a default list of variances will be used.
+        Any specified variance names must be present in the input data
+        models.
 
     propagate_dq : bool, optional
         Indicates whether to propagate DQ flags from input models to the
@@ -243,7 +245,7 @@ class Resample:
     )
 
     # default variance array names; subclasses can choose something else
-    variance_array_names = ["var_rnoise", "var_flat", "var_poisson"]
+    default_variance_array_names = ("var_rnoise", "var_flat", "var_poisson")
 
     # variances to include in output 'err'
     # default None means all of variance_array_names
@@ -291,9 +293,19 @@ class Resample:
 
         # variances to propagate
         if variance_array_names is not None:
-            self._variance_array_names = variance_array_names
+            self.variance_array_names = variance_array_names
         else:
-            self._variance_array_names = self.variance_array_names
+            self.variance_array_names = tuple(self.default_variance_array_names)
+
+        if self.error_from_variances is not None and enable_var and compute_err == "from_var":
+            missing_var = set(self.error_from_variances).difference(self.variance_array_names)
+            if missing_var:
+                raise ValueError(
+                    f"'error_from_variances' requires {sorted(missing_var)}, "
+                    "which are not selected in 'variance_array_names'."
+                )
+        if enable_var and compute_err == "from_var" and len(self.variance_array_names) == 0:
+            raise ValueError("variance_array_names must not be empty if compute_err='from_var'")
 
         if weight_type.startswith("ivm") or weight_type == "exptime":
             self.weight_type = weight_type
@@ -518,7 +530,7 @@ class Resample:
         }
 
         if self._enable_var:
-            for varname in self._variance_array_names:
+            for varname in self.variance_array_names:
                 output_model[varname] = None
 
         if self._compute_err is not None:
@@ -740,7 +752,7 @@ class Resample:
             min_attributes.append("bunit_data")
 
         if self._enable_var:
-            min_attributes += self._variance_array_names
+            min_attributes += self.variance_array_names
 
         if self._compute_err == "driz_err":
             min_attributes.append("err")
@@ -1035,7 +1047,7 @@ class Resample:
         elif self._enable_var and (self._compute_err == "from_var"):
             # compute error from variance arrays:
             if self.error_from_variances is None:
-                include_var = self._variance_array_names
+                include_var = self.variance_array_names
             else:
                 include_var = self.error_from_variances
             var_components = [self._output_model[x] for x in include_var]
@@ -1056,7 +1068,7 @@ class Resample:
         shape = self.output_array_shape
 
         self._variance_info = {}
-        for noise_type in self._variance_array_names:
+        for noise_type in self.variance_array_names:
             # note: output_array_types is a defaultdict, so this will succeed
             # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
@@ -1144,7 +1156,7 @@ class Resample:
             "ymax": ymax,
         }
 
-        for varname in self._variance_array_names:
+        for varname in self.variance_array_names:
             if self._check_var_array(model, varname):
                 var = self._resample_one_variance_array(
                     varname,
@@ -1157,9 +1169,9 @@ class Resample:
         if self.weight_type.startswith("ivm"):
             rn_var_info = self._variance_info.get("var_rnoise", {})
             rn_var = rn_var_info.get("var", None)
+            weight = np.zeros(self.output_array_shape)
             if rn_var is not None:
                 mask = (rn_var > 0) & np.isfinite(rn_var)
-                weight = np.zeros(self.output_array_shape)
                 weight[mask] = np.reciprocal(rn_var[mask])
 
         elif self.weight_type == "exptime":
@@ -1169,7 +1181,7 @@ class Resample:
         else:
             raise ValueError("unrecognized weight type")
 
-        for varname in self._variance_array_names:
+        for varname in self.variance_array_names:
             if not self._check_var_array(model, varname):
                 continue
             var = self._variance_info[varname]["var"]
@@ -1218,7 +1230,7 @@ class Resample:
                 else:
                     scaling = self.pixel_scale_ratio
 
-            for varname in self._variance_array_names:
+            for varname in self.variance_array_names:
                 varwsum = self._variance_info[varname]["wsum"]
                 weight = self._variance_info[varname]["wt"]
                 # Divide weights separately instead of multiplying them together

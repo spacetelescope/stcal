@@ -389,7 +389,7 @@ def test_resample_ivm_weight_overflow():
     assert not np.allclose(ovar, 0, atol=0, rtol=1e-6)
 
 
-def test_resample_optional_var():
+def input_image_with_variances(nmodels=2):
     crval = (150.0, 2.0)
     crpix = (500.0, 500.0)
     shape = (1000, 1000)
@@ -401,16 +401,7 @@ def test_resample_optional_var():
         "pixel_scale": pscale * 3600,
     }
 
-    nmodels = 2
-
-    resample = Resample(
-        n_input_models=nmodels,
-        output_wcs=output_wcs,
-        variance_array_names=["var_rnoise"],
-        compute_err="from_var",
-    )
-    resample.dq_flag_name_map = JWST_DQ_FLAG_DEF
-
+    images = []
     for k in range(nmodels):
         im = make_input_model(
             shape=shape,
@@ -421,23 +412,133 @@ def test_resample_optional_var():
         )
         im["data"][:] = 1.0
 
-        # rnoise and poisson variances present; flat variance not present
+        # all variances have different values
         im["var_rnoise"][:] = 1.0
-        im["var_poisson"][:] = 1.0
-        im["var_flat"] = None
+        im["var_poisson"][:] = 2.0
+        im["var_flat"][:] = 3.0
+        im["var_sky"][:] = 4.0
 
+        images.append(im)
+    return images, output_wcs
+
+
+@pytest.mark.parametrize("variances", [("var_rnoise",), ("var_rnoise", "var_poisson")])
+def test_resample_optional_var_subset(variances):
+    nmodels = 2
+    images, output_wcs = input_image_with_variances(nmodels)
+    resample = Resample(
+        n_input_models=nmodels,
+        output_wcs=output_wcs,
+        variance_array_names=variances,
+        compute_err="from_var",
+    )
+    for im in images:
+        # rnoise and poisson present, flat var is None
+        im["var_flat"] = None
         resample.add_model(im)
     resample.finalize()
 
-    # data, var_rnoise present
+    # data present
     assert np.nansum(resample.output_model["data"]) > 0.0
-    assert np.nansum(resample.output_model["var_rnoise"]) > 0.0
+    # expected variances present
+    sumvar = 0
+    for var in variances:
+        assert np.nansum(resample.output_model[var]) > 0.0
+        sumvar += resample.output_model[var]
 
-    # error is computed from var_rnoise only
+    # error is computed from expected variances only
+    assert np.allclose(resample.output_model["err"], np.sqrt(sumvar), equal_nan=True)
+
+    # optional variances not propagated to output model
+    assert "var_flat" not in resample.output_model
+    assert "var_sky" not in resample.output_model
+    if "var_poisson" not in variances:
+        assert "var_poisson" not in resample.output_model
+
+
+def test_resample_bad_varname():
+    nmodels = 1
+    images, output_wcs = input_image_with_variances(nmodels)
+    resample = Resample(
+        n_input_models=nmodels,
+        output_wcs=output_wcs,
+        variance_array_names=["var_bad"],
+        compute_err="from_var",
+    )
+    with pytest.raises(KeyError, match="Attempt to access non-existent key 'var_bad'"):
+        resample.add_model(images[0])
+
+
+def test_resample_unexpected_varname():
+    nmodels = 2
+    images, output_wcs = input_image_with_variances(nmodels)
+    resample = Resample(
+        n_input_models=nmodels,
+        output_wcs=output_wcs,
+        variance_array_names=["var_sky"],
+        compute_err="from_var",
+        weight_type="exptime",  # since var_rnoise is not propagated
+    )
+    for im in images:
+        resample.add_model(im)
+    resample.finalize()
+
+    # data, var_sky present
+    assert np.nansum(resample.output_model["data"]) > 0.0
+    assert np.nansum(resample.output_model["var_sky"]) > 0.0
+
+    # error is computed from var_sky only
     assert np.allclose(
-        resample.output_model["err"], np.sqrt(resample.output_model["var_rnoise"]), equal_nan=True
+        resample.output_model["err"], np.sqrt(resample.output_model["var_sky"]), equal_nan=True
     )
 
     # optional variances not propagated to output model
     assert "var_flat" not in resample.output_model
     assert "var_poisson" not in resample.output_model
+    assert "var_rnoise" not in resample.output_model
+
+
+def test_resample_error_from_missing_var():
+    nmodels = 1
+    images, output_wcs = input_image_with_variances(nmodels)
+
+    class ResampleErrFromPoisson(Resample):
+        variance_array_names = ["var_rnoise", "var_poisson", "var_sky"]
+        error_from_variances = ["var_poisson"]
+
+    with pytest.raises(ValueError, match=r"'error_from_variances' requires \['var_poisson'\]"):
+        ResampleErrFromPoisson(
+            n_input_models=nmodels,
+            output_wcs=output_wcs,
+            variance_array_names=["var_rnoise", "var_sky"],
+            compute_err="from_var",
+        )
+
+
+def test_resample_empty_varname_err_from_var():
+    nmodels = 1
+    images, output_wcs = input_image_with_variances(nmodels)
+    with pytest.raises(ValueError, match="variance_array_names must not be empty"):
+        Resample(
+            n_input_models=nmodels,
+            output_wcs=output_wcs,
+            variance_array_names=[],
+            compute_err="from_var",
+            weight_type="exptime",
+        )
+
+
+def test_resample_empty_varname_err_from_driz():
+    nmodels = 1
+    images, output_wcs = input_image_with_variances(nmodels)
+    resample = Resample(
+        n_input_models=nmodels,
+        output_wcs=output_wcs,
+        variance_array_names=[],
+        compute_err="driz_err",
+        weight_type="exptime",
+    )
+    resample.add_model(images[0])
+    resample.finalize()
+    assert np.nansum(resample.output_model["data"]) > 0.0
+    assert np.nansum(resample.output_model["err"]) > 0.0
