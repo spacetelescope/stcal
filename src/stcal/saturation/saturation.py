@@ -144,11 +144,6 @@ def flag_saturated_pixels(
             del flagarray
             del flaglowarray
 
-            # now, flag any pixels that border saturated pixels (not A/D floor pix)
-            if n_pix_grow_sat > 0:
-                gdq_slice = gdq[ints, group, :, :]
-                _adjacent_pixels(gdq_slice, saturated, n_pix_grow_sat, inplace=True)
-
         # Work backward through the groups for a second pass at saturation
         # This is to flag things that actually saturated in prior groups but
         # were not obvious because of group averaging
@@ -194,11 +189,7 @@ def flag_saturated_pixels(
                     & (nextdq & saturated != 0)
                 )
 
-            flagarray = (partial_sat * dnu).astype(np.uint32)
-
-            # Grow the newly-flagged saturating pixels
-            if n_pix_grow_sat > 0:
-                _adjacent_pixels(flagarray, dnu, n_pix_grow_sat, inplace=True)
+            flagarray = (partial_sat * saturated).astype(np.uint32)
 
             # Add them to the gdq array
             gdq[ints, group, :, :] |= flagarray
@@ -236,10 +227,16 @@ def flag_saturated_pixels(
             mask &= gp3mask
 
             # Flag the 2nd group for the pixels passing that gauntlet
-            flagarray = (mask * dnu).astype(np.uint32)
+            flagarray = (mask * saturated).astype(np.uint32)
 
             # Add them to the gdq array
             np.bitwise_or(gdq[ints, 1, :, :], flagarray, gdq[ints, 1, :, :])
+
+        # flag any pixels that border saturated pixels (not A/D floor pix)
+        if n_pix_grow_sat > 0:
+            for group in range(ngroups):
+                gdq_slice = gdq[ints, group, :, :]
+                _adjacent_pixels(gdq_slice, saturated, n_pix_grow_sat, inplace=True)
 
         # Check ZEROFRAME.
         if zframe is not None:
