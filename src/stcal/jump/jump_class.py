@@ -1,7 +1,11 @@
+import logging
+
 import numpy as np
 
 INDENT = "    "
 DELIM = "-" * 80
+
+log = logging.getLogger(__name__)
 
 
 class JumpData:
@@ -47,12 +51,21 @@ class JumpData:
             # in each group or resultant difference.  To preserve the
             # behavior of the code with JWST, these arrays will be set
             # to trivial values if a read pattern is not found.
-
+            readpattern = None
             if (
                 hasattr(jump_model.meta.exposure, "read_pattern")
                 and jump_model.meta.exposure.read_pattern is not None
             ):
+                log.info("Using stored read pattern for ramp timing")
                 readpattern = jump_model.meta.exposure.read_pattern
+            elif (
+                hasattr(jump_model.meta.exposure, "read_times")
+                and jump_model.meta.exposure.read_times is not None
+                and len(jump_model.meta.exposure.read_times) > 0
+            ):
+                log.info("Using explicit read times for ramp timing")
+                readpattern = jump_model.meta.exposure.read_times
+            if readpattern is not None:
                 t_group = np.array([np.mean(times) for times in readpattern])
                 self.dt_group = np.diff(t_group)
                 n_reads_group = np.array([len(times) for times in readpattern])
@@ -61,7 +74,7 @@ class JumpData:
                 # This will preserve current behavior
                 if self.nframes == 0:
                     raise ValueError(
-                        "Attribute nframes not in meta.exposure.Required if read_pattern is not defined."
+                        "Attribute nframes not in meta.exposure. Required if read_pattern is not defined."
                     )
                 self.dt_group = np.ones(1)
                 self.n_reads_groupdiff = np.ones(1) * 2 * self.nframes
