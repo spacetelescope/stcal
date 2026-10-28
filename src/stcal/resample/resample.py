@@ -245,7 +245,7 @@ class Resample:
     )
 
     # default variance array names; subclasses can choose something else
-    default_variance_array_names = ("var_rnoise", "var_flat", "var_poisson")
+    variance_array_names = ("var_rnoise", "var_flat", "var_poisson")
 
     # variances to include in output 'err'
     # default None means all of variance_array_names
@@ -292,19 +292,19 @@ class Resample:
         self.good_bits = good_bits
 
         # variances to propagate
-        if variance_array_names is not None:
-            self.variance_array_names = variance_array_names
+        if variance_array_names is None:
+            self.propagated_variance_names = tuple(self.variance_array_names)
         else:
-            self.variance_array_names = tuple(self.default_variance_array_names)
+            self.propagated_variance_names = tuple(variance_array_names)
 
         if self.error_from_variances is not None and enable_var and compute_err == "from_var":
-            missing_var = set(self.error_from_variances).difference(self.variance_array_names)
+            missing_var = set(self.error_from_variances).difference(self.propagated_variance_names)
             if missing_var:
                 raise ValueError(
                     f"'error_from_variances' requires {sorted(missing_var)}, "
                     "which are not selected in 'variance_array_names'."
                 )
-        if enable_var and compute_err == "from_var" and len(self.variance_array_names) == 0:
+        if enable_var and compute_err == "from_var" and len(self.propagated_variance_names) == 0:
             raise ValueError("variance_array_names must not be empty if compute_err='from_var'")
 
         if weight_type.startswith("ivm") or weight_type == "exptime":
@@ -530,7 +530,7 @@ class Resample:
         }
 
         if self._enable_var:
-            for varname in self.variance_array_names:
+            for varname in self.propagated_variance_names:
                 output_model[varname] = None
 
         if self._compute_err is not None:
@@ -752,7 +752,7 @@ class Resample:
             min_attributes.append("bunit_data")
 
         if self._enable_var:
-            min_attributes += self.variance_array_names
+            min_attributes += self.propagated_variance_names
 
         if self._compute_err == "driz_err":
             min_attributes.append("err")
@@ -1047,7 +1047,7 @@ class Resample:
         elif self._enable_var and (self._compute_err == "from_var"):
             # compute error from variance arrays:
             if self.error_from_variances is None:
-                include_var = self.variance_array_names
+                include_var = self.propagated_variance_names
             else:
                 include_var = self.error_from_variances
             var_components = [self._output_model[x] for x in include_var]
@@ -1068,7 +1068,7 @@ class Resample:
         shape = self.output_array_shape
 
         self._variance_info = {}
-        for noise_type in self.variance_array_names:
+        for noise_type in self.propagated_variance_names:
             # note: output_array_types is a defaultdict, so this will succeed
             # even when noise_type is not in output_array_types
             var_dtype = self.output_array_types[noise_type]
@@ -1156,7 +1156,7 @@ class Resample:
             "ymax": ymax,
         }
 
-        for varname in self.variance_array_names:
+        for varname in self.propagated_variance_names:
             if self._check_var_array(model, varname):
                 var = self._resample_one_variance_array(
                     varname,
@@ -1181,7 +1181,7 @@ class Resample:
         else:
             raise ValueError("unrecognized weight type")
 
-        for varname in self.variance_array_names:
+        for varname in self.propagated_variance_names:
             if not self._check_var_array(model, varname):
                 continue
             var = self._variance_info[varname]["var"]
@@ -1230,7 +1230,7 @@ class Resample:
                 else:
                     scaling = self.pixel_scale_ratio
 
-            for varname in self.variance_array_names:
+            for varname in self.propagated_variance_names:
                 varwsum = self._variance_info[varname]["wsum"]
                 weight = self._variance_info[varname]["wt"]
                 # Divide weights separately instead of multiplying them together
