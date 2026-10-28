@@ -50,6 +50,7 @@ def relative_align(  # noqa: D103
     nclip: int = 3,
     sigma: float = 3.0,
     clip_accum: bool = False,
+    sigma_stat: str = "rmse",
 ) -> list:
     if separation <= _SQRT2 * tolerance:
         msg = (
@@ -78,7 +79,7 @@ def relative_align(  # noqa: D103
             match=xyxymatch,
             fitgeom=fitgeometry,
             nclip=nclip,
-            sigma=(sigma, "rmse"),
+            sigma=(sigma, sigma_stat),
             clip_accum=clip_accum,
         )
 
@@ -127,6 +128,7 @@ def absolute_align(  # noqa: D103
     abs_sigma: float = 3.0,
     clip_accum: bool = False,
     timeout: float = TIMEOUT,
+    sigma_stat: str = "rmse",
 ) -> list:
     if abs_separation <= _SQRT2 * abs_tolerance:
         msg = (
@@ -193,7 +195,7 @@ def absolute_align(  # noqa: D103
             match=xyxymatch_gaia,
             fitgeom=abs_fitgeometry,
             nclip=abs_nclip,
-            sigma=(abs_sigma, "rmse"),
+            sigma=(abs_sigma, sigma_stat),
             clip_accum=clip_accum,
         )
     except ValueError as e:
