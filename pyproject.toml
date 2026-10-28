@@ -217,8 +217,10 @@ skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 
 [tool.cibuildwheel]
-# Disable free-threading builds on all platforms
-skip = "cp3??t-*"
+skip = [
+  "cp3*t-*",             # Disable free-threading builds on all platforms
+  "cp3*-*linux_aarch64", # skip building Linux ARM64 because it takes forever
+]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
