@@ -9,10 +9,7 @@ STScI Calibration algorithms and tools.
 <img src="docs/_static/stsci_pri_combo_mark_white.png" width="300"/>
 
 > [!IMPORTANT]
-> Linux (x86_64 and aarch64), macOS (arm64 and x86_64), and Windows (x64) are supported.
-
-> [!NOTE]
-> Windows on Arm is not yet supported because `pyarrow`, a required dependency, has no Windows Arm64 wheels. Downstream pipelines such as `jwst` and `romancal` define their own supported platforms.
+> `stcal` officially supports and builds wheels for Linux (`x86_64` and `aarch64`), macOS (`arm64` and `x86_64`), and Windows (`x86_64` only). Wheels are not built for Windows `arm64` due to lack of `pyarrow` support.
 
 `STCAL` is intended to be used as a support package for calibration pipeline
 software, such as the `JWST` and `Roman` calibration pipelines. `STCAL` is a
