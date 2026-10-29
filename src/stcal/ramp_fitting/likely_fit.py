@@ -5,6 +5,7 @@ import numpy as np
 import scipy
 
 from stcal.jump.jump import flag_large_events
+from stcal.jump.twopoint_difference import flag_jump_neighbors
 from stcal.ramp_fitting import utils
 from stcal.ramp_fitting.likely_algo_classes import Covar, IntegInfo, RampResult
 
@@ -181,12 +182,14 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
         # Flag the four neighbors of significant jumps, in the same
         # resultant difference(s) as the jump itself.
         if flag_neighbors:
-            n_flagged = flag_jump_neighbors(
+            n_jump = np.count_nonzero(gdq & ramp_data.flags_jump_det)
+            flag_jump_neighbors(
                 gdq[1:],
                 bigjumps,
                 ramp_data.flags_jump_det,
                 ramp_data.flags_saturated | ramp_data.flags_do_not_use,
             )
+            n_flagged = np.count_nonzero(gdq & ramp_data.flags_jump_det) - n_jump
             log.info("Flagged %i neighbors of jumps", n_flagged)
             del bigjumps
 
@@ -440,45 +443,6 @@ def mask_jumps(
     if return_jump_sig:
         return diffs2use, countrate, jump_sig
     return diffs2use, countrate
-
-
-def flag_jump_neighbors(diff_dq, bigjumps, flag_jump, flag_skip):
-    """
-    Flag the four nearest neighbors of significant jumps, in place.
-
-    This mirrors ``stcal.jump.twopoint_difference.flag_four_neighbors``,
-    which cannot be reused here because it computes jump significance from
-    two-point differences and handles row slices for multiprocessing.
-
-    Parameters
-    ----------
-    diff_dq : ndarray
-        Group DQ for the second and later groups, one plane per resultant
-        difference (ngroups-1, nrows, ncols).  Modified in place.
-    bigjumps : ndarray
-        Boolean array marking jumps whose neighbors should be flagged
-        (ngroups-1, nrows, ncols).
-    flag_jump : int
-        Jump DQ flag.
-    flag_skip : int
-        DQ flags (saturated, do-not-use) for which a neighbor is not flagged.
-
-    Returns
-    -------
-    n_flagged : int
-        Number of pixel-differences newly flagged.
-    """
-    flag = bigjumps.copy()
-    flag[:, 1:] |= bigjumps[:, :-1]
-    flag[:, :-1] |= bigjumps[:, 1:]
-    flag[:, :, 1:] |= bigjumps[:, :, :-1]
-    flag[:, :, :-1] |= bigjumps[:, :, 1:]
-    # Skip neighbors that are saturated or do-not-use (that difference is
-    # already unused) or already flagged as a jump (so only new flags are
-    # counted).
-    flag &= (diff_dq & (flag_skip | flag_jump)) == 0
-    diff_dq[flag] |= flag_jump
-    return int(np.count_nonzero(flag))
 
 
 def get_readtimes(ramp_data):
