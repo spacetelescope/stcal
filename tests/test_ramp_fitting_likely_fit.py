@@ -681,7 +681,7 @@ def test_flag_large_events_withsnowball():
 def test_flag_jump_neighbors(flag_4, min_sig, max_sig, neighbors_flagged):
     """
     Test that jump flagging expands jumps detected in one pixel into its
-    neighbors, if requested and the jump size is between the min and max signficance.
+    neighbors, if requested and the jump size is between the min and max significance.
     """
     nints, ngroups, nrows, ncols = 1, 20, 5, 5
     ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
