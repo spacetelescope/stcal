@@ -31,8 +31,10 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
         gain for all pixels
     jump_data : JumpData or None, optional
         Class containing parameters and methods to detect jumps.  Used here
-        to access the snowball algorithm via jump.flag_large_events.  If None,
-        do not apply flag_large_events.  Default None.
+        to access the snowball algorithm via jump.flag_large_events and the
+        four-neighbor flagging settings (``flag_4_neighbors``,
+        ``min_jump_to_flag_neighbors``, ``max_jump_to_flag_neighbors``).  If
+        None, apply neither.  Default None.
     skip_jump_detect : bool, optional
         Skip likelihood-based jump detection?  Default False.
 
@@ -114,6 +116,10 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
         diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis, np.newaxis]
         alldiffs2use = np.ones(diff.shape, np.uint8)
         allrateguesses = np.zeros((nrows, ncols))
+        flag_neighbors = getattr(jump_data, "flag_4_neighbors", False)
+        if flag_neighbors:
+            # Jumps significant enough to have their neighbors flagged
+            bigjumps = np.zeros(diff.shape, bool)
 
         for row in range(nrows):
             d2use = determine_diffs2use(diff[:, row, :], gdq[:, row, :])
@@ -140,7 +146,7 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
                 threshold_two_omit = scipy.stats.chi2.isf(pval, 2)
                 if np.isinf(threshold_two_omit):
                     threshold_two_omit = threshold_one_omit + 10
-                d2use, countrates = mask_jumps(
+                d2use, countrates, jump_sig = mask_jumps(
                     diff[:, row],
                     covar,
                     readnoise_2d[row],
@@ -148,10 +154,20 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
                     threshold_one_omit=threshold_one_omit,
                     threshold_two_omit=threshold_two_omit,
                     diffs2use=d2use,
+                    return_jump_sig=True,
                 )
             else:
-                d2use, countrates = mask_jumps(
-                    diff[:, row], covar, readnoise_2d[row], gain_2d[row], diffs2use=d2use
+                d2use, countrates, jump_sig = mask_jumps(
+                    diff[:, row],
+                    covar,
+                    readnoise_2d[row],
+                    gain_2d[row],
+                    diffs2use=d2use,
+                    return_jump_sig=True,
+                )
+            if flag_neighbors and not (skip_jump_detect or ngroups < min_ngroups_jump):
+                bigjumps[:, row] = (jump_sig > jump_data.min_jump_to_flag_neighbors) & (
+                    jump_sig < jump_data.max_jump_to_flag_neighbors
                 )
 
             # Set jump detection flags
@@ -162,15 +178,30 @@ def likely_ramp_fit(ramp_data, readnoise_2d, gain_2d, jump_data=None, skip_jump_
             alldiffs2use[:, row] = d2use
             allrateguesses[row] = countrates * (countrates > 0) + ramp_data.average_dark_current[row, :]
 
+        # Flag the four neighbors of significant jumps, in the same
+        # resultant difference(s) as the jump itself.
+        if flag_neighbors:
+            n_flagged = flag_jump_neighbors(
+                gdq[1:],
+                bigjumps,
+                ramp_data.flags_jump_det,
+                ramp_data.flags_saturated | ramp_data.flags_do_not_use,
+            )
+            log.info("Flagged %i neighbors of jumps", n_flagged)
+            del bigjumps
+
         # Run snowball flagging if called for.
-        if hasattr(jump_data, "expand_large_events") and jump_data.expand_large_events:
+        expand_large_events = getattr(jump_data, "expand_large_events", False)
+        if expand_large_events:
             log.info('Searching for and expanding "snowballs"')
             # Note that the gdq array is modified in-place.
             _, total_snowballs = flag_large_events(
                 gdq[None, :, :, :], ramp_data.flags_jump_det, ramp_data.flags_saturated, jump_data
             )
             log.info("Total snowballs = %i", total_snowballs)
-            # Unset differences to use if a jump was flagged in the expansion
+
+        if flag_neighbors or expand_large_events:
+            # Unset differences to use if a jump was flagged above
             alldiffs2use &= gdq[1:] & ramp_data.flags_jump_det == 0
 
         # Propagate the flags applied during ramp fitting back into the input
@@ -212,6 +243,7 @@ def mask_jumps(
     threshold_one_omit=20.25,
     threshold_two_omit=23.8,
     diffs2use=None,
+    return_jump_sig=False,
 ):
     """
     Implement a likelihood-based, iterative jump detection algorithm.
@@ -243,6 +275,10 @@ def mask_jumps(
         A boolean array defining the segmented ramps for each pixel in a row.
         (ngroups-1, ncols)
 
+    return_jump_sig : bool
+        Also return the significance of each dropped difference.
+        Default False.
+
     Returns
     -------
     dffs2use : ndarray
@@ -252,6 +288,13 @@ def mask_jumps(
     countrates : ndarray
         Count rate estimates used to estimate the covariance matrix.
         Optional, default is None.
+
+    jump_sig : ndarray
+        Returned only if ``return_jump_sig`` is True.  Significance, in
+        sigma, of the jump for which each resultant difference was dropped:
+        the square root of the chi squared improvement from dropping it.
+        Zero for differences not dropped.
+        (ngroups-1, ncols)
 
     """
     # Force a copy of the input array for more efficient memory access.
@@ -284,6 +327,9 @@ def mask_jumps(
     count_rate_guess = np.median(loc_diff, axis=0)[np.newaxis, :]
 
     count_rate_guess *= count_rate_guess > 0
+
+    if return_jump_sig:
+        jump_sig = np.zeros(loc_diff.shape, np.float32)
 
     # boolean arrays to be used later
     recheck = np.ones(loc_diff.shape[1]) == 1
@@ -371,6 +417,15 @@ def mask_jumps(
         countrate[recheck] *= drop == 0
         countrate[recheck] += new_cts
 
+        if return_jump_sig:
+            # Record the significance of each dropped difference.
+            sig = np.sqrt(best_dchisq)
+            sub = jump_sig[:, recheck]
+            sub[dropone] = np.broadcast_to(sig, dropone.shape)[dropone]
+            sub[:-1][droptwo] = np.broadcast_to(sig, droptwo.shape)[droptwo]
+            sub[1:][droptwo] = np.broadcast_to(sig, droptwo.shape)[droptwo]
+            jump_sig[:, recheck] = sub
+
         # Drop the read (set diffs2use=0) if the boolean array is True.
         diffs2use[:, recheck] *= ~dropone
         diffs2use[:-1, recheck] *= ~droptwo
@@ -382,7 +437,48 @@ def mask_jumps(
         dropped[recheck] = drop
         recheck[:] = dropped
 
+    if return_jump_sig:
+        return diffs2use, countrate, jump_sig
     return diffs2use, countrate
+
+
+def flag_jump_neighbors(diff_dq, bigjumps, flag_jump, flag_skip):
+    """
+    Flag the four nearest neighbors of significant jumps, in place.
+
+    This mirrors ``stcal.jump.twopoint_difference.flag_four_neighbors``,
+    which cannot be reused here because it computes jump significance from
+    two-point differences and handles row slices for multiprocessing.
+
+    Parameters
+    ----------
+    diff_dq : ndarray
+        Group DQ for the second and later groups, one plane per resultant
+        difference (ngroups-1, nrows, ncols).  Modified in place.
+    bigjumps : ndarray
+        Boolean array marking jumps whose neighbors should be flagged
+        (ngroups-1, nrows, ncols).
+    flag_jump : int
+        Jump DQ flag.
+    flag_skip : int
+        DQ flags (saturated, do-not-use) for which a neighbor is not flagged.
+
+    Returns
+    -------
+    n_flagged : int
+        Number of pixel-differences newly flagged.
+    """
+    flag = bigjumps.copy()
+    flag[:, 1:] |= bigjumps[:, :-1]
+    flag[:, :-1] |= bigjumps[:, 1:]
+    flag[:, :, 1:] |= bigjumps[:, :, :-1]
+    flag[:, :, :-1] |= bigjumps[:, :, 1:]
+    # Skip neighbors that are saturated or do-not-use (that difference is
+    # already unused) or already flagged as a jump (so only new flags are
+    # counted).
+    flag &= (diff_dq & (flag_skip | flag_jump)) == 0
+    diff_dq[flag] |= flag_jump
+    return int(np.count_nonzero(flag))
 
 
 def get_readtimes(ramp_data):
