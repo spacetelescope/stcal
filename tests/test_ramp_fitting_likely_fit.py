@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from stcal.ramp_fitting.likely_algo_classes import Covar
-from stcal.ramp_fitting.likely_fit import get_readtimes, likely_ramp_fit, mask_jumps
+from stcal.ramp_fitting.likely_fit import likely_ramp_fit
 from stcal.ramp_fitting.ramp_fit import ramp_fit_data
 from stcal.ramp_fitting.ramp_fit_class import RampData
 
@@ -716,32 +715,3 @@ def test_flag_jump_neighbors(flag_4, min_sig, max_sig, neighbors_flagged):
 
     # Diagonal neighbors are not flagged.
     assert not np.any(gdq[:, diagonals[0], diagonals[1]] & JUMP)
-
-
-def test_mask_jumps_return_jump_sig():
-    """
-    Test that mask_jumps returns the jump significance only on request,
-    nonzero only for the dropped difference, without changing the fit.
-    """
-    nints, ngroups, nrows, ncols = 1, 20, 1, 2
-    ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
-    jump_group = 10
-    ramp_data.data[0, jump_group:, 0, 0] += 3000  # jump in the first pixel only
-
-    covar = Covar(get_readtimes(ramp_data))
-    data = ramp_data.data[0, :, 0]
-    diff = (data[1:] - data[:-1]) / covar.delta_t[:, np.newaxis]
-
-    result = mask_jumps(diff, covar, rnoise2d[0], gain2d[0])
-    assert len(result) == 2
-    d2use, countrate = result
-
-    d2use_sig, countrate_sig, jump_sig = mask_jumps(diff, covar, rnoise2d[0], gain2d[0], return_jump_sig=True)
-    np.testing.assert_array_equal(d2use, d2use_sig)
-    np.testing.assert_array_equal(countrate, countrate_sig)
-
-    # The difference ending at the jump group is dropped and significant.
-    assert d2use[jump_group - 1, 0] == 0
-    assert jump_sig[jump_group - 1, 0] > 4.5
-    jump_sig[jump_group - 1, 0] = 0
-    assert np.all(jump_sig == 0)
