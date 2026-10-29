@@ -1192,7 +1192,7 @@ def test_all_sat():
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r".* completely saturated .*"):
         slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
 
 
@@ -1243,7 +1243,7 @@ def test_all_nan():
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r".* computed as NaN.*"):
         slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
 
 
