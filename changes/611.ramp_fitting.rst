@@ -1,0 +1,3 @@
+Flag the four nearest neighbors of significant jumps in the likelihood ramp
+fit, using the ``flag_4_neighbors``, ``min_jump_to_flag_neighbors`` and
+``max_jump_to_flag_neighbors`` settings of ``JumpData``.

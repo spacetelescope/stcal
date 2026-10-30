@@ -667,3 +667,51 @@ def test_flag_large_events_withsnowball():
     assert np.abs(meanerr_jumppixels_orig - meanerr_jumppixels_new) < 1e-5
 
     assert n_jump_original == 112 and n_jump_expanded > 300 and n_jump_expanded < 600
+
+
+@pytest.mark.parametrize(
+    "flag_4, min_sig, max_sig, neighbors_flagged",
+    [
+        (True, 10, 1000, True),
+        (False, 10, 1000, False),
+        (True, 1e5, 1e6, False),  # jump below the minimum
+        (True, 1, 5, False),  # jump above the maximum
+    ],
+)
+def test_flag_jump_neighbors(flag_4, min_sig, max_sig, neighbors_flagged):
+    """
+    Test that jump flagging expands jumps detected in one pixel into its
+    neighbors, if requested and the jump size is between the min and max significance.
+    """
+    nints, ngroups, nrows, ncols = 1, 20, 5, 5
+    ramp_data, gain2d, rnoise2d = create_linear_ramp(nints, ngroups, nrows, ncols)
+    jump_group = 10  # first group after the cosmic ray hit
+    center = (2, 2)
+    neighbors = ([1, 3, 2, 2], [2, 2, 1, 3])
+    diagonals = ([1, 1, 3, 3], [1, 3, 1, 3])
+    ramp_data.data[0, jump_group:, center[0], center[1]] += 3000
+    ramp_data.data[0, jump_group:, neighbors[0], neighbors[1]] += 15
+
+    jump_data = JumpData(dqflags=DQFLAGS)
+    jump_data.expand_large_events = False
+    jump_data.flag_4_neighbors = flag_4
+    jump_data.min_jump_to_flag_neighbors = min_sig
+    jump_data.max_jump_to_flag_neighbors = max_sig
+
+    likely_ramp_fit(ramp_data, rnoise2d, gain2d, jump_data=jump_data)
+    gdq = ramp_data.groupdq[0]
+
+    # The jump is detected in the correct group.
+    assert gdq[jump_group, center[0], center[1]] & JUMP
+    assert np.sum(gdq[:, center[0], center[1]] & JUMP != 0) == 1
+
+    flagged = gdq[:, neighbors[0], neighbors[1]] & JUMP != 0
+    if neighbors_flagged:
+        # Each neighbor is flagged in the same resultant as the jump.
+        assert np.all(flagged[jump_group])
+        assert np.sum(flagged) == 4
+    else:
+        assert not np.any(flagged)
+
+    # Diagonal neighbors are not flagged.
+    assert not np.any(gdq[:, diagonals[0], diagonals[1]] & JUMP)

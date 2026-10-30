@@ -548,18 +548,37 @@ def flag_four_neighbors(
                 & (jump_set)
             )
 
-            # Dilate the flag by one pixel in each direction.
-            flagsave = flag.copy()
-            flag[1:] |= flagsave[:-1]
-            flag[:-1] |= flagsave[1:]
-            flag[:, 1:] |= flagsave[:, :-1]
-            flag[:, :-1] |= flagsave[:, 1:]
-            sat_or_dnu_notset = gdq[i, j + 1] & (twopt_p.fl_sat | twopt_p.fl_dnu) == 0
-            gdq[i, j + 1][sat_or_dnu_notset & flag] |= twopt_p.fl_jump
-            row_below_gdq[i, j + 1][flagsave[0]] = twopt_p.fl_jump
-            row_above_gdq[i, j + 1][flagsave[-1]] = twopt_p.fl_jump
+            flag_jump_neighbors(gdq[i, j + 1], flag, twopt_p.fl_jump, twopt_p.fl_sat | twopt_p.fl_dnu)
+            row_below_gdq[i, j + 1][flag[0]] = twopt_p.fl_jump
+            row_above_gdq[i, j + 1][flag[-1]] = twopt_p.fl_jump
 
     return gdq, row_below_gdq, row_above_gdq
+
+
+def flag_jump_neighbors(gdq, jumps, fl_jump, fl_skip):
+    """
+    Flag the four nearest neighbors of jumps, in place.
+
+    Parameters
+    ----------
+    gdq : ndarray
+        Group DQ, with the last two axes spatial (..., nrows, ncols).
+        Modified in place.
+    jumps : ndarray
+        Boolean array, the same shape as ``gdq``, marking the jumps whose
+        neighbors should be flagged.
+    fl_jump : int
+        Jump DQ flag.
+    fl_skip : int
+        DQ flags (e.g., saturated, do-not-use) for which a neighbor is not
+        flagged.
+    """
+    flag = jumps.copy()
+    flag[..., 1:, :] |= jumps[..., :-1, :]
+    flag[..., :-1, :] |= jumps[..., 1:, :]
+    flag[..., :, 1:] |= jumps[..., :, :-1]
+    flag[..., :, :-1] |= jumps[..., :, 1:]
+    gdq[flag & ((gdq & fl_skip) == 0)] |= fl_jump
 
 
 def transient_jumps(gdq, nints, first_diffs, median_diffs, twopt_p):
