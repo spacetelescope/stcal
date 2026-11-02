@@ -1,3 +1,23 @@
+1.20.0 (2026-08-10)
+===================
+
+jump step
+---------
+
+- Updated the jump step documentation and fixed a small bug in computing
+  ``total_sigclip_groups``. (`#562
+  <https://github.com/spacetelescope/stcal/issues/562>`_)
+
+
+ramp_fitting step
+-----------------
+
+- The likelihood ramp fitter now propagates the flags it applies during ramp
+  fitting back into the input group DQ array in place, providing callers with
+  access to updated groupdq flags. (`#558
+  <https://github.com/spacetelescope/stcal/issues/558>`_)
+
+
 1.19.1 (2026-07-01)
 ===================
 

@@ -3,12 +3,12 @@ import pytest
 from astropy.io import fits
 
 from stcal.jump.jump import (
+    center_inside_ellipse,
     detect_jumps_data,
     extend_saturation,
     find_ellipses,
     find_faint_extended,
     flag_large_events,
-    point_inside_ellipse,
 )
 from stcal.jump.jump_class import JumpData
 
@@ -27,6 +27,14 @@ SAT = DQFLAGS["SATURATED"]
 JUMP = DQFLAGS["JUMP_DET"]
 NGV = DQFLAGS["NO_GAIN_VALUE"]
 REF = DQFLAGS["REFERENCE_PIXEL"]
+
+ELLIPSE_DTYPE = [
+    ("cen_x", np.float64),
+    ("cen_y", np.float64),
+    ("minor_axis", np.float64),
+    ("major_axis", np.float64),
+    ("theta_deg", np.float64),
+]
 
 
 def create_jump_data(dims, gain, rnoise, tm):
@@ -217,8 +225,8 @@ def test_find_simple_ellipse():
     plane[3, 3] = JUMP
     ellipse = find_ellipses(plane, JUMP, 1)
 
-    assert ellipse[0][2] == pytest.approx(90, 1)  # angle
-    assert ellipse[0][0] == pytest.approx((2.5, 2.0))  # center
+    assert ellipse[0]["theta_deg"] == pytest.approx(90, 1)  # angle
+    assert (ellipse[0]["cen_x"], ellipse[0]["cen_y"]) == pytest.approx((2.5, 2.0))  # center
 
 
 def test_find_ellipse2():
@@ -228,11 +236,11 @@ def test_find_ellipse2():
     plane[3, :] = [0, JUMP, JUMP, JUMP, 0]
     ellipses = find_ellipses(plane, JUMP, 1)
     ellipse = ellipses[0]
-    assert ellipse[0][0] == 2
-    assert ellipse[0][1] == 2
-    assert ellipse[1][0] == pytest.approx(2.266, 1e-3)
-    assert ellipse[1][1] == pytest.approx(2.266, 1e-3)
-    assert ellipse[2] == pytest.approx(-45, 1)
+    assert ellipse["cen_x"] == 2
+    assert ellipse["cen_y"] == 2
+    assert ellipse["minor_axis"] == pytest.approx(2.266, 1e-3)
+    assert ellipse["major_axis"] == pytest.approx(2.266, 1e-3)
+    assert ellipse["theta_deg"] == pytest.approx(-45, 1)
 
 
 def test_extend_saturation_simple():
@@ -295,18 +303,19 @@ def test_flag_large_events_nosnowball():
     assert cube[0, 2, 3, 6] == 0
 
 
-def test_flag_large_events_withsnowball():
+@pytest.mark.parametrize("group", [0, 1, 2])
+def test_flag_large_events_withsnowball(group):
     cube = np.zeros(shape=(1, 5, 7, 7), dtype=np.uint8)
     # cross of saturation surrounding by jump -> snowball
-    cube[0, 2, 3, 3] = SAT
-    cube[0, 2, 2, 3] = SAT
-    cube[0, 2, 3, 4] = SAT
-    cube[0, 2, 4, 3] = SAT
-    cube[0, 2, 3, 2] = SAT
-    cube[0, 2, 1, 1:6] = JUMP
-    cube[0, 2, 5, 1:6] = JUMP
-    cube[0, 2, 1:6, 1] = JUMP
-    cube[0, 2, 1:6, 5] = JUMP
+    cube[0, group, 3, 3] = SAT
+    cube[0, group, 2, 3] = SAT
+    cube[0, group, 3, 4] = SAT
+    cube[0, group, 4, 3] = SAT
+    cube[0, group, 3, 2] = SAT
+    cube[0, group, 1, 1:6] = JUMP
+    cube[0, group, 5, 1:6] = JUMP
+    cube[0, group, 1:6, 1] = JUMP
+    cube[0, group, 1:6, 5] = JUMP
 
     jump_data = JumpData(dqflags=DQFLAGS)
     jump_data.min_sat_area = 1
@@ -319,10 +328,11 @@ def test_flag_large_events_withsnowball():
 
     cube, total_snowballs = flag_large_events(cube, JUMP, SAT, jump_data)
 
-    assert cube[0, 1, 2, 2] == 0
-    assert cube[0, 1, 3, 5] == 0
-    assert cube[0, 2, 1, 0] == JUMP
-    assert cube[0, 2, 3, 6] == JUMP
+    if group > 0:
+        assert cube[0, group - 1, 2, 2] == 0
+        assert cube[0, group - 1, 3, 5] == 0
+    assert cube[0, group, 1, 0] == JUMP
+    assert cube[0, group, 3, 6] == JUMP
 
 
 def test_flag_large_events_groupedsnowball():
@@ -488,23 +498,56 @@ def test_find_faint_extended_sigclip():
 @pytest.mark.parametrize(
     ("ellipse", "point"),
     [
-        (((0, 0), (2, 4), -10), (1, 0.6)),
-        (((0, 0), (2, 4), 0), (1, 0.5)),
+        ((0, 0, 2, 4, -10), (1, 0.6)),
+        ((0, 0, 2, 4, 0), (1, 0.5)),
         (
-            ((1111.0001220703125, 870.5000610351562), (10.60660171508789, 10.60660171508789), 45.0),
+            (1111.0001220703125, 870.5000610351562, 10.60660171508789, 10.60660171508789, 45.0),
             (1110.5, 870.5),
         ),
-        (((0, 0), (10, 5), 0), (0, 0)),
-        (((0, 0), (10, 5), 0), (5, 0)),
+        ((0, 0, 5, 10, 0), (0, 0)),
+        ((0, 0, 5, 10, 0), (5, 0)),
     ],
 )
-def test_point_inside_ellipse(ellipse, point):
-    assert point_inside_ellipse(point, ellipse)
+def test_center_inside_ellipse(ellipse, point):
+    inner = np.array([(*point, 0, 0, 0)], dtype=ELLIPSE_DTYPE)
+    outer = np.array([ellipse], dtype=ELLIPSE_DTYPE)
+    assert np.all(center_inside_ellipse(inner, outer))
 
 
 @pytest.mark.parametrize(
     ("ellipse", "point"),
-    [(((0, 0), (2, 4), 0), (3, 0.5)), (((0, 0), (10, 5), 0), (0, 8)), (((0, 0), (10, 5), 0), (8, 0))],
+    [
+        ((0, 0, 2, 4, 0), (3, 0.5)),
+        ((0, 0, 5, 10, 0), (0, 8)),
+        ((0, 0, 5, 10, 0), (8, 0)),
+    ],
 )
-def test_point_outside_ellipse(ellipse, point):
-    assert not point_inside_ellipse(point, ellipse)
+def test_center_outside_ellipse(ellipse, point):
+    inner = np.array([(*point, 0, 0, 0)], dtype=ELLIPSE_DTYPE)
+    outer = np.array([ellipse], dtype=ELLIPSE_DTYPE)
+    assert not np.any(center_inside_ellipse(inner, outer))
+
+
+@pytest.mark.parametrize(
+    ("inner", "expected"),
+    [
+        ([(0, 0, 0, 0, 0)], [True, True]),  # 1 point, in both ellipses
+        ([(1, 0.6, 0, 0, 0), (8, 0, 0, 0, 0)], [True, True]),  # 2 points, 1 in both ellipses
+        ([(0, 8, 0, 0, 0), (3, 0.5, 0, 0, 0)], [False, True]),  # 2 points, 1 in 1 ellipse
+        ([(0, 8, 0, 0, 0), (8, 0, 0, 0, 0)], [False, False]),  # 2 points, none in ellipses
+    ],
+)
+def test_any_center_inside_any_ellipse(inner, expected):
+    inner = np.array(inner, dtype=ELLIPSE_DTYPE)
+    outer = np.array([(0, 0, 2, 4, 0), (0, 0, 5, 10, 00)], dtype=ELLIPSE_DTYPE)
+    assert np.all(center_inside_ellipse(inner, outer) == expected)
+
+
+def test_jump_snowball():
+    """Added for JP-3835"""
+    from .jump_info import data_for_test_jump_snowball
+
+    jump_data, out_gdq = data_for_test_jump_snowball(DQFLAGS)
+    gdq, pdq, tot_crs, number_ext_events = detect_jumps_data(jump_data)
+
+    np.testing.assert_array_equal(gdq, out_gdq)

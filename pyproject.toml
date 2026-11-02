@@ -12,7 +12,7 @@ classifiers = [
 dependencies = [
   "astropy>=6.0.0",
   "astropy_healpix>=1.1.2",
-  "drizzle>=2.2.0,<2.3.0",
+  "drizzle>=2.2.0,<3.1.0",
   "gwcs>=1.0.1,<2.0.0",
   "numpy>=1.25.0",
   "pyarrow>=10.0.1",
@@ -217,9 +217,12 @@ skip = "*.pdf,*.fits,*.asdf,.tox,build,./tags,.git,docs/_build"
 ignore-words-list = "nd, ans, LIK, indx, usig, dne"
 
 [tool.cibuildwheel]
-build = "cp311-*"                                                                                                                     # build for CPython 3.11 Stable API
-skip = ["cp3*t-*"]                                                                                                                    # explicitly skip free-threaded builds
-test-command = "python -c 'from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter'"
+skip = [
+  "cp311-*",             # build for CPython Stable API
+  "cp3*t-*",             # Disable free-threading builds on all platforms
+  "cp3*-*linux_aarch64", # skip building Linux ARM64 because it takes forever
+]
+test-command = 'python -c "from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter"'
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
@@ -229,81 +232,3 @@ archs = ["auto", "aarch64"]
 
 [tool.coverage.run]
 omit = ["config.py", "config-3.py", "*.rmap"]
-
-[tool.towncrier]
-filename = "CHANGES.rst"
-directory = "changes"
-package = "stcal"
-title_format = "{version} ({project_date})"
-ignore = [".gitkeep"]
-wrap = true
-issue_format = "`#{issue} <https://github.com/spacetelescope/stcal/issues/{issue}>`_"
-
-[[tool.towncrier.type]]
-directory = "breaking"
-name = "Breaking Changes"
-showcontent = true
-
-# step changes
-
-[[tool.towncrier.type]]
-directory = "alignment"
-name = "alignment step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "dark_current"
-name = "dark_current step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "jump"
-name = "jump step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "linearity"
-name = "linearity step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "outlier_detection"
-name = "outlier_detection step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "ramp_fitting"
-name = "ramp_fitting step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "resample"
-name = "resample step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "saturation"
-name = "saturation step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "skymatch"
-name = "skymatch step"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "tweakreg"
-name = "tweakreg step"
-showcontent = true
-
-# other changes
-
-[[tool.towncrier.type]]
-directory = "docs"
-name = "Documentation Changes"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "other"
-name = "Other Changes"
-showcontent = true

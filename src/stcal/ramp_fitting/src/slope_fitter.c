@@ -651,7 +651,7 @@ static real_t
 segment_rnoise_default(struct ramp_data *rd, struct pixel_ramp *pr, real_t seglen);
 
 static real_t
-segment_rnoise_len1(struct ramp_data *rd, struct pixel_ramp *pr, real_t timing);
+segment_rnoise_len1(struct ramp_data *rd, struct pixel_ramp *pr, npy_intp integ, real_t timing);
 
 static real_t
 segment_rnoise_len2(struct ramp_data *rd, struct pixel_ramp *pr);
@@ -2991,7 +2991,7 @@ ramp_fit_pixel_rnoise_chargeloss_segs(
     for (current = segs->head; current; current = current->flink) {
         if (1 == current->length) {
             timing = segment_len1_timing(rd, pr, integ);
-            svar_r = segment_rnoise_len1(rd, pr, timing);
+            svar_r = segment_rnoise_len1(rd, pr, integ, timing);
         } else if (2 == current->length) {
             svar_r = segment_rnoise_len2(rd, pr);
         } else {
@@ -3251,7 +3251,7 @@ ramp_fit_pixel_integration_fit_slope_seg_len1(
     }
 
     /* Segment read noise variance */
-    seg->var_r = segment_rnoise_len1(rd, pr, timing);
+    seg->var_r = segment_rnoise_len1(rd, pr, integ, timing);
 
     seg->var_e = seg->var_p + seg->var_r;
 
@@ -3289,16 +3289,29 @@ static real_t
 segment_rnoise_len1(
     struct ramp_data *rd,  /* The ramp data */
     struct pixel_ramp *pr, /* The pixel ramp data */
+    npy_intp integ,        /* The current integration */
     real_t timing)         /* The first group timing */
 {
-    real_t rnum, rden;
+    real_t rnum, rden, var;
 
     rnum = pr->rnoise / timing;
     rnum = 12. * rnum * rnum;
     rden = 6.; /* seglen * seglen * seglen - seglen; where siglen = 2 */
     rden = rden * pr->gain * pr->gain;
+    var = rnum / rden;
 
-    return rnum / rden;
+    /*
+     * pr->rnoise enters the C code already scaled by 1 / sqrt(nframes) in
+     * Python (ramp_fit_data), so it is already the read noise of a group of
+     * nframes-averaged frames.  The ZEROFRAME is a single frame, and timing
+     * is already frame_time for it.  So ZEROFRAME needs the read noise
+     * variance 1 / nframes scaling undone.
+     */
+    if (!rd->suppress1g && !pr->is_0th[integ] && pr->is_zframe[integ]) {
+        var *= (real_t) rd->nframes;
+    }
+
+    return var;
 }
 
 /*

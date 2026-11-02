@@ -1,0 +1,2 @@
+Avoid allocating a full ramp-sized array for each row in
+``determine_diffs2use`` in likelihood-based ramp fitting.
