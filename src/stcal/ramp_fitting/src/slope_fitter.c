@@ -500,7 +500,7 @@ static int
 create_rateint_product(struct rateint_product *rateint_prod, struct ramp_data *rd);
 
 static PyArrayObject *
-create_zero_array(int nd, npy_intp *dims);
+create_zeros_array(int nd, npy_intp *dims);
 
 static float
 get_float2(PyArrayObject *obj, npy_intp row, npy_intp col);
