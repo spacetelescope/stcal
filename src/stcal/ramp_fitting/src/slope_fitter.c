@@ -11,8 +11,19 @@
 #include <time.h>
 #include <unistd.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wcast-qual"
+#pragma GCC diagnostic ignored "-Wundef"
+#endif
+
 #include <numpy/arrayobject.h>
 #include <numpy/npy_math.h>
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* ========================================================================= */
 /*                               TYPEDEFs                                    */
@@ -4112,7 +4123,7 @@ static void
 print_pixel_ramp_info(struct ramp_data *rd, struct pixel_ramp *pr, int line)
 {
     print_delim();
-    printf("[%s, %d] Pixel (%ld, %ld)\n", __FUNCTION__, line, pr->row, pr->col);
+    printf("[%s, %d] Pixel (%ld, %ld)\n", __func__, line, pr->row, pr->col);
     printf("Data:\n");
     print_pixel_ramp_data(rd, pr, -1);
     printf("DQ:\n");
