@@ -1,4 +1,3 @@
-import os
 import sys
 import sysconfig
 
@@ -6,7 +5,6 @@ import numpy as np
 from Cython.Build import cythonize
 from Cython.Compiler import Options
 from setuptools import Extension, setup
-
 
 FREE_THREADED_PYTHON = sysconfig.get_config_var("Py_GIL_DISABLED") == 1
 
