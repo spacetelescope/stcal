@@ -485,7 +485,7 @@ static void
 cr_list_clean(struct cr_list *crs);
 
 static PyArrayObject *
-create_empty_array(int nd, npy_intp *dims);
+create_empty_array(int nd, npy_intp *dims, int type_num);
 
 static int
 create_opt_res(struct opt_res_product *opt_res, struct ramp_data *rd);
@@ -500,7 +500,7 @@ static int
 create_rateint_product(struct rateint_product *rateint_prod, struct ramp_data *rd);
 
 static PyArrayObject *
-create_zeros_array(int nd, npy_intp *dims);
+create_zeros_array(int nd, npy_intp *dims, int type_num);
 
 static float
 get_float2(PyArrayObject *obj, npy_intp row, npy_intp col);
@@ -951,15 +951,15 @@ CLEANUP:
 #endif
 
 static PyArrayObject *
-create_empty_array(int nd, npy_intp *dims)
+create_empty_array(int nd, npy_intp *dims, int type_num)
 {
-    return (PyArrayObject *) PyArray_Empty(nd, dims, PyArray_DescrFromType(NPY_FLOAT), 0);
+    return (PyArrayObject *) PyArray_Empty(nd, dims, PyArray_DescrFromType(type_num), 0);
 }
 
 static PyArrayObject *
-create_zeros_array(int nd, npy_intp *dims)
+create_zeros_array(int nd, npy_intp *dims, int type_num)
 {
-    return (PyArrayObject *) PyArray_Zeros(nd, dims, PyArray_DescrFromType(NPY_FLOAT), 0);
+    return (PyArrayObject *) PyArray_Zeros(nd, dims, PyArray_DescrFromType(type_num), 0);
 }
 
 #if defined(__clang__)
@@ -1420,37 +1420,37 @@ create_opt_res(
     dims[2] = rd->nrows;
     dims[3] = rd->ncols;
 
-    opt_res->slope = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->slope = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->slope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigslope = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->sigslope = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->sigslope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_p = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->var_p = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->var_p) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_r = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->var_r = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->var_r) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->yint = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->yint = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->yint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigyint = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->sigyint = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->sigyint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->weights = (PyArrayObject *) create_zeros_array(nd, dims);
+    opt_res->weights = (PyArrayObject *) create_zeros_array(nd, dims, NPY_FLOAT);
     if (!opt_res->weights) {
         goto FAILED_ALLOC;
     }
@@ -1458,7 +1458,7 @@ create_opt_res(
     pdims[0] = rd->nints;
     pdims[1] = rd->nrows;
     pdims[2] = rd->ncols;
-    opt_res->pedestal = (PyArrayObject *) create_zeros_array(pnd, pdims);
+    opt_res->pedestal = (PyArrayObject *) create_zeros_array(pnd, pdims, NPY_FLOAT);
     if (!opt_res->pedestal) {
         goto FAILED_ALLOC;
     }
@@ -1557,27 +1557,27 @@ create_rate_product(
     dims[0] = rd->nrows;
     dims[1] = rd->ncols;
 
-    rate->slope = (PyArrayObject *) create_empty_array(nd, dims);
+    rate->slope = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rate->slope) {
         goto FAILED_ALLOC;
     }
 
-    rate->dq = (PyArrayObject *) create_empty_array(nd, dims);
+    rate->dq = (PyArrayObject *) create_empty_array(nd, dims, NPY_UINT32);
     if (NULL == rate->dq) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_poisson = (PyArrayObject *) create_empty_array(nd, dims);
+    rate->var_poisson = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rate->var_poisson) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_rnoise = (PyArrayObject *) create_empty_array(nd, dims);
+    rate->var_rnoise = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rate->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_err = (PyArrayObject *) create_empty_array(nd, dims);
+    rate->var_err = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rate->var_err) {
         goto FAILED_ALLOC;
     }
@@ -1615,27 +1615,27 @@ create_rateint_product(
     dims[1] = rd->nrows;
     dims[2] = rd->ncols;
 
-    rateint->slope = (PyArrayObject *) create_empty_array(nd, dims);
+    rateint->slope = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rateint->slope) {
         goto FAILED_ALLOC;
     }
 
-    rateint->dq = (PyArrayObject *) create_empty_array(nd, dims);
+    rateint->dq = (PyArrayObject *) create_empty_array(nd, dims, NPY_UINT32);
     if (NULL == rateint->dq) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_poisson = (PyArrayObject *) create_empty_array(nd, dims);
+    rateint->var_poisson = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rateint->var_poisson) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_rnoise = (PyArrayObject *) create_empty_array(nd, dims);
+    rateint->var_rnoise = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rateint->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_err = (PyArrayObject *) create_empty_array(nd, dims);
+    rateint->var_err = (PyArrayObject *) create_empty_array(nd, dims, NPY_FLOAT);
     if (NULL == rateint->var_err) {
         goto FAILED_ALLOC;
     }
