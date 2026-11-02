@@ -18,6 +18,7 @@ jobs:
       matrix:
         runs-on:
           - ubuntu-latest
+          - ubuntu-26.04-arm
           - macos-latest
     runs-on: ${{ matrix.runs-on }}
     steps:
@@ -35,6 +36,8 @@ jobs:
         with:
           platforms: all
       - uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
+        env:
+          CIBW_ARCHS: ${{ runner.os == 'Linux' && 'native' || 'auto' }}
         with:
           package-dir: ./
           output-dir: dist/
