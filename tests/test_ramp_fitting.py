@@ -1191,10 +1191,60 @@ def test_all_sat():
     ramp.groupdq[:, 0, :, :] = ramp.flags_saturated
 
     algo, save_opt, ncores = DEFAULT_OLS, False, "none"
-    slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
 
-    assert slopes is None
-    assert cube is None
+    with pytest.raises(ValueError, match=r".* completely saturated .*"):
+        slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
+
+
+def test_all_nan():
+    """Test ramps that yield all NaN for slopes."""
+    nints, ngroups, nrows, ncols = 1, 10, 2, 5
+    rnval, gval = 7.1426696, 0.0
+    frame_time, nframes, groupgap = 1.06904, 1, 0
+
+    dims = nints, ngroups, nrows, ncols
+    var = rnval, gval
+    tm = frame_time, nframes, groupgap
+
+    ramp, gain, rnoise = create_blank_ramp_data(dims, var, tm)
+    ramp.instrument_name = "NIRCAM"
+
+    # fmt: off
+    ramp.data[0, :, 0, 0] = np.array( [-13.56, -9.09, -5.16, -13.39,  0.49, -14.44, -6.20, -18.72, -8.43,  1.01,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 0, 1] = np.array( [-12.11, -11.31, -11.26, -2.62, -7.44, -3.77, -16.42, -10.91, -20.39, -15.67,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 0, 2] = np.array( [-14.65, -9.01, -7.87, -7.23, -15.77, -7.66, -16.00, -3.09, -3.10, -11.76,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 0, 3] = np.array( [-7.71, -20.23, -7.36, -9.60, -16.16, -17.90, -14.51, -16.92, -16.95, -17.47,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 0, 4] = np.array( [-22.29, -27.68, -20.51, -9.87, -11.66, -6.00, -12.32, -3.51, -17.82, -14.11,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 1, 0] = np.array( [-11.05, -7.62, -15.60, -5.75, -22.49, -5.76, -9.92, -11.16, -18.90, -11.14,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 1, 1] = np.array( [-16.65, -7.55, -7.15, -9.12, -11.35, -14.40, -15.58, -8.51, -12.08, -11.87,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 1, 2] = np.array( [-2.79, -14.96, -17.99, -10.92, -17.10, -16.19, -9.86, -0.16, -11.68, -18.23,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 1, 3] = np.array( [-8.23, -2.87, -11.58, -8.86, -19.00, -16.81, -10.73, -10.49, -15.92, -8.84,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+
+    ramp.data[0, :, 1, 4] = np.array( [-10.16, -8.08, -15.79, -18.36, -13.35, -6.12, -13.87,  1.71, -7.39, -9.07,] , dtype=np.float32)
+    np.array( [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] , dtype=np.uint8)
+    # fmt: on
+
+    algo, save_opt, ncores = DEFAULT_OLS, False, "none"
+
+    with pytest.raises(ValueError, match=r".* computed as NaN.*"):
+        slopes, cube, ols_opt = ramp_fit_data(ramp, save_opt, rnoise, gain, algo, "optimal", ncores)
 
 
 def test_dq_multi_int_dnu():

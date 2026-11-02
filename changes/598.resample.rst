@@ -1,0 +1,1 @@
+Make ``variance_array_names`` available as an input option to the ``Resample`` class, allowing optional variance propagation for some instances.
