@@ -1,6 +1,6 @@
 import numpy as np
 
-from stcal.jump.twopoint_difference import find_crs
+from stcal.jump.twopoint_difference import check_sigma_clip_groups, find_crs
 from stcal.jump.twopoint_difference_class import TwoPointParams
 
 DQFLAGS = {"JUMP_DET": 4, "SATURATED": 2, "DO_NOT_USE": 1}
@@ -920,3 +920,29 @@ def test_det_jump_sigma_clipping():
     jump = DQFLAGS["JUMP_DET"]
     check = np.array([0, 0, 0, jump, 0, 0, 0, 0, 0], dtype=np.uint32)
     assert np.array_equal(check, out_gdq[7, :, 3, 3])
+
+
+def test_sigma_clip_groups_uneven_sampling(caplog):
+    # Set only_use_ints to True, minimum is 10
+    nints, ngroups = 11, 20
+    twopt_p = sigclip_twopt_p()
+    twopt_p.only_use_ints = True
+
+    # even timing and averaging
+    twopt_p.dt_group = np.full(ngroups, 1)
+    twopt_p.n_reads_groupdiff = np.full(ngroups, 2)
+
+    # should pass: nints over limit
+    assert check_sigma_clip_groups(nints, ngroups, twopt_p)
+
+    # should not pass: nints under limit
+    assert not check_sigma_clip_groups(8, ngroups, twopt_p)
+
+    # uneven timing is allowed, but issues a warning
+    twopt_p.dt_group = np.arange(ngroups)
+    assert check_sigma_clip_groups(nints, ngroups, twopt_p)
+    assert "sigma clipping may be inaccurate for unevenly sampled ramps" in caplog.text
+
+    # uneven averaging is not allowed
+    twopt_p.n_reads_groupdiff[0] = 1
+    assert not check_sigma_clip_groups(nints, ngroups, twopt_p)

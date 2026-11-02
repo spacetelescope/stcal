@@ -483,15 +483,23 @@ def check_sigma_clip_groups(nints, total_groups, twopt_p):
     -------
     boolean
         Are there enough groups to use sigma clipping?
-        Returns False if groups are uneven, e.g., for Roman.
+        Returns False if group averages are uneven, e.g., for Roman.
     """
-    # We cannot apply this test for uneven groups.
-    # all_grps_uniform = np.std(twopt_p.n_reads_groupdiff) == 0 and np.std(twopt_p.dt_group) == 0
-    # if not all_grps_uniform:
-    #    return False
+    # Sigma clipping is questionable for uneven groups, since different samples
+    # will have different expected sigma values. Turn it off for Roman-style
+    # variable group averaging, but warn and allow it as a fallback for JWST-style
+    # multistripe samples with variable read timing.
+    all_grps_same_averaging = np.std(twopt_p.n_reads_groupdiff) == 0
+    all_grps_same_timing = np.std(twopt_p.dt_group) == 0
+    if not all_grps_same_averaging:
+        return False
 
     test1 = twopt_p.only_use_ints and nints >= twopt_p.minimum_sigclip_groups
     test2 = not twopt_p.only_use_ints and total_groups >= twopt_p.minimum_sigclip_groups
+
+    if test1 or test2 and not all_grps_same_timing:
+        log.warning("Jump detection with sigma clipping may be inaccurate for unevenly sampled ramps")
+
     return test1 or test2
 
 
