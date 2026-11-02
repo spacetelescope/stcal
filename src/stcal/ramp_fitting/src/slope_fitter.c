@@ -668,6 +668,7 @@ snr_power(real_t snr);
 /* ------------------------------------------------------------------------- */
 /*                            Debug Functions                                */
 /* ------------------------------------------------------------------------- */
+
 static void
 print_cr_pixel(struct pixel_ramp *pr, int line);
 
@@ -681,7 +682,7 @@ static void
 print_intp_array(npy_intp *arr, int len, int ret);
 
 static void
-print_npy_types();
+print_npy_types(void);
 
 static void
 print_ols_calcs(struct ols_calcs *ols, npy_intp integ, int segnum, int line);
@@ -736,6 +737,7 @@ print_uint8_array(uint8_t *arr, int len, int ret, int line);
 
 static void
 print_uint32_array(uint32_t *arr, int len, int ret, int line);
+
 /* ========================================================================= */
 
 /* ========================================================================= */
@@ -758,7 +760,7 @@ get_cube_index(struct ramp_data *rd, npy_intp integ, npy_intp row, npy_intp col)
 
 /* Print a line delimiter for visual separation.  Used for debugging. */
 static inline void
-print_delim()
+print_delim(void)
 {
     int k;
     const char c = '-';
@@ -766,79 +768,6 @@ print_delim()
         printf("%c", c);
     }
     printf("\n");
-}
-
-/* Print a line delimiter for visual separation.  Used for debugging. */
-static inline void
-print_delim_char(char c, int len)
-{
-    int k;
-    for (k = 0; k < len; ++k) {
-        printf("%c", c);
-    }
-    printf("\n");
-}
-
-/*
- * Used to determine if a pixel is in a list.
- * This is a debugging function.
- */
-static inline int
-is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
-{
-    /* Pixel list */
-
-#if 0
-    // JP-4000:
-    pixels = [(63, 231), (63, 232), (63, 233), (63, 234)]
-#endif
-
-#define LEN 2
-    npy_intp rows[LEN];
-    npy_intp cols[LEN];
-    npy_intp row;
-    int k;
-
-    // return 0; /* XXX Null function */
-
-    rows[0] = 63;
-    cols[0] = 231;
-    rows[1] = 63;
-    cols[1] = 232;
-
-    for (k = 0; k < LEN; ++k) {
-        row = pr->row + rd->start_row;
-        if (row == rows[k] && pr->col == cols[k]) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-static inline long long
-print_pid_info(long long prev, int line, char *label)
-{
-    struct rusage res_usage;
-    long long now_time = (long long) time(NULL);
-    long long mem_usage = -1;
-    long long diff = 0;
-    pid_t pid = getpid();
-    // dbg_ols_print("PID:  %d\n", pid);
-
-    getrusage(RUSAGE_SELF, &res_usage);
-    mem_usage = res_usage.ru_maxrss;
-    if (prev > 0) {
-        diff = mem_usage - prev;
-        dbg_ols_print(
-            "[%d] time: %lld, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n", line, now_time,
-            mem_usage, diff, prev, pid, label);
-    } else {
-        dbg_ols_print(
-            "[%d] time: %lld, Mem: %lld, diff: %lld, pid: %d  '%s'\n", line, now_time, mem_usage,
-            diff, pid, label);
-    }
-
-    return mem_usage;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -862,13 +791,12 @@ print_pid_info(long long prev, int line, char *label)
  * runs, each can be separated by time, as well as process ID.
  */
 void
-set_up_logger()
+set_up_logger(void)
 {
     const char *log_dir = NULL; // Directory path to directory in which to write logs
     char tbuffer[128];
     time_t now = time(NULL);
     struct tm *curr_tm = localtime(&now);
-    int sz;
     const char *string_fmt = "%Y_%m_%d_%H%M%S";
 
     return; // Prevents accidentally setup something that shouldn't be
@@ -876,7 +804,7 @@ set_up_logger()
     memset(tbuffer, 0, 128);
     strftime(tbuffer, 127, string_fmt, curr_tm);
 
-    sz = snprintf(g_log_name, PATH_MAX - 1, "%s/%s_pid_%d_logger.txt", log_dir, tbuffer, g_pid);
+    snprintf(g_log_name, PATH_MAX - 1, "%s/%s_pid_%d_logger.txt", log_dir, tbuffer, g_pid);
     // XXX maybe check return value before logging
 
     print_delim();
@@ -899,14 +827,14 @@ set_up_logger()
         set_up_logger();            \
     } while (0)
 
-#define CHECK_EXCEPTION(E, S)          \
-    do {                               \
-        E = PyErr_Occurred();          \
-        if (NULL != (E)) {             \
-            log_ols_print("%s\n", S);  \
-            PyErr_DisplayException(E); \
-            Py_XDECREF(E);             \
-        }                              \
+#define CHECK_EXCEPTION(E, S)             \
+    do {                                  \
+        E = PyErr_Occurred();             \
+        if (NULL != (E)) {                \
+            log_ols_print("%s\n", S);     \
+            PyErr_DisplayException(E);    \
+            Py_XDECREF((PyObject *) (E)); \
+        }                                 \
     } while (0)
 
 /*
@@ -965,7 +893,7 @@ ols_slope_fitter(
 
     goto CLEANUP;
 ERROR:
-    Py_XDECREF(result);
+    Py_XDECREF((PyObject *) result);
 
     /* Clean up errors */
     clean_rate_product(&rate_prod);
@@ -1077,15 +1005,15 @@ build_opt_res(struct ramp_data *rd) /* The ramp fitting data */
 static void
 clean_opt_res(struct opt_res_product *opt_res)
 {
-    Py_XDECREF(opt_res->slope);
-    Py_XDECREF(opt_res->sigslope);
-    Py_XDECREF(opt_res->var_p);
-    Py_XDECREF(opt_res->var_r);
-    Py_XDECREF(opt_res->yint);
-    Py_XDECREF(opt_res->sigyint);
-    Py_XDECREF(opt_res->pedestal);
-    Py_XDECREF(opt_res->weights);
-    Py_XDECREF(opt_res->cr_mag);
+    Py_XDECREF((PyObject *) opt_res->slope);
+    Py_XDECREF((PyObject *) opt_res->sigslope);
+    Py_XDECREF((PyObject *) opt_res->var_p);
+    Py_XDECREF((PyObject *) opt_res->var_r);
+    Py_XDECREF((PyObject *) opt_res->yint);
+    Py_XDECREF((PyObject *) opt_res->sigyint);
+    Py_XDECREF((PyObject *) opt_res->pedestal);
+    Py_XDECREF((PyObject *) opt_res->weights);
+    Py_XDECREF((PyObject *) opt_res->cr_mag);
 }
 
 /*
@@ -1130,12 +1058,12 @@ clean_ramp_data(struct ramp_data *rd) /* The ramp fitting data structure */
     struct cr_node *cr_current;
     struct cr_node *cr_next;
 
-    Py_XDECREF(rd->data);
-    Py_XDECREF(rd->groupdq);
-    Py_XDECREF(rd->orig_gdq);
-    Py_XDECREF(rd->pixeldq);
-    Py_XDECREF(rd->zframe);
-    Py_XDECREF(rd->dcurrent);
+    Py_XDECREF((PyObject *) rd->data);
+    Py_XDECREF((PyObject *) rd->groupdq);
+    Py_XDECREF((PyObject *) rd->orig_gdq);
+    Py_XDECREF((PyObject *) rd->pixeldq);
+    Py_XDECREF((PyObject *) rd->zframe);
+    Py_XDECREF((PyObject *) rd->dcurrent);
 
     if (rd->segs) {
         /*
@@ -1174,11 +1102,11 @@ static void
 clean_rate_product(struct rate_product *rate_prod) /* Rate product data structure */
 {
     /* Free all arrays */
-    Py_XDECREF(rate_prod->slope);
-    Py_XDECREF(rate_prod->dq);
-    Py_XDECREF(rate_prod->var_poisson);
-    Py_XDECREF(rate_prod->var_rnoise);
-    Py_XDECREF(rate_prod->var_err);
+    Py_XDECREF((PyObject *) rate_prod->slope);
+    Py_XDECREF((PyObject *) rate_prod->dq);
+    Py_XDECREF((PyObject *) rate_prod->var_poisson);
+    Py_XDECREF((PyObject *) rate_prod->var_rnoise);
+    Py_XDECREF((PyObject *) rate_prod->var_err);
 
     /* Zero out any memory */
     memset(rate_prod, 0, sizeof(*rate_prod));
@@ -1196,11 +1124,11 @@ static void
 clean_rateint_product(struct rateint_product *rateint_prod) /* Rateints product data structure */
 {
     /* Free all arrays */
-    Py_XDECREF(rateint_prod->slope);
-    Py_XDECREF(rateint_prod->dq);
-    Py_XDECREF(rateint_prod->var_poisson);
-    Py_XDECREF(rateint_prod->var_rnoise);
-    Py_XDECREF(rateint_prod->var_err);
+    Py_XDECREF((PyObject *) rateint_prod->slope);
+    Py_XDECREF((PyObject *) rateint_prod->dq);
+    Py_XDECREF((PyObject *) rateint_prod->var_poisson);
+    Py_XDECREF((PyObject *) rateint_prod->var_rnoise);
+    Py_XDECREF((PyObject *) rateint_prod->var_err);
 
     /* Zero out any memory */
     memset(rateint_prod, 0, sizeof(*rateint_prod));
@@ -1434,9 +1362,8 @@ create_opt_res(
     struct opt_res_product *opt_res, /* The optional results product */
     struct ramp_data *rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 4;
+    enum { nd = 4, pnd = 3 };
     npy_intp dims[nd];
-    const npy_intp pnd = 3;
     npy_intp pdims[pnd];
     const int fortran = 0; /* Want C order */
     const char *msg = "Couldn't allocate memory for opt_res products.";
@@ -1503,15 +1430,15 @@ FAILED_ALLOC:
     err_ols_print("%s\n", msg);
     PyErr_SetString(PyExc_MemoryError, msg);
 
-    Py_XDECREF(opt_res->slope);
-    Py_XDECREF(opt_res->sigslope);
-    Py_XDECREF(opt_res->var_p);
-    Py_XDECREF(opt_res->var_r);
-    Py_XDECREF(opt_res->yint);
-    Py_XDECREF(opt_res->sigyint);
-    Py_XDECREF(opt_res->pedestal);
-    Py_XDECREF(opt_res->weights);
-    Py_XDECREF(opt_res->cr_mag);
+    Py_XDECREF((PyObject *) opt_res->slope);
+    Py_XDECREF((PyObject *) opt_res->sigslope);
+    Py_XDECREF((PyObject *) opt_res->var_p);
+    Py_XDECREF((PyObject *) opt_res->var_r);
+    Py_XDECREF((PyObject *) opt_res->yint);
+    Py_XDECREF((PyObject *) opt_res->sigyint);
+    Py_XDECREF((PyObject *) opt_res->pedestal);
+    Py_XDECREF((PyObject *) opt_res->weights);
+    Py_XDECREF((PyObject *) opt_res->cr_mag);
 
     return 1;
 }
@@ -1577,7 +1504,7 @@ create_rate_product(
     struct rate_product *rate, /* The rate product */
     struct ramp_data *rd)      /* The ramp fitting data */
 {
-    const npy_intp nd = 2;
+    enum { nd = 2 };
     npy_intp dims[nd];
     const int fortran = 0;
     const char *msg = "Couldn't allocate memory for rate products.";
@@ -1616,11 +1543,11 @@ FAILED_ALLOC:
     err_ols_print("%s\n", msg);
     PyErr_SetString(PyExc_MemoryError, msg);
 
-    Py_XDECREF(rate->slope);
-    Py_XDECREF(rate->dq);
-    Py_XDECREF(rate->var_poisson);
-    Py_XDECREF(rate->var_rnoise);
-    Py_XDECREF(rate->var_err);
+    Py_XDECREF((PyObject *) rate->slope);
+    Py_XDECREF((PyObject *) rate->dq);
+    Py_XDECREF((PyObject *) rate->var_poisson);
+    Py_XDECREF((PyObject *) rate->var_rnoise);
+    Py_XDECREF((PyObject *) rate->var_err);
     PyErr_SetString(PyExc_MemoryError, (const char *) msg);
     err_ols_print("%s\n", msg);
 
@@ -1635,7 +1562,7 @@ create_rateint_product(
     struct rateint_product *rateint, /* The rateints product */
     struct ramp_data *rd)            /* The ramp fitting data */
 {
-    const npy_intp nd = 3;
+    enum { nd = 3 };
     npy_intp dims[nd];
     const int fortran = 0;
     const char *msg = "Couldn't allocate memory for rateint products.";
@@ -1675,11 +1602,11 @@ FAILED_ALLOC:
     PyErr_SetString(PyExc_MemoryError, msg);
     err_ols_print("%s\n", msg);
 
-    Py_XDECREF(rateint->slope);
-    Py_XDECREF(rateint->dq);
-    Py_XDECREF(rateint->var_poisson);
-    Py_XDECREF(rateint->var_rnoise);
-    Py_XDECREF(rateint->var_err);
+    Py_XDECREF((PyObject *) rateint->slope);
+    Py_XDECREF((PyObject *) rateint->dq);
+    Py_XDECREF((PyObject *) rateint->var_poisson);
+    Py_XDECREF((PyObject *) rateint->var_rnoise);
+    Py_XDECREF((PyObject *) rateint->var_err);
     PyErr_SetString(PyExc_MemoryError, (const char *) msg);
     err_ols_print("%s\n", msg);
 
@@ -2121,7 +2048,7 @@ get_ramp_data_meta(
     } else {
         rd->dropframes = py_ramp_data_get_int(Py_ramp_data, "drop_frames1");
     }
-    Py_XDECREF(test);
+    Py_XDECREF((PyObject *) test);
 
     rd->ped_tmp = ((rd->nframes + 1) / 2. + rd->dropframes) / (rd->nframes + rd->groupgap);
 
@@ -2139,7 +2066,7 @@ get_ramp_data_meta(
     } else {
         rd->chargeloss = py_ramp_data_get_int(Py_ramp_data, "flags_chargeloss");
     }
-    Py_XDECREF(test);
+    Py_XDECREF((PyObject *) test);
 
     test = PyObject_GetAttrString(Py_ramp_data, "start_row");
     if (!test || (test == Py_None)) {
@@ -2147,7 +2074,7 @@ get_ramp_data_meta(
     } else {
         rd->start_row = py_ramp_data_get_int(Py_ramp_data, "start_row");
     }
-    Py_XDECREF(test);
+    Py_XDECREF((PyObject *) test);
 
     test = PyObject_GetAttrString(Py_ramp_data, "num_rows");
     if (!test || (test == Py_None)) {
@@ -2155,7 +2082,7 @@ get_ramp_data_meta(
     } else {
         rd->num_rows = py_ramp_data_get_int(Py_ramp_data, "num_rows");
     }
-    Py_XDECREF(test);
+    Py_XDECREF((PyObject *) test);
 
     rd->invalid = rd->dnu | rd->sat;
 
@@ -2557,7 +2484,6 @@ ols_slope_fit_pixels(
     struct rateint_product *rateint_prod) /* The rateints product */
 {
     npy_intp row, col;
-    int ret = 0;
 
     for (row = 0; row < rd->nrows; ++row) {
         for (col = 0; col < rd->ncols; ++col) {
@@ -2568,20 +2494,17 @@ ols_slope_fit_pixels(
 
             /* Compute ramp fitting */
             if (ramp_fit_pixel(rd, pr)) {
-                ret = 1;
                 goto END;
             }
 
-            if (rd->orig_gdq != Py_None) {
+            if ((PyObject *) rd->orig_gdq != Py_None) {
                 if (ramp_fit_pixel_rnoise_chargeloss(rd, pr)) {
-                    ret = 1;
                     goto END;
                 }
             }
 
             /* Save fitted pixel data for output packaging */
             if (save_ramp_fit(rateint_prod, rate_prod, pr)) {
-                ret = 1;
                 goto END;
             }
         } /* col loop */
@@ -2590,27 +2513,6 @@ ols_slope_fit_pixels(
 END:
 
     return 0;
-}
-
-/*
- * For debugging, print the type values and the array types.
- */
-static void
-print_ramp_data_types(
-    struct ramp_data *rd, /* The ramp data */
-    int line)             /* Calling line number */
-{
-    printf("[%s:%d]\n", __FILE__, line);
-    printf("NPY_DOUBLE = %d\n", NPY_DOUBLE);
-    printf("NPY_FLOAT = %d\n", NPY_FLOAT);
-    printf("NPY_UBYTE = %d\n", NPY_UBYTE);
-    printf("NPY_UINT322 = %d\n", NPY_UINT32);
-    printf("PyArray_TYPE(rd->data))    = %d\n", PyArray_TYPE(rd->data));
-    printf("PyArray_TYPE(rd->groupdq)) = %d\n", PyArray_TYPE(rd->groupdq));
-    printf("PyArray_TYPE(rd->pixeldq)) = %d\n", PyArray_TYPE(rd->pixeldq));
-    printf("\n");
-    printf("PyArray_TYPE(rd->gain))   = %d\n", PyArray_TYPE(rd->gain));
-    printf("PyArray_TYPE(rd->rnoise)) = %d\n", PyArray_TYPE(rd->rnoise));
 }
 
 /*
@@ -2653,29 +2555,11 @@ package_results(
     return result;
 
 FAILED_ALLOC:
-    Py_XDECREF(image_info);
-    Py_XDECREF(cube_info);
-    Py_XDECREF(opt_res);
+    Py_XDECREF((PyObject *) image_info);
+    Py_XDECREF((PyObject *) cube_info);
+    Py_XDECREF((PyObject *) opt_res);
 
     return NULL;
-}
-
-/*
- * For debugging print the type values of ramp data
- * arrays and the expected type values.
- */
-static void
-print_rd_type_info(struct ramp_data *rd)
-{ /* The ramp data */
-    print_delim();
-    print_npy_types();
-    dbg_ols_print("data = %d (%d)\n", PyArray_TYPE(rd->data), NPY_FLOAT);
-    dbg_ols_print("gdq  = %d (%d)\n", PyArray_TYPE(rd->groupdq), NPY_UBYTE);
-    dbg_ols_print("pdq  = %d (%d)\n", PyArray_TYPE(rd->pixeldq), NPY_UINT32);
-    dbg_ols_print("dcur = %d (%d)\n", PyArray_TYPE(rd->dcurrent), NPY_FLOAT);
-    dbg_ols_print("gain = %d (%d)\n", PyArray_TYPE(rd->gain), NPY_FLOAT);
-    dbg_ols_print("rn   = %d (%d)\n", PyArray_TYPE(rd->rnoise), NPY_FLOAT);
-    print_delim();
 }
 
 /*
@@ -2748,7 +2632,7 @@ py_ramp_data_get_float(
 
     Obj = PyObject_GetAttrString(rd, attr);
     val = (float) PyFloat_AsDouble(Obj);
-    Py_XDECREF(Obj);
+    Py_XDECREF((PyObject *) Obj);
 
     return val;
 }
@@ -2767,7 +2651,7 @@ py_ramp_data_get_int(
 
     Obj = PyObject_GetAttrString(rd, attr);
     val = (int) PyLong_AsLong(Obj);
-    Py_XDECREF(Obj);
+    Py_XDECREF((PyObject *) Obj);
 
     return val;
 }
@@ -3556,8 +3440,8 @@ save_opt_res(
 {
     void *ptr = NULL;
     npy_intp integ, crnum, segnum, row, col, idx;
-    const int msg_size = 1024;
-    char msg[msg_size];
+    enum { MSG_SIZE = 1024 };
+    char msg[MSG_SIZE];
     struct simple_ll_node *current;
     struct simple_ll_node *next;
     struct cr_node *cr_current;
@@ -3588,9 +3472,9 @@ save_opt_res(
                 current = rd->segs[idx];
                 while (current) {
                     if (segnum > rd->max_num_segs) {
-                        memset(msg, 0, msg_size);
+                        memset(msg, 0, MSG_SIZE);
                         snprintf(
-                            msg, msg_size - 1, "(%ld, %ld, %ld) Bad segment loop.\n", integ, row,
+                            msg, MSG_SIZE - 1, "(%ld, %ld, %ld) Bad segment loop.\n", integ, row,
                             col);
                         err_ols_print("%s", msg);
                         PyErr_SetString(PyExc_IndexError, msg);
@@ -3664,9 +3548,9 @@ save_opt_res(
                     cr_current = rd->crs[idx];
                     while (cr_current) {
                         if (crnum > rd->max_num_crs) {
-                            memset(msg, 0, msg_size);
+                            memset(msg, 0, MSG_SIZE);
                             snprintf(
-                                msg, msg_size - 1, "(%ld, %ld, %ld) Bad CR loop.\n", integ, row,
+                                msg, MSG_SIZE - 1, "(%ld, %ld, %ld) Bad CR loop.\n", integ, row,
                                 col);
                             err_ols_print("%s", msg);
                             PyErr_SetString(PyExc_IndexError, msg);
@@ -3843,6 +3727,129 @@ snr_power(real_t snr) /* The signal to noise ratio of a segment */
  * This prints some of the ramp_data information.  This function is primarily
  * used for debugging and development purposes.
  */
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#elif defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#elif defined(_MSC_VER)
+#pragma warning(disable : 4505) /* unreferenced local function has been removed */
+#endif
+
+/*
+ * Used to determine if a pixel is in a list.
+ * This is a debugging function.
+ */
+static inline int
+is_pix_in_list(struct ramp_data *rd, struct pixel_ramp *pr)
+{
+    /* Pixel list */
+
+#if 0
+    // JP-4000:
+    pixels = [(63, 231), (63, 232), (63, 233), (63, 234)]
+#endif
+
+#define LEN 2
+    npy_intp rows[LEN];
+    npy_intp cols[LEN];
+    npy_intp row;
+    int k;
+
+    // return 0; /* XXX Null function */
+
+    rows[0] = 63;
+    cols[0] = 231;
+    rows[1] = 63;
+    cols[1] = 232;
+
+    for (k = 0; k < LEN; ++k) {
+        row = pr->row + rd->start_row;
+        if (row == rows[k] && pr->col == cols[k]) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static inline long long
+print_pid_info(long long prev, int line, char *label)
+{
+    struct rusage res_usage;
+    long long now_time = (long long) time(NULL);
+    long long mem_usage = -1;
+    long long diff = 0;
+    pid_t pid = getpid();
+    // dbg_ols_print("PID:  %d\n", pid);
+
+    getrusage(RUSAGE_SELF, &res_usage);
+    mem_usage = res_usage.ru_maxrss;
+    if (prev > 0) {
+        diff = mem_usage - prev;
+        dbg_ols_print(
+            "[%d] time: %lld, Mem: %lld, diff: %lld, prev: %lld, pid: %d  '%s'\n", line, now_time,
+            mem_usage, diff, prev, pid, label);
+    } else {
+        dbg_ols_print(
+            "[%d] time: %lld, Mem: %lld, diff: %lld, pid: %d  '%s'\n", line, now_time, mem_usage,
+            diff, pid, label);
+    }
+
+    return mem_usage;
+}
+
+/* Print a line delimiter for visual separation.  Used for debugging. */
+static inline void
+print_delim_char(char c, int len)
+{
+    int k;
+    for (k = 0; k < len; ++k) {
+        printf("%c", c);
+    }
+    printf("\n");
+}
+
+/*
+ * For debugging print the type values of ramp data
+ * arrays and the expected type values.
+ */
+static void
+print_rd_type_info(struct ramp_data *rd)
+{ /* The ramp data */
+    print_delim();
+    print_npy_types();
+    dbg_ols_print("data = %d (%d)\n", PyArray_TYPE(rd->data), NPY_FLOAT);
+    dbg_ols_print("gdq  = %d (%d)\n", PyArray_TYPE(rd->groupdq), NPY_UBYTE);
+    dbg_ols_print("pdq  = %d (%d)\n", PyArray_TYPE(rd->pixeldq), NPY_UINT32);
+    dbg_ols_print("dcur = %d (%d)\n", PyArray_TYPE(rd->dcurrent), NPY_FLOAT);
+    dbg_ols_print("gain = %d (%d)\n", PyArray_TYPE(rd->gain), NPY_FLOAT);
+    dbg_ols_print("rn   = %d (%d)\n", PyArray_TYPE(rd->rnoise), NPY_FLOAT);
+    print_delim();
+}
+
+/*
+ * For debugging, print the type values and the array types.
+ */
+static void
+print_ramp_data_types(
+    struct ramp_data *rd, /* The ramp data */
+    int line)             /* Calling line number */
+{
+    printf("[%s:%d]\n", __FILE__, line);
+    printf("NPY_DOUBLE = %d\n", NPY_DOUBLE);
+    printf("NPY_FLOAT = %d\n", NPY_FLOAT);
+    printf("NPY_UBYTE = %d\n", NPY_UBYTE);
+    printf("NPY_UINT322 = %d\n", NPY_UINT32);
+    printf("PyArray_TYPE(rd->data))    = %d\n", PyArray_TYPE(rd->data));
+    printf("PyArray_TYPE(rd->groupdq)) = %d\n", PyArray_TYPE(rd->groupdq));
+    printf("PyArray_TYPE(rd->pixeldq)) = %d\n", PyArray_TYPE(rd->pixeldq));
+    printf("\n");
+    printf("PyArray_TYPE(rd->gain))   = %d\n", PyArray_TYPE(rd->gain));
+    printf("PyArray_TYPE(rd->rnoise)) = %d\n", PyArray_TYPE(rd->rnoise));
+}
+
 static void
 print_ramp_data_info(struct ramp_data *rd)
 {
@@ -4092,7 +4099,7 @@ print_pixel_ramp_dq(struct ramp_data *rd, struct pixel_ramp *pr, int line)
     }
     for (integ = 0; integ < pr->nints; ++integ) {
         idx = get_ramp_index(rd, integ, 0);
-        printf("[%ld] (%ld, %p) [%02x", integ, idx, pr->groupdq + idx, pr->groupdq[idx]);
+        printf("[%ld] (%ld, %p) [%02x", integ, idx, (void *) (pr->groupdq + idx), pr->groupdq[idx]);
         for (group = 1; group < pr->ngroups; ++group) {
             idx = get_ramp_index(rd, integ, group);
             printf(", %02x", pr->groupdq[idx]);
@@ -4261,7 +4268,7 @@ print_PyArrayObject_info(PyArrayObject *obj)
  * Print the values of NPY_{types}.
  */
 static void
-print_npy_types()
+print_npy_types(void)
 {
     printf("NPY_BOOL = %d\n", NPY_BOOL);
     printf("NPY_BYTE = %d\n", NPY_BYTE);
@@ -4296,6 +4303,14 @@ print_npy_types()
     NPY_UNICODE
      */
 }
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#elif defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(default : 4505) /* unreferenced local function has been removed */
+#endif
+
 /* ========================================================================= */
 
 /* ========================================================================= */

@@ -44,8 +44,8 @@ tracker = "https://github.com/spacetelescope/stcal/issues"
 
 [build-system]
 requires = [
-  "Cython>=0.29.21",
-  "numpy>=2.0.0",
+  "Cython>=3.1",
+  "numpy>=2.0.1",
   "setuptools>=61",
   "setuptools_scm[toml]>=3.4",
 ]
