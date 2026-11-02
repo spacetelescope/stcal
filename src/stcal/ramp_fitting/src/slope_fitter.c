@@ -953,13 +953,13 @@ CLEANUP:
 static PyArrayObject *
 create_empty_array(int nd, npy_intp *dims)
 {
-    return (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, 0);
+    return (PyArrayObject *) PyArray_Empty(nd, dims, PyArray_DescrFromType(NPY_FLOAT), 0);
 }
 
 static PyArrayObject *
 create_zeros_array(int nd, npy_intp *dims)
 {
-    return (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, 0);
+    return (PyArrayObject *) PyArray_Zeros(nd, dims, PyArray_DescrFromType(NPY_FLOAT), 0);
 }
 
 #if defined(__clang__)
