@@ -484,6 +484,9 @@ cr_list_add(struct cr_list *crs, real_t crmag);
 static void
 cr_list_clean(struct cr_list *crs);
 
+static PyArrayObject *
+create_empty_array(int nd, npy_intp *dims);
+
 static int
 create_opt_res(struct opt_res_product *opt_res, struct ramp_data *rd);
 
@@ -495,6 +498,9 @@ create_rate_product(struct rate_product *rate_prod, struct ramp_data *rd);
 
 static int
 create_rateint_product(struct rateint_product *rateint_prod, struct ramp_data *rd);
+
+static PyArrayObject *
+create_zero_array(int nd, npy_intp *dims);
 
 static float
 get_float2(PyArrayObject *obj, npy_intp row, npy_intp col);
@@ -930,6 +936,37 @@ CLEANUP:
 /* ------------------------------------------------------------------------- */
 /*                            Worker Functions                               */
 /* ------------------------------------------------------------------------- */
+
+/*
+ * Create an empty NumPy array with the specified number of dimensions and shape.
+ * Assume NPY_FLOAT type and C ordering. This is done to disable
+ * compiler warnings when numpy macros are expanded.
+ */
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpedantic"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
+static PyArrayObject *
+create_empty_array(int nd, npy_intp *dims)
+{
+    return (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, 0);
+}
+
+static PyArrayObject *
+create_zeros_array(int nd, npy_intp *dims)
+{
+    return (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, 0);
+}
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Add a segment to the segment list for the ramp.  A linked list is used to
@@ -1376,7 +1413,6 @@ create_opt_res(
     enum { nd = 4, pnd = 3 };
     npy_intp dims[nd];
     npy_intp pdims[pnd];
-    const int fortran = 0; /* Want C order */
     const char *msg = "Couldn't allocate memory for opt_res products.";
 
     dims[0] = rd->nints;
@@ -1384,38 +1420,37 @@ create_opt_res(
     dims[2] = rd->nrows;
     dims[3] = rd->ncols;
 
-    /* Note fortran = 0 */
-    opt_res->slope = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->slope = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->slope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigslope = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->sigslope = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->sigslope) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_p = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->var_p = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->var_p) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->var_r = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->var_r = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->var_r) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->yint = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->yint = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->yint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->sigyint = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->sigyint = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->sigyint) {
         goto FAILED_ALLOC;
     }
 
-    opt_res->weights = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->weights = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->weights) {
         goto FAILED_ALLOC;
     }
@@ -1423,14 +1458,14 @@ create_opt_res(
     pdims[0] = rd->nints;
     pdims[1] = rd->nrows;
     pdims[2] = rd->ncols;
-    opt_res->pedestal = (PyArrayObject *) PyArray_ZEROS(pnd, pdims, NPY_FLOAT, fortran);
+    opt_res->pedestal = (PyArrayObject *) create_zeros_array(pnd, pdims);
     if (!opt_res->pedestal) {
         goto FAILED_ALLOC;
     }
 
     /* cr_mag has different dimensions */
     dims[1] = rd->max_num_crs;
-    opt_res->cr_mag = (PyArrayObject *) PyArray_ZEROS(nd, dims, NPY_FLOAT, fortran);
+    opt_res->cr_mag = (PyArrayObject *) create_zeros_array(nd, dims);
     if (!opt_res->cr_mag) {
         goto FAILED_ALLOC;
     }
@@ -1517,33 +1552,32 @@ create_rate_product(
 {
     enum { nd = 2 };
     npy_intp dims[nd];
-    const int fortran = 0;
     const char *msg = "Couldn't allocate memory for rate products.";
 
     dims[0] = rd->nrows;
     dims[1] = rd->ncols;
 
-    rate->slope = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rate->slope = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rate->slope) {
         goto FAILED_ALLOC;
     }
 
-    rate->dq = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
+    rate->dq = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rate->dq) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_poisson = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rate->var_poisson = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rate->var_poisson) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_rnoise = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rate->var_rnoise = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rate->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
-    rate->var_err = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rate->var_err = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rate->var_err) {
         goto FAILED_ALLOC;
     }
@@ -1575,34 +1609,33 @@ create_rateint_product(
 {
     enum { nd = 3 };
     npy_intp dims[nd];
-    const int fortran = 0;
     const char *msg = "Couldn't allocate memory for rateint products.";
 
     dims[0] = rd->nints;
     dims[1] = rd->nrows;
     dims[2] = rd->ncols;
 
-    rateint->slope = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rateint->slope = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rateint->slope) {
         goto FAILED_ALLOC;
     }
 
-    rateint->dq = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_UINT32, fortran);
+    rateint->dq = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rateint->dq) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_poisson = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rateint->var_poisson = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rateint->var_poisson) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_rnoise = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rateint->var_rnoise = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rateint->var_rnoise) {
         goto FAILED_ALLOC;
     }
 
-    rateint->var_err = (PyArrayObject *) PyArray_EMPTY(nd, dims, NPY_FLOAT, fortran);
+    rateint->var_err = (PyArrayObject *) create_empty_array(nd, dims);
     if (NULL == rateint->var_err) {
         goto FAILED_ALLOC;
     }
