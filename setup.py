@@ -17,16 +17,13 @@ package_data = {
     "stcal.ramp_fitting.src": ["*.c"],
 }
 
-
 cfg = {
     "include_dirs": [np.get_include()],
     "libraries": [],
     "define_macros": [("NUMPY", "1"), ("NDEBUG", None)],
-    "py_limited_api": False,
 }
 
 if not FREE_THREADED_PYTHON:
-    cfg["py_limited_api"] = True
     cfg["define_macros"].append(("Py_LIMITED_API", 0x030B0000))  # PY_VERSION_HEX for 3.11
 
 if sys.platform == "win32":
@@ -55,24 +52,28 @@ extensions = [
     Extension(
         "stcal.ramp_fitting.ols_cas22._ramp",
         ["src/stcal/ramp_fitting/ols_cas22/_ramp.pyx"],
+        py_limited_api=not FREE_THREADED_PYTHON,
         language="c++",
         **cfg,
     ),
     Extension(
         "stcal.ramp_fitting.ols_cas22._jump",
         ["src/stcal/ramp_fitting/ols_cas22/_jump.pyx"],
+        py_limited_api=not FREE_THREADED_PYTHON,
         language="c++",
         **cfg,
     ),
     Extension(
         "stcal.ramp_fitting.ols_cas22._fit",
         ["src/stcal/ramp_fitting/ols_cas22/_fit.pyx"],
+        py_limited_api=not FREE_THREADED_PYTHON,
         language="c++",
         **cfg,
     ),
     Extension(
         "stcal.ramp_fitting.slope_fitter",
         ["src/stcal/ramp_fitting/src/slope_fitter.c"],
+        py_limited_api=not FREE_THREADED_PYTHON,
         **cfg,
     ),
 ]
