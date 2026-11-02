@@ -22,6 +22,7 @@ cfg = {
     "include_dirs": [np.get_include()],
     "libraries": [],
     "define_macros": [("NUMPY", "1"), ("NDEBUG", None)],
+    "py_limited_api": False,
 }
 
 if not FREE_THREADED_PYTHON:
@@ -45,7 +46,6 @@ else:
         "-Werror",
         "-Wpedantic",
         "-Wno-unused-parameter",
-        "-Wincompatible-pointer-types",
     ]
 
 
