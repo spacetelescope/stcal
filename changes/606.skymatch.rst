@@ -1,0 +1,1 @@
+Skip images without a sky value when computing the global sky in skymatch.
