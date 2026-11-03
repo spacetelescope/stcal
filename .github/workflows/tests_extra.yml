@@ -31,3 +31,5 @@ jobs:
         - macos: py314-devdeps-xdist
         - linux: py315-devdeps-xdist
           python-version: 3.15
+        - linux: py*-xdist
+          runs-on: ubuntu-26.04-arm
