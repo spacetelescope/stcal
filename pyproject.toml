@@ -221,8 +221,7 @@ build = [
   "cp311*", # build for CPython Stable API
 ]
 skip = [
-  "cp3*t-*",             # Disable free-threading builds on all platforms
-  "cp3*-*linux_aarch64", # skip building Linux ARM64 because it takes forever
+  "cp3*t-*", # Disable free-threading builds on all platforms
 ]
 test-command = 'python -c "from stcal.ramp_fitting.ols_cas22 import _ramp, _jump, _fit; from stcal.ramp_fitting import slope_fitter"'
 
