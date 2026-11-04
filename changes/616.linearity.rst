@@ -1,0 +1,1 @@
+Add linearity docs, define public API.
