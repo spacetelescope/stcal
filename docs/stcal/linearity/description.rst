@@ -13,7 +13,7 @@ the input science data.
 Linearity Correction
 --------------------
 
-The :func:`~stcal.linearity.linearity.linearity_correction` corrects
+The :func:`~stcal.linearity.linearity_correction` corrects
 science data for detector non-linearity. The core algorithm is the
 "classical" linearity correction adapted from the HST WFC3/IR linearity
 correction routine, correcting science data values for detector non-linearity.
@@ -24,8 +24,7 @@ Classical Nonlinearity Correction
 +++++++++++++++++++++++++++++++++
 
 The correction is represented by an nth-order polynomial for
-each pixel in the detector, with ``n+1`` arrays of coefficients read from the
-:ref:`linearity_reffile`.
+each pixel in the detector, with ``n+1`` arrays of coefficients.
 
 The algorithm for correcting the observed pixel value in each group of an
 integration is currently of the form:
