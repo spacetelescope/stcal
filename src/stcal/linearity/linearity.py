@@ -40,61 +40,61 @@ def linearity_correction(
 
     Parameters
     ----------
-    data : ndarray
+    data : np.ndarray
         The 4D array for the SCI data (nints, ngroups, nrows, ncols).
 
-    gdq : ndarray
+    gdq : np.ndarray
         The 4D group dq array.
 
-    pdq : ndarray
+    pdq : np.ndarray
         The 2D pixel dq array.
 
-    lin_coeffs : ndarray.
+    lin_coeffs : np.ndarray
         The 3D array containing pixel-by-pixel linearity coefficient
         values for each term in the polynomial fit.
 
-    lin_dq : ndarray
+    lin_dq : np.ndarray
         The 2D DQ array from the linearity reference file.
 
     dqflags : dict
         A dictionary with at least the following keywords:
         SATURATED, NO_LIN_CORR.
 
-    zframe : ndarray or None
+    zframe : np.ndarray or None
         The ZEROFRAME array with dimensions (nints, nrows, ncols) or None
 
-    ilin_coeffs : ndarray or None
+    ilin_coeffs : np.ndarray or None
         The 3D array containing inverse linearity coefficients. If provided,
         enables read-level linearity correction that accounts for averaging
         of multiple reads into resultants. Requires read_pattern to also be
         provided.
 
-    additional_correction : callable or None
+    additional_correction : ``callable`` or None
         A callable that takes the non-linear counts array and returns a correction
         array to be added to it. This allows mission-specific corrections (e.g.,
         integral non-linearity) to be applied. The callable should accept a 3D
         array (nreads, tile_rows, ncols) and return a correction array of the same
         shape.  The last axis must span the complete detector width.
 
-    read_pattern : list of lists or None
+    read_pattern : list of list or None
         The pattern of reads entering into groups. Each element is a list of
         1-indexed read indices that are averaged together to form the
         corresponding resultant. Example: [[1], [2], [3, 4], [5, 6, 7]] means
         resultant 0 is read 1, resultant 1 is read 2, resultant 2 is the
         average of reads 3 and 4, etc.
 
-    satval : ndarray or None
+    satval : np.ndarray or None
         2D array of saturation values for each pixel.
 
     Returns
     -------
-    data : ndarray
+    data : np.ndarray
         The 4D linearly corrected SCI data.
 
-    new_pdq : ndarray
+    new_pdq : np.ndarray
         The updated 2D pixel data quality flags.
 
-    zframe : ndarray or None
+    zframe : np.ndarray or None
         If not None, the 3D linearly corrected ZEROFRAME.
     """
     # Check if we should use read-level correction
