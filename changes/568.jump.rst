@@ -1,1 +1,0 @@
-Vectorize ellipse checks for faster snowball detection when many jumps are detected.

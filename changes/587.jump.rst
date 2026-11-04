@@ -1,1 +1,0 @@
-Improve accuracy of log statement for empirical sigma clipping.
