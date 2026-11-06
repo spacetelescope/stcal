@@ -17,11 +17,11 @@ from astropy.time import Time
 from stcal.tweakreg import astrometric_utils as amutils
 from stcal.tweakreg.tweakreg import (
     TweakregError,
+    _construct_wcs_corrector,
     _is_wcs_correction_small,
     _parse_refcat,
     _parse_sky_centroid,
     absolute_align,
-    construct_wcs_corrector,
     relative_align,
 )
 from stcal.tweakreg.utils import _wcsinfo_from_wcs_transform
@@ -345,7 +345,7 @@ def test_relative_align(example_input, input_catalog, with_shift):
         cat1["y"] -= 9
 
     correctors = [
-        construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, cat, dm.meta.group_id)
+        _construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, cat, dm.meta.group_id)
         for (dm, cat) in zip([m0, m1], [input_catalog, cat1], strict=True)
     ]
     result = relative_align(correctors, minobj=5)
@@ -361,7 +361,7 @@ def test_relative_align(example_input, input_catalog, with_shift):
 
 def test_absolute_align(example_input, input_catalog, abs_catalog):
     correctors = [
-        construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, input_catalog, dm.meta.group_id)
+        _construct_wcs_corrector(dm.meta.wcs, dm.meta.wcsinfo.instance, input_catalog, dm.meta.group_id)
         for dm in example_input
     ]
 
