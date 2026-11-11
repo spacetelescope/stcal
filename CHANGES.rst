@@ -1,3 +1,79 @@
+1.21.0 (2026-11-04)
+===================
+
+alignment step
+--------------
+
+- Add ``sigma_stat`` to ``relative_align`` and ``absolute_align`` to choose
+  the statistic used for clipping (default ``"rmse"``, unchanged). (`#600
+  <https://github.com/spacetelescope/stcal/issues/600>`_)
+
+
+jump step
+---------
+
+- Allow flagging for snowballs that occur in the first group. (`#566
+  <https://github.com/spacetelescope/stcal/issues/566>`_)
+- Vectorize ellipse checks for faster snowball detection when many jumps are
+  detected. (`#568 <https://github.com/spacetelescope/stcal/issues/568>`_)
+- For group-averaged data, flag snowballs for one additional group following
+  new saturation detection. (`#586
+  <https://github.com/spacetelescope/stcal/issues/586>`_)
+- Improve accuracy of log statement for empirical sigma clipping. (`#587
+  <https://github.com/spacetelescope/stcal/issues/587>`_)
+
+
+ramp_fitting step
+-----------------
+
+- Reduce the memory used when compressing group DQ into pixel DQ by avoiding
+  ramp-sized intermediaries. (`#577
+  <https://github.com/spacetelescope/stcal/issues/577>`_)
+- Avoid allocating a full ramp-sized array for each row in
+  ``determine_diffs2use`` in likelihood-based ramp fitting. (`#580
+  <https://github.com/spacetelescope/stcal/issues/580>`_)
+- Tweak the behavior of likelihood-based jump detection with few valid groups,
+  enable the use of the likelihood algorithm with as few as two groups.
+  Flag ramps with no usable group differences as DO_NOT_USE, and treat pixels
+  with non-positive read noise as unusable rather than emitting warnings.
+  (`#584 <https://github.com/spacetelescope/stcal/issues/584>`_)
+- Fix OLS_C read noise variance for ZEROFRAME-derived slopes, which was
+  too small by a factor of NFRAMES. (`#599
+  <https://github.com/spacetelescope/stcal/issues/599>`_)
+- Raise an exception for fully saturated data, which means there
+  are no ramps that can be computed. Also, raise an exception for
+  data where all ramps were computed as NaN. (`#601
+  <https://github.com/spacetelescope/stcal/issues/601>`_)
+
+
+resample step
+-------------
+
+- Make ``variance_array_names`` available as an input option to the
+  ``Resample`` class, allowing optional variance propagation for some
+  instances. (`#598 <https://github.com/spacetelescope/stcal/issues/598>`_)
+
+
+saturation step
+---------------
+
+- For group-averaged data, flag pixels that likely saturated in a previous
+  group
+  with the SATURATED flag instead of the DO_NOT_USE flag. This reverts an
+  earlier
+  workaround intended to enable more thorough snowball flagging for these
+  cases,
+  now handled directly in the jump algorithm. (`#586
+  <https://github.com/spacetelescope/stcal/issues/586>`_)
+
+
+Other Changes
+-------------
+
+- build Linux ARM64 wheels (`cp11_*linux_aarch64`) (`#613
+  <https://github.com/spacetelescope/stcal/issues/613>`_)
+
+
 1.20.0 (2026-08-10)
 ===================
 
