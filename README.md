@@ -1,3 +1,7 @@
+<a href="https://stsci.edu">
+  <img src="docs/_static/stsci_pri_combo_mark_horizonal_white_bkgd.png" alt="Space Telescope Science Institute" width="83%" style="margin-left: auto;"/>
+</a>
+
 # STCAL
 
 [![Documentation Status](https://readthedocs.org/projects/stcal/badge/?version=latest)](http://stcal.readthedocs.io/en/latest/?badge=latest)
@@ -5,8 +9,6 @@
 [![codecov](https://codecov.io/gh/spacetelescope/stcal/branch/main/graph/badge.svg?token=C1LO00W9CZ)](https://codecov.io/gh/spacetelescope/stcal)
 
 STScI Calibration algorithms and tools.
-
-<img src="docs/_static/stsci_pri_combo_mark_white.png" width="300"/>
 
 > [!IMPORTANT]
 > Linux and MacOS platforms are tested and supported. Windows is not currently supported.
