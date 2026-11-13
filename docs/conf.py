@@ -61,7 +61,7 @@ numpydoc_show_class_members = False
 autoclass_content = "both"
 
 html_theme = "sphinx_rtd_theme"
-html_logo = "_static/stsci_pri_combo_mark_white.png"
+html_logo = "_static/stsci_pri_combo_mark_dark_bkgd.png"
 html_theme_options = {
     "collapse_navigation": True,
 }

@@ -1,3 +1,7 @@
+.. image:: _static/stsci_pri_combo_mark_horizonal_white_bkgd.png
+   :width: 83%
+   :target: https://stsci.edu
+
 =================================
 Welcome to stcal's documentation!
 =================================
