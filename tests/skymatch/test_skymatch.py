@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import gwcs
 import numpy as np
@@ -16,9 +17,12 @@ def images():
     # a simple 1 arcminute FOV wcs
     scales = [1 / (s * 60) for s in IMAGE_SIZE]
     # shifted 1 degree to avoid dealing with RA wrapping
-    wcs = gwcs.WCS(
-        [["pixel", (Scale(scales[0]) & Scale(scales[1])) | (Shift(1) & Shift(1))], ["world", None]]
-    )
+    with warnings.catch_warnings():
+        # FIXME: https://github.com/spacetelescope/gwcs/pull/717
+        warnings.filterwarnings("ignore", message="The use of strings")
+        wcs = gwcs.WCS(
+            [["pixel", (Scale(scales[0]) & Scale(scales[1])) | (Shift(1) & Shift(1))], ["world", None]]
+        )
     im = SkyImage(
         np.zeros(IMAGE_SIZE, dtype="f4"),
         np.ones(IMAGE_SIZE, dtype=bool),

@@ -1,4 +1,5 @@
 import copy
+import warnings
 from pathlib import Path
 
 import asdf
@@ -18,7 +19,11 @@ DATADIR = "data"
 def wcs():
     # a simple 1 arcminute FOV wcs
     scales = [1 / (s * 60) for s in IMAGE_SIZE]
-    return gwcs.WCS([["pixel", Scale(scales[0]) & Scale(scales[1])], ["world", None]])
+    with warnings.catch_warnings():
+        # FIXME: https://github.com/spacetelescope/gwcs/pull/717
+        warnings.filterwarnings("ignore", message="The use of strings")
+        w = gwcs.WCS([["pixel", Scale(scales[0]) & Scale(scales[1])], ["world", None]])
+    return w
 
 
 @pytest.fixture
@@ -103,11 +108,14 @@ def test_calc_sky(skyinstance, fill_value, initial_sky, expected_sky, delta):
 @pytest.mark.parametrize("other_class", [SkyImage, SkyGroup])
 def test_calc_sky_overlap(skyinstance, wcs, other_class):
     # make a partially overlapping skyimage
-    offset_wcs = gwcs.WCS(
-        (Shift(1) & Shift(0)) | wcs.forward_transform,
-        input_frame="pixel",
-        output_frame="word",
-    )
+    with warnings.catch_warnings():
+        # FIXME: https://github.com/spacetelescope/gwcs/pull/717
+        warnings.filterwarnings("ignore", message="The use of strings")
+        offset_wcs = gwcs.WCS(
+            (Shift(1) & Shift(0)) | wcs.forward_transform,
+            input_frame="pixel",
+            output_frame="word",
+        )
     if isinstance(skyinstance, SkyGroup):
         reference = skyinstance[0]
     else:
