@@ -104,7 +104,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  */
 #define FREE_RAMP_DATA(RD)   \
     if (RD) {                \
-        clean_ramp_data(rd); \
+        clean_ramp_data(RD); \
         free(RD);            \
         (RD) = NULL;         \
     }
@@ -2059,7 +2059,6 @@ get_ramp_data_arrays(
 
     /* Validate numpy array types */
     if (get_ramp_data_new_validate(rd)) {
-        FREE_RAMP_DATA(rd);
         return 1;
     }
 
