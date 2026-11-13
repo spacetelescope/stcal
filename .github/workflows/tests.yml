@@ -44,3 +44,23 @@ jobs:
         - linux: py312-jwst-cov
         - linux: py312-romancal-cov
       coverage: codecov-oidc
+
+  # Build with -Werror on setting similar to user who reported issue.
+  werror:
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    steps:
+      - run: dnf install -y git gcc gcc-c++ python3.12 python3.12-devel python3.12-pip
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+          persist-credentials: false
+      - run: gcc --version
+      - name: Build
+        env:
+          CFLAGS: -Werror
+          CXXFLAGS: -Werror
+        run: |
+          python3.12 -m venv /tmp/venv
+          /tmp/venv/bin/pip install -v .
