@@ -2,6 +2,8 @@
 Unit tests for dark current correction
 """
 
+import warnings
+
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -159,10 +161,12 @@ def test_frame_averaging(setup_nrc_cube, readpatt, ngroups, nframes, groupgap, n
     manual_avg = np.zeros((ngroups), dtype=np.float32)
 
     # Manually average the input data to compare with pipeline output
-    for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind, strict=True):
-        # Average the data frames
-        newframe = np.mean(dark.data[gstart:gend, 10, 10])
-        manual_avg[newgp] = newframe
+    with warnings.catch_warnings(), np.errstate(invalid="ignore"):
+        warnings.filterwarnings("ignore", message="Mean of empty slice", category=RuntimeWarning)
+        for newgp, gstart, gend in zip(range(ngroups), gstrt_ind, gend_ind, strict=True):
+            # Average the data frames
+            newframe = np.mean(dark.data[gstart:gend, 10, 10])
+            manual_avg[newgp] = newframe
 
     # Check that pipeline output matches manual averaging results
     assert_allclose(manual_avg, avg_dark.data[:, 10, 10], rtol=1e-5)

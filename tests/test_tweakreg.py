@@ -2,6 +2,7 @@
 
 import contextlib
 import copy
+import warnings
 from copy import deepcopy
 from pathlib import Path
 
@@ -161,14 +162,19 @@ def test_is_wcs_correction_small(offset, is_good):
     Test that the _is_wcs_correction_small method returns True for a small
     wcs correction and False for a "large" wcs correction. The values in this
     test are selected based on the current step default parameters:
-        - use2dhist
-        - searchrad
-        - tolerance
+
+    - use2dhist
+    - searchrad
+    - tolerance
+
     Changes to the defaults for these parameters will likely require updating
     the values uses for parametrizing this test.
     """
     correctors = fake_correctors(offset)
-    assert _is_wcs_correction_small(correctors) == is_good
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="WCS has been tweaked", category=UserWarning)
+        status = _is_wcs_correction_small(correctors)
+    assert status is is_good
 
 
 def test_expected_fails_bad_separation():

@@ -16,7 +16,7 @@ dependencies = [
   "gwcs>=1.0.1,<2.0.0",
   "numpy>=1.25.0",
   "pyarrow>=10.0.1",
-  "requests>=2.22",
+  "requests>=2.32.3",
   "scikit-image>=0.21.0",
   "scipy>=1.14.1",
   "shapely>=2.1.1",
@@ -76,15 +76,8 @@ addopts = [
 ]
 testpaths = ["tests", "src/stcal", "docs"]
 norecursedirs = ["benchmarks", ".asv", ".eggs", ".tox", "build", "venv"]
-filterwarnings = [
-  "error::ResourceWarning",
-  # Files left open by tests can trigger ResourceWarnings during test
-  # teardown which otherwise would be converted back into a warning
-  # by pytest. Turn these PytestUnraisableExceptionWarnings back
-  # into errors
-  "error::pytest.PytestUnraisableExceptionWarning",
-]
-markers = ["soctests"]
+filterwarnings = ["error"]
+markers = ["soctests", "filterwarnings"]
 
 [tool.ruff]
 line-length = 110
