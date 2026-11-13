@@ -1258,7 +1258,7 @@ compute_integration_segments(
 {
     int ret = 0;
     uint32_t *groupdq = NULL;
-    npy_intp idx, start, end;
+    npy_intp idx, start=0, end=0;
     int in_seg = 0;
     uint32_t npers = ~(rd->pers);
     uint32_t gdq, gdq1 = -1;
