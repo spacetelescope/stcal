@@ -6,7 +6,7 @@ Unit tests for linearity correction
 
 import numpy as np
 
-from stcal.linearity.linearity import apply_polynomial, linearity_correction
+from stcal.linearity.linearity import _apply_polynomial, linearity_correction
 
 DQFLAGS = {"GOOD": 0, "DO_NOT_USE": 1, "SATURATED": 2, "DEAD": 1024, "HOT": 2048, "NO_LIN_CORR": 1048576}
 
@@ -213,7 +213,7 @@ def test_read_level_correction():
     # Set up saturation values
     satval = np.full((nrows, ncols), sat, dtype=np.float32)
 
-    nl_reads = apply_polynomial(reads, ilin_coeffs_flat)
+    nl_reads = _apply_polynomial(reads, ilin_coeffs_flat)
     true_groups = np.average(reads.reshape(ngroups, nreads_per_group), axis=1)
     nl_groups = np.average(nl_reads.reshape(ngroups, nreads_per_group), axis=1)
     # we now have what we want after linearity correction (true groups)

@@ -1,5 +1,7 @@
 import numpy as np
 
+__all__ = ["linearity_correction"]
+
 
 def linearity_correction(
     data,
@@ -38,61 +40,61 @@ def linearity_correction(
 
     Parameters
     ----------
-    data : ndarray
+    data : np.ndarray
         The 4D array for the SCI data (nints, ngroups, nrows, ncols).
 
-    gdq : ndarray
+    gdq : np.ndarray
         The 4D group dq array.
 
-    pdq : ndarray
+    pdq : np.ndarray
         The 2D pixel dq array.
 
-    lin_coeffs : ndarray.
+    lin_coeffs : np.ndarray
         The 3D array containing pixel-by-pixel linearity coefficient
         values for each term in the polynomial fit.
 
-    lin_dq : ndarray
+    lin_dq : np.ndarray
         The 2D DQ array from the linearity reference file.
 
     dqflags : dict
         A dictionary with at least the following keywords:
         SATURATED, NO_LIN_CORR.
 
-    zframe : ndarray or None
+    zframe : np.ndarray or None
         The ZEROFRAME array with dimensions (nints, nrows, ncols) or None
 
-    ilin_coeffs : ndarray or None
+    ilin_coeffs : np.ndarray or None
         The 3D array containing inverse linearity coefficients. If provided,
         enables read-level linearity correction that accounts for averaging
         of multiple reads into resultants. Requires read_pattern to also be
         provided.
 
-    additional_correction : callable or None
+    additional_correction : ``callable`` or None
         A callable that takes the non-linear counts array and returns a correction
         array to be added to it. This allows mission-specific corrections (e.g.,
         integral non-linearity) to be applied. The callable should accept a 3D
         array (nreads, tile_rows, ncols) and return a correction array of the same
         shape.  The last axis must span the complete detector width.
 
-    read_pattern : list of lists or None
+    read_pattern : list of list or None
         The pattern of reads entering into groups. Each element is a list of
         1-indexed read indices that are averaged together to form the
         corresponding resultant. Example: [[1], [2], [3, 4], [5, 6, 7]] means
         resultant 0 is read 1, resultant 1 is read 2, resultant 2 is the
         average of reads 3 and 4, etc.
 
-    satval : ndarray or None
+    satval : np.ndarray or None
         2D array of saturation values for each pixel.
 
     Returns
     -------
-    data : ndarray
+    data : np.ndarray
         The 4D linearly corrected SCI data.
 
-    new_pdq : ndarray
+    new_pdq : np.ndarray
         The updated 2D pixel data quality flags.
 
-    zframe : ndarray or None
+    zframe : np.ndarray or None
         If not None, the 3D linearly corrected ZEROFRAME.
     """
     # Check if we should use read-level correction
@@ -105,13 +107,13 @@ def linearity_correction(
 
     # Prepare coefficients
     nints = data.shape[0]
-    lin_coeffs, new_pdq = prepare_coefficients(lin_coeffs, lin_dq, pdq, dqflags)
+    lin_coeffs, new_pdq = _prepare_coefficients(lin_coeffs, lin_dq, pdq, dqflags)
     if read_level_correction:
-        ilin_coeffs, new_pdq = prepare_coefficients(ilin_coeffs, lin_dq, new_pdq, dqflags)
+        ilin_coeffs, new_pdq = _prepare_coefficients(ilin_coeffs, lin_dq, new_pdq, dqflags)
 
     # Apply linearity correction to each integration
     for i in range(nints):
-        data[i] = linearity_correction_int(
+        data[i] = _linearity_correction_int(
             data[i],
             gdq[i],
             lin_coeffs,
@@ -143,7 +145,7 @@ def linearity_correction(
         # the zero frame anyway.
         zdata = np.zeros_like(zframe)
         for i in range(zframe.shape[0]):
-            zdata[i] = linearity_correction_int(zframe[i], zdq[i], lin_coeffs, dqflags)
+            zdata[i] = _linearity_correction_int(zframe[i], zdq[i], lin_coeffs, dqflags)
 
         # Remove the groups axis and ensure bad data remains bad
         zdata = zdata[:, 0, :, :]
@@ -152,7 +154,7 @@ def linearity_correction(
     return data, new_pdq, zdata
 
 
-def correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
+def _correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
     """
     Check for NaNs in the COEFFS extension of the ref file.
 
@@ -191,7 +193,7 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
     # If there are NaNs as the correction coefficients, update those
     # coefficients so that those SCI values will be unchanged.
     if len(znan) > 0:
-        ben_cor = ben_coeffs(lin_coeffs)  # get benign coefficients
+        ben_cor = _ben_coeffs(lin_coeffs)  # get benign coefficients
 
         for ii in range(len(znan)):
             lin_coeffs[:, ynan[ii], xnan[ii]] = ben_cor
@@ -203,7 +205,7 @@ def correct_for_NaN(lin_coeffs, pixeldq, dqflags):  # noqa: N802
     return lin_coeffs, pixeldq
 
 
-def correct_for_zero(lin_coeffs, pixeldq, dqflags):
+def _correct_for_zero(lin_coeffs, pixeldq, dqflags):
     """
     Check when the linear term in the linearity coefficients is zero.
 
@@ -240,7 +242,7 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     # If there are linearity linear term equal to zero,
     # update the coefficients so the SCI values will be unchanged.
     if len(yzero) > 0:
-        ben_cor = ben_coeffs(lin_coeffs)  # get benign coefficients
+        ben_cor = _ben_coeffs(lin_coeffs)  # get benign coefficients
 
         for ii in range(len(yzero)):
             lin_coeffs[:, yzero[ii], xzero[ii]] = ben_cor
@@ -252,7 +254,7 @@ def correct_for_zero(lin_coeffs, pixeldq, dqflags):
     return lin_coeffs, pixeldq
 
 
-def correct_for_flag(lin_coeffs, lin_dq, dqflags):
+def _correct_for_flag(lin_coeffs, lin_dq, dqflags):
     """
     Check for NO_LIN_CORR flagged pixels.
 
@@ -287,7 +289,7 @@ def correct_for_flag(lin_coeffs, lin_dq, dqflags):
     # If there are pixels flagged as 'NO_LIN_CORR', update the corresponding
     #     coefficients so that those SCI values will be unchanged.
     if num_flag > 0:
-        ben_cor = ben_coeffs(lin_coeffs)  # get benign coefficients
+        ben_cor = _ben_coeffs(lin_coeffs)  # get benign coefficients
 
         for ii in range(num_flag):
             lin_coeffs[:, yf[ii], xf[ii]] = ben_cor
@@ -295,7 +297,7 @@ def correct_for_flag(lin_coeffs, lin_dq, dqflags):
     return lin_coeffs
 
 
-def ben_coeffs(lin_coeffs):
+def _ben_coeffs(lin_coeffs):
     """
     Return benign coefficients that leave pixel values unaffected.
 
@@ -319,7 +321,7 @@ def ben_coeffs(lin_coeffs):
     return ben_cor
 
 
-def prepare_coefficients(coeffs, lin_dq, pdq, dqflags):
+def _prepare_coefficients(coeffs, lin_dq, pdq, dqflags):
     """
     Prepare linearity coefficients by checking for and handling bad values.
 
@@ -352,18 +354,18 @@ def prepare_coefficients(coeffs, lin_dq, pdq, dqflags):
     new_pdq = np.bitwise_or(pdq, lin_dq)
 
     # Check for NO_LIN_CORR flags in the DQ extension of the ref file
-    coeffs = correct_for_flag(coeffs, lin_dq, dqflags)
+    coeffs = _correct_for_flag(coeffs, lin_dq, dqflags)
 
     # Check for NaNs in the COEFFS extension of the ref file
-    coeffs, new_pdq = correct_for_NaN(coeffs, new_pdq, dqflags)
+    coeffs, new_pdq = _correct_for_NaN(coeffs, new_pdq, dqflags)
 
     # Check when all the Linearity COEFFS = 0
-    coeffs, new_pdq = correct_for_zero(coeffs, new_pdq, dqflags)
+    coeffs, new_pdq = _correct_for_zero(coeffs, new_pdq, dqflags)
 
     return coeffs, new_pdq
 
 
-def apply_polynomial(data, coeffs, gdq=None, dqflags=None):
+def _apply_polynomial(data, coeffs, gdq=None, dqflags=None):
     """
     Apply a polynomial correction to data using the provided coefficients.
 
@@ -440,14 +442,14 @@ def _linearity_correction_tile(
     n_unsaturated[n_unsaturated < 2] = 2
 
     # Linearize the first resultant
-    firstread_lin = apply_polynomial(data[0], lin_coeffs, gdq[0], dqflags)
+    firstread_lin = _apply_polynomial(data[0], lin_coeffs, gdq[0], dqflags)
 
     # Calculate the last valid resultant for each pixel
     lastvalidresultant = n_unsaturated - 1
     idx = lastvalidresultant[np.newaxis]
     last_data = np.take_along_axis(data, idx, axis=0)[0]
     last_gdq = np.take_along_axis(gdq, idx, axis=0)[0]
-    lastread_lin = apply_polynomial(last_data, lin_coeffs, last_gdq, dqflags)
+    lastread_lin = _apply_polynomial(last_data, lin_coeffs, last_gdq, dqflags)
 
     d_reads = mean_read_resultant[lastvalidresultant] - mean_read_resultant[0]
     # countrate is in units of counts/read
@@ -464,7 +466,7 @@ def _linearity_correction_tile(
         )
 
         # Convert back to uncorrected counts using inverse linearity
-        reads_unlinearized = apply_polynomial(reads_linearized, ilin_coeffs)
+        reads_unlinearized = _apply_polynomial(reads_linearized, ilin_coeffs)
 
         # Adjust to match this resultant
         predicted_cts = np.mean(reads_unlinearized, axis=0)
@@ -486,7 +488,7 @@ def _linearity_correction_tile(
         # Apply classic linearity to the reads
         reads_corrected = np.zeros_like(reads_unlinearized)
         for j in range(reads_corrected.shape[0]):
-            reads_corrected[j] = apply_polynomial(reads_unlinearized[j], lin_coeffs)
+            reads_corrected[j] = _apply_polynomial(reads_unlinearized[j], lin_coeffs)
 
         # Average and write back, respecting saturation
         resultant_saturated = (gdq[i] & dqflags["SATURATED"]) != 0
@@ -494,7 +496,7 @@ def _linearity_correction_tile(
         data[i] = np.where(resultant_saturated, data[i], corrected_resultant)
 
 
-def linearity_correction_int(
+def _linearity_correction_int(
     data,
     gdq,
     lin_coeffs,
@@ -563,7 +565,7 @@ def linearity_correction_int(
     # If no inverse linearity coefficients, do simple correction in place
     if ilin_coeffs is None:
         for plane in range(ngroups):
-            data[plane] = apply_polynomial(data[plane], lin_coeffs, gdq[plane], dqflags)
+            data[plane] = _apply_polynomial(data[plane], lin_coeffs, gdq[plane], dqflags)
         return data
 
     # Process the frame in horizontal tiles to limit peak memory usage
