@@ -65,11 +65,11 @@ from stcal.ramp_fitting.ols_cas22._ramp cimport RampFit, RampIndex, RampQueue, f
 @boundscheck(False)
 @wraparound(False)
 @cdivision(True)
-cpdef inline float[:, :] fill_fixed_values(float[:, :] fixed,
-                                           float[:] t_bar,
-                                           float[:] tau,
-                                           int[:] n_reads,
-                                           int n_resultants):
+cpdef float[:, :] fill_fixed_values(float[:, :] fixed,
+                                    float[:] t_bar,
+                                    float[:] tau,
+                                    int[:] n_reads,
+                                    int n_resultants):
     """
     Pre-compute all the values needed for jump detection which only depend on
         the read pattern.
@@ -390,18 +390,18 @@ cdef inline (int, float) _fit_statistic(float[:, :] pixel,
 @boundscheck(False)
 @wraparound(False)
 @cdivision(True)
-cdef inline JumpFits fit_jumps(float[:] resultants,
-                               int[:] dq,
-                               float read_noise,
-                               float[:] t_bar,
-                               float[:] tau,
-                               int[:] n_reads,
-                               int n_resultants,
-                               float[:, :] fixed,
-                               float[:, :] pixel,
-                               Thresh thresh,
-                               bool use_jump,
-                               bool include_diagnostic):
+cdef JumpFits fit_jumps(float[:] resultants,
+                        int[:] dq,
+                        float read_noise,
+                        float[:] t_bar,
+                        float[:] tau,
+                        int[:] n_reads,
+                        int n_resultants,
+                        float[:, :] fixed,
+                        float[:, :] pixel,
+                        Thresh thresh,
+                        bool use_jump,
+                        bool include_diagnostic):
     """
     Compute all the ramps for a single pixel using the Casertano+22 algorithm
         with jump detection.
