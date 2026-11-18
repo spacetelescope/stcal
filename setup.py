@@ -40,7 +40,6 @@ else:
         "-O3",
         "-Wall",
         "-Wextra",
-        "-Werror",
         "-Wpedantic",
         "-Wno-unused-parameter",
     ]

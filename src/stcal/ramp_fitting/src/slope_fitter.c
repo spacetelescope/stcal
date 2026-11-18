@@ -104,7 +104,7 @@ const real_t LARGE_VARIANCE_THRESHOLD = 1.e6;
  */
 #define FREE_RAMP_DATA(RD)   \
     if (RD) {                \
-        clean_ramp_data(rd); \
+        clean_ramp_data(RD); \
         free(RD);            \
         (RD) = NULL;         \
     }
@@ -1258,7 +1258,7 @@ compute_integration_segments(
 {
     int ret = 0;
     uint32_t *groupdq = NULL;
-    npy_intp idx, start, end;
+    npy_intp idx, start = 0, end = 0;
     int in_seg = 0;
     uint32_t npers = ~(rd->pers);
     uint32_t gdq, gdq1 = -1;
@@ -2059,7 +2059,6 @@ get_ramp_data_arrays(
 
     /* Validate numpy array types */
     if (get_ramp_data_new_validate(rd)) {
-        FREE_RAMP_DATA(rd);
         return 1;
     }
 
