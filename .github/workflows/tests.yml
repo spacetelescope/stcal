@@ -18,6 +18,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # We the need the full Git history.
+      - uses: actions/setup-python@v7
+      # The following command will compare current changes to latest tag.
+      - run: |
+          pip install griffe
+          griffe check --search src --format github stcal
   test:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@8d5ad7efc8e84a051639373f6ea0d10441eafee1 # v3.2.1
     permissions:
