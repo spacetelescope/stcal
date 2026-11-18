@@ -305,7 +305,7 @@ drizzlepac/astrodrizzle.html>`_.
         for img in images:
             sky = img.calc_sky(delta=not subtract)[0]
             sky_deltas.append(sky)
-            if do_global and (minsky is None or sky < minsky):
+            if do_global and sky is not None and (minsky is None or sky < minsky):
                 minsky = sky
 
         if do_global:
