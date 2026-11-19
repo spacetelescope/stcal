@@ -124,6 +124,7 @@ def ramp_fit(
     max_cores,
     dqflags,
     suppress_one_group=False,
+    skip_jump_detect=False,
 ):
     """
     Fit ramp to model.
@@ -168,9 +169,12 @@ def ramp_fit(
         A dictionary with at least the following keywords:
         DO_NOT_USE, SATURATED, JUMP_DET, NO_GAIN_VALUE, UNRELIABLE_SLOPE
 
-    suppress_one_group : bool
+    suppress_one_group : bool, optional
         Find ramps with only one good group and treat it like it has zero good
         groups.
+
+    skip_jump_detect : bool, optional
+        If True, skip likelihood-based jump detection.
 
     Returns
     -------
@@ -193,10 +197,21 @@ def ramp_fit(
     # data models.
     ramp_data = create_ramp_fit_class(model, algorithm, dqflags, suppress_one_group)
 
-    return ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores)
+    return ramp_fit_data(
+        ramp_data,
+        save_opt,
+        readnoise_2d,
+        gain_2d,
+        algorithm,
+        weighting,
+        max_cores,
+        skip_jump_detect=skip_jump_detect,
+    )
 
 
-def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores):
+def ramp_fit_data(
+    ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighting, max_cores, skip_jump_detect=False
+):
     """
     Begin the ramp fit computation after creation of the RampData class.
 
@@ -233,6 +248,9 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
         to use for multi-proc. The total number of cores includes the SMT cores
         (Hyper Threading for Intel).
 
+    skip_jump_detect : bool, optional
+        If True, skip likelihood-based jump detection.
+
     Returns
     -------
     image_info : dict
@@ -257,7 +275,9 @@ def ramp_fit_data(ramp_data, save_opt, readnoise_2d, gain_2d, algorithm, weighti
         algorithm = "OLS_C"
 
     if algorithm.upper() == "LIKELY" and ngroups >= likely_fit.LIKELY_MIN_NGROUPS:
-        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(ramp_data, readnoise_2d, gain_2d)
+        image_info, integ_info, opt_info = likely_fit.likely_ramp_fit(
+            ramp_data, readnoise_2d, gain_2d, skip_jump_detect=skip_jump_detect
+        )
     else:
         # Default to OLS_C.
         # Get readnoise array for calculation of variance of noiseless ramps, and
