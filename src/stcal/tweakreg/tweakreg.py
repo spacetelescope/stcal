@@ -26,12 +26,20 @@ from .astrometric_utils import GSSS_CATALOGS, S3_CATALOGS, TIMEOUT, create_astro
 _SQRT2 = math.sqrt(2.0)
 SINGLE_GROUP_REFCAT = GSSS_CATALOGS + S3_CATALOGS
 
-__all__ = ["relative_align", "absolute_align", "SINGLE_GROUP_REFCAT", "filter_catalog_by_bounding_box"]
+__all__ = [
+    "TweakregError",
+    "relative_align",
+    "absolute_align",
+    "SINGLE_GROUP_REFCAT",
+    "filter_catalog_by_bounding_box",
+]
 
 log = logging.getLogger(__name__)
 
 
 class TweakregError(BaseException):
+    """Error in tweakreg alignment."""
+
     pass
 
 
@@ -382,7 +390,7 @@ def filter_catalog_by_bounding_box(catalog: Table, bounding_box: list[tuple]) ->
     return catalog[mask]
 
 
-def construct_wcs_corrector(
+def _construct_wcs_corrector(
     wcs: gwcs.WCS,
     refang: dict,
     catalog: Table,

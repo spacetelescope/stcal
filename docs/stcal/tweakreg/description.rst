@@ -232,8 +232,3 @@ The underlying algorithms as well as formats of source catalogs are described
 in more detail at
 
 https://tweakwcs.readthedocs.io/en/latest/
-
-.. currentmodule:: stcal.tweakreg.tweakreg
-
-.. automodapi:: stcal.tweakreg.tweakreg
-   :noindex:
