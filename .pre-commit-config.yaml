@@ -95,6 +95,11 @@ repos:
     rev: v0.22.0
     hooks:
       - id: cython-lint
+        name: cython-lint (modules)
+        files: "\\.(pyx|pxi)$"
+      - id: cython-lint
+        name: cython-lint (declarations)
+        files: "\\.pxd$"
       - id: double-quote-cython-strings
   # C style
   - repo: https://github.com/pre-commit/mirrors-clang-format
