@@ -1,0 +1,1 @@
+Several `stcal.resample` helpers are now private: the `Resample` variance and time methods, `resample_range` and `get_tmeasure`. `compute_mean_pixel_area` is no longer exported from `stcal.resample`, but is still available in `stcal.resample.utils`.
