@@ -765,10 +765,10 @@ class Resample:
         if self._compute_err == "driz_err":
             min_attributes.append("err")
 
-        if (not self._enable_var and self.weight_type is not None):
-            if (self.weight_type == "ivm-sky" and "var_sky" not in min_attributes):
+        if not self._enable_var and self.weight_type is not None:
+            if self.weight_type == "ivm-sky" and "var_sky" not in min_attributes:
                 min_attributes.append("var_sky")
-            elif (self.weight_type.startswith("ivm") and "var_rnoise" not in min_attributes):
+            elif self.weight_type.startswith("ivm") and "var_rnoise" not in min_attributes:
                 min_attributes.append("var_rnoise")
 
         for attr in min_attributes:
