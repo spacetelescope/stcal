@@ -1,12 +1,13 @@
 import copy
-import warnings
 from pathlib import Path
 
 import asdf
 import gwcs
 import numpy as np
 import pytest
+from astropy import coordinates as coord
 from astropy.modeling.models import Scale, Shift
+from gwcs import coordinate_frames as cf
 from spherical_geometry.polygon import MalformedPolygonError
 
 from stcal.skymatch import SkyGroup, SkyImage, SkyStats
@@ -19,11 +20,9 @@ DATADIR = "data"
 def wcs():
     # a simple 1 arcminute FOV wcs
     scales = [1 / (s * 60) for s in IMAGE_SIZE]
-    with warnings.catch_warnings():
-        # FIXME: https://github.com/spacetelescope/gwcs/pull/717
-        warnings.filterwarnings("ignore", message="The use of strings")
-        w = gwcs.WCS([["pixel", Scale(scales[0]) & Scale(scales[1])], ["world", None]])
-    return w
+    pixel_frame = cf.Frame2D(name="pixel")
+    world_frame = cf.CelestialFrame(reference_frame=coord.ICRS(), name="world")
+    return gwcs.WCS([(pixel_frame, Scale(scales[0]) & Scale(scales[1])), (world_frame, None)])
 
 
 @pytest.fixture
@@ -108,14 +107,11 @@ def test_calc_sky(skyinstance, fill_value, initial_sky, expected_sky, delta):
 @pytest.mark.parametrize("other_class", [SkyImage, SkyGroup])
 def test_calc_sky_overlap(skyinstance, wcs, other_class):
     # make a partially overlapping skyimage
-    with warnings.catch_warnings():
-        # FIXME: https://github.com/spacetelescope/gwcs/pull/717
-        warnings.filterwarnings("ignore", message="The use of strings")
-        offset_wcs = gwcs.WCS(
-            (Shift(1) & Shift(0)) | wcs.forward_transform,
-            input_frame="pixel",
-            output_frame="word",
-        )
+    offset_wcs = gwcs.WCS(
+        (Shift(1) & Shift(0)) | wcs.forward_transform,
+        input_frame=wcs.input_frame,
+        output_frame=wcs.output_frame,
+    )
     if isinstance(skyinstance, SkyGroup):
         reference = skyinstance[0]
     else:

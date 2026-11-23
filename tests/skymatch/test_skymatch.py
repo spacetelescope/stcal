@@ -1,10 +1,11 @@
 import copy
-import warnings
 
 import gwcs
 import numpy as np
 import pytest
+from astropy import coordinates as coord
 from astropy.modeling.models import Scale, Shift
+from gwcs import coordinate_frames as cf
 
 from stcal.skymatch import SkyGroup, SkyImage, SkyStats, skymatch
 
@@ -17,12 +18,14 @@ def images():
     # a simple 1 arcminute FOV wcs
     scales = [1 / (s * 60) for s in IMAGE_SIZE]
     # shifted 1 degree to avoid dealing with RA wrapping
-    with warnings.catch_warnings():
-        # FIXME: https://github.com/spacetelescope/gwcs/pull/717
-        warnings.filterwarnings("ignore", message="The use of strings")
-        wcs = gwcs.WCS(
-            [["pixel", (Scale(scales[0]) & Scale(scales[1])) | (Shift(1) & Shift(1))], ["world", None]]
-        )
+    pixel_frame = cf.Frame2D(name="pixel")
+    world_frame = cf.CelestialFrame(reference_frame=coord.ICRS(), name="world")
+    wcs = gwcs.WCS(
+        [
+            (pixel_frame, (Scale(scales[0]) & Scale(scales[1])) | (Shift(1) & Shift(1))),
+            (world_frame, None),
+        ]
+    )
     im = SkyImage(
         np.zeros(IMAGE_SIZE, dtype="f4"),
         np.ones(IMAGE_SIZE, dtype=bool),
