@@ -1,0 +1,3 @@
+- **Changed (breaking):** Several `stcal.resample` helpers are now private: the `Resample` variance and time methods, `resample_range` and `get_tmeasure`. `compute_mean_pixel_area` is no longer exported from `stcal.resample`, but is still available in `stcal.resample.utils`.
+
+- **Fixed:** `Resample.validate_input_model` now requires `var_sky` when `weight_type="ivm-sky"`, and raises `TypeError` for non-dict input.
