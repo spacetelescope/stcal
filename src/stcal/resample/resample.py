@@ -9,13 +9,13 @@ from drizzle.resample import Drizzle
 from numpy.typing import DTypeLike
 
 from stcal.resample.utils import (
+    _get_tmeasure,
+    _resample_range,
     build_driz_weight,
     calc_pixmap,
     compute_mean_pixel_area,
-    get_tmeasure,
     is_flux_density,
     is_imaging_wcs,
-    resample_range,
 )
 
 log = logging.getLogger(__name__)
@@ -99,9 +99,9 @@ class Resample:
         ``fillval`` value.
 
     weight_type : str, optional
-        The weighting type ("ivm", "exptime", or "ivm-sky") for adding models' data. For
-        ``weight_type="ivm"`` (the default), the weighting will be
-        determined per-pixel using the inverse of the read noise
+        The weighting type ("ivm", "exptime", or "ivm-sky") for adding
+        models' data. For ``weight_type="ivm"`` (the default), the weighting
+        will be determined per-pixel using the inverse of the read noise
         (VAR_RNOISE) array stored in each input image. If the
         ``VAR_RNOISE`` array does not exist, the variance is set to 1 for
         all pixels (i.e., equal weighting). If ``weight_type="ivm-sky"``,
@@ -701,9 +701,9 @@ class Resample:
             )
 
         if self._enable_var:
-            self.init_variance_arrays()
+            self._init_variance_arrays()
 
-        self.init_time_counters()
+        self._init_time_counters()
 
         self._finalized = False
 
@@ -714,6 +714,11 @@ class Resample:
         Checks that ``model`` has all the required keywords needed for
         processing based on settings used during initialisation if the
         `~stcal.resample.Resample` object.
+
+        Subclasses can override this method to implement custom validation
+        logic and they should call the base class implementation,
+        ``super().validate_input_model(model)`` to ensure that the minimum
+        required attributes are checked.
 
         Parameters
         ----------
@@ -726,9 +731,12 @@ class Resample:
         KeyError
             The ``model`` does not have a required keyword.
 
+        TypeError
+            The ``model`` is not a dictionary.
+
         """
-        # TODO: do we need this to just raise a custom
-        assert isinstance(model, dict)  # noqa: S101
+        if not isinstance(model, dict):
+            raise TypeError("Input model must be a dictionary.")
         min_attributes = [
             # arrays:
             "data",
@@ -757,13 +765,11 @@ class Resample:
         if self._compute_err == "driz_err":
             min_attributes.append("err")
 
-        if (
-            not self._enable_var
-            and self.weight_type is not None
-            and self.weight_type.startswith("ivm")
-            and ("var_rnoise" not in min_attributes)
-        ):
-            min_attributes.append("var_rnoise")
+        if (not self._enable_var and self.weight_type is not None):
+            if (self.weight_type == "ivm-sky" and "var_sky" not in min_attributes):
+                min_attributes.append("var_sky")
+            elif (self.weight_type.startswith("ivm") and "var_rnoise" not in min_attributes):
+                min_attributes.append("var_rnoise")
 
         for attr in min_attributes:
             if attr not in model:
@@ -840,7 +846,7 @@ class Resample:
         if not model["subtracted"] and blevel is not None:
             data = data - blevel
 
-        xmin, xmax, ymin, ymax = resample_range(data.shape, wcs.bounding_box)
+        xmin, xmax, ymin, ymax = _resample_range(data.shape, wcs.bounding_box)
 
         add_image_kwargs = {
             "exptime": model["exposure_time"],
@@ -875,7 +881,7 @@ class Resample:
         )
 
         if (group_id := model["group_id"]) not in self._group_ids:
-            self.update_time(model)
+            self._update_time(model)
             self._group_ids.append(group_id)
             self._output_model["pointings"] += 1
 
@@ -883,7 +889,7 @@ class Resample:
             self._driz_error.add_image(model["err"], **add_image_kwargs)
 
         if self._enable_var:
-            self.resample_variance_arrays(
+            self._resample_variance_arrays(
                 model=model,
                 pixmap=pixmap,
                 pixel_scale_ratio=self.pixel_scale_ratio,
@@ -994,8 +1000,10 @@ class Resample:
         sets output model values, and optionally frees temporary/intermediate
         objects.
 
-        ``finalize`` calls :py:meth:`~stcal.resample.Resample.finalize_resample_variance` and
-        :py:meth:`~stcal.resample.Resample.finalize_time_info`.
+        In particular, ``finalize`` computes the final resampled variance
+        arrays (when variance propagation is enabled), the output error
+        array (when ``compute_err`` is set), and the total exposure time
+        and other time-related values of the output model.
 
         .. warning::
             Once the resample process has been finalized, adding new models to
@@ -1025,7 +1033,7 @@ class Resample:
 
         # compute final variances:
         if self._enable_var:
-            self.finalize_resample_variance(self._output_model)
+            self._finalize_resample_variance(self._output_model)
 
         # If imaging, pixel scale ratio is (output scale / input scale)
         # and the error should be divided by this ratio
@@ -1060,10 +1068,10 @@ class Resample:
             del all_nan
             del var_components
 
-        self.finalize_time_info()
+        self._finalize_time_info()
         return
 
-    def init_variance_arrays(self):
+    def _init_variance_arrays(self):
         """Allocate arrays that hold co-added resampled variances and their weights."""
         shape = self.output_array_shape
 
@@ -1077,7 +1085,7 @@ class Resample:
                 "wt": np.zeros(shape, dtype=var_dtype),
             }
 
-    def resample_variance_arrays(
+    def _resample_variance_arrays(
         self, model, pixmap, pixel_scale_ratio, iscale, weight_map, xmin, xmax, ymin, ymax
     ):
         """Resample variance arrays.
@@ -1175,7 +1183,7 @@ class Resample:
                 weight[mask] = np.reciprocal(rn_var[mask])
 
         elif self.weight_type == "exptime":
-            t, _ = get_tmeasure(model)
+            t, _ = _get_tmeasure(model)
             weight = np.full(self.output_array_shape, t)
 
         else:
@@ -1194,7 +1202,7 @@ class Resample:
                 wsum[mask] = np.nansum([wsum[mask], var[mask] * weight[mask] * weight[mask]], axis=0)
             self._variance_info[varname]["wt"][mask] += weight[mask]
 
-    def finalize_resample_variance(self, output_model):
+    def _finalize_resample_variance(self, output_model):
         """
         Finalize variance calculations.
 
@@ -1299,7 +1307,7 @@ class Resample:
 
         return driz.out_img**2
 
-    def init_time_counters(self):
+    def _init_time_counters(self):
         """Initialize variables/arrays needed to process exposure time."""
         self._total_exposure_time = 0
         self._duration = 0
@@ -1319,13 +1327,14 @@ class Resample:
 
         self._measurement_time_success = []
 
-    def update_time(self, model):
+    def _update_time(self, model):
         """
         Update time calculations.
 
-        A method called by the :py:meth:`~stcal.resample.Resample.add_model` method to
-        process each image's time attributes *only* when ``model`` has a new
-        group ID.
+        Whenever ``model`` has a unique group ID that was never processed
+        before, the "pointings" value of the output model is incremented,
+        the group ID is recorded, and the model's time attributes are added
+        to the running exposure time totals.
 
         Parameters
         ----------
@@ -1343,7 +1352,7 @@ class Resample:
         if (exposure_time := model["exposure_time"]) is not None:
             self._total_exposure_time += exposure_time
 
-        t, success = get_tmeasure(model)
+        t, success = _get_tmeasure(model)
         self._measurement_time_success.append(success)
         if t is not None:
             self._total_measurement_time += t
@@ -1351,7 +1360,7 @@ class Resample:
         if (duration := model["duration"]) is not None:
             self._duration += duration
 
-    def finalize_time_info(self):
+    def _finalize_time_info(self):
         """Perform final computations for the total time and update relevant fields of the output model."""
         assert self._n_res_models  # noqa: S101
         # basic exposure time attributes:

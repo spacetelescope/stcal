@@ -8,8 +8,8 @@ from drizzle.utils import calc_pixmap
 from stcal.alignment.util import compute_s_region_imaging, wcs_from_sregions
 from stcal.resample import Resample
 from stcal.resample.utils import (
+    _resample_range,
     build_driz_weight,
-    resample_range,
 )
 
 from .helpers import (
@@ -36,7 +36,7 @@ class _CustomResample(Resample):
             model, weight_type=self.weight_type, good_bits=self.good_bits, flag_name_map=self.dq_flag_name_map
         )
 
-        xyrange = resample_range(data.shape, wcs.bounding_box)
+        xyrange = _resample_range(data.shape, wcs.bounding_box)
 
         assert np.allclose(pixmap_ref, pixmap)
         assert np.allclose(weight_ref, weight_map)
