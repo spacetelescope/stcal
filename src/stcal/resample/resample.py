@@ -789,8 +789,7 @@ class Resample:
         Whenever ``model`` has a unique group ID that was never processed
         before, the "pointings" value of the output model is incremented and
         the "group_id" attribute is updated. Also, time counters are updated
-        with new values from the input ``model`` by calling
-        :py:meth:`~~stcal.resample.Resample.update_time` .
+        with new values from the input ``model``.
 
         Parameters
         ----------
