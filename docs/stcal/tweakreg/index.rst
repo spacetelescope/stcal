@@ -9,12 +9,5 @@ TweakReg
 
    description.rst
 
-**Also See:**
-
-.. toctree::
-   :maxdepth: 1
-   
-   utils.rst
-   astrometric_utils.rst
-
-.. automodapi:: stcal.tweakreg
+.. automodapi:: stcal.tweakreg.tweakreg
+.. automodapi:: stcal.tweakreg.astrometric_utils
