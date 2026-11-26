@@ -6,14 +6,14 @@ from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 
 from stcal.resample.utils import (
     _get_inverse_variance,
+    _get_tmeasure,
+    _resample_range,
     build_driz_weight,
     build_mask,
     calc_pixmap,
     compute_mean_pixel_area,
-    get_tmeasure,
     is_flux_density,
     is_imaging_wcs,
-    resample_range,
 )
 
 from .helpers import JWST_DQ_FLAG_DEF, make_gwcs, make_input_model
@@ -79,10 +79,10 @@ def test_build_mask(dq, bitvalues, expected):
 def test_resample_range(data_shape, bbox, exception, truth):
     if exception:
         with pytest.raises(ValueError):
-            resample_range(data_shape, bbox)
+            _resample_range(data_shape, bbox)
         return
 
-    xyminmax = resample_range(data_shape, bbox)
+    xyminmax = _resample_range(data_shape, bbox)
     assert np.allclose(xyminmax, truth, rtol=0, atol=1e-12)
 
 
@@ -92,17 +92,17 @@ def test_get_tmeasure():
         "exposure_time": 23.45,
     }
 
-    assert get_tmeasure(model) == (12.34, True)
+    assert _get_tmeasure(model) == (12.34, True)
 
     model["measurement_time"] = None
-    assert get_tmeasure(model) == (23.45, False)
+    assert _get_tmeasure(model) == (23.45, False)
 
     del model["measurement_time"]
-    assert get_tmeasure(model) == (23.45, False)
+    assert _get_tmeasure(model) == (23.45, False)
 
     del model["exposure_time"]
     with pytest.raises(KeyError):
-        get_tmeasure(model)
+        _get_tmeasure(model)
 
 
 def test_is_imaging_wcs(wcs_gwcs):

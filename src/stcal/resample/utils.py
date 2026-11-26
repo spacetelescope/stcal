@@ -15,10 +15,8 @@ __all__ = [
     "build_driz_weight",
     "build_mask",
     "compute_mean_pixel_area",
-    "get_tmeasure",
     "is_flux_density",
     "is_imaging_wcs",
-    "resample_range",
 ]
 
 log = logging.getLogger(__name__)
@@ -217,7 +215,7 @@ def calc_pixmap(wcs_from, wcs_to, shape=None, disable_bbox="to", stepsize=1, ord
     return pixmap
 
 
-def resample_range(data_shape, bbox=None):  # noqa: D103
+def _resample_range(data_shape, bbox=None):  # noqa: D103
     # Find range of input pixels to resample:
     if len(data_shape) != 2:
         raise ValueError("Expected 'data_shape' to be of length 2.")
@@ -325,7 +323,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
         result = inv_sky_variance * dqmask
 
     elif weight_type == "exptime":
-        exptime, _ = get_tmeasure(model)
+        exptime, _ = _get_tmeasure(model)
         result = np.float32(exptime) * dqmask
 
     elif weight_type is None:
@@ -340,7 +338,7 @@ def build_driz_weight(model, weight_type=None, good_bits=None, flag_name_map=Non
     return result.astype(np.float32)
 
 
-def get_tmeasure(model):
+def _get_tmeasure(model):
     """
     Get tmeasure from datamodel.
 

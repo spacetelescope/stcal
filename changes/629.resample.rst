@@ -1,0 +1,1 @@
+``Resample.validate_input_model`` now requires ``var_sky`` when ``weight_type="ivm-sky"``, and raises ``TypeError`` for non-dict input.
