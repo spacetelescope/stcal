@@ -7,6 +7,7 @@ Package Index
    jump/index.rst
    ramp_fitting/index.rst
    alignment/index.rst
+   linearity/index.rst
    tweakreg/index.rst
    outlier_detection/index.rst
    resample/index.rst
