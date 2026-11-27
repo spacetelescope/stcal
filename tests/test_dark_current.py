@@ -2,15 +2,19 @@
 Unit tests for dark current correction
 """
 
+import importlib
 import warnings
 
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 
-from stcal.dark_current.dark_class import DarkData, ScienceData
-from stcal.dark_current.dark_sub import average_dark_frames_3d as average_dark_frames
-from stcal.dark_current.dark_sub import do_correction_data as darkcorr
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", "stcal.dark_current is deprecated.", DeprecationWarning)
+    import stcal.dark_current
+    from stcal.dark_current.dark_class import DarkData, ScienceData
+    from stcal.dark_current.dark_sub import average_dark_frames_3d as average_dark_frames
+    from stcal.dark_current.dark_sub import do_correction_data as darkcorr
 
 dqflags = {
     "DO_NOT_USE": 2**0,  # Bad pixel. Do not use.
@@ -133,6 +137,11 @@ def _params():
         params.append((readpatt, ngroups, values["nframes"], values["nskip"], nrows, ncols))
 
     return params
+
+
+def test_import_warning():
+    with pytest.warns(DeprecationWarning, match="stcal.dark_current is deprecated"):
+        importlib.reload(stcal.dark_current)
 
 
 @pytest.mark.parametrize(("readpatt", "ngroups", "nframes", "groupgap", "nrows", "ncols"), _params())
